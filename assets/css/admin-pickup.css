@@ -1,0 +1,204 @@
+.page-title-action,
+.row-actions,
+.subsubsub,
+.bulkactions,
+.check-column {
+	display: none;
+}
+.column-orders {
+	width: 30%;
+}
+
+.kiriminaja-payment img.qris-logo {
+	display: block;
+	width: 50%;
+	margin: 0 auto;
+}
+.kiriminaja-payment .pickup-number {
+	margin-top: 0;
+}
+.kiriminaja-payment .pickup-number,
+.kiriminaja-payment .amount {
+	text-align: center;
+}
+.kiriminaja-payment #qrcode img {
+	margin:  0 auto;
+}
+#kiriminaja-close-payment {
+	display: block;
+	margin: 0 auto;
+}
+.pickup-status {
+	display: inline-flex;
+	line-height: 2.5em;
+	color: #777;
+	background: #e5e5e5;
+	border-radius: 4px;
+	border-bottom: 1px solid rgba(0,0,0,.05);
+	margin: -.25em 0;
+	cursor: inherit !important;
+	white-space: nowrap;
+	max-width: 100%;
+	padding: 0 1em;
+}
+.pickup-status.status-new,
+.pickup-status.status-pending {
+	background: #c6e1c6;
+	color: #5b841b;
+}
+.pickup-status.status-paid {
+	background: #f8dda7;
+	color: #94660c;
+}
+.kiriminaja-request-pickup-detail {
+	padding-top: 10px;
+	display: flex;
+	gap: 20px;
+	max-height: 370px;
+}
+.kiriminaja-request-pickup-detail .orders-list-wrap,
+.kiriminaja-request-pickup-detail .pickup-detail {
+	flex-grow: 1;
+}
+.kiriminaja-request-pickup-detail .orders-list-wrap {
+	max-height: 340px;
+	overflow-y: scroll;
+}
+.kiriminaja-request-pickup-detail h3 {
+	margin: 0 0 10px;
+}
+.kiriminaja-request-pickup-detail .orders-list li {
+	border: 1px solid rgba(149, 149, 149, 0.15);
+	border-radius: 5px;
+	box-shadow: 0px 0px 15px rgba(149, 149, 149, 0.15);
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header {
+	display: flex;
+	padding: 5px 10px;
+	gap: 10px;
+	align-items: center;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-number {
+	flex-basis: 35%;
+	flex-grow: 1;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-payment {
+	flex-basis: 15%;
+	font-weight: 700;
+	flex-grow: 0;
+	white-space: nowrap;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-payment span {
+	font-size: 10px;
+	padding: 2px 6px;
+	color: #fff;
+	border-radius: 10px;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-payment .cod {
+	background-color: #f76707;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-payment .non-cod {
+	background-color: #74b9ff;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-shipping {
+	flex-basis: 50%;
+	flex-grow: 1;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-id {
+	font-weight: 700;
+	color: rgb(111, 47, 171);
+	display: block;
+	text-decoration: none;
+}
+.kiriminaja-request-pickup-detail .orders-list .order-list-header .order-ref-id {
+	font-size: 10px;
+	color: #999;
+	margin-top: -5px;
+}
+.kiriminaja-request-pickup-detail .pickup-detail p {
+	margin-top: 0;
+	margin-bottom: 5px;
+}
+.kiriminaja-request-pickup-detail .pickup-detail p label {
+	display: block;
+	font-weight: bold;
+}
+.kiriminaja-request-pickup-detail.detail-actions {
+	margin-top: 20px;
+}
+.kiriminaja-request-pickup-detail .detail-actions .button {
+	display: block;
+	margin-top: 5px;
+	width: 100%;
+}
+.kiriminaja-request-pickup .pickup-time-wrapper {
+	width: 100%;
+}
+.kiriminaja-request-pickup .pickup-schedules label {
+	display: block;
+}
+.kiriminaja-request-pickup .pickup-schedules label input {
+	display: none;
+}
+.kiriminaja-request-pickup .pickup-schedules label span {
+	display: block;
+	position: relative;
+	line-height: 16px;
+	height: 18px;
+	border:  1px solid #ddd;
+	border-radius: 4px;
+	margin-bottom: 4px;
+	padding: 5px;
+	padding-left: 40px;
+	transition: all 0.2s;
+	border-radius: 35px;
+	text-align: right;
+	padding-right: 15px;
+}
+.kiriminaja-request-pickup .pickup-schedules label:hover span {
+	border-color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .pickup-schedules label span:before {
+	content: '';
+	display: block;
+	position: absolute;
+	left: 5px;
+	top: 5px;
+	width: 16px;
+	height: 16px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	transition: all 0.2s;
+}
+.kiriminaja-request-pickup .pickup-schedules label span:after {
+	content: '';
+	opacity: 0;
+	position: absolute;
+	top: 9px;
+	left: 9px;
+	width: 10px;
+	height: 10px;
+	border-radius: 10px;
+	background-color: rgb(111, 47, 171);
+	transition: all 0.2s;
+}
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span {
+	color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span,
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span:before {
+	border-color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span:after {
+	opacity: 1;
+}
+#kiriminaja-send-reschedule-pickup {
+	display: block;
+	width: 100%;
+	margin-top: 20px;
+	margin-bottom: 20px;
+	padding: 5px 10px;
+}
+.text-center {
+	text-align: center;
+}

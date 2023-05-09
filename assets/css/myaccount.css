@@ -1,0 +1,18 @@
+#ka-shipping-history {
+	width: 100%;
+	border: 0;
+}
+#ka-shipping-history th,
+#ka-shipping-history td {
+	padding-top: 2px;
+	padding-bottom: 2px;
+	vertical-align: top;
+}
+#ka-shipping-history .timestamp {
+	padding-right: 10px;
+}
+@media (min-width: 768px) {
+	#ka-shipping-history .timestamp {
+		white-space: nowrap;
+	}
+}

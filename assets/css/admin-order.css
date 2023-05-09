@@ -1,0 +1,177 @@
+.kiriminaja-request-pickup {
+	padding-top: 10px;
+	display: flex;
+	gap: 20px;
+	max-height: 370px;
+}
+.kiriminaja-request-pickup .orders-list-wrap,
+.kiriminaja-request-pickup .pickup-time-wrapper {
+	flex-grow: 1;
+}
+.kiriminaja-request-pickup .orders-list-wrap {
+	max-height: 340px;
+	overflow-y: scroll;
+}
+.kiriminaja-request-pickup h3 {
+	margin: 0 0 10px;
+}
+.kiriminaja-request-pickup .orders-list li {
+	border: 1px solid rgba(149, 149, 149, 0.15);
+	border-radius: 5px;
+	box-shadow: 0px 0px 15px rgba(149, 149, 149, 0.15);
+}
+.kiriminaja-request-pickup .orders-list .order-list-header {
+	display: flex;
+	padding: 5px 10px;
+	gap: 10px;
+	align-items: center;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-number {
+	flex-basis: 35%;
+	flex-grow: 1;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-payment {
+	flex-basis: 15%;
+	font-weight: 700;
+	flex-grow: 0;
+	white-space: nowrap;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-payment span {
+	font-size: 10px;
+	padding: 2px 6px;
+	color: #fff;
+	border-radius: 10px;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-payment .cod {
+	background-color: #f76707;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-payment .non-cod {
+	background-color: #74b9ff;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-shipping {
+	flex-basis: 50%;
+	flex-grow: 1;
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-id {
+	font-weight: 700;
+	color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .orders-list .order-list-header .order-ref-id {
+	font-size: 10px;
+	color: #999;
+	margin-top: -5px;
+}
+.kiriminaja-request-pickup .pickup-schedules label {
+	display: block;
+}
+.kiriminaja-request-pickup .pickup-schedules label input {
+	display: none;
+}
+.kiriminaja-request-pickup .pickup-schedules label span {
+	display: block;
+	position: relative;
+	line-height: 16px;
+	height: 18px;
+	border:  1px solid #ddd;
+	border-radius: 4px;
+	margin-bottom: 4px;
+	padding: 5px;
+	padding-left: 40px;
+	transition: all 0.2s;
+	border-radius: 35px;
+	text-align: right;
+	padding-right: 15px;
+}
+.kiriminaja-request-pickup .pickup-schedules label:hover span {
+	border-color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .pickup-schedules label span:before {
+	content: '';
+	display: block;
+	position: absolute;
+	left: 5px;
+	top: 5px;
+	width: 16px;
+	height: 16px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	transition: all 0.2s;
+}
+.kiriminaja-request-pickup .pickup-schedules label span:after {
+	content: '';
+	opacity: 0;
+	position: absolute;
+	top: 9px;
+	left: 9px;
+	width: 10px;
+	height: 10px;
+	border-radius: 10px;
+	background-color: rgb(111, 47, 171);
+	transition: all 0.2s;
+}
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span {
+	color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span,
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span:before {
+	border-color: rgb(111, 47, 171);
+}
+.kiriminaja-request-pickup .pickup-schedules label input:checked + span:after {
+	opacity: 1;
+}
+#kiriminaja-send-request-pickup {
+	display: block;
+	width: 100%;
+	margin-top: 20px;
+	padding: 5px 10px;
+}
+.ka-last-status:before {
+	content: '\e01a';
+	font-family: 'WooCommerce';
+	display: inline-block;
+	margin-right: 5px;
+}
+
+.kiriminaja-payment img.qris-logo {
+	display: block;
+	width: 50%;
+	margin: 0 auto;
+}
+.kiriminaja-payment .pickup-number {
+	margin-top: 0;
+}
+.kiriminaja-payment .pickup-number,
+.kiriminaja-payment .amount {
+	text-align: center;
+}
+.kiriminaja-payment #qrcode img {
+	margin:  0 auto;
+}
+#kiriminaja-close-payment {
+	display: block;
+	margin: 0 auto;
+}
+
+.ka-tracking {
+	width: 100%;
+	margin-bottom: 10px;
+}
+.ka-tracking th,
+.ka-tracking td {
+	vertical-align: top;
+	text-align: left;
+}
+.ka-tracking th {
+	padding-right: 5px;
+}
+.ka-shipping-history {
+	display: none;
+}
+.ka-shipping-history li {
+	margin-top: 10px;
+}
+.ka-shipping-history .timestamp {
+	border-bottom: 1px dotted #999;
+	color: #999;
+	font-size: 11px;
+}

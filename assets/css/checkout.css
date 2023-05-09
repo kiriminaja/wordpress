@@ -1,0 +1,14 @@
+.kiriminaja_loading {
+	opacity: 0.6;
+	cursor: progress;
+}
+.kiriminaja_loading * {
+	cursor: progress !important;
+}
+.kiriminaja-hidden {
+	display: none !important;
+}
+.form-row.woocommerce-invalid span.select2-selection {
+	border-color: #aaa;
+	border-width: 1px;
+}
