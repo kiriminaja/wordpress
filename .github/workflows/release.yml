@@ -2,6 +2,8 @@ on: create
 name: Release
 jobs:
   release:
+    name: Upload to Google Cloud
+    runs-on: ubuntu-latest
     permissions:
       contents: 'read'
       id-token: 'write'
