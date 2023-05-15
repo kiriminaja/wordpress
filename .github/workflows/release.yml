@@ -2,7 +2,26 @@ on: create
 name: Release
 jobs:
   release:
-    name: Release Github Actions
-    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     steps:
-      - uses: technote-space/release-github-actions@v6
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        service_account_key: ${{ secrets.GCS_SA_KEY }}
+        project_id: ${{ secrets.GCS_PROJECT }}
+        export_default_credentials: true
+
+    - id: 'upload-folder'
+      uses: 'google-github-actions/upload-cloud-storage@v1'
+      with:
+        path: '/wp/'
+        destination: ${{secrets.BUCKET_NAME}}
+
+    # Example of using the output
+    - id: 'uploaded-files'
+      uses: 'foo/bar@main'
+      env:
+        files: '${{ steps.upload-folder.outputs.uploaded }}'
