@@ -23,14 +23,14 @@ jobs:
 
     - name: Zipping Version
       run: zip -qq -r ${{ github.ref_name }}.zip *
-      working-directory: '/wp/'
 
     - name: Auth to GCP
       uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GCS_KA_KEY }}
+
     - name: Uploading
       uses: google-github-actions/upload-cloud-storage@v1
       with:
         path: ${{ github.ref_name }}.zip
-        destination: ${{ secrets.GCS_KA_BUCKET_NAME }}
+        destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
