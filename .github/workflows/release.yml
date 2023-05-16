@@ -1,20 +1,36 @@
-name: Deploy
+name: Release Deploy
 
 on:
   push:
-    branches:
-      - development
+    tags:
+      - '*'
 
 jobs:
-  deploy:
-    name: Deploy
+  build:
+    name: 'Build & Push'
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
 
-      - name: Sync
-        uses: patrickwyler/gcs-bucket-sync-action@1.3
-        with:
-          secrets: ${{ secrets.GCS_KA_KEY }}
-          bucket: ${{ secrets.GCS_KA_BUCKET_NAME }}
-          exclude: '.*\.md$|\.gitignore$|\.git/.*$|\.github/.*$'
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install zip
+      uses: montudor/action-zip@v1
+
+    - name: Zipping Version
+      run: zip -qq -r ${{ github.ref_name }}.zip *
+      working-directory: '/wp/'
+
+    - name: Auth to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCS_KA_KEY }}
+    - name: Uploading
+      uses: google-github-actions/upload-cloud-storage@v1
+      with:
+        path: ${{ github.ref_name }}.zip
+        destination: ${{ secrets.GCS_KA_BUCKET_NAME }}
