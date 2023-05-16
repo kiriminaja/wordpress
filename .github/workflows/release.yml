@@ -1,29 +1,36 @@
-on: create
-name: Release
+name: Release Deploy
+
+on:
+  push:
+    tags:
+      - '*'
+
 jobs:
-  release:
-    name: Upload to Google Cloud
+  build:
+    name: 'Build & Push'
     runs-on: ubuntu-latest
-    permissions:
-      contents: 'read'
-      id-token: 'write'
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v1'
-      with:
-        service_account_key: ${{ secrets.GCS_SA_KEY }}
-        project_id: ${{ secrets.GCS_PROJECT }}
-        export_default_credentials: true
+    - name: Checkout
+      uses: actions/checkout@v3
 
-    - id: 'upload-folder'
-      uses: 'google-github-actions/upload-cloud-storage@v1'
-      with:
-        path: '/wp/'
-        destination: ${{secrets.BUCKET_NAME}}
+    - name: Install zip
+      uses: montudor/action-zip@v1
 
-    # Example of using the output
-    - id: 'uploaded-files'
-      uses: 'foo/bar@main'
-      env:
-        files: '${{ steps.upload-folder.outputs.uploaded }}'
+    - name: Zipping Version
+      run: zip -qq -r ${{ github.ref_name }}.zip *
+      working-directory: '/wp/'
+
+    - name: Auth to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCS_KA_KEY }}
+    - name: Uploading
+      uses: google-github-actions/upload-cloud-storage@v1
+      with:
+        path: ${{ github.ref_name }}.zip
+        destination: ${{ secrets.GCS_KA_BUCKET_NAME }}
