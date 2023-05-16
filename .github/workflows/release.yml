@@ -23,8 +23,7 @@ jobs:
 
     - name: Zipping Version
       run: zip -qq -r ${{ github.ref_name }}.zip *
-      working-directory: '/wp/'
-
+      
     - name: Auth to GCP
       uses: google-github-actions/auth@v1
       with:
