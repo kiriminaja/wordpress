@@ -20,6 +20,13 @@ jobs:
 
     - name: Install zip
       uses: montudor/action-zip@v1
+      
+    - name: Get current time
+      uses: josStorer/get-current-time@v2
+      id: date
+      with:
+        format: YYYY-MM-DDHH:mm:ss
+        utcOffset: "+07:00"      
 
     - name: Zipping Version
       run: zip -qq -r kiriminaja-${{ github.ref_name }}.zip *
@@ -28,9 +35,23 @@ jobs:
       uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GCS_KA_KEY }}
+        
+    - name: Generate JSON
+      uses: jsdaniell/create-json@v1.2.2
+      with: 
+        name: woocommerce.json
+        json: "{\"name\":\"Kiriminaja\",\"slug\":\"kiriminaja\",\"author\":\"<ahref='https://kiriminaja.com'>Kiriminaja</a>\",\"author_profile\":\"http://kiriminaja.com/about\",\"version\":\"${{ github.ref_name }}\",\"download_url\":\"https://storage.googleapis.com/tprt0ezsggqjornc7nf1wwluvgulhr/wp/kiriminaja-${{ github.ref_name }}.zip\",\"requires\":\"3.0\",\"tested\":\"5.8\",\"requires_php\":\"5.3\",\"last_updated\":\"${{ steps.date.outputs.formattedTime }}\",\"sections\":{\"description\":\"Kiriminajaplugin\",\"installation\":\"Clicktheactivatebuttonandthat'sit.\",\"changelog\":\"<h4>${{ steps.date.outputs.readableTime }}</h4><ul><li>Update and fixing</li></ul>\"}}"
 
-    - name: Uploading
+    - name: Uploading ZIP
+      id: upload-zip
       uses: google-github-actions/upload-cloud-storage@v1
       with:
         path: kiriminaja-${{ github.ref_name }}.zip
+        destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
+        
+    - name: Uploading Woocommerce JSON
+      id: upload-json
+      uses: google-github-actions/upload-cloud-storage@v1
+      with:
+        path: woocommerce.json
         destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
