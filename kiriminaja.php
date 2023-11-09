@@ -2,7 +2,7 @@
 /**
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
- * Description:     Kirim Paket ke seluruh indonesia tanpa ribet integrasi satu satu
+ * Description:     Integrate to all best delivery services across the nusantara
  * Version:         0.0.25
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
