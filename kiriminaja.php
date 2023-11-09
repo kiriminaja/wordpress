@@ -2,8 +2,8 @@
 /**
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
- * Description:     Hitung ongkos kirim seluruh Indonesia (JNE, POS, Tiki, JNT, Wahana, Lion Parcel, Sicepat, dll)
- * Version:         0.0.23
+ * Description:     Kirim Paket ke seluruh indonesia tanpa ribet integrasi satu satu
+ * Version:         0.0.25
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 // constants.
-define('KIRIMINAJA_VERSION', '0.0.22');
+define('KIRIMINAJA_VERSION', '0.0.25');
 define('KIRIMINAJA_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('KIRIMINAJA_PLUGIN_URL', plugins_url(basename(plugin_dir_path(__FILE__)), basename(__FILE__)));
 define('KIRIMINAJA_SETTING_URL', admin_url('admin.php?page=wc-settings&tab=shipping&section=kiriminaja'));
