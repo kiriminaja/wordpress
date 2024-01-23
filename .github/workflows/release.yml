@@ -5,9 +5,6 @@ on:
     tags:
       - '*'
 
-env:
-  JSON_NAME: wc.json
-
 jobs:
   build:
     name: 'Build & Push'
@@ -48,34 +45,34 @@ jobs:
         id: rewrite-json
         uses: devops-actions/json-to-file@v1.0.0
         with:
-          filename: ${{ JSON_NAME }}
+          filename: wp.json
           json: "{\"name\":\"KiriminAja Plugin\",\"slug\":\"kiriminaja\",\"author\":\"<a href='https://kiriminaja.com'>KiriminAja</a>\",\"author_profile\":\"https://kiriminaja.com/about\",\"tested\":\"7.0\",\"requires_php\":\"7.0\",\"sections\":{\"description\":\"KiriminAja Plugin Update\",\"installation\":\"Click the activation button.\",\"changelog\":\"Bug fixing and performance improvement\"}}"
 
       - name: Update version value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: ${{ JSON_NAME }}
+          file: wp.json
           field: version
           value: ${{ github.ref_name }}
 
       - name: Update requires value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: ${{ JSON_NAME }}
+          file: wp.json
           field: requires
           value: ${{ github.ref_name }}
 
       - name: Update download url value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: ${{ JSON_NAME }}
+          file: wp.json
           field: download_url
           value: https://storage.googleapis.com/${{ secrets.GCS_KA_BUCKET_NAME }}/wp/kiriminaja-${{ github.ref_name }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: ${{ JSON_NAME }}
+          file: wp.json
           field: last_updated
           value: ${{ steps.date.outputs.date }}
 
@@ -83,6 +80,6 @@ jobs:
         id: upload-json
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: ${{ JSON_NAME }}
+          path: wp.json
           destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
           predefinedAcl: 'publicRead'
