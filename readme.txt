@@ -1,10 +1,10 @@
 === KiriminAja ===
 Contributors: yanuaraditia
 Donate link: https://kiriminaja.com/
-Tags: 0.0.25
-Requires at least: 0.0.25
-Tested up to: 0.0.25
-Stable tag: 0.0.25
+Tags: 0.0.26
+Requires at least: 0.0.26
+Tested up to: 0.0.26
+Stable tag: 0.0.26
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
