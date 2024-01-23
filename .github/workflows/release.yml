@@ -23,7 +23,7 @@ jobs:
 
     - name: Get current time
       id: date
-      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d %H:%I')"
 
     - name: Compress The Version
       run: zip -qq -r kiriminaja-${{ github.ref_name }}.zip *
@@ -42,25 +42,28 @@ jobs:
         predefinedAcl: 'publicRead'
 
     - name: Create JSON File
-      id: create-json
-      uses: schdck/create-env-json@v1
+      id: rewrite-json
+      uses: devops-actions/json-to-file@v1.0.0
       with:
-        file-name: 'wc.json'
-        name: "KiriminAja"
-        slug: "kiriminaja"
-        author: <a href='https://kiriminaja.com'>KiriminAja</a>
-        author_profile: https://kiriminaja.com/about
-        version: ${{ github.ref_name }}
-        download_url: https://storage.googleapis.com/${{ secrets.GCS_KA_BUCKET_NAME }}/wp/kiriminaja-${{ github.ref_name }}.zip
-        requires: ${{ github.ref_name }}
-        tested: 7.0
-        requires_php: 7.0
-        last_updated: ${{ steps.date.outputs.date }}
-        sections: '{
-    "description" : "KiriminAja Wordpress Plugin Update",
-    "installation" : "Klik pada tombol update dan lakukan aktivasi",
-    "changelog" : "Bug fixing and performance improvement"
-  }'
+        filename: 'wc.json'
+        json: '{
+  "name" : "KiriminAja Plugin",
+  "slug" : "kiriminaja",
+  "author" : "<a href=https://kiriminaja.com>KiriminAja</a>",
+  "author_profile" : "https://kiriminaja.com/integration",
+  "version" : "$(github.ref_name)",
+  "download_url" : "https://storage.googleapis.com/tprt0ezsggqjornc7nf1wwluvgulhr/wp/kiriminaja-%{github.ref_name}.zip",
+  "requires" : "$(github.ref_name)",
+  "tested" : "7.0",
+  "requires_php" : "7.0",
+  "last_updated" : "$(github.ref_name)",
+  "sections" : {
+    "description" : "KiriminAja Plugin",
+    "installation" : "Upload plugin zip lalu klik pada tombo Aktivasi",
+    "changelog" : "<h4>$(steps.date.outputs.date)</h4><ul><li>Bug fixes and perfromance improvement.</li></ul>"
+  }
+}'
+
     - name: Upload WooCommerce.json file
       id: upload-json
       uses: google-github-actions/upload-cloud-storage@v1
