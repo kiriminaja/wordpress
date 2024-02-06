@@ -1,0 +1,16 @@
+{
+    "name": "ideapad/saksenengmu-plugin",
+    "autoload": {
+        "psr-4": {
+            "Ideapad\\SaksenengmuPlugin\\": "src/",
+            "Inc\\": "./inc"
+        }
+    },
+    "authors": [
+        {
+            "name": "FaizRA",
+            "email": "faizniflehim@gmail.com"
+        }
+    ],
+    "require": {}
+}
