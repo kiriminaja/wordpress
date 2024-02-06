@@ -46,13 +46,12 @@ $results = $wpdb->get_results( $query . " ORDER BY id LIMIT ${offset}, ${items_p
                     $btnGroup='';
                     $statusContent= '<span style="color: #009b1e;font-weight: 600">Paid</span>';
                     if (@$row->status==="paid"){
-                        $btnGroup.='<button name="save" style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" >Bayar</button>';
-                        $btnGroup.='<button name="save" style="background-color: #ad0000; border: 1px solid #ad0000" class="button-primary woocommerce-save-button" type="button" >Batalkan</button>';
+                        $btnGroup.='<button name="save" style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" onclick="showPaymentForm(`'.@$row->pickup_number.'`)" type="button" >Bayar</button>';
+//                        $btnGroup.='<button name="save" style="background-color: #ad0000; border: 1px solid #ad0000" class="button-primary woocommerce-save-button" type="button" >Batalkan</button>';
+                        $btnGroup.= '<button name="save" style="background-color: #4180d0; border: 1px solid #4180d0" class="button-primary woocommerce-save-button" onclick="showRescheduleForm(`'.@$row->pickup_number.'`)" type="button" >ReSchedule</button>';
                         $statusContent= '<span style="color: #ad0000;font-weight: 600">Waiting for payment</span>';
                     }
-                    $btnGroup.='<button class="button-primary woocommerce-save-button" onclick="showDetail('.@$row->id.')" type="button" >Transaction Detail</button>';
-                    
-                    
+                    $btnGroup.='<button class="button-primary woocommerce-save-button" onclick="showDetail(`'.@$row->pickup_number.'`)" type="button" >Transaction Detail</button>';
                     
                     echo '
                 <tr class="">
@@ -91,28 +90,29 @@ $results = $wpdb->get_results( $query . " ORDER BY id LIMIT ${offset}, ${items_p
     </div>
 
     <?php include 'modal-detail.php' ?>
+    <?php include 'modal-payment.php' ?>
+    <?php include 'modal-request-pickup.php' ?>
 </div>
 
 
-
+<!--Request Pickup Detail-->
 <script type="text/javascript">
-    jQuery(document).ready(function($) {
-        jQuery('[name="kiriminaja_setting[store_destination]"]').select2();
-    });
-    
     let previousSelectedPaymentId = null;
     function refreshShowDetail(){
         if (!previousSelectedPaymentId){return}
         showDetail(previousSelectedPaymentId)
     }
     
-    const modalElem = jQuery('#request-pickup-detail-modal')
-    const modalElemContent = jQuery('#request-pickup-detail-modal .kj-modal-content')
-    const modalElemLoader = jQuery('#request-pickup-detail-modal .kj-modal-loader')
-    const modalElemErr = jQuery('#request-pickup-detail-modal .kj-err-container')
+
     
     function showDetail(paymentId){
         previousSelectedPaymentId = paymentId
+
+        const modalElem = jQuery('#request-pickup-detail-modal')
+        const modalElemContent = jQuery('#request-pickup-detail-modal .kj-modal-content')
+        const modalElemLoader = jQuery('#request-pickup-detail-modal .kj-modal-loader')
+        const modalElemErr = jQuery('#request-pickup-detail-modal .kj-err-container')
+        
         modalElem.removeClass('kj-hidden')
         modalElemLoader.removeClass('kj-hidden')
         modalElemContent.addClass('kj-hidden')
@@ -153,10 +153,149 @@ $results = $wpdb->get_results( $query . " ORDER BY id LIMIT ${offset}, ${items_p
                 jQuery('#request-pickup-detail-modal #detail-cod_count').text(kjMoneyFormat(payment_data?.cod_count))
                 jQuery('#request-pickup-detail-modal #detail-cod_sum').text(kjMoneyFormat(payment_data?.cod_sum,'Rp. '))
                 jQuery('#request-pickup-detail-modal #detail-payment_amount').text(kjMoneyFormat(payment_data?.payment_amount,'Rp. '))
-                
 
+
+                jQuery('#request-pickup-detail-modal #the-list').empty()
+                transactions_data.forEach(function (transaction){
+                    
+                    let ongkirCalc = 0;
+                    ongkirCalc+=Number(transaction?.insurance_cost ?? 0)
+                    ongkirCalc+=Number(transaction?.shipping_cost ?? 0)
+                    if(Number(transaction?.cod_fee)>0){
+                        ongkirCalc+=Number(transaction?.transaction_value ?? 0)
+                        ongkirCalc+=Number(transaction?.cod_fee ?? 0)
+                    }
+                    
+                    jQuery('#request-pickup-detail-modal #the-list').append(`
+                    <tr class="">
+                        <td class="">
+                            <input style="margin: 0" value="${transaction?.order_id}" type="checkbox" name="req_pickup_ids[]" id="in-product_cat-15">
+                        </td>
+                        <td class="">${transaction?.order_id}</td>
+                        <td class="">${String(transaction?.awb)!=='null' ? transaction?.awb : '-'}</td>
+                        <td class="">
+                        ${transaction?.cod_fee>0 ? 'COD' : 'NON COD'}
+                        <br>
+                        ${kjMoneyFormat(ongkirCalc,'Rp. ')}
+                        </td>
+                        <td class="">
+                            <div style="float: right">
+                                <button name="save" class="button-primary woocommerce-save-button" type="button">Transaction Detail</button>
+                            </div>
+                        </td>
+                    </tr>
+                    `)
+                })
+                
+                
             },
         });
         
     }
+</script>
+
+<!--Payment Detail-->
+<script type="text/javascript">
+    
+    function showPaymentForm(paymentId){
+
+        jQuery("#paymentQR").empty()
+        
+        const modalElem = jQuery('#payment-modal')
+        const modalElemContent = jQuery('#payment-modal .kj-modal-content')
+        const modalElemLoader = jQuery('#payment-modal .kj-modal-loader')
+        const modalElemErr = jQuery('#payment-modal .kj-err-container')
+        
+        modalElem.removeClass('kj-hidden')
+        modalElemLoader.removeClass('kj-hidden')
+        modalElemContent.addClass('kj-hidden')
+        modalElemErr.addClass('kj-hidden')
+        
+        jQuery.ajax({
+            type: "post",
+            url: ajaxRouteGenerator(),
+            data: {
+                action: "kj_get_shipping_process_detail",  // the action to fire in the server
+                data: {
+                    payment_id:paymentId
+                },         // any JS object
+            },
+            complete: function (response) {
+                const resp = JSON.parse(response.responseText).data;
+                
+                console.log(resp)
+                
+                if (resp?.status !== 200){
+                    // formAlertToggler('menu_1',true,'Error',resp.message,'')
+                    modalElemLoader.addClass('kj-hidden')
+                    modalElemContent.addClass('kj-hidden')
+                    modalElemErr.removeClass('kj-hidden')
+                    return
+                }
+                modalElemLoader.addClass('kj-hidden')
+                modalElemContent.removeClass('kj-hidden')
+                modalElemErr.addClass('kj-hidden')
+
+                
+                var qrcode = new QRCode(document.getElementById("paymentQR"), {
+                    text: "http://jindo.dev.naver.com/collie",
+                    width: 256,
+                    height: 256,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+
+            },
+        });
+    }
+    
+</script>
+
+<!--Request Pickup-->
+<script type="text/javascript">
+
+    function showRescheduleForm(paymentId){
+
+        const modalElem = jQuery('#request-pickup-modal')
+        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
+        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
+        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
+
+        modalElem.removeClass('kj-hidden')
+        modalElemLoader.removeClass('kj-hidden')
+        modalElemContent.addClass('kj-hidden')
+        modalElemErr.addClass('kj-hidden')
+
+        jQuery.ajax({
+            type: "post",
+            url: ajaxRouteGenerator(),
+            data: {
+                action: "kj_get_shipping_process_detail",  // the action to fire in the server
+                data: {
+                    payment_id:paymentId
+                },         // any JS object
+            },
+            complete: function (response) {
+                const resp = JSON.parse(response.responseText).data;
+
+                console.log(resp)
+
+                if (resp?.status !== 200){
+                    // formAlertToggler('menu_1',true,'Error',resp.message,'')
+                    modalElemLoader.addClass('kj-hidden')
+                    modalElemContent.addClass('kj-hidden')
+                    modalElemErr.removeClass('kj-hidden')
+                    return
+                }
+                modalElemLoader.addClass('kj-hidden')
+                modalElemContent.removeClass('kj-hidden')
+                modalElemErr.addClass('kj-hidden')
+                
+
+            },
+        });
+    }
+
 </script>

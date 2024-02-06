@@ -65,7 +65,14 @@
                         </table>
                     </div>
 
-                    <div style="margin-top: 15px">
+                    
+                    <div style="margin-top: 15px"></div>
+                    <div style="text-align: right">
+                        <button name="save" class="button-primary woocommerce-save-button" onclick="printJS('request-pickup-detail-modal', 'html')" type="button">Print Resi</button>
+                    </div>
+
+                    <div style="margin-top: 15px"></div>
+                    <div>
                         <table class="wp-list-table widefat fixed striped table-view-list posts">
                             <thead>
                             <tr>
@@ -74,20 +81,20 @@
                                 </th>
                                 <th scope="col" class="manage-column column-thumb">Package</th>
                                 <th scope="col" class="manage-column column-thumb">AWB</th>
-                                <th scope="col" class="manage-column column-thumb">Value</th>
+                                <th scope="col" class="manage-column column-thumb">Ongkir</th>
                                 <th scope="col" class="manage-column column-thumb"><span style="float: right">Action</span></th>
                             </tr>
                             </thead>
                             <tbody id="the-list">
 
                             <tr class="">
-                                <td class="thumb column-thumb">
+                                <td class="">
                                     <input style="margin: 0" value="15" type="checkbox" name="tax_input[product_cat][]" id="in-product_cat-15">
                                 </td>
-                                <td class="manage-column column-thumb">XID-0000000001</td>
-                                <td class="manage-column column-thumb">Rp. 55.090</td>
-                                <td class="manage-column column-thumb"><span style="color: #009b1e;font-weight: 600">Paid</span></td>
-                                <td class="manage-column column-thumb">
+                                <td class="">XID-0000000001</td>
+                                <td class="">Rp. 55.090</td>
+                                <td class="">NON COD</td>
+                                <td class="">
                                     <div style="float: right">
                                         <button name="save" class="button-primary woocommerce-save-button" type="button">Transaction Detail</button>
                                     </div>

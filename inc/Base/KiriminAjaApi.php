@@ -13,7 +13,7 @@ class KiriminAjaApi
 //        $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
         $this->base_url = 'https://dev.eharga.com'; // DEV
         
-        $apiToken = '8d1261174b7c37159477d50c73ee738de236c39e22090ecd5cf7d087d271ce23';
+        $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
         $this->default_args = array(
             'timeout' => 30,
@@ -22,7 +22,7 @@ class KiriminAjaApi
             'user-agent' => 'WordPress/' . $wp_version . '; ' . get_bloginfo('url'),
             'blocking' => true,
             'headers' => array(
-                'Authorization' => 'Bearer ' . $apiToken,
+                'Authorization' => 'Bearer ' . $dbApiToken,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ),

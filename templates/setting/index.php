@@ -8,7 +8,7 @@ $approvedSetupKey = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_settings WHERE 
     <nav style="margin-top: 1rem;margin-bottom: 1.5rem" class="nav-tab-wrapper woo-nav-tab-wrapper">
         <a href="#" onclick="toggleThis(this,'menu_1')" class="nav-tab menu_1 nav-tab-active">Integrasi KiriminAja</a>
         <?php
-        if (@$approvedSetupKey->value){
+        if (@$approvedSetupKey->value||true){
             echo '<a href="#" onclick="toggleThis(this,`menu_2`)" class="nav-tab menu_2">Atur Lokasi</a>';
             echo '<a href="#" onclick="toggleThis(this,`menu_3`)" class="nav-tab menu_3">Pengaturan Callback</a>';
         }
@@ -27,17 +27,17 @@ $approvedSetupKey = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_settings WHERE 
             <?php include 'part-callback-setup.php' ?>
         </div>
     </div>
-    <div style="position: relative;overflow: hidden;display: none">
-        <div class="mt">Map Example</div>
-        <div id="map"></div>
-        <div class="mt">Map Example</div>
-    </div>
+<!--    <div style="position: relative;overflow: hidden;display: none">-->
+<!--        <div class="mt">Map Example</div>-->
+<!--        <div id="map"></div>-->
+<!--        <div class="mt">Map Example</div>-->
+<!--    </div>-->
 
 
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function($) {
-        initmap();
+        // initmap();
         jQuery('.nav-tab.menu_1').click()
 
     });

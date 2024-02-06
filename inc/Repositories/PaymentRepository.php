@@ -15,4 +15,16 @@ class PaymentRepository{
         return $query;
     }
     
+    public function getPaymentByPaymentId($paymentId){
+        global $wpdb;
+        $paymentTable = $wpdb->prefix . 'kiriminaja_payments';
+        $query = $wpdb->get_row( "SELECT * FROM `".$paymentTable."` WHERE pickup_number  = '".$paymentId."'");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+    
 }

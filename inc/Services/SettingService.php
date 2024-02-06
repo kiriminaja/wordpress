@@ -40,7 +40,7 @@ class SettingService extends BaseService{
             }
             
             /** Storing result to DB*/
-            $arrayRepoDataData = (array) $arrayRepoData['data'];
+            $arrayRepoDataData = (array) $arrayRepoData['result'];
             (new \Inc\Repositories\SettingRepository())->storeIntegrationData([
                 'api_key'=>sanitize_text_field($arrayRepoDataData['api_key']),
                 'oid_prefix'=>sanitize_text_field($arrayRepoDataData['oid_prefix']),

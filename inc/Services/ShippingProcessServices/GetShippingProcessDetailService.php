@@ -26,7 +26,7 @@ class GetShippingProcessDetailService extends BaseService{
     }
     
     public function call(){
-        $this->paymentRepo = (new PaymentRepository())->getPaymentById($this->paymentId);
+        $this->paymentRepo = (new PaymentRepository())->getPaymentByPaymentId($this->paymentId);
         if (!$this->paymentRepo) {
             return self::error([],'Server Error');
         }

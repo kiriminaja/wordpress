@@ -20,19 +20,9 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function processSetupKey($setupKey){
-        $dummyResp = '{
-          "status": true,
-          "data": {
-            "status": true,
-            "text": "Load Data Successfully",
-            "data": {
-              "api_key": "8d1261174b7c37159477d50c73ee738de236c39e22090ecd5cf7d087d271ce23",
-              "oid_prefix": "NKP-"
-            }
-          }
-        }';
-        sleep(1);
-        return json_decode($dummyResp);
+        return $this->post('/api/service/api-request/integrate',[
+            'setup_key'    => $setupKey,
+        ]);
     }
     
 }
