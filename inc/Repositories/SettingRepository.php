@@ -28,7 +28,17 @@ class SettingRepository{
         $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['api_key']), array('key' => 'api_key'));
         $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['oid_prefix']), array('key' => 'oid_prefix'));
         $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['setup_key']), array('key' => 'setup_key'));
+        $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['callback_url']), array('key' => 'callback_url'));
         
+        return true;
+    }
+    
+    public function disconnectIntegration(){
+        global $wpdb;
+        $wpdb->update('wp_kiriminaja_settings', array('value' => null), array('key' => 'api_key'));
+        $wpdb->update('wp_kiriminaja_settings', array('value' => null), array('key' => 'oid_prefix'));
+        $wpdb->update('wp_kiriminaja_settings', array('value' => null), array('key' => 'setup_key'));
+        $wpdb->update('wp_kiriminaja_settings', array('value' => null), array('key' => 'callback_url'));
         return true;
     }
 
@@ -80,7 +90,7 @@ class SettingRepository{
 
     public function getCallbackData(){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_settings WHERE `key` IN ('link_callback')" );
+        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_settings WHERE `key` IN ('callback_url')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -96,8 +106,8 @@ class SettingRepository{
      */
     public function storeCallbackData($payload){
         global $wpdb;
-        if (!$payload['link_callback']){throw new \Exception('payload err');}
-        $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['link_callback']), array('key' => 'link_callback'));
+        if (!$payload['callback_url']){throw new \Exception('payload err');}
+        $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['callback_url']), array('key' => 'callback_url'));
         return true;
     }
 
@@ -105,6 +115,17 @@ class SettingRepository{
     public function getSettingByKey($key){
         global $wpdb;
         $query = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_settings WHERE `key`  = '".$key."'");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+
+    public function getSettingByArray($array){
+        global $wpdb;
+        $keywords_imploded = implode("','",$array);
+        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_settings WHERE `key` IN ('$keywords_imploded')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

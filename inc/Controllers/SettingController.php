@@ -14,6 +14,10 @@ class SettingController{
         add_action('wp_ajax_nopriv_kj_store_integration_data', array($this,'storeIntegrationData'));
         
         /** storeIntegrationData*/
+        add_action('wp_ajax_kj_disconnect_integration', array($this,'disconnectIntegration'));
+        add_action('wp_ajax_nopriv_kj_disconnect_integration', array($this,'disconnectIntegration'));
+        
+        /** storeIntegrationData*/
         add_action('wp_ajax_kj_get_origin_data', array($this,'getOriginData'));
         add_action('wp_ajax_nopriv_kj_get_origin_data', array($this,'getOriginData'));
         
@@ -48,6 +52,16 @@ class SettingController{
         }
     }
     
+    function disconnectIntegration(){
+        try {
+            $service = (new \Inc\Services\SettingService())->disconnectIntegration();
+            if ($service->status!==200){ wp_send_json_error($service);}
+            wp_send_json_success($service);
+        }catch (Throwable $e){
+            wp_send_json_error(['status'=>400,$e->getMessage()]);
+        }
+    }
+    
     function getOriginData(){
         try {
             $service = (new \Inc\Services\SettingService())->getOriginData();
@@ -71,6 +85,8 @@ class SettingController{
     function getCallbackData(){
         try {
             $service = (new \Inc\Services\SettingService())->getCallbackData();
+
+            
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){

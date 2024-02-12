@@ -19,9 +19,10 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         ]);
     }
 
-    public function processSetupKey($setupKey){
+    public function processSetupKey($setupPayload){
         return $this->post('/api/service/api-request/integrate',[
-            'setup_key'    => $setupKey,
+            'setup_key'     => $setupPayload['setup_key'],
+            'callback_url'  => $setupPayload['callback_url']
         ]);
     }
     

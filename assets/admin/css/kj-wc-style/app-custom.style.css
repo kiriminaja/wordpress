@@ -1,0 +1,50 @@
+.wooocommerce-task-card__header-container,.woocommerce-experimental-list__item{
+    background-color: rgb(255, 255, 255);
+    color: rgb(30, 30, 30);
+    position: relative;
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 0px 1px;
+    outline: none;
+}
+
+.css-off1bd {
+    display: flex;
+    -webkit-box-align: center;
+    align-items: center;
+    flex-direction: row;
+    gap: calc(8px);
+    -webkit-box-pack: justify;
+    justify-content: space-between;
+    width: 100%;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    border-top-color: rgba(0, 0, 0, 0.1);
+    border-right-color: rgba(0, 0, 0, 0.1);
+    border-left-color: rgba(0, 0, 0, 0.1);
+    padding: calc(16px) calc(24px);
+}
+
+.css-1pd4mph {
+    background-color: rgb(255, 255, 255);
+    color: rgb(30, 30, 30);
+    position: relative;
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 0px 1px;
+    outline: none;
+    border-radius: calc(1px);
+}
+
+.css-fi6y5z {
+    display: flex;
+    -webkit-box-align: center;
+    align-items: center;
+    flex-direction: row;
+    gap: calc(8px);
+    -webkit-box-pack: justify;
+    justify-content: space-between;
+    width: 100%;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    border-right-color: rgba(0, 0, 0, 0.1);
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+    border-left-color: rgba(0, 0, 0, 0.1);
+    padding: calc(16px) calc(24px);
+}

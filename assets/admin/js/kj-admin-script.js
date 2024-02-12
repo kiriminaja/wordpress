@@ -37,6 +37,9 @@ jQuery(document).ready(function() {
             },
         });
     });
+    
+    /** add wc class to body*/
+    jQuery('body').addClass('woocommerce-admin-page')
 });
 
 function kjMoneyFormat(angka, prefix){

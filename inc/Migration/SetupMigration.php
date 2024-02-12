@@ -45,7 +45,7 @@ class SetupMigration {
             ('origin_sub_district_name', null),
             ('origin_latitude', null),
             ('origin_longitude', null),
-            ('link_callback', null)
+            ('callback_url', null)
             ");
         
     }
