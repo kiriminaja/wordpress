@@ -15,18 +15,21 @@
         </tr>
         </tbody>
     </table>
+    
+    <!--NOTICE-->
     <!--ALERT-->
-    <div class="alert kj-alert kj-hidden" style="margin-top: .5rem">
+    <div class="alert success" style="margin-top: .5rem">
         <div style="display: flex">
-            <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6.99961 0.600006C10.5356 0.600006 13.3996 3.46401 13.3996 7.00001C13.3996 10.536 10.5356 13.4 6.99961 13.4C3.46361 13.4 0.599609 10.536 0.599609 7.00001C0.599609 3.46401 3.46361 0.600006 6.99961 0.600006ZM7.90361 8.10401L8.18361 2.93601H5.81561L6.09561 8.10401H7.90361ZM7.83161 10.792C8.02361 10.608 8.12761 10.352 8.12761 10.024C8.12761 9.68801 8.03161 9.43201 7.83961 9.24801C7.64761 9.06401 7.36761 8.96801 6.99161 8.96801C6.61561 8.96801 6.33561 9.06401 6.13561 9.24801C5.93561 9.43201 5.83961 9.68801 5.83961 10.024C5.83961 10.352 5.94361 10.608 6.14361 10.792C6.35161 10.976 6.63161 11.064 6.99161 11.064C7.35161 11.064 7.63161 10.976 7.83161 10.792Z" fill="#D63638"/>
+            <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7.99961 1.59998C11.5356 1.59998 14.3996 4.46398 14.3996 7.99998C14.3996 11.536 11.5356 14.4 7.99961 14.4C4.46361 14.4 1.59961 11.536 1.59961 7.99998C1.59961 4.46398 4.46361 1.59998 7.99961 1.59998ZM8.90361 9.10398L9.18361 3.93598H6.81561L7.09561 9.10398H8.90361ZM8.83161 11.792C9.02361 11.608 9.12761 11.352 9.12761 11.024C9.12761 10.688 9.03161 10.432 8.83961 10.248C8.64761 10.064 8.36761 9.96798 7.99161 9.96798C7.61561 9.96798 7.33561 10.064 7.13561 10.248C6.93561 10.432 6.83961 10.688 6.83961 11.024C6.83961 11.352 6.94361 11.608 7.14361 11.792C7.35161 11.976 7.63161 12.064 7.99161 12.064C8.35161 12.064 8.63161 11.976 8.83161 11.792Z" fill="#2271B1"/>
             </svg>
+
             <div style="margin-left: 8px">
                 <div>
-                    <span style="font-weight: 600">Error</span>
+                    <span style="font-weight: 600">Note About Cache</span>
                 </div>
                 <div>
-                    <span class="msg">Invalid setup key, please try another key please</span>
+                    <span class="msg">The following endpoint above might be cached by wordpress system so you need to clear the cache by <a style="font-weight: 800" href="<?php echo  @home_url().'/wp-admin/options-permalink.php'?>">open here</a> and click on Save button.</span>
                 </div>
             </div>
         </div>
@@ -36,7 +39,7 @@
     <div class="submit-container">
         <div class="row-divider"></div>
         <div class="kj-btn-container">
-            <button style="width: auto !important; padding: 6px 9px !important" class="button-error woocommerce-save-button kj-disconnect" type="button">
+            <button class="button-error woocommerce-save-button kj-disconnect" type="button">
                 <div style="display: flex">
                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -1,27 +1,39 @@
 <?php
 class settingIndex {
     function __construct(){
+        global $approvedSetupKey;
+        global $inputValueArr;
+        global $isOriginShippingDataReady;
+        
+        /** Check if  setup key exist*/
         $approvedSetupKey = (new Inc\Repositories\SettingRepository())->getSettingByKey('setup_key');
 
+        /** data value query*/
         $arrayParam = [];
-        if ($_GET['tab']==='tab-integration'){
-            $arrayParam=['oid_prefix'];
-        } elseif ($_GET['tab']==='tab-shipping'){
-            $arrayParam=['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name'];
-        } elseif ($_GET['tab']==='tab-advanced'){
-            $arrayParam=['callback_url'];
+        $repo = [];
+        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name']);
+        if (@$_GET['tab']==='tab-integration'){
+            $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
+        } elseif (@$_GET['tab']==='tab-shipping'){
+            $repo = $shippingRepo;
+        } elseif (@$_GET['tab']==='tab-advanced'){
+            $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
         }
-        
-        $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray($arrayParam);
-        global $inputValueArr;
         $inputValueArr = [];
         foreach ($repo as $obj){
             $inputValueArr[$obj->key]=$obj->value;
         }
         
+        /** check if origin shipping data completed*/
+        $isOriginShippingDataReady=true;
+        for ($i=0; $i<count($shippingRepo);$i++){
+            if (!@$shippingRepo[$i]->value){
+                $isOriginShippingDataReady=false;
+                break;
+            }
+        }
+        
         /** Return vars and view*/
-        $GLOBALS["approvedSetupKey"] = $approvedSetupKey;
-       
         if (@$approvedSetupKey->value){
             include 'setuped/index.php';
             return;

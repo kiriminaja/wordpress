@@ -16,7 +16,7 @@ class Admin extends BaseInit{
                     'page_title'=>'KiriminAja',
                     'menu_title'=>'KiriminAja',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'kiriminaja',
+                    'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function(){
                         require_once $this->plugin_path.'templates/setting/index.php';
                     },
@@ -26,7 +26,7 @@ class Admin extends BaseInit{
             ])
             ->addSubPages([
                 [
-                    'parent_slug'=>'kiriminaja',
+                    'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Configuration',
                     'menu_title'=>'KiriminAja',
                     'capability'=>'manage_options',
@@ -36,7 +36,7 @@ class Admin extends BaseInit{
                     }
                 ],
                 [
-                    'parent_slug'=>'kiriminaja',
+                    'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'Shipment Process',
                     'menu_title'=>'Shipment Process',
                     'capability'=>'manage_options',

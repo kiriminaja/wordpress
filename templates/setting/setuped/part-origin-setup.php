@@ -75,7 +75,7 @@
     <div class="submit-container">
         <div class="row-divider"></div>
         <div class="kj-btn-container">
-            <button style="width: auto !important; padding: 6px 9px !important" class="button-wp woocommerce-save-button kj-submit-btn" type="button">
+            <button class="button-wp woocommerce-save-button kj-submit-btn" type="button">
                 <div style="display: flex">
                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                         <span>Save Changes</span>

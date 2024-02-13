@@ -34,7 +34,7 @@
         <div class="submit-container">
             <div class="row-divider"></div>
             <div class="kj-btn-container">
-                <button style="width: auto !important; padding: 6px 9px !important" class="button-error woocommerce-save-button kj-disconnect" type="button">
+                <button class="button-error woocommerce-save-button kj-disconnect" type="button">
                     <div style="display: flex">
                         <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                             <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
