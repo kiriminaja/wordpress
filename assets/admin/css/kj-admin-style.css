@@ -99,20 +99,26 @@ body {margin:0;}
     z-index: 159900;
 }
 
-.kj-wrapper .media-modal{
+/**General Modal*/
+.kj-wrapper .modal-container{
     position: fixed;
     top: 60px;
     left: 10vw;
     right: 10vw;
     /*bottom: 60px;*/
-    max-height: 90vh;
     z-index: 160000;
+    display: flex;
+}
+.kj-wrapper .media-modal{
+    width: 100%;
     background-color: #fff;
     overflow-y: auto;
+    margin: 0 auto;
+    max-height: 90vh;
+    border-radius: 10px;
 }
-
 @media only screen and (min-width: 800px) {
-    .kj-wrapper .media-modal{
+    .kj-wrapper .modal-container{
         left: 15vw;
         right: 15vw;
     }
@@ -133,10 +139,12 @@ body {margin:0;}
 
 .kj-wrapper .media-modal .content-header h1{
     padding: 0 16px;
-    font-size: 22px;
+    font-size: 18px;
     line-height: 2.27272727;
     margin: 0;
-    font-weight: 500
+    font-weight: 500;
+    position: relative;
+    top: 4px;
 }
 
 .kj-wrapper .media-modal .closebtn-container{
@@ -148,7 +156,7 @@ body {margin:0;}
 }
 
 .kj-wrapper .media-modal .content-body{
-    padding: 50px 15px;
+    padding: 50px 15px 20px 15px;
 }
 
 /** Modal - END */

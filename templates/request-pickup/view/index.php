@@ -1,5 +1,5 @@
-<div class="kj-wrapper">
-    <div class="wrap kj-wrap">
+<div class="kj-wrapper kj-wrap">
+    <div class="wrap ">
         <div id="root">
             <div class="woocommerce-layout">
                 <div class="woocommerce-layout__header is-scrolled">
@@ -27,11 +27,11 @@
                                 <div>
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
-                                            <li ><a href="#" onclick="applySearch('status','all')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >Semua <span class="count">(1)</span></a> |</li>
-                                            <li ><a href="#" onclick="applySearch('status','process')" <?php echo @$_GET['status']==='process' ? 'class="current"' : ''; ?> >Diproses <span class="count">(1)</span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >Semua <span class="count">(1)</span></a> |</li>
+                                            <!--<li ><a href="#" onclick="applySearch('status','process')" <?php /*echo @$_GET['status']==='process' ? 'class="current"' : ''; */?> >Diproses <span class="count">(1)</span></a>  |</li>-->
                                             <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count">(1)</span></a>  |</li>
                                             <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; ?> >Paid <span class="count">(1)</span></a>  |</li>
-                                            <li ><a href="#" onclick="applySearch('status','cancel')" <?php echo @$_GET['status']==='cancel' ? 'class="current"' : ''; ?> >Cancel <span class="count">(1)</span></a></li>
+                                            <!--<li ><a href="#" onclick="applySearch('status','cancel')" <?php /*echo @$_GET['status']==='cancel' ? 'class="current"' : ''; */?> >Cancel <span class="count">(1)</span></a></li>-->
                                         </ul>
                                     </div>
                                     
@@ -39,13 +39,19 @@
                                     <div class="container-fluid p-0">
                                         <div class="row">
                                             <div class="col">
+                                                <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
-                                                    <select  style="width: 100%; max-width: 12.5rem" name="m" id="filter-by-date">
-                                                        <option selected="selected" value="0">All Dates</option>
-                                                        <option value="202401">Januari 2024</option>
+                                                    <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
+                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;?>>All Dates</option>
+                                                        <?php
+                                                        if (@$monthOptions && count($monthOptions)>0){
+                                                            foreach ($monthOptions as $key => $value){
+                                                                echo '<option value="'.$key.'" '.(@$_GET['month']===$key ? "selected" : "").'>'.$value.'</option>';
+                                                            }                                                            
+                                                        }
+                                                        ?>
                                                     </select>
-
-                                                    <button class="button-wp-secondary" type="button" onclick="showRescheduleForm(`'.@$row->pickup_number.'`)">
+                                                    <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_1').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -55,9 +61,9 @@
                                                 </div>
                                             </div>
                                             <div class="col">
+                                                <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
                                                     <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo @$_GET['key']; ?>">
-
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -146,7 +152,7 @@
                                                         <div style="font-weight: 700">'.@$row->pickup_number.'</div>
                                                         <div style="font-size: 12px;">Requested: '.date('Y/m/d H:i',strtotime(@$row->created_at)).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">2023/01/26 12:00</td>
+                                                    <td class="manage-column column-thumb">'.date('Y/m/d H:i',strtotime(@$row->pickup_schedule)).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">Rp. '.localMoneyFormat(@$row->cost ?? 0).'</div>
                                                     </td>
@@ -181,13 +187,19 @@
                                     <div class="container-fluid p-0">
                                         <div class="row">
                                             <div class="col">
+                                                <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
-                                                    <select  style="width: 100%; max-width: 12.5rem" name="m" id="filter-by-date">
-                                                        <option selected="selected" value="0">All Dates</option>
-                                                        <option value="202401">Januari 2024</option>
+                                                    <select  style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
+                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;?>>All Dates</option>
+                                                        <?php
+                                                        if (@$monthOptions && count($monthOptions)>0){
+                                                            foreach ($monthOptions as $key => $value){
+                                                                echo '<option value="'.$key.'" '.(@$_GET['month']===$key ? "selected" : "").'>'.$value.'</option>';
+                                                            }
+                                                        }
+                                                        ?>
                                                     </select>
-
-                                                    <button class="button-wp-secondary" type="button" onclick="showRescheduleForm(`'.@$row->pickup_number.'`)">
+                                                    <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -197,6 +209,7 @@
                                                 </div>
                                             </div>
                                             <div class="col">
+                                                <!--Pagination-->
                                                 <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
                                                     <span style="font-weight: 700;"><?php echo count($results) ?> items</span>
                                                     <div>
@@ -302,53 +315,53 @@
                 modalElemLoader.addClass('kj-hidden')
                 modalElemContent.removeClass('kj-hidden')
                 modalElemErr.addClass('kj-hidden')
-
-                const payment_data = resp?.data?.payment_data
-                const transactions_data = resp?.data?.transactions_data
-
-                console.log(payment_data)
-                console.log(transactions_data)
-
-                jQuery('#request-pickup-detail-modal #detail-pickup-number').text(payment_data?.pickup_number)
-                jQuery('#request-pickup-detail-modal #detail-status').text(payment_data?.status)
-                jQuery('#request-pickup-detail-modal #detail-non_cod_count').text(kjMoneyFormat(payment_data?.non_cod_count))
-                jQuery('#request-pickup-detail-modal #detail-non_cod_sum').text(kjMoneyFormat(payment_data?.non_cod_sum,'Rp. '))
-                jQuery('#request-pickup-detail-modal #detail-cod_count').text(kjMoneyFormat(payment_data?.cod_count))
-                jQuery('#request-pickup-detail-modal #detail-cod_sum').text(kjMoneyFormat(payment_data?.cod_sum,'Rp. '))
-                jQuery('#request-pickup-detail-modal #detail-payment_amount').text(kjMoneyFormat(payment_data?.payment_amount,'Rp. '))
-
-
-                jQuery('#request-pickup-detail-modal #the-list').empty()
-                transactions_data.forEach(function (transaction){
-
-                    let ongkirCalc = 0;
-                    ongkirCalc+=Number(transaction?.insurance_cost ?? 0)
-                    ongkirCalc+=Number(transaction?.shipping_cost ?? 0)
-                    if(Number(transaction?.cod_fee)>0){
-                        ongkirCalc+=Number(transaction?.transaction_value ?? 0)
-                        ongkirCalc+=Number(transaction?.cod_fee ?? 0)
-                    }
-
-                    jQuery('#request-pickup-detail-modal #the-list').append(`
-                    <tr class="">
-                        <td class="">
-                            <input style="margin: 0" value="${transaction?.order_id}" type="checkbox" name="req_pickup_ids[]" id="in-product_cat-15">
-                        </td>
-                        <td class="">${transaction?.order_id}</td>
-                        <td class="">${String(transaction?.awb)!=='null' ? transaction?.awb : '-'}</td>
-                        <td class="">
-                        ${transaction?.cod_fee>0 ? 'COD' : 'NON COD'}
-                        <br>
-                        ${kjMoneyFormat(ongkirCalc,'Rp. ')}
-                        </td>
-                        <td class="">
-                            <div style="float: right">
-                                <button name="save" class="button-primary woocommerce-save-button" type="button">Transaction Detail</button>
-                            </div>
-                        </td>
-                    </tr>
-                    `)
-                })
+                //
+                // const payment_data = resp?.data?.payment_data
+                // const transactions_data = resp?.data?.transactions_data
+                //
+                // console.log(payment_data)
+                // console.log(transactions_data)
+                //
+                // jQuery('#request-pickup-detail-modal #detail-pickup-number').text(payment_data?.pickup_number)
+                // jQuery('#request-pickup-detail-modal #detail-status').text(payment_data?.status)
+                // jQuery('#request-pickup-detail-modal #detail-non_cod_count').text(kjMoneyFormat(payment_data?.non_cod_count))
+                // jQuery('#request-pickup-detail-modal #detail-non_cod_sum').text(kjMoneyFormat(payment_data?.non_cod_sum,'Rp. '))
+                // jQuery('#request-pickup-detail-modal #detail-cod_count').text(kjMoneyFormat(payment_data?.cod_count))
+                // jQuery('#request-pickup-detail-modal #detail-cod_sum').text(kjMoneyFormat(payment_data?.cod_sum,'Rp. '))
+                // jQuery('#request-pickup-detail-modal #detail-payment_amount').text(kjMoneyFormat(payment_data?.payment_amount,'Rp. '))
+                //
+                //
+                // jQuery('#request-pickup-detail-modal #the-list').empty()
+                // transactions_data.forEach(function (transaction){
+                //
+                //     let ongkirCalc = 0;
+                //     ongkirCalc+=Number(transaction?.insurance_cost ?? 0)
+                //     ongkirCalc+=Number(transaction?.shipping_cost ?? 0)
+                //     if(Number(transaction?.cod_fee)>0){
+                //         ongkirCalc+=Number(transaction?.transaction_value ?? 0)
+                //         ongkirCalc+=Number(transaction?.cod_fee ?? 0)
+                //     }
+                //
+                //     jQuery('#request-pickup-detail-modal #the-list').append(`
+                //     <tr class="">
+                //         <td class="">
+                //             <input style="margin: 0" value="${transaction?.order_id}" type="checkbox" name="req_pickup_ids[]" id="in-product_cat-15">
+                //         </td>
+                //         <td class="">${transaction?.order_id}</td>
+                //         <td class="">${String(transaction?.awb)!=='null' ? transaction?.awb : '-'}</td>
+                //         <td class="">
+                //         ${transaction?.cod_fee>0 ? 'COD' : 'NON COD'}
+                //         <br>
+                //         ${kjMoneyFormat(ongkirCalc,'Rp. ')}
+                //         </td>
+                //         <td class="">
+                //             <div style="float: right">
+                //                 <button name="save" class="button-primary woocommerce-save-button" type="button">Transaction Detail</button>
+                //             </div>
+                //         </td>
+                //     </tr>
+                //     `)
+                // })
 
 
             },
