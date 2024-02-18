@@ -36,5 +36,16 @@ class PaymentRepository{
         }
         return $query;
     }
+
+    public function updatePaymentByCallback($payloads){
+        global $wpdb;
+        $paymentTable = $wpdb->prefix . 'kiriminaja_payments';
+        $wpdb->update($paymentTable, $payloads['changes'], $payloads['condition']);
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return true;
+    }
     
 }

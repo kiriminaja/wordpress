@@ -12,5 +12,8 @@
             "email": "faizniflehim@gmail.com"
         }
     ],
-    "require": {}
+    "require": {
+        "dompdf/dompdf": "^2.0",
+        "picqer/php-barcode-generator": "^2.4"
+    }
 }

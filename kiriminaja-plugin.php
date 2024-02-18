@@ -40,6 +40,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', dirname( __FILE__ ) . '/' );
 }
 
+if (!function_exists('generate_barcode')) {
+    function generate_barcode() {
+        return new \Picqer\Barcode\BarcodeGeneratorPNG();
+    }
+}
+
+
 /** Activation*/
 function activate_kj_plugin(){
     Inc\Base\Activate::activate();

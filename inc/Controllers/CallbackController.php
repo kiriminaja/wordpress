@@ -4,12 +4,14 @@ namespace Inc\Controllers;
 class CallbackController{
 
     public function register(){
-        add_action( 'init', array($this,'kiriminAjaCallbackRegister') );
+        add_action( 'init', function (){
+            add_feed( 'kiriminaja-callback', array($this,'kiriminAjaCallback') );
+        } );
     }
-    function kiriminAjaCallbackRegister()
-    {
-        add_feed( 'kiriminaja-callback', array($this,'kiriminAjaCallback') );
-    }
+//    function kiriminAjaCallbackRegister()
+//    {
+//        add_feed( 'kiriminaja-callback', array($this,'kiriminAjaCallback') );
+//    }
     function kiriminAjaCallback()
     {
         $header = apache_request_headers();

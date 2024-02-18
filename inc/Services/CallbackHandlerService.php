@@ -10,6 +10,7 @@ class CallbackHandlerService extends BaseService{
     public $body;
     public array $packages;
     public $processing;
+    public $transactionPickupNumber;
     
     public function header($header){
         $this->header = $header;
@@ -36,31 +37,37 @@ class CallbackHandlerService extends BaseService{
         if(count($transactions)<1){
             return self::error([],'No Transaction Found');
         }
-        
-        if (@$this->body->method === 'return_finished_packages'){
-            $this->processing = $this->returnFinishedPackages();
-        }       
-        if (@$this->body->method === 'processed_packages'){
-            $this->processing = $this->processedPackages();
+        /** Set Pickup Number*/
+        $this->transactionPickupNumber = $transactions[0]->pickup_number;
+
+        switch (@$this->body->method) {
+            case 'return_finished_packages':
+                $this->processing = $this->returnFinishedPackages();
+                break;
+            case 'processed_packages':
+                $this->processing = $this->processedPackages();
+                break;
+            case 'shipped_packages':
+                $this->processing = $this->shippedPackages();
+                break;
+            case 'finished_packages':
+                $this->processing = $this->finishedPackages();
+                break;
+            case 'returned_packages':
+                $this->processing = $this->returnedPackages();
+                break;
+            case 'validated_packages':
+                $this->processing = $this->validatedPackages();
+                break;
+            case 'rejected_packages':
+                $this->processing = $this->rejectedPackages();
+                break;
         }
-        if (@$this->body->method === 'shipped_packages'){
-            $this->processing = $this->shippedPackages();
-        }
-        if (@$this->body->method === 'finished_packages'){
-            $this->processing = $this->finishedPackages();
-        }
-        if (@$this->body->method === 'returned_packages'){
-            $this->processing = $this->returnedPackages();
-        }
-        if (@$this->body->method === 'validated_packages'){
-            $this->processing = $this->validatedPackages();
-        }
-        if (@$this->body->method === 'rejected_packages'){
-            $this->processing = $this->rejectedPackages();
-        }
+
         if (!$this->processing['status']){
             return self::error([],$this->processing['message']);
         }
+        
         return self::success([],'Success');
     }
     
@@ -93,6 +100,8 @@ class CallbackHandlerService extends BaseService{
     
     public function processedPackages(){
         try {
+            
+            /** Update AWB*/
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
@@ -103,6 +112,17 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+
+            /** Update Payment Status*/
+            (new \Inc\Repositories\PaymentRepository())->updatePaymentByCallback([
+                'changes'=>[
+                    'status'=>'paid'
+                ],
+                'condition'=>[
+                    'pickup_number'=>$this->transactionPickupNumber
+                ],
+            ]);
+            
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
