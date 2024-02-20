@@ -40,7 +40,7 @@ class requestPickupIndex {
         $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
 
         /** PreRequrities*/
-        $items_per_page = 3;
+        $items_per_page = 20;
         $page = @$_GET['cpage'] ?? 1;
         $offset = ( $page * $items_per_page ) - $items_per_page;
         

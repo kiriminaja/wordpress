@@ -4,6 +4,7 @@ class settingIndex {
         global $approvedSetupKey;
         global $inputValueArr;
         global $isOriginShippingDataReady;
+        global $activeTab;
         
         /** Check if  setup key exist*/
         $approvedSetupKey = (new Inc\Repositories\SettingRepository())->getSettingByKey('setup_key');
@@ -12,11 +13,12 @@ class settingIndex {
         $arrayParam = [];
         $repo = [];
         $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name']);
-        if (@$_GET['tab']==='tab-integration'){
+        $activeTab = @$_GET['tab'] ?? 'tab-integration';
+        if (@$activeTab==='tab-integration'){
             $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
-        } elseif (@$_GET['tab']==='tab-shipping'){
+        } elseif (@$activeTab==='tab-shipping'){
             $repo = $shippingRepo;
-        } elseif (@$_GET['tab']==='tab-advanced'){
+        } elseif (@$activeTab==='tab-advanced'){
             $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
         }
         $inputValueArr = [];

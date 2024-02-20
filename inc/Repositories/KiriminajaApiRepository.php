@@ -25,5 +25,32 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'callback_url'  => $setupPayload['callback_url']
         ]);
     }
+
+    public function getPayment($setupPayload){
+        return [
+            "status"=> true,
+            "data"=> (object) [
+                "status"=> true,
+                "text"=> "Success",
+                "method"=> "payment",
+                "data"=> (object)[
+                    "payment_id"=> "XID-5732095327",
+                    "qr_content"=> "https://kiriminaja.com/",
+                    "method"=> "08",
+                    "pay_time"=> "20210712103644",
+                    "status"=> "Billing berhasil dibuat",
+                    "status_code"=> "9",
+                    "amount"=> 65000,
+                    "paid_at"=> null,
+                    "created_at"=> "2021-07-12T03:35:42.000000Z"
+                ]
+            ]
+        ];
+        
+        
+        return $this->post('/api/mitra/v2/get_payment',[
+            'payment_id'     => $setupPayload['payment_id']
+        ]);
+    }
     
 }

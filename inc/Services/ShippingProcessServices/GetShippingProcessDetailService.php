@@ -41,6 +41,7 @@ class GetShippingProcessDetailService extends BaseService{
             'payment_data'=>[
                 'pickup_number' =>  @$this->paymentRepo->pickup_number,
                 'status'        =>  @$this->paymentRepo->status,
+                'package_count'   =>  $this->paymentCalcData['cod_count']+$this->paymentCalcData['non_cod_count'],
                 'cod_count'   =>  $this->paymentCalcData['cod_count'],
                 'cod_sum'   =>  $this->paymentCalcData['cod_sum'],
                 'non_cod_count'   =>  $this->paymentCalcData['non_cod_count'],

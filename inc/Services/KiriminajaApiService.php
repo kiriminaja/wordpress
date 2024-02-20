@@ -15,5 +15,16 @@ class KiriminajaApiService extends BaseService{
         }
         return self::success($repo['data']->result);
     }
+
+    public function getPayment($payment_id)
+    {
+        $repo = (new \Inc\Repositories\KiriminajaApiRepository())->getPayment([
+            'payment_id'=>$payment_id
+        ]);
+        if (!@$repo['status'] || !@$repo['data']->status){
+            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        }
+        return self::success($repo['data']->data);
+    }
     
 }

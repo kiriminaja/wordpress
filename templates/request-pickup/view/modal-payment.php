@@ -38,11 +38,12 @@
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
                             <div style="text-align: center; font-weight: 700">
-                                Code: TRX-230239230
+                                Code: <span id="trx-code">TRX-230239230</span>
                             </div>
                             <div class="row-divider" style="margin-top: .75rem"></div>
                             <div style="text-align: center; font-weight: 700; color: #2271b1;font-size: 20px;">
-                                Rp300.000
+                                
+                                <span class="trx-pay-amount">Rp300.000</span>
                             </div>
                         </div>
                         <div class="row-divider"></div>
@@ -55,12 +56,12 @@
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
                                 <div class="col">Tagihan Paket Non-COD</div>
-                                <div class="col" style="text-align: right; font-weight: 700">Rp300.000</div>
+                                <div class="col" style="text-align: right; font-weight: 700"><span class="trx-pay-amount">Rp300.000</span></div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
                                 <div class="col">Total Tagihan</div>
-                                <div class="col" style="text-align: right; font-weight: 700">Rp300.000</div>
+                                <div class="col" style="text-align: right; font-weight: 700"><span class="trx-pay-amount">Rp300.000</span></div>
                             </div>
                         </div>
 
@@ -69,13 +70,13 @@
                         <div style="text-align: center;color: #a60000; font-weight: 700">
                             <div style="font-size: 16px;">QR will expire at</div>
                             <div class="row-divider" style="margin-top: .25rem"></div>
-                            <div style="font-size: 18px;">2024-02-20 15:55:05</div>
+                            <div style="font-size: 18px;"><span id="trx-expired-at">2024-02-20 15:55:05</span></div>
                         </div>
                         
                         <div class="row-divider"></div>
                         
                         <div>
-                            <button class="button-wp btn-lg" type="button">
+                            <button class="button-wp btn-lg" type="button" onclick="refreshShowPaymentForm()">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                     <span style="margin: auto">Refresh</span>
                                 </div>
@@ -86,7 +87,7 @@
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
                         <p style="margin-bottom: 1.5rem">Terjadi Kesalahan !</p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowPaymentForm()">Refresh</button>
                     </div>
 
                 </div>

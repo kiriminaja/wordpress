@@ -101,7 +101,7 @@
                                                                         <span>Waiting For Payment</span>
                                                                     </div>
                                                                     ';
-                                                if (@$row->status==="paid"){
+                                                if (@$row->status!=="paid"){
                                                     if (strtotime(@$row->pickup_schedule)>strtotime("now")){
                                                         $btnGroup.='
                                                         <button class="button-wp" type="button" onclick="showPaymentForm(`'.@$row->pickup_number.'`)">
@@ -315,53 +315,87 @@
                 modalElemLoader.addClass('kj-hidden')
                 modalElemContent.removeClass('kj-hidden')
                 modalElemErr.addClass('kj-hidden')
-                //
-                // const payment_data = resp?.data?.payment_data
-                // const transactions_data = resp?.data?.transactions_data
-                //
-                // console.log(payment_data)
-                // console.log(transactions_data)
-                //
-                // jQuery('#request-pickup-detail-modal #detail-pickup-number').text(payment_data?.pickup_number)
-                // jQuery('#request-pickup-detail-modal #detail-status').text(payment_data?.status)
-                // jQuery('#request-pickup-detail-modal #detail-non_cod_count').text(kjMoneyFormat(payment_data?.non_cod_count))
-                // jQuery('#request-pickup-detail-modal #detail-non_cod_sum').text(kjMoneyFormat(payment_data?.non_cod_sum,'Rp. '))
-                // jQuery('#request-pickup-detail-modal #detail-cod_count').text(kjMoneyFormat(payment_data?.cod_count))
-                // jQuery('#request-pickup-detail-modal #detail-cod_sum').text(kjMoneyFormat(payment_data?.cod_sum,'Rp. '))
-                // jQuery('#request-pickup-detail-modal #detail-payment_amount').text(kjMoneyFormat(payment_data?.payment_amount,'Rp. '))
-                //
-                //
-                // jQuery('#request-pickup-detail-modal #the-list').empty()
-                // transactions_data.forEach(function (transaction){
-                //
-                //     let ongkirCalc = 0;
-                //     ongkirCalc+=Number(transaction?.insurance_cost ?? 0)
-                //     ongkirCalc+=Number(transaction?.shipping_cost ?? 0)
-                //     if(Number(transaction?.cod_fee)>0){
-                //         ongkirCalc+=Number(transaction?.transaction_value ?? 0)
-                //         ongkirCalc+=Number(transaction?.cod_fee ?? 0)
-                //     }
-                //
-                //     jQuery('#request-pickup-detail-modal #the-list').append(`
-                //     <tr class="">
-                //         <td class="">
-                //             <input style="margin: 0" value="${transaction?.order_id}" type="checkbox" name="req_pickup_ids[]" id="in-product_cat-15">
-                //         </td>
-                //         <td class="">${transaction?.order_id}</td>
-                //         <td class="">${String(transaction?.awb)!=='null' ? transaction?.awb : '-'}</td>
-                //         <td class="">
-                //         ${transaction?.cod_fee>0 ? 'COD' : 'NON COD'}
-                //         <br>
-                //         ${kjMoneyFormat(ongkirCalc,'Rp. ')}
-                //         </td>
-                //         <td class="">
-                //             <div style="float: right">
-                //                 <button name="save" class="button-primary woocommerce-save-button" type="button">Transaction Detail</button>
-                //             </div>
-                //         </td>
-                //     </tr>
-                //     `)
-                // })
+                
+                const payment_data = resp?.data?.payment_data
+                const transactions_data = resp?.data?.transactions_data
+                
+                jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
+                jQuery('#request-pickup-detail-modal #package-cod-count').text(kjMoneyFormat(payment_data.cod_count ?? 0))
+                jQuery('#request-pickup-detail-modal #package-non-cod-count').text(kjMoneyFormat(payment_data.non_cod_count ?? 0))
+
+                jQuery('#request-pickup-detail-modal #the-list').empty()
+                transactions_data.forEach(function (transaction,index){
+                    const parsedShippingInfo = JSON.parse(transaction.shipping_info)
+                    
+                    let transactionCost = 0
+                    transactionCost += Number(transaction?.shipping_cost ?? 0)+Number(transaction?.insurance_cost ?? 0)
+                    if (transaction?.cod_fee > 0){
+                        transactionCost += Number(transaction?.cod_fee ?? 0)+Number(transaction?.transaction_value ?? 0)
+                    }
+                    const transactionUrl = `<?php echo @home_url().'/wp-admin/post.php' ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
+                    const printResiUrl = `<?php echo @home_url().'/transaction-resi-print' ?>?oids=${transaction?.order_id}`;
+                    
+                    let btnGroup = ``;
+                    if (transaction?.awb){
+                        btnGroup += `<button class="button-wp p-relative" type="button">
+                                        <a href="${printResiUrl}" target="_blank" class="inset-absolute"></a>
+                                        <div style="display: flex">
+                                            <div style="display: flex;align-items: center;justify-items: center;margin: auto">
+                                                <div style="position: relative; top: 1px">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M9.59961 8.79998H5.59961V9.59998H9.59961V8.79998ZM10.3996 12H5.59961V12.8H10.3996V12ZM7.99961 10.4H5.59961V11.2H7.99961V10.4ZM13.5996 4.79998H11.9996V1.59998H3.99961V4.79998H2.39961C1.91961 4.79998 1.59961 5.11998 1.59961 5.59998V9.59998C1.59961 10.08 1.91961 10.4 2.39961 10.4H3.99961V14.4H11.9996V10.4H13.5996C14.0796 10.4 14.3996 10.08 14.3996 9.59998V5.59998C14.3996 5.11998 14.0796 4.79998 13.5996 4.79998ZM11.1996 13.6H4.79961V7.99998H11.1996V13.6ZM11.1996 4.79998H4.79961V2.39998H11.1996V4.79998ZM12.7996 7.19998H11.9996V6.39998H12.7996V7.19998Z" fill="white"/>
+                                                    </svg>
+                                                    
+                                                </div>
+                                                <span style="margin-left: 6px">Print</span>
+                                            </div>
+                                        </div>
+                                    </button>`;
+
+                    }
+                    btnGroup += `<button class="button-wp-secondary p-relative" type="button">
+                                        <a href="${transactionUrl}" target="_blank" class="inset-absolute"></a>
+                                        <div style="display: flex">
+                                            <div style="display: flex;align-items: center;justify-items: center;margin: auto">
+                                                <span>Detail</span>
+                                            </div>
+                                        </div>
+                                    </button>`;  
+                    
+                    jQuery('#request-pickup-detail-modal #the-list').append(`
+                        <tr class="">
+                            <td style="font-weight: 700;" class="thumb column-thumb">${index+1}</td>
+                            <td class="manage-column column-thumb">
+                                <div style="display: flex">
+                                    <div style="font-weight: 700;padding: 0.2rem 0.5rem;color: #3c82ba;border: 2px solid #3c82ba;border-radius: 5px;">
+                                        ${transaction?.cod_fee > 0 ? 'COD' : 'Non-COD'}
+                                    </div>
+                                </div>
+                                <div class="row-divider" style="margin-top: .25rem"></div>
+                                <div style="font-weight: 700">${transaction?.order_id}</div>
+                                <div style="font-size: 12px;">${parsedShippingInfo?._billing_first_name}</div>
+                            </td>
+                            <td class="manage-column column-thumb">
+                                <div style="font-weight: 700">${printAsString(transaction?.awb,'-')}</div>
+                                <div style="font-weight: 700">${(transaction?.service).toUpperCase()} – ${(transaction?.service_name).toUpperCase()}</div>
+                                <div style="font-size: 12px;">Last Update: 2024/01/01 00:00</div>
+                            </td>
+                            <td class="manage-column column-thumb">
+                                <div style="font-weight: 700">${kjMoneyFormat(transactionCost,'Rp')}</div>
+                            </td>
+                            <td class="manage-column column-thumb">
+                                <div style="text-transform: capitalize" class="kj-badge ${transaction?.status=='finished' ? 'success' : 'warning'}">
+                                    <span>${transaction?.status}</span>
+                                </div>
+                            </td>
+                            <td class="manage-column column-thumb">
+                                <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">
+                                `+btnGroup+`
+                                </div>
+                            </td>
+                        </tr>
+                    `)
+                })
 
 
             },
@@ -371,9 +405,9 @@
 </script>
 <!--Payment Detail-->
 <script type="text/javascript">
-
+    let showPaymentFormPaymentId = null
     function showPaymentForm(paymentId){
-
+        showPaymentFormPaymentId = paymentId
         jQuery("#paymentQR").empty()
 
         const modalElem = jQuery('#payment-modal')
@@ -390,7 +424,7 @@
             type: "post",
             url: ajaxRouteGenerator(),
             data: {
-                action: "kj_get_shipping_process_detail",  // the action to fire in the server
+                action: "kj_get_payment_form",  // the action to fire in the server
                 data: {
                     payment_id:paymentId
                 },         // any JS object
@@ -398,6 +432,7 @@
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
 
+                console.log('showPaymentForm')
                 console.log(resp)
 
                 if (resp?.status !== 200){
@@ -410,10 +445,14 @@
                 modalElemLoader.addClass('kj-hidden')
                 modalElemContent.removeClass('kj-hidden')
                 modalElemErr.addClass('kj-hidden')
-
+                
+                const responseData = resp?.data
+                jQuery('#payment-modal #trx-code').text(responseData?.payment_data?.payment_id)
+                jQuery('#payment-modal #trx-expired-at').text(responseData?.expired_at)
+                jQuery('#payment-modal .trx-pay-amount').text(kjMoneyFormat(responseData?.sum_fee_non_cod,'Rp'))
 
                 var qrcode = new QRCode(document.getElementById("paymentQR"), {
-                    text: "http://jindo.dev.naver.com/collie",
+                    text: responseData?.payment_data?.qr_content,
                     width: 256,
                     height: 256,
                     colorDark : "#000000",
@@ -425,7 +464,9 @@
             },
         });
     }
-
+    function refreshShowPaymentForm(){
+        showPaymentForm(showPaymentFormPaymentId)
+    }
 </script>
 <!--Request Pickup-->
 <script type="text/javascript">

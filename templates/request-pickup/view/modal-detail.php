@@ -25,21 +25,21 @@
                             <div class="row gx-2">
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
-                                        <div style="font-weight: 600;">10.000</div>
+                                        <div style="font-weight: 600;"><span id="package-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
                                         <div>Total Paket</div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
-                                        <div style="font-weight: 600;">750</div>
+                                        <div style="font-weight: 600;"><span id="package-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
                                         <div>Paket Cash on Delivery</div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
-                                        <div style="font-weight: 600;">250</div>
+                                        <div style="font-weight: 600;"><span id="package-non-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
                                         <div>Paket Non-COD</div>
                                     </div>
@@ -48,7 +48,7 @@
                         </div>
                         <!--TOP-->
                         <div class="row-divider" style="margin-top: .75rem"></div>
-                        <div class="container-fluid p-0">
+                        <div style="display: none" class="container-fluid p-0">
                             <div class="row">
                                 <div class="col">
                                     <!--Month Search-->
@@ -169,7 +169,7 @@
                         
                         <!--BOTTOM-->
                         <div class="row-divider" style="margin-top: .75rem"></div>
-                        <div class="container-fluid p-0">
+                        <div style="display: none" class="container-fluid p-0">
                             <div class="row">
                                 <div class="col">
                                     <!--Month Search-->

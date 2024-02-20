@@ -44,4 +44,14 @@ class TransactionRepository{
         return true;
     }
     
+    public function getTransactionDataByPickupNumber($pickupNumber){
+        global $wpdb;
+        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE pickup_number = '".$pickupNumber."'");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+    
 }

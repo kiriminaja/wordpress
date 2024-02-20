@@ -59,3 +59,8 @@ function kjMoneyFormat(angka, prefix){
     rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
     return prefix == undefined ? rupiah : (rupiah ? 'Rp. ' + rupiah : '');
 }
+
+function printAsString (value, placeholder=''){
+    if (value==null) return placeholder
+    return value
+}

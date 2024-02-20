@@ -171,12 +171,7 @@
     }
     
     function getTabData(){
-        var menu = location.search.split('tab=')[1] ?? ''
-        if (!['tab-integration', 'tab-shipping', 'tab-advanced'].includes(menu)){
-            window.location.href = '<?php echo  @home_url().'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+'tab-integration'
-            return
-        }
-        
+        var menu = '<?php echo @$activeTab;?>'
         
         jQuery('.nav-tab').removeClass("nav-tab-active")
         jQuery(`.nav-tab.${menu}`).addClass("nav-tab-active");

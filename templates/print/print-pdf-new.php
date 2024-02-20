@@ -26,37 +26,48 @@
 </head>
 <body>
 <?php
-foreach ($packages as $index => $package){
+
+
+
+foreach ($transactions as $index => $transaction){
+
+    $transactionCost = 0;
+    $transactionCost += intval(@$transaction->shipping_cost ?? 0)+intval(@$transaction->insurance_cost ?? 0);
+    if (@$transaction->cod_fee > 0){
+        $transactionCost += intval($transaction->cod_fee ?? 0)+intval($transaction->transaction_value ?? 0);
+    }
+    $destinationData = json_decode($transaction->shipping_info,true);
+    
     echo '<table  style="width: 100%; height: 95%; border-collapse: collapse; margin-top: .25rem" border="1">
             <tr>
                 <td style="border-right: 0; padding: .5rem">
                     <img src="https://kiriminaja.com/assets/home/2.png" height="25px" alt="">
                 </td>
                  <td style="border-left: 0;text-align: right; font-size: 1rem; font-weight: 700; padding: .5rem">
-                     '.(0===0 ? 'COD Rp'.localMoneyFormat(1000000) : 'NON-COD').'
+                     '.(@$transaction->cod_fee > 0 ? 'COD Rp'.localMoneyFormat($transactionCost) : 'NON-COD').'
                 </td>
             </tr>
             
             <tr>
                 <td style="border-right: 0;padding: .5rem; position: relative">
                     <div style="position: relative">
-                        <strong style="display: block;margin-top: 0.5rem">OID-XXXXXXXXX</strong>
+                        <strong style="display: block;margin-top: 0.5rem">'.@$transaction?->order_id.'</strong>
                     </div>
                     <div style="display: inline-block; margin-top: 1.25rem">
                         <div style="display: inline-block;border: 1px solid #000;padding: .15rem">
-                            <img src="https://kiriminaja-static-file.imgix.net/home-v3/logistics/jne.png" height="20px" alt="">
+                            <img src="https://kiriminaja-static-file.imgix.net/home-v3/logistics/'.@$transaction?->service.'.png" height="20px" alt="">
                         </div>
                         <div style="display: inline-block;padding: .15rem .5rem">
                             Tipe Layanan
                             <br>
-                            <strong>YES</strong>
+                            <strong>'.@$transaction?->service_name.'</strong>
                         </div>
                     </div>
                 </td>
                 <td style="border-left: 0;padding: .5rem; position: relative">
                     <div style="position: relative; text-align: center">
-                        <img src="data:image/png;base64,'.base64_encode(generate_barcode()->getBarcode(strtoupper('KRMJA1163362760117825536'),generate_barcode()::TYPE_CODE_128_A)).'" id="card-{{$package->id}}" alt="{{$package->awb}}" style="width: 95%;height: 30px" class="package-awb">
-                        <div style="text-align: center; font-weight: 700; margin-top: .5rem">KRMJA1163362760117825536</div
+                        <img src="data:image/png;base64,'.base64_encode(generate_barcode()->getBarcode(strtoupper(@$transaction?->awb),generate_barcode()::TYPE_CODE_128_A)).'" style="width: 95%;height: 30px" class="package-awb">
+                        <div style="text-align: center; font-weight: 700; margin-top: .5rem">'.@$transaction?->awb.'</div>
                     </div>
                 </td>
             </tr>
@@ -67,17 +78,17 @@ foreach ($packages as $index => $package){
                         <div style="width: 30%;display: inline-block">
                             Asuransi
                             <br>
-                            <strong>-</strong>
+                            <strong>'.($transaction->insurance_cost>0 ? localMoneyFormat($transaction->insurance_cost) : '-').'</strong>
                         </div>
                          <div style="width: 30%;display: inline-block">
                             Berat
                             <br>
-                            <strong>500gr</strong>        
+                            <strong>'.($transaction->weight>0 ? localMoneyFormat($transaction->weight).'gr' : '-').'</strong>        
                         </div>
                          <div style="width: 30%;display: inline-block">
                             Quantity
                             <br>
-                            <strong>1Pcs</strong>
+                            <strong>1</strong>
                         </div>
                     </div>
                 </td>
@@ -87,26 +98,26 @@ foreach ($packages as $index => $package){
                 <td style="padding: .5rem; width: 50%; border-right: 0">
                     Penerima
                     <br>
-                    <strong style="font-size: .75rem;">Gemah Ripah</strong>
+                    <strong style="font-size: .75rem;">'.@$destinationData['_billing_first_name'].' '.@$destinationData['_billing_last_name'].'</strong>
                     <br>
-                    Lorem Ipsum Dolor. Lorem Ipsum Dolor. Lorem Ipsum Dolor. Lorem Ipsum Dolor. Lorem Ipsum Dolor.
+                    '.@$destinationData['_billing_address_1'].' '.@$destinationData['_billing_address_2'].' '.@$destinationData['_billing_city'].' '.@$destinationData['_billing_postcode'].'
                     <br>
-                    082082082082
+                    '.@$destinationData['_billing_phone'].'
                 </td>
                 <td style="padding: .5rem; border-left: 0">
                     Dari
                     <br>
-                    <strong style="font-size: .75rem;">Gemah Ripah</strong>
+                    <strong style="font-size: .75rem;">'.@$originDataArr['origin_name'].'</strong>
                     <br>
-                    Lorem Ipsum Dolor. Lorem Ipsum Dolor. Lorem Ipsum Dolor. Lorem Ipsum Dolor. Lorem Ipsum Dolor.
+                    '.@$originDataArr['origin_address'].' '.@$originDataArr['origin_sub_district_name'].'
                     <br>
-                    082082082082
+                    '.@$originDataArr['origin_phone'].'
                 </td>
             </tr>
             
           
             
-            <tr>
+            <tr style="display: none">
                 <td colspan="2" style="padding: .5rem; text-align: center; background-color: black;color: white">
                     <div style="margin-top: .25rem">
                         <div style="width: 30%; display: inline-block">
@@ -128,7 +139,7 @@ foreach ($packages as $index => $package){
                 <td colspan="2" style="padding: .5rem;">
                     Isi Paket:
                     <br>
-                    <strong>Paket</strong>
+                    <strong>Lain-lain</strong>
                 </td>
             </tr>
            
@@ -137,7 +148,7 @@ foreach ($packages as $index => $package){
                 <td colspan="2" style="padding: .5rem; padding-bottom: 1rem">
                     Catatan:
                     <br>
-                    <strong>'.(nl2br('$package->description')).'</strong>
+                    <strong>-</strong>
                 </td>
             </tr>
             
