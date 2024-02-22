@@ -1,6 +1,8 @@
 <?php
 namespace Inc\Controllers;
 
+use Throwable;
+
 class SettingController{
 
 
@@ -39,7 +41,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
     function storeIntegrationData() {
@@ -48,7 +50,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
     
@@ -58,7 +60,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
     
@@ -68,7 +70,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
     
@@ -78,7 +80,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
     
@@ -90,7 +92,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
     
@@ -100,7 +102,7 @@ class SettingController{
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
 }

@@ -18,6 +18,7 @@ final class Init {
             Controllers\CallbackController::class,
             Controllers\GeneralAjaxController::class,
             Controllers\ShippingProcessController::class,
+            Controllers\TrackingFrontPageController::class,
         ];
     }
 

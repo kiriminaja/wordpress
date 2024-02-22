@@ -24,6 +24,16 @@ class TransactionRepository{
         return $query;
     }
     
+    public function getTransactionByWCOrderNumber($wp_wc_order_stat_order_id){
+        global $wpdb;
+        $query = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_transactions WHERE wp_wc_order_stat_order_id  = '".$wp_wc_order_stat_order_id."'");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+    
     public function getTransactionByPickupNumber($pickupNumber){
         global $wpdb;
         $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE pickup_number = '".$pickupNumber."'" );

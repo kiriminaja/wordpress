@@ -17,7 +17,11 @@ class Enqueue extends BaseInit{
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
         wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/wp/css/kj-wp-style.css');
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js');
+
+        // Option 1: Manually enqueue the wp-util library.
+        wp_enqueue_script( 'wp-util' );
+        // Option 2: Make wp-util a dependency of your script (usually better).
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ]);
     }
     function enqueueAdmin(){
 

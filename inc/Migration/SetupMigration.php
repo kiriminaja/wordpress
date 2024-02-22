@@ -4,6 +4,8 @@ namespace Inc\Migration;
 
 class SetupMigration {
     
+    public $suffix = '_test';
+    
     public function register(){
         self::settingsTable();
         self::transactionsTable();
@@ -15,7 +17,7 @@ class SetupMigration {
         global $wpdb;
 
         /** Settings Table*/
-        $table_name = $wpdb->prefix.'kiriminaja_settings';
+        $table_name = $wpdb->prefix.'kiriminaja_settings'.$this->suffix;
         /** Delete if table exist */
         if($wpdb->get_var( "show tables like '$table_name'" ) == $table_name ){
             $sql = "DROP TABLE IF EXISTS $table_name";
@@ -55,7 +57,7 @@ class SetupMigration {
         global $wpdb;
 
         /** Transactions Table*/
-        $table_name = $wpdb->prefix.'kiriminaja_transactions';
+        $table_name = $wpdb->prefix.'kiriminaja_transactions'.$this->suffix;
         /** Delete if table exist */
         if($wpdb->get_var( "show tables like '$table_name'" ) == $table_name ){
             $sql = "DROP TABLE IF EXISTS $table_name";
@@ -64,19 +66,25 @@ class SetupMigration {
         }
         $sql = "CREATE TABLE ".$table_name."(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
-            order_id varchar(100) NULL ,
-            pickup_number varchar(100) NULL ,
-            awb varchar(100) NULL ,
-            rejected_reason varchar(255) NULL,
-            shipping_cost double NULL,
-            insurance_cost double NULL,
-            cod_fee double NULL,
-            transaction_value double NULL,
-            shipped_at timestamp NULL,
-            return_finished_at timestamp NULL,
-            finished_at timestamp NULL,
-            rejected_at timestamp NULL,
-            returned_at timestamp NULL,
+            `order_id` varchar(100) DEFAULT NULL,
+            `shipping_info` text DEFAULT NULL,
+            `pickup_number` varchar(100) DEFAULT NULL,
+            `status` enum('pending','finished','shipped','return','returned','rejected') NOT NULL DEFAULT 'pending',
+            `service` varchar(50) DEFAULT NULL,
+            `service_name` varchar(50) DEFAULT NULL,
+            `awb` varchar(100) DEFAULT NULL,
+            `rejected_reason` varchar(255) DEFAULT NULL,
+            `weight` int(11) DEFAULT NULL,
+            `shipping_cost` double DEFAULT NULL,
+            `insurance_cost` double DEFAULT NULL,
+            `cod_fee` double DEFAULT NULL,
+            `transaction_value` double DEFAULT NULL,
+            `shipped_at` timestamp NULL DEFAULT NULL,
+            `return_finished_at` timestamp NULL DEFAULT NULL,
+            `finished_at` timestamp NULL DEFAULT NULL,
+            `rejected_at` timestamp NULL DEFAULT NULL,
+            `returned_at` timestamp NULL DEFAULT NULL,
+            `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
             UNIQUE KEY id (id)
             );";
         require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
@@ -88,7 +96,7 @@ class SetupMigration {
         global $wpdb;
 
         /** Payments Table*/
-        $table_name = $wpdb->prefix.'kiriminaja_payments';
+        $table_name = $wpdb->prefix.'kiriminaja_payments'.$this->suffix;
         /** Delete if table exist */
         if($wpdb->get_var( "show tables like '$table_name'" ) == $table_name ){
             $sql = "DROP TABLE IF EXISTS $table_name";

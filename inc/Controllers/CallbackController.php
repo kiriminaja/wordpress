@@ -4,14 +4,12 @@ namespace Inc\Controllers;
 class CallbackController{
 
     public function register(){
+        /** Adding New Route*/
         add_action( 'init', function (){
             add_feed( 'kiriminaja-callback', array($this,'kiriminAjaCallback') );
         } );
     }
-//    function kiriminAjaCallbackRegister()
-//    {
-//        add_feed( 'kiriminaja-callback', array($this,'kiriminAjaCallback') );
-//    }
+    
     function kiriminAjaCallback()
     {
         $header = apache_request_headers();

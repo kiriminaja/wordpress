@@ -26,5 +26,20 @@ class KiriminajaApiService extends BaseService{
         }
         return self::success($repo['data']->data);
     }
+
+    public function getTracking($order_id)
+    {
+        $repo = (new \Inc\Repositories\KiriminajaApiRepository())->getTracking([
+            'order_id'=>$order_id
+        ]);
+
+        (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
+        
+        
+        if (!@$repo['status'] || !@$repo['data']->status){
+            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        }
+        return self::success($repo['data']);
+    }
     
 }
