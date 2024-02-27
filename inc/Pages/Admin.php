@@ -37,6 +37,16 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
+                    'page_title'=>'KiriminAja Transaction Process',
+                    'menu_title'=>'Transaction Process',
+                    'capability'=>'manage_options',
+                    'menu_slug'=>'kiriminaja-transaction-process',
+                    'callback'=> function(){
+                        require_once $this->plugin_path.'templates/transaction-process/index.php';
+                    }
+                ],
+                [
+                    'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'Shipment Process',
                     'menu_title'=>'Shipment Process',
                     'capability'=>'manage_options',

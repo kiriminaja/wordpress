@@ -14,8 +14,10 @@ class GeneralAjaxController{
             $kiriminajaSubDistrictSearch = (new \Inc\Services\KiriminajaApiService())->sub_district_search($data['search']);
             if ($kiriminajaSubDistrictSearch->status!==200){wp_send_json_success([]);}
             wp_send_json_success($kiriminajaSubDistrictSearch->data);
+            wp_die();
         }catch (Throwable $e){
             wp_send_json_success([]);
+            wp_die();
         }
     }
     

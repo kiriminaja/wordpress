@@ -165,4 +165,17 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         ]);
     }
     
+    public function getPricing($payload){
+        return $this->post('/api/mitra/v5/shipping_price',[
+//            'origin'     => $payload['origin'],
+            'subdistrict_origin'     => $payload['subdistrict_origin'],
+//            'destination	'     => $payload['destination	'],
+            'subdistrict_destination'     => $payload['subdistrict_destination'],
+            'weight'     => $payload['weight'],
+            'insurance'     => $payload['insurance'],
+            'item_value'     => $payload['item_value'],
+            'courier'     => $payload['courier']
+        ]);
+    }
+    
 }

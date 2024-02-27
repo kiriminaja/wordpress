@@ -10,10 +10,10 @@ use Inc\Services\ShippingProcessServices\GetShippingProcessPayment;
 
 class ShippingProcessController{
     public function register(){
-        /** getIntegrationData */
+        /** getShippingProcessDetail */
         add_action('wp_ajax_kj_get_shipping_process_detail', array($this,'getShippingProcessDetail'));
         add_action('wp_ajax_nopriv_kj_get_shipping_process_detail', array($this,'getShippingProcessDetail'));
-        /** getIntegrationData */
+        /** getPaymentForm */
         add_action('wp_ajax_kj_get_payment_form', array($this,'getPaymentForm'));
         add_action('wp_ajax_nopriv_kj_get_payment_form', array($this,'getPaymentForm'));
         
@@ -21,8 +21,8 @@ class ShippingProcessController{
         add_action( 'init', function (){
             add_feed( 'transaction-resi-print', array($this,'resiPrint') );
         } );
-        
     }
+    
     function getShippingProcessDetail() {
         try {
             $service = (new GetShippingProcessDetailService())->paymentId(@$_POST['data']['payment_id'] ?? '')->call();

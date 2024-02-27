@@ -147,8 +147,6 @@
 
                 jQuery('.state-err').removeClass('kj-hidden')
                 jQuery('#err_msg').text(response?.message)
-      
-                
             });
     }
     

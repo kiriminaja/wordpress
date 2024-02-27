@@ -63,5 +63,68 @@ class TransactionRepository{
         }
         return $query;
     }
+
+    public function getTransactionByWCOrderId($WCOrderId){
+        global $wpdb;
+        $query = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_transactions WHERE wp_wc_order_stat_order_id = '".$WCOrderId."'");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+    
+    public function createTransaction($payload){
+        /** Transaction Table Insert*/
+        global $wpdb;
+        $table_name = 'wp_kiriminaja_transactions';
+        $wpdb->query("INSERT INTO ".$table_name."
+            (
+            `order_id`, 
+            `shipping_info`, 
+            `destination_sub_district_id`, 
+            `destination_sub_district`, 
+            `status`, 
+            `service`, 
+            `service_name`, 
+            `weight`, 
+            `width`, 
+            `height`, 
+            `length`, 
+            `shipping_cost`, 
+            `insurance_cost`, 
+            `cod_fee`, 
+            `transaction_value`, 
+            `created_at`, 
+            `wp_wc_order_stat_order_id`
+            )
+            VALUES
+            (
+            '".$payload['order_id']."',
+            '".$payload['shipping_info']."',
+            '".$payload['destination_sub_district_id']."',
+            '".$payload['destination_sub_district']."',
+            '".$payload['status']."',
+            '".$payload['service']."',
+            '".$payload['service_name']."',
+            '".$payload['weight']."',
+            '".$payload['width']."',
+            '".$payload['height']."',
+            '".$payload['length']."',
+            '".$payload['shipping_cost']."',
+            '".$payload['insurance_cost']."',
+            '".$payload['cod_fee']."',
+            '".$payload['transaction_value']."',
+            '".$payload['created_at']."',
+            '".$payload['wp_wc_order_stat_order_id']."'
+            )
+            ");
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return true;
+    }
     
 }

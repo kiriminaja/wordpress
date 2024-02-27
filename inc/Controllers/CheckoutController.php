@@ -12,11 +12,43 @@ class CheckoutController
         if (is_plugin_active('woocommerce/woocommerce.php')) {
             add_action('woocommerce_before_checkout_form', array($this, 'ts_add_order'));
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'));
-            add_action('woocommerce_after_checkout_shipping_form', array($this, 'add_custom_select_options_field_and_script_shipping'));
+            // add_action('woocommerce_after_checkout_shipping_form', array($this, 'add_custom_select_options_field_and_script_shipping'));
             // add_filter( 'woocommerce_cart_needs_shipping', '__return_false' );
             add_action( 'woocommerce_review_order_before_shipping', array($this,'custom_shipping_content'));
+            add_action('woocommerce_after_checkout_validation', array($this,'rei_after_checkout_validation'));
+            /** After Checkout*/
+            add_action( 'woocommerce_checkout_create_order', array($this,'afterCheckoutBeforeCreated'), 10, 2 );
+            add_action( 'woocommerce_checkout_order_processed', array($this,'afterCheckoutAfterCreated'),10, 3);
 
+            /** Expedition Ajax*/
+            add_action('wp_ajax_kj-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
+            add_action('wp_ajax_nopriv_kj-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
+            
+            /** Calculation Ajax*/
+            add_action('wp_ajax_kj-checkout-calc', array($this,'getCheckoutCalculationAjax'));
+            add_action('wp_ajax_nopriv_kj-checkout-calc', array($this,'getCheckoutCalculationAjax'));
+
+
+            add_action( 'woocommerce_thankyou', array($this,'custom_content_thankyou'), 10, 1 );
         }
+    }
+
+    function rei_after_checkout_validation( $posted ) {
+
+        // do all your logics here...
+        // adding wc_add_notice with a second parameter of "error" will stop the form...
+        // wc_add_notice( __( "OMG! You're not human!", 'woocommerce' ), 'error' );
+
+        if (empty($_POST['kj_destination_area'])) {
+            wc_add_notice( __( "<strong>Kelurahan</strong> is a required field", 'woocommerce' ), 'error' );
+        }
+        if (empty($_POST['kj_expedition'])) {
+            wc_add_notice( __( "<strong>Ekspedisi</strong> is a required field", 'woocommerce' ), 'error' );
+        }
+        if (empty($_POST['kj_checkout_token'])) {
+            wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'woocommerce' ), 'error' );
+        }
+
     }
 
     function custom_shipping_content() {
@@ -31,135 +63,99 @@ class CheckoutController
 
     function add_custom_select_options_field_and_script()
     {
-?>
-        <p class="form-row form-row-wide">
-            <label for="custom_select_field"><?php _e('Kelurahan', 'woocommerce'); ?> <span class="required">*</span></label>
-            <select name="custom_select_field" id="custom_select_field" class="select2 custom_select_field" style="width: 100%;" required></select>
-        </p>
-        <script type="text/javascript">
-            let subdistrictAjaxTimeout = null
-            const elemSelectName = 'custom_select_field';
-
-
-            jQuery(document).ready(function($) {
-                $('#custom_select_field').select2({
-                    tags: true,
-                    placeholder: "Masukkan Kelurahan",
-                }).on('select2:open', function(e) {
-                    $('.select2-search__field').prop('id', 'billing_search');
-                });
-            });
-
-
-            jQuery('body').on('keyup', `#billing_search`, function(e) {
-                const thisElem = jQuery(this);
-
-                const searchInputVal = jQuery(this).val()
-                if (subdistrictAjaxTimeout) {
-                    clearTimeout(subdistrictAjaxTimeout)
-                }
-                subdistrictAjaxTimeout = setTimeout(function() {
-                    jQuery(`[name="${elemSelectName}"]`).empty()
-                    jQuery(`[name="${elemSelectName}"]`).append("<option value='' disabled>Loading...</option>");
-                    jQuery(`[name="${elemSelectName}"]`).trigger('change');
-                    jQuery(`[name="${elemSelectName}"]`).select2('close');
-                    jQuery(`[name="${elemSelectName}"]`).select2('open');
-                    thisElem.val(searchInputVal);
-                    jQuery.ajax({
-                        type: "post",
-                        url: ajaxRouteGenerator(),
-                        data: {
-                            action: "nopriv_kiriminaja_subdistrict_search", // the action to fire in the server
-                            data: {
-                                search: searchInputVal
-                            },
-                        },
-                        complete: function(response) {
-                            const options = JSON.parse(response.responseText).data
-                            jQuery(`[name="${elemSelectName}"]`).empty()
-                            options.forEach(function(arr) {
-                                jQuery(`[name="${elemSelectName}"]`).append("<option value='" + arr.id + "'>" + arr.text + "</option>");
-                            })
-                            jQuery(`[name="${elemSelectName}"]`).trigger('change');
-                            jQuery(`[name="${elemSelectName}"]`).select2('close');
-                            jQuery(`[name="${elemSelectName}"]`).select2('open');
-                            thisElem.val(searchInputVal);
-                        },
-                    });
-                }, 1000)
-
-            })
-
-            
-            
-        </script>
-<?php
+        require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-billing-address.php');
     }
 
     function add_custom_select_options_field_and_script_shipping()
     {
-?>
-        <p class="form-row form-row-wide">
-            <label for="custom_select_field"><?php _e('Kelurahan', 'woocommerce'); ?> <span class="required">*</span></label>
-            <select name="custom_select_field_shipping" id="custom_select_field_shipping" class="select2 custom_select_field_shipping" style="width: 100%;" required></select>
-        </p>
-        <script type="text/javascript">
-            let subdistrictAjaxTimeoutShipping = null
-            const elemSelectNameShipping = 'custom_select_field_shipping';
+        require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-shipping-address.php');
+    }
 
+    function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
+        $kj_destination_area            = $_SESSION["kj_destination_area"];
+        $kj_destination_area_name       = $_SESSION["kj_destination_area_name"];
+        $kj_expedition                  = $_SESSION["kj_expedition"];
+        $kj_checkout_token              = $_SESSION["kj_checkout_token"];
+        $insurance                      = $_SESSION["billing_insurance"];
+        $payment_method                 = $_SESSION["payment_method"];
 
-            jQuery(document).ready(function($) {
-                $('#custom_select_field_shipping').select2({
-                    tags: true,
-                    placeholder:"Masukkan Kelurahan",
-                }).on('select2:open', function(e) {
-                    $('.select2-search__field').prop('id', 'shipping_search');
-                });
+        // remove all session variables
+        session_unset();
+        // destroy the session
+        session_destroy();
+        
+        /** Store Transaction*/
 
-            });
+//        (new \Inc\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[
+//            '$order_id'                     => @$order_id,
+//            '$posted_data'                  => @$posted_data,
+//            '$order'                        => @$order,
+//            '$kj_destination_area'          => @$kj_destination_area,
+//            '$kj_destination_area_name'     => @$kj_destination_area_name,
+//            '$kj_expedition'                => @$kj_expedition,
+//            '$kj_checkout_token'            => @$kj_checkout_token,
+//        ]);
 
-            jQuery('body').on('keyup', `#shipping_search`, function(e) {
-                const thisElem = jQuery(this);
+        (new \Inc\Services\CheckoutServices\CreateTransactionService([
+            'order_id'                  => @$order_id,
+            'checkout_post_data'        => @$posted_data,
+            'kj_destination_area'       => @$kj_destination_area,
+            'kj_destination_area_name'  => @$kj_destination_area_name,
+            'kj_expedition'             => @$kj_expedition,
+            'insurance'                 => @$insurance==="1",
+            'payment_method'            => $payment_method,
+            'wc_cart_contents'          => WC()->cart->cart_contents,
+        ]))->call();
+    }
+    
+    function afterCheckoutBeforeCreated($order,$data ){
+//        (new \Inc\Base\BaseInit())->logThis('afterCheckoutBeforeCreated',[
+//            '$order'=>@$order,
+//            '$data'=>@$data,
+//            '$_POST'=>@$_POST,
+//        ]);
+        
+        /** Store custom field value in session*/
+        session_start();
+        $_SESSION["kj_destination_area"]            = @$_POST['kj_destination_area'];
+        $_SESSION["kj_destination_area_name"]       = @$_POST['kj_destination_area_name'];
+        $_SESSION["kj_expedition"]                  = @$_POST['kj_expedition'];
+        $_SESSION["kj_checkout_token"]              = @$_POST['kj_checkout_token'];
+        $_SESSION["billing_insurance"]              = @$_POST['billing_insurance'];
+        $_SESSION["payment_method"]                 = @$_POST['payment_method'];
+        
+    }
+    
+    function getExpeditionOptionAjax(){
+        /**
+        DELAYDEVNOTE
+         * pricing payload
+         */
+        
+        $service = (new \Inc\Services\CheckoutServices\OngkirPricingService([
+            'destination_area_id' => $_POST['data']['destination_area_id']
+        ]))->call();
+        
+        wp_send_json_success($service);
+    }
+    
+    function getCheckoutCalculationAjax(){
+        /**
+        DELAYDEVNOTE
+         * pricing payload
+         */
+        $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
+            'destination_area_id'   => $_POST['data']['destination_area_id'],
+            'expedition'            => $_POST['data']['expedition'],
+            'insurance'             => $_POST['data']['insurance']==="true",
+            'payment_method'        => $_POST['data']['payment_method'],
+            'wc_cart_contents'      => WC()->cart->cart_contents,
+        ]))->call();
+        wp_send_json_success($service);
+    }
 
-                const searchInputVal = jQuery(this).val()
-                if (subdistrictAjaxTimeoutShipping) {
-                    clearTimeout(subdistrictAjaxTimeoutShipping)
-                }
-                subdistrictAjaxTimeoutShipping = setTimeout(function() {
-                    jQuery(`[name="${elemSelectNameShipping}"]`).empty()
-                    jQuery(`[name="${elemSelectNameShipping}"]`).append("<option value='' disabled>Loading...</option>");
-                    jQuery(`[name="${elemSelectNameShipping}"]`).trigger('change');
-                    jQuery(`[name="${elemSelectNameShipping}"]`).select2('close');
-                    jQuery(`[name="${elemSelectNameShipping}"]`).select2('open');
-                    thisElem.val(searchInputVal);
-                    jQuery.ajax({
-                        type: "post",
-                        url: ajaxRouteGenerator(),
-                        data: {
-                            action: "nopriv_kiriminaja_subdistrict_search", // the action to fire in the server
-                            data: {
-                                search: searchInputVal
-                            },
-                        },
-                        complete: function(response) {
-                            const options = JSON.parse(response.responseText).data
-                            jQuery(`[name="${elemSelectNameShipping}"]`).empty()
-                            options.forEach(function(arr) {
-                                jQuery(`[name="${elemSelectNameShipping}"]`).append("<option value='" + arr.id + "'>" + arr.text + "</option>");
-                            })
-                            jQuery(`[name="${elemSelectNameShipping}"]`).trigger('change');
-                            jQuery(`[name="${elemSelectNameShipping}"]`).select2('close');
-                            jQuery(`[name="${elemSelectNameShipping}"]`).select2('open');
-                            thisElem.val(searchInputVal);
-                        },
-                    });
-                }, 1000)
-
-            })
-
-            
-            
-        </script>
-<?php
+    function custom_content_thankyou( $order_id ) {
+        $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId($order_id);
+        require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/after-checkout-page.php');
     }
 }

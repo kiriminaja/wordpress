@@ -10,6 +10,7 @@ class KiriminajaApiService extends BaseService{
     public function sub_district_search($search)
     {
         $repo = (new \Inc\Repositories\KiriminajaApiRepository())->sub_district_search($search);
+        (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
         if (!@$repo['status'] || !@$repo['data']->status){
             return self::error([],@$repo['data']->text ?? 'Something is wrong');
         }

@@ -163,10 +163,9 @@
                                                     </td>
                                                 </tr>
                                                 ';
-
                                             }
                                         }else{
-                                            echo '<td colspan="7" style="text-align: center" class="manage-column column-thumb">Not Found</td>';
+                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">Not Found</td></tr>';
                                         }
                                         ?>
                                         </tbody>

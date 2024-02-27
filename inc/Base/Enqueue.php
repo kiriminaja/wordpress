@@ -16,6 +16,15 @@ class Enqueue extends BaseInit{
 
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
+
+        wp_localize_script(
+            'myjs',
+            'myjs',
+            array(
+                'ajaxurl' => admin_url( 'admin-ajax.php' )
+            )
+        );
+        
         wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), '4.0.13', true );
         wp_enqueue_style( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css', array(), '4.0.13' );
         wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/wp/css/kj-wp-style.css');
@@ -28,7 +37,15 @@ class Enqueue extends BaseInit{
     
     function enqueueAdmin(){
 
-        if (!in_array(@$_GET['page'],['kiriminaja-konfigurasi','kiriminaja-request-pickup'])){return;}
+        wp_localize_script(
+            'myjs',
+            'myjs',
+            array(
+                'ajaxurl' => admin_url( 'admin-ajax.php' )
+            )
+        );
+
+//        if (!in_array(@$_GET['page'],['kiriminaja-konfigurasi','kiriminaja-request-pickup'])){return;}
         
         wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css');
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js');
