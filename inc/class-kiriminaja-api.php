@@ -26,7 +26,7 @@ class KiriminAja_API
     public function __construct($setting)
     {
         global $wp_version;
-        $this->base_url = 'https://kiriminaja.com';
+        $this->base_url = 'https://client.kiriminaja.com';
         $this->default_args = array(
             'timeout' => 30,
             'redirection' => 5,
