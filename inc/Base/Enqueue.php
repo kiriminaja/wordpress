@@ -45,7 +45,10 @@ class Enqueue extends BaseInit{
             )
         );
 
-//        if (!in_array(@$_GET['page'],['kiriminaja-konfigurasi','kiriminaja-request-pickup'])){return;}
+        if (!in_array(@$_GET['page'],[
+            'kiriminaja-konfigurasi',
+            'kiriminaja-transaction-process',
+            'kiriminaja-request-pickup'])){return;}
         
         wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css');
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js');

@@ -6,7 +6,7 @@
                     <div class="woocommerce-layout__header-wrapper">
                         <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Transaction Process</h1>
                         <div style="padding-right: 40px">
-                            <button onclick="kjRequestPickup()" class="button button-wp" type="button">
+                            <button onclick="kjRequestPickupSchedule()" class="button button-wp" type="button">
                                 <div style="display: flex">
                                     <div style="margin: auto">
                                         <span>Request Pickup</span>
@@ -103,7 +103,7 @@
                                                     echo '
                                                       <tr class="">
                                                         <td class="manage-column column-thumb">
-                                                            <input type="checkbox" name="transaction_id[]" value="'.$row->id.'">
+                                                            <input type="checkbox" name="transaction_id[]" value="'.$row->order_id.'">
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                         <a href="" style="font-weight: 700">#'.$row->wc_order_id.' '.$shippingData->_billing_first_name.' '.$shippingData->_billing_last_name.' </a>
@@ -198,9 +198,15 @@
             </div>
         </div>
     </div>
+
+    <?php include 'modal-request-pickup.php' ?>
+    
 </div>
 
+
 <script>
+    let orderIds = [];
+    
     jQuery(document).on('change','#check_order_id_all_top, #check_order_id_all_bottom',function (){
         const is_checked = jQuery(this).prop('checked')
         jQuery('#check_order_id_all_top').prop('checked',is_checked)
@@ -208,33 +214,142 @@
         jQuery('[name="transaction_id[]"]').prop('checked',is_checked)
     })
     
-    function kjRequestPickup(){
-        let transactionIds = [];
+    function kjRequestPickupSchedule(){
+        const modalElem = jQuery('#request-pickup-modal')
+        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
+        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
+        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
+
+        modalElem.removeClass('kj-hidden')
+        modalElemLoader.removeClass('kj-hidden')
+        modalElemContent.addClass('kj-hidden')
+        modalElemErr.addClass('kj-hidden')
+        
+        
+        
         jQuery('input[name="transaction_id[]"]:checked').each(function() {
-            transactionIds.push(jQuery(this).val());
+            orderIds.push(jQuery(this).val());
         });
         
-        if (transactionIds.length === 0){
+        if (orderIds.length === 0){
             alert('There is no selected transaction')
             return
         }
-        console.log(transactionIds)
+        console.log(orderIds)
 
         jQuery.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
             data: {
-                action: "kj_request_pickup",  // the action to fire in the server
+                action: "kj_request_pickup_schedule",  // the action to fire in the server
                 data: {
-                    transaction_ids:transactionIds
+                    order_ids:orderIds
                 },         // any JS object
             },
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
-                console.log(resp)
                 
+                if (resp?.status !== 200){
+                    modalElemLoader.addClass('kj-hidden')
+                    modalElemContent.addClass('kj-hidden')
+                    modalElemErr.removeClass('kj-hidden')
+                    alert(resp?.message ?? 'Terjadi kesalahan')
+                    return
+                }
+
+                const schedules = resp?.data?.schedules ?? [];
+                const transaction_summary = resp?.data?.transaction_summary ?? {};
+                
+                /** transaction_summary*/
+                jQuery('#schedule-transaction-summary').empty()
+                jQuery('#schedule-transaction-summary').append(`
+                <div>
+                    <div class="row">
+                        <div class="col">Tagihan Paket COD</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
+                    </div>
+                    <div class="row-divider" style="margin-top: .5rem"></div>
+                    <div class="row">
+                        <div class="col">Tagihan Paket Non-COD</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
+                    </div>
+                    <div class="row-divider" style="margin-top: .5rem"></div>
+                    <div class="row">
+                        <div class="col">Total Tagihan</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
+                    </div>
+                </div>
+                `)
+                
+                /** schedules*/
+                
+                jQuery('#schedule-opt-list').empty()
+                jQuery.each(schedules,function (idx,schedule){
+                    console.log(schedule)
+                    jQuery('#schedule-opt-list').append(`
+                        <div style="margin-bottom: .75rem">
+                            <div style="display: flex;align-items: center;justify-items: center;">
+                                <input id="opt_${schedule?.clock}" style="margin: 0" value="${schedule?.clock}" type="radio" name="schedule-opt">
+                                <span style="margin-left: .5rem;margin-top: auto;margin-bottom: auto">
+                                    <label for="opt_${schedule?.clock}">${schedule?.label}</label>                                
+                                </span>
+                            </div>
+                        </div>
+                `)
+                })
+
+                
+                modalElemLoader.addClass('kj-hidden')
+                modalElemContent.removeClass('kj-hidden')
+                modalElemErr.addClass('kj-hidden')
             }
         })
         
+    }
+    
+    function kjRequestPickupProcess(){
+        jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
+
+        const modalElem = jQuery('#request-pickup-modal')
+        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
+        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
+        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
+
+        modalElemLoader.removeClass('kj-hidden')
+        modalElemContent.addClass('kj-hidden')
+        modalElemErr.addClass('kj-hidden')
+
+        jQuery.ajax({
+            type: "post",
+            url: ajaxRouteGenerator(),
+            data: {
+                action: "kj_request_pickup_transaction",  // the action to fire in the server
+                data: {
+                    schedule : jQuery('[name="schedule-opt"]:checked').val(),
+                    order_ids : orderIds
+                },         // any JS object
+            },
+            complete: function (response) {
+
+    
+                
+                const resp = JSON.parse(response.responseText).data;
+                console.log(resp)
+                if (resp?.status !== 200){
+
+                    modalElemLoader.addClass('kj-hidden')
+                    modalElemErr.addClass('kj-hidden')
+                    modalElemContent.removeClass('kj-hidden')
+                    
+                    jQuery('#request-pickup-modal .err_msg').text('*'+resp?.message)
+                    jQuery('#request-pickup-modal .err_msg').removeClass('kj-hidden')
+                    return
+                }
+
+                window.location.href = `<?php echo @home_url().'/wp-admin/admin.php?page=kiriminaja-request-pickup'; ?>&pickup_number=${resp?.data?.pickup_number}`;
+                
+                
+            }
+        })
     }
 </script>

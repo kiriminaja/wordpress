@@ -24,7 +24,8 @@ class KiriminAjaApi
             'headers' => array(
                 'Authorization' => 'Bearer ' . $dbApiToken,
                 'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
+                'Accept' => 'application/json',
+                'User-Agent' => 'wordpress'
             ),
             'cookies' => array(),
             'body' => null,

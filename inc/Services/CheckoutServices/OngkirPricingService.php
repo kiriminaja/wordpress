@@ -7,9 +7,11 @@ use Inc\Base\BaseService;
 class OngkirPricingService extends BaseService{
     
     public $payload;
+    private bool $is_cod = false;
     public function __construct($payload)
     {
         $this->payload = $payload;
+        $this->is_cod = @$payload['is_cod'];
         return $this;
     }
 
@@ -45,10 +47,12 @@ class OngkirPricingService extends BaseService{
         $options = @$pricingData->results ?? [];
         $filteredOptions = [];
         foreach ($options as $option){
-            $filteredOptions[] = [
-               'key'=>$option->service.'_'.$option->service_type,
-               'value'=>$option->service_name.' (Rp'.(localMoneyFormat($option->cost-$option->discount_amount)).')'
-            ];
+            if (!$this->is_cod || $this->is_cod && $option->cod){
+                $filteredOptions[] = [
+                    'key'=>$option->service.'_'.$option->service_type,
+                    'value'=>$option->service_name.' (Rp'.(localMoneyFormat($option->cost-$option->discount_amount)).')'
+                ];                
+            }
         }
         return $filteredOptions;
     }

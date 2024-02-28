@@ -47,5 +47,35 @@ class PaymentRepository{
         }
         return true;
     }
+
+    public function createPayment($payload){
+        global $wpdb;
+        $paymentTable = $wpdb->prefix . 'kiriminaja_payments';
+        $wpdb->query("INSERT INTO ".$paymentTable."
+            (
+            `pickup_number`, 
+            `status`, 
+            `method`, 
+            `order_amt`, 
+            `pickup_schedule`, 
+            `created_at`
+            )
+            VALUES
+            (
+            '".$payload['pickup_number']."',
+            '".$payload['status']."',
+            '".$payload['method']."',
+            '".$payload['order_amt']."',
+            '".$payload['pickup_schedule']."',
+            '".$payload['created_at']."'
+            )
+            ");
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return true;
+    }
     
 }

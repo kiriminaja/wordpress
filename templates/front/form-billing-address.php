@@ -86,7 +86,6 @@
 </script>
 <script type="text/javascript">
 
-    let expeditionAjaxTimeout = null
     const expeditionSelectElem = jQuery('#kj_expedition');
     const expeditionSelectElemSearchFieldId = 'kj_expedition_search';
     
@@ -101,39 +100,61 @@
         jQuery(`[name="kj_destination_area"]`).change(function (){
 
             jQuery('[name="kj_destination_area_name"]').val(jQuery(`[name="kj_destination_area"] option:selected`).text())
-            
-            $('.billing-expedition-state').addClass('kj-hidden')
-            $('.billing-expedition-state.s-loading').removeClass('kj-hidden')
-            
-            wp.ajax.post( "kj-get-expedition-ajax", {
-                data: {
-                    destination_area_id: $(this).val()
-                }
-            }).done(function(response) {
-
-
-                console.log(response.data.options)
-                const options = response?.data?.options ?? [];
-                expeditionSelectElem.select2('destroy');
-                expeditionSelectElem.empty()
-                expeditionSelectElem.append("<option value='' disabled selected>Pilih Ekspedisi</option>");
-                options.forEach(function(arr) {
-                    expeditionSelectElem.append("<option value='" + arr.key + "'>" + arr.value + "</option>");
-                })
-
-                expeditionSelectElem.select2({
-                    tags: true,
-                    placeholder: "Pilih Ekspedisi",
-                }).on('select2:open', function(e) {
-                    $('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
-                })
-
-                $('.billing-expedition-state').addClass('kj-hidden')
-                $('.billing-expedition-state.s-ready').removeClass('kj-hidden')
-            });
+            getExpeditionPricing()
         })
         
     });
+
+    let pmExpeditionTimeOut = null
+    jQuery(document).on('change','[name="payment_method"]',function (){
+        if (pmExpeditionTimeOut){
+            clearTimeout(pmExpeditionTimeOut)
+        }
+        
+        pmExpeditionTimeOut = setTimeout(function (){
+            getExpeditionPricing()
+        },500)
+        
+    })
+
+    
+    function getExpeditionPricing(){
+
+        if (printAsString(jQuery(`[name="kj_destination_area"] option:selected`).val())===''){return ;}
+        
+        jQuery('.billing-expedition-state').addClass('kj-hidden')
+        jQuery('.billing-expedition-state.s-loading').removeClass('kj-hidden')
+
+        wp.ajax.post( "kj-get-expedition-ajax", {
+            data: {
+                destination_area_id: jQuery(`[name="kj_destination_area"] option:selected`).val(),
+                payment_method: jQuery(`[name="payment_method"]:checked`).val()
+            }
+        }).done(function(response) {
+
+
+            console.log(response.data.options)
+            const options = response?.data?.options ?? [];
+            expeditionSelectElem.select2('destroy');
+            expeditionSelectElem.empty()
+            expeditionSelectElem.append("<option value='' disabled selected>Pilih Ekspedisi</option>");
+            options.forEach(function(arr) {
+                expeditionSelectElem.append("<option value='" + arr.key + "'>" + arr.value + "</option>");
+            })
+
+            expeditionSelectElem.select2({
+                tags: true,
+                placeholder: "Pilih Ekspedisi",
+            }).on('select2:open', function(e) {
+                jQuery('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
+            })
+
+            jQuery('.billing-expedition-state').addClass('kj-hidden')
+            jQuery('.billing-expedition-state.s-ready').removeClass('kj-hidden')
+        });
+        
+    }
+    
 </script>
 <script type="text/javascript">
 

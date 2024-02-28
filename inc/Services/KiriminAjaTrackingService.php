@@ -21,9 +21,14 @@ class KiriminAjaTrackingService extends BaseService{
         $repo = (new \Inc\Repositories\KiriminajaApiRepository())->getTracking([
             'order_id' => $transactionRepo->order_id
         ]);
+
+        (new \Inc\Base\BaseInit())->logThis('pload',[
+            'order_id' => $transactionRepo->order_id
+        ]);
+        (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
         
         if (!@$repo['status'] || !@$repo['data']->status){
-            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+            return self::error([],@$repo['data']->text ?? @$repo['data'] ?? 'Something is wrong');
         }
         $response = (object)[
             'histories'=>self::filteringHistories((array) $repo['data']->histories)

@@ -466,6 +466,14 @@
     function refreshShowPaymentForm(){
         showPaymentForm(showPaymentFormPaymentId)
     }
+    const urlParams = new URLSearchParams(window.location.href);
+    
+    jQuery(document).ready(function() {
+        const pickupNumberToLoad = urlParams.get('pickup_number');
+        if (pickupNumberToLoad){
+            showPaymentForm(pickupNumberToLoad)
+        }
+    });
 </script>
 <!--Request Pickup-->
 <script type="text/javascript">

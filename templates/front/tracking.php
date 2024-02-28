@@ -13,15 +13,15 @@
         display: block !important;
     }
     @media only screen and (min-width: 900px) {
-        #tracking-result{
-            width: 68%;
-        }
-        #tracking-form{
-            width: 28%;
-        }
-        form.checkout{
-            display: flex !important;
-        }
+        /*#tracking-result{*/
+        /*    width: 68%;*/
+        /*}*/
+        /*#tracking-form{*/
+        /*    width: 28%;*/
+        /*}*/
+        /*form.checkout{*/
+        /*    display: flex !important;*/
+        /*}*/
     }
     
     .tracking-table{
@@ -44,8 +44,8 @@
 <div style="min-height: 40vh" class="woocommerce woocommerce-page">
     <form style="width: 100%" name="checkout" method="post" class="checkout woocommerce-checkout" action="http://localhost/works/wp_kj_test_v2/wordpress/checkout/" enctype="multipart/form-data" novalidate="novalidate">
         <div class="col2-set" id="tracking-form">
-            <h3 id="order_review_heading">Pesanan Anda</h3>
-            <div id="order_review" class="woocommerce-checkout-review-order">
+            <h3 >Pesanan Anda</h3>
+            <div class="woocommerce-checkout-review-order">
 
 
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">

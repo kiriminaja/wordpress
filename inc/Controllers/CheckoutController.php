@@ -133,7 +133,8 @@ class CheckoutController
          */
         
         $service = (new \Inc\Services\CheckoutServices\OngkirPricingService([
-            'destination_area_id' => $_POST['data']['destination_area_id']
+            'destination_area_id' => $_POST['data']['destination_area_id'],
+            'is_cod' => $_POST['data']['payment_method']==='cod',
         ]))->call();
         
         wp_send_json_success($service);

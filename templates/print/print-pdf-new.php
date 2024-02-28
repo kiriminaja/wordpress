@@ -36,7 +36,7 @@ foreach ($transactions as $index => $transaction){
     if (@$transaction->cod_fee > 0){
         $transactionCost += intval($transaction->cod_fee ?? 0)+intval($transaction->transaction_value ?? 0);
     }
-    $destinationData = json_decode($transaction->shipping_info,true);
+    $destinationData = (object) json_decode($transaction->shipping_info);
     
     echo '<table  style="width: 100%; height: 95%; border-collapse: collapse; margin-top: .25rem" border="1">
             <tr>
@@ -98,11 +98,11 @@ foreach ($transactions as $index => $transaction){
                 <td style="padding: .5rem; width: 50%; border-right: 0">
                     Penerima
                     <br>
-                    <strong style="font-size: .75rem;">'.@$destinationData['_billing_first_name'].' '.@$destinationData['_billing_last_name'].'</strong>
+                    <strong style="font-size: .75rem;">'.@$destinationData->_shipping_first_name.' '.@$destinationData->_shipping_last_name.'</strong>
                     <br>
-                    '.@$destinationData['_billing_address_1'].' '.@$destinationData['_billing_address_2'].' '.@$destinationData['_billing_city'].' '.@$destinationData['_billing_postcode'].'
+                    '.@$destinationData->_shipping_address_1.' '.@$destinationData->_shipping_address_2.' '.@$transaction->destination_sub_district.' '.@$destinationData->_shipping_postcode.'
                     <br>
-                    '.@$destinationData['_billing_phone'].'
+                    '.@$destinationData->_billing_phone.'
                 </td>
                 <td style="padding: .5rem; border-left: 0">
                     Dari
