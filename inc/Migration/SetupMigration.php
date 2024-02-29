@@ -4,7 +4,7 @@ namespace Inc\Migration;
 
 class SetupMigration {
     
-    public $suffix = '_test';
+    public $suffix = '';
     
     public function register(){
         self::settingsTable();
@@ -47,7 +47,8 @@ class SetupMigration {
             ('origin_sub_district_name', null),
             ('origin_latitude', null),
             ('origin_longitude', null),
-            ('callback_url', null)
+            ('callback_url', null),
+            ('origin_zip_code', null)
             ");
         
     }
@@ -65,27 +66,34 @@ class SetupMigration {
             delete_option("my_plugin_db_version");
         }
         $sql = "CREATE TABLE ".$table_name."(
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            `order_id` varchar(100) DEFAULT NULL,
-            `shipping_info` text DEFAULT NULL,
-            `pickup_number` varchar(100) DEFAULT NULL,
-            `status` enum('pending','finished','shipped','return','returned','rejected') NOT NULL DEFAULT 'pending',
-            `service` varchar(50) DEFAULT NULL,
-            `service_name` varchar(50) DEFAULT NULL,
-            `awb` varchar(100) DEFAULT NULL,
-            `rejected_reason` varchar(255) DEFAULT NULL,
-            `weight` int(11) DEFAULT NULL,
-            `shipping_cost` double DEFAULT NULL,
-            `insurance_cost` double DEFAULT NULL,
-            `cod_fee` double DEFAULT NULL,
-            `transaction_value` double DEFAULT NULL,
-            `shipped_at` timestamp NULL DEFAULT NULL,
-            `return_finished_at` timestamp NULL DEFAULT NULL,
-            `finished_at` timestamp NULL DEFAULT NULL,
-            `rejected_at` timestamp NULL DEFAULT NULL,
-            `returned_at` timestamp NULL DEFAULT NULL,
-            `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
-            UNIQUE KEY id (id)
+                id mediumint(9) NOT NULL AUTO_INCREMENT,
+                `order_id` varchar(100) DEFAULT NULL,
+                `shipping_info` text DEFAULT NULL,
+                `destination_sub_district_id` int(11) DEFAULT NULL,
+                `destination_sub_district` varchar(255) DEFAULT NULL,
+                `pickup_number` varchar(100) DEFAULT NULL,
+                `status` enum('new','request_pickup','pending','finished','shipped','return','returned','rejected') NOT NULL DEFAULT 'new',
+                `service` varchar(50) DEFAULT NULL,
+                `service_name` varchar(50) DEFAULT NULL,
+                `awb` varchar(100) DEFAULT NULL,
+                `rejected_reason` varchar(255) DEFAULT NULL,
+                `weight` int(11) DEFAULT NULL,
+                `width` double NOT NULL DEFAULT 0,
+                `height` double NOT NULL DEFAULT 0,
+                `length` double NOT NULL DEFAULT 0,
+                `shipping_cost` double DEFAULT NULL,
+                `insurance_cost` double DEFAULT NULL,
+                `cod_fee` double DEFAULT NULL,
+                `transaction_value` double DEFAULT NULL,
+                `created_at` timestamp NULL DEFAULT NULL,
+                `request_pickup_at` timestamp NULL DEFAULT NULL,
+                `shipped_at` timestamp NULL DEFAULT NULL,
+                `return_finished_at` timestamp NULL DEFAULT NULL,
+                `finished_at` timestamp NULL DEFAULT NULL,
+                `rejected_at` timestamp NULL DEFAULT NULL,
+                `returned_at` timestamp NULL DEFAULT NULL,
+                `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
+                UNIQUE KEY id (id)
             );";
         require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
         dbDelta($sql);

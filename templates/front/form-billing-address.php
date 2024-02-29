@@ -1,3 +1,4 @@
+<h3>Expedition Inquiry</h3>
 <p class="form-row form-row-wide">
     <label for="kj_destination_area"><?php _e('Kelurahan', 'woocommerce'); ?> <span class="required">*</span></label>
     <select name="kj_destination_area" id="kj_destination_area" class="select2 custom_select_field" style="width: 100%;" required></select>
@@ -36,7 +37,6 @@
 
     jQuery(document).ready(function($) {
         subDistrictSelectElem.select2({
-            tags: true,
             placeholder: "Masukkan Kelurahan",
         }).on('select2:open', function(e) {
             $('.select2-search__field').prop('id', subDistrictSelectElemSearchFieldId);
@@ -78,8 +78,12 @@
                     jQuery(`#${subDistrictSelectElemSearchFieldId}`).val(searchInputVal);
                 });
         }, 1000)
-
     })
+    
+    function toggleCalculationValidation(isCompleted=false){
+        jQuery('[name="kj_checkout_token"]').val(isCompleted ? '1' : '')
+        /** Make checkout validation cant process becaouse calculation stil in process*/
+    }
 
 
 
@@ -91,7 +95,6 @@
     
     jQuery(document).ready(function($) {
         expeditionSelectElem.select2({
-            tags: true,
             placeholder: "Pilih Kelurahan Terlebih Dahulu",
         }).on('select2:open', function(e) {
             $('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
@@ -143,7 +146,6 @@
             })
 
             expeditionSelectElem.select2({
-                tags: true,
                 placeholder: "Pilih Ekspedisi",
             }).on('select2:open', function(e) {
                 jQuery('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
@@ -187,7 +189,7 @@
         checkoutCalculationTimeOut = setTimeout(function (){
             /** Reset Checkout Process Token
              * if this is not filled transaction cant be done*/
-            jQuery('[name="kj_checkout_token"]').val('')
+            toggleCalculationValidation(false)
             /** Delete Total */
             jQuery('.woocommerce-checkout-review-order-table tfoot .order-total').remove()
             jQuery('.woocommerce-checkout-review-order-table tfoot .kj-order-row').remove()
@@ -285,7 +287,7 @@
                     </tr>
                 `)
 
-                jQuery('[name="kj_checkout_token"]').val('1')
+                toggleCalculationValidation(true)
                 
             });
         },600)

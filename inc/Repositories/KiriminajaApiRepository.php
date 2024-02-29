@@ -27,25 +27,6 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function getPayment($payload){
-//        return [
-//            "status"=> true,
-//            "data"=> (object) [
-//                "status"=> true,
-//                "text"=> "Success",
-//                "method"=> "payment",
-//                "data"=> (object)[
-//                    "payment_id"=> "XID-5732095327",
-//                    "qr_content"=> "https://kiriminaja.com/",
-//                    "method"=> "08",
-//                    "pay_time"=> "20210712103644",
-//                    "status"=> "Billing berhasil dibuat",
-//                    "status_code"=> "9",
-//                    "amount"=> 65000,
-//                    "paid_at"=> null,
-//                    "created_at"=> "2021-07-12T03:35:42.000000Z"
-//                ]
-//            ]
-//        ];
         return $this->post('/api/mitra/v2/get_payment',[
             'payment_id'     => $payload['payment_id']
         ]);
@@ -105,42 +86,42 @@ class KiriminajaApiRepository extends KiriminAjaApi{
 //                ],
 //                "histories"=> (object)[
 //                    (object)[
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-14 16:00:00",
 //                        "status"=> "Delivered to BAGUS | 14-07-2021 16=>00 | YOGYAKARTA ",
 //                        "status_code"=> 200,
 //                        "driver"=> "",
 //                        "receiver"=> "BAGUS"
 //                    ],
 //                    (object)[
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-14 09:53:00",
 //                        "status"=> "With delivery courier YOGYAKARTA",
 //                        "status_code"=> 100,
 //                        "driver"=> "",
 //                        "receiver"=> ""
 //                    ],
 //                    (object)[
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-14 00:02:00",
 //                        "status"=> "Received at inbound station YOGYAKARTA - KP. GAMBIRAN",
 //                        "status_code"=> 100,
 //                        "driver"=> "",
 //                        "receiver"=> ""
 //                    ],
 //                    (object)[
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-13 20:44:00",
 //                        "status"=> "Shipment forwarded to destination YOGYAKARTA - KP. GAMBIRAN",
 //                        "status_code"=> 100,
 //                        "driver"=> "",
 //                        "receiver"=> ""
 //                    ],
 //                    (object)[
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-13 18:34:00",
 //                        "status"=> "Received at sorting center YOGYAKARTA",
 //                        "status_code"=> 100,
 //                        "driver"=> "",
 //                        "receiver"=> ""
 //                    ],
 //                    (object)[
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-13 17:44:00",
 //                        "status"=> "Shipment received by jne counter officer at YOGYAKARTA",
 //                        "status_code"=> 100,
 //                        "driver"=> "",
@@ -149,7 +130,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
 //                    (object)[
 //                        "status"=> "Paket dibuat oleh KiriminAja",
 //                        "status_code"=> 100,
-//                        "created_at"=> "2021-07-12T03:35:42.000000Z",
+//                        "created_at"=> "2021-07-07 14:40:42",
 //                        "driver"=> "",
 //                        "receiver"=> ""
 //                    ]
@@ -165,9 +146,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     
     public function getPricing($payload){
         return $this->post('/api/mitra/v5/shipping_price',[
-//            'origin'     => $payload['origin'],
             'subdistrict_origin'     => $payload['subdistrict_origin'],
-//            'destination	'     => $payload['destination	'],
             'subdistrict_destination'     => $payload['subdistrict_destination'],
             'weight'     => $payload['weight'],
             'insurance'     => $payload['insurance'],

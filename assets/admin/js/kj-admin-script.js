@@ -64,3 +64,15 @@ function printAsString (value, placeholder=''){
     if (value==null) return placeholder
     return value
 }
+
+jQuery(document).on("input", ".kj_int_input", function() {
+    this.value = this.value.replace(/\D/g,'');
+    if (jQuery(this).hasClass('duplicate_into')){
+        var duplicateTarget=jQuery('input[name="'+$(this).data('duplicate_into')+'"]')
+        duplicateTarget.val(this.value)
+        duplicateTarget.trigger('change')
+    }
+    if (jQuery(this).hasClass('currency')){
+        this.value=formatRupiah(this.value)
+    }
+});

@@ -44,7 +44,7 @@ class SettingRepository{
 
     public function getOriginData(){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_settings WHERE `key` IN ('origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_latitude','origin_longitude')" );
+        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_settings WHERE `key` IN ('origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_latitude','origin_longitude','origin_zip_code')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -84,6 +84,7 @@ class SettingRepository{
         $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['origin_sub_district_name']), array('key' => 'origin_sub_district_name'));
         $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['origin_latitude']), array('key' => 'origin_latitude'));
         $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['origin_longitude']), array('key' => 'origin_longitude'));
+        $wpdb->update('wp_kiriminaja_settings', array('value' => @$payload['origin_zip_code']), array('key' => 'origin_zip_code'));
 
         return true;
     }

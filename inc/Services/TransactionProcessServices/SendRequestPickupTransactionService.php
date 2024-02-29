@@ -58,7 +58,7 @@ class SendRequestPickupTransactionService extends BaseService{
         /** Create Payment*/
         (new \Inc\Repositories\PaymentRepository())->createPayment([
             'pickup_number' => @$pickupRequest['data']->pickup_number,
-            'status' => @$pickupRequest['data']->payment_status,
+            'status' => @$pickupRequest['data']->payment_status==='paid' ? 'paid' : 'unpaid',
             'method' => '',
             'order_amt' => 1,
             'pickup_schedule' => $this->schedule,

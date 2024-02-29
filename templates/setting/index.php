@@ -12,7 +12,7 @@ class settingIndex {
         /** data value query*/
         $arrayParam = [];
         $repo = [];
-        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name']);
+        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
         $activeTab = @$_GET['tab'] ?? 'tab-integration';
         if (@$activeTab==='tab-integration'){
             $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);

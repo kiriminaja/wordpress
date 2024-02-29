@@ -22,7 +22,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_phone" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_phone'];?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_phone" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_phone'];?>" >
             </td>
         </tr>
         <tr valign="top">
@@ -33,6 +33,16 @@
             </th>
             <td class="forminp forminp-text">
                 <input style="width: 100%; max-width: 25rem" name="origin_address" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_address'];?>" >
+            </td>
+        </tr>
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label >
+                    Zipcode
+                </label>
+            </th>
+            <td class="forminp forminp-text">
+                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_zip_code'];?>" >
             </td>
         </tr>
         <tr valign="top">

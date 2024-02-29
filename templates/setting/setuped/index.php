@@ -290,6 +290,7 @@
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
                     origin_phone:jQuery('.tab-shipping [name="origin_phone"]').val(),
                     origin_address:jQuery('.tab-shipping [name="origin_address"]').val(),
+                    origin_zip_code:jQuery('.tab-shipping [name="origin_zip_code"]').val(),
                     origin_sub_district_id:jQuery('.tab-shipping [name="origin_sub_district_id"] option:selected').val(),
                     origin_sub_district_name:jQuery('.tab-shipping [name="origin_sub_district_id"] option:selected').text(),
                 },         // any JS object

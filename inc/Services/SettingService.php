@@ -88,21 +88,23 @@ class SettingService extends BaseService{
     public function storeOriginData(array $payloads){
         try {
             $validate = (new \Inc\Base\Validator())->validateMultiple([
-                [$payloads['origin_name'],'Nama Toko / Pengirim',['required']],
-                [$payloads['origin_phone'],'No. Hp',['required']],
-                [$payloads['origin_address'],'Alamat',['required']],
+                [$payloads['origin_name'],'Nama Toko / Pengirim',['required','max:250']],
+                [$payloads['origin_phone'],'No. Hp',['required','max:15']],
+                [$payloads['origin_address'],'Alamat',['required','max:250']],
                 [$payloads['origin_sub_district_id'],'Area Pengirim',['required']],
-                [$payloads['origin_sub_district_name'],'Area Pengirim',['required']],
+                [$payloads['origin_sub_district_name'],'Area Pengirim',['required','max:250']],
+                [$payloads['origin_zip_code'],'Zipcode',['required','max:10']],
             ]);
             if (!$validate['status']){ return self::error([],$validate['msg']);}
             
             /** Storing to DB*/
             (new \Inc\Repositories\SettingRepository())->storeOriginData([
-                'origin_name'=>sanitize_text_field($payloads['origin_name']),
-                'origin_phone'=>sanitize_text_field($payloads['origin_phone']),
-                'origin_address'=>sanitize_text_field($payloads['origin_address']),
-                'origin_sub_district_id'=>sanitize_text_field($payloads['origin_sub_district_id']),
-                'origin_sub_district_name'=>sanitize_text_field($payloads['origin_sub_district_name']),
+                'origin_name'               =>  sanitize_text_field($payloads['origin_name']),
+                'origin_phone'              =>  sanitize_text_field($payloads['origin_phone']),
+                'origin_address'            =>  sanitize_text_field($payloads['origin_address']),
+                'origin_sub_district_id'    =>  sanitize_text_field($payloads['origin_sub_district_id']),
+                'origin_sub_district_name'  =>  sanitize_text_field($payloads['origin_sub_district_name']),
+                'origin_zip_code'            =>  sanitize_text_field($payloads['origin_zip_code']),
             ]);
             
         } catch (\Throwable $th){

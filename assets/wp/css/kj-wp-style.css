@@ -1,5 +1,5 @@
 .kj-hidden{
-    display: none;
+    display: none !important;
 }
 
 .kj-loader {

@@ -14,7 +14,7 @@ class KiriminAjaTrackingService extends BaseService{
     }
     
     public function call(){
-        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($this->order_number);
+        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumberForTracking($this->order_number);
         if (!$transactionRepo){
             return self::error([],'Transaksi tidak ditemukan');
         }
@@ -23,15 +23,35 @@ class KiriminAjaTrackingService extends BaseService{
         ]);
 
         (new \Inc\Base\BaseInit())->logThis('pload',[
-            'order_id' => $transactionRepo->order_id
+            '$transactionRepo' => $transactionRepo
         ]);
         (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
         
-        if (!@$repo['status'] || !@$repo['data']->status){
-            return self::error([],@$repo['data']->text ?? @$repo['data'] ?? 'Something is wrong');
+        $histories = (array) (@$repo['data']->histories ?? []);
+        
+        if (@$transactionRepo->wc_date_paid && $transactionRepo->cod_fee == 0){
+            $histories[] = (object)[
+                "status"=> "Transasi dikonfirmasi & diproses",
+                "status_code"=> 100,
+                "created_at"=> @$transactionRepo->wc_date_paid,
+                "driver"=> "",
+                "receiver"=> ""
+            ];
         }
+        
+        $histories[] = (object)[
+            "status"=> "Transasi berhasil Check Out dengan metode pembayaran ".($transactionRepo->cod_fee>0 ? 'COD' : 'NON COD'),
+            "status_code"=> 100,
+            "created_at"=> $transactionRepo->created_at,
+            "driver"=> "",
+            "receiver"=> ""
+        ];
+        
+
+        
+        
         $response = (object)[
-            'histories'=>self::filteringHistories((array) $repo['data']->histories)
+            'histories'=>self::filteringHistories($histories)
         ];
         return self::success($response);
     }

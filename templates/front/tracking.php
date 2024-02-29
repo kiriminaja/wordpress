@@ -51,7 +51,7 @@
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">
                     <label for="billing_company" class="">Order Number</label>
                     <span class="woocommerce-input-wrapper">
-                        <input type="text" class="input-text " name="order_number" placeholder="" value="" autocomplete="organization">
+                        <input type="text" class="input-text kj_int_input" name="order_number" placeholder="" value="" autocomplete="organization">
                     </span>
                 </p>
 

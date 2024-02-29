@@ -109,7 +109,7 @@ foreach ($transactions as $index => $transaction){
                     <br>
                     <strong style="font-size: .75rem;">'.@$originDataArr['origin_name'].'</strong>
                     <br>
-                    '.@$originDataArr['origin_address'].' '.@$originDataArr['origin_sub_district_name'].'
+                    '.@$originDataArr['origin_address'].' '.@$originDataArr['origin_sub_district_name'].' '.@$originDataArr['origin_zip_code'].'
                     <br>
                     '.@$originDataArr['origin_phone'].'
                 </td>
