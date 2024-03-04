@@ -1,8 +1,10 @@
 <h3>Expedition Inquiry</h3>
+<!--Kelurahan Field-->
 <p class="form-row form-row-wide">
     <label for="kj_destination_area"><?php _e('Kelurahan', 'woocommerce'); ?> <span class="required">*</span></label>
     <select name="kj_destination_area" id="kj_destination_area" class="select2 custom_select_field" style="width: 100%;" required></select>
 </p>
+<!--Insurance Field-->
 <p class="form-row form-row-wide">
     <label ><?php _e('Asuransi', 'woocommerce'); ?></label>
     <div>
@@ -10,10 +12,31 @@
         <label for="billing_insurance" class="unselectable">Asuransikan pesanan saya</label>
     </div>
 </p>
+<!--Expedition Field-->
 <div style="position: relative">
     <p class="form-row form-row-wide" >
-        <label for="kj_expedition"><?php _e('Expedisi', 'woocommerce'); ?> <span class="required">*</span></label>
+        <label for="kj_expedition"><?php _e('Ekspedisi', 'woocommerce'); ?> <span class="required">*</span></label>
         <select name="kj_expedition" id="kj_expedition" class="select2 custom_select_field" style="width: 100%;" required></select>
+        
+        <!--Expedition ERR-->
+        <div onclick="getExpeditionPricing()" style="cursor: pointer" class="billing-expedition-state s-error kj-hidden">
+            <div style="padding: 6px; background-color: #FCF0F1; border: 1px solid #D63638; border-radius: 10px">
+            <div style="display: flex;">
+                <!--Icon-->
+                <div style="top: 4px; position: relative">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.99961 1.59998C11.5356 1.59998 14.3996 4.46398 14.3996 7.99998C14.3996 11.536 11.5356 14.4 7.99961 14.4C4.46361 14.4 1.59961 11.536 1.59961 7.99998C1.59961 4.46398 4.46361 1.59998 7.99961 1.59998ZM8.90361 9.10398L9.18361 3.93598H6.81561L7.09561 9.10398H8.90361ZM8.83161 11.792C9.02361 11.608 9.12761 11.352 9.12761 11.024C9.12761 10.688 9.03161 10.432 8.83961 10.248C8.64761 10.064 8.36761 9.96798 7.99161 9.96798C7.61561 9.96798 7.33561 10.064 7.13561 10.248C6.93561 10.432 6.83961 10.688 6.83961 11.024C6.83961 11.352 6.94361 11.608 7.14361 11.792C7.35161 11.976 7.63161 12.064 7.99161 12.064C8.35161 12.064 8.63161 11.976 8.83161 11.792Z" fill="#D63638"/>
+                    </svg>
+                </div>
+                <!--Text-->
+                <div style="margin-left: 6px;color: #D63638">
+                    <div style="font-weight: 700;">Terjadi kesalahan</div>
+                    <div>Klik untuk mendapat ulang opsi ekspedisi</div>
+                </div>
+            </div>
+        </div>
+        </div>
+        
         <!--LOADER-->
         <div class="billing-expedition-state s-loading kj-hidden">
                 <div style="top: 0;right: 0;bottom: 0;left: 0; background-color: rgb(200 200 200 / 50%);position: absolute;display: flex">
@@ -24,6 +47,7 @@
         </div>
     </p>
 </div>
+<!--Other invisible Field-->
 <div style="display: none">
     <input type="text" name="kj_checkout_token">
     <input type="text" name="kj_destination_area_name">
@@ -35,6 +59,7 @@
     const subDistrictSelectElemSearchFieldId = 'kj_destination_area_search';
 
 
+    /** Kelurahan Select Init*/
     jQuery(document).ready(function($) {
         subDistrictSelectElem.select2({
             placeholder: "Masukkan Kelurahan",
@@ -43,7 +68,7 @@
         });
     });
 
-
+    /** Get Kelurahan by search key up*/
     jQuery('body').on('keyup', `#${subDistrictSelectElemSearchFieldId}`, function(e) {
         const searchInputVal = jQuery(`#${subDistrictSelectElemSearchFieldId}`).val()
         if (subdistrictAjaxTimeout) {
@@ -77,9 +102,10 @@
                     subDistrictSelectElem.select2('open');
                     jQuery(`#${subDistrictSelectElemSearchFieldId}`).val(searchInputVal);
                 });
-        }, 1000)
+        }, 1200)
     })
     
+    /** Flag if calculation is done or not*/
     function toggleCalculationValidation(isCompleted=false){
         jQuery('[name="kj_checkout_token"]').val(isCompleted ? '1' : '')
         /** Make checkout validation cant process becaouse calculation stil in process*/
@@ -93,6 +119,7 @@
     const expeditionSelectElem = jQuery('#kj_expedition');
     const expeditionSelectElemSearchFieldId = 'kj_expedition_search';
     
+    /** Select expedition Init*/
     jQuery(document).ready(function($) {
         expeditionSelectElem.select2({
             placeholder: "Pilih Kelurahan Terlebih Dahulu",
@@ -108,19 +135,19 @@
         
     });
 
+    /** If change PM then re get expedition*/
     let pmExpeditionTimeOut = null
     jQuery(document).on('change','[name="payment_method"]',function (){
         if (pmExpeditionTimeOut){
             clearTimeout(pmExpeditionTimeOut)
         }
-        
         pmExpeditionTimeOut = setTimeout(function (){
             getExpeditionPricing()
         },500)
         
     })
 
-    
+    /** Get List Expedition*/
     function getExpeditionPricing(){
 
         if (printAsString(jQuery(`[name="kj_destination_area"] option:selected`).val())===''){return ;}
@@ -135,14 +162,19 @@
             }
         }).done(function(response) {
 
-
-            console.log(response.data.options)
+            console.log(response)
+            jQuery('.billing-expedition-state').addClass('kj-hidden')
+            
+            if (response?.status !== 200 ||response?.data.length === 0){
+                jQuery('.billing-expedition-state.s-error').removeClass('kj-hidden')
+                return
+            }
             const options = response?.data?.options ?? [];
             expeditionSelectElem.select2('destroy');
             expeditionSelectElem.empty()
             expeditionSelectElem.append("<option value='' disabled selected>Pilih Ekspedisi</option>");
             options.forEach(function(arr) {
-                expeditionSelectElem.append("<option value='" + arr.key + "'>" + arr.value + "</option>");
+                expeditionSelectElem.append("<option value='" + arr.key + "' "+(lastSelectedExpedition === arr.key ? 'selected' : '')+">" + arr.value + "</option>");
             })
 
             expeditionSelectElem.select2({
@@ -151,8 +183,7 @@
                 jQuery('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
             })
 
-            jQuery('.billing-expedition-state').addClass('kj-hidden')
-            jQuery('.billing-expedition-state.s-ready').removeClass('kj-hidden')
+            checkoutCalculation()
         });
         
     }
@@ -160,18 +191,23 @@
 </script>
 <script type="text/javascript">
 
+    /** Calculation Trigger*/
     jQuery('#kj_expedition, #billing_insurance').change(function (){
         checkoutCalculation()
     })
     jQuery(document).ready(function($) {
-        jQuery(document).on("change",'input[name="payment_method"]',function (){
+        jQuery(document).on("change",'input[name="payment_method"], input[name="billing_insurance"]',function (){
             checkoutCalculation()
         })       
     })
 
-
+    /** Calculation*/
     let checkoutCalculationTimeOut = null
+    let lastSelectedExpedition = ''
     function checkoutCalculation(){
+
+        jQuery('.woocommerce-checkout-review-order-table tfoot .order-total').removeClass('kj-hidden')
+        jQuery('.woocommerce-checkout-review-order-table tfoot .kj-order-row').remove()
         
         /** Checking if requered field is filled*/
         if (
@@ -179,6 +215,9 @@
             ||
             printAsString(jQuery(`[name="payment_method"]:checked`).val())===''
         ){return}
+        
+        /** Backup selected expedition */
+        lastSelectedExpedition = jQuery('#kj_expedition').val()
         
         if (checkoutCalculationTimeOut){
             clearTimeout(checkoutCalculationTimeOut)
@@ -191,7 +230,7 @@
              * if this is not filled transaction cant be done*/
             toggleCalculationValidation(false)
             /** Delete Total */
-            jQuery('.woocommerce-checkout-review-order-table tfoot .order-total').remove()
+            jQuery('.woocommerce-checkout-review-order-table tfoot .order-total').addClass('kj-hidden')
             jQuery('.woocommerce-checkout-review-order-table tfoot .kj-order-row').remove()
             /** Add Loader*/
             jQuery('.woocommerce-checkout-review-order-table tfoot').append(`
@@ -222,7 +261,7 @@
 
 
                 /** Delete Table row */
-                jQuery('.woocommerce-checkout-review-order-table tfoot .order-total').remove()
+                jQuery('.woocommerce-checkout-review-order-table tfoot .order-total').addClass('kj-hidden')
                 jQuery('.woocommerce-checkout-review-order-table tfoot .kj-order-row').remove()
                 
                 
@@ -230,12 +269,22 @@
                     jQuery('.woocommerce-checkout-review-order-table tfoot').append(`
                     <tr class="kj-order-row">
                     <th colspan="2">
-                        <div style="text-align: center">
-                            <div style="color: red;margin-bottom: 1rem">
-                            Terjadi Kesalahan
-                            <br>
-                            ${response?.message}
-                            </div>       
+                        <div style="padding: 6px; background-color: #FCF0F1; border: 1px solid #D63638; border-radius: 10px">
+                            <div style="display: flex;">
+                                <!--Icon-->
+                                <div style="top: 4px; position: relative">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7.99961 1.59998C11.5356 1.59998 14.3996 4.46398 14.3996 7.99998C14.3996 11.536 11.5356 14.4 7.99961 14.4C4.46361 14.4 1.59961 11.536 1.59961 7.99998C1.59961 4.46398 4.46361 1.59998 7.99961 1.59998ZM8.90361 9.10398L9.18361 3.93598H6.81561L7.09561 9.10398H8.90361ZM8.83161 11.792C9.02361 11.608 9.12761 11.352 9.12761 11.024C9.12761 10.688 9.03161 10.432 8.83961 10.248C8.64761 10.064 8.36761 9.96798 7.99161 9.96798C7.61561 9.96798 7.33561 10.064 7.13561 10.248C6.93561 10.432 6.83961 10.688 6.83961 11.024C6.83961 11.352 6.94361 11.608 7.14361 11.792C7.35161 11.976 7.63161 12.064 7.99161 12.064C8.35161 12.064 8.63161 11.976 8.83161 11.792Z" fill="#D63638"/>
+                                    </svg>
+                                </div>
+                                <!--Text-->
+                                <div style="margin-left: 6px;color: #D63638">
+                                    <div style="font-weight: 700;">Terjadi kesalahan</div>
+                                    <div>${response?.message}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 12px">
                             <button onclick="checkoutCalculation()" type="button" class="button alt" data-value="Place order">Recalculate</button>
                         </div>
                     </th>

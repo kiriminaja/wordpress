@@ -1,7 +1,6 @@
 <?php
 
 
-
 class requestPickupIndex {
     function __construct(){
         global $results;
@@ -127,14 +126,6 @@ class requestPickupIndex {
         
     }
 }
-
-
 new requestPickupIndex();
-
-
-
-
-
-
 
 ?>

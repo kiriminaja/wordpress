@@ -37,6 +37,7 @@ foreach ($transactions as $index => $transaction){
         $transactionCost += intval($transaction->cod_fee ?? 0)+intval($transaction->transaction_value ?? 0);
     }
     $destinationData = (object) json_decode($transaction->shipping_info);
+    (new \Inc\Base\BaseInit())->logThis('$destinationData',[$destinationData]);
     
     echo '<table  style="width: 100%; height: 95%; border-collapse: collapse; margin-top: .25rem" border="1">
             <tr>
@@ -78,7 +79,7 @@ foreach ($transactions as $index => $transaction){
                         <div style="width: 30%;display: inline-block">
                             Asuransi
                             <br>
-                            <strong>'.($transaction->insurance_cost>0 ? localMoneyFormat($transaction->insurance_cost) : '-').'</strong>
+                            <strong>'.($transaction->insurance_cost>0 ? 'Rp.'.localMoneyFormat($transaction->insurance_cost) : '-').'</strong>
                         </div>
                          <div style="width: 30%;display: inline-block">
                             Berat

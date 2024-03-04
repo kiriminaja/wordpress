@@ -85,35 +85,24 @@ class CheckoutController
         session_destroy();
         
         /** Store Transaction*/
-
-//        (new \Inc\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[
-//            '$order_id'                     => @$order_id,
-//            '$posted_data'                  => @$posted_data,
-//            '$order'                        => @$order,
-//            '$kj_destination_area'          => @$kj_destination_area,
-//            '$kj_destination_area_name'     => @$kj_destination_area_name,
-//            '$kj_expedition'                => @$kj_expedition,
-//            '$kj_checkout_token'            => @$kj_checkout_token,
-//        ]);
-
-        (new \Inc\Services\CheckoutServices\CreateTransactionService([
-            'order_id'                  => @$order_id,
-            'checkout_post_data'        => @$posted_data,
-            'kj_destination_area'       => @$kj_destination_area,
-            'kj_destination_area_name'  => @$kj_destination_area_name,
-            'kj_expedition'             => @$kj_expedition,
-            'insurance'                 => @$insurance==="1",
-            'payment_method'            => $payment_method,
-            'wc_cart_contents'          => WC()->cart->cart_contents,
-        ]))->call();
+        try {
+            $createTransaction = (new \Inc\Services\CheckoutServices\CreateTransactionService([
+                'order_id'                  => @$order_id,
+                'checkout_post_data'        => @$posted_data,
+                'kj_destination_area'       => @$kj_destination_area,
+                'kj_destination_area_name'  => @$kj_destination_area_name,
+                'kj_expedition'             => @$kj_expedition,
+                'is_insurance'              => @$insurance === "1",
+                'is_cod'                    => $payment_method === 'cod',
+                'wc_cart_contents'          => WC()->cart->cart_contents,
+            ]))->call();
+            (new \Inc\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
+        } catch (\Throwable $th){
+            (new \Inc\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$th->getMessage()]);   
+        }
     }
     
     function afterCheckoutBeforeCreated($order,$data ){
-//        (new \Inc\Base\BaseInit())->logThis('afterCheckoutBeforeCreated',[
-//            '$order'=>@$order,
-//            '$data'=>@$data,
-//            '$_POST'=>@$_POST,
-//        ]);
         
         /** Store custom field value in session*/
         session_start();
@@ -131,13 +120,24 @@ class CheckoutController
         DELAYDEVNOTE
          * pricing payload
          */
+
+        try {
+            $service = (new \Inc\Services\CheckoutServices\OngkirPricingService([
+                'destination_area_id'   => $_POST['data']['destination_area_id'],
+                'is_cod'                => $_POST['data']['payment_method']==='cod',
+                'wc_cart_contents'      => WC()->cart->cart_contents,
+            ]))->call();
+
+            wp_send_json_success($service);            
+        }catch (\Throwable $th){
+            wp_send_json_success([
+                'status'    => 400,
+                'message'   => $th->getMessage(),
+                'data'      => []
+            ]);
+        }
         
-        $service = (new \Inc\Services\CheckoutServices\OngkirPricingService([
-            'destination_area_id' => $_POST['data']['destination_area_id'],
-            'is_cod' => $_POST['data']['payment_method']==='cod',
-        ]))->call();
-        
-        wp_send_json_success($service);
+
     }
     
     function getCheckoutCalculationAjax(){
@@ -145,14 +145,24 @@ class CheckoutController
         DELAYDEVNOTE
          * pricing payload
          */
-        $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
-            'destination_area_id'   => $_POST['data']['destination_area_id'],
-            'expedition'            => $_POST['data']['expedition'],
-            'insurance'             => $_POST['data']['insurance']==="true",
-            'payment_method'        => $_POST['data']['payment_method'],
-            'wc_cart_contents'      => WC()->cart->cart_contents,
-        ]))->call();
-        wp_send_json_success($service);
+        
+        try {
+            $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
+                'destination_area_id'   => $_POST['data']['destination_area_id'],
+                'expedition'            => $_POST['data']['expedition'],
+                'is_insurance'          => $_POST['data']['insurance'] === "true",
+                'is_cod'                => $_POST['data']['payment_method'] === 'cod',
+                'wc_cart_contents'      => WC()->cart->cart_contents,
+            ]))->call();
+            wp_send_json_success($service);
+        }catch (\Throwable $th){
+            wp_send_json_success([
+                'status'    => 400,
+                'message'   => $th->getMessage(),
+                'data'      => []
+            ]);
+        }
+        
     }
 
     function custom_content_thankyou( $order_id ) {

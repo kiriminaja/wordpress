@@ -109,7 +109,13 @@ class SendRequestPickupTransactionService extends BaseService{
                 "service_type"=> $transaction->service_name,
                 "item_name"=> "Online Shop Goods",
                 "package_type_id"=> 1,
-                "cod"=> $transaction->cod_fee
+                "cod"=> $transaction->cod_fee > 0 ? 
+                    (
+                        $transaction->transaction_value +
+                        $transaction->shipping_cost +
+                        $transaction->insurance_cost +
+                        $transaction->cod_fee
+                    ) : 0
             ];
         },$repo);
     }

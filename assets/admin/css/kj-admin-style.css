@@ -296,3 +296,11 @@ body {margin:0;}
 .p-relative{
     position: relative ;
 }
+
+#kj-order-edit-shipping th{
+    text-align: left;
+    display: flex;
+}
+#kj-order-edit-shipping td{
+    text-align: right;
+}

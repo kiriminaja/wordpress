@@ -44,14 +44,15 @@ class Enqueue extends BaseInit{
                 'ajaxurl' => admin_url( 'admin-ajax.php' )
             )
         );
+        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css');
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js');
 
         if (!in_array(@$_GET['page'],[
             'kiriminaja-konfigurasi',
             'kiriminaja-transaction-process',
             'kiriminaja-request-pickup'])){return;}
         
-        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css');
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js');
+
         wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css');
 
 

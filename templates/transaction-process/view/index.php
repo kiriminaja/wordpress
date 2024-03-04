@@ -208,6 +208,7 @@
     let orderIds = [];
     
     jQuery(document).on('change','#check_order_id_all_top, #check_order_id_all_bottom',function (){
+        
         const is_checked = jQuery(this).prop('checked')
         jQuery('#check_order_id_all_top').prop('checked',is_checked)
         jQuery('#check_order_id_all_bottom').prop('checked',is_checked)
@@ -215,6 +216,18 @@
     })
     
     function kjRequestPickupSchedule(){
+
+        /** Reset orderIds*/
+        orderIds = []
+        jQuery('input[name="transaction_id[]"]:checked').each(function() {
+            orderIds.push(jQuery(this).val());
+        });
+
+        if (orderIds.length === 0){
+            alert('There is no selected transaction')
+            return
+        }
+        
         const modalElem = jQuery('#request-pickup-modal')
         const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
         const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
@@ -225,18 +238,6 @@
         modalElemContent.addClass('kj-hidden')
         modalElemErr.addClass('kj-hidden')
         
-        
-        
-        jQuery('input[name="transaction_id[]"]:checked').each(function() {
-            orderIds.push(jQuery(this).val());
-        });
-        
-        if (orderIds.length === 0){
-            alert('There is no selected transaction')
-            return
-        }
-        console.log(orderIds)
-
         jQuery.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
