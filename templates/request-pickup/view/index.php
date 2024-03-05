@@ -94,13 +94,13 @@
                                         if (@$results&&count($results)>0){
                                             foreach($results as $id => $row){
                                                 $btnGroup='';
-                                            
+
 
                                                 $statusContent= '
-                                                                    <div class="kj-badge warning">
-                                                                        <span>Waiting For Payment</span>
-                                                                    </div>
-                                                                    ';
+                                                    <div class="kj-badge success">
+                                                        <span>Paid</span>
+                                                    </div>
+                                                ';
                                                 if (@$row->status!=="paid"){
                                                     if (strtotime(@$row->pickup_schedule)>strtotime("now")){
                                                         $btnGroup.='
@@ -130,10 +130,10 @@
                                                     
 //                                                  $btnGroup.='<button name="save" style="background-color: #ad0000; border: 1px solid #ad0000" class="button-primary woocommerce-save-button" type="button" >Batalkan</button>';
                                                     $statusContent= '
-                                                                    <div class="kj-badge success">
-                                                                        <span>Paid</span>
-                                                                    </div>
-                                                                    ';
+                                                        <div class="kj-badge warning">
+                                                            <span>Waiting For Payment</span>
+                                                        </div>
+                                                    ';
                                                 }
                                                 $btnGroup.='
                                                             <button class="button-wp-secondary" type="button" onclick="showDetail(`'.@$row->pickup_number.'`)">

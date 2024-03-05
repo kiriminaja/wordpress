@@ -15,6 +15,10 @@ class TransactionProcessIndex{
         $pageQuery = self::pageQuery();
         $results = $pageQuery['results'];
         (new \Inc\Base\BaseInit())->logThis('$results',[$results]);
+
+        /** Month Options*/
+        $monthOptions = self::getTransactionsDateFilterOptionArray();
+        (new \Inc\Base\BaseInit())->logThis('$monthOptions',[$monthOptions]);
         
         /** Return vars and view*/
         include 'view/index.php';
@@ -27,6 +31,15 @@ class TransactionProcessIndex{
         $wcOrderTable = $wpdb->prefix . 'wc_order_stats';
         $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
         $postTable = $wpdb->prefix . 'posts';
+
+        $whereCondition = '';
+        if (!empty(@$_GET['key'])){
+            $whereCondition .= " AND `".$wcOrderTable."`.order_id LIKE '%".@$_GET['key']."%' ";
+        }
+        if (!empty(@$_GET['month'])){
+            $whereCondition.=" AND `".$wcOrderTable."`.date_created LIKE '%".@$_GET['month']."%' ";
+        }
+
 
         /** Main Query*/
         $query = "(
@@ -43,7 +56,8 @@ class TransactionProcessIndex{
             ON `".$wcOrderTable."`.order_id = `".$postTable."`.ID
             WHERE `".$wcOrderTable."`.status = 'wc-processing'
             AND `".$transactionTable."`.status = 'new'
-            AND `".$postTable."`.post_status != 'trash'
+            AND `".$postTable."`.post_status != 'trash' 
+            ".$whereCondition."
             GROUP BY `".$wcOrderTable."`.order_id
             ORDER BY `".$wcOrderTable."`.date_created DESC
             )";
@@ -57,6 +71,25 @@ class TransactionProcessIndex{
             'results'=>$results
         ];
         
+    }
+
+    private function getTransactionsDateFilterOptionArray(){
+        $oldestTransactionDateQuery = (new \Inc\Repositories\TransactionRepository())->getTransactionByOldestDate();
+
+        (new \Inc\Base\BaseInit())->logThis('$oldestTransactionDateQuery',[$oldestTransactionDateQuery]);
+        
+        $oldestMonth= date('Y-m-d',strtotime($oldestTransactionDateQuery->created_at ?? "now"));
+        $currentMonth = date('Y-m-d',strtotime("now"));
+        $d1=new DateTime($oldestMonth);
+        $d2=new DateTime($currentMonth);
+        $Months = $d2->diff($d1);
+        $howeverManyMonths = ((($Months->y) * 12) + ($Months->m)+1);
+        $monthOptions = [];
+        for($i=0;$i<=$howeverManyMonths;$i++){
+            $theDate = "now"."-".$i." months";
+            $monthOptions[date('Y-m',strtotime($theDate))]=date('Y F',strtotime($theDate));
+        }
+        return $monthOptions;
     }
 }
 

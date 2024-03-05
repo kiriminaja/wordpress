@@ -2,12 +2,19 @@
 
 namespace Inc\Services\ShippingProcessServices;
 
+use DateTime;
+use DateTimeZone;
 use Inc\Base\BaseService;
 
 class GetShippingProcessPayment extends BaseService{
     
     public $payment_id = 0;
     private $transactionsSummary;
+    private $timeZone = '';
+    
+    public function __construct(){
+        $this->timeZone = wp_timezone_string();
+    }
     
     public function payment_id($payment_id){
         $this->payment_id = $payment_id;
@@ -18,6 +25,8 @@ class GetShippingProcessPayment extends BaseService{
         $getPaymentRepo = (new \Inc\Repositories\KiriminajaApiRepository())->getPayment([
             'payment_id'=>$this->payment_id
         ]);
+        (new \Inc\Base\BaseInit())->logThis('$getPaymentRepo',[$getPaymentRepo]);
+        
         self::transactionsSummaryProccess();
         
         return self::success([
@@ -25,7 +34,8 @@ class GetShippingProcessPayment extends BaseService{
             'count_cod'=>@$this->transactionsSummary['count_cod'],
             'sum_fee_cod'=>@$this->transactionsSummary['sum_fee_cod'],
             'sum_fee_non_cod'=>@$this->transactionsSummary['sum_fee_non_cod'],
-            'expired_at'=>date('Y-m-d H:i:s',strtotime(@$getPaymentRepo['data']->data->created_at.'+5minutes')),
+            'created_at'=>date('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getPaymentRepo['data']->data->pay_time))),
+            'expired_at'=>date('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getPaymentRepo['data']->data->pay_time).'+5minutes')),
         ],'');
     }
     
@@ -37,7 +47,7 @@ class GetShippingProcessPayment extends BaseService{
         $sum_fee_cod = 0;
         $sum_fee_non_cod = 0;
         foreach ($transactionRepo as $transaction){
-            if ($transaction->cod_fee===0){
+            if (intval($transaction->cod_fee) > 0){
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
@@ -50,6 +60,17 @@ class GetShippingProcessPayment extends BaseService{
         $this->transactionsSummary['count_non_cod']=$count_non_cod;
         $this->transactionsSummary['sum_fee_cod']=$sum_fee_cod;
         $this->transactionsSummary['sum_fee_non_cod']=$sum_fee_non_cod;
+    }
+    
+    private function convertTimeToSettingTimezone($dateTime){
+        $dt = new DateTime("now", new DateTimeZone($this->timeZone));
+        $dt->setTimestamp(strtotime($dateTime));
+        $date = $dt->format('Y-m-d H:i:s');
+
+        (new \Inc\Base\BaseInit())->logThis('$tz',[$this->timeZone]);
+        (new \Inc\Base\BaseInit())->logThis('$dt',[$dt->format('Y-m-d H:i:s')]);
+        
+        return $date;
     }
     
     

@@ -26,14 +26,13 @@ class SendRequestPickupTransactionService extends BaseService{
         $getOriginData = self::getOriginData();
         $getPackageData = self::getPackagesData();
         $payload = [
-            "address" => @$getOriginData['origin_address'],
-            "phone" => @$getOriginData['origin_phone'],
-            "kecamatan_id" => 548,
-            "kelurahan_id" => @$getOriginData['origin_sub_district_id'],
-            "packages" => $getPackageData,
-            "name" => @$getOriginData['origin_name'],
-            "zipcode" => @$getOriginData['origin_zip_code'],
-            "schedule" => $this->schedule
+            "address"       => @$getOriginData['origin_address'],
+            "phone"         => @$getOriginData['origin_phone'],
+            "kelurahan_id"  => @$getOriginData['origin_sub_district_id'],
+            "packages"      => $getPackageData,
+            "name"          => @$getOriginData['origin_name'],
+            "zipcode"       => @$getOriginData['origin_zip_code'],
+            "schedule"      => $this->schedule
         ];
         
         $pickupRequest = (new \Inc\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
@@ -57,12 +56,12 @@ class SendRequestPickupTransactionService extends BaseService{
         
         /** Create Payment*/
         (new \Inc\Repositories\PaymentRepository())->createPayment([
-            'pickup_number' => @$pickupRequest['data']->pickup_number,
-            'status' => @$pickupRequest['data']->payment_status==='paid' ? 'paid' : 'unpaid',
-            'method' => '',
-            'order_amt' => 1,
-            'pickup_schedule' => $this->schedule,
-            'created_at' => date('Y-m-d H:i:s',strtotime("now")),
+            'pickup_number'     => @$pickupRequest['data']->pickup_number,
+            'status'            => @$pickupRequest['data']->payment_status==='paid' ? 'paid' : 'unpaid',
+            'method'            => '',
+            'order_amt'         => 1,
+            'pickup_schedule'   => $this->schedule,
+            'created_at'        => date('Y-m-d H:i:s',strtotime("now")),
         ]);
         
         return self::success([
@@ -91,24 +90,23 @@ class SendRequestPickupTransactionService extends BaseService{
         return array_map(function ($transaction){
             $shipping_info = json_decode($transaction->shipping_info);
             return [
-                "order_id"=> $transaction->order_id,
-                "destination_name"=> @$shipping_info->_shipping_first_name.' '.@$shipping_info->_shipping_last_name,
-                "destination_phone"=> @$shipping_info->_billing_phone,
-                "destination_address"=> @$shipping_info->_shipping_address_1.' '.@$shipping_info->_shipping_address_2.', '.@$transaction->destination_sub_district,
-                "destination_kelurahan_id"=> $transaction->destination_sub_district_id,
-                "destination_kecamatan_id"=> 5789,
-                "destination_zipcode"=> @$shipping_info->_shipping_postcode,
-                "weight"=> $transaction->weight,
-                "width"=> $transaction->width,
-                "height"=> $transaction->height,
-                "length"=> $transaction->length,
-                "item_value"=> $transaction->transaction_value,
-                "insurance_amount"=> $transaction->insurance_cost,
-                "shipping_cost"=> $transaction->shipping_cost,
-                "service"=> $transaction->service,
-                "service_type"=> $transaction->service_name,
-                "item_name"=> "Online Shop Goods",
-                "package_type_id"=> 1,
+                "order_id"                  => $transaction->order_id,
+                "destination_name"          => @$shipping_info->_shipping_first_name.' '.@$shipping_info->_shipping_last_name,
+                "destination_phone"         => @$shipping_info->_billing_phone,
+                "destination_address"       => @$shipping_info->_shipping_address_1.' '.@$shipping_info->_shipping_address_2.', '.@$transaction->destination_sub_district,
+                "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
+                "destination_zipcode"       => @$shipping_info->_shipping_postcode,
+                "weight"                    => $transaction->weight,
+                "width"                     => $transaction->width,
+                "height"                    => $transaction->height,
+                "length"                    => $transaction->length,
+                "item_value"                => $transaction->transaction_value,
+                "insurance_amount"          => $transaction->insurance_cost,
+                "shipping_cost"             => $transaction->shipping_cost,
+                "service"                   => $transaction->service,
+                "service_type"              => $transaction->service_name,
+                "item_name"                 => "Online Shop Goods",
+                "package_type_id"           => 1,
                 "cod"=> $transaction->cod_fee > 0 ? 
                     (
                         $transaction->transaction_value +

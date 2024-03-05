@@ -29,7 +29,7 @@ class PaymentRepository{
     public function getPaymentByOldestDate(){
         global $wpdb;
         $paymentTable = $wpdb->prefix . 'kiriminaja_payments';
-        $query = $wpdb->get_row( "SELECT * FROM `".$paymentTable."` ORDER BY created_at ASC");
+        $query = $wpdb->get_row( "SELECT * FROM `".$paymentTable."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

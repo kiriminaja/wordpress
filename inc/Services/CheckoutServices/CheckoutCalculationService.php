@@ -40,12 +40,14 @@ wc_cart_contents
 
     public function call(){
         $this->carts = $this->wc_cart_contents;
-
+        
+        /** Origin Data*/
         $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         if(!$settingRepo||$settingRepo->value === null){
             return self::error([],'Terjadi Kesalahan!');
         }
 
+        /** Cart Attribute Data*/
         $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
@@ -86,10 +88,11 @@ wc_cart_contents
         }
 
         return self::success([
-            'cart' => $this->carts,
-            'pricing' => $this->pricingData,
-            'payload' => $this->payload,
-            'calculation_result' => self::checkoutCalculation(),
+            'cart'                  => $this->carts,
+            'pricing'               => $this->pricingData,
+            'payload'               => $this->payload,
+            'calculation_result'    => self::checkoutCalculation(),
+            'carts_attribute'       => $cartAttributes->data,
         ]);
     }
     

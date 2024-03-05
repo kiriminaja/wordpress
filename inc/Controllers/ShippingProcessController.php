@@ -7,6 +7,7 @@ use Inc\Services\ShippingProcessServices\GetShippingProcessDetailService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Inc\Services\ShippingProcessServices\GetShippingProcessPayment;
+use Throwable;
 
 class ShippingProcessController{
     public function register(){

@@ -153,5 +153,16 @@ class TransactionRepository{
         }
         return true;
     }
+
+    public function getTransactionByOldestDate(){
+        global $wpdb;
+        $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
+        $query = $wpdb->get_row( "SELECT * FROM `".$transactionTable."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
     
 }

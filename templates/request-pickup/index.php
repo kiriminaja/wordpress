@@ -123,7 +123,6 @@ class requestPickupIndex {
             $monthOptions[date('Y-m',strtotime($theDate))]=date('Y F',strtotime($theDate));
         }
         return $monthOptions;
-        
     }
 }
 new requestPickupIndex();

@@ -9,6 +9,7 @@ class TransactionProcessController{
         /** getPaymentForm */
         add_action('wp_ajax_kj_request_pickup_schedule', array($this,'getRequestPickupSchedule'));
         add_action('wp_ajax_kj_request_pickup_transaction', array($this,'sendRequestPickupTransaction'));
+        add_action('wp_ajax_kj_transaction-detail-summary', array($this,'getTransactionDetailSummary'));
     }
     
     public function getRequestPickupSchedule(){
@@ -32,6 +33,19 @@ class TransactionProcessController{
             ]);
         }
        
+    }
+    
+    
+    public function getTransactionDetailSummary(){
+        try {
+            $service = (new \Inc\Services\TransactionProcessServices\GetTransactionDetailSummary())->wcOrderId(@$_POST['data']['wc_order_id'])->call();
+            wp_send_json_success($service);
+        }catch (\Throwable $th){
+            wp_send_json_success([
+                'status'    => 400,
+                'message'   => $th->getMessage(),
+            ]);
+        }
     }
     
 }

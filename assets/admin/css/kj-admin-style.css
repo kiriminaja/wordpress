@@ -304,3 +304,34 @@ body {margin:0;}
 #kj-order-edit-shipping td{
     text-align: right;
 }
+
+#transaction-detail-modal #cart-table{
+    width: 100%;
+}
+
+#transaction-detail-modal #cart-table thead th,#transaction-detail-modal #cart-table tbody td{
+    text-align: right;
+}
+#transaction-detail-modal #cart-table thead th:first-child,#transaction-detail-modal #cart-table tbody td:first-child{
+    text-align: left;
+}
+#transaction-detail-modal #cart-table tfoot th{
+    text-align: right;
+}
+
+#transaction-detail-modal #cart-table thead tr:last-child th{
+    border-bottom: 1px solid #dfdfdf;
+    padding: 10px 0;
+    font-weight: 700;
+}
+
+#transaction-detail-modal #cart-table thead th{
+    padding: 10px 15px !important;
+}
+#transaction-detail-modal #cart-table tbody td{
+    padding: 5px 15px !important;
+}
+#transaction-detail-modal #cart-table tfoot th{
+    padding: 5px 15px !important;
+}
+
