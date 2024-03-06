@@ -14,7 +14,35 @@
                         <div class="woocommerce-homescreen-column" style="position: static;max-width: 1600px; width: 100%">
 
                             <div>
-                                <!-- GUIDE-->
+                                <!-- check jika sudah install woocommerce-->
+                                <?php
+                                if (!KJ_CHECK_WOOCOMMERCE()){
+                                    echo '
+                                    <div style="padding-left: 5px; background-color: #7d3eb9; margin-bottom: .5rem">
+                                    <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
+                                        <div style="display:flex;">
+                                            <div>
+                                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M1 10C1.41 10.29 1.96 10.43 2.5 10.43C3.05 10.43 3.59 10.29 4 10C4.62 9.54 5 8.83 5 8C5 8.83 5.37 9.54 6 10C6.41 10.29 6.96 10.43 7.5 10.43C8.05 10.43 8.59 10.29 9 10C9.62 9.54 10 8.83 10 8C10 8.83 10.37 9.54 11 10C11.41 10.29 11.96 10.43 12.51 10.43C13.05 10.43 13.59 10.29 14 10C14.62 9.54 15 8.83 15 8C15 8.83 15.37 9.54 16 10C16.41 10.29 16.96 10.43 17.5 10.43C18.05 10.43 18.59 10.29 19 10C19.63 9.54 20 8.83 20 8V7L17 0H4L0 7V8C0 8.83 0.37 9.54 1 10ZM3 18.99H8V13.99H12V18.99H17V11.99C16.63 11.94 16.28 11.77 16 11.56C15.37 11.11 15 10.83 15 10C15 10.83 14.62 11.11 14 11.56C13.59 11.86 13.05 11.99 12.51 12C11.96 12 11.41 11.86 11 11.56C10.37 11.11 10 10.83 10 10C10 10.83 9.62 11.11 9 11.56C8.59 11.86 8.05 11.99 7.5 12C6.96 12 6.41 11.86 6 11.56C5.37 11.11 5 10.83 5 9.99C5 10.83 4.62 11.11 4 11.56C3.71 11.77 3.37 11.94 3 12V18.99Z" fill="black"/>
+                                                </svg>
+                                            </div>
+                                            <div style="margin-left: 8px">
+                                                <div style="font-weight: 600; font-size: 16px;">
+                                                    WooCommerce is not yet installed or activated
+                                                </div>
+                                                <div class="row-divider" style="margin-top: .5rem"></div>
+                                                <div style="font-weight: 500;">
+                                                    This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>                                    
+                                    </div>
+                                    ';
+                                }
+                                ?>
+                                
+                                <!--Check jika sudah setting origin data-->
                                 <?php 
                                 if (@$isOriginShippingDataReady){
                                     echo '

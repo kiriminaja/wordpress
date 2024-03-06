@@ -16,10 +16,12 @@ class EditOrderController{
         
         $willBeReplaced = [
             '{$orderId}',
+            '{$trackingUrl}',
             '{$kjOrderData}'
         ];
         $replaceWith = [
             $order,
+            home_url().'/kiriminaja-tracking?order_id='.$order,
             json_encode($service->data)
         ];
         

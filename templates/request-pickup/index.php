@@ -3,6 +3,13 @@
 
 class requestPickupIndex {
     function __construct(){
+        
+        /** Redirect jika plugin woocommerce blm terinstall*/
+        if (!KJ_CHECK_WOOCOMMERCE()){
+            header("location: ".home_url().'/wp-admin/admin.php?page=kiriminaja-konfigurasi');
+            exit();
+        }
+        
         global $results;
         global $page;
         global $items_per_page;

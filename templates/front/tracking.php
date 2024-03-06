@@ -149,7 +149,16 @@
                 jQuery('#err_msg').text(response?.message)
             });
     }
-    
+
+    const url = new URL(window.location.href);
+    jQuery(document).ready(function() {
+        const urlParams = url.searchParams;
+        const orderIdToLoad = encodeURI(urlParams.get("order_id"));
+        if (orderIdToLoad){
+            jQuery('[name="order_number"]').val(orderIdToLoad)
+            trackOrder()
+        }
+    });
     
     
     function hideStateComponent(){

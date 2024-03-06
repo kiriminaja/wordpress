@@ -11,6 +11,7 @@ class CallbackHandlerService extends BaseService{
     public array $packages;
     public $processing;
     public $transactionPickupNumber;
+    private $transactions;
     
     public function header($header){
         $this->header = $header;
@@ -33,33 +34,32 @@ class CallbackHandlerService extends BaseService{
  
         $orderIds = array_column($this->packages, 'order_id') ?? [];
         /** check if transaction exists */
-        $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
-        if(count($transactions)<1){
+        $this->transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
+        if(count($this->transactions)<1){
             return self::error([],'No Transaction Found');
         }
         /** Set Pickup Number*/
-        $this->transactionPickupNumber = $transactions[0]->pickup_number;
-
+        $this->transactionPickupNumber = $this->transactions[0]->pickup_number;
         switch (@$this->body->method) {
-            case 'return_finished_packages':
+            case "return_finished_packages":
                 $this->processing = $this->returnFinishedPackages();
                 break;
-            case 'processed_packages':
+            case "processed_packages":
                 $this->processing = $this->processedPackages();
                 break;
-            case 'shipped_packages':
+            case "shipped_packages":
                 $this->processing = $this->shippedPackages();
                 break;
-            case 'finished_packages':
+            case "finished_packages":
                 $this->processing = $this->finishedPackages();
                 break;
-            case 'returned_packages':
+            case "returned_packages":
                 $this->processing = $this->returnedPackages();
                 break;
-            case 'validated_packages':
+            case "validated_packages":
                 $this->processing = $this->validatedPackages();
                 break;
-            case 'rejected_packages':
+            case "rejected_packages":
                 $this->processing = $this->rejectedPackages();
                 break;
         }
@@ -82,14 +82,28 @@ class CallbackHandlerService extends BaseService{
     public function returnFinishedPackages(){
         try {
             foreach ($this->packages as $package){
-                $payload = [];
-                $payload['changes']=[
-                    'return_finished_at'=>$package->date
-                ];
-                $payload['condition']=[
-                    'order_id'=>$package->order_id
-                ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                /** Check if wc transaction exist and get wc order id*/
+                $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
+                $theTransaction = @$this->transactions[$transactionArrKey];
+                
+                if ($theTransaction){
+                    /** Update KJ Table*/
+                    $payload = [];
+                    $payload['changes']=[
+                        'return_finished_at'    => $package->date,
+                        'status'                => 'returned',
+                    ];
+                    $payload['condition']=[
+                        'order_id'  =>  $package->order_id
+                    ];
+                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+
+                    /** Update in wc order table*/        
+                    $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
+                    $order->update_status( 'wc-cancelled' );
+                }
+        
+                
             }
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
@@ -105,10 +119,10 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'awb'=>$package->awb
+                    'awb'   =>  $package->awb
                 ];
                 $payload['condition']=[
-                    'order_id'=>$package->order_id
+                    'order_id'  =>  $package->order_id
                 ];
                 (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
@@ -134,7 +148,8 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'shipped_at'=>$package->shipped_at
+                    'shipped_at'    =>  $package->shipped_at,
+                    'status'        =>  'shipped'
                 ];
                 $payload['condition']=[
                     'order_id'=>$package->order_id
@@ -150,14 +165,31 @@ class CallbackHandlerService extends BaseService{
     public function finishedPackages(){
         try {
             foreach ($this->packages as $package){
-                $payload = [];
-                $payload['changes']=[
-                    'finished_at'=>$package->finished_at
-                ];
-                $payload['condition']=[
-                    'order_id'=>$package->order_id
-                ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                /** Check if wc transaction exist and get wc order id*/
+                $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
+                $theTransaction = @$this->transactions[$transactionArrKey];
+
+                (new \Inc\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
+                
+                if ($theTransaction){
+                    /** Update KJ Table*/
+                    $payload = [];
+                    $payload['changes']=[
+                        'finished_at'   =>  $package->finished_at,
+                        'status'        =>  'finished'
+                    ];
+                    $payload['condition']=[
+                        'order_id'=>$package->order_id
+                    ];
+                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+
+                    /** Update in wc order table*/
+                    $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
+                    $order->update_status( 'completed' );
+                }
+                
+
+                
             }
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
@@ -170,7 +202,9 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'returned_at'=>$package->returned_at
+                    'returned_at'   =>  $package->returned_at,
+                    'status'        =>  'return'
+                    
                 ];
                 $payload['condition']=[
                     'order_id'=>$package->order_id
@@ -206,8 +240,10 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'rejected_at'=>$package->rejected_at,
-                    'rejected_reason'=>$package->reason,
+                    'rejected_at'       =>  $package->rejected_at,
+                    'rejected_reason'   =>  $package->reason,
+                    'status'            =>  'rejected'
+                    
                 ];
                 $payload['condition']=[
                     'order_id'=>$package->order_id

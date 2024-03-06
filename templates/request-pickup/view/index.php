@@ -317,6 +317,11 @@
                 
                 const payment_data = resp?.data?.payment_data
                 const transactions_data = resp?.data?.transactions_data
+                const wcOrderUrlBase = '<?php echo home_url().'/wp-admin/post.php?post='; ?>'
+                /*
+
+.@$row->wc_order_id.'&action=edit'
+                * */
                 
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-cod-count').text(kjMoneyFormat(payment_data.cod_count ?? 0))
@@ -371,7 +376,7 @@
                                     </div>
                                 </div>
                                 <div class="row-divider" style="margin-top: .25rem"></div>
-                                <div style="font-weight: 700">${transaction?.order_id}</div>
+                                <div style="font-weight: 700"><a target="_blank" href="${wcOrderUrlBase}${transaction?.wp_wc_order_stat_order_id}&action=edit">${transaction?.order_id}</a></div>
                                 <div style="font-size: 12px;">${parsedShippingInfo?._billing_first_name}</div>
                             </td>
                             <td class="manage-column column-thumb">
@@ -441,6 +446,14 @@
                     modalElemErr.removeClass('kj-hidden')
                     return
                 }
+                
+                /** cek jika payment sudah dibayar tampilkan detail*/
+                if (resp?.data?.payment_in_wc_data?.status === "paid"){
+                    /** hide modal*/
+                    modalElem.addClass('kj-hidden')
+                    showDetail(showPaymentFormPaymentId)
+                }
+                
                 modalElemLoader.addClass('kj-hidden')
                 modalElemContent.removeClass('kj-hidden')
                 modalElemErr.addClass('kj-hidden')

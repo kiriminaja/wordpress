@@ -67,7 +67,7 @@ foreach ($transactions as $index => $transaction){
                 </td>
                 <td style="border-left: 0;padding: .5rem; position: relative">
                     <div style="position: relative; text-align: center">
-                        <img src="data:image/png;base64,'.base64_encode(generate_barcode()->getBarcode(strtoupper(@$transaction?->awb),generate_barcode()::TYPE_CODE_128_A)).'" style="width: 95%;height: 30px" class="package-awb">
+                        <img src="data:image/png;base64,'.base64_encode(KJ_GENERATE_BARCODE()->getBarcode(strtoupper(@$transaction?->awb),KJ_GENERATE_BARCODE()::TYPE_CODE_128_A)).'" style="width: 95%;height: 30px" class="package-awb">
                         <div style="text-align: center; font-weight: 700; margin-top: .5rem">'.@$transaction?->awb.'</div>
                     </div>
                 </td>

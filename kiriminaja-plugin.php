@@ -40,9 +40,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', dirname( __FILE__ ) . '/' );
 }
 
-if (!function_exists('generate_barcode')) {
-    function generate_barcode() {
+if (!function_exists('KJ_GENERATE_BARCODE')) {
+    function KJ_GENERATE_BARCODE() {
         return new \Picqer\Barcode\BarcodeGeneratorPNG();
+    }
+}
+
+if (!function_exists('KJ_CHECK_WOOCOMMERCE')) {
+    function KJ_CHECK_WOOCOMMERCE() {
+        return in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) );
     }
 }
 

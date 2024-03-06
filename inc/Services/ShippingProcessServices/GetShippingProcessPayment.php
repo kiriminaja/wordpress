@@ -22,20 +22,22 @@ class GetShippingProcessPayment extends BaseService{
     }
     
     public function call(){
-        $getPaymentRepo = (new \Inc\Repositories\KiriminajaApiRepository())->getPayment([
+        $getKjPayment = (new \Inc\Repositories\KiriminajaApiRepository())->getPayment([
             'payment_id'=>$this->payment_id
         ]);
-        (new \Inc\Base\BaseInit())->logThis('$getPaymentRepo',[$getPaymentRepo]);
+        if (!$getKjPayment['status']){ return  self::error([],@$getKjPayment['data'] ?? 'Terjadi Kesalahan');}
+        
+        $getPayment = (new \Inc\Repositories\PaymentRepository())->getPaymentByPaymentId($this->payment_id);
         
         self::transactionsSummaryProccess();
-        
         return self::success([
-            'payment_data'=>@$getPaymentRepo['data']->data,
-            'count_cod'=>@$this->transactionsSummary['count_cod'],
-            'sum_fee_cod'=>@$this->transactionsSummary['sum_fee_cod'],
-            'sum_fee_non_cod'=>@$this->transactionsSummary['sum_fee_non_cod'],
-            'created_at'=>date('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getPaymentRepo['data']->data->pay_time))),
-            'expired_at'=>date('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getPaymentRepo['data']->data->pay_time).'+5minutes')),
+            'payment_data'          =>  @$getKjPayment['data']->data,
+            'payment_in_wc_data'    =>  @$getPayment,
+            'count_cod'             =>  @$this->transactionsSummary['count_cod'],
+            'sum_fee_cod'           =>  @$this->transactionsSummary['sum_fee_cod'],
+            'sum_fee_non_cod'       =>  @$this->transactionsSummary['sum_fee_non_cod'],
+            'created_at'            =>  date('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getKjPayment['data']->data->pay_time))),
+            'expired_at'            =>  date('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getKjPayment['data']->data->pay_time).'+5minutes')),
         ],'');
     }
     

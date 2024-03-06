@@ -164,5 +164,18 @@ class TransactionRepository{
         }
         return $query;
     }
-    
+
+    public function getTransactionByOrderIdsForResiPrint($orderIds){
+        global $wpdb;
+        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE order_id IN ('".implode("', '", $orderIds)."')" );
+//        $query2 = $wpdb->get_results( "
+//                    SELECT * FROM wp_kiriminaja_transactions 
+//                    WHERE order_id IN ('".implode("', '", $orderIds)."')
+//                    " );
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
 }
