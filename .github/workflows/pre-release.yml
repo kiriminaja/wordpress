@@ -1,4 +1,4 @@
-name: Publish
+name: Pre-Release
 
 on:
   release:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    if: '!github.event.release.prerelease'
+    if: 'github.event.release.prerelease'
     name: 'Build & Push'
     runs-on: ubuntu-latest
 
@@ -55,28 +55,28 @@ jobs:
       - name: Update version value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: woocommerce-beta.json
+          file: woocommerce.json
           field: version
           value: ${{ github.ref_name }}
 
       - name: Update requires value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: woocommerce-beta.json
+          file: woocommerce.json
           field: requires
           value: ${{ github.ref_name }}
 
       - name: Update download url value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: woocommerce-beta.json
+          file: woocommerce.json
           field: download_url
           value: https://storage.googleapis.com/${{ secrets.GCS_KA_BUCKET_NAME }}/wp/kiriminaja-${{ github.ref_name }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1
         with:
-          file: woocommerce-beta.json
+          file: woocommerce.json
           field: last_updated
           value: ${{ steps.date.outputs.date }}
 
@@ -84,6 +84,6 @@ jobs:
         id: upload-json
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: woocommerce-beta.json
+          path: woocommerce.json
           destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
           predefinedAcl: 'publicRead'
