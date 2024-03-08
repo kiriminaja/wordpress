@@ -92,7 +92,7 @@ class SetupMigration {
                 `finished_at` timestamp NULL DEFAULT NULL,
                 `rejected_at` timestamp NULL DEFAULT NULL,
                 `returned_at` timestamp NULL DEFAULT NULL,
-                `wp_wc_order_stat_order_id` int(11) DEFAULT NULL
+                `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
                 UNIQUE KEY id (id)
             );";
         require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
@@ -118,7 +118,7 @@ class SetupMigration {
             `method` varchar(50) DEFAULT NULL,
             `order_amt` int(11) DEFAULT 1,
             `pickup_schedule` timestamp NULL DEFAULT NULL,
-            `created_at` timestamp NULL DEFAULT NULL
+            `created_at` timestamp NULL DEFAULT NULL,
             UNIQUE KEY id (id)
             );";
         require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
