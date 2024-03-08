@@ -18,22 +18,22 @@
     
     <!--NOTICE-->
     <!--ALERT-->
-<!--    <div class="alert success" style="margin-top: .5rem">-->
-<!--        <div style="display: flex">-->
-<!--            <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                <path d="M7.99961 1.59998C11.5356 1.59998 14.3996 4.46398 14.3996 7.99998C14.3996 11.536 11.5356 14.4 7.99961 14.4C4.46361 14.4 1.59961 11.536 1.59961 7.99998C1.59961 4.46398 4.46361 1.59998 7.99961 1.59998ZM8.90361 9.10398L9.18361 3.93598H6.81561L7.09561 9.10398H8.90361ZM8.83161 11.792C9.02361 11.608 9.12761 11.352 9.12761 11.024C9.12761 10.688 9.03161 10.432 8.83961 10.248C8.64761 10.064 8.36761 9.96798 7.99161 9.96798C7.61561 9.96798 7.33561 10.064 7.13561 10.248C6.93561 10.432 6.83961 10.688 6.83961 11.024C6.83961 11.352 6.94361 11.608 7.14361 11.792C7.35161 11.976 7.63161 12.064 7.99161 12.064C8.35161 12.064 8.63161 11.976 8.83161 11.792Z" fill="#2271B1"/>-->
-<!--            </svg>-->
-<!---->
-<!--            <div style="margin-left: 8px">-->
-<!--                <div>-->
-<!--                    <span style="font-weight: 600">Note About Cache</span>-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <span class="msg">The following endpoint above might be cached by wordpress system so you need to clear the cache by <a style="font-weight: 800" href="--><?php //echo  @home_url().'/wp-admin/options-permalink.php'?><!--">open here</a> and click on Save button.</span>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
+    <div class="alert success" style="margin-top: .5rem">
+        <div style="display: flex">
+            <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7.99961 1.59998C11.5356 1.59998 14.3996 4.46398 14.3996 7.99998C14.3996 11.536 11.5356 14.4 7.99961 14.4C4.46361 14.4 1.59961 11.536 1.59961 7.99998C1.59961 4.46398 4.46361 1.59998 7.99961 1.59998ZM8.90361 9.10398L9.18361 3.93598H6.81561L7.09561 9.10398H8.90361ZM8.83161 11.792C9.02361 11.608 9.12761 11.352 9.12761 11.024C9.12761 10.688 9.03161 10.432 8.83961 10.248C8.64761 10.064 8.36761 9.96798 7.99161 9.96798C7.61561 9.96798 7.33561 10.064 7.13561 10.248C6.93561 10.432 6.83961 10.688 6.83961 11.024C6.83961 11.352 6.94361 11.608 7.14361 11.792C7.35161 11.976 7.63161 12.064 7.99161 12.064C8.35161 12.064 8.63161 11.976 8.83161 11.792Z" fill="#2271B1"/>
+            </svg>
+
+            <div style="margin-left: 8px">
+                <div>
+                    <span style="font-weight: 600">Note About Cache</span>
+                </div>
+                <div>
+                    <span class="msg">The following endpoint above might be cached by wordpress system so you need to clear the cache by <a style="font-weight: 800" href="<?php echo  @home_url().'/wp-admin/options-permalink.php'?>">open here</a> and click on Save button.</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!--Btn Group-->
     <div class="submit-container">

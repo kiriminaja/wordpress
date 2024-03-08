@@ -27,10 +27,10 @@
                                 <div>
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
-                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >Semua <span class="count">(1)</span></a> |</li>
+                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >Semua <span class="count"></span></a> |</li>
                                             <!--<li ><a href="#" onclick="applySearch('status','process')" <?php /*echo @$_GET['status']==='process' ? 'class="current"' : ''; */?> >Diproses <span class="count">(1)</span></a>  |</li>-->
-                                            <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count">(1)</span></a>  |</li>
-                                            <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; ?> >Paid <span class="count">(1)</span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count"></span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; ?> >Paid <span class="count"></span></a>  |</li>
                                             <!--<li ><a href="#" onclick="applySearch('status','cancel')" <?php /*echo @$_GET['status']==='cancel' ? 'class="current"' : ''; */?> >Cancel <span class="count">(1)</span></a></li>-->
                                         </ul>
                                     </div>

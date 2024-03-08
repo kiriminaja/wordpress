@@ -99,9 +99,9 @@ foreach ($transactions as $index => $transaction){
                 <td style="padding: .5rem; width: 50%; border-right: 0">
                     Penerima
                     <br>
-                    <strong style="font-size: .75rem;">'.@$destinationData->_shipping_first_name.' '.@$destinationData->_shipping_last_name.'</strong>
+                    <strong style="font-size: .75rem;">'.(@$destinationData->_shipping_first_name ?? @$destinationData->_billing_first_name).' '.(@$destinationData->_shipping_last_name ?? @$destinationData->_billing_last_name).'</strong>
                     <br>
-                    '.@$destinationData->_shipping_address_1.' '.@$destinationData->_shipping_address_2.' '.@$transaction->destination_sub_district.' '.@$destinationData->_shipping_postcode.'
+                    '.(@$destinationData->_shipping_address_1 ?? @$destinationData->_billing_address_1).' '.(@$destinationData->_shipping_address_2 ?? @$destinationData->_billing_address_2).' '.@$transaction->destination_sub_district.' '.(@$destinationData->_shipping_postcode ?? @$destinationData->_billing_postcode).'
                     <br>
                     '.@$destinationData->_billing_phone.'
                 </td>
