@@ -167,11 +167,24 @@ class TransactionRepository{
 
     public function getTransactionByOrderIdsForResiPrint($orderIds){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE order_id IN ('".implode("', '", $orderIds)."')" );
-//        $query2 = $wpdb->get_results( "
-//                    SELECT * FROM wp_kiriminaja_transactions 
-//                    WHERE order_id IN ('".implode("', '", $orderIds)."')
-//                    " );
+
+        $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
+        $wpPostTable = $wpdb->prefix . 'posts';
+        $wcOrderProductLookupTable = $wpdb->prefix . 'wc_order_product_lookup';
+        
+        $query = $wpdb->get_results( "
+                    SELECT 
+                    `".$transactionTable."`.* 
+                    , `".$wpPostTable."`.post_excerpt as checkout_note
+                    , count(`".$wcOrderProductLookupTable."`.product_id) as item_count
+                    FROM `".$transactionTable."`
+                    INNER JOIN `".$wpPostTable."`
+                    ON `".$transactionTable."`.wp_wc_order_stat_order_id = `".$wpPostTable."`.ID
+                    INNER JOIN `".$wcOrderProductLookupTable."`
+                    ON `".$transactionTable."`.wp_wc_order_stat_order_id = `".$wcOrderProductLookupTable."`.order_id
+                    WHERE `".$transactionTable."`.order_id IN ('".implode("', '", $orderIds)."')
+                    GROUP BY `".$transactionTable."`.wp_wc_order_stat_order_id
+                    " );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

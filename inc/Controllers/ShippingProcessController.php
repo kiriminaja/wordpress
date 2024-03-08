@@ -64,7 +64,7 @@ class ShippingProcessController{
     }
     
     function printResiHtml($orderIds){
-        $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
+        $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIdsForResiPrint($orderIds);
         (new \Inc\Base\BaseInit())->logThis('$transactions',[$transactions]);
         $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
         $originDataArr = [];

@@ -89,7 +89,7 @@ foreach ($transactions as $index => $transaction){
                          <div style="width: 30%;display: inline-block">
                             Quantity
                             <br>
-                            <strong>1</strong>
+                            <strong>'.($transaction->item_count ?? '-').'</strong>
                         </div>
                     </div>
                 </td>
@@ -116,26 +116,6 @@ foreach ($transactions as $index => $transaction){
                 </td>
             </tr>
             
-          
-            
-            <tr style="display: none">
-                <td colspan="2" style="padding: .5rem; text-align: center; background-color: black;color: white">
-                    <div style="margin-top: .25rem">
-                        <div style="width: 30%; display: inline-block">
-                        <strong style="font-size: .75rem;">JOG1000</strong>
-                        </div>
-                        <div style="width: 30%; display: inline-block">
-                        <strong style="font-size: .75rem;">to</strong>
-                        </div>
-                        <div style="width: 30%; display: inline-block">
-                        <strong style="font-size: .75rem;">JKT1000</strong>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-            
-          
-            
             <tr>
                 <td colspan="2" style="padding: .5rem;">
                     Isi Paket:
@@ -149,7 +129,7 @@ foreach ($transactions as $index => $transaction){
                 <td colspan="2" style="padding: .5rem; padding-bottom: 1rem">
                     Catatan:
                     <br>
-                    <strong>-</strong>
+                    <strong>'.($transaction->checkout_note ?? '-').'</strong>
                 </td>
             </tr>
             
