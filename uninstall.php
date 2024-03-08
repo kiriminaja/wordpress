@@ -11,30 +11,13 @@ if ( ! defined('WP_UNINSTALL_PLUGIN')){ die; }
 
 // Clear database storage data
 
-/** opt 1*/
-//$packages = get_posts( array( 'post_type' => 'package', 'numberposts' => -1 ) );
-//foreach ($packages as $package){
-//    wp_delete_post($package->ID, true);
-//}
-
-/** opt 2
- * Access the database via SQL
- */
 global $wpdb;
-///** delete post with deleted post type*/
-//$wpdb->query( "DELETE FROM wp_posts WHERE post_type = 'package'" );
-///** delete postmeta whose posts_id doesnt exist in wp_posts after posts with post_type 'package' got deleted */
-//$wpdb->query( "DELETE FROM wp_postmeta WHERE post_id NOT IN (SELECT id FROM wp_posts)" );
-//$wpdb->query( "DELETE FROM wp_term_relationships WHERE object_id NOT IN (SELECT id FROM wp_posts)" );
-
 $table_kiriminaja_transactions = $wpdb->prefix.'kiriminaja_transactions';
 $table_kiriminaja_settings = $wpdb->prefix.'kiriminaja_settings';
 $table_kiriminaja_transactions = $wpdb->prefix.'kiriminaja_transactions';
 
-$wpdb->query($table_kiriminaja_transactions);
-delete_option("my_plugin_db_version");
-$wpdb->query($table_kiriminaja_settings);
-delete_option("my_plugin_db_version");
-$wpdb->query($table_kiriminaja_transactions);
+$wpdb->query("DROP TABLE IF EXISTS $table_kiriminaja_transactions");
+$wpdb->query("DROP TABLE IF EXISTS $table_kiriminaja_settings");
+$wpdb->query("DROP TABLE IF EXISTS $table_kiriminaja_transactions");
 delete_option("my_plugin_db_version");
 

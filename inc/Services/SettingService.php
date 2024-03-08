@@ -41,7 +41,8 @@ class SettingService extends BaseService{
             $arrayRepoData = (array) $arrayRepo['data'];
 
             if (!@$arrayRepo['status'] || !@$arrayRepoData['status']){
-                return self::error([],@$arrayRepoData['text'] ?? 'Something is wrong');
+                return self::error([],'Invalid Setup Key');
+//                return self::error([],$arrayRepoData[0] ?? 'Something is wrong');
             }
             
             /** Storing result to DB*/
