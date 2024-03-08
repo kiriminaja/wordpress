@@ -91,9 +91,9 @@ class SendRequestPickupTransactionService extends BaseService{
             $shipping_info = json_decode($transaction->shipping_info);
             return [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => @$shipping_info->_shipping_first_name.' '.@$shipping_info->_shipping_last_name,
+                "destination_name"          => (@$shipping_info->_shipping_first_name ?? @$shipping_info->_billing_first_name).' '.(@$shipping_info->_shipping_last_name ?? @$shipping_info->_billing_last_name),
                 "destination_phone"         => @$shipping_info->_billing_phone,
-                "destination_address"       => @$shipping_info->_shipping_address_1.' '.@$shipping_info->_shipping_address_2.', '.@$transaction->destination_sub_district,
+                "destination_address"       => (@$shipping_info->_shipping_address_1 ?? @$shipping_info->_billing_address_1).' '.(@$shipping_info->_shipping_address_2 ?? @$shipping_info->_billing_address_2).', '.@$transaction->destination_sub_district,
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
                 "destination_zipcode"       => @$shipping_info->_shipping_postcode,
                 "weight"                    => $transaction->weight,

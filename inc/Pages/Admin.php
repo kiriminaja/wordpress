@@ -67,7 +67,6 @@ class Admin extends BaseInit{
         
     
         /** Add pages link in plugin menu links*/
-        (new \Inc\Base\BaseInit())->logThis('plugin_basename',$this->plugin);
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
             $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">Settings</a>';
             array_push($links,$settings_link);

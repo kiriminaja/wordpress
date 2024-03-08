@@ -133,12 +133,12 @@
                                                         <td class="manage-column column-thumb">'.date('M d, Y',strtotime(@$row->wc_date_created)).'</td>
                                                         <td class="manage-column column-thumb">'.strtoupper(@$row->status).'</td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>'.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.', '.@$shippingData->_billing_address_1.', '.@$shippingData->_shipping_address_2.', '.@$row->destination_sub_district.', '.@$shippingData->_billing_postcode.'</div>
+                                                            <div>'.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.', '.@$shippingData->_billing_address_1.', '.@$shippingData->_billing_address_2.', '.@$row->destination_sub_district.', '.@$shippingData->_billing_postcode.'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via '.(@$row->service==="cod" ? "COD" : "NON COD").'</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.@$row->wc_order_id.'`)">'.@$shippingData->_shipping_first_name.' '.@$shippingData->_shipping_last_name.', '.@$shippingData->_shipping_address_1.', '.@$shippingData->_shipping_address_2.', '.@$row->destination_sub_district.', '.@$shippingData->_shipping_postcode.'</div>
+                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.@$row->wc_order_id.'`)">'.(@$shippingData->_shipping_first_name ?? @$shippingData->_billing_first_name).' '.(@$shippingData->_shipping_last_name ?? @$shippingData->_billing_last_name).', '.(@$shippingData->_shipping_address_1 ?? @$shippingData->_billing_address_1).', '.(@$shippingData->_shipping_address_2 ?? @$shippingData->_billing_address_2).', '.@$row->destination_sub_district.', '.(@$shippingData->_shipping_postcode ?? @$shippingData->_billing_postcode).'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via '.strtoupper(@$row->service).'</div>
                                                             <div style="position: relative; margin-top: .1rem"></div>
@@ -444,7 +444,7 @@
                             <div class="col">
                                 <div style="font-weight: 700">Shipping Details</div>
                                 <div class="row-divider" style="margin-top: .25rem"></div>
-                                <div>${checkout_data?._shipping_first_name} ${checkout_data?._shipping_last_name}, ${checkout_data?._shipping_address_1} ${checkout_data?._shipping_address_2}, ${transaction_data?.destination_sub_district}, ${checkout_data?._shipping_postcode}</div>
+                                <div>${checkout_data?._shipping_first_name ?? checkout_data?._billing_first_name} ${checkout_data?._shipping_last_name ?? checkout_data?._billing_last_name}, ${checkout_data?._shipping_address_1 ?? checkout_data?._billing_address_1} ${checkout_data?._shipping_address_2 ?? checkout_data?._billing_address_2}, ${transaction_data?.destination_sub_district}, ${checkout_data?._shipping_postcode ?? checkout_data?._billing_postcode}</div>
                             </div>
                         </div>
                         <!--2 row-->
