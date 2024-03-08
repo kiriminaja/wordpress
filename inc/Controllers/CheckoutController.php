@@ -9,8 +9,8 @@ class CheckoutController
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
-        if (true) {
-            add_action('woocommerce_before_checkout_form', array($this, 'ts_add_order'));
+        if (is_plugin_active('woocommerce/woocommerce.php')) {
+//            add_action('woocommerce_before_checkout_form', array($this, 'ts_add_order'));
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'));
             // add_action('woocommerce_after_checkout_shipping_form', array($this, 'add_custom_select_options_field_and_script_shipping'));
             // add_filter( 'woocommerce_cart_needs_shipping', '__return_false' );
