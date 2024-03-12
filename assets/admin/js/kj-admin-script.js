@@ -10,38 +10,6 @@ function ajaxRouteGenerator(){
     return url
 }
 
-
-jQuery(document).ready(function() {
-
-    // jQuery('.select-2').select2();
-    /** Hide  first menu of KJ MENU
-     * Because fist menu has te same data as the parent*/
-    jQuery('#toplevel_page_kiriminaja .wp-first-item').addClass('kj-hidden');
-
-    jQuery( document ).ready(function() {
-        console.log('sasasass')
-        console.log(location.hostname)
-        console.log(ajaxRouteGenerator())
-        console.log('ssssssssssssssss')
-        jQuery.ajax({
-            type: "post",
-            url: ajaxRouteGenerator(),
-            data: {
-                action: "my_action",  // the action to fire in the server
-                data: {
-                    value:'test'
-                },         // any JS object
-            },
-            complete: function (response) {
-                console.log(JSON.parse(response.responseText).data);
-            },
-        });
-    });
-    
-    /** add wc class to body*/
-    jQuery('body').addClass('woocommerce-admin-page')
-});
-
 function kjMoneyFormat(angka, prefix){
     var number_string = angka;
     number_string=number_string.toString();

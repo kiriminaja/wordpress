@@ -23,7 +23,7 @@ class ShippingInfoServices extends BaseService{
             'payment_type'      =>  @$repo->cod_fee && $repo->cod_fee > 0 ? 'COD' : 'Non COD', 
             'service'           =>  @$repo->service ? ((strtoupper($repo->service)).' '.(strtoupper($repo->service_name))) : '-', 
             'awb'               =>  @$repo->awb ? $repo->awb : '-' , 
-            'status'            =>  strtoupper(@$repo->status), 
+            'status'            =>  kjHelper()->transactionStatusLabel(@$repo->status), 
             'shipping_cost'     =>  @$repo->shipping_cost && $repo->shipping_cost > 0 ? ('Rp.'.localMoneyFormat($repo->shipping_cost)) : '-', 
             'insurance_fee'     =>  @$repo->insurance_cost&& $repo->insurance_cost > 0 ? ('Rp.'.localMoneyFormat($repo->insurance_cost)) : '-', 
             'cod_fee'           =>  @$repo->cod_fee && $repo->cod_fee > 0 ? ('Rp.'.localMoneyFormat($repo->cod_fee)) : '-', 

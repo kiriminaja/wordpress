@@ -30,7 +30,9 @@ class GetTransactionDetailSummary extends BaseService{
             'payment'               => intval($transactionRepo->cod_fee) > 0 ? 'COD' : 'Transfer', 
             'expedition_service'    => strtoupper($transactionRepo->service).' '.strtoupper($transactionRepo->service_name),
             'cart_data'             => $cartProductRepo,
-            'transaction_data'      => $transactionRepo
+            'transaction_data'      => $transactionRepo,
+            'status_label'          => kjHelper()->transactionStatusLabel(@$transactionRepo->status),
+            'status_classes'        => kjHelper()->transactionStatusClass(@$transactionRepo->status),
         ]);
     }
     

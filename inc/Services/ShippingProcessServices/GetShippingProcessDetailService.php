@@ -48,7 +48,7 @@ class GetShippingProcessDetailService extends BaseService{
                 'non_cod_sum'   =>  $this->paymentCalcData['non_cod_sum'],
                 'payment_amount'   =>  $this->paymentCalcData['payment_amount'],
             ],
-            'transactions_data'=>$this->transactionRepo,
+            'transactions_data'=>self::transactionsMapping($this->transactionRepo),
         ],'');
     }
     
@@ -64,6 +64,14 @@ class GetShippingProcessDetailService extends BaseService{
             }
         }
         $this->paymentCalcData['payment_amount'] = $this->paymentCalcData['non_cod_sum'];
+    }
+    
+    private function transactionsMapping($transactions){
+        return array_map(function ($transaction){
+            $transaction->status            = kjHelper()->transactionStatusLabel($transaction->status);
+            $transaction->status_classes    = kjHelper()->transactionStatusClass($transaction->status);
+            return $transaction;
+        },$transactions);
     }
     
 }

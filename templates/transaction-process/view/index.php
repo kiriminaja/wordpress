@@ -132,7 +132,7 @@
                                                         </td>
                                                         <td class="manage-column column-thumb">'.date('M d, Y',strtotime(@$row->wc_date_created)).'</td>
                                                         <td class="manage-column column-thumb">
-                                                        <span class="kj-badge processing">'.strtoupper(@$row->status).'</span>
+                                                        <span class="kj-badge processing">'.kjHelper()->transactionStatusLabel(@$row->status).'</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                             <div>'.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.', '.@$shippingData->_billing_address_1.', '.@$shippingData->_billing_address_2.', '.@$row->destination_sub_district.', '.@$shippingData->_billing_postcode.'</div>
@@ -402,6 +402,9 @@
         modalElemContent.addClass('kj-hidden')
         modalElemErr.addClass('kj-hidden')
 
+        /** Status*/
+        jQuery('#transaction-detail-modal .status-container').empty()
+
         jQuery.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
@@ -549,6 +552,11 @@
                     </div>
                 </div>
                 `)
+                
+                /** Status*/
+                jQuery('#transaction-detail-modal .status-container').empty()
+                jQuery('#transaction-detail-modal .status-container').append(`<span class="${resp?.data?.status_classes}">${resp?.data?.status_label}</span>`)
+                
 
                 /**emptying and add the cart table list*/
                 jQuery('#transaction-detail-modal .kj-modal-content #cart-table tbody').empty()

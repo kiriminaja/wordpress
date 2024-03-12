@@ -13,10 +13,8 @@ class ShippingProcessController{
     public function register(){
         /** getShippingProcessDetail */
         add_action('wp_ajax_kj_get_shipping_process_detail', array($this,'getShippingProcessDetail'));
-        add_action('wp_ajax_nopriv_kj_get_shipping_process_detail', array($this,'getShippingProcessDetail'));
         /** getPaymentForm */
         add_action('wp_ajax_kj_get_payment_form', array($this,'getPaymentForm'));
-        add_action('wp_ajax_nopriv_kj_get_payment_form', array($this,'getPaymentForm'));
         
         /** Resi Print */
         add_action( 'init', function (){

@@ -10,7 +10,7 @@
                 </div>
                 <div class="content-header" style="background-color: white;position: relative" >
                     <h1>Order #<span class="wc-order-id"></span></h1>
-                    <div style="position: absolute;top: 16px;right: 36px;"><span class="kj-badge processing">New</span></div>
+                    <div style="position: absolute;top: 16px;right: 36px;" class="status-container"><span class="kj-badge processing">New</span></div>
                     
                 </div>
                 <div class="content-body" style="padding: 20px 0 20px 0">

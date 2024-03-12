@@ -57,6 +57,12 @@ if (! function_exists('localMoneyFormat')) {
         return number_format($val, 0,',','.');
     }
 }
+if (! function_exists('kjHelper')) {
+    function kjHelper()
+    {
+        return (new \Inc\Base\Helper());
+    }
+}
 
 
 /** Activation*/

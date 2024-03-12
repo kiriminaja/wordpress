@@ -388,7 +388,7 @@
                                 <div style="font-weight: 700">${kjMoneyFormat(transactionCost,'Rp')}</div>
                             </td>
                             <td class="manage-column column-thumb">
-                                <div style="text-transform: capitalize" class="kj-badge ${transaction?.status=='finished' ? 'success' : 'warning'}">
+                                <div style="text-transform: capitalize" class="kj-badge ${transaction?.status_classes}">
                                     <span>${transaction?.status}</span>
                                 </div>
                             </td>
