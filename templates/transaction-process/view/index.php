@@ -131,11 +131,13 @@
                                                         <a href="'.(home_url().'/wp-admin/post.php?post='.@$row->wc_order_id.'&action=edit').'" target="_blank" style="font-weight: 700">#'.@$row->wc_order_id.' '.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.' </a>
                                                         </td>
                                                         <td class="manage-column column-thumb">'.date('M d, Y',strtotime(@$row->wc_date_created)).'</td>
-                                                        <td class="manage-column column-thumb">'.strtoupper(@$row->status).'</td>
+                                                        <td class="manage-column column-thumb">
+                                                        <span class="kj-badge processing">'.strtoupper(@$row->status).'</span>
+                                                        </td>
                                                         <td class="manage-column column-thumb">
                                                             <div>'.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.', '.@$shippingData->_billing_address_1.', '.@$shippingData->_billing_address_2.', '.@$row->destination_sub_district.', '.@$shippingData->_billing_postcode.'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
-                                                            <div>via '.(@$row->service==="cod" ? "COD" : "NON COD").'</div>
+                                                            <div>via '.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").'</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                             <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.@$row->wc_order_id.'`)">'.(@$shippingData->_shipping_first_name ?? @$shippingData->_billing_first_name).' '.(@$shippingData->_shipping_last_name ?? @$shippingData->_billing_last_name).', '.(@$shippingData->_shipping_address_1 ?? @$shippingData->_billing_address_1).', '.(@$shippingData->_shipping_address_2 ?? @$shippingData->_billing_address_2).', '.@$row->destination_sub_district.', '.(@$shippingData->_shipping_postcode ?? @$shippingData->_billing_postcode).'</div>

@@ -8,10 +8,12 @@
                         <path d="M16.0659 8.99481C16.3588 8.70191 16.3588 8.22704 16.0659 7.93415C15.773 7.64125 15.2981 7.64125 15.0052 7.93415L12 10.9393L8.99482 7.93415C8.70192 7.64125 8.22705 7.64125 7.93416 7.93415C7.64126 8.22704 7.64126 8.70191 7.93416 8.99481L10.9394 12L7.93415 15.0052C7.64125 15.2981 7.64125 15.773 7.93415 16.0659C8.22704 16.3588 8.70191 16.3588 8.99481 16.0659L12 13.0607L15.0052 16.0659C15.2981 16.3588 15.773 16.3588 16.0659 16.0659C16.3588 15.773 16.3588 15.2981 16.0659 15.0052L13.0607 12L16.0659 8.99481Z" fill="black"/>
                     </svg>
                 </div>
-                <div class="content-header" style="background-color: white" >
+                <div class="content-header" style="background-color: white;position: relative" >
                     <h1>Order #<span class="wc-order-id"></span></h1>
+                    <div style="position: absolute;top: 16px;right: 36px;"><span class="kj-badge processing">New</span></div>
+                    
                 </div>
-                <div class="content-body" style="padding: 50px 0 20px 0">
+                <div class="content-body" style="padding: 20px 0 20px 0">
 
                     <div class="kj-modal-loader" style="padding: 0 15px 0 15px;">
                         <div style="width: 100%;height: 10rem;position: relative; display: flex">

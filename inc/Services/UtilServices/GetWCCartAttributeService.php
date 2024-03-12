@@ -6,10 +6,11 @@ use Inc\Base\BaseService;
 
 class GetWCCartAttributeService extends BaseService{
 
-    private array $wc_cart_contents = [];
-    private array $cartsProductAttributes = [];
-    private array $cartsProductAttributeCollection = [];
-    private array $cartsProcessedAttribute = [];
+    private array $wc_cart_contents                 = [];
+    private array $cartsProductAttributes           = [];
+    private array $cartsProductAttributeCollection  = [];
+    private array $cartsProcessedAttribute          = [];
+    private array $cartsConvertedAttribute          = [];
     
     public function __construct($payload){
         $this->wc_cart_contents = $payload['wc_cart_contents'];
@@ -20,8 +21,9 @@ class GetWCCartAttributeService extends BaseService{
         $this->cartsProductAttributes           = self::getCartProductAttribute();
         $this->cartsProductAttributeCollection  = self::getCartsProductAttributeCollection();
         $this->cartsProcessedAttribute          = self::getCartsProcessedAttribute();
+        $this->cartsConvertedAttribute          = self::getCartsConvertedAttribute();
 
-        return self::success($this->cartsProcessedAttribute,'success');
+        return self::success($this->cartsConvertedAttribute,'success');
     }
     
     private function getCartProductAttribute(){
@@ -152,7 +154,61 @@ class GetWCCartAttributeService extends BaseService{
               'item_value'  => $cartsProductAttributeCollection['transaction_value'],  
             ];
         }
-        
         throw new \ErrorException('data is wrong','400',);
+    }
+    
+    private function getCartsConvertedAttribute(){
+        $weightMultiplier = 1;
+        $dimensionMultiplier = 1;
+
+        $weight_unit = get_option('woocommerce_weight_unit') ?? '';
+        $dimension_unit = get_option('woocommerce_dimension_unit') ?? '';
+
+        /** convert weight to gr */
+        switch ($weight_unit) {
+            case "kg":
+                $weightMultiplier = 1000;
+                break;
+            case "g":
+                $weightMultiplier = 1;
+                break;
+            case "lbs":
+                $weightMultiplier = 453.592;
+                break;
+            case "oz":
+                $weightMultiplier = 28.3495;
+                break;
+            default:
+                $weightMultiplier = 1;
+        }
+
+        /** convert dimension to cm*/
+        switch ($dimension_unit) {
+            case "m":
+                $dimensionMultiplier = 100;
+                break;
+            case "cm":
+                $dimensionMultiplier = 1;
+                break;
+            case "mm":
+                $dimensionMultiplier = 0.1;
+                break;
+            case "in":
+                $dimensionMultiplier = 2.54;
+                break;
+            case "yd":
+                $dimensionMultiplier = 91.44;
+                break;
+            default:
+                $dimensionMultiplier = 1;
+        }
+
+        return [
+            'weight'      => $this->cartsProcessedAttribute['weight'] * $weightMultiplier,
+            'height'      => $this->cartsProcessedAttribute['height'] * $dimensionMultiplier,
+            'length'      => $this->cartsProcessedAttribute['length'] * $dimensionMultiplier,
+            'width'       => $this->cartsProcessedAttribute['width'] * $dimensionMultiplier,
+            'item_value'  => $this->cartsProcessedAttribute['item_value'],
+        ];
     }
 }

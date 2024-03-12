@@ -116,7 +116,10 @@
                                                                         </button>
                                                                     </div>
                                                                     <div class="col pe-md-0 ps-md-1 px-xs-0">
-                                                                        <button class="button-secondary btn-lg woocommerce-save-button" type="button">How to Connect</button>
+                                                                        <div style="position: relative">
+                                                                            <button class="button-secondary btn-lg woocommerce-save-button" type="button">How to Connect</button>
+                                                                            <a class="kj-absolute-center" href="https://help.kiriminaja.com/article/setup-wordpress" target="_blank"></a>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>                                                            
