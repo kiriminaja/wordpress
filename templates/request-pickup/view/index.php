@@ -85,7 +85,7 @@
                                             <th scope="col" class="manage-column column-thumb">Scedule</th>
                                             <th scope="col" class="manage-column column-thumb">Fees</th>
                                             <th scope="col" class="manage-column column-thumb">Orders</th>
-                                            <th scope="col" class="manage-column column-thumb">Status</th>
+                                            <th scope="col" class="manage-column column-thumb">Status Pembayaran</th>
                                             <th scope="col" class="manage-column column-thumb"><span style="float: right">Action</span></th>
                                         </tr>
                                         </thead>
