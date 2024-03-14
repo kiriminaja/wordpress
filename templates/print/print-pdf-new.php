@@ -37,8 +37,7 @@ foreach ($transactions as $index => $transaction){
         $transactionCost += intval($transaction->cod_fee ?? 0)+intval($transaction->transaction_value ?? 0);
     }
     $destinationData = (object) json_decode($transaction->shipping_info);
-    (new \Inc\Base\BaseInit())->logThis('$destinationData',[$destinationData]);
-    
+
     echo '<table  style="width: 100%; height: 95%; border-collapse: collapse; margin-top: .25rem" border="1">
             <tr>
                 <td style="border-right: 0; padding: .5rem">

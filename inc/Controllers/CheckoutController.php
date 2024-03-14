@@ -14,7 +14,7 @@ class CheckoutController
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'));
             // add_action('woocommerce_after_checkout_shipping_form', array($this, 'add_custom_select_options_field_and_script_shipping'));
             // add_filter( 'woocommerce_cart_needs_shipping', '__return_false' );
-            add_action( 'woocommerce_review_order_before_shipping', array($this,'custom_shipping_content'));
+//            add_action( 'woocommerce_review_order_before_shipping', array($this,'custom_shipping_content'));
             add_action('woocommerce_after_checkout_validation', array($this,'rei_after_checkout_validation'));
             /** After Checkout*/
             add_action( 'woocommerce_checkout_create_order', array($this,'afterCheckoutBeforeCreated'), 10, 2 );
@@ -38,17 +38,18 @@ class CheckoutController
         // do all your logics here...
         // adding wc_add_notice with a second parameter of "error" will stop the form...
         // wc_add_notice( __( "OMG! You're not human!", 'woocommerce' ), 'error' );
-
-        if (empty($_POST['kj_destination_area'])) {
-            wc_add_notice( __( "<strong>Kelurahan</strong> is a required field", 'woocommerce' ), 'error' );
+        
+        if ($_POST['billing_country'] === "ID"){
+            if (empty($_POST['kj_destination_area'])) {
+                wc_add_notice( __( "<strong>Kelurahan</strong> is a required field", 'woocommerce' ), 'error' );
+            }
+            if (empty($_POST['kj_expedition'])) {
+                wc_add_notice( __( "<strong>Ekspedisi</strong> is a required field", 'woocommerce' ), 'error' );
+            }
+            if (empty($_POST['kj_checkout_token'])) {
+                wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'woocommerce' ), 'error' );
+            }
         }
-        if (empty($_POST['kj_expedition'])) {
-            wc_add_notice( __( "<strong>Ekspedisi</strong> is a required field", 'woocommerce' ), 'error' );
-        }
-        if (empty($_POST['kj_checkout_token'])) {
-            wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'woocommerce' ), 'error' );
-        }
-
     }
 
     function custom_shipping_content() {
@@ -72,6 +73,10 @@ class CheckoutController
     }
 
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
+        /** if kj_field value is not exist or null then prevent*/
+        if (!@$_SESSION["kj_expedition"]) { return; }
+        
+        /** Get data from session*/
         $kj_destination_area            = $_SESSION["kj_destination_area"];
         $kj_destination_area_name       = $_SESSION["kj_destination_area_name"];
         $kj_expedition                  = $_SESSION["kj_expedition"];
@@ -103,6 +108,8 @@ class CheckoutController
     }
     
     function afterCheckoutBeforeCreated($order,$data ){
+        /** if kj_field value is not exist or null then prevent*/
+        if (!@$_POST['kj_expedition']) { return; }
         
         /** Store custom field value in session*/
         session_start();

@@ -48,7 +48,9 @@
                                                     </div>
                                                     <div class="row-divider" style="margin-top: .5rem"></div>
                                                     <div style="font-weight: 500;">
-                                                        Recent transaction with <span style="font-weight: 700;">"processing"</span> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.
+                                                        - Recent transaction / order with <span style="font-weight: 700;">"processing"</span> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.
+                                                        <br>
+                                                        - Only transaction / order with billing region is Indonesia can be shown here
                                                     </div>
                                                 </div>
                                             </div>

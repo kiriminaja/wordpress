@@ -1,10 +1,10 @@
 
 <script type="text/javascript">
     jQuery(document).ready(function() {
-        console.log('aaa')
         var transaction = JSON.stringify(<?php echo json_encode(@$transaction); ?>);
         transaction = JSON.parse(transaction);
-        console.log(transaction)
+        
+        if (!transaction) { return; }
 
         const cod_fee = transaction?.cod_fee ? parseInt(`${transaction?.cod_fee}`) : 0;
         const insurance_cost = transaction?.insurance_cost ? parseInt(`${transaction?.insurance_cost}`) : 0;
