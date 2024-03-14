@@ -21,3 +21,7 @@ $wpdb->query("DROP TABLE IF EXISTS $table_kiriminaja_settings");
 $wpdb->query("DROP TABLE IF EXISTS $table_kiriminaja_payments");
 delete_option("my_plugin_db_version");
 
+/** solve chached route*/
+try {
+    flush_rewrite_rules();
+}catch (\Throwable $th){}

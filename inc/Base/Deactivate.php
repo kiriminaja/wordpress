@@ -3,7 +3,9 @@
 namespace Inc\Base;
 
 class Deactivate {
-    public static function deactivate(){
-        flush_rewrite_rules();
+    public function deactivate(){
+        try {
+            flush_rewrite_rules();
+        }catch (\Throwable $th){}
     }
 }

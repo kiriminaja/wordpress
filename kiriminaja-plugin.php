@@ -64,26 +64,26 @@ if (! function_exists('kjHelper')) {
     }
 }
 
-
 /** Activation*/
 function activate_kj_plugin(){
-    Inc\Base\Activate::activate();
     (new \Inc\Migration\SetupMigration())->register();
+    (new \Inc\Base\Activate())->activate();
 }
-
 /** Deactivation*/
 function deactivate_kj_plugin(){
-    Inc\Base\Deactivate::deactivate();
+    (new \Inc\Base\Deactivate())->deactivate();
 }
+/** activation*/
+register_activation_hook(__FILE__, 'activate_kj_plugin');
+/** deactivation*/
+register_deactivation_hook(__FILE__, 'deactivate_kj_plugin');
+
 
 /** Services*/
 if (class_exists('Inc\\Init')){
     Inc\Init::register_services();
 }
 
-/** activation*/
-register_activation_hook(__FILE__, 'activate_kj_plugin');
-/** deactivation*/
-register_deactivation_hook(__FILE__, 'deactivate_kj_plugin');
+
 
 
