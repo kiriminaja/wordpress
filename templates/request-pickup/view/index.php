@@ -12,7 +12,7 @@
                     <div class="woocommerce-layout__main">
 
                         <div class="woocommerce-homescreen">
-                            <div class="woocommerce-homescreen-column" style="position: static;max-width: 1600px; width: 100%">
+                            <div class="woocommerce-homescreen-column" style="position: static;width: 100%">
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">

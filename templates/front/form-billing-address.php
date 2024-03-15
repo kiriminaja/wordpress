@@ -56,7 +56,7 @@
 </div>
 
 <script type="text/javascript">
-    let subdistrictAjaxTimeout = null
+    let subdistrictAjaxTimeout
     const subDistrictSelectElem = jQuery(`[name="kj_destination_area"]`);
     const subDistrictSelectElemSearchFieldId = 'kj_destination_area_search';
 
@@ -76,9 +76,12 @@
     /** Get Kelurahan by search key up*/
     jQuery('body').on('keyup', `#${subDistrictSelectElemSearchFieldId}`, function(e) {
         const searchInputVal = jQuery(`#${subDistrictSelectElemSearchFieldId}`).val()
+        if (searchInputVal.length < 1){ return }
         if (subdistrictAjaxTimeout) {
             clearTimeout(subdistrictAjaxTimeout)
         }
+        
+        
         subdistrictAjaxTimeout = setTimeout(function() {
             subDistrictSelectElem.select2('destroy')
             subDistrictSelectElem.empty()
@@ -107,7 +110,7 @@
                     subDistrictSelectElem.select2('open');
                     jQuery(`#${subDistrictSelectElemSearchFieldId}`).val(searchInputVal);
                 });
-        }, 1200)
+        }, 2000)
     })
     
     /** Flag if calculation is done or not*/
@@ -156,6 +159,15 @@
     function getExpeditionPricing(){
 
         if (printAsString(jQuery(`[name="kj_destination_area"] option:selected`).val())===''){return ;}
+
+        expeditionSelectElem.select2('destroy');
+        expeditionSelectElem.empty()
+        expeditionSelectElem.select2({
+            placeholder: "Pilih Kelurahan Terlebih Dahulu",
+        }).on('select2:open', function(e) {
+            jQuery('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
+        });
+        
         
         jQuery('.billing-expedition-state').addClass('kj-hidden')
         jQuery('.billing-expedition-state.s-loading').removeClass('kj-hidden')
@@ -170,11 +182,12 @@
             console.log(response)
             jQuery('.billing-expedition-state').addClass('kj-hidden')
             
-            if (response?.status !== 200 ||response?.data.length === 0){
+            const options = response?.data?.options ?? [];
+            if (response?.status !== 200 || options === 0){
                 jQuery('.billing-expedition-state.s-error').removeClass('kj-hidden')
                 return
             }
-            const options = response?.data?.options ?? [];
+            
             expeditionSelectElem.select2('destroy');
             expeditionSelectElem.empty()
             expeditionSelectElem.append("<option value='' disabled selected>Pilih Ekspedisi</option>");

@@ -37,6 +37,11 @@ class Enqueue extends BaseInit{
     
     function enqueueAdmin(){
 
+        if (!in_array(@$_GET['page'],[
+            'kiriminaja-konfigurasi',
+            'kiriminaja-transaction-process',
+            'kiriminaja-request-pickup'])){return;}
+
         wp_localize_script(
             'myjs',
             'myjs',
@@ -47,24 +52,12 @@ class Enqueue extends BaseInit{
         wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css');
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js');
 
-        if (!in_array(@$_GET['page'],[
-            'kiriminaja-konfigurasi',
-            'kiriminaja-transaction-process',
-            'kiriminaja-request-pickup'])){return;}
         
-
         wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css');
 
 
-        wp_enqueue_style('kj'.'wc_4', $this->plugin_url.'assets/admin/css/kj-wc-style/admin-layout.style.css');
         wp_enqueue_style('kj'.'wc_5', $this->plugin_url.'assets/admin/css/kj-wc-style/app.style.css');
         wp_enqueue_style('kj'.'wc_5.5', $this->plugin_url.'assets/admin/css/kj-wc-style/app-custom.style.css');
-        wp_enqueue_style('kj'.'wc_6', $this->plugin_url.'assets/admin/css/kj-wc-style/components.style.css');
-        wp_enqueue_style('kj'.'wc_7', $this->plugin_url.'assets/admin/css/kj-wc-style/customer-effort-score.style.css');
-        wp_enqueue_style('kj'.'wc_8', $this->plugin_url.'assets/admin/css/kj-wc-style/experimental.style.css');
-        wp_enqueue_style('kj'.'wc_9', $this->plugin_url.'assets/admin/css/kj-wc-style/onboarding.style.css');
-        wp_enqueue_style('kj'.'wc_10', $this->plugin_url.'assets/admin/css/kj-wc-style/product-editor.style.css');
-        wp_enqueue_style('kj'.'wc_11', $this->plugin_url.'assets/admin/css/kj-wc-style/load.style.css');
         wp_enqueue_style('kj'.'wc_1', $this->plugin_url.'assets/admin/css/kj-wc-style/3538.style.css');
         wp_enqueue_style('kj'.'wc_2', $this->plugin_url.'assets/admin/css/kj-wc-style/5502.style.css');
         wp_enqueue_style('kj'.'wc_3', $this->plugin_url.'assets/admin/css/kj-wc-style/8597.style.css');

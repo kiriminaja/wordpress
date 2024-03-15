@@ -79,6 +79,10 @@ body {margin:0;}
     right: 20px;
 }
 
+.kj-wrap .woocommerce-layout__header{
+    margin-left: -20px;
+}
+
 .kj-wrapper .button-primary{
     margin: .1rem;
 }
@@ -342,4 +346,12 @@ body {margin:0;}
     bottom: 0;
     left: 0;
     right: 0;
+}
+
+@media only screen and (max-width: 800px) {
+    .wrap.kj-wrap {
+        clear: both;
+        margin-right: 12px;
+        margin-left: 20px;
+    }
 }
