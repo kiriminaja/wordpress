@@ -3,7 +3,7 @@
         <div class="woocommerce-layout">
             <div class="woocommerce-layout__header is-scrolled">
                 <div class="woocommerce-layout__header-wrapper">
-                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">KiriminAja Configuration</h1>
+                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo kjHelper()->tlThis('KiriminAja Configuration',@$locale); ?></h1>
                 </div>
             </div>
             <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
@@ -16,7 +16,7 @@
                             <div>
                                 <!-- check jika sudah install woocommerce-->
                                 <?php
-                                if (!KJ_CHECK_WOOCOMMERCE()){
+                                if (!KJ_CHECK_WOOCOMMERCE() || kjHelper()->devForceTrue()){
                                     echo '
                                     <div style="padding-left: 5px; background-color: #7d3eb9; margin-bottom: .5rem">
                                     <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
@@ -28,11 +28,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    WooCommerce is not yet installed or activated
+                                                    '.kjHelper()->tlThis('WooCommerce is not yet installed or activated',@$locale).'                                       
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features
+                                                    '.kjHelper()->tlThis('This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features',@$locale).'
                                                 </div>
                                             </div>
                                         </div>
@@ -44,7 +44,7 @@
                                 
                                 <!--Check jika sudah setting origin data-->
                                 <?php 
-                                if (@$isOriginShippingDataReady){
+                                if (@$isOriginShippingDataReady || kjHelper()->devForceTrue()){
                                     echo '
                                     <div style="padding-left: 5px; background-color: #00a32a">
                                         <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
@@ -56,11 +56,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    All Setup!
+                                                    '.kjHelper()->tlThis('All Setup',@$locale).'!
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    Now you’re connected with KiriminAja
+                                                    '.kjHelper()->tlThis('Now you’re connected with KiriminAja',@$locale).'
                                                 </div>
                                             </div>
                                         </div>
@@ -79,11 +79,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    Fill The Shipment Address
+                                                    '.kjHelper()->tlThis('Fill The Shipment Address',@$locale).'
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    Complete shipping information to enable pricing API
+                                                    '.kjHelper()->tlThis('Complete shipping information to enable pricing API',@$locale).'
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div>
@@ -101,7 +101,7 @@
                                                                     </defs>
                                                                 </svg>
 
-                                                                <span style="margin-left: 6px">Set Address</span>
+                                                                <span style="margin-left: 6px">'.kjHelper()->tlThis('Set Address',@$locale).'</span>
                                                             </div>
                                                         </div>
                                                     </button>
@@ -117,11 +117,11 @@
                                 <div class="row-divider"></div>
                                 <!--NAVBAR-->
                                 <nav style="margin-top: 1rem;margin-bottom: 1.5rem" class="nav-tab-wrapper woo-nav-tab-wrapper">
-                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active">Integration</a>
+                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo kjHelper()->tlThis('Integration',@$locale); ?></a>
                                     <?php
                                     if (@$approvedSetupKey->value){
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">Shipping</a>';
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">Advanced</a>';
+                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.kjHelper()->tlThis('Shipping',@$locale).'</a>';
+                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.kjHelper()->tlThis('Advanced',@$locale).'</a>';
                                     }
                                     ?>
                                 </nav>
@@ -142,15 +142,7 @@
                                 </div>
                                 <div class="row-divider"></div>
                                 <p style="font-weight: 500">KiriminAja Plugin v0.0.27</p>
-                                <!--    <div style="position: relative;overflow: hidden;display: none">-->
-                                <!--        <div class="mt">Map Example</div>-->
-                                <!--        <div id="map"></div>-->
-                                <!--        <div class="mt">Map Example</div>-->
-                                <!--    </div>-->
-
-
                             </div>
-            
                         </div>
                     </div>
                 </div>
@@ -165,14 +157,6 @@
 
 
 <script type="text/javascript">
-    jQuery(document).ready(function($) {
-        // initmap();
-        if (jQuery('.tab-shipping [name="origin_sub_district_id"]').length>0){
-            jQuery('.tab-shipping [name="origin_sub_district_id"]').select2()
-        }
-        
-        getTabData()
-    });
     var map;
     var ajaxRequest;
     var plotlist;
@@ -267,20 +251,36 @@
 <script type="text/javascript">
     /** Origin AJAX*/
     /*** Origin Ajax*/
-    const elemSelectName = 'origin_sub_district_id';
+    const areaSelectName = 'origin_sub_district_id';
+    const areaSelectElem = jQuery(`.tab-shipping [name="${areaSelectName}"]`);
+    const areaSelectElemSearchFieldId = 'origin_sub_district_search_field';
+
+
+    jQuery(document).ready(function($) {
+        // initmap();
+        if (areaSelectElem.length>0){
+            areaSelectElem.select2({
+                placeholder: "<?php echo kjHelper()->tlThis('Shop Subdistrict',@$locale); ?>",
+            }).on('select2:open', function(e) {
+                jQuery('.select2-search__field').prop('id', areaSelectElemSearchFieldId);
+            });
+        }
+
+        getTabData()
+    });
+    
     let subdistrictAjaxTimeout = null
-    jQuery('body').on('keyup', `.select2-search__field`, function (e) {
+    jQuery('body').on('keyup', `#${areaSelectElemSearchFieldId}`, function (e) {
         const thisElem = jQuery(this);
-        if (!jQuery(this).attr('aria-controls').includes(`${elemSelectName}`)){return}
 
         const searchInputVal = jQuery(this).val()
         if (subdistrictAjaxTimeout){ clearTimeout(subdistrictAjaxTimeout) }
         subdistrictAjaxTimeout = setTimeout(function (){
-            jQuery(`[name="${elemSelectName}"]`).empty()
-            jQuery(`[name="${elemSelectName}"]`).append("<option value='' disabled>Loading...</option>");
-            jQuery(`[name="${elemSelectName}"]`).trigger('change');
-            jQuery(`[name="${elemSelectName}"]`).select2('close');
-            jQuery(`[name="${elemSelectName}"]`).select2('open');
+            jQuery(`[name="${areaSelectName}"]`).empty()
+            jQuery(`[name="${areaSelectName}"]`).append("<option value='' disabled>Loading...</option>");
+            jQuery(`[name="${areaSelectName}"]`).trigger('change');
+            jQuery(`[name="${areaSelectName}"]`).select2('close');
+            jQuery(`[name="${areaSelectName}"]`).select2('open');
             thisElem.val(searchInputVal);
             jQuery.ajax({
                 type: "post",
@@ -293,13 +293,13 @@
                 },
                 complete: function (response) {
                     const options = JSON.parse(response.responseText).data
-                    jQuery(`[name="${elemSelectName}"]`).empty()
+                    jQuery(`[name="${areaSelectName}"]`).empty()
                     options.forEach(function (arr){
-                        jQuery(`[name="${elemSelectName}"]`).append("<option value='"+arr.id+"'>"+arr.text+"</option>");
+                        jQuery(`[name="${areaSelectName}"]`).append("<option value='"+arr.id+"'>"+arr.text+"</option>");
                     })
-                    jQuery(`[name="${elemSelectName}"]`).trigger('change');
-                    jQuery(`[name="${elemSelectName}"]`).select2('close');
-                    jQuery(`[name="${elemSelectName}"]`).select2('open');
+                    jQuery(`[name="${areaSelectName}"]`).trigger('change');
+                    jQuery(`[name="${areaSelectName}"]`).select2('close');
+                    jQuery(`[name="${areaSelectName}"]`).select2('open');
                     thisElem.val(searchInputVal);
                 },
             });

@@ -1,54 +1,54 @@
-<span style="font-size: 18px; font-weight: 600">Store Address</span>
+<span style="font-size: 18px; font-weight: 600"><?php echo kjHelper()->tlThis('Store Address',@$locale); ?></span>
 <div class="row-divider" style="margin-top: .5rem"></div>
-<span>This is where your business is located. Tax rates and shipping rates will use this address.</span>
+<span><?php echo kjHelper()->tlThis('This is where your business is located. Tax rates and shipping rates will use this address.',@$locale); ?></span>
 
 <div class="kj-form">
     <table class="form-table">
         <tbody>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label >
-                    Sender Name
+                <label>
+                    <?php echo kjHelper()->tlThis('Sender Name',@$locale); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_name" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_name'];?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_name" placeholder="<?php echo kjHelper()->tlThis('Sender Name',@$locale); ?>" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_name'];?>" >
             </td>
         </tr>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label >
-                    Sender Phone
+                <label>
+                    <?php echo kjHelper()->tlThis('Sender Phone',@$locale); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_phone" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_phone'];?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo kjHelper()->tlThis('Sender Phone',@$locale); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_phone'];?>" >
             </td>
         </tr>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label >
-                    Address
+                <label>
+                    <?php echo kjHelper()->tlThis('Address',@$locale); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_address" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_address'];?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo kjHelper()->tlThis('Address',@$locale); ?>" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_address'];?>" >
             </td>
         </tr>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label >
-                    Zipcode
+                <label>
+                    <?php echo kjHelper()->tlThis('Zipcode',@$locale); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_zip_code'];?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo kjHelper()->tlThis('Zipcode',@$locale); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_zip_code'];?>" >
             </td>
         </tr>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label >
-                    Area
+                <label>
+                    <?php echo kjHelper()->tlThis('Area',@$locale); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
@@ -88,7 +88,7 @@
             <button class="button-wp woocommerce-save-button kj-submit-btn" type="button">
                 <div style="display: flex">
                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                        <span>Save Changes</span>
+                        <span><?php echo kjHelper()->tlThis('Save Changes',@$locale); ?></span>
                     </div>
                 </div>
             </button>

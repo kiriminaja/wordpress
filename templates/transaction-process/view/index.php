@@ -48,9 +48,13 @@
                                                     </div>
                                                     <div class="row-divider" style="margin-top: .5rem"></div>
                                                     <div style="font-weight: 500;">
-                                                        - Recent transaction / order with <span style="font-weight: 700;">"processing"</span> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.
+                                                        - <?php echo kjHelper()->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.',@$locale); ?>
                                                         <br>
-                                                        - Only transaction / order with billing region is Indonesia can be shown here
+                                                        - <?php echo kjHelper()->tlThis('Only transaction / order with billing region is Indonesia can be shown here.',@$locale); ?>
+                                                        <br>
+                                                        - <?php echo kjHelper()->tlThis('Only transaction / order which has not been request pickuped can be shown here.',@$locale); ?>
+                                                        <br>
+                                                        - <?php echo kjHelper()->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.',@$locale); ?>
                                                     </div>
                                                 </div>
                                             </div>
@@ -105,12 +109,12 @@
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
                                                 <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
                                             </th>
-                                            <th scope="col" class="manage-column column-thumb">Order</th>
-                                            <th scope="col" class="manage-column column-thumb">Date</th>
-                                            <th scope="col" class="manage-column column-thumb">Status</th>
-                                            <th scope="col" class="manage-column column-thumb">Billing</th>
-                                            <th scope="col" class="manage-column column-thumb">Ship To</th>
-                                            <th scope="col" class="manage-column column-thumb">Total</th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Order',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Date',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Status',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Billing',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Ship To',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Total',@$locale); ?></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -162,7 +166,7 @@
                                                     ';
                                                 }
                                             }else{
-                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">Not Found</td></tr>';
+                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.kjHelper()->tlThis('Not Found',@$locale).'</td></tr>';
                                             }
                                             ?>
                                         
@@ -172,12 +176,12 @@
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
                                                 <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
                                             </th>
-                                            <th scope="col" class="manage-column column-thumb">Order</th>
-                                            <th scope="col" class="manage-column column-thumb">Date</th>
-                                            <th scope="col" class="manage-column column-thumb">Status</th>
-                                            <th scope="col" class="manage-column column-thumb">Billing</th>
-                                            <th scope="col" class="manage-column column-thumb">Ship To</th>
-                                            <th scope="col" class="manage-column column-thumb">Total</th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Order',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Date',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Status',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Billing',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Ship To',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Total',@$locale); ?></th>
                                         </tr>
                                         </tfoot>
                                     </table>

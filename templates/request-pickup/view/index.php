@@ -27,7 +27,7 @@
                                 <div>
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
-                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >Semua <span class="count"></span></a> |</li>
+                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >All <span class="count"></span></a> |</li>
                                             <!--<li ><a href="#" onclick="applySearch('status','process')" <?php /*echo @$_GET['status']==='process' ? 'class="current"' : ''; */?> >Diproses <span class="count">(1)</span></a>  |</li>-->
                                             <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count"></span></a>  |</li>
                                             <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; ?> >Paid <span class="count"></span></a>  |</li>
@@ -81,12 +81,12 @@
                                         <thead>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb">Pickup Number</th>
-                                            <th scope="col" class="manage-column column-thumb">Scedule</th>
-                                            <th scope="col" class="manage-column column-thumb">Fees</th>
-                                            <th scope="col" class="manage-column column-thumb">Orders</th>
-                                            <th scope="col" class="manage-column column-thumb">Status Pembayaran</th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right">Action</span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Pickup Number',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Schedule',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Fees',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Orders',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Payment Status',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo kjHelper()->tlThis('Action',@$locale); ?></span></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -165,19 +165,19 @@
                                                 ';
                                             }
                                         }else{
-                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">Not Found</td></tr>';
+                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.kjHelper()->tlThis('Not Found',@$locale).'</td></tr>';
                                         }
                                         ?>
                                         </tbody>
                                         <tfoot>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb">Pickup Number</th>
-                                            <th scope="col" class="manage-column column-thumb">Scedule</th>
-                                            <th scope="col" class="manage-column column-thumb">Fees</th>
-                                            <th scope="col" class="manage-column column-thumb">Orders</th>
-                                            <th scope="col" class="manage-column column-thumb">Status</th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right">Action</span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Pickup Number',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Schedule',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Fees',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Orders',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Payment Status',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo kjHelper()->tlThis('Action',@$locale); ?></span></th>
                                         </tr>
                                         </tfoot>
                                     </table>

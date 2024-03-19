@@ -1,22 +1,26 @@
+<?php
+$locale = get_locale();
+?>
+
 <div id="kj-expedition-inquiry" class="kj-hidden ">
     <h3>Expedition Inquiry</h3>
     <!--Kelurahan Field-->
     <p class="form-row form-row-wide">
-        <label for="kj_destination_area"><?php _e('Kelurahan', 'woocommerce'); ?> <span class="required">*</span></label>
+        <label for="kj_destination_area"><?php _e(kjHelper()->tlThis('Area',@$locale), 'woocommerce'); ?> <span class="required">*</span></label>
         <select name="kj_destination_area" id="kj_destination_area" class="select2 custom_select_field" style="width: 100%;" required></select>
     </p>
     <!--Insurance Field-->
     <p class="form-row form-row-wide">
-        <label ><?php _e('Asuransi', 'woocommerce'); ?></label>
+        <label ><?php _e(kjHelper()->tlThis('Insurance',@$locale), 'woocommerce'); ?></label>
     <div>
         <input id="billing_insurance" name="billing_insurance" type="checkbox" value="1">
-        <label for="billing_insurance" class="unselectable">Asuransikan pesanan saya</label>
+        <label for="billing_insurance" class="unselectable"><?php echo kjHelper()->tlThis('Insurance my order',@$locale); ?></label>
     </div>
     </p>
     <!--Expedition Field-->
     <div style="position: relative">
         <p class="form-row form-row-wide" >
-            <label for="kj_expedition"><?php _e('Ekspedisi', 'woocommerce'); ?> <span class="required">*</span></label>
+            <label for="kj_expedition"><?php _e(kjHelper()->tlThis('Expedition',@$locale), 'woocommerce'); ?> <span class="required">*</span></label>
             <select name="kj_expedition" id="kj_expedition" class="select2 custom_select_field" style="width: 100%;" required></select>
 
             <!--Expedition ERR-->
@@ -31,8 +35,8 @@
                     </div>
                     <!--Text-->
                     <div style="margin-left: 6px;color: #D63638">
-                        <div style="font-weight: 700;">Terjadi kesalahan</div>
-                        <div>Klik untuk mendapat ulang opsi ekspedisi</div>
+                        <div style="font-weight: 700;"><?php echo kjHelper()->tlThis('Something is wrong',@$locale); ?></div>
+                        <div><?php echo kjHelper()->tlThis('Click this to refresh',@$locale); ?></div>
                     </div>
                 </div>
             </div>
@@ -64,7 +68,7 @@
     /** Kelurahan Select Init*/
     function subDistrictSelectElemInit(){
         subDistrictSelectElem.select2({
-            placeholder: "Masukkan Kelurahan",
+            placeholder: "<?php echo kjHelper()->tlThis('Search Area',@$locale); ?>",
         }).on('select2:open', function(e) {
             jQuery('.select2-search__field').prop('id', subDistrictSelectElemSearchFieldId);
         });
@@ -101,7 +105,7 @@
                     
                     subDistrictSelectElem.select2('destroy')
                     subDistrictSelectElem.empty()
-                    subDistrictSelectElem.append("<option value='' disabled selected>Pilih Area</option>");
+                    subDistrictSelectElem.append("<option value='' disabled selected><?php echo kjHelper()->tlThis('Select Option',@$locale); ?></option>");
                     options.forEach(function(arr) {
                         subDistrictSelectElem.append("<option value='" + arr.id + "'>" + arr.text + "</option>");
                     })
@@ -130,7 +134,7 @@
     /** Select expedition Init*/
     jQuery(document).ready(function($) {
         expeditionSelectElem.select2({
-            placeholder: "Pilih Kelurahan Terlebih Dahulu",
+            placeholder: "<?php echo kjHelper()->tlThis('Please choose Area first',@$locale); ?>",
         }).on('select2:open', function(e) {
             $('.select2-search__field').prop('id', expeditionSelectElemSearchFieldId);
         });
@@ -297,7 +301,7 @@
                                 </div>
                                 <!--Text-->
                                 <div style="margin-left: 6px;color: #D63638">
-                                    <div style="font-weight: 700;">Terjadi kesalahan</div>
+                                    <div style="font-weight: 700;">Something is wrong</div>
                                     <div>${response?.message}</div>
                                 </div>
                             </div>

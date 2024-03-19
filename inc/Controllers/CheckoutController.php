@@ -22,10 +22,11 @@ class CheckoutController
 
             /** Expedition Ajax*/
             add_action('wp_ajax_kj-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
+            add_action('wp_ajax_nopriv_kj-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
             
             /** Calculation Ajax*/
             add_action('wp_ajax_kj-checkout-calc', array($this,'getCheckoutCalculationAjax'));
-
+            add_action('wp_ajax_nopriv_kj-checkout-calc', array($this,'getCheckoutCalculationAjax'));
 
             add_action( 'woocommerce_thankyou', array($this,'custom_content_thankyou'), 10, 1 );
         }

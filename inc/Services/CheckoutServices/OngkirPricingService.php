@@ -45,6 +45,8 @@ class OngkirPricingService extends BaseService{
         (new \Inc\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
         
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        (new \Inc\Base\BaseInit())->logThis('$kjPricing',[$kjPricing]);
+        
         if(!$kjPricing['data']->status){
             return self::error([],@$kjPricing['data'] ?? 'Terjadi Kesalahan!');
         }

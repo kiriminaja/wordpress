@@ -16,9 +16,10 @@ class BaseInit{
     }
 
     public function logThis($test='log',$loggedItem=[]){
-//        error_log(date("[Y-m-d H:i:s]").' '.json_encode([$test, $loggedItem])."\n", 3, plugin_dir_path(__DIR__)."/logs/debug.log");
-//        error_log(date("[Y-m-d H:i:s]").' '.json_encode([$test, $loggedItem])."\n", 3, $this->plugin_path."debug.log");
 
+        $actual_link = "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+        if (!strpos($actual_link,'localhost')) { return; }
+        
         $bt = debug_backtrace();
         $caller = array_shift($bt);
         error_log(date("[Y-m-d H:i:s] ").json_encode([

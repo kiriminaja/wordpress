@@ -18,23 +18,20 @@ class SetupMigration {
 
         /** Settings Table*/
         $table_name = $wpdb->prefix.'kiriminaja_settings'.$this->suffix;
-        /** Delete if table exist */
-        if($wpdb->get_var( "show tables like '$table_name'" ) == $table_name ){
-            $sql = "DROP TABLE IF EXISTS $table_name";
-            $wpdb->query($sql);
-            delete_option("my_plugin_db_version");
-        }
-        $sql = "CREATE TABLE ".$table_name."(
+        
+        /** Only create table if not exist */
+        if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+            $sql = "CREATE TABLE ".$table_name."(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `key` varchar(255) NULL,
             `value` varchar(255) NULL,
             UNIQUE KEY id (id)
             );";
-        require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
-        dbDelta($sql);
+            require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
+            dbDelta($sql);
 
-        /** Settings Table Value*/
-        $wpdb->query("INSERT INTO ".$table_name."
+            /** Settings Table Value*/
+            $wpdb->query("INSERT INTO ".$table_name."
             (`key`, `value`)
             VALUES
             ('api_key', null),
@@ -50,22 +47,21 @@ class SetupMigration {
             ('callback_url', null),
             ('origin_zip_code', null)
             ");
+        }
         
+        /** Alters*/
     }
+    
     private function transactionsTable(){
-
-
         global $wpdb;
 
         /** Transactions Table*/
         $table_name = $wpdb->prefix.'kiriminaja_transactions'.$this->suffix;
-        /** Delete if table exist */
-        if($wpdb->get_var( "show tables like '$table_name'" ) == $table_name ){
-            $sql = "DROP TABLE IF EXISTS $table_name";
-            $wpdb->query($sql);
-            delete_option("my_plugin_db_version");
-        }
-        $sql = "CREATE TABLE ".$table_name."(
+
+        /** Only create table if not exist */
+        if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+
+            $sql = "CREATE TABLE ".$table_name."(
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
                 `order_id` varchar(100) DEFAULT NULL,
                 `shipping_info` text DEFAULT NULL,
@@ -95,23 +91,23 @@ class SetupMigration {
                 `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
                 UNIQUE KEY id (id)
             );";
-        require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-        
-    }
-    private function paymentsTable(){
+            require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+            
+        }
 
+        /** Alters*/
+    }
+    
+    private function paymentsTable(){
         global $wpdb;
 
         /** Payments Table*/
         $table_name = $wpdb->prefix.'kiriminaja_payments'.$this->suffix;
-        /** Delete if table exist */
-        if($wpdb->get_var( "show tables like '$table_name'" ) == $table_name ){
-            $sql = "DROP TABLE IF EXISTS $table_name";
-            $wpdb->query($sql);
-            delete_option("my_plugin_db_version");
-        }
-        $sql = "CREATE TABLE ".$table_name."(
+        
+        /** Only create table if not exist */
+        if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+            $sql = "CREATE TABLE ".$table_name."(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `pickup_number` varchar(100) DEFAULT NULL,
             `status` enum('paid','unpaid') DEFAULT NULL,
@@ -121,9 +117,11 @@ class SetupMigration {
             `created_at` timestamp NULL DEFAULT NULL,
             UNIQUE KEY id (id)
             );";
-        require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-        
+            require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+        }
+
+        /** Alters*/
     }
     
 }

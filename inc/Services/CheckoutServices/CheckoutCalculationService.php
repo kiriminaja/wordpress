@@ -68,7 +68,9 @@ wc_cart_contents
             'courier'                   => [$courier]
         ];
         (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
+        
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        (new \Inc\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
         
         /** Jika gagal dapat data expedisi*/
         if(!$kjPricing['data']->status){
@@ -110,7 +112,7 @@ wc_cart_contents
         $selected_expedition = $this->selectedExpedition;
         $insurance_amt = self::getCalculateInsuranceFee();
         $cod_amt = self::getCalculateCODFee();
-        $ongkirFee = intval(@$selected_expedition->cost ?? 0);
+        $ongkirFee = intval(intval(@$selected_expedition->cost ?? 0) - intval(@$selected_expedition->discount_amount ?? 0));
         $total_amt = $ongkirFee+$cod_amt+$insurance_amt+$cartTotal;
         return [
             'cart_total_amt' => $cartTotal,

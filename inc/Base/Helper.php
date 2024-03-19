@@ -2,7 +2,7 @@
 
 namespace Inc\Base;
 
-class Helper{
+class Helper extends  BaseInit {
     public function transactionStatusLabel($status = ''){
         switch ($status){
             case "new":
@@ -33,26 +33,8 @@ class Helper{
             return "-";
         }
     }
+    
     public function transactionStatusClass($status = ''){
-
-
-        /* label color
-- Completed | .kj-badge.success
-    background: #c8d7e1;
-    color: #2e4453;
-    
-- Processing | .kj-badge.processing
-    background: #c6e1c6;
-    color: #5b841b;
-    
-- On Hold | .kj-badge.warning
-    background: #f8dda7;
-    color: #94660c;
-    
-- Cancelled / Blank | .kj-badge
-    color: #777;
-    background: #e5e5e5;
-*/
         
         switch ($status){
             case "new":
@@ -82,5 +64,22 @@ class Helper{
             default;
             return "kj-badge processing";
         }
+    }
+    
+    public function tlThis($text='',$lang='en_US'){
+        switch ($lang){
+            case "id_ID":
+                $string = file_get_contents($this->plugin_path."/lang/id_ID.json");
+                break;
+            default :
+                $string = file_get_contents($this->plugin_path."/lang/en_US.json");
+                break;
+        }
+        $langLib = (array) json_decode($string);
+        return @$langLib[$text] ?? $text;
+    }
+    
+    public function devForceTrue(){
+        return  @$_GET['devForceTrue'] && strlen(@$_GET['devForceTrue']) > 0;
     }
 }

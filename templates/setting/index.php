@@ -5,6 +5,10 @@ class settingIndex {
         global $inputValueArr;
         global $isOriginShippingDataReady;
         global $activeTab;
+        global $locale;
+
+        /** WP Setting langguage*/
+        $locale = get_locale();
         
         /** Check if  setup key exist*/
         $approvedSetupKey = (new Inc\Repositories\SettingRepository())->getSettingByKey('setup_key');

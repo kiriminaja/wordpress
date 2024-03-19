@@ -59,7 +59,7 @@ class SendRequestPickupTransactionService extends BaseService{
             'pickup_number'     => @$pickupRequest['data']->pickup_number,
             'status'            => @$pickupRequest['data']->payment_status==='paid' ? 'paid' : 'unpaid',
             'method'            => '',
-            'order_amt'         => 1,
+            'order_amt'         => count($getPackageData),
             'pickup_schedule'   => $this->schedule,
             'created_at'        => date('Y-m-d H:i:s',strtotime("now")),
         ]);

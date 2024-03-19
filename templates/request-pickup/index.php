@@ -10,6 +10,10 @@ class requestPickupIndex {
         global $next_page_link;
         global $prev_page_link;
         global $monthOptions;
+        global $locale;
+
+        /** WP Setting langguage*/
+        $locale = get_locale();
         
         /** Page Query*/
         $pageQuery = self::pageQuery();
