@@ -3,10 +3,16 @@
 namespace Inc\Repositories;
 
 class TransactionRepository{
+
+    public $table;
+    public function __construct(){
+        global $wpdb;
+        $this->table = $wpdb->prefix . 'kiriminaja_transactions';
+    }
     
     public function getTransactionByOrderIds($orderIds){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE order_id IN ('".implode("', '", $orderIds)."')" );
+        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE order_id IN ('".implode("', '", $orderIds)."')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -16,7 +22,7 @@ class TransactionRepository{
     
     public function getTransactionByOrderId($orderId){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_transactions WHERE order_id  = '".$orderId."'");
+        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE order_id  = '".$orderId."'");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -26,7 +32,7 @@ class TransactionRepository{
     
     public function getTransactionByWCOrderNumber($wp_wc_order_stat_order_id){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_transactions WHERE wp_wc_order_stat_order_id  = '".$wp_wc_order_stat_order_id."'");
+        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE wp_wc_order_stat_order_id  = '".$wp_wc_order_stat_order_id."'");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -63,7 +69,7 @@ class TransactionRepository{
     
     public function getTransactionByPickupNumber($pickupNumber){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE pickup_number = '".$pickupNumber."'" );
+        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE pickup_number = '".$pickupNumber."'" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -73,7 +79,7 @@ class TransactionRepository{
     
     public function updateTransactionByCallback($payloads){
         global $wpdb;
-        $wpdb->update('wp_kiriminaja_transactions', $payloads['changes'], $payloads['condition']);
+        $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -83,7 +89,7 @@ class TransactionRepository{
     
     public function getTransactionDataByPickupNumber($pickupNumber){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM wp_kiriminaja_transactions WHERE pickup_number = '".$pickupNumber."'");
+        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE pickup_number = '".$pickupNumber."'");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -93,7 +99,7 @@ class TransactionRepository{
 
     public function getTransactionByWCOrderId($WCOrderId){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM wp_kiriminaja_transactions WHERE wp_wc_order_stat_order_id = '".$WCOrderId."'");
+        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE wp_wc_order_stat_order_id = '".$WCOrderId."'");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -104,8 +110,7 @@ class TransactionRepository{
     public function createTransaction($payload){
         /** Transaction Table Insert*/
         global $wpdb;
-        $table_name = 'wp_kiriminaja_transactions';
-        $wpdb->query("INSERT INTO ".$table_name."
+        $wpdb->query("INSERT INTO ".$this->table."
             (
             `order_id`, 
             `shipping_info`, 
@@ -156,8 +161,7 @@ class TransactionRepository{
 
     public function getTransactionByOldestDate(){
         global $wpdb;
-        $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
-        $query = $wpdb->get_row( "SELECT * FROM `".$transactionTable."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
+        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

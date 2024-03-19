@@ -3,6 +3,12 @@
 namespace Inc\Repositories;
 
 class WpWcOrderProductLookup{
+
+    public $table;
+    public function __construct(){
+        global $wpdb;
+        $this->table = $wpdb->prefix . 'wc_order_product_lookup';
+    }
     
     public function getProductsCartDataByOrderId($orderId){
         global $wpdb;

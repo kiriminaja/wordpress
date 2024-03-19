@@ -28,7 +28,7 @@ class CheckoutController
             add_action('wp_ajax_kj-checkout-calc', array($this,'getCheckoutCalculationAjax'));
             add_action('wp_ajax_nopriv_kj-checkout-calc', array($this,'getCheckoutCalculationAjax'));
 
-            add_action( 'woocommerce_thankyou', array($this,'custom_content_thankyou'), 10, 1 );
+            add_action( 'woocommerce_before_thankyou', array($this,'custom_content_thankyou'), 10, 1 );
         }
     }
 
@@ -173,6 +173,47 @@ class CheckoutController
 
     function custom_content_thankyou( $order_id ) {
         $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId($order_id);
-        require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/after-checkout-page.php');
+        $paymentMethod = (new \Inc\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdAndMetaKey($order_id,'_payment_method_title');
+        $locale = get_locale();
+        
+        echo '
+        <section style="margin: 1rem 0 4rem 0" class="woocommerce-order-details">          
+                <h2 class="woocommerce-order-details__title">Pembayaran</h2>            
+                <table style="width: 100%; font-size: 1rem" class="woocommerce-table woocommerce-table--order-details shop_table order_details">            
+                    <thead>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Order Number',$locale).'</th>
+                            <th class="" style="text-align: right">'.@$transaction->wp_wc_order_stat_order_id.'</th>
+                        </tr>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Date',$locale).'</th>
+                            <th class="" style="text-align: right">'.date('d F Y H:i',strtotime(@$transaction->created_at)).'</th>
+                        </tr>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Payment Method',$locale).'</th>
+                            <th class="" style="text-align: right">'.@$paymentMethod->meta_value.'</th>
+                        </tr>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Sub Total',$locale).'</th>
+                            <th class="" style="text-align: right">Rp.'.localMoneyFormat(@$transaction->transaction_value).'</th>
+                        </tr>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Shipping Fee',$locale).'</th>
+                            <th class="" style="text-align: right">Rp.'.localMoneyFormat((@$transaction->shipping_cost ?? 0) + (@$transaction->insurance_cost ?? 0) + (@$transaction->cod_fee ?? 0)).'</th>
+                        </tr>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Payment Total',$locale).'</th>
+                            <th class="" style="text-align: right">Rp.'.localMoneyFormat((@$transaction->transaction_value ?? 0) + (@$transaction->shipping_cost ?? 0) + (@$transaction->insurance_cost ?? 0) + (@$transaction->cod_fee ?? 0)).'</th>
+                        </tr>
+                        <tr>
+                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Tracking',$locale).'</th>
+                            <th class="" style="text-align: right"><a href="'.home_url().'/kiriminaja-tracking?order_id='.@$transaction->wp_wc_order_stat_order_id.'" target="_blank">CLICK</a></th>
+                        </tr>
+                    </thead>
+                </table>            
+            </section>
+        ';
+//        
+//        require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/after-checkout-page.php');
     }
 }

@@ -82,4 +82,9 @@ class Helper extends  BaseInit {
     public function devForceTrue(){
         return  @$_GET['devForceTrue'] && strlen(@$_GET['devForceTrue']) > 0;
     }
+
+    public function minAmount($value, $minAmount = 1){
+        $theValue = intval($value ?? 0);
+        return $theValue >= $minAmount ? $theValue : $minAmount;
+    }
 }
