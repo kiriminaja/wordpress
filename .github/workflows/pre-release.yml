@@ -35,14 +35,14 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCS_KA_KEY }}
+          credentials_json: ${{ secrets.GCP_PRD_CICD }}
 
       - name: Uploading ZIP
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: kiriminaja-${{ github.ref_name }}.zip
-          destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: 'publicRead'
 
       - name: Initiate Json File
@@ -71,7 +71,7 @@ jobs:
         with:
           file: woocommerce.json
           field: download_url
-          value: https://storage.googleapis.com/${{ secrets.GCS_KA_BUCKET_NAME }}/wp/kiriminaja-${{ github.ref_name }}.zip
+          value: https://storage.googleapis.com/${{ secrets.GCS_KA_PRD_WEB }}/wp/kiriminaja-${{ github.ref_name }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1
@@ -85,5 +85,5 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: woocommerce.json
-          destination: ${{ secrets.GCS_KA_BUCKET_NAME }}/wp
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: 'publicRead'
