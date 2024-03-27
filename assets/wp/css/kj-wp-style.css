@@ -1,0 +1,35 @@
+.kj-hidden{
+    display: none !important;
+}
+
+.kj-loader {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #424242;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+tr.woocommerce-shipping-totals{
+    /*display: none !important;*/
+}
+
+.unselectable {
+    user-drag: none;
+    -moz-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+}

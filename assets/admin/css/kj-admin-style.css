@@ -1,0 +1,357 @@
+.select2{
+    min-width: 400px;
+}
+
+.kj-hidden{
+    display: none;
+}
+
+body {margin:0;}
+
+.mt {
+    font-family: 'Lato', sans-serif;
+    font-weight:300;
+    height:3em;
+    background-color:#ffcc00;
+    line-height:3em;
+    padding-left:2em;
+}
+#map {
+    width: 100%;
+    height: 300px;
+}
+
+
+.kj-loader {
+    width: 45px;
+    aspect-ratio: 1;
+    --c: no-repeat linear-gradient(#000 0 0);
+    background:
+            var(--c) 0%   50%,
+            var(--c) 50%  50%,
+            var(--c) 100% 50%;
+    background-size: 20% 100%;
+    animation: l1 1s infinite linear;
+}
+@keyframes l1 {
+    0%  {background-size: 20% 100%,20% 100%,20% 100%}
+    33% {background-size: 20% 10% ,20% 100%,20% 100%}
+    50% {background-size: 20% 100%,20% 10% ,20% 100%}
+    66% {background-size: 20% 100%,20% 100%,20% 10% }
+    100%{background-size: 20% 100%,20% 100%,20% 100%}
+}
+
+.kj-btn-loader {
+    border: 3px solid #f3f3f3; /* Light grey */
+    border-top: 3px solid #3c70ab; /* Blue */
+    border-left: 3px solid #3c70ab; /* Blue */
+    border-right: 3px solid #3c70ab; /* Blue */
+    border-radius: 80%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.kj-alert {
+    padding: 20px;
+    background-color: #f44336;
+    color: white;
+    position: relative;
+}
+.kj-alert.success {
+    background-color: #119d2c !important;
+}
+
+.kj-alert .closebtn {
+    color: white;
+    font-weight: bold;
+    font-size: 22px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+    
+    position: absolute;
+    right: 20px;
+}
+
+.kj-wrap .woocommerce-layout__header{
+    margin-left: -20px;
+}
+
+.kj-wrapper .button-primary{
+    margin: .1rem;
+}
+.kj-wrapper table th{
+    font-weight: 600;
+}
+
+/** Modal */
+.kj-wrapper .media-modal-backdrop{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 360px;
+    background: #000;
+    opacity: .7;
+    z-index: 159900;
+}
+
+/**General Modal*/
+.kj-wrapper .modal-container{
+    position: fixed;
+    top: 60px;
+    left: 10vw;
+    right: 10vw;
+    /*bottom: 60px;*/
+    z-index: 160000;
+    display: flex;
+}
+.kj-wrapper .media-modal{
+    width: 100%;
+    background-color: #fff;
+    overflow-y: auto;
+    margin: 0 auto;
+    max-height: 90vh;
+    border-radius: 10px;
+}
+@media only screen and (min-width: 800px) {
+    .kj-wrapper .modal-container{
+        left: 15vw;
+        right: 15vw;
+    }
+}
+
+.kj-wrapper .media-modal .media-modal-container{
+    position: relative
+}
+
+.kj-wrapper .media-modal .content-header{
+    position: absolute;
+    top: 0;
+    left:0;
+    right: 0;
+    height: 50px;
+    border-bottom: 1px solid #dfdfdf
+}
+
+.kj-wrapper .media-modal .content-header h1{
+    padding: 0 16px;
+    font-size: 18px;
+    line-height: 2.27272727;
+    margin: 0;
+    font-weight: 500;
+    position: relative;
+    top: 4px;
+}
+
+.kj-wrapper .media-modal .closebtn-container{
+    position: absolute; 
+    top: 14px;
+    right: 14px; 
+    cursor: pointer;
+    z-index: 160100;
+}
+
+.kj-wrapper .media-modal .content-body{
+    padding: 50px 15px 20px 15px;
+}
+
+/** Modal - END */
+.wp-core-ui select{
+    width: 100%;
+}
+
+
+.woocommerce-task-dashboard__container.setup-task-list ul.default{
+    list-style-type: disc;
+}
+.woocommerce-task-dashboard__container.setup-task-list ul.default li {
+    display: list-item;
+    width: 100%; 
+    border-right: none; 
+    border-top: none; 
+    padding: 0; 
+    margin-left: 24px;
+    margin-bottom: 2px;
+}
+
+.kj-wrap button{
+    background-color: #7d3eb9 !important;
+    border: 2px solid #7d3eb9 !important;
+    width: auto !important;
+    padding: 6px 9px !important;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.kj-wrap button:disabled,
+.kj-wrap button[disabled]{
+    cursor: auto;
+    opacity: 0.5;
+}
+
+.kj-wrap button.btn-lg{
+    width: 100% !important;
+    padding: 6px 6px !important;    
+}
+
+
+.kj-wrap button.button-primary{
+    background-color: #7d3eb9 !important;
+    border-color: #7d3eb9 !important;
+    color: white !important;
+}
+.kj-wrap button.button-secondary{
+    background-color: #ffffff !important;
+    border-color: #7d3eb9 !important;
+    color: #7d3eb9 !important;
+}
+.kj-wrap button.button-error{
+    background-color: #d63638 !important;
+    border-color: #d63638 !important;
+    color: #ffffff !important;
+}
+.kj-wrap button.button-wp{
+    background-color: #2271b1 !important;
+    border-color: #2271b1 !important;
+    color: #ffffff !important;
+}
+.kj-wrap button.button-wp-secondary{
+    background-color: #ffffff !important;
+    border-color: #2271b1 !important;
+    color: #2271b1 !important;
+}
+.kj-wrap button.button-wp-blank{
+    background-color: #f0f0f1 !important;
+    border-color: #c8c9cc !important;
+    color: #000000 !important;
+}
+.kj-wrap .row-divider{
+    margin-top: 1.5rem;
+}
+.kj-wrap .alert{
+    box-shadow: 0 0 0 transparent;
+    border-radius: 4px;
+    border: 2px solid #d63638;
+    background-color: #fcf0f1;
+    color: #d63638;
+    padding: 10px 18px;
+}
+.kj-wrap .alert.success{
+    box-shadow: 0 0 0 transparent;
+    border-radius: 4px;
+    border: 2px solid #2271b1;
+    background-color: #d7e3ff;
+    color: #2271b1;
+    padding: 10px 18px;
+}
+
+.woocommerce-homescreen {
+    max-width: 100% !important;
+}
+
+.kj-wrapper .wp-list-table th{
+    font-weight: 700;
+}
+.kj-wrapper .wp-list-table th, .kj-wrapper .wp-list-table td{
+    vertical-align: middle
+}
+
+.kj-badge{
+    font-weight: 400;
+    padding: 4px 8px; 
+    display: inline-block;
+    border-radius: 4px;
+    margin: -0.25em 1em;
+    color: #777;
+    background: #e5e5e5;
+}
+
+.kj-badge.warning{
+    background: #f8dda7;
+    color: #94660c;
+}
+
+.kj-badge.success{
+    background: #c8d7e1;
+    color: #2e4453;
+}
+
+.kj-badge.processing{
+    background: #c6e1c6;
+    color: #5b841b;
+}
+
+.inset-absolute{
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    position: absolute;
+}
+.p-relative{
+    position: relative ;
+}
+
+#kj-order-edit-shipping th{
+    text-align: left;
+    display: flex;
+}
+#kj-order-edit-shipping td{
+    text-align: right;
+}
+
+#transaction-detail-modal #cart-table{
+    width: 100%;
+}
+
+#transaction-detail-modal #cart-table thead th,#transaction-detail-modal #cart-table tbody td{
+    text-align: right;
+}
+#transaction-detail-modal #cart-table thead th:first-child,#transaction-detail-modal #cart-table tbody td:first-child{
+    text-align: left;
+}
+#transaction-detail-modal #cart-table tfoot th{
+    text-align: right;
+}
+
+#transaction-detail-modal #cart-table thead tr:last-child th{
+    border-bottom: 1px solid #dfdfdf;
+    padding: 10px 0;
+    font-weight: 700;
+}
+
+#transaction-detail-modal #cart-table thead th{
+    padding: 10px 15px !important;
+}
+#transaction-detail-modal #cart-table tbody td{
+    padding: 5px 15px !important;
+}
+#transaction-detail-modal #cart-table tfoot th{
+    padding: 5px 15px !important;
+}
+.kj-absolute-center{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+@media only screen and (max-width: 800px) {
+    .wrap.kj-wrap {
+        clear: both;
+        margin-right: 12px;
+        margin-left: 20px;
+    }
+}
