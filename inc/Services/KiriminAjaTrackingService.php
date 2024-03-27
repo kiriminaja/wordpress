@@ -31,7 +31,7 @@ class KiriminAjaTrackingService extends BaseService{
         
         if (@$transactionRepo->wc_date_paid && $transactionRepo->cod_fee == 0){
             $histories[] = (object)[
-                "status"=> "Transasi dikonfirmasi & diproses",
+                "status"=> "Transaksi dikonfirmasi & diproses",
                 "status_code"=> 100,
                 "created_at"=> @$transactionRepo->wc_date_paid,
                 "driver"=> "",
@@ -40,7 +40,7 @@ class KiriminAjaTrackingService extends BaseService{
         }
         
         $histories[] = (object)[
-            "status"=> "Transasi berhasil Check Out dengan metode pembayaran ".($transactionRepo->cod_fee>0 ? 'COD' : 'NON COD'),
+            "status"=> "Transaksi berhasil Check Out dengan metode pembayaran ".($transactionRepo->cod_fee>0 ? 'COD' : 'NON COD'),
             "status_code"=> 100,
             "created_at"=> $transactionRepo->created_at,
             "driver"=> "",
