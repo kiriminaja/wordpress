@@ -141,7 +141,7 @@
                                     </div>
                                 </div>
                                 <div class="row-divider"></div>
-                                <p style="font-weight: 500">KiriminAja Plugin v0.0.27</p>
+                                <p style="font-weight: 500">KiriminAja Plugin v0.1.0</p>
                             </div>
                         </div>
                     </div>
