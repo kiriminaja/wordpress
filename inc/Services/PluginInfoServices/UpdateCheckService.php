@@ -23,12 +23,12 @@ class UpdateCheckService extends BaseService{
 
             return self::success([
                 'require_update'    => $versionInArray[0] !== $currentVersion,
-                'lastest_version'   => '0.1.0'
+                'lastest_version'   => $latestVersion
             ]);
         }catch (\Throwable $th){
             return self::success([
                 'require_update'    => false,
-                'lastest_version'   => '0.1.0'
+                'lastest_version'   => '0.0.0'
             ]);
         }
 
