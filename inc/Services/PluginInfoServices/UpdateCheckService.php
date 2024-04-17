@@ -9,17 +9,40 @@ class UpdateCheckService extends BaseService{
     
     public function call(){
 
-        $response = file_get_contents('https://analytics.kiriminaja.com/wooooo/woocommerce.json');
-        $latestVersion = @json_decode($response)->version ?? '0.0.0';
-        $currentVersion = @thePluginData()['Version'] ?? '0.0.0';
+        try {
+            $response = self::callInfoJson();
+
+            $latestVersion = @json_decode($response)->version ?? '0.0.0';
+            $currentVersion = @thePluginData()['Version'] ?? '0.0.0';
+
+            $versionInArray = [$latestVersion, $currentVersion];
+            /** Sort the array by descending*/
+            rsort($versionInArray);
+
+            (new BaseInit())->logThis($latestVersion);
+
+            return self::success([
+                'require_update'    => $versionInArray[0] !== $currentVersion,
+                'lastest_version'   => '0.1.0'
+            ]);
+        }catch (\Throwable $th){
+            return self::success([
+                'require_update'    => false,
+                'lastest_version'   => '0.1.0'
+            ]);
+        }
+
+    }
+    
+    protected function callInfoJson(){
+        $curl_handle=curl_init();
+        curl_setopt($curl_handle, CURLOPT_URL,'https://analytics.kiriminaja.com/wooooo/woocommerce.json');
+        curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl_handle, CURLOPT_USERAGENT, 'Your application name');
+        $response = curl_exec($curl_handle);
+        curl_close($curl_handle);
         
-        $versionInArray = [$latestVersion, $currentVersion];
-        /** Sort the array by descending*/
-        rsort($versionInArray);
-        
-        return self::success([
-            'require_update'    => $versionInArray[0] !== $currentVersion,
-            'lastest_version'   => '0.1.0'
-        ]);
+        return $response;
     }
 }
