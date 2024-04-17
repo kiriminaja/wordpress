@@ -39,6 +39,9 @@ if ( ! defined( 'KJ_PLUGIN_BASENAME' ) ) {
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', dirname( __FILE__ ) . '/' );
 }
+if( ! function_exists('get_plugin_data') ){
+    require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+}
 
 /** Helper*/
 if (!function_exists('KJ_GENERATE_BARCODE')) {
@@ -61,6 +64,13 @@ if (! function_exists('kjHelper')) {
     function kjHelper()
     {
         return (new \Inc\Base\Helper());
+    }
+}
+if (! function_exists('thePluginData')) {
+    function thePluginData()
+    {
+        $plugin_data = get_plugin_data( __FILE__ );
+        return $plugin_data;
     }
 }
 

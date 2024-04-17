@@ -37,6 +37,8 @@ class Enqueue extends BaseInit{
     
     function enqueueAdmin(){
 
+        wp_enqueue_script('kiriminPluginAdminGeneralScript', $this->plugin_url.'assets/admin/js/kj-admin-general-script.js');
+        
         if (!in_array(@$_GET['page'],[
             'kiriminaja-konfigurasi',
             'kiriminaja-transaction-process',
