@@ -8,6 +8,7 @@ use \Inc\Base\PageGenerator;
 class Admin extends BaseInit{
     
     public function register(){
+        global $pagenow;
         /** add pages*/
         
         $subPages  = [
@@ -66,17 +67,22 @@ class Admin extends BaseInit{
             ->register();
         
     
-        /** Add pages link in plugin menu links*/
-        add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $updateCheckService = (new \Inc\Services\PluginInfoServices\UpdateCheckService())->call();
-            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi" 
+        /** Add pages link in plugin menu links & check version*/
+        if ($pagenow == 'plugins.php') {
+            add_filter('plugin_action_links_'.$this->plugin, function ($links){
+                $updateCheckService = (new \Inc\Services\PluginInfoServices\UpdateCheckService())->call();
+                $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi" 
                                     id="kj-setting-link" 
                                     data-update="'.(@$updateCheckService->data['require_update'] ? "1" : "0").'"
                                     data-version="'.@thePluginData()['Version'].'"
                                     >Settings</a>';
-            array_push($links,$settings_link);
-            return $links;
-        });
+                array_push($links,$settings_link);
+                return $links;
+            });
+        }
+        
+        
+
     }
 
 }
