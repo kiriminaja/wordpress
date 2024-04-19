@@ -1,17 +1,17 @@
 {
-  "name": "Kiriminaja",
+  "name": "KiriminAja Plugin",
   "slug": "kiriminaja",
-  "author": "<a href='https://kiriminaja.com'>Kiriminaja</a>",
-  "author_profile": "http://kiriminaja.com/about",
-  "version": "0.1.0",
-  "download_url": "https://analytics.kiriminaja.com/wooooo/kiriminaja-0.0.18.zip",
-  "requires": "3.0",
-  "tested": "5.8",
-  "requires_php": "5.3",
-  "last_updated": "2023-01-27 02:10:00",
+  "author": "<a href='https://kiriminaja.com'>KiriminAja</a>",
+  "author_profile": "https://kiriminaja.com/about",
+  "tested": "7.0",
+  "requires_php": "7.0",
   "sections": {
-    "description": "Kiriminaja plugin ",
-    "installation": "Click the activate button and that's it.",
-    "changelog": "<h4>1.0 â€“  01 Februari 2023</h4><ul><li>Bug fixes.</li><li>Initital release.</li></ul>"
-  }
+    "description": "KiriminAja Plugin Update",
+    "installation": "Click the activation button.",
+    "changelog": "Bug fixing and performance improvement"
+  },
+  "version": "v0.1.0",
+  "requires": "v0.1.0",
+  "download_url": "https://storage.googleapis.com/tprt0ezsggqjornc7nf1wwluvgulhr/wp/kiriminaja-pre-release-v0.1.0.zip",
+  "last_updated": "2024-03-27 13:01"
 }
