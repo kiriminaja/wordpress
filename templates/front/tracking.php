@@ -154,7 +154,7 @@
     jQuery(document).ready(function() {
         const urlParams = url.searchParams;
         const orderIdToLoad = encodeURI(urlParams.get("order_id"));
-        if (orderIdToLoad){
+        if (orderIdToLoad!=='null'){
             jQuery('[name="order_number"]').val(orderIdToLoad)
             trackOrder()
         }
