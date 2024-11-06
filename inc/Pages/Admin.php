@@ -23,6 +23,7 @@ class Admin extends BaseInit{
             ]
         ];
         if(KJ_CHECK_WOOCOMMERCE()){
+
             $subPages = array_merge($subPages,[
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
@@ -72,6 +73,21 @@ class Admin extends BaseInit{
             array_push($links,$settings_link);
             return $links;
         });
+
+        add_action( 'admin_head', [$this,'kj_add_transaction_status_count']);
+
+    }
+
+    function kj_add_transaction_status_count(){
+        global $submenu;
+
+        $transaction_count_new = kjHelper()->kjCountTransactionProcess();
+        foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
+            if ( 0 === strpos( $menu_item[0], 'Transaction Process' ) ) {
+                $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
+                break;
+            }
+        }
     }
 
 }

@@ -34,6 +34,7 @@ class SendRequestPickupTransactionService extends BaseService{
             "zipcode"       => @$getOriginData['origin_zip_code'],
             "schedule"      => $this->schedule
         ];
+
         
         $pickupRequest = (new \Inc\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
         (new \Inc\Base\BaseInit())->logThis('$pickupRequest',[$pickupRequest]);
@@ -51,6 +52,7 @@ class SendRequestPickupTransactionService extends BaseService{
             $payload['condition']=[
                 'order_id' => $orderId
             ];
+
             (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
         }
         

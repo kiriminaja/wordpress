@@ -25,6 +25,7 @@
                 <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo kjHelper()->tlThis('Sender Phone',@$locale); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo @$inputValueArr['origin_phone'];?>" >
             </td>
         </tr>
+        
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
@@ -35,6 +36,31 @@
                 <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo kjHelper()->tlThis('Address',@$locale); ?>" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_address'];?>" >
             </td>
         </tr>
+        <!-- Lat Long -->
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label>
+                    <?php echo kjHelper()->tlThis('Latitude',@$locale); ?>
+                </label>
+            </th>
+            <td class="forminp forminp-text">
+                <input style="width: 100%; max-width: 25rem" name="origin_latitude" placeholder="<?php echo kjHelper()->tlThis('Latitude',@$locale); ?>" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_latitude'];?>" >
+            </td>
+        </tr>
+
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label>
+                    <?php echo kjHelper()->tlThis('Longitude',@$locale); ?>
+                </label>
+            </th>
+            <td class="forminp forminp-text">
+                <input style="width: 100%; max-width: 25rem" name="origin_longitude" placeholder="<?php echo kjHelper()->tlThis('Longitude',@$locale); ?>" type="text" class="input-text regular-input" value="<?php echo @$inputValueArr['origin_longitude'];?>" >
+            </td>
+        </tr>
+
+        <!-- end lat long -->
+
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
@@ -56,6 +82,25 @@
                     <?php 
                     if ( @$inputValueArr['origin_sub_district_id'] && @$inputValueArr['origin_sub_district_name']){
                         echo '<option selected value="'.@$inputValueArr['origin_sub_district_id'].'">'.@$inputValueArr['origin_sub_district_name'].'</option>';
+                    }
+                    ?>
+                </select>
+            </td>
+        </tr>
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label>
+                    <?php echo kjHelper()->tlThis('Whitelist Expedition',@$locale); ?>
+                </label>
+            </th>
+            <td class="forminp forminp-text">
+                <select name="origin_whitelist_expedition[]" style="width:50%;" class="select-2 origin_whitelist_expedition" multiple="multiple">
+                    <?php 
+                    if ( @$inputValueArr['origin_whitelist_expedition_id'] && @$inputValueArr['origin_whitelist_expedition_name']){
+                        $expedition_name = explode(',',@$inputValueArr['origin_whitelist_expedition_name'] );
+                        foreach ( explode(',',$inputValueArr['origin_whitelist_expedition_id']) as $key => $row) {
+                            echo '<option selected value="'.@$row.'">'.@$expedition_name[$key].'</option>';
+                        }
                     }
                     ?>
                 </select>

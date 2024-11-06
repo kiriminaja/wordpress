@@ -1,0 +1,6 @@
+/* 
+* Only Shop Order Woocommerce 
+* --------------------------------
+* @author Kiriminaja
+*/
+#order_shipping_line_items .shipping .select2 { margin-bottom: 12px; }

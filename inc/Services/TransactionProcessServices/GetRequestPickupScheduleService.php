@@ -28,12 +28,13 @@ class GetRequestPickupScheduleService extends BaseService {
     
     private function transactionSummaryData(){
         $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+                
         $count_cod = 0;
         $count_non_cod = 0;
         $sum_fee_cod = 0;
         $sum_fee_non_cod = 0;
         foreach ($transactions as $transaction){
-            if ($transaction->cod_fee>0){
+            if ((float)$transaction->cod_fee>0){
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;

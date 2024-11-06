@@ -27,6 +27,7 @@ class OngkirPricingService extends BaseService{
         $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
+
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
@@ -42,6 +43,7 @@ class OngkirPricingService extends BaseService{
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => null
         ];
+        
         (new \Inc\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
         
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);

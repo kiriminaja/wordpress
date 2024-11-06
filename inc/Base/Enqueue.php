@@ -27,7 +27,7 @@ class Enqueue extends BaseInit{
         
         wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), '4.0.13', true );
         wp_enqueue_style( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css', array(), '4.0.13' );
-        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/wp/css/kj-wp-style.css');
+        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/wp/css/kj-wp-style.css',array(),rand(),'all');
 
         // Option 1: Manually enqueue the wp-util library.
         wp_enqueue_script( 'wp-util' );
@@ -49,8 +49,8 @@ class Enqueue extends BaseInit{
                 'ajaxurl' => admin_url( 'admin-ajax.php' )
             )
         );
-        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css');
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js');
+        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css',array(),KJ_PLUGIN_VERSION,'all');
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_PLUGIN_VERSION,true);
 
         
         wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css');
@@ -77,11 +77,6 @@ class Enqueue extends BaseInit{
         //Add the Select2 JavaScript file
         wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', 'jquery', '4.1.0-rc.0');
    
-        //Add a JavaScript file to initialize the Select2 elements
-//        wp_enqueue_script( 'select2-init', '/wp-content/plugins/select-2-tutorial/select2-init.js', 'jquery', '4.1.0-rc.0');
-        //Open api
-//        wp_enqueue_script( 'sdssdsddsds', 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.5.1/leaflet.js');
-        
     }
     
 }

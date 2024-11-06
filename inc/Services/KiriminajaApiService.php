@@ -14,6 +14,7 @@ class KiriminajaApiService extends BaseService{
         if (!@$repo['status'] || !@$repo['data']->status){
             return self::error([],@$repo['data']->text ?? 'Something is wrong');
         }
+
         return self::success($repo['data']->result);
     }
 
@@ -41,6 +42,14 @@ class KiriminajaApiService extends BaseService{
             return self::error([],@$repo['data']->text ?? 'Something is wrong');
         }
         return self::success($repo['data']);
+    }
+
+    public function get_couriers(){
+        $repo = (new \Inc\Repositories\KiriminajaApiRepository())->get_couriers();
+        if (!@$repo['status'] || !@$repo['data']->status){
+            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        }
+        return self::success($repo['data']->datas);
     }
     
 }
