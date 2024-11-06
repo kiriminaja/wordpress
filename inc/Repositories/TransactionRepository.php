@@ -195,4 +195,38 @@ class TransactionRepository{
         }
         return $query;
     }
+
+    public function getCountTransactionProcessNew(){
+        global $wpdb;
+        $query = $wpdb->get_var( "SELECT count(*) FROM `".$this->table."` WHERE status ='new'");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+
+    public function updateTransaction($payload){
+        global $wpdb; 
+        $query = $wpdb->query(
+            "UPDATE ".$this->table.
+            " SET 
+                destination_sub_district_id = '".$payload['destination_sub_district_id']."',
+                destination_sub_district = '".$payload['destination_sub_district']."',
+                service = '".$payload['service']."',
+                service_name = '".$payload['service_name']."',
+                shipping_cost ='".$payload['shipping_cost']."',
+                insurance_cost ='".$payload['insurance_cost']."',
+                cod_fee ='".$payload['cod_fee']."'
+            WHERE 
+                wp_wc_order_stat_order_id = '".$payload['wp_wc_order_stat_order_id']."'
+            "
+        );
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return true;
+    }
 }

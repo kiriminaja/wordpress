@@ -28,10 +28,8 @@
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
                                             <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >All <span class="count"></span></a> |</li>
-                                            <!--<li ><a href="#" onclick="applySearch('status','process')" <?php /*echo @$_GET['status']==='process' ? 'class="current"' : ''; */?> >Diproses <span class="count">(1)</span></a>  |</li>-->
                                             <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count"></span></a>  |</li>
                                             <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; ?> >Paid <span class="count"></span></a>  |</li>
-                                            <!--<li ><a href="#" onclick="applySearch('status','cancel')" <?php /*echo @$_GET['status']==='cancel' ? 'class="current"' : ''; */?> >Cancel <span class="count">(1)</span></a></li>-->
                                         </ul>
                                     </div>
                                     
@@ -92,6 +90,7 @@
                                         <tbody id="the-list">
                                         <?php
                                         if (@$results&&count($results)>0){
+                                            
                                             foreach($results as $id => $row){
                                                 $btnGroup='';
 
@@ -128,7 +127,6 @@
                                                     }
 
                                                     
-//                                                  $btnGroup.='<button name="save" style="background-color: #ad0000; border: 1px solid #ad0000" class="button-primary woocommerce-save-button" type="button" >Batalkan</button>';
                                                     $statusContent= '
                                                         <div class="kj-badge warning">
                                                             <span>Waiting For Payment</span>
@@ -242,7 +240,7 @@
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v0.1.0</p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.3.1</p>
                                 </div>
                             </div>
                         </div>
@@ -305,7 +303,6 @@
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
                 if (resp?.status !== 200){
-                    // formAlertToggler('menu_1',true,'Error',resp.message,'')
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
                     modalElemErr.removeClass('kj-hidden')
@@ -318,10 +315,7 @@
                 const payment_data = resp?.data?.payment_data
                 const transactions_data = resp?.data?.transactions_data
                 const wcOrderUrlBase = '<?php echo home_url().'/wp-admin/post.php?post='; ?>'
-                /*
-
-.@$row->wc_order_id.'&action=edit'
-                * */
+                
                 
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-cod-count').text(kjMoneyFormat(payment_data.cod_count ?? 0))
@@ -440,7 +434,6 @@
                 console.log(resp)
 
                 if (resp?.status !== 200){
-                    // formAlertToggler('menu_1',true,'Error',resp.message,'')
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
                     modalElemErr.removeClass('kj-hidden')
@@ -518,7 +511,6 @@
                 console.log(resp)
 
                 if (resp?.status !== 200){
-                    // formAlertToggler('menu_1',true,'Error',resp.message,'')
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
                     modalElemErr.removeClass('kj-hidden')

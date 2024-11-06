@@ -35,7 +35,7 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['oid_prefix']), array('key' => 'oid_prefix'));
         $wpdb->update($this->table, array('value' => @$payload['setup_key']), array('key' => 'setup_key'));
         $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url'));
-        
+    
         return true;
     }
     
@@ -81,7 +81,11 @@ class SettingRepository{
             !$payload['origin_phone'] 
             || 
             !$payload['origin_address']
-            || 
+            ||
+            !$payload['origin_latitude']
+            ||
+            !$payload['origin_longitude']
+            ||  
             !$payload['origin_sub_district_id']
             || 
             !$payload['origin_sub_district_name']
@@ -95,7 +99,36 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['origin_latitude']), array('key' => 'origin_latitude'));
         $wpdb->update($this->table, array('value' => @$payload['origin_longitude']), array('key' => 'origin_longitude'));
         $wpdb->update($this->table, array('value' => @$payload['origin_zip_code']), array('key' => 'origin_zip_code'));
+        
+        if( empty($wpdb->get_row("SELECT * FROM $this->table WHERE `key`='origin_whitelist_expedition_id'") ) ){
+            $wpdb->insert(
+                $this->table, 
+                array(
+                    'key' => 'origin_whitelist_expedition_id',
+                    'value' => @$payload['origin_whitelist_expedition_id']
+                ),
+                array(
+                    '%s',
+                    '%s',
+                ) 
+            );
 
+            $wpdb->insert(
+                $this->table, 
+                array(
+                    'key' => 'origin_whitelist_expedition_name',
+                    'value' => @$payload['origin_whitelist_expedition_name']
+                ),
+                array(
+                    '%s',
+                    '%s',
+                ) 
+            );
+        }
+
+        $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_id']), array('key' => 'origin_whitelist_expedition_id'));
+        $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_name']), array('key' => 'origin_whitelist_expedition_name'));            
+        
         return true;
     }
 
@@ -142,5 +175,34 @@ class SettingRepository{
             return false;
         }
         return $query;
+    }
+
+    public function validateWhiteListExpedition($data){
+        global $wpdb;
+
+        $origin_whitelist_expedition_id = $wpdb->get_row( "SELECT `value` FROM `".$this->table."` WHERE `key`  = 'origin_whitelist_expedition_id' " );
+        
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        $datas = [];
+        
+        if( !empty($origin_whitelist_expedition_id ) && !empty($origin_whitelist_expedition_id->value) ){
+            $arr_origin_whitelist_expedition_id = explode(',', $origin_whitelist_expedition_id->value);
+            foreach( $data as $row ){
+                if( !in_array($row->service,$arr_origin_whitelist_expedition_id) ){
+                    continue;
+                }
+                $datas[]=$row;
+
+            }
+        }else{
+            $datas = $data;
+        }
+
+        
+        return $datas;
+        
     }
 }

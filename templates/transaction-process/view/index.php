@@ -216,7 +216,7 @@
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v0.1.0</p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.3.1</p>
                                 </div>
                             </div>
                         </div>
@@ -296,7 +296,10 @@
 
                 const schedules = resp?.data?.schedules ?? [];
                 const transaction_summary = resp?.data?.transaction_summary ?? {};
-                
+                const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
+                const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
+                const total = sum_non_cod_fee;
+
                 /** transaction_summary*/
                 jQuery('#schedule-transaction-summary').empty()
                 jQuery('#schedule-transaction-summary').append(`
@@ -313,7 +316,7 @@
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
                         <div class="col">Total Tagihan</div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((sum_cod_fee))}</div>
                     </div>
                 </div>
                 `)

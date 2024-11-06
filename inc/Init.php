@@ -14,6 +14,7 @@ final class Init {
         return [
             Base\Enqueue::class,
             Pages\Admin::class,
+            Controllers\ProductController::class,
             Controllers\SettingController::class,
             Controllers\CallbackController::class,
             Controllers\GeneralAjaxController::class,
@@ -30,7 +31,6 @@ final class Init {
      * @return void
      */
     public static function register_services(){
-//        error_log("register"."\n", 3, plugin_dir_path(__DIR__)."debug.log");
         foreach (self::get_services() as $class){
             $service = self::instantiate($class);
             if (method_exists($service,'register')){

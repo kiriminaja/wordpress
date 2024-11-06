@@ -32,9 +32,13 @@ class CreateTransactionService extends BaseService{
         try {
             
             $checkoutCalc = self::getCheckoutCalculation();
-            if (!$checkoutCalc['status']){ return self::error([],$checkoutCalc['message']);}
+            
+            if (!$checkoutCalc['status']){ 
+                return self::error([],$checkoutCalc['message']);
+            }
             
             $requiredPostMeta = self::getRequiredPostMeta();
+
             if (!$requiredPostMeta['status']){ return self::error([],$requiredPostMeta['message']);}
 
             /** Generating Payload*/
@@ -58,8 +62,13 @@ class CreateTransactionService extends BaseService{
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],
 
             ];
-
+            
+            
             $createTransactionRepo = (new \Inc\Repositories\TransactionRepository())->createTransaction($payload);
+            
+            /** Save in Log Transaction*/
+            update_post_meta( $this->payload['order_id'], 'log_after_checkout_order', compact('payload','createTransactionRepo') );
+            
             if (!$createTransactionRepo){
                 return self::error([],'fail creating transaction');
             }

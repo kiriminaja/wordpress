@@ -74,4 +74,8 @@ class ShippingProcessController{
         include plugin_dir_path(dirname(__FILE__,2)) . 'templates/print/print-pdf-new.php';
         return ob_get_clean();
     }
+
+    public function kj_shippingMethod(){
+         new ShippingMethodController();
+    }
 }

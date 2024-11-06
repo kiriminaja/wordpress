@@ -51,11 +51,13 @@ wc_cart_contents
         $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
+
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
         
         $courier = explode('_',$this->expedition)[0];
+
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
             'subdistrict_destination'   => $this->destination_area_id,
@@ -63,13 +65,16 @@ wc_cart_contents
             "length"                    => $cartAttributes->data['length'],
             "width"                     => $cartAttributes->data['width'],
             "height"                    => $cartAttributes->data['height'],
-            'insurance'                 => 0,
+            'insurance'                 => empty( $this->is_insurance ) ? 0 : 1,
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
+
+        
         (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        
         (new \Inc\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
         
         /** Jika gagal dapat data expedisi*/
@@ -79,6 +84,7 @@ wc_cart_contents
         
         /** jika opsi expedisi tidak ada*/
         $this->pricingData = @$kjPricing['data'];
+
         if (count(@$this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }
@@ -153,15 +159,6 @@ wc_cart_contents
         $insuranceFee = (($cartTotal+$ongkirFee)*$insuranceRate)+$insuranceAddCost;
         $insuranceFee = $insuranceFee < $insuranceMinCost ? $insuranceMinCost : $insuranceFee;
 
-//        (new \Inc\Base\BaseInit())->logThis('getCalculateInsuranceFee',[
-//            '$cartTotal'=>$cartTotal,
-//            '$insuranceRate'=>$insuranceRate,
-//            '$insuranceAddCost'=>$insuranceAddCost,
-//            '$insuranceMinCost'=>$insuranceMinCost,
-//            '$ongkirFee'=>$ongkirFee,
-//            '$insuranceFee'=>$insuranceFee,
-//        ]);
-        
         return ceil($insuranceFee);
     }
     
@@ -177,14 +174,6 @@ wc_cart_contents
         $codFee=($cartTotal+$ongkirFee+$insuranceFee)*$codRate;
         $codFee = $codFee < $CODMinCost ? $CODMinCost : $codFee;
 
-//        (new \Inc\Base\BaseInit())->logThis('getCalculateInsuranceFee',[
-//            '$cartTotal'=>$cartTotal,
-//            '$ongkirFee'=>$ongkirFee,
-//            '$insuranceFee'=>$insuranceFee,
-//            '$codRate'=>$codRate,
-//            '$codFee'=>$codFee,
-//        ]);
-        
         return ceil($codFee);
     }
     

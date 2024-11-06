@@ -11,7 +11,6 @@ class KiriminAjaApi
     {
         global $wp_version;
         $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
-//        $this->base_url = 'https://dev.eharga.com'; // DEV
         
         $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         

@@ -141,7 +141,7 @@
                                     </div>
                                 </div>
                                 <div class="row-divider"></div>
-                                <p style="font-weight: 500">KiriminAja Plugin v0.1.0</p>
+                                <p style="font-weight: 500">KiriminAja Plugin v.3.1</p>
                             </div>
                         </div>
                     </div>
@@ -164,6 +164,7 @@
 
     // Init Open Street Maps
     function initmap() {
+        
         // set up the map
         map = new L.Map('map');
         var osmUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -258,53 +259,78 @@
 
     jQuery(document).ready(function($) {
         // initmap();
-        if (areaSelectElem.length>0){
-            areaSelectElem.select2({
-                placeholder: "<?php echo kjHelper()->tlThis('Shop Subdistrict',@$locale); ?>",
-            }).on('select2:open', function(e) {
-                jQuery('.select2-search__field').prop('id', areaSelectElemSearchFieldId);
-            });
-        }
+
+        getSearchAreaKelurahan();
+        searchExpedition();
 
         getTabData()
     });
     
     let subdistrictAjaxTimeout = null
-    jQuery('body').on('keyup', `#${areaSelectElemSearchFieldId}`, function (e) {
-        const thisElem = jQuery(this);
-
-        const searchInputVal = jQuery(this).val()
-        if (subdistrictAjaxTimeout){ clearTimeout(subdistrictAjaxTimeout) }
-        subdistrictAjaxTimeout = setTimeout(function (){
-            jQuery(`[name="${areaSelectName}"]`).empty()
-            jQuery(`[name="${areaSelectName}"]`).append("<option value='' disabled>Loading...</option>");
-            jQuery(`[name="${areaSelectName}"]`).trigger('change');
-            jQuery(`[name="${areaSelectName}"]`).select2('close');
-            jQuery(`[name="${areaSelectName}"]`).select2('open');
-            thisElem.val(searchInputVal);
-            jQuery.ajax({
-                type: "post",
-                url: ajaxRouteGenerator(),
-                data: {
-                    action: "kiriminaja_subdistrict_search",  // the action to fire in the server
-                    data: {
-                        search:searchInputVal
+    
+    function getSearchAreaKelurahan(){
+       
+            areaSelectElem.select2({
+                minimumInputLength: 3,
+                placeholder: "<?= kjHelper()->tlThis('Select Option',@$locale); ?>",
+                allowClear: true,
+                ajax: {
+                    url: ajaxRouteGenerator(),
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 250,
+                    data: function (search) {
+                        return {
+                            data:search,
+                            action: 'kiriminaja_subdistrict_search'
+                        };
                     },
-                },
-                complete: function (response) {
-                    const options = JSON.parse(response.responseText).data
-                    jQuery(`[name="${areaSelectName}"]`).empty()
-                    options.forEach(function (arr){
-                        jQuery(`[name="${areaSelectName}"]`).append("<option value='"+arr.id+"'>"+arr.text+"</option>");
-                    })
-                    jQuery(`[name="${areaSelectName}"]`).trigger('change');
-                    jQuery(`[name="${areaSelectName}"]`).select2('close');
-                    jQuery(`[name="${areaSelectName}"]`).select2('open');
-                    thisElem.val(searchInputVal);
-                },
-            });
-        },1000)
-    })
+                    processResults: function (response) {
+                        return {
+                            results: jQuery.map(response.data, function (item) {
+                                return {
+                                    text: item.text,
+                                    id: item.id
+                                }
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            }); 
+    }
+
+    function searchExpedition(){
+       
+       jQuery('.tab-shipping [name="origin_whitelist_expedition[]"]').select2({
+           placeholder: "<?= kjHelper()->tlThis('Select Option',@$locale); ?>",
+           allowClear: true,
+           ajax: {
+               url: ajaxRouteGenerator(),
+               dataType: 'json',
+               type: "POST",
+               delay: 250,
+               data: function (search) {
+                   return {
+                       data:search,
+                       action: 'kiriminaja_search_expedition',
+                   };
+               },
+               processResults: function (response) {
+                   return {
+                       results: jQuery.map(response.data, function (item) {
+                           return {
+                               text: item.text,
+                               id: item.id
+                           }
+                       })
+                   };
+               },
+               cache: true
+           }
+       }); 
+    }
+
     /*** Submit DATA*/
     jQuery('body').on('click', '.tab-shipping .kj-submit-btn', function(e) {
         menuFormLoaderInit('tab-shipping', true)
@@ -318,18 +344,24 @@
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
                     origin_phone:jQuery('.tab-shipping [name="origin_phone"]').val(),
                     origin_address:jQuery('.tab-shipping [name="origin_address"]').val(),
+                    origin_latitude:jQuery('.tab-shipping [name="origin_latitude"]').val(),
+                    origin_longitude:jQuery('.tab-shipping [name="origin_longitude"]').val(),
                     origin_zip_code:jQuery('.tab-shipping [name="origin_zip_code"]').val(),
                     origin_sub_district_id:jQuery('.tab-shipping [name="origin_sub_district_id"] option:selected').val(),
                     origin_sub_district_name:jQuery('.tab-shipping [name="origin_sub_district_id"] option:selected').text(),
+                    origin_whitelist_expedition_id:jQuery('.tab-shipping .origin_whitelist_expedition').val(),
+                    origin_whitelist_expedition_name: jQuery('.tab-shipping .origin_whitelist_expedition').select2('data').map(function(elem){ return elem.text }),
                 },         // any JS object
             },
             complete: function (response) {
+                
                 const resp = JSON.parse(response.responseText).data;
-
+                
                 if (resp?.status === 200){
                     window.location.reload()
                     return
                 }
+
                 menuFormLoaderInit('tab-shipping',false)
                 formAlertToggler('tab-shipping',true,'Error',resp.message,'')
 

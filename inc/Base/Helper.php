@@ -87,4 +87,8 @@ class Helper extends  BaseInit {
         $theValue = intval($value ?? 0);
         return $theValue >= $minAmount ? $theValue : $minAmount;
     }
+
+    public function kjCountTransactionProcess(){
+        return (new \Inc\Repositories\TransactionRepository())->getCountTransactionProcessNew();
+    }
 }
