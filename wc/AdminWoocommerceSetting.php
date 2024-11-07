@@ -44,10 +44,14 @@ class AdminWoocommerceSettings
         if ( 'shipping_method' === $column ) {
             echo $order->get_shipping_method();
         }
+
         if ( 'payment_method' === $column ) {
-            echo $order->get_payment_method();
             if($order->get_payment_method() == 'cod'){
+                echo $order->get_payment_method();
                 echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee));
+            }else{
+                echo 'Non Cod';
+                echo '<br/>Method: '. $order->get_payment_method();
             }
         }
 

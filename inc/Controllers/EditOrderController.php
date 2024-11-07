@@ -23,7 +23,7 @@ class EditOrderController{
         ];
         $replaceWith = [
             $order,
-            home_url().'/kiriminaja-tracking?order_id='.$order,
+            home_url().'/tracking?order_id='.$order,
             json_encode($service->data)
         ];
         
