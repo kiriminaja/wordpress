@@ -2,7 +2,7 @@
     <div class="modal-container">
         <div style="width: 100%; max-width: 400px;background-color: #f0f0f1" tabindex="0" class="media-modal" role="dialog">
             <div class="media-modal-container">
-                <div class="closebtn-container" onclick="document.getElementById('request-pickup-modal').classList.add('kj-hidden');">
+                <div class="closebtn-container">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M16.0659 8.99481C16.3588 8.70191 16.3588 8.22704 16.0659 7.93415C15.773 7.64125 15.2981 7.64125 15.0052 7.93415L12 10.9393L8.99482 7.93415C8.70192 7.64125 8.22705 7.64125 7.93416 7.93415C7.64126 8.22704 7.64126 8.70191 7.93416 8.99481L10.9394 12L7.93415 15.0052C7.64125 15.2981 7.64125 15.773 7.93415 16.0659C8.22704 16.3588 8.70191 16.3588 8.99481 16.0659L12 13.0607L15.0052 16.0659C15.2981 16.3588 15.773 16.3588 16.0659 16.0659C16.3588 15.773 16.3588 15.2981 16.0659 15.0052L13.0607 12L16.0659 8.99481Z" fill="black"/>
                     </svg>
@@ -69,7 +69,6 @@
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
                         <p style="margin-bottom: 1.5rem">Terjadi Kesalahan !</p>
-<!--                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>-->
                     </div>
 
                 </div>
@@ -79,4 +78,9 @@
     <div class="media-modal-backdrop"></div>
 </div>
 
-
+<script>
+    jQuery(document).on('click','.closebtn-container',function(){
+        jQuery('#request-pickup-modal').addClass('kj-hidden');
+        jQuery('.err_msg').html('').addClass('kj-hidden');
+    });
+</script>

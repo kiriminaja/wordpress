@@ -27,11 +27,27 @@ class ProductController{
 
     public function kj_save_product_custom_fields($post_id){
        
+        /**
+         * value Empty
+         */
         if( empty($_POST['_weight']) ) $_POST['_weight'] = $_POST['_kj_weight'];
         if( empty($_POST['_length']) ) $_POST['_length'] = $_POST['_kj_length'];
         if( empty($_POST['_width']) ) $_POST['_width'] = $_POST['_kj_width'];
         if( empty($_POST['_height']) ) $_POST['_height'] = $_POST['_kj_height'];
 
+        /**
+         * value is exist value
+         * _weight
+         * _length
+         * _width
+         * _height
+         */
+        if( $_POST['_weight'] != $_POST['_kj_weight'] ) $_POST['_weight'] = $_POST['_kj_weight'];
+        if ( $_POST['_length'] != $_POST['_kj_length'] ) $_POST['_length'] = $_POST['_kj_length'];
+        if ( $_POST['_width'] != $_POST['_kj_width'] ) $_POST['_width'] = $_POST['_kj_width'];
+        if ( $_POST['_height'] != $_POST['_kj_height'] ) $_POST['_height'] = $_POST['_kj_height'];
+        
+        /** Update Post Meta */
         if ( !empty($_POST['_weight']) ) update_post_meta($post_id, '_weight', $_POST['_weight']);
         if ( !empty($_POST['_length']) ) update_post_meta($post_id, '_length', $_POST['_length']);
         if ( !empty($_POST['_width']) ) update_post_meta($post_id, '_width', $_POST['_width']);
