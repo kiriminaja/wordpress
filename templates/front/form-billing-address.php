@@ -18,6 +18,11 @@
                 changeDistrict();
 
             <?php if(is_cart()): ?>
+
+                setTimeout(() => {
+                    jQuery('.shipping-calculator-form').show();
+                }, 300);
+
                 jQuery( document.body ).on( 'updated_cart_totals', function(){
                     getSearchAreaKelurahan();
                     changeDistrict(); 
