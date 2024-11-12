@@ -51,11 +51,13 @@ wc_cart_contents
         $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
+
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
         
         $courier = explode('_',$this->expedition)[0];
+
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
             'subdistrict_destination'   => $this->destination_area_id,
@@ -63,14 +65,21 @@ wc_cart_contents
             "length"                    => $cartAttributes->data['length'],
             "width"                     => $cartAttributes->data['width'],
             "height"                    => $cartAttributes->data['height'],
-            'insurance'                 => 0,
+            'insurance'                 => empty( $this->is_insurance ) ? 0 : 1,
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
+
+        
         (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+
         (new \Inc\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
+        
+        // if($kjPricing['status'] != 200){
+        //     return self::error([],@$kjPricing['message'] ?? 'Terjadi Kesalahan!');
+        // }
         
         /** Jika gagal dapat data expedisi*/
         if(!$kjPricing['data']->status){
@@ -79,12 +88,14 @@ wc_cart_contents
         
         /** jika opsi expedisi tidak ada*/
         $this->pricingData = @$kjPricing['data'];
+
         if (count(@$this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }
 
         /** jika expedisi terpilih  tidak ada*/
         $this->selectedExpedition = self::getSelectedExpedition();
+        
         if (!$this->selectedExpedition){
             return self::error([],'Expedition Not Found');
         }
@@ -135,6 +146,7 @@ wc_cart_contents
     private function getSelectedExpedition(){
         $service = explode('_',$this->expedition)[0];
         $service_type = explode('_',$this->expedition)[1];
+
         $selected_expedition = array_filter(@$this->pricingData->results ?? [],function ($obj) use ($service,$service_type){
             return strtolower($obj->service) == strtolower($service) && strtolower($obj->service_type) == strtolower($service_type);
         });

@@ -14,6 +14,7 @@ final class Init {
         return [
             Base\Enqueue::class,
             Pages\Admin::class,
+            Controllers\ProductController::class,
             Controllers\SettingController::class,
             Controllers\CallbackController::class,
             Controllers\GeneralAjaxController::class,

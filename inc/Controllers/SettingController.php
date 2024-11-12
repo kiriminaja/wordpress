@@ -34,6 +34,10 @@ class SettingController{
         /** storeCallbackData*/
         add_action('wp_ajax_kj_store_call_back_data', array($this,'storeCallbackData'));
         add_action('wp_ajax_nopriv_kj_store_call_back_data', array($this,'storeCallbackData'));
+
+        /**storeWhitelistExpedition*/
+        add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
+        // add_action('wp_ajax_nopriv_kj_store_whitelist_expedition', array($this,'storeWhitelistExpedition'));
     }
     function getIntegrationData() {
         try {
@@ -76,6 +80,11 @@ class SettingController{
     
     function storeOriginData(){
         try {
+            if( !isset($_POST['data']['origin_whitelist_expedition_id'])){
+                $_POST['data']['origin_whitelist_expedition_id']  = '';
+                $_POST['data']['origin_whitelist_expedition_name'] = '';
+            }
+
             $service = (new \Inc\Services\SettingService())->storeOriginData($_POST['data'] ?? []);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -101,6 +110,30 @@ class SettingController{
             $service = (new \Inc\Services\SettingService())->storeCallbackData($_POST['data'] ?? []);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
+        }catch (Throwable $e){
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
+        }
+    }
+
+    function storeWhitelistExpedition(){
+        try {
+            $search = $_POST['data']['term'] ?? '';
+            $kiriminajaExpedition = (new \Inc\Services\KiriminajaApiService())->get_couriers();
+            
+            if( !empty($kiriminajaExpedition ) ){
+                $kiriminajaExpedition = array_filter($kiriminajaExpedition->data, function($item) use ($search){
+                    return stripos($item->name, $search)!== false;
+                });
+                
+                $kiriminajaExpedition = array_map(function($item){
+                    return [
+                        'id' => $item->code,
+                        'text' => $item->name." ({$item->type})"
+                    ];
+                }, $kiriminajaExpedition);  
+            }
+            
+            wp_send_json_success($kiriminajaExpedition);
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }

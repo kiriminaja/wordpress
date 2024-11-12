@@ -4,7 +4,7 @@
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
  * Description:     Integrate to all best delivery services across the nusantara
- * Version:         0.1.0
+ * Version:         3.1
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL
@@ -15,6 +15,14 @@
  */
 
 /** prevent unauthorized access othe than wordpress */
+if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) || wp_doing_ajax() ) {
+    @ini_set( 'display_errors', 1 );
+}
+
+define( 'KJ_PLUGIN_VERSION', rand(0,999));
+define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
+define( 'KJ_URL', plugin_dir_url( __FILE__ ));
+define( 'KJ_NONCE', 'kj-nonce');
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
@@ -68,6 +76,9 @@ if (! function_exists('kjHelper')) {
 function activate_kj_plugin(){
     (new \Inc\Migration\SetupMigration())->register();
     (new \Inc\Base\Activate())->activate();
+    (new \Inc\Pages\AdminPost())->register();
+    deleteShippingZone();
+
 }
 /** Deactivation*/
 function deactivate_kj_plugin(){
@@ -84,6 +95,52 @@ if (class_exists('Inc\\Init')){
     Inc\Init::register_services();
 }
 
+/**
+ * load 
+ * function hook folder wc
+ */
+$woo_files = [
+    'KiriminajaShippingMethod',
+    'OverwriteWoocommercePlugin',
+    'AdminWoocommerceSetting'
+];
+foreach($woo_files as $namefile){
+    include_once KJ_DIR .'/wc/'.$namefile.'.php';
+}
 
+/** 
+ * WooCommerce Init
+ * compatibility HPOS version
+*/
+add_action('before_woocommerce_init', 'kj_before_woocommerce_init');
+function kj_before_woocommerce_init(){
+    if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+    }
+}
 
+function deleteShippingZone(){
+    $data_store = WC_Data_Store::load( 'shipping-zone' );
+    $raw_zones = $data_store->get_zones();
+    
+    $instance_id = [];
+    foreach ( $raw_zones as $raw_zone ) {
+        $data_methods = empty( $data_store->get_methods($raw_zone->zone_id,false) ) ? $data_store->get_methods($raw_zone->zone_id,true) : $data_store->get_methods($raw_zone->zone_id,false) ;
+        foreach( $data_methods as $methode ){
+            $data_store->delete_method((int) $methode->instance_id);
+        }
+    }
+}
 
+// add_filter( 'auto_update_plugin', 'auto_update_custom_plugin', 10, 2 );
+// function auto_update_custom_plugin( $update, $plugin ) {
+//     // Ganti path plugin dengan path relatif dari plugin kustom Anda
+//     $custom_plugin_path = KJ_DIR . 'kiriminaja.php'; 
+
+//     if ( $plugin === $custom_plugin_path ) {
+//         return true; // Aktifkan pembaruan otomatis untuk plugin kustom
+//     }
+
+//     // Biarkan pembaruan otomatis tetap berlaku untuk plugin lain sesuai pengaturan
+//     return $update; 
+// }

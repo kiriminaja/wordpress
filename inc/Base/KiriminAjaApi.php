@@ -10,10 +10,12 @@ class KiriminAjaApi
     public function __construct()
     {
         global $wp_version;
-        $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
-//        $this->base_url = 'https://dev.eharga.com'; // DEV
+        // $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
+        $this->base_url = 'https://dev-core.bakso.my.id'; // DEV
+        // $this->base_url = 'https://tdev.kiriminaja.com';// dev new
         
         $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
+        // $dbApiToken = "d5ce1491fa7c159c0317ef3ad3ae2536ae0650641eabf810820b7d83b0ffe44f";
         
         $this->default_args = array(
             'timeout' => 30,

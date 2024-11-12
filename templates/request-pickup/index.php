@@ -72,7 +72,9 @@ class requestPickupIndex {
             ORDER BY `".$paymentTable."`.created_at DESC
             )";
 
+
         $results = $wpdb->get_results( $query . "LIMIT ${offset}, ${items_per_page}" );
+        
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
         }

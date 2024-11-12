@@ -92,6 +92,7 @@
                                         <tbody id="the-list">
                                         <?php
                                         if (@$results&&count($results)>0){
+                                            
                                             foreach($results as $id => $row){
                                                 $btnGroup='';
 
@@ -242,7 +243,7 @@
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v0.1.0</p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.3.1</p>
                                 </div>
                             </div>
                         </div>

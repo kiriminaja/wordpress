@@ -16,7 +16,7 @@ class settingIndex {
         /** data value query*/
         $arrayParam = [];
         $repo = [];
-        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
+        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_latitude','origin_longitude','origin_sub_district_id','origin_sub_district_name','origin_zip_code','origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
         $activeTab = @$_GET['tab'] ?? 'tab-integration';
         if (@$activeTab==='tab-integration'){
             $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
@@ -29,7 +29,7 @@ class settingIndex {
         foreach ($repo as $obj){
             $inputValueArr[$obj->key]=$obj->value;
         }
-        
+
         /** check if origin shipping data completed*/
         $isOriginShippingDataReady=true;
         for ($i=0; $i<count($shippingRepo);$i++){

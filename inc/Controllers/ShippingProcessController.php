@@ -1,6 +1,8 @@
 <?php
 namespace Inc\Controllers;
 
+// use Inc\Controllers\ShippingMethodController;
+
 use Inc\Repositories\KiriminajaApiRepository;
 use Inc\Services\KiriminajaApiService;
 use Inc\Services\ShippingProcessServices\GetShippingProcessDetailService;
@@ -20,6 +22,13 @@ class ShippingProcessController{
         add_action( 'init', function (){
             add_feed( 'transaction-resi-print', array($this,'resiPrint') );
         } );
+
+         /** 
+         * Create Shipping Methode Admin
+         */
+        // add_action('woocommerce_shipping_init', array($this,'kj_shippingMethod'));
+        // add_filter('woocommerce_shipping_methods', array($this,'kj_addShippingMethod'));
+
     }
     
     function getShippingProcessDetail() {
@@ -74,4 +83,16 @@ class ShippingProcessController{
         include plugin_dir_path(dirname(__FILE__,2)) . 'templates/print/print-pdf-new.php';
         return ob_get_clean();
     }
+
+    public function kj_shippingMethod(){
+         new ShippingMethodController();
+    }
+
+    public function kj_addShippingMethod($methods){
+        $methods[] =  'ShippingMethodController';
+        // return $methods;
+        print_r( $methods);
+        die();
+    }
+
 }

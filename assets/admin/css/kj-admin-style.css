@@ -348,6 +348,24 @@ body {margin:0;}
     right: 0;
 }
 
+button.select2-selection__clear {
+    background: white !important;
+    border: none !important;
+}
+
+button.select2-selection__clear {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.kj-wrap button.select2-selection__choice__remove {
+    background: none !important;
+    border: none !important;
+    padding: 0 4px !important;
+    border-radius: 0 !important;
+    top: -2px !important;
+}
+
 @media only screen and (max-width: 800px) {
     .wrap.kj-wrap {
         clear: both;

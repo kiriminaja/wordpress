@@ -67,6 +67,7 @@ class TransactionProcessIndex{
             )";
 
         $results = $wpdb->get_results( $query );
+
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
         }

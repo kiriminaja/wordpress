@@ -162,5 +162,8 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     public function sendPickupRequest($payload){
         return $this->post('/api/wordpress/v1/request_pickup',$payload);
     }
-    
+
+    public function get_couriers(){
+        return $this->post('/api/mitra/couriers');
+    }    
 }

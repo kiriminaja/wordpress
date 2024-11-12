@@ -32,9 +32,13 @@ class CreateTransactionService extends BaseService{
         try {
             
             $checkoutCalc = self::getCheckoutCalculation();
-            if (!$checkoutCalc['status']){ return self::error([],$checkoutCalc['message']);}
+        
+            if (!$checkoutCalc['status']){ 
+                return self::error([],$checkoutCalc['message']);
+            }
             
             $requiredPostMeta = self::getRequiredPostMeta();
+
             if (!$requiredPostMeta['status']){ return self::error([],$requiredPostMeta['message']);}
 
             /** Generating Payload*/
@@ -58,8 +62,15 @@ class CreateTransactionService extends BaseService{
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],
 
             ];
-
+            
+            
             $createTransactionRepo = (new \Inc\Repositories\TransactionRepository())->createTransaction($payload);
+            
+            /** Save in Log Transaction*/
+            update_post_meta( $this->payload['order_id'], 'log_after_checkout_order', compact('payload','createTransactionRepo') );
+
+            // return $createTransactionRepo;
+            
             if (!$createTransactionRepo){
                 return self::error([],'fail creating transaction');
             }
@@ -97,7 +108,7 @@ class CreateTransactionService extends BaseService{
         $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
             'destination_area_id'   => $this->payload['kj_destination_area'],
             'expedition'            => $this->payload['kj_expedition'],
-            'is_insurance'          => $this->payload['is_insurance'],
+            'is_insurance'          => $this->payload['is_insurance'] ?? 0,
             'is_cod'                => $this->payload['is_cod'],
             'wc_cart_contents'      => $this->payload['wc_cart_contents'],
         ]))->call();

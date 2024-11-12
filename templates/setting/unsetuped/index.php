@@ -154,7 +154,7 @@
         jQuery('#setup-form .alert').addClass('kj-hidden')
         jQuery('#setup-form .kj-btn-group').addClass('kj-hidden')
         jQuery('#setup-form .kj-loader').removeClass('kj-hidden')
-        
+                
         jQuery.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
