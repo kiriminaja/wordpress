@@ -68,10 +68,15 @@ function kj_shippingMethod(){
                     return;
                 }
 
+                /** convert unit weight */
+                $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+                    'wc_cart_contents' => WC()->cart->get_cart()
+                ]))->call();
+
                 $payload = [
                     'subdistrict_origin' => (int) $settingRepo->value,
                     'subdistrict_destination'=>$destination_id,
-                    'weight' => WC()->cart->cart_contents_weight,
+                    'weight' => $cartAttributes->data['weight'],
                     'length' => $length,
                     'width' => $width,
                     'height' => $height,
