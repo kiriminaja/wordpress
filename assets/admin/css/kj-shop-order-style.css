@@ -4,3 +4,28 @@
 * @author Kiriminaja
 */
 #order_shipping_line_items .shipping .select2 { margin-bottom: 12px; }
+
+/* The alert message box */
+.kj-alert {
+    padding: 20px;
+    background-color: #f44336; /* Red */
+    color: white;
+    margin-bottom: 15px;
+}
+  
+/* The close button */
+.kj-closebtn {
+    margin-left: 15px;
+    color: white;
+    font-weight: bold;
+    float: right;
+    font-size: 22px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+  
+  /* When moving the mouse over the close button */
+.kj-closebtn:hover {
+    color: black;
+}

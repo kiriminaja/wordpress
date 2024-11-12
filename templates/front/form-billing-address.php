@@ -48,8 +48,10 @@
                 <?php if(is_checkout()): ?>
                     if( different_address > 0 ){
                         _insurance = jQuery('#kj_insurance:checked').length;
+                        jQuery('[name="kj_shipping_destination_area_name"]').val(root.find('option:selected').text());
                     }else{
                         _insurance = jQuery('#kj_shipping_insurance:checked').length;
+                        jQuery('[name="kj_shipping_destination_area_name"]').val('');
                     }
                 <?php else: ?>
                     _insurance = 0;

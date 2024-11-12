@@ -2,54 +2,117 @@ jQuery(document).ready(function(){
 
     var $ = jQuery;
     var orderItemLineClass = $('#order_shipping_line_items .shipping');
+    var orderIDdataItem;
     
     if( getUrlParameter('post_type') == 'shop_order' ){
 
         getSearchAreaKelurahan();
         getSelectedSubdistrictAdminOrder();
+    }else{
+        jQuery(document).ajaxSuccess(function(event, xhr, settings) {
+            if (settings.data && settings.data.indexOf('action=kiriminaja_expedition_by_pricing') !== -1) {
+                autoLoadExpeditionSelected();
+            }
+        });
+
     }
     
         
-    $( document ).one( "ajaxComplete", function(event,xhr,setting) {
-        let data_ex = explodeJquery(setting.data);
+    jQuery(document).ajaxSuccess(function(event, xhr, settings) {
+        orderIDdataItem = $('#order_shipping_line_items tr.shipping ').attr('data-order_item_id');
+        let shippingMethodElement = $(`[name="shipping_method[${orderIDdataItem}]"]`);
+
+        if(
+            settings.data && settings.data.indexOf('action=woocommerce_add_order_shipping') !== -1 || //add shipping order item
+            settings.data && settings.data.indexOf('action=woocommerce_add_order_item') !== -1 || // add product order item
+            settings.data && settings.data.indexOf('action=woocommerce_remove_order_item') !== -1 || //remove product order item
+            settings.data && settings.data.indexOf('action=woocommerce_save_order_items') !== -1 || //save order item
+            settings.data && settings.data.indexOf('action=woocommerce_calc_line_taxes') !== -1 //recalculate order item        
+        ){         
+            if( shippingMethodElement.val() == 'kiriminaja' ){
+                shippingMethodElement.val('kiriminaja').trigger('change');
+                
+                $(`[name="shipping_cost[${orderIDdataItem}]"`).attr('readonly', true);
+
+                setTimeout(() => {
+                    let idExpedition = $('[name="kj_expedition"] option').filter(function() {
+                        return $(this).text() === jQuery(`[name="shipping_method_title[${orderIDdataItem}]"]`).val();
+                    }).val();
+
+                    
+                    if( idExpedition !== undefined ){
+                        $('[name="kj_expedition"]').val(idExpedition).trigger("change"); 
+                    }
+                    
+
+                }, 3000);
+            } 
+
+            cekShippingMethodOrder();
+            editShippingOrder();
+            ajaxCheckProductItemOrder();
+        }
+        
+    });
+
+    $( document ).one( "ajaxComplete", function(event,xhr,setting) {     
     
         if(
             getUrlParameter('post') == false || getUrlParameter('post') == true
-        ) {
-            
-            $(document).on('change','.shipping_method',function(){ 
-                if( $(this).val() == 'kiriminaja' ){
+        ) {       
+                   
+            getShippingMethod();
+            cekShippingMethodOrder();           
+        }    
+        
 
-                    $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select name="kj_subdistrict" class="selet2" style="width:100%;"></select>`);            
-                    $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select name="kj_expedition" class="selet2" style="width:100%;"><option value="">Select Expeditions</option></select>`);               
-                    $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="select2" name="kj_subdistrict_name"/>`);                    
-                    
-                    /** COD AND INSURANCE */
-                    $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="codfeehidden" name="kj_codfee_hidden"/>`);                    
-                    $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="insurancefeehidden" name="kj_insurancefee_hidden"/>`);                    
-                    
-                    getSearchAreaKelurahan();
-                    
-                    getExpeditionByPricing();   
-
-                    
-                    getSelectedExpedition($('tr.shipping'));
-                    
-                    
-
-                }else{
-                    $('[name="kj_expedition"]').remove();
-                    $('[name="kj_subdistrict"]').remove();
-                    $('[name="kj_subdistrict_name"]').remove();
-                    $('span.select2.select2-container').remove(); // Destroy the Select2 instance
-
-                }
-                           
-            });
-            cekShippingMethodOrder();            
-        }        
 
     });
+
+    function autoLoadExpeditionSelected(){
+        orderIDdataItem = $('#order_shipping_line_items tr.shipping ').attr('data-order_item_id');
+        
+            let idExpedition = $('[name="kj_expedition"] option').filter(function() {
+                return $(this).text() === jQuery(`[name="shipping_method_title[${orderIDdataItem}]"]`).val();
+            }).val();
+            
+            $('[name="kj_expedition"]').val(idExpedition).trigger("change"); 
+            
+        
+
+    }
+
+    function getShippingMethod(){
+        $(document).on('change','.shipping_method',function(){ 
+            if( $(this).val() == 'kiriminaja' ){
+
+                $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select name="kj_subdistrict" class="selet2" style="width:100%;"></select>`);            
+                $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select name="kj_expedition" class="selet2" style="width:100%;"><option value="">Select Expeditions</option></select>`);               
+                $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="select2" name="kj_subdistrict_name"/>`);                    
+                
+                /** COD AND INSURANCE */
+                $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="codfeehidden" name="kj_codfee_hidden"/>`);                    
+                $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="insurancefeehidden" name="kj_insurancefee_hidden"/>`);                    
+                
+                
+                getSearchAreaKelurahan();
+
+                getExpeditionByPricing();
+
+                getSelectedExpedition($('tr.shipping'));
+                
+                
+
+            }else{
+                $('[name="kj_expedition"]').remove();
+                $('[name="kj_subdistrict"]').remove();
+                $('[name="kj_subdistrict_name"]').remove();
+                $('span.select2.select2-container').remove(); // Destroy the Select2 instance
+
+            }
+                       
+        });
+    }
 
     function explodeJquery(encodedStringUrl){
 
@@ -72,7 +135,7 @@ jQuery(document).ready(function(){
     }
 
     cekShippingMethodOrder();
-    function cekShippingMethodOrder(){
+    function cekShippingMethodOrder(){        
         
         $.each(orderItemLineClass,function(key,item){
             let root = $(this);            
@@ -99,10 +162,10 @@ jQuery(document).ready(function(){
             $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="codfeehidden" name="kj_codfee_hidden"/>`);                    
             $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="insurancefeehidden" name="kj_insurancefee_hidden"/>`);                    
             
+            
             getSearchAreaKelurahan();
             getExpeditionByPricing();   
             getSelectedExpedition(elementRoot);
-            
         }
     }
 
@@ -139,15 +202,20 @@ jQuery(document).ready(function(){
     }
 
     function getSelectedSubdistrictAdminOrder(){
-        $(document).on('change','select[name=_billing_kj_destination_area]', function() {
+        $(document).on('change','select[name=_billing_kj_destination_area],select[name=_shipping_kj_destination_area]', function() {
             let destination_id = $(this).find("option:selected").val();
             let destination_name = $(this).find("option:selected").text();
-            
-            $('[name="_billing_kj_destination_name"]').val(destination_name);
+
+            if( $(this).attr('name') == '_billing_kj_destination_area' ){
+                $('[name="_billing_kj_destination_name"]').val(destination_name);
+            }else if($(this).attr('name') == '_shipping_kj_destination_area'){
+                $('[name="_shipping_kj_destination_name"]').val(destination_name);
+            }
 
             //set subdistrict hidden
             $('[name="kj_subdistrict_id_hidden"]').val(destination_id);
-            $('[name="kj_subdistrict_name_hidden"]').val(destination_name);            
+            $('[name="kj_subdistrict_name_hidden"]').val(destination_name);
+                        
         });
 
         $(document).on('change','[name="_payment_method"]',function(){
@@ -157,32 +225,33 @@ jQuery(document).ready(function(){
 
     function getExpeditionByPricing(){
         
-        if($('[name="_shipping_kj_destination_area"] option:selected').val() == '' ){
-            if($('[name="_billing_kj_destination_area"] option:selected').val() != '') {
-                let id_destination = $('[name="_billing_kj_destination_area"] option:selected').val();
-                            
-                setTimeout(function(){
-                    $('[name="kj_subdistrict"]').val( Number(id_destination) ).trigger("change"); 
-                    $('[name="kj_subdistrict"]').html(`<option selected value="${id_destination}">${$('[name="_billing_kj_destination_area"] option:selected').text()}</option>`);
-                },300);
-                  
-            }
-        }else{
-
-            let id_destination = $('[name="_shipping_kj_destination_area"] option:selected').val();
-                            
+        let destination = getIdDestinationAndNameDestination();
+        let id_destination = destination.id_destination;
+        let name_destination = destination.name_destination;
+        
+        if( id_destination !== undefined ){
             setTimeout(function(){
                 $('[name="kj_subdistrict"]').val( Number(id_destination) ).trigger("change"); 
-                $('[name="kj_subdistrict"]').html(`<option selected value="${id_destination}">${$('[name="_shipping_kj_destination_area"] option:selected').text()}</option>`);
-            },300);
-
+                $('[name="kj_subdistrict"]').html(`<option selected value="${id_destination}">${name_destination}</option>`);
+            },300);   
         }
-        
 
-        $(document).on('change','select[name=kj_subdistrict]', function() {
-            let destination_id = $(this).find("option:selected").val() ?? $('[name="_billing_kj_destination_area"] option:selected').val();
+
+        $('select[name=kj_subdistrict]').on('change', function() {            
+            var destination_id = $(this).find("option:selected").val();
+            var destination_name = $(this).find("option:selected").text();
+
+            if( $(this).find("option:selected").length == 0 ){
+                if( $('[name="_shipping_kj_destination_area"] option:selected').val() != '' ){
+                    destination_id = $('[name="_shipping_kj_destination_area"] option:selected').val();
+                    destination_name = $('[name="_shipping_kj_destination_area"] option:selected').text();
+                }else{
+                    destination_id = $('[name="_billing_kj_destination_area"] option:selected').val();
+                    destination_name = $('[name="_billing_kj_destination_area"] option:selected').text();
+                }
+            }
+
             let expeditionName = $('select[name=kj_expedition]');
-            let destination_name = $(this).find("option:selected").text();
 
             let data = {
                 'action': 'kiriminaja_expedition_by_pricing',
@@ -200,12 +269,8 @@ jQuery(document).ready(function(){
                     expeditionName.html('<option>Please Wait ...</option>');
                     expeditionName.prop('disabled',true);
                 },
-                success: function(response) {
+                success: function(response) {                    
 
-                    if( destination_name == '' || destination_name == null || destination_name == 'undifined' ){
-                        destination_name = $('[name="_billing_kj_destination_area"] option:selected').text();
-                    }
-                        
                     let expedition_options = '<option value="">Select Expedition</option>';
 
                     if(response.status = true){
@@ -256,11 +321,12 @@ jQuery(document).ready(function(){
     }
 
     function getSelectedExpedition(elementRoot){
-        $(document).on('change','select[name=kj_expedition]', function() {
+        $('select[name=kj_expedition]').on('change', function() {
             let root = $(this);
             let expedition_cost = $(this).find("option:selected").attr('data-cost');
             let expedition_name = $(this).find("option:selected").text();
-            let order_id_item = root.closest('tr.shipping').attr('data-order_item_id');             
+            let order_id_item = root.closest('tr.shipping').attr('data-order_item_id');  
+            
 
             let html = `
                 <input name="kj_expedition_cost" type="hidden" value="${expedition_cost}">
@@ -277,11 +343,15 @@ jQuery(document).ready(function(){
                 elementRoot.find('.shipping_method').closest('.edit').append(html);            
             }
 
+            let destination = getIdDestinationAndNameDestination();
+            let id_destination = destination.id_destination;
+            let name_destination = destination.name_destination;
+
             let data = {
                 'action':'kj_calculation_CodFeeAndInsuranceFee',
                 'order_id': woocommerce_admin_meta_boxes.post_id,
-                'kj_subdistrict': Number($('[name="_billing_kj_destination_area"] option:selected').val()),
-                'kj_subdistrict_name':$('[name="_billing_kj_destination_area"] option:selected').text(),
+                'kj_subdistrict': Number(id_destination),
+                'kj_subdistrict_name':name_destination,
                 'kj_expedition':$(this).find("option:selected").val(),
                 'kj_expedition_name':expedition_name,
                 'kj_expedition_cost': parseFloat(expedition_cost),
@@ -293,27 +363,34 @@ jQuery(document).ready(function(){
                 data:data,
                 dataType: 'json',
                 success: function(response) {
-                    console.log(response);
                     
-                    if( $('[name="_shipping_kj_insurance"]:checked') ){
+                    $('.insurancefee').find('.total').html(response.data.insurance_fee);
+                    $('[name="kj_insurancefee_hidden"]').val(response.data.insurance_fee_number);
+                    
+                    
+                    if( $('[name="_shipping_kj_insurance"]:checked').length > 0 ){
+                        $('.insurancefee').show();
+                        // set insurance
+                        $('.insurancefee').find('.total').html(response.data.insurance_fee);
+                        $('[name="kj_insurancefee_hidden"]').val(response.data.insurance_fee_number);
+                    }else if( $('[name="_billing_kj_insurance"]:checked').length > 0 ){
                         $('.insurancefee').show();
                         $('.insurancefee').find('.total').html(response.data.insurance_fee);
                         $('[name="kj_insurancefee_hidden"]').val(response.data.insurance_fee_number);
-                        
                     }else{
-                        if( $('[name="_billing_kj_insurance"]:checked') ){
-                            $('.insurancefee').show();
-                            $('.insurancefee').find('.total').html(response.data.insurance_fee);
-                            $('[name="kj_insurancefee_hidden"]').val(response.data.insurance_fee_number);
-                        }
+                        $('.insurancefee').hide();
                     }
+                                        
 
-                    if( $('[name="_payment_method"]:selected') ){
+                    if( $('[name="_payment_method"]').val() == 'cod' ) {
                         $('.codfee').show();
-                        $('.codfee').find('.total').html(response.data.cod_fee);
-                        $('[name="kj_codfee_hidden"]').val(response.data.cod_fee_number);
-
+                    }else{
+                        $('.codfee').hide();
                     }
+                    
+                    $('.codfee').find('.total').html(response.data.cod_fee);
+                    $('[name="kj_codfee_hidden"]').val(response.data.cod_fee_number);
+                    
 
                     get_OnChangeCodAndInsurance();
 
@@ -332,9 +409,10 @@ jQuery(document).ready(function(){
         $(document).on('change','[name="_payment_method"],[name="_billing_kj_insurance"],[name="_shipping_kj_insurance"]',function(){
 
             let root = $(this);
-            let getNameElement = root.attr('name');            
-
+            let getNameElement = root.attr('name'); 
+                        
             if( getNameElement == '_payment_method' ){
+                
                 if( root.val() == 'cod' ){
                     $('.codfee').show();
                 }else{
@@ -348,6 +426,96 @@ jQuery(document).ready(function(){
                 }
             }
         });
+    }
+
+    ajaxCheckProductItemOrder();
+    function ajaxCheckProductItemOrder(){
+        $.ajax({
+            url: kj.ajaxurl,
+            type: 'POST',
+            data: {
+                'action': 'check_product_item_order',
+                'order_id': woocommerce_admin_meta_boxes.post_id,
+                'nonce': kj.nonce
+            },
+            dataType: 'json',
+            success: function(response) { 
+                                  
+               if( response.data.success == false ){
+                    $('.add-order-fee,.add-order-shipping,.add-order-tax').prop('disabled',true);
+               }else{
+                    $('.add-order-fee,.add-order-shipping,.add-order-tax').prop('disabled',false);
+               }
+
+               if(response.data.shipping == true ){
+                $('.add-order-shipping').prop('disabled',true);
+               }
+            },
+            error: function(xhr, status, error) {
+                alert('Something Wrong This Site Get Product Item Order Error Code : '+xhr.status);
+                return false;
+            }
+        });
+    }
+
+    function editShippingOrder(){
+        $('#order_shipping_line_items .edit-order-item').unbind().on('click', function(e){
+            
+            orderIDdataItem = $('#order_shipping_line_items tr.shipping ').attr('data-order_item_id');
+
+            let destination = getIdDestinationAndNameDestination();
+            let id_destination = destination.id_destination;        
+            
+            if( id_destination === undefined){
+                let alert_msg = alert_message_error(`Please fill in the shipping Billing first`);
+                
+                $( alert_msg ).insertBefore( '#order_data' );
+
+                setTimeout(() => {
+                    $('.kj-alert').remove();
+                }, 3000);
+
+                $('html,body').animate({ scrollTop: 0 }, 'slow');   
+
+                return false;
+            }
+
+            let val_shipping = $(`[name="shipping_method[${orderIDdataItem}]"]`).val();
+            
+            if( val_shipping.length == 0 ){
+                $(`[name="shipping_method[${orderIDdataItem}]"]`).val('kiriminaja').trigger('change');
+            }
+            
+        });
+
+    }
+
+    function alert_message_error(message){
+        let html = `<div class="kj-alert">
+                      <span class="kj-closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+                        ${message}
+                    </div>`;
+        return html;
+    }
+
+    function getIdDestinationAndNameDestination(){
+        let id_destination;
+        let name_destination;
+
+        if($('[name="_shipping_kj_destination_area"] option:selected').val() == '' ){
+            if($('[name="_billing_kj_destination_area"] option:selected').val() != '') {                
+                id_destination = $('[name="_billing_kj_destination_area"] option:selected').val();
+                name_destination = $('[name="_billing_kj_destination_area"] option:selected').text();
+            }else{
+                id_destination = $('[name="kj_subdistrict"] option:selected').val();
+                name_destination = $('[name="kj_subdistrict"] option:selected').text();
+            }
+        }else{
+            id_destination = $('[name="_shipping_kj_destination_area"] option:selected').val();
+            name_destination = $('[name="_shipping_kj_destination_area"] option:selected').text();   
+        }
+
+        return {id_destination: id_destination, name_destination: name_destination};
     }
 
 });

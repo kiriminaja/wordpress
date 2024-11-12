@@ -284,6 +284,8 @@
                 },         // any JS object
             },
             complete: function (response) {
+                console.log(response);
+                
                 const resp = JSON.parse(response.responseText).data;
                 
                 if (resp?.status !== 200){
