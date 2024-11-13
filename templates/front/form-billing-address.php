@@ -103,7 +103,6 @@
 
                         <?php else:?>
                             jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
-                            // jQuery('input.shipping_method').prop('checked', false);
 
                         <?php endif;?>
 

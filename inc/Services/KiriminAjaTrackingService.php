@@ -14,10 +14,15 @@ class KiriminAjaTrackingService extends BaseService{
     }
     
     public function call(){
-        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumberForTracking($this->order_number);
+ 
+        if( is_numeric($this->order_number) ){
+            $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumberForTracking($this->order_number);
+        }
+
         if (!$transactionRepo){
             return self::error([],'Transaksi tidak ditemukan');
         }
+
         $repo = (new \Inc\Repositories\KiriminajaApiRepository())->getTracking([
             'order_id' => $transactionRepo->order_id
         ]);
@@ -27,8 +32,9 @@ class KiriminAjaTrackingService extends BaseService{
         ]);
         (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
         
+        $details = (array) ($repo['data']->details ?? [] );
         $histories = (array) (@$repo['data']->histories ?? []);
-        
+
         if (@$transactionRepo->wc_date_paid && $transactionRepo->cod_fee == 0){
             $histories[] = (object)[
                 "status"=> "Transaksi dikonfirmasi & diproses",
@@ -47,18 +53,18 @@ class KiriminAjaTrackingService extends BaseService{
             "receiver"=> ""
         ];
         
-
-        
-        
         $response = (object)[
+            'number_order'=>$this->order_number,
+            'details' => $details,
             'histories'=>self::filteringHistories($histories)
         ];
+
         return self::success($response);
     }
     
     public function filteringHistories($histories){
         return array_map(function ($obj){
-            $obj->created_at = date('d F Y',strtotime($obj->created_at));
+            $obj->created_at = date('d F Y H:i',strtotime($obj->created_at));
             return $obj;
         },$histories);
     }

@@ -66,6 +66,29 @@ class TransactionRepository{
         }
         return $query;
     }
+
+    public function getTransactionByAWBforTracking($awb){
+        global $wpdb;
+        $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
+        
+        $get_wc_orderid = $wpdb->get_row( 
+            $wpdb->prepare(
+                "SELECT wp_wc_order_stat_order_id FROM `$transactionTable` WHERE `awb` = %s",
+                $awb
+            )
+        );
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        
+        $wc_order_id = is_null($get_wc_orderid) ? '' : $get_wc_orderid->wp_wc_order_stat_order_id;
+
+        $query = $this->getTransactionByWCOrderNumberForTracking( $wc_order_id );
+
+        return $query;
+    }
     
     public function getTransactionByPickupNumber($pickupNumber){
         global $wpdb;

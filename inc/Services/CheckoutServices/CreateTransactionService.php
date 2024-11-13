@@ -63,6 +63,8 @@ class CreateTransactionService extends BaseService{
 
             ];
             
+            /** Update WC Total Order */
+            self::updateWcTotalOrder();
             
             $createTransactionRepo = (new \Inc\Repositories\TransactionRepository())->createTransaction($payload);
             
@@ -77,6 +79,32 @@ class CreateTransactionService extends BaseService{
             (new \Inc\Base\BaseInit())->logThis('err',[$th->getMessage()]);
             return self::error([],'fail creating transaction');
         }
+    }
+
+    private function updateWcTotalOrder(){
+
+        $order = wc_get_order($this->payload['order_id']);
+        $total_order = $order->get_total();
+
+        $checkoutCalc = self::getCheckoutCalculation();
+            
+        if (!$checkoutCalc['status']){ 
+            return self::error([],$checkoutCalc['message']);
+        }
+
+        $is_insurance = $this->payload['is_insurance'] ?? 0;
+        $is_cod = $this->payload['is_cod'] ?? 0;
+        
+        if( $is_cod ){
+            $total_order += $checkoutCalc['data']['calculation_result']['cod_amt'];
+        }
+
+        if( $is_insurance  ){
+            $total_order += $checkoutCalc['data']['calculation_result']['insurance_amt'];
+        }
+
+        $order->set_total($total_order);
+        $order->save();
     }
     
     private function getRequiredPostMeta(){

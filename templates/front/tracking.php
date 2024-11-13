@@ -12,46 +12,103 @@
     form.checkout{
         display: block !important;
     }
-    @media only screen and (min-width: 900px) {
-        /*#tracking-result{*/
-        /*    width: 68%;*/
-        /*}*/
-        /*#tracking-form{*/
-        /*    width: 28%;*/
-        /*}*/
-        /*form.checkout{*/
-        /*    display: flex !important;*/
-        /*}*/
-    }
+    
     
     .tracking-table{
         width: 100%;
     }
     .tracking-table th{
-        /*text-align: left;*/
         font-size: 18px;
         text-align: center;
+        background-color: #f7f7f7;    
     }
     .tracking-table td{
         font-size: 14px;
-        text-align: center;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
     }
     .tracking-table td,.tracking-table th{
         padding: 10px 0;
     }
+
+.tracking-table td:first-child {
+    background: #f4f4f4;
+}
+
+.tracking-address {
+    display: inline-flex;
+    width: 100%; /* Set initial width to 50% */
+    align-items: center;
+    justify-content: space-between;
+}
+
+.track-inline {
+    border-radius: 3px;
+}
+
+.track-inline p {
+    margin: 0;
+}
+
+.textprimary {
+    font-size: 1rem;
+    line-height: 2.5rem;
+    font-weight: 600;
+}
+
+.textseccond {
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.tracking-header p {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.tracking-details {
+    background: #f7f7f7;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.tracking-details p {
+    margin: 0;
+}
+
+.borderdashed {
+    border-bottom-width: 0rem;
+    border-style: dashed;
+    border-color: #7c757e;
+    margin: 0.5rem 0;
+}
+
+.tracking-courier {
+    margin: 1rem 0;
+}
+
+.tracking-courier .textseccond {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .25rem;
+}
     
 </style>
+
 <div style="min-height: 40vh" class="woocommerce woocommerce-page">
-    <form style="width: 100%" name="checkout" method="post" class="checkout woocommerce-checkout" action="http://localhost/works/wp_kj_test_v2/wordpress/checkout/" enctype="multipart/form-data" novalidate="novalidate">
-        <div class="col2-set" id="tracking-form">
+    <form style="width: 100%" name="checkout" method="post" class="checkout woocommerce-checkout"  enctype="multipart/form-data" novalidate="novalidate">
+        <div class="col2-set" id="">
             <h3 >Pesanan Anda</h3>
             <div class="woocommerce-checkout-review-order">
 
 
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">
-                    <label for="billing_company" class="">Order Number</label>
+                    <label for="billing_company" class="">Order Number <span style="color:red;">*</span></label>
                     <span class="woocommerce-input-wrapper">
-                        <input type="text" class="input-text kj_int_input" name="order_number" placeholder="" value="" autocomplete="organization">
+                        <input type="text" class="input-text kj_int_input" name="order_number" placeholder="Enter the Order Number ..." value="" autocomplete="organization">
                     </span>
                 </p>
 
@@ -78,10 +135,14 @@
                 </div>
             </div>
             <div class="state-success kj-hidden">
+                
+                 <!-- Load Ajax -->
+                <div class="tracking-details"></div>
+
                 <table class="tracking-table">
                     <thead>
                         <tr>
-                            <th>Tanggal</th>
+                            <th width="20%">Tanggal</th>
                             <th>Status</th>
                         </tr>                    
                     </thead>
@@ -126,22 +187,61 @@
         wp.ajax.post( "kj-tracking-ajax", {
             order_number:jQuery('[name="order_number"]').val()
         })
-            .done(function(response) {
+            .done(function(response) {                
                 hideStateComponent()
                 jQuery('.track-btn').removeClass('kj-hidden')
 
                 if (response.status === 200){
                     jQuery('.state-success').removeClass('kj-hidden')
 
-                    const trackingHistories = response?.data?.histories ?? []
-                    jQuery('.tracking-table tbody').empty()
-                    jQuery.each(trackingHistories,function (index,trackData){
+                    const trackingHistories = response?.data?.histories ?? [];
+                    const trackingDetails = response?.data?.details ?? [];
+                    const trackingOrderNumber = response?.data?.number_order ?? [];
+
+                    jQuery('.tracking-table tbody').empty();
+
+
+                    let details = `
+                        <div class="tracking-gorup">
+                            <div class="tracking-header">
+                               <p>Order Number : #${trackingOrderNumber}</p>
+                               <p>AWB : ${trackingDetails?.awb}</p>
+                            </div> 
+
+                            <div class="tracking-address">
+                                <div class="track-inline">
+                                    <p class="textprimary">${trackingDetails?.destination?.name}</p>
+                                    <p class="textseccond">${trackingDetails?.destination?.city}</p>
+                                    <p class="textseccond textbold">${trackingDetails?.destination?.province}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tracking-courier">
+                                <div class="borderdashed"></div>
+                                
+                                <div class="textseccond">
+                                    <p>Kurir</p>
+                                    <p class="fontbold">${trackingDetails?.service}</p>
+                                </div>
+                                
+                                <div class="borderdashed"></div>
+                            </div>
+
+                        </div>
+                    `;
+
+                    jQuery('.tracking-details').html(details);
+                    
+                    jQuery.each(trackingHistories,function (index,trackData){   
+
                         jQuery('.tracking-table tbody').append(
                             `<tr>
                                 <td>${trackData.created_at}</td>
                                 <td>${trackData.status}</td>
                             </tr>`)
-                    })
+                    });
+
+                    
                     return
                 }
 
