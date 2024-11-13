@@ -83,25 +83,21 @@ class EditOrderController{
         $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         
         $order = wc_get_order( $order_id );
-        
-        $weight = 0; $width = 0; $height = 0; $length = 0;
-        foreach( $order->get_items() as $item ){
-            $product = $item->get_product();
-            $weight += $product->get_weight() * $item->get_quantity(); 
-            $length = max($length, $product->get_length());
-            $width = max($width, $product->get_width());
-            $height = max($height, $product->get_height());
-        }
 
+        /** convert unit weight */
+        $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+            'wc_cart_contents' => $order->get_items()
+        ]))->call();
+        
         $payload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
             'subdistrict_destination'   =>$destination_id,
-            'weight'    => $weight,
-            'length'    => $length,
-            'width'     => $width,
-            'height'    => $height,
+            'weight'    => $cartAttributes->data['weight'],
+            'length'    => $cartAttributes->data['length'],
+            'width'     => $cartAttributes->data['width'],
+            'height'    => $cartAttributes->data['height'],
             'insurance' => 1,
-            'item_value'=> $order->get_subtotal(),
+            'item_value'=> $cartAttributes->data['item_value'],
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
 
@@ -243,7 +239,7 @@ class EditOrderController{
         ];
 
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
-        
+
         if( $kjPricing['data'] ){
             $result_pricing = $kjPricing['data']->results;
                       
