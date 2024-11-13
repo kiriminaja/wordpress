@@ -284,7 +284,6 @@
                 },         // any JS object
             },
             complete: function (response) {
-                console.log(response);
                 
                 const resp = JSON.parse(response.responseText).data;
                 
@@ -327,7 +326,6 @@
                 
                 jQuery('#schedule-opt-list').empty()
                 jQuery.each(schedules,function (idx,schedule){
-                    console.log(schedule)
                     jQuery('#schedule-opt-list').append(`
                         <div style="margin-bottom: .75rem">
                             <div style="display: flex;align-items: center;justify-items: center;">
@@ -377,7 +375,6 @@
     
                 
                 const resp = JSON.parse(response.responseText).data;
-                console.log(resp)
                 if (resp?.status !== 200){
 
                     modalElemLoader.addClass('kj-hidden')
@@ -428,7 +425,6 @@
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
 
-                console.log(resp)
                 if (resp?.status !== 200){
                     /** Hide loader & SHow Err*/
                     modalElemLoader.addClass('kj-hidden')
@@ -572,8 +568,6 @@
                 /**emptying and add the cart table list*/
                 jQuery('#transaction-detail-modal .kj-modal-content #cart-table tbody').empty()
                 
-                console.log('cart_data')
-                console.log(cart_data)
                 jQuery.each(cart_data,function (index, obj){
                     jQuery('#transaction-detail-modal .kj-modal-content #cart-table tbody').append(`
                     <tr>
