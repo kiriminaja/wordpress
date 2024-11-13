@@ -50,7 +50,6 @@ function kj_getDestinationArea(){
             }
         }
 
-
         $destination_id = (int) $post['val'];
 
         $payment = !empty($post['payment_method']) ? $post['payment_method'] : null;

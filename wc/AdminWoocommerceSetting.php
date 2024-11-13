@@ -56,10 +56,27 @@ class AdminWoocommerceSettings
         }
 
         if( 'is_insurance' === $column ) {
-            echo $order->get_meta('_kj_insurance') ? 'Yes':'No';
-            if($order->get_meta('_kj_insurance')){
-                echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+            $insurance_front = $order->get_meta('_kj_insurance');
+            $insurance_admin_billing = ucfirst( $order->get_meta('_billing_kj_insurance') ) ?? '';
+            $insurance_admin_shipping = Ucfirst( $order->get_meta('_shipping_kj_insurance') ) ?? '';
+
+            if( !empty($insurance_admin_billing) ){
+                echo $insurance_admin_billing ? 'Yes':'No';
+                if($insurance_admin_billing){
+                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+                }
+            }else if(!empty($insurance_admin_shipping)){
+                echo $insurance_admin_shipping ? 'Yes':'No';
+                if($insurance_admin_shipping){
+                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+                }
+            }else{ 
+                echo $insurance_front ? 'Yes':'No';
+                if($insurance_front){
+                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+                }
             }
+
         }
     }
 }

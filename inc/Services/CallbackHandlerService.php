@@ -62,6 +62,9 @@ class CallbackHandlerService extends BaseService{
             case "rejected_packages":
                 $this->processing = $this->rejectedPackages();
                 break;
+            case "canceled_packages":
+                $this->processing = $this->canceledPackages();
+                break;
         }
 
         if (!$this->processing['status']){
@@ -255,7 +258,5 @@ class CallbackHandlerService extends BaseService{
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
     }
-    
-    
     
 }

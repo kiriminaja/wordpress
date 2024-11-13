@@ -75,7 +75,4 @@ class ShippingProcessController{
         return ob_get_clean();
     }
 
-    public function kj_shippingMethod(){
-         new ShippingMethodController();
-    }
 }
