@@ -70,3 +70,8 @@ tr.woocommerce-shipping-totals{
 }
 
 .woocommerce-shipping-methods {margin-top: 15px !important;}
+
+/* Checkout */
+#billing_country_field,#shipping_country_field {
+    display: none !important;
+}

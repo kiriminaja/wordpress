@@ -363,15 +363,18 @@ class CheckoutController
                         /**
                          * Set Weight empty to 1
                          */
-                        $weight = $weight + ( empty( $_product->get_weight() ) ? 1 : $_product->get_weight()) * $values['quantity'];
+                        // $weight = $weight + ( empty( $_product->get_weight() ) ? 1 : $_product->get_weight()) * $values['quantity'];
                         
+                        if( empty( $_product->get_weight() ) ){
+                            $weight = 0;
+                        }else{
+                            $weight = $_product->get_weight() * $values['quantity'];
+                        }
+
                         if( $weight == 0 ){
                             $message = __("Berat Produk ".$_product->get_name()." Perlu di Setting",'kiriminaja');
                             $messageType = "error";
-                            
-                            if (!wc_has_notice($message, $messageType)) {
-                                wc_add_notice($message, $messageType);
-                            }
+                            wc_add_notice($message, $messageType);
                         }
                     }
                     
