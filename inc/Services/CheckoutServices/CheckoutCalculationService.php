@@ -69,7 +69,7 @@ wc_cart_contents
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
-
+        
         
         (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         

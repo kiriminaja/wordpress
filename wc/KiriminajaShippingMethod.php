@@ -103,7 +103,10 @@ function kj_shippingMethod(){
             }
 
             public function filterOptions($pricingData,$quantity){
-                $is_cod = !empty( WC()->session->get( 'kj_payment_method' ) ) ? true : false;
+
+                $chosen_payment_method = WC()->session->get('chosen_payment_method');
+
+                $is_cod = $chosen_payment_method === 'cod';
 
                 $options = $pricingData->results ?? [];
 

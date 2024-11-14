@@ -387,11 +387,6 @@ class CheckoutController
                     foreach ($package['contents'] as $item_id => $values) {
                         $_product = $values['data'];
     
-                        /**
-                         * Set Weight empty to 1
-                         */
-                        // $weight = $weight + ( empty( $_product->get_weight() ) ? 1 : $_product->get_weight()) * $values['quantity'];
-                        
                         if( empty( $_product->get_weight() ) ){
                             $weight = 0;
                         }else{
