@@ -73,8 +73,9 @@ class TransactionRepository{
         
         $get_wc_orderid = $wpdb->get_row( 
             $wpdb->prepare(
-                "SELECT wp_wc_order_stat_order_id FROM `$transactionTable` WHERE `awb` = %s",
-                $awb
+                "SELECT wp_wc_order_stat_order_id FROM `$transactionTable` WHERE `awb` LIKE %s OR `wp_wc_order_stat_order_id` LIKE %s",
+                '%' . $awb . '%',
+                '%' . $awb . '%'
             )
         );
 
