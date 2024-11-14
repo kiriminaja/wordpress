@@ -32,7 +32,7 @@ class KiriminAjaTrackingService extends BaseService{
         ]);
         (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
         
-        $details = (array) ($repo['data']->details ?? [] );
+        $details = (array) ($repo['data']->details ?? $this->getDetailWcOrder($this->order_number) );
         $histories = (array) (@$repo['data']->histories ?? []);
 
         if (@$transactionRepo->wc_date_paid && $transactionRepo->cod_fee == 0){
@@ -67,6 +67,49 @@ class KiriminAjaTrackingService extends BaseService{
             $obj->created_at = date('d F Y H:i',strtotime($obj->created_at));
             return $obj;
         },$histories);
+    }
+
+    public function getDetailWcOrder($order_number){
+        $order = wc_get_order($order_number);
+
+        if (!$order){
+            return self::error([],'Transaksi tidak ditemukan');
+        }
+
+
+        if( !empty($order->get_meta('_shipping_kj_destination_name')) ){
+            
+            $destionation = explode(',', $order->get_meta('_shipping_kj_destination_name'));
+            $city = $destionation[0].','.$destionation['1'].','.$destionation['2'];
+            $province = $destionation['3'];
+            
+            $response = (object)[
+                'awb' => '-',
+                'service' => $order->get_shipping_method(),
+                'destination'=>[
+                    'name' => $order->get_shipping_first_name().' '.$order->get_shipping_last_name(),
+                    'city'=>$city,
+                    'province'=>$province,
+                ],
+            ];
+        }else{
+            $destionation = explode(',', $order->get_meta('_billing_kj_destination_name'));
+            $city = $destionation[0].','.$destionation['1'].','.$destionation['2'];
+            $province = $destionation['3'];
+            
+            $response = (object)[
+                'awb' => '-',
+                'service' => $order->get_shipping_method(),
+                'destination'=>[
+                    'name' => $order->get_billing_first_name().' '.$order->get_billing_last_name(),
+                    'city'=>$city,
+                    'province'=>$province,
+                ],
+            ];
+        }
+
+        return $response;
+
     }
     
 }

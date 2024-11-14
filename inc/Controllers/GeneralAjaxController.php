@@ -99,12 +99,19 @@ function kj_getDestinationArea(){
                     $datas['insurance_fee'] = wc_price($service->data['calculation_result']['insurance_amt']) ?? 0;
                     $datas['is_insurance'] = $service->data['calculation_result']['insurance_amt'];
                 }
-    
+                
+                WC()->cart->calculate_totals();
+                
                 wp_send_json_success( $datas );
             }else{
+                
+                WC()->cart->calculate_totals();
+
                 wp_send_json_error( ['is_insurance'=>0,'is_cod_amt'=>0] );
             }
         }
+
+        WC()->cart->calculate_totals();
 
         wp_send_json_error( ['is_insurance'=>0,'is_cod_amt'=>0] );
 

@@ -187,7 +187,8 @@
         wp.ajax.post( "kj-tracking-ajax", {
             order_number:jQuery('[name="order_number"]').val()
         })
-            .done(function(response) {                
+            .done(function(response) {  
+                              
                 hideStateComponent()
                 jQuery('.track-btn').removeClass('kj-hidden')
 
@@ -205,14 +206,14 @@
                         <div class="tracking-gorup">
                             <div class="tracking-header">
                                <p>Order Number : #${trackingOrderNumber}</p>
-                               <p>AWB : ${trackingDetails?.awb}</p>
+                               <p>AWB : ${trackingDetails?.awb ?? '-'}</p>
                             </div> 
 
                             <div class="tracking-address">
                                 <div class="track-inline">
-                                    <p class="textprimary">${trackingDetails?.destination?.name}</p>
-                                    <p class="textseccond">${trackingDetails?.destination?.city}</p>
-                                    <p class="textseccond textbold">${trackingDetails?.destination?.province}</p>
+                                    <p class="textprimary">${trackingDetails?.destination?.name ?? '-'}</p>
+                                    <p class="textseccond">${trackingDetails?.destination?.city ?? '-'}</p>
+                                    <p class="textseccond textbold">${trackingDetails?.destination?.province ?? '-'}</p>
                                 </div>
                             </div>
                             
@@ -221,7 +222,7 @@
                                 
                                 <div class="textseccond">
                                     <p>Kurir</p>
-                                    <p class="fontbold">${trackingDetails?.service}</p>
+                                    <p class="fontbold">${trackingDetails?.service ?? '-'}</p>
                                 </div>
                                 
                                 <div class="borderdashed"></div>
