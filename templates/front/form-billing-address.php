@@ -32,7 +32,6 @@
                 kj_changeCodPaymentMethod();
                 kj_changeDifferentAdrress();
 
-                /** Onchange Change Shipping Method */
                 jQuery(document.body).on( 'change', 'input.shipping_method', function() {
                     AjaxHandleCodInsurance();
                 });
@@ -108,7 +107,12 @@
 
                         <?php else:?>
                             jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
-
+                            
+                                jQuery(document.body).one('updated_checkout', function() {
+                                    ajaxCodInsurance();                                    
+                                });
+                            
+                            
                         <?php endif;?>
 
                     },
@@ -163,8 +167,28 @@
             }); 
         }
 
+        jQuery(document.body).on('updated_checkout', function() {
+            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
+            let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
+            let destination_id = (different_address == 0) ? jQuery('#kj_destination_area option:selected').val() : jQuery('#kj_shipping_destination_area option:selected').val(); 
+            
+            if( destination_id != 'undefined' ) return false;
+        
+            
+            if(jQuery('#shipping_method .shipping_method:checked').length == 0 && destination_id != 0  ){
+                jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                                        
+            }    
+            
+        }); 
+
+        jQuery(document.body).one('updated_checkout', function() {
+            AjaxHandleCodInsurance();
+        });
+
+
         function kj_changeCodPaymentMethod(){
-            jQuery(document).on('change','[name="payment_method"]:checked,#kj_insurance,#kj_shipping_insurance',function() {                
+            jQuery(document).on('change','[name="payment_method"]:checked,#kj_insurance,#kj_shipping_insurance',function() {
+                
                 AjaxHandleCodInsurance();
             });
 
@@ -173,19 +197,31 @@
         function kj_changeDifferentAdrress(){
             jQuery('[name="ship_to_different_address"]').on('change',function(e) {
                 if(jQuery(this).is(':checked')){
-                    jQuery('#kj_destination_area').val(jQuery('#kj_shipping_destination_area option:selected').val()).trigger("change")
+                    jQuery('#kj_destination_area').val(jQuery('#kj_shipping_destination_area option:selected').val()).trigger("change");
                 }else{
-                    jQuery('#kj_destination_area').val(jQuery('#kj_destination_area option:selected').val()).trigger("change")
-
+                    jQuery('#kj_destination_area').val(jQuery('#kj_destination_area option:selected').val()).trigger("change");
                 }
-
-                
             });
         }
 
         function AjaxHandleCodInsurance(){
             
-            //check Shipping Different Address
+            <?php if( is_checkout()){ ?>
+
+                jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
+                
+                jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
+                                                                                           
+                    ajaxCodInsurance();
+
+                });
+
+            <?php } ?>
+
+
+        }
+
+        function ajaxCodInsurance(){
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
             let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
@@ -206,8 +242,8 @@
                 jQuery('#kj_shipping_insurance:checked').val()
             );
 
-            let payment_method = jQuery("[name=payment_method]:checked").val();
-
+            let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
+            
             let data = {
                 action:'kj_get_data_after_update_checkout',
                 nonce:"<?= wp_create_nonce('kj-update-checkout'); ?>",
@@ -217,13 +253,7 @@
                 insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance))
             };
 
-            <?php if( is_checkout()){ ?>
-
-                jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
-                
-                jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
-                                                                                           
-                    jQuery.ajax({
+            jQuery.ajax({
                         url:"<?php echo admin_url('admin-ajax.php'); ?>",
                         type: 'post',
                         data: data,
@@ -236,7 +266,8 @@
                             jQuery('#order_review').find('.shop_table').unblock();  
                 
                             let insurance_res = response?.data?.insurance_fee ?? 0;
-                            let cod_fee_res = response?.data?.cod_fee ?? 0;        
+                            let cod_fee_res = response?.data?.cod_fee ?? 0;
+                                    
         
                             if( response?.data?.is_insurance == 0 ){
                                 jQuery('.kj_cart_item_insurane').hide();
@@ -262,12 +293,6 @@
                             alert("Sorry System Trouble Error Code : "+xhr.status);                                
                          }
                     });
-
-                });
-
-            <?php } ?>
-
-
         }
 
     </script>
