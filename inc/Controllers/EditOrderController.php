@@ -28,6 +28,8 @@ class EditOrderController{
 
         add_action( 'woocommerce_order_status_changed', array($this,'kj_order_status_change_action'), 10, 4 );
 
+        /** Custom Button Shipping Admin Order */
+        add_action('woocommerce_order_item_add_action_buttons',array($this,'kj_buttonShippingAdminOrder'),10, 2 );
 
         $this->ajax();
     }
@@ -710,6 +712,10 @@ class EditOrderController{
                 'trace'   => $th->getTraceAsString()
             ]);        
         }
+    }
+
+    public function kj_buttonShippingAdminOrder( $order ){
+        echo '<button type="button" class="button add-order-shipping shippingkiriminaja" data-tip="Add Shipping">'.__('Add Shipping','kiriminaja').'</a>';
     }
     
 }

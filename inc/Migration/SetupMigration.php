@@ -52,6 +52,11 @@ class SetupMigration {
         /** Alters*/
     }
     
+    /**
+     * Updates 
+     * [+] add Coloumn canceled_at
+     * [+] add value cancaled in status
+     */
     private function transactionsTable(){
         global $wpdb;
 
@@ -68,7 +73,7 @@ class SetupMigration {
                 `destination_sub_district_id` int(11) DEFAULT NULL,
                 `destination_sub_district` varchar(255) DEFAULT NULL,
                 `pickup_number` varchar(100) DEFAULT NULL,
-                `status` enum('new','request_pickup','pending','finished','shipped','return','returned','rejected') NOT NULL DEFAULT 'new',
+                `status` enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new',
                 `service` varchar(50) DEFAULT NULL,
                 `service_name` varchar(50) DEFAULT NULL,
                 `awb` varchar(100) DEFAULT NULL,
@@ -88,6 +93,7 @@ class SetupMigration {
                 `finished_at` timestamp NULL DEFAULT NULL,
                 `rejected_at` timestamp NULL DEFAULT NULL,
                 `returned_at` timestamp NULL DEFAULT NULL,
+                `canceled_at` timestamp NULL DEFAULT NULL,
                 `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
                 UNIQUE KEY id (id)
             );";
