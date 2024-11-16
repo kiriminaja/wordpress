@@ -61,6 +61,12 @@
     line-height: 1.5rem;
 }
 
+.tracking-header {
+    display: inline-flex;
+    justify-content: space-between; /* Mengatur jarak antara elemen */
+    width: 100%;
+}
+
 .tracking-header p {
     margin: 0;
     font-size: 1.4rem;
@@ -106,13 +112,13 @@
 
 
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">
-                    <label for="billing_company" class="">Order Number <span style="color:red;">*</span></label>
+                    <label for="billing_company" class="">Nomor Resi <span style="color:red;">*</span></label>
                     <span class="woocommerce-input-wrapper">
-                        <input type="text" class="input-text kj_int_input" name="order_number" placeholder="Enter the Order Number ..." value="" autocomplete="organization">
+                        <input type="text" class="input-text" name="order_number" placeholder="Masukan Nomor Resi atau Nomor Order ..." value="" autocomplete="organization">
                     </span>
                 </p>
 
-                <button style="width: 100%" type="button" onclick="trackOrder()" class="button track-btn alt wp-element-button track-btn">Track Pesanan</button>
+                <button style="width: 100%" type="button" onclick="trackOrder()" class="button track-btn alt wp-element-button track-btn">Lacak Pesanan</button>
             </div>
         </div>
         <div class="col2-set" id="tracking-result">
@@ -205,8 +211,8 @@
                     let details = `
                         <div class="tracking-gorup">
                             <div class="tracking-header">
-                               <p>Order Number : #${trackingOrderNumber}</p>
-                               <p>AWB : ${trackingDetails?.awb ?? '-'}</p>
+                               <p>Nomor Order : #${trackingOrderNumber}</p>
+                               <p>Nomor Resi : ${trackingDetails?.awb ?? '-'}</p>
                             </div> 
 
                             <div class="tracking-address">

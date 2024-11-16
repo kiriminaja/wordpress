@@ -15,9 +15,7 @@ class KiriminAjaTrackingService extends BaseService{
     
     public function call(){
  
-        if( is_numeric($this->order_number) ){
-            $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumberForTracking($this->order_number);
-        }
+        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByAWBforTracking($this->order_number);
 
         if (!$transactionRepo){
             return self::error([],'Transaksi tidak ditemukan');
@@ -54,7 +52,7 @@ class KiriminAjaTrackingService extends BaseService{
         ];
         
         $response = (object)[
-            'number_order'=>$this->order_number,
+            'number_order'=>$transactionRepo->wp_wc_order_stat_order_id,
             'details' => $details,
             'histories'=>self::filteringHistories($histories)
         ];
