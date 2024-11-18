@@ -3,22 +3,28 @@ jQuery(document).ready(function(){
     var $ = jQuery;
     var orderItemLineClass = $('#order_shipping_line_items .shipping');
     var orderIDdataItem;
+    
     const orderID = woocommerce_admin_meta_boxes.post_id;
-    const orderIDdataItemShipping = document.querySelector('#order_shipping_line_items tr.shipping').getAttribute('data-order_item_id');
+
+    let orderIDdataItemShipping;
+    let orderItemElement = document.querySelector('#order_shipping_line_items tr.shipping');
+    if( orderItemElement){
+        orderIDdataItemShipping = document.querySelector('#order_shipping_line_items tr.shipping').getAttribute('data-order_item_id');
+    }
     
     /** 
      * Set readonly  
      * Shipping Cost
      * Shipping Method Title
     */
-    isReadOnly(`[name="shipping_cost[${orderIDdataItemShipping}]"]`);
-    isReadOnly(`[name="shipping_method_title[${orderIDdataItemShipping}]"]`);
+    if(orderItemElement) isReadOnly(`[name="shipping_cost[${orderIDdataItemShipping}]"]`);
+    if(orderItemElement) isReadOnly(`[name="shipping_method_title[${orderIDdataItemShipping}]"]`);
 
     /**
      * Set Display None
      * shipping method item
      */
-    isDisplayNone('.wc-order-data-row-toggle > .add-order-shipping');
+    if(orderItemElement) isDisplayNone('.wc-order-data-row-toggle > .add-order-shipping');
     
     if( getUrlParameter('post_type') == 'shop_order' ){
 
@@ -217,11 +223,13 @@ jQuery(document).ready(function(){
         }); 
 
         /** hide select2 contaniner subdistrict  */
-        setTimeout(() => {                
-            let select2Container = document.querySelector('[name="kj_subdistrict"]').nextElementSibling;
-            if (select2Container && select2Container.classList.contains('select2')) {
-                select2Container.style.display = 'none';
-            }
+        setTimeout(() => {   
+            if(document.querySelector('[name="kj_subdistrict"]') ){
+                let select2Container = document.querySelector('[name="kj_subdistrict"]').nextElementSibling;
+                if (select2Container && select2Container.classList.contains('select2')) {
+                    select2Container.style.display = 'none';
+                }
+            }             
         }, 500);
     }
 
@@ -483,6 +491,8 @@ jQuery(document).ready(function(){
     }
 
     function editShippingOrder(){
+        console.log('tes');
+        
         $('#order_shipping_line_items .edit-order-item').unbind().on('click', function(e){
             
             orderIDdataItem = $('#order_shipping_line_items tr.shipping ').attr('data-order_item_id');

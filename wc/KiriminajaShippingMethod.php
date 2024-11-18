@@ -77,9 +77,9 @@ function kj_shippingMethod(){
                     'subdistrict_origin' => (int) $settingRepo->value,
                     'subdistrict_destination'=>$destination_id,
                     'weight' => $cartAttributes->data['weight'],
-                    'length' => $length,
-                    'width' => $width,
-                    'height' => $height,
+                    'length' => $cartAttributes->data['length'],
+                    'width' =>  $cartAttributes->data['width'],
+                    'height' => $cartAttributes->data['height'],
                     'insurance' => (int) $kj_insurance,
                     'item_value' => WC()->cart->cart_contents_total,
                     'courier' => "", // 'jne', 'pos', 'tiki', 'jet'

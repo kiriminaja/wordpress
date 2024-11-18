@@ -57,7 +57,7 @@ class EditOrderController{
             home_url().'/tracking?order_id='.$order,
             json_encode($service->data)
         ];
-        
+
         $content = file_get_contents(plugin_dir_path(dirname(__FILE__,2)). 'templates/order/edit.php');
         echo str_replace(
         $willBeReplaced, $replaceWith, $content);
@@ -148,14 +148,15 @@ class EditOrderController{
                 if(!empty($items['kj_expedition_name']))
                 {
                     $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
-                    
-                    $qty = 0;
+
+                    $qty = 0; $subtotal = 0;
                     foreach( $order->get_items() as $item_id_shipping => $item ) {
                         $qty += (int) $item->get_quantity();
+                        $subtotal += $item->get_total(); // Ambil harga item
                     }
     
                     $item_price = (int) $expediton_cost * $qty;
-    
+
                     $calculate_data = $this->kj_calculationAdminOrder([
                         'order_id' => $order_id,
                         'kj_subdistrict'=>$items['kj_subdistrict'],
@@ -176,7 +177,13 @@ class EditOrderController{
                         $item->save();
         
                     }   
+
+                    $order_total = $subtotal + $items['kj_codfee_hidden'] ?? 0 + $items['kj_insurancefee_hidden'] ?? 0;
+                    $order_total += $item_price;
                     
+                    /* Update Total Order*/
+                    update_post_meta($order_id,'_order_total', $order_total);
+                                        
                     /* Simpan Di Post Meta */
                     update_post_meta($order_id,'_kj_subdistrict_id',$items['kj_subdistrict']);
                     update_post_meta($order_id,'_kj_subdistrict_name',$items['kj_subdistrict_name']);
