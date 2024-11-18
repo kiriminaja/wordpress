@@ -491,7 +491,6 @@ jQuery(document).ready(function(){
     }
 
     function editShippingOrder(){
-        console.log('tes');
         
         $('#order_shipping_line_items .edit-order-item').unbind().on('click', function(e){
             
