@@ -42,6 +42,9 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'subdistrict_origin'            => $payload['subdistrict_origin'],
             'subdistrict_destination'       => $payload['subdistrict_destination'],
             'weight'                        => $payload['weight'],
+            'length'                        => $payload['length'],
+            'width'                         => $payload['width'],
+            'height'                        => $payload['height'],
             'insurance'                     => $payload['insurance'],
             'item_value'                    => $payload['item_value'],
             'courier'                       => $payload['courier']

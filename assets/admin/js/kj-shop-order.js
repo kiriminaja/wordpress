@@ -4,6 +4,28 @@ jQuery(document).ready(function(){
     var orderItemLineClass = $('#order_shipping_line_items .shipping');
     var orderIDdataItem;
     
+    const orderID = woocommerce_admin_meta_boxes.post_id;
+
+    let orderIDdataItemShipping;
+    let orderItemElement = document.querySelector('#order_shipping_line_items tr.shipping');
+    if( orderItemElement){
+        orderIDdataItemShipping = document.querySelector('#order_shipping_line_items tr.shipping').getAttribute('data-order_item_id');
+    }
+    
+    /** 
+     * Set readonly  
+     * Shipping Cost
+     * Shipping Method Title
+    */
+    if(orderItemElement) isReadOnly(`[name="shipping_cost[${orderIDdataItemShipping}]"]`);
+    if(orderItemElement) isReadOnly(`[name="shipping_method_title[${orderIDdataItemShipping}]"]`);
+
+    /**
+     * Set Display None
+     * shipping method item
+     */
+    if(orderItemElement) isDisplayNone('.wc-order-data-row-toggle > .add-order-shipping');
+    
     if( getUrlParameter('post_type') == 'shop_order' ){
 
         getSearchAreaKelurahan();
@@ -154,10 +176,10 @@ jQuery(document).ready(function(){
     function kj_addFieldShippingOrder(elementRoot){
         if( getUrlParameter('post') != false && getUrlParameter('action') == 'edit' ){
         
-            $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select name="kj_subdistrict" class="selet2" style="width:100%;"></select>`);            
+            $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select style="display:none;" name="kj_subdistrict" class="selet2" style="width:100%;"></select>`);            
             $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<select name="kj_expedition" class="selet2" style="width:100%;"><option value="">Select Expeditions</option></select>`);               
             $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" name="kj_subdistrict_name"/>`);               
-               
+            
             /** COD AND INSURANCE */
             $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="codfeehidden" name="kj_codfee_hidden"/>`);                    
             $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(`<input type="hidden" class="insurancefeehidden" name="kj_insurancefee_hidden"/>`);                    
@@ -199,6 +221,16 @@ jQuery(document).ready(function(){
                 cache: true
             },
         }); 
+
+        /** hide select2 contaniner subdistrict  */
+        setTimeout(() => {   
+            if(document.querySelector('[name="kj_subdistrict"]') ){
+                let select2Container = document.querySelector('[name="kj_subdistrict"]').nextElementSibling;
+                if (select2Container && select2Container.classList.contains('select2')) {
+                    select2Container.style.display = 'none';
+                }
+            }             
+        }, 500);
     }
 
     function getSelectedSubdistrictAdminOrder(){
@@ -459,6 +491,7 @@ jQuery(document).ready(function(){
     }
 
     function editShippingOrder(){
+        
         $('#order_shipping_line_items .edit-order-item').unbind().on('click', function(e){
             
             orderIDdataItem = $('#order_shipping_line_items tr.shipping ').attr('data-order_item_id');
@@ -516,6 +549,14 @@ jQuery(document).ready(function(){
         }
 
         return {id_destination: id_destination, name_destination: name_destination};
+    }
+
+    function isReadOnly(element){
+        document.querySelector(element).readOnly = true;
+    }
+
+    function isDisplayNone(element){
+        document.querySelector(element).style.display = 'none';
     }
 
 });
