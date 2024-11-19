@@ -13,6 +13,9 @@ class settingIndex {
         /** Check if  setup key exist*/
         $approvedSetupKey = (new Inc\Repositories\SettingRepository())->getSettingByKey('setup_key');
 
+        /** Url Endpoint KA */
+        $urlEndpoint = (new Inc\Repositories\SettingRepository())->getSettingByKey('url_endpoint')->value ?? 'https://client.kiriminaja.com';
+
         /** data value query*/
         $arrayParam = [];
         $repo = [];

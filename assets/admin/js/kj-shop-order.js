@@ -49,7 +49,10 @@ jQuery(document).ready(function(){
             settings.data && settings.data.indexOf('action=woocommerce_add_order_item') !== -1 || // add product order item
             settings.data && settings.data.indexOf('action=woocommerce_remove_order_item') !== -1 || //remove product order item
             settings.data && settings.data.indexOf('action=woocommerce_save_order_items') !== -1 || //save order item
-            settings.data && settings.data.indexOf('action=woocommerce_calc_line_taxes') !== -1 //recalculate order item        
+            settings.data && settings.data.indexOf('action=woocommerce_calc_line_taxes') !== -1 || //recalculate order item   
+            settings.data && settings.data.indexOf('action=woocommerce_load_order_items') !== -1 ||//load Order Items  
+            settings.data && settings.data.indexOf('action=woocommerce_add_order_fee') !== -1 //Add Order fee  
+             
         ){         
             if( shippingMethodElement.val() == 'kiriminaja' ){
                 shippingMethodElement.val('kiriminaja').trigger('change');
@@ -284,6 +287,7 @@ jQuery(document).ready(function(){
             }
 
             let expeditionName = $('select[name=kj_expedition]');
+            
 
             let data = {
                 'action': 'kiriminaja_expedition_by_pricing',
@@ -300,11 +304,14 @@ jQuery(document).ready(function(){
                 beforeSend: function() {
                     expeditionName.html('<option>Please Wait ...</option>');
                     expeditionName.prop('disabled',true);
+
+                    $('.codfee').find('.total').html('Waiting ...');
+                    $('.insurancefee').find('.total').html('Waiting ...');
                 },
                 success: function(response) {                    
 
                     let expedition_options = '<option value="">Select Expedition</option>';
-
+                    
                     if(response.status = true){
                         let expeditions = response.data;  
 
@@ -316,6 +323,8 @@ jQuery(document).ready(function(){
                         expeditionName.prop('disabled',false);
                         
                         $('[name="kj_subdistrict_name"]').val(destination_name);
+                        
+                        $('[name="kj_expedition"]').val(response.service).trigger("change"); 
 
                     }else{
                         expeditionName.html(expedition_options);
@@ -326,7 +335,6 @@ jQuery(document).ready(function(){
                     
                 },
                 error: function(xhr, status, error) {
-                    alert('Something Wrong This Site Get Expedition Field Error Code : '+xhr.status);
                     return false;
                 }
             });
@@ -394,6 +402,10 @@ jQuery(document).ready(function(){
                 type: 'POST',
                 data:data,
                 dataType: 'json',
+                beforeSend: function() {
+                    $('.codfee').find('.total').html('Waiting ...');
+                    $('.insurancefee').find('.total').html('Waiting ...');
+                },
                 success: function(response) {
                     
                     $('.insurancefee').find('.total').html(response.data.insurance_fee);
@@ -420,15 +432,14 @@ jQuery(document).ready(function(){
                         $('.codfee').hide();
                     }
                     
-                    $('.codfee').find('.total').html(response.data.cod_fee);
-                    $('[name="kj_codfee_hidden"]').val(response.data.cod_fee_number);
+                    if( response?.data?.cod_fee != '0' ) $('.codfee').find('.total').html(response.data.cod_fee);
+                    if( response?.data?.cod_fee_number != '0' ) $('[name="kj_codfee_hidden"]').val(response.data.cod_fee_number);
                     
 
                     get_OnChangeCodAndInsurance();
 
                 },
                 error: function(xhr, status, error) {
-                    alert('Something Wrong This Site Get Expedition Field Error Code : '+xhr.status);
                     return false;
                 }
             });
@@ -484,7 +495,6 @@ jQuery(document).ready(function(){
                }
             },
             error: function(xhr, status, error) {
-                alert('Something Wrong This Site Get Product Item Order Error Code : '+xhr.status);
                 return false;
             }
         });

@@ -86,6 +86,14 @@ class EditOrderController{
         
         $order = wc_get_order( $order_id );
 
+        $insurance = false;
+        if( $order->get_meta('_billing_kj_insurance') == 'yes' ) {
+            $insurance = true;
+        }
+        if( $order->get_meta('_shipping_kj_insurance') == 'yes'){
+            $insurance = true;
+        }
+                
         /** convert unit weight */
         $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $order->get_items()
@@ -98,7 +106,7 @@ class EditOrderController{
             'length'    => $cartAttributes->data['length'],
             'width'     => $cartAttributes->data['width'],
             'height'    => $cartAttributes->data['height'],
-            'insurance' => 1,
+            'insurance' => (int) $insurance,
             'item_value'=> $cartAttributes->data['item_value'],
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
@@ -111,7 +119,20 @@ class EditOrderController{
             wp_send_json_error( ['code'=>'404','message'=>'Expedition Not Found'] );
         }
 
-        wp_send_json_success($return);
+        $data_return = [
+            'data'=>$return,
+            'status'=>true,
+            'success'=>true,
+        ];
+
+        $service_shipping = get_post_meta($order_id,'_kj_expedition_code',true);
+
+        if( !empty($service_shipping) ){
+           $data_return['service'] = $service_shipping;  
+        }
+
+        echo json_encode($data_return);
+        wp_die();
     }
 
     public function filterOptions($pricingData){
@@ -178,11 +199,15 @@ class EditOrderController{
         
                     }   
 
-                    $order_total = $subtotal + $items['kj_codfee_hidden'] ?? 0 + $items['kj_insurancefee_hidden'] ?? 0;
-                    $order_total += $item_price;
+                    $order->calculate_shipping();
+                    $order->calculate_totals();
+
+                    $order_total = (float) $subtotal + ( (float) $items['kj_codfee_hidden'] ?? 0 ) + ( (float) $items['kj_insurancefee_hidden'] ?? 0 );
+                    $order_totals = (float) $item_price + (float) $order_total;
                     
                     /* Update Total Order*/
-                    update_post_meta($order_id,'_order_total', $order_total);
+                    update_post_meta($order_id,'_order_total', $order_totals);
+                    
                                         
                     /* Simpan Di Post Meta */
                     update_post_meta($order_id,'_kj_subdistrict_id',$items['kj_subdistrict']);
@@ -194,11 +219,10 @@ class EditOrderController{
     
                     update_post_meta($order_id,'_kj_insurance_fee',$items['kj_insurancefee_hidden']);
                     update_post_meta($order_id,'_kj_cod_fee',$items['kj_codfee_hidden']);
+                    
                 }        
             } 
         
-            $order->calculate_shipping();
-            $order->calculate_totals();
 
     }
 
