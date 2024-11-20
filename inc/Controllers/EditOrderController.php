@@ -127,8 +127,12 @@ class EditOrderController{
 
         $service_shipping = get_post_meta($order_id,'_kj_expedition_code',true);
 
+        $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order_id );
+
         if( !empty($service_shipping) ){
            $data_return['service'] = $service_shipping;  
+        }else{
+            $data_return['service'] = $transaction->service.'_'.$transaction->service_name;  
         }
 
         echo json_encode($data_return);
