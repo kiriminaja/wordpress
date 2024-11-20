@@ -5,14 +5,6 @@
 <div class="kj-form">
     <div class="row-divider" ></div>
     <div>
-        <div>
-            <div>Order Prefix</div>
-            <div style="margin-top: .5rem"></div>
-            <div>
-                <input style="width: 100%; max-width: 25rem" name="prefix" type="text" class="input-text regular-input" readonly value="<?php echo @$inputValueArr['oid_prefix'];?>">
-            </div>
-        </div>
-
         <!--ALERT-->
         <div class="alert kj-alert kj-hidden" style="margin-top: .5rem">
             <div style="display: flex">
@@ -30,6 +22,50 @@
             </div>
         </div>
 
+        <div>
+            <div class="row-divider" ></div>
+            <div>Order Prefix</div>
+            <div style="margin-top: .5rem"></div>
+            <div>
+                <input style="width: 100%; max-width: 25rem" name="prefix" type="text" class="input-text regular-input" readonly value="<?php echo @$inputValueArr['oid_prefix'];?>">
+            </div>
+        </div>
+
+        <!-- Field Apikey -->
+        <div>
+            <div class="row-divider" ></div>
+            <div>Url Endpoint</div>
+            <div style="margin-top: .5rem"></div>
+            <table class="table">
+                <tr>
+                    <td style="width:80%;">
+                        <select name="url_endpoint" class="kjform-select">
+                            <option <?= selected($urlEndpoint,'https://client.kiriminaja.com'); ?> value="https://client.kiriminaja.com">Production</option>
+                            <option <?= selected($urlEndpoint,'https://tdev.kiriminaja.com'); ?> value="https://tdev.kiriminaja.com">Sandbox</option>
+                        </select>
+                    </td>
+                    <td style="width:20%;">
+                        <!-- Button Save Field key -->
+                        <div class="kj-btn-container-saveurl">
+                            <button class="button-info woocommerce-kj-save-urlendpoint" type="button">
+                                <div style="display: flex">
+                                    <div style="display: flex;align-items: center;justify-items: center;margin: auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="white">
+                                            <path d="M14 14H2V2H10L14 6V14Z" fill="white"/>
+                                            <rect x="4" y="8" width="8" height="4" fill="#7d3eb9"/>
+                                        </svg>
+                
+                                        <span style="margin-left: 6px;color:white;"><?php echo kjHelper()->tlThis('Save',@$locale); ?></span>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            
+        </div>
+
         <!--Btn Group-->
         <div class="submit-container">
             <div class="row-divider"></div>
@@ -45,6 +81,7 @@
                         </div>
                     </div>
                 </button>
+
             </div>
             <div class="kj-btn-loader-container kj-hidden">
                 <div class="kj-btn-loader" style="margin-top: auto; margin-bottom: auto; margin-left: .5rem"></div>

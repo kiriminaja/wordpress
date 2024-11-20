@@ -247,6 +247,71 @@
         });
     });
 
+    saveUrlEndpoint();
+    function saveUrlEndpoint(){
+        document.addEventListener('DOMContentLoaded', () => {
+            const saveButton  = document.querySelector('.woocommerce-kj-save-urlendpoint');
+            const nameSelect    = document.querySelector(`select[name="url_endpoint"]`);
+            const buttonDisconnect = document.querySelector('.kj-btn-container');
+            const containerSave = document.querySelector('.kj-btn-container-saveurl');
+            const loaderElement = document.querySelector('.kj-btn-loader-container');
+            
+            saveButton.addEventListener('click', () => {
+                const name = nameSelect.value;
+
+                /** Add Class */
+                buttonDisconnect.classList.add('kj-hidden');
+                containerSave.classList.add('kj-hidden');
+
+                /** Run Loader */
+                loaderElement.classList.remove('kj-hidden');
+                
+                /** Fetch Data */
+                fetch(ajaxRouteGenerator(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'kj_save_urlendpoint',
+                        url_endpoint: name,
+                    }),
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    const resp = data.data;
+                    
+                    if (resp?.status == '200') {
+                        window.location.reload();
+                        return;
+                    }
+
+                    buttonDisconnect.classList.remove('kj-hidden');
+                    containerSave.classList.remove('kj-hidden');
+
+                    loaderElement.classList.add('kj-hidden');
+
+                    menuFormLoaderInit('tab-integration',false)
+                    menuFormLoaderInit('tab-advanced',false)
+                    formAlertToggler('tab-integration',true,'Error',resp.message,'')
+                    formAlertToggler('tab-advanced',true,'Error',resp.message,'')
+
+                })
+                .catch((error) => {
+                    buttonDisconnect.classList.remove('kj-hidden');
+                    containerSave.classList.remove('kj-hidden');
+
+                    loaderElement.classList.add('kj-hidden');
+
+                    /** Error Message */
+                    menuFormLoaderInit('tab-integration',false);
+                    menuFormLoaderInit('tab-advanced',false);
+                    formAlertToggler('tab-integration',true,'Error','Set Url Endpoint Failed','');
+                });
+            });
+        });
+
+    }
 </script>
 <!--Origin Setup-->
 <script type="text/javascript">

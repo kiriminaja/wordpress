@@ -44,6 +44,8 @@ class SettingService extends BaseService{
             if (!@$arrayRepo['status'] || !@$arrayRepoData['status']){
                 return self::error([],'Invalid Setup Key');
             }
+
+            $url_endpoint_production = 'https://client.kiriminaja.com';
             
             /** Storing result to DB*/
             $arrayRepoDataData = (array) $arrayRepoData['result'];
@@ -52,6 +54,7 @@ class SettingService extends BaseService{
                 'oid_prefix'=>sanitize_text_field($arrayRepoDataData['oid_prefix']),
                 'setup_key'=>sanitize_text_field($setupPayload['setup_key']),
                 'callback_url'=>$setupPayload['callback_url'],
+                'url_endpoint'=>$url_endpoint_production
             ]);
             
         } catch (\Throwable $th){
@@ -163,6 +166,27 @@ class SettingService extends BaseService{
 
         } catch (\Throwable $th){
             (new \Inc\Base\BaseInit())->logThis('storeCallbackData errr',$th->getMessage());
+            return self::error([],$th->getMessage());
+        }
+        return self::success([]);
+    }
+
+    public function storeUrlEndPointData(array $payloads){
+        try {
+
+            $validate = (new \Inc\Base\Validator())->validateMultiple([
+                [$payloads['url_endpoint'],'Url Endpoint',['required']],
+            ]);
+
+            if (!$validate['status']){ return self::error([],$validate['msg']);}
+
+            /** Storing to DB*/
+            (new \Inc\Repositories\SettingRepository())->storeUrlEndPointData([
+                'url_endpoint'=>sanitize_text_field($payloads['url_endpoint']),
+            ]);
+
+        } catch (\Throwable $th){
+            (new \Inc\Base\BaseInit())->logThis('storeUrlEndPointData errr',$th->getMessage());
             return self::error([],$th->getMessage());
         }
         return self::success([]);
