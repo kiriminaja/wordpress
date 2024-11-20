@@ -1,5 +1,5 @@
 === Kiriminaja ===
-Contributors: kiriminaja
+Contributors: yanuaraditia
 Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.1
 Tested up to: 6.6.2
