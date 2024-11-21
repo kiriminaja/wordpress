@@ -195,6 +195,7 @@ jQuery(document).ready(function(){
             <input type="hidden" name="kj_subdistrict_name"/>
             <input type="hidden" class="codfeehidden" name="kj_codfee_hidden"/>
             <input type="hidden" class="insurancefeehidden" name="kj_insurancefee_hidden"/>
+            <input type="hidden" class="insuranceChecklist" name="insuranceChecklist"/>
         `);        
 
         getSearchAreaKelurahan();
@@ -257,7 +258,7 @@ jQuery(document).ready(function(){
             }else if($(this).attr('name') == '_shipping_kj_destination_area'){
                 $('[name="_shipping_kj_destination_name"]').val(destination_name);
             }
-
+            
             //set subdistrict hidden
             $('[name="kj_subdistrict_id_hidden"]').val(destination_id);
             $('[name="kj_subdistrict_name_hidden"]').val(destination_name);
@@ -294,15 +295,15 @@ jQuery(document).ready(function(){
             var destination_name = $(this).find("option:selected").text();
 
             if( $(this).find("option:selected").length == 0 ){
-                if( selectNameShipping.val() != '' ){
+                if( selectNameShipping.text() != '' ){
                     destination_id = selectNameShipping.val();
                     destination_name = selectNameShipping.text();
                 }else{
                     destination_id = selectNameBilling.val();
                     destination_name = selectNameBilling.text();
                 }
-            }            
-
+            }  
+                        
             let data = {
                 'action': 'kiriminaja_expedition_by_pricing',
                 'destination_id': Number(destination_id),
@@ -379,6 +380,7 @@ jQuery(document).ready(function(){
         let insuranceFeeClass = $('.insurancefee');
         let codFeeClass = $('.codfee');
         let insuranceHiddenName = $('[name="kj_insurancefee_hidden"]');
+        let codfeeHiddenName = $('[name="kj_codfee_hidden"]');
 
         selectExpeditionName = $('select[name=kj_expedition]');
 
@@ -452,7 +454,7 @@ jQuery(document).ready(function(){
                     }
                     
                     if( response?.data?.cod_fee != '0' ) codFeeClass.find('.total').html(response.data.cod_fee);
-                    if( response?.data?.cod_fee_number != '0' ) insuranceHiddenName.val(response.data.cod_fee_number);
+                    if( response?.data?.cod_fee_number != '0' ) codfeeHiddenName.val(response.data.cod_fee_number);
                     
 
                     get_OnChangeCodAndInsurance();
@@ -579,7 +581,8 @@ jQuery(document).ready(function(){
         
         selectSubdistrictName = $('select[name="kj_subdistrict"] option:selected');
 
-        if(selectNameShipping.val() == '' ){
+
+        if(selectNameShipping.text() == '' ){
             if(selectNameBilling.val() != '') {                
                 id_destination = selectNameBilling.val();
                 name_destination = selectNameBilling.text();
@@ -591,7 +594,7 @@ jQuery(document).ready(function(){
             id_destination = selectNameShipping.val();
             name_destination = selectNameShipping.text();   
         }
-
+        
         return {id_destination: id_destination, name_destination: name_destination};
     }
 

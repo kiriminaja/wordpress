@@ -35,7 +35,6 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['oid_prefix']), array('key' => 'oid_prefix'));
         $wpdb->update($this->table, array('value' => @$payload['setup_key']), array('key' => 'setup_key'));
         $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url'));
-        $wpdb->update($this->table, array('value' => @$payload['url_endpoint']), array('key' => 'url_endpoint'));
     
         return true;
     }
@@ -207,10 +206,4 @@ class SettingRepository{
         
     }
 
-    public function storeUrlEndPointData($payload){
-        global $wpdb;
-        if (!$payload['url_endpoint']){throw new \Exception('payload err');}
-        $wpdb->update($this->table, array('value' => $payload['url_endpoint']), array('key' => 'url_endpoint'));
-        return true;
-    }
 }
