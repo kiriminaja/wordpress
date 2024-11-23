@@ -38,9 +38,6 @@ class SettingController{
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
         
-        /** storeEndPoint */
-        add_action('wp_ajax_kj_save_urlendpoint', array($this,'storeEndPointData'));
-
     }
     function getIntegrationData() {
         try {
@@ -137,18 +134,6 @@ class SettingController{
             }
             
             wp_send_json_success($kiriminajaExpedition);
-        }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
-        }
-    }
-
-    function storeEndPointData(){
-        try {
-            $data = array('url_endpoint' => $_POST['url_endpoint']);
-            $service = (new \Inc\Services\SettingService())->storeUrlEndPointData($data ?? []);
-            if ($service->status!==200){ wp_send_json_error($service);}
-            wp_send_json_success($service);
-
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }

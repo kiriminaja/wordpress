@@ -241,7 +241,8 @@ class TransactionRepository{
                 service_name = '".$payload['service_name']."',
                 shipping_cost ='".$payload['shipping_cost']."',
                 insurance_cost ='".$payload['insurance_cost']."',
-                cod_fee ='".$payload['cod_fee']."'
+                cod_fee ='".$payload['cod_fee']."',
+                transaction_value ='".$payload['transaction_value']."'
             WHERE 
                 wp_wc_order_stat_order_id = '".$payload['wp_wc_order_stat_order_id']."'
             "

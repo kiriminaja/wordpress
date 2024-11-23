@@ -46,7 +46,6 @@ class SetupMigration {
             ('origin_longitude', null),
             ('callback_url', null),
             ('origin_zip_code', null),
-            ('url_endpoint',null),
             ");
         }
         
