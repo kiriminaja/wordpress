@@ -1,0 +1,16 @@
+name: Plugin Wordrpress Kiriminaja Development
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  deploy:
+    runs-on: [self-hosted,kaj-dev-runner]
+    steps:
+      - uses: actions/checkout@v2
+         
+      - name: Deploy
+        run: |
+          cd /home/devstag/kaj-dev-latest-plugin-wp/wp-content/plugins/plugin-wp # navigate into the folder
+          git pull origin development # pull the latest code from branch development
