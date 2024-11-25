@@ -10,8 +10,9 @@ class KiriminAjaApi
     public function __construct()
     {
         global $wp_version;
-        $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
-        
+
+        $this->base_url = 'https://client.kiriminaja.com';
+
         $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
         $this->default_args = array(

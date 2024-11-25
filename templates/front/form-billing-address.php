@@ -268,6 +268,7 @@
                             let insurance_res = response?.data?.insurance_fee ?? 0;
                             let cod_fee_res = response?.data?.cod_fee ?? 0;
                                     
+        
                             if( response?.data?.is_insurance == 0 ){
                                 jQuery('.kj_cart_item_insurane').hide();
                             }else{
@@ -277,10 +278,8 @@
                             if( response?.data?.is_cod_amt  == 0 ){
                                 jQuery('.kj_cart_item_cod_fee').hide();
                             }else{
-                                jQuery('.kj_cart_item_cod_fee').show();
+                                jQuery('.kj_cart_item_cod_fee').show();  
                             }
-
-                            jQuery('#order_review').find('.order-total td').html(response?.data?.price_total);  
                             
                             /**
                              * Display cost insurance information

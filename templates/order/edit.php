@@ -498,7 +498,6 @@
         let kjOrderData = `{$kjOrderData}`
         let kjOrderDataParsed = JSON.parse(kjOrderData)
         
-        console.log(`orderId : ${orderId}`)
         let tBodycontent = ''
         
         jQuery('#side-sortables').append(`

@@ -99,14 +99,6 @@ function kj_getDestinationArea(){
                     $datas['insurance_fee'] = wc_price($service->data['calculation_result']['insurance_amt']) ?? 0;
                     $datas['is_insurance'] = $service->data['calculation_result']['insurance_amt'];
                 }
-
-                if( !empty($post['payment_method']) || !empty($post['shipping_metode_id']) ){
-                    $cod_amt = (float) $service->data['calculation_result']['cod_amt'] ?? 0;
-                    $insurance_amt = (float) $service->data['calculation_result']['insurance_amt'] ?? 0;
-                    $order_total = (float) WC()->cart->get_total('raw');
-
-                    $datas['price_total'] = wc_price( $cod_amt + $insurance_amt + $order_total );
-                }
                 
                 WC()->cart->calculate_totals();
                 

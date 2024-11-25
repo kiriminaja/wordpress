@@ -57,7 +57,7 @@ class EditOrderController{
             home_url().'/tracking?order_id='.$order,
             json_encode($service->data)
         ];
-        
+
         $content = file_get_contents(plugin_dir_path(dirname(__FILE__,2)). 'templates/order/edit.php');
         echo str_replace(
         $willBeReplaced, $replaceWith, $content);
@@ -86,6 +86,14 @@ class EditOrderController{
         
         $order = wc_get_order( $order_id );
 
+        $insurance = false;
+        if( $order->get_meta('_billing_kj_insurance') == 'yes' ) {
+            $insurance = true;
+        }
+        if( $order->get_meta('_shipping_kj_insurance') == 'yes'){
+            $insurance = true;
+        }
+                
         /** convert unit weight */
         $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $order->get_items()
@@ -98,7 +106,7 @@ class EditOrderController{
             'length'    => $cartAttributes->data['length'],
             'width'     => $cartAttributes->data['width'],
             'height'    => $cartAttributes->data['height'],
-            'insurance' => 1,
+            'insurance' => (int) $insurance,
             'item_value'=> $cartAttributes->data['item_value'],
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
@@ -111,7 +119,24 @@ class EditOrderController{
             wp_send_json_error( ['code'=>'404','message'=>'Expedition Not Found'] );
         }
 
-        wp_send_json_success($return);
+        $data_return = [
+            'data'=>$return,
+            'status'=>true,
+            'success'=>true,
+        ];
+
+        $service_shipping = get_post_meta($order_id,'_kj_expedition_code',true);
+
+        $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order_id );
+
+        if( !empty($service_shipping) ){
+           $data_return['service'] = $service_shipping;  
+        }else{
+            $data_return['service'] = $transaction->service.'_'.$transaction->service_name;  
+        }
+
+        echo json_encode($data_return);
+        wp_die();
     }
 
     public function filterOptions($pricingData){
@@ -148,14 +173,15 @@ class EditOrderController{
                 if(!empty($items['kj_expedition_name']))
                 {
                     $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
-                    
-                    $qty = 0;
+
+                    $qty = 0; $subtotal = 0;
                     foreach( $order->get_items() as $item_id_shipping => $item ) {
                         $qty += (int) $item->get_quantity();
+                        $subtotal += $item->get_total(); // Ambil harga item
                     }
     
                     $item_price = (int) $expediton_cost * $qty;
-    
+
                     $calculate_data = $this->kj_calculationAdminOrder([
                         'order_id' => $order_id,
                         'kj_subdistrict'=>$items['kj_subdistrict'],
@@ -176,7 +202,17 @@ class EditOrderController{
                         $item->save();
         
                     }   
+
+                    $order->calculate_shipping();
+                    $order->calculate_totals();
+
+                    $order_total = (float) $subtotal + ( (float) $items['kj_codfee_hidden'] ?? 0 ) + ( (float) $items['kj_insurancefee_hidden'] ?? 0 );
+                    $order_totals = (float) $item_price + (float) $order_total;
+
+                    /* Update Total Order*/
+                    update_post_meta($order_id,'_order_total', $order_totals);
                     
+                                        
                     /* Simpan Di Post Meta */
                     update_post_meta($order_id,'_kj_subdistrict_id',$items['kj_subdistrict']);
                     update_post_meta($order_id,'_kj_subdistrict_name',$items['kj_subdistrict_name']);
@@ -187,11 +223,33 @@ class EditOrderController{
     
                     update_post_meta($order_id,'_kj_insurance_fee',$items['kj_insurancefee_hidden']);
                     update_post_meta($order_id,'_kj_cod_fee',$items['kj_codfee_hidden']);
+
+                    /** Validasi Transaction*/
+                    $courier = explode('_',$items['kj_expedition'] );
+                    $insurance = get_post_meta($order_id,'_billing_kj_insurance',true);
+
+                    $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId($order_id);
+
+                    if( empty($transaction) ) return true;
+
+                    $payloads = [
+                        'destination_sub_district_id' =>(int) $items['kj_subdistrict'],
+                        'destination_sub_district' => $items['kj_subdistrict_name'],
+                        'service' =>$courier[0],
+                        'service_name' =>$courier[1],
+                        'shipping_cost' => $item_price,
+                        'insurance_cost' => !empty($insurance) ? $items['kj_insurancefee_hidden'] : 0,
+                        'cod_fee' => ($order->get_payment_method() == 'cod' ) ? $items['kj_codfee_hidden'] : 0,
+                        'transaction_value' => $subtotal,
+                        'wp_wc_order_stat_order_id'=>(int) $order_id,
+                    ];
+
+                    $updateTransactionRepo = (new \Inc\Repositories\TransactionRepository())->updateTransaction($payloads);
+                    (new \Inc\Base\BaseInit())->logThis('saveorder_updateTransactionRepo',[$updateTransactionRepo]);
+
                 }        
             } 
         
-            $order->calculate_shipping();
-            $order->calculate_totals();
 
     }
 
@@ -273,12 +331,13 @@ class EditOrderController{
 
             $payloads = [
                 'destination_sub_district_id' =>(int) $payload['kj_subdistrict'],
-                'destination_sub_district' => (int) $payload['kj_subdistrict_name'],
+                'destination_sub_district' => $payload['kj_subdistrict_name'],
                 'service' =>$courier[0],
                 'service_name' =>$courier[1],
                 'shipping_cost' => $payload['kj_expedition_cost'],
                 'insurance_cost' => !empty($insurance) ? $checkoutCalculation['insurance_amt'] : 0,
                 'cod_fee' => ($order->get_payment_method() == 'cod' ) ? $checkoutCalculation['cod_amt'] : 0,
+                'transaction_value' => $order->get_total(),
                 'wp_wc_order_stat_order_id'=>(int) $payload['order_id'],
             ];
 

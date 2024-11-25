@@ -269,7 +269,6 @@ class CallbackHandlerService extends BaseService{
     /** Cancel Packages Callback */
     public function canceledPackages(){
         try {
-
             foreach ($this->packages as $package){
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
@@ -280,11 +279,8 @@ class CallbackHandlerService extends BaseService{
                 if ($theTransaction){
                     /** Update KJ Table*/
                     $payload = [];
-                    
-                    $canceledAt = $package->canceled_at ?? date('Y-m-d H:i:s');
-
                     $payload['changes']=[
-                        'canceled_at'   =>  kjHelper()->dateConvertGMT( $canceledAt ),
+                        'canceled_at'   =>  $package->canceled_at,
                         'status'        =>  'canceled'
                     ];
                     $payload['condition']=[
@@ -294,7 +290,7 @@ class CallbackHandlerService extends BaseService{
 
                     /** Update in wc order table*/
                     $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
-                    $order->update_status( 'cancelled' );
+                    $order->update_status( 'canceled' );
                 }
                 
 

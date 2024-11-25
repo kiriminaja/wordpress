@@ -205,4 +205,5 @@ class SettingRepository{
         return $datas;
         
     }
+
 }
