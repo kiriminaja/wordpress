@@ -50,7 +50,6 @@ function kj_getDestinationArea(){
             }
         }
 
-
         $destination_id = (int) $post['val'];
 
         $payment = !empty($post['payment_method']) ? $post['payment_method'] : null;
@@ -88,7 +87,7 @@ function kj_getDestinationArea(){
             ];
 
             $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
-
+      
             if( !empty($service->data) ){
                 if( !empty($post['payment_method'])  ){
                     $datas['cod_fee'] = wc_price($service->data['calculation_result']['cod_amt']) ??  0;
@@ -100,12 +99,19 @@ function kj_getDestinationArea(){
                     $datas['insurance_fee'] = wc_price($service->data['calculation_result']['insurance_amt']) ?? 0;
                     $datas['is_insurance'] = $service->data['calculation_result']['insurance_amt'];
                 }
-    
+                
+                WC()->cart->calculate_totals();
+                
                 wp_send_json_success( $datas );
             }else{
+                
+                WC()->cart->calculate_totals();
+
                 wp_send_json_error( ['is_insurance'=>0,'is_cod_amt'=>0] );
             }
         }
+
+        WC()->cart->calculate_totals();
 
         wp_send_json_error( ['is_insurance'=>0,'is_cod_amt'=>0] );
 

@@ -47,7 +47,7 @@ $calculator_text          = '';
 			<?php woocommerce_shipping_calculator( $calculator_text ); ?>
 		<?php endif; ?>
 
-        <?php if ( ! empty( $available_methods ) && is_array( $available_methods ) ) : ?>
+        <?php if ( ! empty( $available_methods ) && is_array( $available_methods ) && get_option( 'woocommerce_enable_shipping_calc' ) != 'no' ) : ?>
 			<ul id="shipping_method" class="woocommerce-shipping-methods">
 				<?php foreach ( $available_methods as $method ) : ?>
 					<li>
@@ -64,7 +64,7 @@ $calculator_text          = '';
 				<?php endforeach; ?>
 			</ul>
 			<?php if ( is_cart() ) : ?>
-				<p class="woocommerce-shipping-destination">
+				<p class="woocommerce-shipping-destination" style="display:none;">
 					<?php
 					if ( $formatted_destination ) {
 						// Translators: $s shipping destination.

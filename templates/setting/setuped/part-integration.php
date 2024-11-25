@@ -5,14 +5,6 @@
 <div class="kj-form">
     <div class="row-divider" ></div>
     <div>
-        <div>
-            <div>Order Prefix</div>
-            <div style="margin-top: .5rem"></div>
-            <div>
-                <input style="width: 100%; max-width: 25rem" name="prefix" type="text" class="input-text regular-input" readonly value="<?php echo @$inputValueArr['oid_prefix'];?>">
-            </div>
-        </div>
-
         <!--ALERT-->
         <div class="alert kj-alert kj-hidden" style="margin-top: .5rem">
             <div style="display: flex">
@@ -30,6 +22,15 @@
             </div>
         </div>
 
+        <div>
+            <div class="row-divider" ></div>
+            <div>Order Prefix</div>
+            <div style="margin-top: .5rem"></div>
+            <div>
+                <input style="width: 100%; max-width: 25rem" name="prefix" type="text" class="input-text regular-input" readonly value="<?php echo @$inputValueArr['oid_prefix'];?>">
+            </div>
+        </div>
+        
         <!--Btn Group-->
         <div class="submit-container">
             <div class="row-divider"></div>
@@ -45,6 +46,7 @@
                         </div>
                     </div>
                 </button>
+
             </div>
             <div class="kj-btn-loader-container kj-hidden">
                 <div class="kj-btn-loader" style="margin-top: auto; margin-bottom: auto; margin-left: .5rem"></div>

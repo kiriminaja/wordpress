@@ -33,7 +33,7 @@ class SettingService extends BaseService{
             //custom url validation when local set to dev kj only development test
             $setupPayload = [
               'setup_key' => $setupKey,
-              'callback_url' => ( ( $_SERVER['SERVER_NAME'] == 'localhost' ) ? 'https://kaj-dev-latest-plugin-wp.bakso.my.id' : @home_url() ).'/kiriminaja-callback'
+              'callback_url' => @home_url().'/kiriminaja-callback'
             ];
             
             $repo = (new \Inc\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);            

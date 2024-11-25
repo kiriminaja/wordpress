@@ -62,6 +62,9 @@ class CallbackHandlerService extends BaseService{
             case "rejected_packages":
                 $this->processing = $this->rejectedPackages();
                 break;
+            case "canceled_packages":
+                $this->processing = $this->canceledPackages();
+                break;
         }
 
         if (!$this->processing['status']){
@@ -255,7 +258,41 @@ class CallbackHandlerService extends BaseService{
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
     }
-    
-    
+
+    /** Cancel Packages Callback */
+    public function canceledPackages(){
+        try {
+            foreach ($this->packages as $package){
+                /** Check if wc transaction exist and get wc order id*/
+                $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
+                $theTransaction = @$this->transactions[$transactionArrKey];
+
+                (new \Inc\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
+                
+                if ($theTransaction){
+                    /** Update KJ Table*/
+                    $payload = [];
+                    $payload['changes']=[
+                        'canceled_at'   =>  $package->canceled_at,
+                        'status'        =>  'canceled'
+                    ];
+                    $payload['condition']=[
+                        'order_id'=>$package->order_id
+                    ];
+                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+
+                    /** Update in wc order table*/
+                    $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
+                    $order->update_status( 'canceled' );
+                }
+                
+
+                
+            }
+            return ['status'=>true, 'message'=>'',];
+        }catch (\Throwable $th){
+            return ['status'=>false, 'message'=>$th->getMessage(),];
+        }
+    }
     
 }

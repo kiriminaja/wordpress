@@ -68,24 +68,26 @@ function kj_shippingMethod(){
                     return;
                 }
 
+                /** convert unit weight */
+                $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+                    'wc_cart_contents' => WC()->cart->get_cart()
+                ]))->call();
+
                 $payload = [
                     'subdistrict_origin' => (int) $settingRepo->value,
                     'subdistrict_destination'=>$destination_id,
-                    'weight' => WC()->cart->cart_contents_weight,
-                    'length' => $length,
-                    'width' => $width,
-                    'height' => $height,
+                    'weight' => $cartAttributes->data['weight'],
+                    'length' => $cartAttributes->data['length'],
+                    'width' =>  $cartAttributes->data['width'],
+                    'height' => $cartAttributes->data['height'],
                     'insurance' => (int) $kj_insurance,
                     'item_value' => WC()->cart->cart_contents_total,
                     'courier' => "", // 'jne', 'pos', 'tiki', 'jet'
                 ];
 
-
                 $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 
                 $res_pricing = $kjPricing['data']; //object
-                
-
                 
                 foreach($this->filterOptions($res_pricing,$quantity) as $row){
                     
@@ -101,7 +103,10 @@ function kj_shippingMethod(){
             }
 
             public function filterOptions($pricingData,$quantity){
-                $is_cod = !empty( WC()->session->get( 'kj_payment_method' ) ) ? true : false;
+
+                $chosen_payment_method = WC()->session->get('chosen_payment_method');
+
+                $is_cod = $chosen_payment_method === 'cod';
 
                 $options = $pricingData->results ?? [];
 
@@ -139,11 +144,18 @@ function kj_addShippingMethod($methods){
 }
 
 add_filter( 'woocommerce_add_to_cart_validation', 'kj_add_the_date_validation', 10, 5 );
-function kj_add_the_date_validation( $passed ) { 
-
+function kj_add_the_date_validation( $passed, $product_id ) { 
+    
+    $product = get_product( $product_id );
+    
     $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
     if(!$settingRepo||$settingRepo->value === null){
         wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja"), "error");
+        $passed = false;
+    }
+
+    if( empty($product->get_weight()) ){
+        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman"), "error");
         $passed = false;
     }
 

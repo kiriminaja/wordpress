@@ -1,36 +1,64 @@
-=== KiriminAja ===
+=== Kiriminaja ===
 Contributors: yanuaraditia
-Donate link: https://kiriminaja.com/
-Tags: 0.0.28
-Requires at least: 0.0.28
-Tested up to: 0.0.28
-Stable tag: 0.0.28
+Tags: shipping, ecommerce, WooCommerce, logistics
+Requires at least: 6.1
+Tested up to: 6.6.2
 Requires PHP: 7.0
-License: GPLv2 or later
+Stable tag: 3.1.0
+License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Easily integrate to more than 13 couriers across the Indonesia
+Easily integrate to more than couriers across the Indonesia
 
 == Description ==
 
-KiriminAja adalah sebuah platform yang memberikan kemudahan untuk pengiriman paket dan menemukan ekspedisi sesuai kebutuhan masyarakat, dengan metode pengiriman COD dan Non-COD yang dikembangkan oleh PT Selalu Siap Solusi.
+Kiriminaja is a platform that makes it easy to send packages and find expeditions according to people's needs, with COD and Non-COD delivery methods developed by PT Selalu Siap Solusi.
 
-Kemi memberikan solusi untuk UMKM, pebisnis online, serta seluruh masyarakat Indonesia yang ingin melakukan pengiriman paket.
+**Key Features:**
+* Ease of sending packages with various expedition options.
+* COD (Cash On Delivery) delivery service with daily fund disbursement and package pickup system at home by the expedition.
+* Non-COD package delivery service with package pickup system at home by the expedition.
+* Platform that can help online business people control and manage their business better.
+* With the services and innovations offered, KiriminAja is committed to contributing to the Indonesian economy, by providing solutions and convenience for online business people so that their business continues to grow.
 
-Kami menawarkan:
+This plugin is perfect for eCommerce store owners looking for a hassle-free shipping solution.
 
-- Kemudahan pengiriman paket dengan pilihan berbagai ekspedisi.
-- Adanya layanan pengiriman COD (Cash On Delivery) dengan pencairan dana harian dan sistem pengambilan paket dirumah oleh ekspedisi.
-- Layanan pengiriman paket non-cod dengan sistem pengambilan paket dirumah oleh ekspedisi.
-- Platform yang dapat membantu pebisnis online mengendalikan dan mengelola bisnisnya dengan lebih baik.
-- Dengan layanan dan inovasi yang ditawarkan, KiriminAja memiliki komitmen untuk berkontribusi pada perekonomian Indonesia, dengan cara memberikan solusi serta kemudahan bagi para pebisnis online supaya bisnisnya terus berkembang.
+== Installation ==
+
+1. Upload the plugin files to the `/wp-content/plugins/kiriminaja` directory, or install the plugin through the WordPress plugins screen directly.
+2. Activate the plugin through the 'Plugins' screen in WordPress.
+3. Navigate to `Kiriminaja > Integration` to configure your integration shipping options.
+4. Navigate to `Kiriminaja > Shipping` to configure your shipping options SiteOrigin.
+5. Set Whitelist Shipping
 
 == Frequently Asked Questions ==
 
-= KiriminAja ekspedisi apa =
+= KiriminAja what expedition =
+KiriminAja is a package delivery management platform with COD and non-COD delivery methods on various expeditions. You are a platform user who accesses KiriminAja services, whether registered as an account owner or not.
 
-KiriminAja adalah platform pengelola pengiriman paket dengan metode pengiriman COD dan non-COD pada berbagai ekspedisi. Anda adalah pengguna platform yang mengakses layanan KiriminAja, baik yang terdaftar sebagai pemilik akun maupun bukan pemilik akun.
+= Can COD be done without Marketplace? =
+Yes, you can use J&T Express COD service to send goods without having to go through online buying and selling platforms such as marketplaces.
 
-= Apakah bisa COD tanpa Marketplace? =
+= Does this plugin support Indonesia Domestic shipping? =
+Yes, the plugin allows you to set up shipping options for Indonesia domestic.
 
-Ya, Anda bisa menggunakan layanan COD J&T Express untuk mengirimkan barang tanpa harus melalui platform jual-beli online seperti marketplace.
+= Is it compatible with all WooCommerce themes? =
+Yes, it works with any WooCommerce-compatible theme.
+
+= Does it support live shipping rates? =
+Yes, you can integrate with carriers that provide API access for live rates.
+
+= Can I add custom shipping rules? =
+Yes, you can define rules based on weight, destination, or order total.
+
+= Does this plugin support international shipping? =
+Currently, this plugin only supports domestic shipping within Indonesia.
+
+== Changelog ==
+
+= 3.1.0 =
+* First release of the plugin.
+
+== Upgrade Notice ==
+= 3.1.0 =
+This is the first stable release. Please report any issues.

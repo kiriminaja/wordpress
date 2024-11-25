@@ -33,12 +33,21 @@ class settingIndex {
         /** check if origin shipping data completed*/
         $isOriginShippingDataReady=true;
         for ($i=0; $i<count($shippingRepo);$i++){
+            
+            if( 
+                in_array(
+                    $shippingRepo[$i]->key,
+                    ['origin_whitelist_expedition_id','origin_whitelist_expedition_name'] 
+                ) 
+            ){
+                continue;
+            }
             if (!@$shippingRepo[$i]->value){
                 $isOriginShippingDataReady=false;
                 break;
             }
         }
-        
+    
         /** Return vars and view*/
         if (@$approvedSetupKey->value){
             include 'setuped/index.php';
