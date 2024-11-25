@@ -36,11 +36,11 @@ class KiriminajaApiService extends BaseService{
         ]);
 
         (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
-        
-        
+                
         if (!@$repo['status'] || !@$repo['data']->status){
             return self::error([],@$repo['data']->text ?? 'Something is wrong');
         }
+
         return self::success($repo['data']);
     }
 

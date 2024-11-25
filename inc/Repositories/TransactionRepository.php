@@ -66,6 +66,30 @@ class TransactionRepository{
         }
         return $query;
     }
+
+    public function getTransactionByAWBforTracking($awb){
+        global $wpdb;
+        $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
+        
+        $get_wc_orderid = $wpdb->get_row( 
+            $wpdb->prepare(
+                "SELECT wp_wc_order_stat_order_id FROM `$transactionTable` WHERE `awb` LIKE %s OR `wp_wc_order_stat_order_id` LIKE %s",
+                '%' . $awb . '%',
+                '%' . $awb . '%'
+            )
+        );
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        
+        $wc_order_id = is_null($get_wc_orderid) ? '' : $get_wc_orderid->wp_wc_order_stat_order_id;
+
+        $query = $this->getTransactionByWCOrderNumberForTracking( $wc_order_id );
+
+        return $query;
+    }
     
     public function getTransactionByPickupNumber($pickupNumber){
         global $wpdb;
@@ -161,7 +185,7 @@ class TransactionRepository{
 
     public function getTransactionByOldestDate(){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
+        $query = $wpdb->get_row( "SELECT * FROM ".$this->table." WHERE created_at IS NOT NULL ORDER BY created_at ASC");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -198,7 +222,12 @@ class TransactionRepository{
 
     public function getCountTransactionProcessNew(){
         global $wpdb;
-        $query = $wpdb->get_var( "SELECT count(*) FROM `".$this->table."` WHERE status ='new'");
+        /** update query */
+        $query = $wpdb->get_var( 
+            "SELECT count(*) FROM ".$this->table." tp 
+            INNER JOIN ".$wpdb->prefix."posts p ON p.ID = tp.wp_wc_order_stat_order_id
+            WHERE tp.status ='new' AND p.post_status = 'wc-processing'
+        ");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

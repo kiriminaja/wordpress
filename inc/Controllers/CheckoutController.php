@@ -190,6 +190,33 @@ class CheckoutController
             $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
         }
         
+        /** 
+         * save to custom order metadata 
+         * field kelurahan 
+         **/
+        $field_key = $this->field_destination_key;
+        if ( isset($destination_area) && ! empty($destination_area) ) {
+            $order->update_meta_data( '_' . $field_key, sanitize_text_field($destination_area) );
+        }
+
+        if( isset($insurance_post) && !empty($insurance_post) ){
+            $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
+        }
+
+        //save meta subdistrict billing woocommerce
+        if( isset($_POST['kj_destination_area']) && !empty($_POST['kj_destination_area']) ) $order->update_meta_data( '_billing_kj_destination_area', sanitize_text_field($_POST['kj_destination_area']) );
+        if( isset($_POST['kj_destination_area_name']) && !empty($_POST['kj_destination_area_name']) ) $order->update_meta_data( '_billing_kj_destination_name', sanitize_text_field($_POST['kj_destination_area_name']) );
+
+        //save meta Insurance billing woocommerce
+        if( isset($data['kj_insurance']) && !empty($data['kj_insurance']) ) $order->update_meta_data( '_billing_kj_insurance', sanitize_text_field( ( $data['kj_insurance'] == true ) ? 'yes' : '' ) );
+        
+        //save meta subdistrict shipping woocommerce
+        if( isset($_POST['kj_shipping_destination_area']) && !empty($_POST['kj_shipping_destination_area']) ) $order->update_meta_data( '_shipping_kj_destination_area', sanitize_text_field($_POST['kj_shipping_destination_area']) );
+        if( isset($_POST['kj_shipping_destination_area_name']) && !empty($_POST['kj_shipping_destination_area_name']) ) $order->update_meta_data( '_shipping_kj_destination_name', sanitize_text_field($_POST['kj_shipping_destination_area_name']) );
+        
+        //save meta Insurance shipping woocommerce
+        if( isset($data['kj_shipping_insurance']) && !empty($data['kj_shipping_insurance']) ) $order->update_meta_data( '_shipping_kj_insurance', sanitize_text_field( ( $data['kj_shipping_insurance'] == true ) ? 'yes' : '' ) );
+
     }
     
     function getExpeditionOptionAjax(){
@@ -360,18 +387,16 @@ class CheckoutController
                     foreach ($package['contents'] as $item_id => $values) {
                         $_product = $values['data'];
     
-                        /**
-                         * Set Weight empty to 1
-                         */
-                        $weight = $weight + ( empty( $_product->get_weight() ) ? 1 : $_product->get_weight()) * $values['quantity'];
-                        
+                        if( empty( $_product->get_weight() ) ){
+                            $weight = 0;
+                        }else{
+                            $weight = $_product->get_weight() * $values['quantity'];
+                        }
+
                         if( $weight == 0 ){
                             $message = __("Berat Produk ".$_product->get_name()." Perlu di Setting",'kiriminaja');
                             $messageType = "error";
-                            
-                            if (!wc_has_notice($message, $messageType)) {
-                                wc_add_notice($message, $messageType);
-                            }
+                            wc_add_notice($message, $messageType);
                         }
                     }
                     

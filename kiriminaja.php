@@ -19,6 +19,8 @@ if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_
     @ini_set( 'display_errors', 1 );
 }
 
+date_default_timezone_set('Asia/Jakarta'); // Atur timezone ke GMT+7
+
 define( 'KJ_PLUGIN_VERSION', rand(0,999));
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));

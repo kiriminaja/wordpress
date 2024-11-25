@@ -1,10 +1,13 @@
 <div class="kj-wc-general-shipping">
     <?php 
+    $weight_unit = get_option('woocommerce_weight_unit');
+    $dimension_unit = get_option('woocommerce_dimension_unit');
+
         woocommerce_wp_text_input(
             array(
                 'id' => '_kj_weight',
                 'placeholder' => 'Weight',
-                'label' => __('Weight Product', 'kiriminaja'),
+                'label' => __('Weight '.'('.$weight_unit.')', 'kiriminaja'),
                 'desc_tip' => 'true',
                 'description'=>__('Weight Form', 'kiriminaja'),
                 'type' => 'number',
@@ -22,7 +25,7 @@
                 'desc_tip' => true,
                 'description'=>__('Length Form', 'kiriminaja'),
                 'placeholder' => 'Length',
-                'label' => __('Length Product', 'kiriminaja'),
+                'label' => __('Length '.'('.$dimension_unit.')', 'kiriminaja'),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_length',true) ?? ''
             )
@@ -34,7 +37,7 @@
                 'desc_tip' => true,
                 'description'=>__('Width Form', 'kiriminaja'),
                 'placeholder' => 'Width',
-                'label' => __('Width Product', 'kiriminaja'),
+                'label' => __('Width '.'('.$dimension_unit.')', 'kiriminaja'),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_width',true) ?? ''
             )
@@ -46,7 +49,7 @@
                 'desc_tip' => true,
                 'description'=>__('Height Form', 'kiriminaja'),
                 'placeholder' => 'Height',
-                'label' => __('Height Product', 'kiriminaja'),
+                'label' => __('Height '.'('.$dimension_unit.')', 'kiriminaja'),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_height',true) ?? ''
             )

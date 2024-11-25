@@ -77,6 +77,10 @@ wc_cart_contents
         
         (new \Inc\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
         
+        if($kjPricing['status'] != 200){
+            return self::error([],@$kjPricing['message'] ?? 'Terjadi Kesalahan!');
+        }
+        
         /** Jika gagal dapat data expedisi*/
         if(!$kjPricing['data']->status){
             return self::error([],@$kjPricing['data'] ?? 'Terjadi Kesalahan!');
