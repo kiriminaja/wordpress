@@ -89,10 +89,10 @@ function kj_getDestinationArea(){
             $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
       
             if( !empty($service->data) ){
+                
                 if( !empty($post['payment_method'])  ){
                     $datas['cod_fee'] = wc_price($service->data['calculation_result']['cod_amt']) ??  0;
                     $datas['is_cod_amt'] = $service->data['calculation_result']['cod_amt'];
-
                 }
     
                 if( !empty($post['shipping_metode_id'])  ){

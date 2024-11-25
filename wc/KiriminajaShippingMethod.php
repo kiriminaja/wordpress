@@ -120,7 +120,8 @@ function kj_shippingMethod(){
                 foreach ($options as $option){
                     if (!$is_cod || $is_cod && $option->cod){
                         
-                        $shipping_cost = $quantity * $option->cost;
+                        $shipping_cost = $option->cost - $option->discount_amount;
+
                         $filteredOptions[] = [
                             'key'=>$option->service.'_'.$option->service_type,
                             'value'=>$option->service_name.' (Rp'.(localMoneyFormat($shipping_cost)).')',

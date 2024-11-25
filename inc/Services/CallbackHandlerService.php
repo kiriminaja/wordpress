@@ -93,7 +93,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'return_finished_at'    => $package->date,
+                        'return_finished_at'    => kjHelper()->dateConvertGMT($package->date),
                         'status'                => 'returned',
                     ];
                     $payload['condition']=[
@@ -118,8 +118,15 @@ class CallbackHandlerService extends BaseService{
     public function processedPackages(){
         try {
             
+            // save log
+            update_option('processedPackages',$this->packages);
+
             /** Update AWB*/
             foreach ($this->packages as $package){
+
+                // save log item packages
+                update_option('itemProcessedPackages',$package);
+                
                 $payload = [];
                 $payload['changes']=[
                     'awb'   =>  $package->awb
@@ -151,7 +158,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'shipped_at'    =>  $package->shipped_at,
+                    'shipped_at'    =>  kjHelper()->dateConvertGMT($package->shipped_at),
                     'status'        =>  'shipped'
                 ];
                 $payload['condition']=[
@@ -178,7 +185,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'finished_at'   =>  $package->finished_at,
+                        'finished_at'   =>  kjHelper()->dateConvertGMT($package->finished_at),
                         'status'        =>  'finished'
                     ];
                     $payload['condition']=[
@@ -205,7 +212,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'returned_at'   =>  $package->returned_at,
+                    'returned_at'   =>  kjHelper()->dateConvertGMT($package->returned_at),
                     'status'        =>  'return'
                     
                 ];
@@ -243,7 +250,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'rejected_at'       =>  $package->rejected_at,
+                    'rejected_at'       =>  kjHelper()->dateConvertGMT($package->rejected_at),
                     'rejected_reason'   =>  $package->reason,
                     'status'            =>  'rejected'
                     

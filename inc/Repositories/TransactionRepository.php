@@ -185,7 +185,7 @@ class TransactionRepository{
 
     public function getTransactionByOldestDate(){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
+        $query = $wpdb->get_row( "SELECT * FROM ".$this->table." WHERE created_at IS NOT NULL ORDER BY created_at ASC");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -222,7 +222,12 @@ class TransactionRepository{
 
     public function getCountTransactionProcessNew(){
         global $wpdb;
-        $query = $wpdb->get_var( "SELECT count(*) FROM `".$this->table."` WHERE status ='new'");
+        /** update query */
+        $query = $wpdb->get_var( 
+            "SELECT count(*) FROM ".$this->table." tp 
+            INNER JOIN ".$wpdb->prefix."posts p ON p.ID = tp.wp_wc_order_stat_order_id
+            WHERE tp.status ='new' AND p.post_status = 'wc-processing'
+        ");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

@@ -57,6 +57,7 @@ class SendRequestPickupTransactionService extends BaseService{
             $payload['changes']=[
                 'status' => 'request_pickup',
                 'pickup_number' => @$pickupRequest['data']->pickup_number,
+                'request_pickup_at' => date('Y-m-d H:i:s')
             ];
             $payload['condition']=[
                 'order_id' => $orderId
