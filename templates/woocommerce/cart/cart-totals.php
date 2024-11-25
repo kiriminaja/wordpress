@@ -26,22 +26,11 @@ defined( 'ABSPATH' ) || exit;
         <p><?php esc_html_e( 'Cart totals', 'woocommerce' ); ?></p>
     </div>
 
-	<table cellspacing="0" class="shop_table shop_table_responsive">
-
-        <tr class="cart-coupon">
-            <th colspan="2">
-                <?php if ( wc_coupons_enabled() ) { ?>
-                    <div class="coupon">
-                        <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'woocommerce' ); ?>" /> <button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'woocommerce' ); ?>"><?php esc_html_e( 'Apply coupon', 'woocommerce' ); ?></button>
-                        <?php do_action( 'woocommerce_cart_coupon' ); ?>
-                    </div>
-                <?php } ?>
-            </td>
-        </tr>
+	<table cellspacing="0" class="shop_table shop_table_responsive ">
 
 		<tr class="cart-subtotal">
 			<th><?php esc_html_e( 'Subtotal', 'woocommerce' ); ?></th>
-			<td data-title="<?php esc_attr_e( 'Subtotal', 'woocommerce' ); ?>"><?php wc_cart_totals_subtotal_html(); ?></td>
+			<td style="border-top: 1px solid var(--ast-border-color) !important;" data-title="<?php esc_attr_e( 'Subtotal', 'woocommerce' ); ?>"><?php wc_cart_totals_subtotal_html(); ?></td>
 		</tr>
 
 		<?php foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>

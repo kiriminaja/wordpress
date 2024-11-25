@@ -46,6 +46,8 @@ class Admin extends BaseInit{
                     }
                 ]
             ]);
+
+
         }
         
         
@@ -82,6 +84,9 @@ class Admin extends BaseInit{
         global $submenu;
 
         $transaction_count_new = kjHelper()->kjCountTransactionProcess();
+
+        if( (int) $transaction_count_new == 0) return;
+        
         foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
             if ( 0 === strpos( $menu_item[0], 'Transaction Process' ) ) {
                 $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.

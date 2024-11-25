@@ -62,6 +62,9 @@ class CallbackHandlerService extends BaseService{
             case "rejected_packages":
                 $this->processing = $this->rejectedPackages();
                 break;
+            case "canceled_packages":
+                $this->processing = $this->canceledPackages();
+                break;
         }
 
         if (!$this->processing['status']){
@@ -90,7 +93,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'return_finished_at'    => $package->date,
+                        'return_finished_at'    => kjHelper()->dateConvertGMT($package->date),
                         'status'                => 'returned',
                     ];
                     $payload['condition']=[
@@ -115,8 +118,15 @@ class CallbackHandlerService extends BaseService{
     public function processedPackages(){
         try {
             
+            // save log
+            update_option('processedPackages',$this->packages);
+
             /** Update AWB*/
             foreach ($this->packages as $package){
+
+                // save log item packages
+                update_option('itemProcessedPackages',$package);
+                
                 $payload = [];
                 $payload['changes']=[
                     'awb'   =>  $package->awb
@@ -148,7 +158,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'shipped_at'    =>  $package->shipped_at,
+                    'shipped_at'    =>  kjHelper()->dateConvertGMT($package->shipped_at),
                     'status'        =>  'shipped'
                 ];
                 $payload['condition']=[
@@ -175,7 +185,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'finished_at'   =>  $package->finished_at,
+                        'finished_at'   =>  kjHelper()->dateConvertGMT($package->finished_at),
                         'status'        =>  'finished'
                     ];
                     $payload['condition']=[
@@ -202,7 +212,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'returned_at'   =>  $package->returned_at,
+                    'returned_at'   =>  kjHelper()->dateConvertGMT($package->returned_at),
                     'status'        =>  'return'
                     
                 ];
@@ -240,7 +250,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'rejected_at'       =>  $package->rejected_at,
+                    'rejected_at'       =>  kjHelper()->dateConvertGMT($package->rejected_at),
                     'rejected_reason'   =>  $package->reason,
                     'status'            =>  'rejected'
                     
@@ -255,7 +265,45 @@ class CallbackHandlerService extends BaseService{
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
     }
-    
-    
+
+    /** Cancel Packages Callback */
+    public function canceledPackages(){
+        try {
+
+            foreach ($this->packages as $package){
+                /** Check if wc transaction exist and get wc order id*/
+                $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
+                $theTransaction = @$this->transactions[$transactionArrKey];
+
+                (new \Inc\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
+                
+                if ($theTransaction){
+                    /** Update KJ Table*/
+                    $payload = [];
+                    
+                    $canceledAt = $package->canceled_at ?? date('Y-m-d H:i:s');
+
+                    $payload['changes']=[
+                        'canceled_at'   =>  kjHelper()->dateConvertGMT( $canceledAt ),
+                        'status'        =>  'canceled'
+                    ];
+                    $payload['condition']=[
+                        'order_id'=>$package->order_id
+                    ];
+                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+
+                    /** Update in wc order table*/
+                    $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
+                    $order->update_status( 'cancelled' );
+                }
+                
+
+                
+            }
+            return ['status'=>true, 'message'=>'',];
+        }catch (\Throwable $th){
+            return ['status'=>false, 'message'=>$th->getMessage(),];
+        }
+    }
     
 }

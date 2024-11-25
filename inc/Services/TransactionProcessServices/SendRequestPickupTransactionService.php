@@ -35,6 +35,15 @@ class SendRequestPickupTransactionService extends BaseService{
             "schedule"      => $this->schedule
         ];
 
+        /** 
+         * Lion dan Pos Indonesia 
+         * Set Lat dan Long
+         * 
+         **/
+        if( in_array($getPackageData[0]['service'],['lion','posindonesia']) ){
+            $payload['latitude'] = $getOriginData['origin_latitude'];
+            $payload['longitude'] = $getOriginData['origin_longitude'];
+        }
         
         $pickupRequest = (new \Inc\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
         (new \Inc\Base\BaseInit())->logThis('$pickupRequest',[$pickupRequest]);
@@ -48,6 +57,7 @@ class SendRequestPickupTransactionService extends BaseService{
             $payload['changes']=[
                 'status' => 'request_pickup',
                 'pickup_number' => @$pickupRequest['data']->pickup_number,
+                'request_pickup_at' => date('Y-m-d H:i:s')
             ];
             $payload['condition']=[
                 'order_id' => $orderId
@@ -78,6 +88,8 @@ class SendRequestPickupTransactionService extends BaseService{
             'origin_address',
             'origin_sub_district_id',
             'origin_zip_code',
+            'origin_latitude',
+            'origin_longitude'
         ]);
         
         $array = [];
@@ -107,7 +119,7 @@ class SendRequestPickupTransactionService extends BaseService{
                 "shipping_cost"             => $transaction->shipping_cost,
                 "service"                   => $transaction->service,
                 "service_type"              => $transaction->service_name,
-                "item_name"                 => "Online Shop Goods",
+                "item_name"                 => "Online Shop Goods", // nama barang
                 "package_type_id"           => 1,
                 "cod"=> $transaction->cod_fee > 0 ? 
                     (
