@@ -29,6 +29,9 @@ class Helper extends  BaseInit {
             case "rejected":
                 return "Paket Ditolak";
             break;
+            case "canceled":
+                return "Paket Batal";
+            break;
             default;
             return "-";
         }
@@ -61,6 +64,9 @@ class Helper extends  BaseInit {
             case "rejected":
                 return "kj-badge";
                 break;
+            case "canceled":
+                return "kj-badge";
+                break;
             default;
             return "kj-badge processing";
         }
@@ -90,5 +96,15 @@ class Helper extends  BaseInit {
 
     public function kjCountTransactionProcess(){
         return (new \Inc\Repositories\TransactionRepository())->getCountTransactionProcessNew();
+    }
+
+    public function dateConvertGMT($tgl) {
+        $timezone = new \DateTimeZone("Asia/Bangkok");
+    
+        $date = new \DateTime($tgl, new \DateTimeZone('UTC'));
+    
+        $date->setTimezone($timezone);
+    
+        return $date->format("Y-m-d H:i:s");
     }
 }
