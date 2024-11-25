@@ -108,7 +108,7 @@ class GetWCCartAttributeService extends BaseService{
     
     private function getCartsProcessedAttribute(){
         $cartsProductAttributeCollection = $this->cartsProductAttributeCollection;
-        
+
         /** Check By Height*/
         if (
             $cartsProductAttributeCollection['height_sum'] <= $cartsProductAttributeCollection['length_sum']

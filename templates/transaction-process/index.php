@@ -48,22 +48,22 @@ class TransactionProcessIndex{
         /** Main Query*/
         $query = "(
             SELECT 
-            `".$wcOrderTable."`.order_id as wc_order_id,
-            `".$wcOrderTable."`.date_created as wc_date_created,
-            `".$wcOrderTable."`.status as wc_status,
-            `".$postTable."`.post_status,
-            `".$transactionTable."`.*
-            FROM `".$wcOrderTable."`
-            INNER JOIN `".$transactionTable."`
-            ON `".$wcOrderTable."`.order_id = `".$transactionTable."`.wp_wc_order_stat_order_id
-            INNER JOIN `".$postTable."`
-            ON `".$wcOrderTable."`.order_id = `".$postTable."`.ID
-            WHERE `".$wcOrderTable."`.status = 'wc-processing'
-            AND `".$transactionTable."`.status = 'new'
-            AND `".$postTable."`.post_status != 'trash' 
+            ".$wcOrderTable.".order_id as wc_order_id,
+            ".$wcOrderTable.".date_created as wc_date_created,
+            ".$wcOrderTable.".status as wc_status,
+            ".$postTable.".post_status,
+            ".$transactionTable.".*
+            FROM ".$wcOrderTable."
+            INNER JOIN ".$transactionTable."
+            ON ".$wcOrderTable.".order_id = ".$transactionTable.".wp_wc_order_stat_order_id
+            INNER JOIN ".$postTable."
+            ON ".$wcOrderTable.".order_id = ".$postTable.".ID
+            WHERE ".$wcOrderTable.".status = 'wc-processing'
+            AND ".$transactionTable.".status = 'new'
+            AND ".$postTable.".post_status != 'trash' 
             ".$whereCondition."
-            GROUP BY `".$wcOrderTable."`.order_id
-            ORDER BY `".$wcOrderTable."`.date_created DESC
+            GROUP BY ".$wcOrderTable.".order_id
+            ORDER BY ".$wcOrderTable.".date_created DESC
             )";
 
         $results = $wpdb->get_results( $query );

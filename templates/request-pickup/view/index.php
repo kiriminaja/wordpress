@@ -100,6 +100,7 @@
                                                         <span>Paid</span>
                                                     </div>
                                                 ';
+
                                                 if (@$row->status!=="paid"){
                                                     if (strtotime(@$row->pickup_schedule)>strtotime("now")){
                                                         $btnGroup.='
@@ -301,7 +302,9 @@
                 },         // any JS object
             },
             complete: function (response) {
+                
                 const resp = JSON.parse(response.responseText).data;
+                
                 if (resp?.status !== 200){
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
@@ -315,8 +318,7 @@
                 const payment_data = resp?.data?.payment_data
                 const transactions_data = resp?.data?.transactions_data
                 const wcOrderUrlBase = '<?php echo home_url().'/wp-admin/post.php?post='; ?>'
-                
-                
+                                
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-cod-count').text(kjMoneyFormat(payment_data.cod_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-non-cod-count').text(kjMoneyFormat(payment_data.non_cod_count ?? 0))
