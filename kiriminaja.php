@@ -4,7 +4,7 @@
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
  * Description:     Integrate to all best delivery services across the nusantara
- * Version:         3.1
+ * Version:         2.0.0
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL
@@ -25,6 +25,9 @@ define( 'KJ_PLUGIN_VERSION', rand(0,999));
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
+define('KIRIMINAJA_VERSION', '2.0.0');
+define('KJ_SLUG' ,plugin_basename(__DIR__));
+define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
@@ -49,6 +52,7 @@ if ( ! defined( 'KJ_PLUGIN_BASENAME' ) ) {
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', dirname( __FILE__ ) . '/' );
 }
+
 
 /** Helper*/
 if (!function_exists('KJ_GENERATE_BARCODE')) {
@@ -133,3 +137,5 @@ function deleteShippingZone(){
         }
     }
 }
+
+
