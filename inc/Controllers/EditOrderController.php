@@ -64,7 +64,7 @@ class EditOrderController{
             home_url().'/tracking?order_id='.$order,
             json_encode($service->data)
         ];
-        
+
         $content = file_get_contents(plugin_dir_path(dirname(__FILE__,2)). 'templates/order/edit.php');
         echo str_replace(
         $willBeReplaced, $replaceWith, $content);
@@ -306,18 +306,21 @@ class EditOrderController{
         ];
 
         $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
-    
+
         if( $kjPricing['data'] ){
             $result_pricing = $kjPricing['data']->results;
-            
+                      
             $data_shipping_selected = [];
             foreach($result_pricing as $row ){
+                
                 if( $row->service_type != $courier[1]){
                     continue;
                 }
+
                 $data_shipping_selected = $row;
             }
-    
+            
+
             $checkoutCalculation = $this->kj_checkoutCalculation(
                 $order->get_subtotal(),
                 $data_shipping_selected,
@@ -805,6 +808,5 @@ class EditOrderController{
         }
 
     }
-
     
 }

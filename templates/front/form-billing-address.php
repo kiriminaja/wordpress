@@ -279,7 +279,7 @@
                             }else{
                                 jQuery('.kj_cart_item_cod_fee').show();
                             }
-
+                          
                             jQuery('#order_review').find('.order-total td').html(response?.data?.price_total);  
                             
                             /**

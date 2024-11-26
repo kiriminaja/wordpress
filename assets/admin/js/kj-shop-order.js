@@ -418,7 +418,7 @@ jQuery(document).ready(function(){
             let destination = getIdDestinationAndNameDestination();
             let id_destination = destination.id_destination;
             let name_destination = destination.name_destination;
-            
+
             let data = {
                 'action':'kj_calculation_CodFeeAndInsuranceFee',
                 'order_id': orderID,
@@ -427,7 +427,6 @@ jQuery(document).ready(function(){
                 'kj_expedition':$(this).find("option:selected").val(),
                 'kj_expedition_name':expedition_name,
                 'kj_expedition_cost': parseFloat(expedition_cost),
-            };            
 
             debounceTimeout = setTimeout(() => {                
                 $.ajax({
