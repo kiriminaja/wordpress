@@ -4,7 +4,7 @@
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
  * Description:     Integrate to all best delivery services across the nusantara
- * Version:         2.0.0
+ * Version:         3.1.2
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL
