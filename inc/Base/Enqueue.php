@@ -34,8 +34,40 @@ class Enqueue extends BaseInit{
         // Option 2: Make wp-util a dependency of your script (usually better).
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ]);
     }
+    function is_order_meta_box_screen( $screen_id ) {
+        $screen_id = str_replace( 'edit-', '', $screen_id );
+
+        $types_with_metaboxes_screen_ids = array_filter(
+            array_map(
+                'wc_get_page_screen_id',
+                wc_get_order_types( 'order-meta-boxes' )
+            )
+        );
+
+        return in_array( $screen_id, $types_with_metaboxes_screen_ids, true );
+    }
     
     function enqueueAdmin(){
+
+        /** 
+         * Js in Only Admin Shop Order 
+         */
+        $screen    = get_current_screen();
+        $screen_id = $screen ? $screen->id : '';
+        if( $this->is_order_meta_box_screen($screen_id) && get_current_screen()->post_type === 'shop_order' ) {
+            
+            wp_enqueue_style('kiriminaja-shoporder-css', $this->plugin_url.'assets/admin/css/kj-shop-order-style.css',array(),KJ_PLUGIN_VERSION,'all');
+        
+            wp_enqueue_script( 'kiriminaja-shop-order', $this->plugin_url.'assets/admin/js/kj-shop-order.js',array('jquery'),KJ_PLUGIN_VERSION,true);
+            wp_localize_script( 'kiriminaja-shop-order', 'kj',
+                array( 
+                    'ajaxurl' => admin_url( 'admin-ajax.php' ),
+                    'nonce' => wp_create_nonce('kj-nonce'),
+                    'siteurl'=>site_url()
+                )
+            );
+        }
+
 
         if (!in_array(@$_GET['page'],[
             'kiriminaja-konfigurasi',
