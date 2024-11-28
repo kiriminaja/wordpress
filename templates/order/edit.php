@@ -24,16 +24,6 @@
         autoLoadExpeditionSelected();
 
         /**
-         * Adjust Shipping Kiriminaja
-         */
-        cekShippingMethodOrder();
-
-        /**
-         * COD Insurance Shipping
-         */
-        get_OnChangeCodAndInsurance();
-
-        /**
          * Validate Edit Shipping 
          */
         editShippingOrder();

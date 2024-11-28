@@ -39,6 +39,13 @@ class EditOrderController{
         add_action('wp_ajax_kj_calculation_CodFeeAndInsuranceFee',array($this,'kj_calculationCodFeeAndInsuranceFee'));
     
         add_action('wp_ajax_check_product_item_order' , array($this,'kj_ajaxCheckProductItemOrder'));
+    
+        /** 
+         * {Admin Order}
+         * validation add product item no weight
+         **/
+        add_action('wp_ajax_kj_validation_add_product_items',array($this,'validationAddProductItems'));
+
     }
 
     public function addKjOrderDetail($order){
@@ -775,6 +782,31 @@ class EditOrderController{
 
     public function kj_buttonShippingAdminOrder( $order ){
         echo '<button type="button" class="button add-order-shipping shippingkiriminaja" data-tip="Add Shipping">'.__('Add Shipping','kiriminaja').'</a>';
+    }
+
+    public function validationAddProductItems(){
+        if( $_SERVER['REQUEST_METHOD'] == 'POST' ){
+            $post = $_POST;
+            $productID = $_POST['productID'];
+            
+            if ( ! wp_verify_nonce( $post['nonce'], $this->nonce ) ) {
+                wp_send_json_error( array( 'message' => 'Kiriminaja Security Check' ) );
+                wp_die();
+            }
+
+            $product = wc_get_product( $productID );
+            $weight = $product->get_weight();
+            if( $weight === '' ){
+                wp_send_json_error( array( 'message' => 'Produk Tidak Memiliki Berat' ) );
+                wp_die();
+            }
+
+            wp_send_json_success( array( 'message' => 'Produk Berhasil ditambahkan' ) );
+            
+        }else{
+            wp_send_json_error( array( 'message' => 'Method Pengiriman data Tidak Sesuai' ) );
+        }
+
     }
     
 }

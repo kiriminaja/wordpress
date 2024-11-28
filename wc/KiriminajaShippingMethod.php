@@ -88,7 +88,7 @@ function kj_shippingMethod(){
                 $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 
                 $res_pricing = $kjPricing['data']; //object
-                
+
                 foreach($this->filterOptions($res_pricing,$quantity) as $row){
                     
                     $rate= array(

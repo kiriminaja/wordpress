@@ -48,6 +48,12 @@ jQuery(document).ready(function(){
             }
         });
     }
+
+    /**
+     * Add Product
+     * Validation Product Items
+     */
+    validationAddChangeProductItems();
     
     //check ajaxSuccess after Action   
     jQuery(document).ajaxSuccess(function(event, xhr, settings) {
@@ -381,10 +387,14 @@ jQuery(document).ready(function(){
         let codFeeClass = $('.codfee');
         let insuranceHiddenName = $('[name="kj_insurancefee_hidden"]');
         let codfeeHiddenName = $('[name="kj_codfee_hidden"]');
+        let debounceTimeout;
 
         selectExpeditionName = $('select[name=kj_expedition]');
 
         selectExpeditionName.on('change', function() {
+
+            clearTimeout(debounceTimeout);
+
             let root = $(this);
             let expedition_cost = $(this).find("option:selected").attr('data-cost');
             let expedition_name = $(this).find("option:selected").text();
@@ -417,53 +427,54 @@ jQuery(document).ready(function(){
                 'kj_expedition':$(this).find("option:selected").val(),
                 'kj_expedition_name':expedition_name,
                 'kj_expedition_cost': parseFloat(expedition_cost),
-            };
 
-            $.ajax({
-                url:kj.ajaxurl,
-                type: 'POST',
-                data:data,
-                dataType: 'json',
-                beforeSend: function() {
-                    codFeeClass.find('.total').html('Waiting ...');
-                    insuranceFeeClass.find('.total').html('Waiting ...');
-                },
-                success: function(response) {
-                    
-                    insuranceFeeClass.find('.total').html(response.data.insurance_fee);
-                    insuranceHiddenName.val(response.data.insurance_fee_number);
-                    
-                    if( $('[name="_shipping_kj_insurance"]:checked').length > 0 ){
-                        insuranceFeeClass.show();
-                        // set insurance
+            debounceTimeout = setTimeout(() => {                
+                $.ajax({
+                    url:kj.ajaxurl,
+                    type: 'POST',
+                    data:data,
+                    dataType: 'json',
+                    beforeSend: function() {
+                        codFeeClass.find('.total').html('Waiting ...');
+                        insuranceFeeClass.find('.total').html('Waiting ...');
+                    },
+                    success: function(response) {
+                        
                         insuranceFeeClass.find('.total').html(response.data.insurance_fee);
                         insuranceHiddenName.val(response.data.insurance_fee_number);
-                    }else if( $('[name="_billing_kj_insurance"]:checked').length > 0 ){
-                        insuranceFeeClass.show();
-                        insuranceFeeClass.find('.total').html(response.data.insurance_fee);
-                        insuranceHiddenName.val(response.data.insurance_fee_number);
-                    }else{
-                        insuranceFeeClass.hide();
+                        
+                        if( $('[name="_shipping_kj_insurance"]:checked').length > 0 ){
+                            insuranceFeeClass.show();
+                            // set insurance
+                            insuranceFeeClass.find('.total').html(response.data.insurance_fee);
+                            insuranceHiddenName.val(response.data.insurance_fee_number);
+                        }else if( $('[name="_billing_kj_insurance"]:checked').length > 0 ){
+                            insuranceFeeClass.show();
+                            insuranceFeeClass.find('.total').html(response.data.insurance_fee);
+                            insuranceHiddenName.val(response.data.insurance_fee_number);
+                        }else{
+                            insuranceFeeClass.hide();
+                        }
+                                            
+    
+                        if( $('[name="_payment_method"]').val() == 'cod' ) {
+                            codFeeClass.show();
+                        }else{
+                            codFeeClass.hide();
+                        }
+                        
+                        if( response?.data?.cod_fee != '0' ) codFeeClass.find('.total').html(response.data.cod_fee);
+                        if( response?.data?.cod_fee_number != '0' ) codfeeHiddenName.val(response.data.cod_fee_number);
+                        
+    
+                        get_OnChangeCodAndInsurance();
+    
+                    },
+                    error: function(xhr, status, error) {
+                        return false;
                     }
-                                        
-
-                    if( $('[name="_payment_method"]').val() == 'cod' ) {
-                        codFeeClass.show();
-                    }else{
-                        codFeeClass.hide();
-                    }
-                    
-                    if( response?.data?.cod_fee != '0' ) codFeeClass.find('.total').html(response.data.cod_fee);
-                    if( response?.data?.cod_fee_number != '0' ) codfeeHiddenName.val(response.data.cod_fee_number);
-                    
-
-                    get_OnChangeCodAndInsurance();
-
-                },
-                error: function(xhr, status, error) {
-                    return false;
-                }
-            });
+                });
+            },200);
 
         });
     }
@@ -606,6 +617,61 @@ jQuery(document).ready(function(){
     // set Hidden property
     function isDisplayNone(element){
         document.querySelector(element).style.display = 'none';
+    }
+
+    function validationAddChangeProductItems(){
+        let classModalcontent = $('.wc-backbone-modal-content');
+        let classSelectProductItems = classModalcontent.find('select.wc-product-search');
+        let postData,productID;
+        let kjWrapping;
+        let root;
+
+        $(document).on('change','select.wc-product-search', function(){
+            root = $(this);
+            productID = $(this).val();
+
+            if (productID && productID.length > 0) {
+                postData = {
+                    action:'kj_validation_add_product_items',
+                    productID: productID,
+                    nonce: kj.nonce
+                };
+                
+                $(this).closest('td').find('.select2.select2-container').after('<div class="kj-wrapping">');
+
+                kjWrapping = $('.kj-wrapping');
+
+                kjWrapping.css({
+                    'margin': '10px 0 0 0',
+                    'background': '#e5e5e5',
+                    'padding': '4px 5px',
+                    'border-radius': '5px'
+                });
+
+                kjWrapping.html('<p>Mohon Tunggu Sebentar ...</p>');
+                
+                $.post(kj.ajaxurl, postData, function (response) { 
+
+                    kjWrapping.html(`<p>${response?.data?.message}</p>`);   
+
+                    if(response?.success == false){
+                        kjWrapping.css('background','#ff0000');
+                        kjWrapping.find('p').css('color','white');
+                        root.val(null).trigger('change');
+                    }else{
+                        kjWrapping.css('background','#27a700');
+                        kjWrapping.find('p').css('color','white');
+                    }
+
+                    setTimeout(() => {
+                        kjWrapping.remove(); 
+                    }, 1000);  
+                    
+                    
+                });
+            }
+            
+        });
     }
 
 });

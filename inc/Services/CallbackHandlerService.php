@@ -279,8 +279,11 @@ class CallbackHandlerService extends BaseService{
                 if ($theTransaction){
                     /** Update KJ Table*/
                     $payload = [];
+                    
+                    $canceledAt = $package->canceled_at ?? date('Y-m-d H:i:s');
+
                     $payload['changes']=[
-                        'canceled_at'   =>  $package->canceled_at,
+                        'canceled_at'   =>  kjHelper()->dateConvertGMT( $canceledAt ),
                         'status'        =>  'canceled'
                     ];
                     $payload['condition']=[
@@ -290,7 +293,7 @@ class CallbackHandlerService extends BaseService{
 
                     /** Update in wc order table*/
                     $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
-                    $order->update_status( 'canceled' );
+                    $order->update_status( 'cancelled' );
                 }
                 
 

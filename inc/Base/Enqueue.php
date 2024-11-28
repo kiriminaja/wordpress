@@ -34,7 +34,6 @@ class Enqueue extends BaseInit{
         // Option 2: Make wp-util a dependency of your script (usually better).
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ]);
     }
-
     function is_order_meta_box_screen( $screen_id ) {
         $screen_id = str_replace( 'edit-', '', $screen_id );
 

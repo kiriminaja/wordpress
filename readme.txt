@@ -1,10 +1,10 @@
 === Kiriminaja ===
-Contributors: yanuaraditia
+Contributors: kiriminaja
 Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.1
 Tested up to: 6.6.2
 Requires PHP: 7.0
-Stable tag: 3.1.0
+Stable tag: 2.0.1
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
