@@ -133,12 +133,14 @@ class EditOrderController{
         ];
 
         $service_shipping = get_post_meta($order_id,'_kj_expedition_code',true);
-
+        
         $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order_id );
-
+        
         if( !empty($service_shipping) ){
            $data_return['service'] = $service_shipping;  
-        }else{
+        }
+
+        if(!empty($transaction) ){
             $data_return['service'] = $transaction->service.'_'.$transaction->service_name;  
         }
 
@@ -179,6 +181,7 @@ class EditOrderController{
                 
                 if(!empty($items['kj_expedition_name']))
                 {
+
                     $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
 
                     $get_billing_insurance_checkout = get_post_meta($order->get_id(),'_billing_kj_insurance',true);
@@ -234,7 +237,7 @@ class EditOrderController{
                     update_post_meta($order_id,'_kj_expedition_code',$items['kj_expedition']);
                     update_post_meta($order_id,'_kj_expedition_name',$items['kj_expedition_name']);
                     update_post_meta($order_id,'_kj_expedition_cost',$items['kj_expedition_cost']);
-    
+        
                     update_post_meta($order_id,'_kj_insurance_fee',$items['kj_insurancefee_hidden']);
                     update_post_meta($order_id,'_kj_cod_fee',$items['kj_codfee_hidden']);
 

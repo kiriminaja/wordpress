@@ -73,6 +73,8 @@ jQuery(document).ready(function(){
         ){         
             if( shippingMethodElement.val() == 'kiriminaja' ){
                 shippingMethodElement.val('kiriminaja').trigger('change');
+
+                openEditShippingItem();
                 
                 $(`[name="shipping_cost[${orderIDdataItem}]"`).attr('readonly', true);
 
@@ -310,7 +312,7 @@ jQuery(document).ready(function(){
                     destination_id = selectNameBilling.val();
                     destination_name = selectNameBilling.text();
                 }
-            }  
+            }              
                         
             let data = {
                 'action': 'kiriminaja_expedition_by_pricing',
@@ -347,7 +349,9 @@ jQuery(document).ready(function(){
                         
                         $('[name="kj_subdistrict_name"]').val(destination_name);
                         
-                        selectExpeditionName.val(response.service).trigger("change"); 
+                        if( response?.service ){
+                            selectExpeditionName.val(response?.service).trigger("change"); 
+                        }
 
                     }else{
                         selectExpeditionName.html(expedition_options);
