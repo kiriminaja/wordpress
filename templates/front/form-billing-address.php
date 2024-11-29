@@ -2,9 +2,9 @@
     
     <!--Other invisible Field-->
     <div style="display: none">
-        <input type="hidden" name="kj_checkout_token" value="<?= $kj_checkout_token; ?>">
-        <input type="hidden" name="kj_destination_area_name" value="<?= $dentination_name; ?>">
-        <input type="hidden" name="kj_shipping_destination_area_name" value="<?= $shipping_dentination_name; ?>">
+        <input type="hidden" name="kj_checkout_token" value="<?php echo  $kj_checkout_token; ?>">
+        <input type="hidden" name="kj_destination_area_name" value="<?php echo  $dentination_name; ?>">
+        <input type="hidden" name="kj_shipping_destination_area_name" value="<?php echo  $shipping_dentination_name; ?>">
     </div>
 
 </div>
@@ -41,7 +41,7 @@
           
         function changeDistrict(){
             
-            let kelurahanArea = "select#<?= $field_key; ?>,select#kj_shipping_destination_area";
+            let kelurahanArea = "select#<?php echo  $field_key; ?>,select#kj_shipping_destination_area";
             
             jQuery(kelurahanArea).change( function () {
                 let root = jQuery(this);
@@ -72,7 +72,7 @@
                         'different_address': different_address,
                         'text':root.find('option:selected').text(),
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':"<?= wp_create_nonce('kj-destination'); ?>",
+                        'nonce':"<?php echo  wp_create_nonce('kj-destination'); ?>",
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
@@ -135,11 +135,11 @@
          */
         function getSearchAreaKelurahan(){
             let ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
-            let subDistrictSelectElem = jQuery(`[name="<?= $field_key; ?>"],[name=kj_shipping_destination_area]`); 
+            let subDistrictSelectElem = jQuery(`[name="<?php echo  $field_key; ?>"],[name=kj_shipping_destination_area]`); 
        
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?= kjHelper()->tlThis('Select Option',@$locale); ?>",
+                placeholder: "<?php echo  kjHelper()->tlThis('Select Option',@$locale); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,
@@ -246,7 +246,7 @@
             
             let data = {
                 action:'kj_get_data_after_update_checkout',
-                nonce:"<?= wp_create_nonce('kj-update-checkout'); ?>",
+                nonce:"<?php echo  wp_create_nonce('kj-update-checkout'); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 payment_method,
