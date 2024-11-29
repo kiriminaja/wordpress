@@ -181,6 +181,11 @@ class EditOrderController{
                 {
                     $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
 
+                    $get_billing_insurance_checkout = get_post_meta($order->get_id(),'_billing_kj_insurance',true);
+                    $get_shipping_insurance_checkout = get_post_meta($order->get_id(),'_shipping_kj_insurance',true);
+
+                    $cek_insurance = $get_billing_insurance_checkout ?? $get_shipping_insurance_checkout;
+
                     $qty = 0; $subtotal = 0;
                     foreach( $order->get_items() as $item_id_shipping => $item ) {
                         $qty += (int) $item->get_quantity();
@@ -189,6 +194,8 @@ class EditOrderController{
     
                     $item_price = (int) $expediton_cost * $qty;
 
+                    $fee_insurance = ( !empty($cek_insurance) ? $items['kj_insurancefee_hidden'] : 0 );
+
                     $calculate_data = $this->kj_calculationAdminOrder([
                         'order_id' => $order_id,
                         'kj_subdistrict'=>$items['kj_subdistrict'],
@@ -196,7 +203,7 @@ class EditOrderController{
                         'kj_expedition'=>$items['kj_expedition'],
                         'kj_expedition_name'=>$items['kj_expedition_name'],
                         'kj_expedition_cost'=>$item_price,
-                        'kj_insurancefee_hidden'=>$items['kj_insurancefee_hidden'],
+                        'kj_insurancefee_hidden'=> $fee_insurance,
                     ]);
         
                     foreach( $order->get_items('shipping') as $item_id_shipping => $item ) {
@@ -213,7 +220,7 @@ class EditOrderController{
                     $order->calculate_shipping();
                     $order->calculate_totals();
 
-                    $order_total = (float) $subtotal + ( (float) $items['kj_codfee_hidden'] ?? 0 ) + ( (float) $items['kj_insurancefee_hidden'] ?? 0 );
+                    $order_total = (float) $subtotal + ( (float) $items['kj_codfee_hidden'] ?? 0 ) + (float) $fee_insurance;
                     $order_totals = (float) $item_price + (float) $order_total;
 
                     /* Update Total Order*/

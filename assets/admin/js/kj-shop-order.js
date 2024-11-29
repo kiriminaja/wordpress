@@ -195,6 +195,8 @@ jQuery(document).ready(function(){
     function AppendHtmlShippingKiriminAja(element){
         orderIDdataItem = $('#order_shipping_line_items').find('.shipping_method').closest('.edit');
 
+        removeAppendElement();
+
         orderIDdataItem.append(`
             <select style="display:none;" name="kj_subdistrict" class="selet2" style="width:100%;"></select>
             <select name="kj_expedition" class="selet2" style="width:100%;"><option value="">Select Expeditions</option></select>
@@ -408,11 +410,13 @@ jQuery(document).ready(function(){
             $(`[name="shipping_cost[${order_id_item}]"]`).val(expedition_cost);
             $(`[name="shipping_method_title[${order_id_item}]"]`).val(expedition_name);
 
+            $('#order_shipping_line_items').find('.shipping_method').closest('.edit').find('[name=kj_expedition_cost]').remove();            
+            $('#order_shipping_line_items').find('.shipping_method').closest('.edit').find('[name=kj_expedition_name]').remove();            
+            $('#order_shipping_line_items').find('.shipping_method').closest('.edit').append(html);     
+
             if( inputNameExpeditionCost.length > 0 ){
                 inputNameExpeditionCost.val(expedition_cost);
                 $('[name=kj_expedition_name]').val(expedition_name);
-            }else{
-                elementRoot.find('.shipping_method').closest('.edit').append(html);            
             }
 
             let destination = getIdDestinationAndNameDestination();
@@ -427,6 +431,7 @@ jQuery(document).ready(function(){
                 'kj_expedition':$(this).find("option:selected").val(),
                 'kj_expedition_name':expedition_name,
                 'kj_expedition_cost': parseFloat(expedition_cost),
+            }
 
             debounceTimeout = setTimeout(() => {                
                 $.ajax({
@@ -672,6 +677,15 @@ jQuery(document).ready(function(){
             }
             
         });
+    }
+
+    function removeAppendElement(){
+        let elementItemShippingMethod = $('#order_shipping_line_items').find('.shipping_method').closest('.edit');
+        elementItemShippingMethod.find('[name="kj_subdistrict"]').remove();
+        elementItemShippingMethod.find('[name="kj_expedition"]').remove();
+        elementItemShippingMethod.find('[name="kj_codfee_hidden"]').remove();
+        elementItemShippingMethod.find('[name="kj_insurancefee_hidden"]').remove();
+        elementItemShippingMethod.find('[name="insuranceChecklist"]').remove();   
     }
 
 });
