@@ -100,9 +100,49 @@ class SetupMigration {
             require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
             dbDelta($sql);
             
+        }else{
+    
+            /** Alters*/
+
+            $columns = $wpdb->get_results("DESCRIBE $table_name");
+
+            $column_requered = array('canceled_at' => 'timestamp NULL DEFAULT NULL');
+
+            $field_status = 'status';
+            $field_canceled_at = 'canceled_at';
+
+            $field_type_status = false;
+            $column_exist = false;
+            foreach( $column_requered as $column_name => $column_data_type ){
+                foreach( $columns as $column ){
+
+                    // update data Type Column Table
+                    if( ( $column->Field === $field_status) ){
+                        $field_type_status = true; 
+                        break;
+                    }    
+
+                    // update add new column
+                    if ( $column->Field === $column_name ) {
+                        $column_exist = true;    
+                        break;    
+                    }     
+                                    
+                }
+            }
+
+            // Add new column
+            if( !$column_exist ){
+                $wpdb->query("ALTER TABLE $table_name ADD $column_name $column_data_type");
+            }
+
+            if( $field_type_status ){
+                $column_and_type = "status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'";
+                $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN $column_and_type");
+            }
+
         }
 
-        /** Alters*/
     }
     
     private function paymentsTable(){
