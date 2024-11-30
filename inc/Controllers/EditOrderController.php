@@ -184,10 +184,9 @@ class EditOrderController{
 
                     $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
 
-                    $get_billing_insurance_checkout = get_post_meta($order->get_id(),'_billing_kj_insurance',true);
-                    $get_shipping_insurance_checkout = get_post_meta($order->get_id(),'_shipping_kj_insurance',true);
 
-                    $cek_insurance = $get_billing_insurance_checkout ?? $get_shipping_insurance_checkout;
+                    $cek_insurance  = $items['insuranceChecklist'];
+                    $cek_cod        = $items['codSelected'];
 
                     $qty = 0; $subtotal = 0;
                     foreach( $order->get_items() as $item_id_shipping => $item ) {
@@ -198,7 +197,8 @@ class EditOrderController{
                     $item_price = (int) $expediton_cost * $qty;
 
                     $fee_insurance = ( !empty($cek_insurance) ? $items['kj_insurancefee_hidden'] : 0 );
-
+                    $fee_cod = ( $cek_cod == 'cod' ? (float) $items['kj_codfee_hidden'] : 0 ); 
+                    
                     $calculate_data = $this->kj_calculationAdminOrder([
                         'order_id' => $order_id,
                         'kj_subdistrict'=>$items['kj_subdistrict'],
@@ -223,13 +223,12 @@ class EditOrderController{
                     $order->calculate_shipping();
                     $order->calculate_totals();
 
-                    $order_total = (float) $subtotal + ( (float) $items['kj_codfee_hidden'] ?? 0 ) + (float) $fee_insurance;
+                    $order_total = (float) $subtotal + (float) $fee_cod + (float) $fee_insurance;
                     $order_totals = (float) $item_price + (float) $order_total;
 
                     /* Update Total Order*/
                     update_post_meta($order_id,'_order_total', $order_totals);
                     
-                                        
                     /* Simpan Di Post Meta */
                     update_post_meta($order_id,'_kj_subdistrict_id',$items['kj_subdistrict']);
                     update_post_meta($order_id,'_kj_subdistrict_name',$items['kj_subdistrict_name']);
@@ -255,13 +254,14 @@ class EditOrderController{
                         'service' =>$courier[0],
                         'service_name' =>$courier[1],
                         'shipping_cost' => $item_price,
-                        'insurance_cost' => !empty($insurance) ? $items['kj_insurancefee_hidden'] : 0,
-                        'cod_fee' => ($order->get_payment_method() == 'cod' ) ? $items['kj_codfee_hidden'] : 0,
+                        'insurance_cost' => $fee_insurance,
+                        'cod_fee' => $fee_cod,
                         'transaction_value' => $subtotal,
                         'wp_wc_order_stat_order_id'=>(int) $order_id,
                     ];
 
                     $updateTransactionRepo = (new \Inc\Repositories\TransactionRepository())->updateTransaction($payloads);
+
                     (new \Inc\Base\BaseInit())->logThis('saveorder_updateTransactionRepo',[$updateTransactionRepo]);
 
                 }        
@@ -622,13 +622,9 @@ class EditOrderController{
 
             $request = $_POST;
 
-            if ( isset( $request['_shipping_kj_insurance'] ) && ! empty( $request['_shipping_kj_insurance'] ) ) {
-                update_post_meta( $post_id, '_shipping_kj_insurance', sanitize_text_field( $request['_shipping_kj_insurance'] ) );
-            }
+            update_post_meta( $post_id, '_shipping_kj_insurance', sanitize_text_field( $request['_shipping_kj_insurance'] ) );
+            update_post_meta( $post_id, '_billing_kj_insurance', sanitize_text_field( $request['_billing_kj_insurance'] ) );
             
-            if ( isset( $request['_billing_kj_insurance'] ) && ! empty( $request['_billing_kj_insurance'] ) ) {
-                update_post_meta( $post_id, '_billing_kj_insurance', sanitize_text_field( $request['_billing_kj_insurance'] ) );
-            }
 
         } catch (\Throwable $th){
             ( new \Inc\Base\BaseInit() )->logThis( 'save_post_shop_order', [
