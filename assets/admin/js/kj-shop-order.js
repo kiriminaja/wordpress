@@ -41,11 +41,14 @@ jQuery(document).ready(function(){
     if( getUrlParameter('post_type') == 'shop_order' ){
         getSearchAreaKelurahan();
         getSelectedSubdistrictAdminOrder();
+        get_OnChangeCodAndInsurance();
+
     }else{
         jQuery(document).ajaxSuccess(function(event, xhr, settings) {
             if (settings.data && settings.data.indexOf('action=kiriminaja_expedition_by_pricing') !== -1) {
                 autoLoadExpeditionSelected();
             }
+
         });
     }
 
@@ -206,6 +209,7 @@ jQuery(document).ready(function(){
             <input type="hidden" class="codfeehidden" name="kj_codfee_hidden"/>
             <input type="hidden" class="insurancefeehidden" name="kj_insurancefee_hidden"/>
             <input type="hidden" class="insuranceChecklist" name="insuranceChecklist"/>
+            <input type="hidden" class="codSelected" name="codSelected"/>
         `);        
 
         getSearchAreaKelurahan();
@@ -489,11 +493,16 @@ jQuery(document).ready(function(){
     }
 
     // display information codfee and insurancefee
-    get_OnChangeCodAndInsurance();
     function get_OnChangeCodAndInsurance(){
         let insuranceClass = $('.insurancefee');
         let codfeeClass = $('.codfee');
-
+        let orderIDdataItem = $('#order_shipping_line_items').find('.shipping_method').closest('.edit');
+        
+        
+        orderIDdataItem.find('[name="codSelected"]').val( $('[name="_payment_method"]').val() );
+        
+        set_valueChecklistInsurance();
+        
         $(document).on('change','[name="_payment_method"],[name="_billing_kj_insurance"],[name="_shipping_kj_insurance"]',function(){
 
             let root = $(this);
@@ -506,14 +515,50 @@ jQuery(document).ready(function(){
                 }else{
                     codfeeClass.hide();
                 }
+
+                if(
+                    $('[name="_billing_kj_insurance"]').is(':checked') > 0 || 
+                    $('[name="_shipping_kj_insurance"]').is(':checked') > 0 )
+                {
+                    valCheckedInsurance = true;
+                }
+
+                orderIDdataItem.find('[name="codSelected"]').val(root.val());
+                orderIDdataItem.find('[name="insuranceChecklist"]').val( 
+                    (valCheckedInsurance == true ? 'yes' : '') 
+                );
+
             }else{
                 if( root.is(':checked') ){
                     insuranceClass.show();
+                    orderIDdataItem.find('[name="insuranceChecklist"]').val(root.val());
                 } else{
                     insuranceClass.hide();
+                    orderIDdataItem.find('[name="insuranceChecklist"]').val('');
                 }
+                orderIDdataItem.find('[name="codSelected"]').val( $('[name="_payment_method"]').val() );
+
             }
+
+            $('.save-action').trigger('click');
+        
         });
+    }
+
+    function set_valueChecklistInsurance(){
+        let orderIDdataItem = $('#order_shipping_line_items').find('.shipping_method').closest('.edit');
+        let valCheckedInsurance = false;
+        if(
+            $('[name="_billing_kj_insurance"]').is(':checked') > 0 || 
+            $('[name="_shipping_kj_insurance"]').is(':checked') > 0 )
+        {
+            valCheckedInsurance = true;
+        }
+
+        orderIDdataItem.find('[name="insuranceChecklist"]').val( 
+            (valCheckedInsurance == true ? 'yes' : '') 
+        );
+        
     }
 
     // chceking is product item order in detail order
@@ -689,7 +734,8 @@ jQuery(document).ready(function(){
         elementItemShippingMethod.find('[name="kj_expedition"]').remove();
         elementItemShippingMethod.find('[name="kj_codfee_hidden"]').remove();
         elementItemShippingMethod.find('[name="kj_insurancefee_hidden"]').remove();
-        elementItemShippingMethod.find('[name="insuranceChecklist"]').remove();   
+        elementItemShippingMethod.find('[name="insuranceChecklist"]').remove(); 
+        elementItemShippingMethod.find('[name="codSelected"]').remove();   
     }
 
 });
