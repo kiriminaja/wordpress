@@ -555,6 +555,21 @@ class EditOrderController{
 
         $insurance_post = $shipping_insurance ?: $billing_insurance;
         
+
+        //check Shipping Method
+        $shipping_methods = $order->get_items( 'shipping' );
+
+        $found = FALSE;
+        foreach ( $shipping_methods as $shipping_method ) {
+            $method_ID = $shipping_method->get_method_id();
+            if( $method_ID == 'kiriminaja' ){
+                $found = TRUE;
+                break;
+            } 
+        }
+
+        if( !$found ) return;
+
         $table = '';
         if( $order->get_payment_method() === 'cod' ){
             $table .= '<tr class="codfee" style="display:' . esc_attr($cod_style) . ';">
@@ -622,8 +637,8 @@ class EditOrderController{
 
             $request = $_POST;
 
-            update_post_meta( $post_id, '_shipping_kj_insurance', sanitize_text_field( $request['_shipping_kj_insurance'] ) );
-            update_post_meta( $post_id, '_billing_kj_insurance', sanitize_text_field( $request['_billing_kj_insurance'] ) );
+            if( isset($_POST['_shipping_kj_insurance']) ) update_post_meta( $post_id, '_shipping_kj_insurance', sanitize_text_field( $request['_shipping_kj_insurance'] ) );
+            if( isset($_POST['_shipping_kj_insurance']) ) update_post_meta( $post_id, '_billing_kj_insurance', sanitize_text_field( $request['_billing_kj_insurance'] ) );
             
 
         } catch (\Throwable $th){
