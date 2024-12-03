@@ -44,6 +44,16 @@ class Admin extends BaseInit{
                     'callback'=> function() {
                         require_once $this->plugin_path.'templates/request-pickup/index.php';
                     }
+                ],
+                [
+                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'page_title'=>'History',
+                    'menu_title'=>'History',
+                    'capability'=>'manage_options',
+                    'menu_slug'=>'kiriminaja-history',
+                    'callback'=> function() {
+                        require_once $this->plugin_path.'templates/history-package/index.php';
+                    }
                 ]
             ]);
 
