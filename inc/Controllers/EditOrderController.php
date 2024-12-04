@@ -706,9 +706,17 @@ class EditOrderController{
             ];
             
             if ( 'processing' === $new_status ) {
+
+                //saving total order
+                update_post_meta( $order_id,'_order_total_saving', $total_order);
+
                 $createTransaction = (new \Inc\Services\CheckoutServices\CreateTransactionService($payloads))->call();
-                
                 (new \Inc\Base\BaseInit())->logThis('create_order_shop_order', [$createTransaction]);
+                
+                //update Order Total
+                $getSavingTotalOrder = get_post_meta($order_id,'_order_total_saving',true);
+                update_post_meta($order_id,'_order_total', $getSavingTotalOrder);
+
             }
         } catch (Exception $e) {
             (new \Inc\Base\BaseInit())->logThis('change_order_woocommerce',[
