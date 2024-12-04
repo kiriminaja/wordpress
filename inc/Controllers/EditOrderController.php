@@ -173,101 +173,20 @@ class EditOrderController{
 
     public function kj_wc_save_order_items($order_id, $items){
 
-            $order = wc_get_order( $order_id );
+        $order = wc_get_order( $order_id );
 
-            if( !isset( $items['shipping_method'] ) ) return;
+        if( !isset( $items['shipping_method'] ) ) return;
 
-            if( array_shift($items['shipping_method']) == 'kiriminaja' ){
+        if( array_shift($items['shipping_method']) == 'kiriminaja' ){
                 
-                if(!empty($items['kj_expedition_name']))
-                {
-
-                    $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
-
-
-                    $cek_insurance  = $items['insuranceChecklist'];
-                    $cek_cod        = $items['codSelected'];
-
-                    $qty = 0; $subtotal = 0;
-                    foreach( $order->get_items() as $item_id_shipping => $item ) {
-                        $qty += (int) $item->get_quantity();
-                        $subtotal += $item->get_total(); // Ambil harga item
-                    }
-    
-                    $item_price = (int) $expediton_cost * $qty;
-
-                    $fee_insurance = ( !empty($cek_insurance) ? $items['kj_insurancefee_hidden'] : 0 );
-                    $fee_cod = ( $cek_cod == 'cod' ? (float) $items['kj_codfee_hidden'] : 0 ); 
-                    
-                    $calculate_data = $this->kj_calculationAdminOrder([
-                        'order_id' => $order_id,
-                        'kj_subdistrict'=>$items['kj_subdistrict'],
-                        'kj_subdistrict_name'=>$items['kj_subdistrict_name'],
-                        'kj_expedition'=>$items['kj_expedition'],
-                        'kj_expedition_name'=>$items['kj_expedition_name'],
-                        'kj_expedition_cost'=>$item_price,
-                        'kj_insurancefee_hidden'=> $fee_insurance,
-                    ]);
-        
-                    foreach( $order->get_items('shipping') as $item_id_shipping => $item ) {
-                        
-                        $item->set_method_title( $items['kj_expedition_name'] ); 
-                        $item->set_name( $items['kj_expedition_name'] );
-        
-                        $item->set_total( $item_price );
-                        $item->calculate_taxes();
-                        $item->save();
-        
-                    }   
-
-                    $order->calculate_shipping();
-                    $order->calculate_totals();
-
-                    $order_total = (float) $subtotal + (float) $fee_cod + (float) $fee_insurance;
-                    $order_totals = (float) $item_price + (float) $order_total;
-
-                    /* Update Total Order*/
-                    update_post_meta($order_id,'_order_total', $order_totals);
-                    
-                    /* Simpan Di Post Meta */
-                    update_post_meta($order_id,'_kj_subdistrict_id',$items['kj_subdistrict']);
-                    update_post_meta($order_id,'_kj_subdistrict_name',$items['kj_subdistrict_name']);
-
-                    update_post_meta($order_id,'_kj_expedition_code',$items['kj_expedition']);
-                    update_post_meta($order_id,'_kj_expedition_name',$items['kj_expedition_name']);
-                    update_post_meta($order_id,'_kj_expedition_cost',$items['kj_expedition_cost']);
-        
-                    update_post_meta($order_id,'_kj_insurance_fee',$items['kj_insurancefee_hidden']);
-                    update_post_meta($order_id,'_kj_cod_fee',$items['kj_codfee_hidden']);
-
-                    /** Validasi Transaction*/
-                    $courier = explode('_',$items['kj_expedition'] );
-                    $insurance = get_post_meta($order_id,'_billing_kj_insurance',true);
-
-                    $transaction = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId($order_id);
-
-                    if( empty($transaction) ) return true;
-
-                    $payloads = [
-                        'destination_sub_district_id' =>(int) $items['kj_subdistrict'],
-                        'destination_sub_district' => $items['kj_subdistrict_name'],
-                        'service' =>$courier[0],
-                        'service_name' =>$courier[1],
-                        'shipping_cost' => $item_price,
-                        'insurance_cost' => $fee_insurance,
-                        'cod_fee' => $fee_cod,
-                        'transaction_value' => $subtotal,
-                        'wp_wc_order_stat_order_id'=>(int) $order_id,
-                    ];
-
-                    $updateTransactionRepo = (new \Inc\Repositories\TransactionRepository())->updateTransaction($payloads);
-
-                    (new \Inc\Base\BaseInit())->logThis('saveorder_updateTransactionRepo',[$updateTransactionRepo]);
-
-                }        
-            } 
-        
-
+            if(!empty($items['kj_expedition_name']))
+            {
+                (new \Inc\Services\OrderEditPageServices\CalculateShippingOrderServices())->payloads([
+                    'wcOrderId'=>$order_id,
+                    'items'=>$items
+                ])->call();
+            }        
+        } 
     }
 
     public function kj_calculationAdminOrder($payload){
