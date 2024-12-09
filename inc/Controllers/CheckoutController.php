@@ -19,12 +19,19 @@ class CheckoutController
     private $field_shipping_destination_key  = 'kj_shipping_destination_area';
     private $field_shipping_insurance_key  = 'kj_shipping_insurance';
 
+    private $shipping_method_id = 'kiriminaja';
 
     public function register()
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
         if (is_plugin_active('woocommerce/woocommerce.php')) {
+
+            //before total oder cart
+            add_action('woocommerce_cart_totals_before_order_total',array($this,'kj_cartBeforeTotalOrder'));
+
+            //before total order checkout
+            add_action('woocommerce_review_order_before_order_total',array($this,'kj_reviewOrderBeforeTotalOrder'));
 
             /** Add Custom field Checkout Sub District */
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'));
@@ -60,6 +67,118 @@ class CheckoutController
             add_filter('woocommerce_checkout_fields', array($this,'kj_billing_fields'), 100);            
 
         }
+    }
+
+    function kj_reviewOrderBeforeTotalOrder(){
+
+        if( !is_checkout() ){
+            return false;
+        }
+
+        $wc_session_data = $this->kj_getSessionWCShippingAndSubtotal();
+        
+        if( empty($wc_session_data) ) return;
+
+        $table = '<tr class="kj-label-shipping-checkout">
+			<th>'.__('Label','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
+			<td>'.$wc_session_data['label'].'</td>
+		</tr>
+        <tr class="kj-cost-shipping-checkout">
+			<th>'.__('Cost','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
+			<td>'.wc_price($wc_session_data['cost']).'</td>
+		</tr>
+        <tr class="kj_cart_item_insurane" style="display:none;">
+			<td class="kj-cart-insurance">
+				<label for="kj_cart_insurance">'.__('Insurance','kiriminaja').'</label>											
+            </td>
+			<td class="kj-cart-insurance kj-cost-insurance"></td>
+		</tr>
+        <tr class="kj_cart_item_cod_fee" style="display:none;">
+			<td class="kj-cod-fee">
+				<label for="kj_cod_fee">'. __('COD Fee','kiriminaja').'</label>											
+            </td>
+			<td class="kj-cod-fee kj-cost-codfee"></td>
+		</tr>';
+
+        echo $table;
+    }
+
+    function kj_cartBeforeTotalOrder(){
+
+        if( !is_cart() ){
+            return;
+        }
+
+        $wc_session_data = $this->kj_getSessionWCShippingAndSubtotal();
+
+        if( empty($wc_session_data) ) return;
+
+        $table = '
+        <tr class="order-total">
+			<th>'.__('Label','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
+			<td data-title="Total">'.$wc_session_data['label'].'</td>
+		</tr>
+        <tr class="order-total">
+			<th>'.__('Cost','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
+			<td data-title="Subtotal">'.$wc_session_data['cost'].'</td>
+		</tr>
+        <tr class="order-total">
+			<th>'.__('Subtotal','kiriminaja').'</th>
+			<td data-title="Total">'.$wc_session_data['cart_subtotal'].'</td>
+		</tr>';
+
+        echo $table;
+    }
+
+    function kj_getSessionWCShippingAndSubtotal(){
+        
+        $chosen_methods = WC()->session->get('chosen_shipping_methods'); 
+        $chosen_method = isset($chosen_methods[0]) ? $chosen_methods[0] : '';
+
+        if( empty( $chosen_method ) ) {
+            return $data = array(); 
+        }
+
+        $shipping_method_id = preg_replace('/_.*$/', '', $chosen_method);
+
+        if( $shipping_method_id != $this->shipping_method_id ){
+            return $data = array();  // not kiriminaja shipping
+        }
+
+        $packages = WC()->shipping->get_packages();
+        
+        $cost = 0; $label = ''; $found = false;
+        foreach ($packages as $package) {
+            $shipping_methods = $package['rates'];
+            if (isset($shipping_methods[$chosen_method])) {
+                $shipping_rate = $shipping_methods[$chosen_method];
+                
+                if( $shipping_rate->method_id === $this->shipping_method_id ){
+                    $label = $shipping_rate->label;
+                    $cost = (float)$shipping_rate->cost;   
+                    $found = true;
+                }
+
+            }
+        }
+
+        if(!$found ){
+            return $data = array();  // not kiriminaja shipping
+        }
+
+        if( !empty($label) ) {
+            $label = $this->getLabelShipping( $label );
+        }
+
+        $cart_subtotal = WC()->cart->get_cart_subtotal();
+
+        $data =  compact('cost','label','cart_subtotal');
+
+        return $data;
+    }
+
+    function getLabelShipping($string){
+        return preg_replace('/\s*\(.*?\)/', '', $string);
     }
 
     function rei_after_checkout_validation( $posted ) {
