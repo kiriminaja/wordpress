@@ -107,4 +107,44 @@ class Helper extends  BaseInit {
     
         return $date->format("Y-m-d H:i:s");
     }
+
+    public function getTransactionStatus():array{
+        $status = array(
+            array(
+                'code' =>'request_pickup',
+                'label' => 'Req Pickup'
+            ),
+            array(
+                'code' => 'pending',
+                'label' => 'Pending'
+            ),
+            array(
+                'code' => 'finished',
+                'label' => 'Paket Terkirim'
+            ),
+            array(
+                'code' =>'shipped',
+                'label' => 'Proses Pengiriman'
+            ),
+            array(
+                'code' =>'return',
+                'label' => 'Proses Pengembalian'
+            ),
+            array(
+                'code' =>'returned',
+                'label' => 'Paket Selesai Dikembalikan'
+            ),
+            array(
+                'code' => ' rejected',
+                'label' => 'Paket Ditolak'
+            ),
+            array(
+                'code' => 'canceled',
+                'label' => 'Paket Batal'
+            )
+        );
+
+        return $status;
+
+    }
 }
