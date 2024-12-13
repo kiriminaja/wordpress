@@ -68,6 +68,27 @@ class Enqueue extends BaseInit{
             );
         }
 
+        // load file js history
+        if( $screen->base === 'kiriminaja_page_kiriminaja-history' ){
+            wp_enqueue_style( 'datatables-css', 'https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css' );
+            wp_enqueue_script( 'datatables-js', 'https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js', array('jquery'), null, true );
+            
+            // Scroller Extension
+            wp_enqueue_style('datatables-scroller-css', 'https://cdn.datatables.net/scroller/2.2.6/css/scroller.dataTables.min.css');
+            wp_enqueue_script('datatables-scroller-js', 'https://cdn.datatables.net/scroller/2.2.6/js/dataTables.scroller.min.js', array('jquery'), null, true);
+
+            wp_enqueue_style('fontawesome','https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',array(),'6.0.0','all');
+
+            wp_enqueue_style('kiriminaja-history-css', $this->plugin_url.'assets/admin/css/kj-history.css',array(),KJ_PLUGIN_VERSION,'all');
+            wp_enqueue_script( 'kiriminaja-history', $this->plugin_url.'assets/admin/js/kj-history.js',array('jquery'),KJ_PLUGIN_VERSION,true);
+            wp_localize_script( 'kiriminaja-history', 'kj',
+                array( 
+                    'ajaxurl' => admin_url( 'admin-ajax.php' ),
+                    'nonce' => wp_create_nonce('kj-nonce'),
+                    'siteurl'=>site_url()
+                )
+            );
+        }
 
         if (!in_array(@$_GET['page'],[
             'kiriminaja-konfigurasi',

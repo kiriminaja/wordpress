@@ -24,6 +24,7 @@ final class Init {
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,
             Controllers\UpdaterPluginGcsController::class,
+            Controllers\HistoryController::class,
         ];
     }
 
