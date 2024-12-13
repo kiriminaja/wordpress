@@ -1,0 +1,276 @@
+/* Start Filter */
+/* Container utama untuk kartu */
+.tab-histories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+/* Setelan dasar untuk kartu */
+.tab-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Hover effect pada kartu */
+.tab-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Header untuk tiap kartu */
+.tab-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+}
+
+/* Ikon di atas */
+.tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #f5f5f5;
+    border-radius: 50%;
+    margin-bottom: 12px;
+}
+
+/* Label teks */
+.tab-label {
+    flex: 1;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+/* Teks kecil */
+.text-small {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333333;
+}
+
+/* Count package */
+.tab-count-package {
+    background-color: #5508a3;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 12px;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+}
+
+/* Kartu aktif */
+.tab-card.active {
+    background-color: #ede3ff;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 2px solid #5508a3;
+}
+
+/* Responsif untuk layar kecil */
+@media (max-width: 600px) {
+    .tab-histories {
+        grid-template-columns: 1fr;
+    }
+
+    .tab-header {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tab-icon {
+        margin-bottom: 8px;
+    }
+
+    .text-small {
+        font-size: 12px;
+    }
+
+    .tab-count-package {
+        font-size: 10px;
+    }
+}
+/* End Filter */
+
+/* Styling Tabel DataTables */
+#tbhistory {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#tbhistory th, #tbhistory td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+#tbhistory th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+#tbhistory tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Styling untuk kolom nomor urut */
+#tbhistory tbody td:first-child {
+    text-align: center;
+    font-weight: bold;
+}
+
+#tbhistory_wrapper thead {
+    background: #d7c1ff;
+}
+
+#tbhistory_wrapper tbody {
+    background: #ffffff;
+}
+
+/* Payment method */
+.tb-paymentmethod:before {
+    content: '\f05a';
+    font-family: fontawesome;
+    margin-right: 0.5rem;
+}
+
+.tb-paymentmethod {
+    margin-bottom: 0.2rem;
+    font-weight: 500;
+    color: #c1521e;
+}
+
+.tb-paymentmethod.cod {
+    color: #5508a3;
+}
+
+/* Order ID */
+.tb-oid {
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+}
+
+/* Status badge */
+.tb-status .badge {
+    background: #ffdbca;
+    padding: 0.3rem 0.8rem;
+    border-radius: 100px;
+    color: #c1521e;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.tb-status.cod .badge {
+    background: #d7c1ff;
+    color: #5508a3;
+}
+
+.tb-status {
+    margin: 0.5rem 0;
+}
+
+/* Address */
+.tb-address {
+    margin-left: 2rem;
+    position: relative;
+}
+
+.tb-address .origin {
+    position: relative;
+    margin-bottom: 0.8rem;
+}
+
+.tb-person-origin:before {
+    content: '\f0aa';
+    position: absolute;
+    left: -28px;
+    font-family: fontawesome;
+    font-size: 16px;
+    color: #2271b1;
+}
+
+.tb-address .destination {
+    position: relative;
+}
+
+.tb-person-destination:before {
+    content: '\f0ab';
+    position: absolute;
+    left: -28px;
+    font-family: fontawesome;
+    font-size: 16px;
+    color: #5508a3;
+}
+
+.tb-address:before {
+    content: "";
+    position: absolute;
+    top: 16px;
+    left: -20px;
+    width: 2px;
+    height: 40%;
+    background-color: #0000007d;
+}
+
+.tb-person-origin,
+.tb-person-destination {
+    font-weight: bold;
+}
+
+.tb-phone,
+.tb-phone-destination {
+    color: #146414;
+}
+
+.tb-origin,
+.tb-destination {
+    color: #5508a3;
+    font-weight: 500;
+}
+
+.tb-shippingname {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 0.5rem;
+}
+
+.tb-insurance-cost,.tb-cod-cost {
+    margin-bottom: 0.5rem;
+}
+
+.tb-isipaket .tb-products-name {
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+}
+
+.tb-isipaket .tb-products-total {
+    font-weight: bold;
+    color: #146414;
+}
+
+.tb-isipaket p {
+    margin: 0;
+}
+
+.tb-text-weight {
+    font-weight: 500;
+}

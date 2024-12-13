@@ -108,43 +108,44 @@ class Helper extends  BaseInit {
         return $date->format("Y-m-d H:i:s");
     }
 
-    public function getTransactionStatus():array{
-        $status = array(
-            array(
-                'code' =>'request_pickup',
-                'label' => 'Req Pickup'
-            ),
-            array(
-                'code' => 'pending',
-                'label' => 'Pending'
-            ),
-            array(
-                'code' => 'finished',
-                'label' => 'Paket Terkirim'
-            ),
-            array(
-                'code' =>'shipped',
-                'label' => 'Proses Pengiriman'
-            ),
-            array(
-                'code' =>'return',
-                'label' => 'Proses Pengembalian'
-            ),
-            array(
-                'code' =>'returned',
-                'label' => 'Paket Selesai Dikembalikan'
-            ),
-            array(
-                'code' => ' rejected',
-                'label' => 'Paket Ditolak'
-            ),
-            array(
-                'code' => 'canceled',
-                'label' => 'Paket Batal'
-            )
-        );
+    public function getTransactionStatus($status):string{
 
-        return $status;
+        switch ($status){
+            case "new":
+                return "Req Pickup";
+                break;
+            case "request_pickup":
+                return "Request Pickup";
+                break;
+            case "pending":
+                return "Pending";
+                break;
+            case "finished":
+                return "Paket Terkirim";
+                break;
+            case "shipped":
+                return "Proses Pengiriman";
+                break;
+            case "return":
+                return "Proses Pengembalian";
+                break;
+            case "returned":
+                return "Paket Selesai di Kembalikan";
+                break;
+            case "rejected":
+                return "Paket Ditolak";
+                break;
+            case "canceled":
+                return "Paket Batal";
+                break;
+            default;
+            return "-";
+        }
+      
+    }
 
+    public function changeDateFormat($datetime,$format = "Y-m-d H:i:s"){
+        $date = date_create($datetime);
+        return date_format($date,$format);
     }
 }

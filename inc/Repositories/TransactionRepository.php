@@ -259,4 +259,41 @@ class TransactionRepository{
         }
         return true;
     }
+
+    public function getHistoryPackageDatatable(array $payloads){
+        global $wpdb;
+
+        $search_value = $payloads['search_value'];
+        $start        = $payloads['start'];
+        $length       = $payloads['length'];
+
+        $table_name = $this->table;
+        
+        $query = "SELECT * FROM $table_name WHERE destination_sub_district != '0'";
+
+        if (!empty($search_value)) {
+            $query .= $wpdb->prepare(" AND (order_id LIKE %s OR destination_sub_district LIKE %s)", '%' . $wpdb->esc_like($search_value) . '%', '%' . $wpdb->esc_like($search_value) . '%');
+        }
+
+        $query .= " ORDER BY created_at DESC"; 
+
+        $total_count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE destination_sub_district != '0'");
+
+        if ($length != -1) {
+            $query .= $wpdb->prepare(" LIMIT %d, %d", $start, $length);
+        }
+
+        $results = $wpdb->get_results($query,'ARRAY_A');
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        
+        return compact(
+            'results',
+            'total_count',
+        );
+
+    }
 }
