@@ -5,6 +5,11 @@
     <div class="tabgroup-filter">
         <?php include_once ( KJ_DIR . 'templates/history-package/view/tabfilter.php' ); ?>
     </div>
+
+    <!-- Advanced Filter -->
+    <div class="advanced-filter">
+        <?php include_once ( KJ_DIR . 'templates/history-package/view/advancedfilter.php' ); ?>
+    </div>
     
     <!-- List data Histori -->
     <table class="table display" id="tbhistory" cellspacing="0" width="100%">

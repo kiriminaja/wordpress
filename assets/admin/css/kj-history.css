@@ -33,7 +33,7 @@
 .tab-header {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     padding: 12px;
 }
 
@@ -65,12 +65,10 @@
 
 /* Count package */
 .tab-count-package {
-    background-color: #5508a3;
-    color: #ffffff;
-    font-size: 12px;
+    color: black;
+    font-size: 22px;
     font-weight: bold;
     border-radius: 12px;
-    padding: 2px 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -273,4 +271,94 @@
 
 .tb-text-weight {
     font-weight: 500;
+}
+
+/* General Styling */
+.row-filter {
+    padding: 20px 0;
+}
+
+.row-item-filter {
+    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 15px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    text-decoration: none;
+}
+
+.dropdown-select.ka-select2 {
+    width: 100%;
+}
+
+/* Input Group Styling */
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.dropdown-select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 150px;
+}
+
+.input-field {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+/* Label Styling */
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.dropdown-select.number-order{
+    width: 30%;
+}
+.wpform-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .row-grid-filter {
+        grid-template-columns: repeat(2, 1fr); /* 2 kolom pada tablet */
+    }
+
+    .wpform-group {
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .row-grid-filter {
+        grid-template-columns: 1fr; /* 1 kolom pada perangkat mobile */
+    }
+
+    .wpform-group {
+        margin-bottom: 10px;
+    }
+
+    .input-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .dropdown-select, .input-field {
+        width: 100%;
+        margin-bottom: 10px;
+    }
 }
