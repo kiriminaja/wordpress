@@ -11,7 +11,7 @@
                 <span class="text-small"><?php _e('Semua Paket','kiriminaja'); ?></span>
             </div>
             <div class="tab-count-package">
-                <span class="wrap-count">0</span>
+                <span class="wrap-count"><?php echo $history->getCountService(); ?></span>
             </div>
             <a aria-current="page" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
         </div>
@@ -28,9 +28,9 @@
                 <span class="text-small"><?php _e('Request Pickup','kiriminaja'); ?></span>
             </div>
             <div class="tab-count-package">
-                <span class="wrap-count">0</span>
+                <span class="wrap-count"><?php echo $history->getCountService('request_pickup'); ?></span>
             </div>
-            <a aria-current="page" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
+            <a aria-current="page" href="#" data-status="request_pickup"  class="router-link-active router-link-exact-active absolute inset-0"></a>
 
         </div>
     </div>
@@ -46,9 +46,9 @@
                 <span class="text-small"><?php _e('Proses Pengiriman','kiriminaja'); ?></span>
             </div>
             <div class="tab-count-package">
-                <span class="wrap-count">0</span>
+                <span class="wrap-count"><?php echo $history->getCountService('shipped'); ?></span>
             </div>
-            <a aria-current="page" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
+            <a aria-current="page" href="#" data-status="shipped" class="router-link-active router-link-exact-active absolute inset-0"></a>
 
         </div>
     </div>
@@ -64,9 +64,9 @@
                 <span class="text-small"><?php _e('Kendala Pengiriman','kiriminaja'); ?></span>
             </div>
             <div class="tab-count-package">
-                <span class="wrap-count">0</span>
+                <span class="wrap-count"><?php echo $history->getCountService('pending'); ?></span>
             </div>
-            <a aria-current="page" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
+            <a aria-current="page" data-status="pending" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
 
         </div>
     </div>
@@ -82,8 +82,9 @@
                 <span class="text-small"><?php _e('Sampai Tujuan','kiriminaja'); ?></span>
             </div>
             <div class="tab-count-package">
-                <span class="wrap-count">0</span>
+                <span class="wrap-count"><?php echo $history->getCountService('finished'); ?></span>
             </div>
+            <a aria-current="page" data-status="finished" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
         </div>
     </div>
 
@@ -98,9 +99,9 @@
                 <span class="text-small"><?php _e('Batal Proses','kiriminaja'); ?></span>
             </div>
             <div class="tab-count-package">
-                <span class="wrap-count">0</span>
+                <span class="wrap-count"><?php echo $history->getCountService('canceled'); ?></span>
             </div>
-            <a aria-current="page" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
+            <a aria-current="page" data-status="canceled" href="#" class="router-link-active router-link-exact-active absolute inset-0"></a>
 
         </div>
     </div>

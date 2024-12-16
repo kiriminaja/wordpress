@@ -19,12 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
 jQuery(document).ready(function($){ 
     
     let html;
+    var getStatusTab = 'all';
 
-    jQuery('#tbhistory').DataTable({
+     var tableAjax = $('#tbhistory').DataTable({
         "serverSide": true,
+        "processing": true,
         "scrollCollapse": true, 
         "paging": false,
-        "processing": true,
         "ajax": {
             "url": kj.ajaxurl,
             "method": "POST",
@@ -32,7 +33,8 @@ jQuery(document).ready(function($){
                 d.action = 'get_history_package'; 
                 d.start = d.start;
                 d.length = d.length; 
-                d.search = d.search.value;                
+                d.search = d.search.value;   
+                d.status = getStatusTab;           
             },
             "dataSrc": function(json) {
                 return json.data;
@@ -40,7 +42,7 @@ jQuery(document).ready(function($){
         },
         "scrollY": 400,
         "scroller": {
-            "loadingIndicator": true
+            "loadingIndicator": false
         }, 
         "searching":false,
         "ordering":false,
@@ -114,8 +116,35 @@ jQuery(document).ready(function($){
                 }
             }
         ],
-        "stateSave": true
+        "stateSave": false
     });
+
+    var scrollBody = $('#tbhistory').closest('.dataTables_scroll').find('.dataTables_scrollBody');
+    $('#tbhistory').on('processing.dt', function (e, settings, processing) {
+        if (processing) {
+            scrollBody.addClass('loading');
+        } else {
+            scrollBody.removeClass('loading');
+        }
+    });
+    
+    // Reload data dengan parameter baru
+    function reloadData(newStatus) {
+        getStatusTab = newStatus; // Update parameter status
+        tableAjax.ajax.reload(null, false); // false = tidak reset pagination
+    }
+
+    ajaxFilterTabHistory();
+    function ajaxFilterTabHistory(){
+        let parentTab = $('.tab-histories');
+        let getStatusTab,status;
+
+        parentTab.find('.tab-card').on('click',function(e){
+            getStatusTab = $(this).find('.tab-header > a').data('status');
+            status = getStatusTab == null ? 'all' : getStatusTab;
+            reloadData(status);
+        });
+    }
 
     function formatRupiah(angka) {
         let numberString = angka.toString();
@@ -131,4 +160,6 @@ jQuery(document).ready(function($){
     
         return "Rp" + rupiah;
     }
+
+    
 });
