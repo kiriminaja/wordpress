@@ -20,6 +20,22 @@
     <div class="tab-card">
         <div class="tab-header">
             <div class="tab-icon">
+                <svg  style="color:#f0ac48;" width="24" height="24"  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="icon text-lg text-onWarningYellowContainer" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 11q1.65 0 2.825-1.175T16 7V4H8v3q0 1.65 1.175 2.825T12 11M5 22q-.425 0-.712-.288T4 21t.288-.712T5 20h1v-3q0-1.525.713-2.863T8.7 12q-1.275-.8-1.987-2.137T6 7V4H5q-.425 0-.712-.288T4 3t.288-.712T5 2h14q.425 0 .713.288T20 3t-.288.713T19 4h-1v3q0 1.525-.712 2.863T15.3 12q1.275.8 1.988 2.138T18 17v3h1q.425 0 .713.288T20 21t-.288.713T19 22z"></path></svg>
+            </div>
+            <div class="tab-label">
+                <span class="text-small"><?php _e('Belum Di Request Pickup','kiriminaja'); ?></span>
+            </div>
+            <div class="tab-count-package">
+                <span class="wrap-count"><?php echo $history->getCountService('new'); ?></span>
+            </div>
+            <a aria-current="page" href="#" data-status="new"  class="router-link-active router-link-exact-active absolute inset-0"></a>
+
+        </div>
+    </div>
+
+    <div class="tab-card">
+        <div class="tab-header">
+            <div class="tab-icon">
                 <svg width="24" height="24" style="color:#f0ac48;" data-v-e8d572f6="" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="icon text-lg text-onWarningYellowContainer" width="1em" height="1em" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M4 18V7.1L2.45 3.75q-.175-.375-.025-.763t.525-.562t.763-.037t.562.512L6.2 7.05h11.6l1.925-4.15q.175-.375.563-.525t.762.05q.375.175.525.563t-.025.762L20 7.1V18q0 .825-.587 1.413T18 20H6q-.825 0-1.412-.587T4 18m6-5h4q.425 0 .713-.288T15 12t-.288-.712T14 11h-4q-.425 0-.712.288T9 12t.288.713T10 13"></path>
                 </svg>
