@@ -240,6 +240,9 @@ class CheckoutController
         
         //save meta Insurance shipping woocommerce
         if( isset($data['kj_shipping_insurance']) && !empty($data['kj_shipping_insurance']) ) $order->update_meta_data( '_shipping_kj_insurance', sanitize_text_field( ( $data['kj_shipping_insurance'] == true ) ? 'yes' : '' ) );
+        
+        //flag order ppn
+        $order->update_meta_data( '_kj_ppn', true );
 
     }
     
