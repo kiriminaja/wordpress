@@ -20,6 +20,7 @@ jQuery(document).ready(function($){
     
     let html;
     var getStatusTab = 'all';
+    var advancedsearch = '';
 
      var tableAjax = $('#tbhistory').DataTable({
         "serverSide": true,
@@ -34,7 +35,8 @@ jQuery(document).ready(function($){
                 d.start = d.start;
                 d.length = d.length; 
                 d.search = d.search.value;   
-                d.status = getStatusTab;           
+                d.status = getStatusTab;
+                d.advancedsearch = advancedsearch;        
             },
             "dataSrc": function(json) {
                 return json.data;
@@ -128,10 +130,9 @@ jQuery(document).ready(function($){
         }
     });
     
-    // Reload data dengan parameter baru
     function reloadData(newStatus) {
-        getStatusTab = newStatus; // Update parameter status
-        tableAjax.ajax.reload(null, false); // false = tidak reset pagination
+        getStatusTab = newStatus;
+        tableAjax.ajax.reload(null, false);
     }
 
     ajaxFilterTabHistory();
@@ -159,6 +160,28 @@ jQuery(document).ready(function($){
         }
     
         return "Rp" + rupiah;
+    }
+
+    advancedFilterhistory();
+    function advancedFilterhistory(){
+        $('#frm-advancedfilter').on('submit',function(event){
+            event.preventDefault();
+            let data = $(this).serialize();
+            advancedsearch = queryStringToJSON(data);
+            tableAjax.ajax.reload(null, false);
+        });
+    }
+
+    function queryStringToJSON(queryString) {
+        const params = new URLSearchParams(queryString);
+        const jsonObject = {};
+
+        params.forEach((value, key) => {
+            jsonObject[key] = value;
+        });
+
+        return JSON.parse( JSON.stringify(jsonObject) );
+
     }
 
     

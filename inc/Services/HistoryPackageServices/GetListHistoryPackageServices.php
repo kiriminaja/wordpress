@@ -11,6 +11,7 @@ class GetListHistoryPackageServices extends BaseService
     private int $length;
     private int $draw;
     private string $status;
+    private $advancedsearch;
 
     public function __construct($payloads) {
         $this->search_value = $payloads['search_value'] ?? '';
@@ -18,6 +19,7 @@ class GetListHistoryPackageServices extends BaseService
         $this->length = $payloads['length'] ?? -1;
         $this->draw = $payloads['draw'] ?? 1;
         $this->status = $payloads['status'] ?? 'all';
+        $this->advancedsearch = $payloads['advancedsearch']?? [];
         return $this;
     }
 
@@ -28,6 +30,7 @@ class GetListHistoryPackageServices extends BaseService
                 'start' => $this->start,
                 'length' => $this->length,
                 'status' => $this->status,
+                'advancedsearch' => $this->advancedsearch,
             ]);
             
             /** get setting origin wooocmmerce KA */

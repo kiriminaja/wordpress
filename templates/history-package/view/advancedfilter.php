@@ -1,16 +1,16 @@
 <div class="row-filter">
-    <form action="" method="GET" id="frm-advancedfilter">
+    <form action="" id="frm-advancedfilter">
         <div class="row-grid-filter">
             <div class="row-item-filter">
                 <div class="wpform-group">
                     <label><?php _e('Cari','kiriminaja'); ?></label>
                     <div class="input-group">
-                        <select class="dropdown-select number-order">
+                        <select class="dropdown-select number-order" name="prefix">
                             <option value="oid">OID</option>
                             <option value="awb">AWB</option>
                             <option value="hp">No HP</option>
                         </select>
-                        <input type="text" class="input-field" placeholder="Enter text here" />
+                        <input type="text" autocomplete="off" name="stext" class="input-field" placeholder="Enter text here" />
                     </div>
                 </div>
                 <div class="wpform-group">
@@ -31,6 +31,9 @@
                         <option value="cod">COD</option>
                         <option value="noncod">NO COD</option>
                     </select>
+                </div>
+                <div class="wpform-group">
+                    <button class="button button-primary" type="submit" id="btn-advancedfilter"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
             </div>
         </div>

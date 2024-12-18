@@ -21,9 +21,10 @@ class HistoryController
         $length = intval($_POST['length']);
         $draw = intval($_POST['draw']);
         $status = $_POST['status'] ?? '';
+        $advancedsearch = $_POST['advancedsearch'] ?? [];
 
         $service = (new \Inc\Services\HistoryPackageServices\GetListHistoryPackageServices(
-            compact('search_value','start','length','draw','status')
+            compact('search_value','start','length','draw','status','advancedsearch')
         ))->call();
 
         echo json_encode( $service );

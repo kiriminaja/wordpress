@@ -267,11 +267,12 @@ class TransactionRepository{
         $start        = $payloads['start'];
         $length       = $payloads['length'];
         $status       = $payloads['status'];
+        $advancedsearch = $payloads['advancedsearch'];
         $total_query = '';
 
         $table_name = $this->table;
         
-        $query = "SELECT * FROM $table_name WHERE destination_sub_district != '0' AND status !='new' ";
+        $query = "SELECT * FROM $table_name WHERE destination_sub_district != '0' ";
 
         if (!empty($search_value)) {
             $query .= $wpdb->prepare(" AND (order_id LIKE %s OR destination_sub_district LIKE %s)", '%' . $wpdb->esc_like($search_value) . '%', '%' . $wpdb->esc_like($search_value) . '%');
@@ -282,9 +283,23 @@ class TransactionRepository{
             $total_query = " AND status='$status' ";
         }
 
+        if(!empty($advancedsearch)){
+            if( isset( $advancedsearch['stext'] ) ){
+                switch ($advancedsearch['prefix']) {
+                    case 'oid':
+                        $query.= $wpdb->prepare(" AND order_id LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        break;
+                    case 'awb':
+                        $query.= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        break;
+                }
+                
+            }
+        }
+
         $query .= " ORDER BY created_at DESC"; 
 
-        $total_count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE destination_sub_district != '0' AND status !='new' $total_query");
+        $total_count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE destination_sub_district != '0' $total_query");
 
         if ($length != -1) {
             $query .= $wpdb->prepare(" LIMIT %d, %d", $start, $length);
@@ -309,7 +324,7 @@ class TransactionRepository{
         
         $andWhere = ( $status != 'all' ) ? " AND status = '$status' " : '';
 
-        $query = $wpdb->get_var("SELECT COUNT(*) FROM ".$this->table." WHERE destination_sub_district != '0' AND status !='new' $andWhere");
+        $query = $wpdb->get_var("SELECT COUNT(*) FROM ".$this->table." WHERE destination_sub_district != '0' $andWhere");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
