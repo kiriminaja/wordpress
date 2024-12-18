@@ -26,6 +26,9 @@ class CheckoutController
 
         if (is_plugin_active('woocommerce/woocommerce.php')) {
 
+            //before total order checkout
+            add_action('woocommerce_review_order_before_order_total',array($this,'kj_reviewOrderBeforeTotalOrder'));
+
             /** Add Custom field Checkout Sub District */
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'));
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
@@ -60,6 +63,27 @@ class CheckoutController
             add_filter('woocommerce_checkout_fields', array($this,'kj_billing_fields'), 100);            
 
         }
+    }
+
+    function kj_reviewOrderBeforeTotalOrder(){
+        if( !is_checkout() ){
+            return false;
+        }
+        
+        $table = '<tr class="kj_cart_item_insurane" style="display:none;">
+			<td class="kj-cart-insurance">
+				<label for="kj_cart_insurance">'.__('Insurance','kiriminaja').'</label>											
+            </td>
+			<td class="kj-cart-insurance kj-cost-insurance"></td>
+		</tr>
+        <tr class="kj_cart_item_cod_fee" style="display:none;">
+			<td class="kj-cod-fee">
+				<label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja').'</label>		
+                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
+            </td>
+			<td class="kj-cod-fee kj-cost-codfee"></td>
+		</tr>';
+        echo $table;
     }
 
     function rei_after_checkout_validation( $posted ) {
@@ -339,7 +363,10 @@ class CheckoutController
         if( $order->get_payment_method() == 'cod'){
             $html .= '
             <tr>
-				<th scope="row">'.__('COD Fee','kiriminaja').':</th>
+				<th scope="row">
+                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','kiriminaja').'</label>		
+                    <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
+                </th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->cod_fee).'</td>
 			</tr>';
         }
