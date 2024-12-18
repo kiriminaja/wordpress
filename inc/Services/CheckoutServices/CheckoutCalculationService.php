@@ -27,6 +27,7 @@ wc_cart_contents
     private $carts;
     private $selectedExpedition;
 
+    private float $ppn = 0.11;
     
     public function __construct($payload){
         $this->payload = $payload;
@@ -98,12 +99,18 @@ wc_cart_contents
         if (!$this->selectedExpedition){
             return self::error([],'Expedition Not Found');
         }
+        
+        // add ppn
+        $checkoutCalculation = self::checkoutCalculation(); 
+        $codfee_ppn = ceil($checkoutCalculation['cod_amt'] * $this->ppn);
+        $checkoutCalculation['cod_tax_amt'] = $codfee_ppn;
+        $checkoutCalculation['cod_tax_total_amt']  = $checkoutCalculation['cod_amt']+$codfee_ppn;
 
         return self::success([
             'cart'                  => $this->carts,
             'pricing'               => $this->pricingData,
             'payload'               => $this->payload,
-            'calculation_result'    => self::checkoutCalculation(),
+            'calculation_result'    => $checkoutCalculation,
             'carts_attribute'       => $cartAttributes->data,
         ]);
     }
@@ -124,6 +131,7 @@ wc_cart_contents
         $cod_amt = self::getCalculateCODFee();
         $ongkirFee = intval(intval(@$selected_expedition->cost ?? 0) - intval(@$selected_expedition->discount_amount ?? 0));
         $total_amt = $ongkirFee+$cod_amt+$insurance_amt+$cartTotal;
+        
         return [
             'cart_total_amt' => $cartTotal,
             'cod_amt' => $cod_amt,

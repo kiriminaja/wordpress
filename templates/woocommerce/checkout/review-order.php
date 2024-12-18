@@ -123,20 +123,6 @@ defined( 'ABSPATH' ) || exit;
 			<?php endif; ?>
 		<?php endif; ?>
 
-		<tr class="kj_cart_item_insurane" style="display:none;">
-			<td class="kj-cart-insurance">
-				<label for="kj_cart_insurance"><?php echo  __('Insurance','kiriminaja'); ?></label>											
-            </td>
-			<td class="kj-cart-insurance kj-cost-insurance"></td>
-		</tr>
-
-		<tr class="kj_cart_item_cod_fee" style="display:none;">
-			<td class="kj-cod-fee">
-				<label for="kj_cod_fee"><?php echo  __('COD Fee','kiriminaja');?></label>											
-            </td>
-			<td class="kj-cod-fee kj-cost-codfee"></td>
-		</tr>
-
 		<?php do_action( 'woocommerce_review_order_before_order_total' ); ?>
 
 		<tr class="order-total">
