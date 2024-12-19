@@ -3,13 +3,13 @@
         getKiriminAjaTransactionData()
     })
     function getKiriminAjaTransactionData(){
-        let orderId = `{$orderId}`
-        let trackingUrl = `{$trackingUrl}`
-        let kjOrderData = `{$kjOrderData}`
-        let kjOrderDataParsed = JSON.parse(kjOrderData)
+        let orderId = `{$orderId}`;
+        let trackingUrl = `{$trackingUrl}`;
+        let kjOrderData = `{$kjOrderData}`;
+        let kjOrderDataParsed = JSON.parse(kjOrderData);
         
-        console.log(`orderId : ${orderId}`)
-        let tBodycontent = ''
+        let label_ppn = '11%';
+        let tBodycontent = '';
         
         jQuery('#side-sortables').append(`
 <div id="woocommerce-customer-history" class="postbox ">
@@ -58,7 +58,11 @@
             ?    
              `
             <tr>
-                <th>COD Fee <span style="margin-left: auto">:</span></th>
+                <th>
+                    COD Fee <span style="margin-left: auto">:</span>
+                    <br/>
+                    <em style="font-weight: 500;font-size:12px;">(Include `+label_ppn+` Vat)</em>
+                </th>
                 <td>${kjOrderDataParsed?.cod_fee}</td>
             </tr>
             `   

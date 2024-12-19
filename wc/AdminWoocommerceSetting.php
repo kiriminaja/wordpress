@@ -49,6 +49,11 @@ class AdminWoocommerceSettings
             if($order->get_payment_method() == 'cod'){
                 echo $order->get_payment_method();
                 echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee));
+                
+                if( $order->get_meta( '_kj_ppn' )){
+                    echo '<br/><em>('.__('include 11% Vat','kiriminaja').')</em>';
+                }
+
             }else{
                 echo 'Non Cod';
                 echo '<br/>Method: '. $order->get_payment_method();
