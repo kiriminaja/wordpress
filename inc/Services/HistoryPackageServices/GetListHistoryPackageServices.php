@@ -47,15 +47,17 @@ class GetListHistoryPackageServices extends BaseService
     
                 $shipping_method = ''; $shipping_cost = 0;
                 foreach ( $shipping_methods as $method ) {
-                    $shipping_method .= $method->get_name();
+                    $shipping_method .= $method->get_name().', ';
                     $shipping_cost += (float)$method->get_total();
                 }
+
+                $shipping_method = rtrim($shipping_method, ', ');
     
                 /** decode Shipping Info */
                 $decode_shipping_info = json_decode( $row['shipping_info'] );               
                 $billing_name = isset( $decode_shipping_info->_billing_first_name,$decode_shipping_info->_billing_last_name ) ? $decode_shipping_info->_billing_first_name.' '.$decode_shipping_info->_billing_last_name : '';
                 $shipping_name = isset( $decode_shipping_info->_shipping_first_name,$decode_shipping_info->_shipping_last_name ) ? $decode_shipping_info->_shipping_first_name.' '.$decode_shipping_info->_shipping_last_name : '';
-                $destination_phone = isset( $decode_shipping_info->_billing_phone ) ? $decode_shipping_info->_billing_phone : 0;
+                $destination_phone = isset( $decode_shipping_info->_billing_phone ) ? $decode_shipping_info->_billing_phone : '';
                 $shipping_name_destination = $shipping_name ?? $billing_name; 
     
                 /** dimension unit woocommerce */
@@ -75,7 +77,7 @@ class GetListHistoryPackageServices extends BaseService
                 $row['origin_sub_district_name'] = $getSetting['origin_sub_district_name'];
                 
                 $row['destination_name'] = $shipping_name_destination;
-                $row['destination_phone'] = $shipping_name_destination;
+                $row['destination_phone'] = $destination_phone;
     
                 $data[] = $row; 
             

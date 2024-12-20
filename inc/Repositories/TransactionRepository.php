@@ -283,23 +283,41 @@ class TransactionRepository{
             $total_query = " AND status='$status' ";
         }
 
+        $sql_total = "SELECT COUNT(*) FROM $table_name WHERE destination_sub_district != '0' $total_query";
+
         if(!empty($advancedsearch)){
-            if( isset( $advancedsearch['stext'] ) ){
+            if( isset( $advancedsearch['stext'] ) && !empty($advancedsearch['stext']) ){
                 switch ($advancedsearch['prefix']) {
                     case 'oid':
                         $query.= $wpdb->prepare(" AND order_id LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        $sql_total .= $wpdb->prepare(" AND order_id LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
                         break;
                     case 'awb':
                         $query.= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        $sql_total .= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
                         break;
                 }
                 
             }
+            if( isset( $advancedsearch['expedition'] ) && !empty($advancedsearch['expedition']) ){
+                $query.= $wpdb->prepare(" AND service = %s", $advancedsearch['expedition']);
+                $sql_total .= $wpdb->prepare(" AND service = %s", $advancedsearch['expedition']);
+            }
+
+            if( isset( $advancedsearch['payment'] ) && !empty($advancedsearch['payment']) ){
+                if ($advancedsearch['payment'] == 'cod') {
+                    $sql_total .= $wpdb->prepare(" AND cod_fee > %d", 0);
+                    $query .= $wpdb->prepare(" AND cod_fee > %d", 0);
+                }else{
+                    $sql_total .= $wpdb->prepare(" AND cod_fee = %d", 0);
+                    $query .= $wpdb->prepare(" AND cod_fee = %d", 0);
+                }
+            }
         }
 
         $query .= " ORDER BY created_at DESC"; 
-
-        $total_count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE destination_sub_district != '0' $total_query");
+        
+        $total_count = $wpdb->get_var($sql_total);
 
         if ($length != -1) {
             $query .= $wpdb->prepare(" LIMIT %d, %d", $start, $length);

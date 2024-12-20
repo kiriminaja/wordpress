@@ -121,6 +121,9 @@ jQuery(document).ready(function($){
         "stateSave": false
     });
 
+    //select2
+    $('.ka-select2').select2();
+
     var scrollBody = $('#tbhistory').closest('.dataTables_scroll').find('.dataTables_scrollBody');
     $('#tbhistory').on('processing.dt', function (e, settings, processing) {
         if (processing) {
