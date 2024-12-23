@@ -79,6 +79,10 @@ class Enqueue extends BaseInit{
 
             wp_enqueue_style('fontawesome','https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',array(),'6.0.0','all');
 
+            //select2
+            wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), '4.0.13', true );
+            wp_enqueue_style( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css', array(), '4.0.13' );
+        
             wp_enqueue_style('kiriminaja-history-css', $this->plugin_url.'assets/admin/css/kj-history.css',array(),KJ_PLUGIN_VERSION,'all');
             wp_enqueue_script( 'kiriminaja-history', $this->plugin_url.'assets/admin/js/kj-history.js',array('jquery'),KJ_PLUGIN_VERSION,true);
             wp_localize_script( 'kiriminaja-history', 'kj',

@@ -21,13 +21,19 @@
                 </div>
                 <div class="wpform-group">
                     <label><?php _e('Ekpedisi','kiriminaja'); ?></label>
-                    <select class="dropdown-select ka-select2" id="ekpedisi-select2">
-                        <option>Pilih Ekspedisi</option>
+                    <select name="expedition" class="dropdown-select ka-select2" id="ekpedisi-select2">
+                        <option value="">Pilih Ekspedisi</option>
+                        <?php 
+                            foreach($history->getExpressEkspedisi() as $ekspedisi){
+                                echo '<option value="'.$ekspedisi->code.'">'.$ekspedisi->name.'</option>';
+                            }
+                        ?>
                     </select>
                 </div>
                 <div class="wpform-group">
                     <label><?php _e('Tipe Pembayaran','kiriminaja'); ?></label>
-                    <select class="dropdown-select ka-select2" id="payment-select2">
+                    <select name="payment" class="dropdown-select ka-select2" id="payment-select2">
+                        <option value="">Pilih Pembayaran</option>
                         <option value="cod">COD</option>
                         <option value="noncod">NO COD</option>
                     </select>
