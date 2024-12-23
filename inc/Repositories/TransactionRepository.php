@@ -296,6 +296,10 @@ class TransactionRepository{
                         $query.= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
                         $sql_total .= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
                         break;
+                    case 'hp':
+                        $query .= $wpdb->prepare(" AND JSON_EXTRACT(shipping_info, '$._billing_phone') = %s", $wpdb->esc_like($advancedsearch['stext']));
+                        $sql_total .= $wpdb->prepare(" AND JSON_EXTRACT(shipping_info, '$._billing_phone') = %s", $wpdb->esc_like($advancedsearch['stext']));
+                        break;
                 }
                 
             }
@@ -311,7 +315,12 @@ class TransactionRepository{
                 }else{
                     $sql_total .= $wpdb->prepare(" AND cod_fee = %d", 0);
                     $query .= $wpdb->prepare(" AND cod_fee = %d", 0);
-                }
+                } 
+            }
+            
+            if( isset($advancedsearch['shippingaddress']) && !empty($advancedsearch['shippingaddress']) ){
+                $query.= $wpdb->prepare(" AND destination_sub_district_id = %d", $advancedsearch['shippingaddress']);
+                $sql_total .= $wpdb->prepare(" AND destination_sub_district_id = %d", $advancedsearch['shippingaddress']);
             }
         }
 
@@ -323,6 +332,7 @@ class TransactionRepository{
             $query .= $wpdb->prepare(" LIMIT %d, %d", $start, $length);
         }
 
+        
         $results = $wpdb->get_results($query,'ARRAY_A');
 
         if (strlen(@$wpdb->last_error ?? '') > 0){
@@ -343,6 +353,16 @@ class TransactionRepository{
         $andWhere = ( $status != 'all' ) ? " AND status = '$status' " : '';
 
         $query = $wpdb->get_var("SELECT COUNT(*) FROM ".$this->table." WHERE destination_sub_district != '0' $andWhere");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+
+    public function getShippingAddress(){
+        global $wpdb;
+        $query = $wpdb->get_results("SELECT DISTINCT destination_sub_district_id,destination_sub_district FROM ".$this->table." WHERE destination_sub_district != '0' AND destination_sub_district != '' ORDER BY destination_sub_district ASC");
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

@@ -12,6 +12,11 @@ class History
         });
         return $expressEkspedisi;
     }
+
+    function getShippingAddress(){ 
+        $shipping_address = (new \Inc\Repositories\TransactionRepository())->getShippingAddress();
+        return $shipping_address;
+    }
 }
 $history = new History();
 

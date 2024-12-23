@@ -14,9 +14,14 @@
                     </div>
                 </div>
                 <div class="wpform-group">
-                    <label><?php _e('Alamat Pickup','kiriminaja'); ?></label>
-                    <select class="dropdown-select ka-select2" id="address-select2">
-                        <option>Pilih Alamat</option>
+                    <label><?php _e('Alamat Pengiriman','kiriminaja'); ?></label>
+                    <select class="dropdown-select ka-select2" id="address-select2" name="shippingaddress">
+                        <option value="">Pilih Alamat</option>
+                        <?php 
+                            foreach($history->getShippingAddress() as $address){
+                                echo '<option value="'.$address->destination_sub_district_id.'">'.$address->destination_sub_district.'</option>';
+                            }
+                        ?>
                     </select>
                 </div>
                 <div class="wpform-group">
@@ -32,10 +37,10 @@
                 </div>
                 <div class="wpform-group">
                     <label><?php _e('Tipe Pembayaran','kiriminaja'); ?></label>
-                    <select name="payment" class="dropdown-select ka-select2" id="payment-select2">
+                    <select name="payment" class="dropdown-select" id="payment-select2">
                         <option value="">Pilih Pembayaran</option>
                         <option value="cod">COD</option>
-                        <option value="noncod">NO COD</option>
+                        <option value="noncod">NON COD</option>
                     </select>
                 </div>
                 <div class="wpform-group">
