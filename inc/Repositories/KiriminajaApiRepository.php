@@ -38,7 +38,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
     
     public function getPricing($payload){
-        return $this->post('/api/mitra/v5/shipping_price',[
+        return $this->post('/api/mitra/v6.1/shipping_price',[
             'subdistrict_origin'            => $payload['subdistrict_origin'],
             'subdistrict_destination'       => $payload['subdistrict_destination'],
             'weight'                        => $payload['weight'],
@@ -56,7 +56,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function sendPickupRequest($payload){
-        return $this->post('/api/wordpress/v1/request_pickup',$payload);
+        return $this->post('/api/mitra/v6.1/request_pickup',$payload);
     }
 
     public function get_couriers(){

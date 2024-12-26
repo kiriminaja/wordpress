@@ -87,13 +87,12 @@ function kj_getDestinationArea(){
             ];
 
             $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
-      
+            
             if( !empty($service->data) ){
                 
                 if( !empty($post['payment_method'])  ){
-                    $datas['cod_fee'] = wc_price($service->data['calculation_result']['cod_tax_total_amt']) ??  0;
+                    $datas['cod_fee'] = wc_price($service->data['calculation_result']['cod_amt']) ??  0;
                     $datas['is_cod_amt'] = $service->data['calculation_result']['cod_amt'];
-                    $datas['cod_tax_amt'] = $service->data['calculation_result']['cod_tax_amt'];
                 }
     
                 if( !empty($post['shipping_metode_id'])  ){
@@ -102,12 +101,16 @@ function kj_getDestinationArea(){
                 }
 
                 if( !empty($post['payment_method']) || !empty($post['shipping_metode_id']) ){
-                    $cod_amt = (float) $service->data['calculation_result']['cod_tax_total_amt'] ?? 0;
+                    $cod_amt = (float) $service->data['calculation_result']['cod_amt'] ?? 0;
                     $insurance_amt = (float) $service->data['calculation_result']['insurance_amt'] ?? 0;
                     $order_total = (float) WC()->cart->get_total('raw');
 
                     $datas['price_total'] = wc_price( $cod_amt + $insurance_amt + $order_total );
                 }
+
+                $datas['force_insurance'] = $service->data['calculation_result']['selected_expedition']->force_insurance == false ? 0 : 1;
+
+                $datas['services'] = $service->data;
                 
                 WC()->cart->calculate_totals();
                 

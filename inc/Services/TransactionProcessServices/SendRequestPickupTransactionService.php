@@ -120,7 +120,7 @@ class SendRequestPickupTransactionService extends BaseService{
                 "service"                   => $transaction->service,
                 "service_type"              => $transaction->service_name,
                 "item_name"                 => "Online Shop Goods", // nama barang
-                "package_type_id"           => 1,
+                "package_type_id"           => 7, // 7 = Regular
                 "cod"=> $transaction->cod_fee > 0 ? 
                     (
                         $transaction->transaction_value +

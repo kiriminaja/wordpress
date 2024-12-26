@@ -27,8 +27,8 @@
                                 <form id="table-form" action="" style="display: none">
                                     <input type="text" name="page" value="<?php echo @$_GET['page']; ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo @$_GET['key']; ?>">
-                                    <input type="text" name="month" value="<?php echo @$_GET['month']; ?>">
+                                    <input type="text" name="key" value="<?php echo $_GET['key'] ?? ''; ?>">
+                                    <input type="text" name="month" value="<?php echo $_GET['month'] ?? ''; ?>">
                                 </form>
 
 
@@ -68,11 +68,11 @@
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
-                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;?>>All Dates</option>
+                                                        <option selected="selected" value="" <?php echo (!isset($_GET['month']) ? "selected" : "") ;?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.$key.'" '.(@$_GET['month']===$key ? "selected" : "").'>'.$value.'</option>';
+                                                                echo '<option value="'.$key.'" '.(isset($_GET['month']) ? $_GET['month']===$key ? "selected" : "" : "").'>'.$value.'</option>';
                                                             }
                                                         }
                                                         ?>

@@ -37,7 +37,8 @@ class Enqueue extends BaseInit{
     
     function enqueueAdmin(){
 
-        if (!in_array(@$_GET['page'],[
+        $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!in_array($page,[
             'kiriminaja-konfigurasi',
             'kiriminaja-transaction-process',
             'kiriminaja-request-pickup'])){return;}
