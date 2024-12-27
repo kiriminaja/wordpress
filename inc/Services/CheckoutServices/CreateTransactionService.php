@@ -56,7 +56,7 @@ class CreateTransactionService extends BaseService{
                 "height"                        => $checkoutCalc['data']['carts_attribute']['height'],
                 'shipping_cost'                 => $checkoutCalc['data']['calculation_result']['ongkir_fee_amt'],
                 'insurance_cost'                => $checkoutCalc['data']['calculation_result']['insurance_amt'],
-                'cod_fee'                       => $checkoutCalc['data']['calculation_result']['cod_tax_total_amt'], //cod_amt with ppn
+                'cod_fee'                       => $checkoutCalc['data']['calculation_result']['cod_amt'],
                 'transaction_value'             => $checkoutCalc['data']['calculation_result']['cart_total_amt'],
                 'created_at'                    => date('Y-m-d H:i:s',strtotime("now")),
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],

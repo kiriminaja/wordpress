@@ -5,6 +5,7 @@
         <input type="hidden" name="kj_checkout_token" value="<?php echo  $kj_checkout_token; ?>">
         <input type="hidden" name="kj_destination_area_name" value="<?php echo  $dentination_name; ?>">
         <input type="hidden" name="kj_shipping_destination_area_name" value="<?php echo  $shipping_dentination_name; ?>">
+        <input type="hidden" name="kj_force_insurance" value="0">
     </div>
 
 </div>
@@ -139,7 +140,7 @@
        
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo  kjHelper()->tlThis('Select Option',@$locale); ?>",
+                placeholder: "<?php echo __('Select Option','kiriminaja'); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,
@@ -188,7 +189,6 @@
 
         function kj_changeCodPaymentMethod(){
             jQuery(document).on('change','[name="payment_method"]:checked,#kj_insurance,#kj_shipping_insurance',function() {
-                
                 AjaxHandleCodInsurance();
             });
 
@@ -222,6 +222,7 @@
         }
 
         function ajaxCodInsurance(){
+           
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
             let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
@@ -243,7 +244,8 @@
             );
 
             let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
-            
+                        
+
             let data = {
                 action:'kj_get_data_after_update_checkout',
                 nonce:"<?php echo  wp_create_nonce('kj-update-checkout'); ?>",
@@ -261,8 +263,7 @@
                         beforeSend:function(){
                             jQuery('#order_review').find('.shop_table').block({ message: null });
                         },
-                        success:function(response){                        
-        
+                        success:function(response){                                 
                             jQuery('#order_review').find('.shop_table').unblock();  
                 
                             let insurance_res = response?.data?.insurance_fee ?? 0;
@@ -280,8 +281,12 @@
                                 jQuery('.kj_cart_item_cod_fee').show();
                             }
 
+                            jQuery('[name=kj_force_insurance]').val(response?.data?.force_insurance); 
+
                             jQuery('#order_review').find('.order-total td').html(response?.data?.price_total);  
                             
+
+
                             /**
                              * Display cost insurance information
                              * Display cost codfee information

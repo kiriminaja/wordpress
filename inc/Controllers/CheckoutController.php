@@ -139,6 +139,7 @@ class CheckoutController
     }
 
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
+
         /** if kj_field value is not exist or null then prevent*/
         if (!@$_SESSION["kj_expedition"]) { return; }
         
@@ -147,8 +148,14 @@ class CheckoutController
         $kj_destination_area_name       = $_SESSION["kj_destination_area_name"];
         $kj_expedition                  = $_SESSION["kj_expedition"];
         $kj_checkout_token              = $_SESSION["kj_checkout_token"];
-        $insurance                      = $_SESSION["billing_insurance"];
         $payment_method                 = $_SESSION["payment_method"];
+        $force_insurance                = $_SESSION["force_insurance"];
+        
+        if( $force_insurance == 1 ){
+            $insurance = 1;
+        }else{
+            $insurance = $_SESSION["billing_insurance"];
+        }
 
         // remove all session variables
         session_unset();
@@ -175,7 +182,7 @@ class CheckoutController
     
     function afterCheckoutBeforeCreated($order,$data ){
         /** if kj_field value is not exist or null then prevent*/
-        
+
         if (!@$_POST['shipping_method'][0]) { return; }
         
         
@@ -199,8 +206,8 @@ class CheckoutController
         $_SESSION["kj_checkout_token"]              = @$_POST['kj_checkout_token'];
         $_SESSION["billing_insurance"]              = isset($insurance_post) ? 1 : 0;
         $_SESSION["payment_method"]                 = @$_POST['payment_method'];
+        $_SESSION["force_insurance"]                = intval( @$_POST['kj_force_insurance'] );
 
-        
         /** 
          * save to custom order metadata 
          * field kelurahan 

@@ -37,11 +37,11 @@ class TransactionProcessIndex{
         $postTable = $wpdb->prefix . 'posts';
 
         $whereCondition = '';
-        if (!empty(@$_GET['key'])){
-            $whereCondition .= " AND `".$wcOrderTable."`.order_id LIKE '%".@$_GET['key']."%' ";
+        if (!empty($_GET['key'] ?? '')){
+            $whereCondition .= " AND `".$wcOrderTable."`.order_id LIKE '%".$_GET['key']."%' ";
         }
-        if (!empty(@$_GET['month'])){
-            $whereCondition.=" AND `".$wcOrderTable."`.date_created LIKE '%".@$_GET['month']."%' ";
+        if (!empty($_GET['month'] ?? '')){
+            $whereCondition.=" AND `".$wcOrderTable."`.date_created LIKE '%".$_GET['month']."%' ";
         }
 
 
