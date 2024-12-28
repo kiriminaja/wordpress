@@ -182,12 +182,8 @@ wc_cart_contents
         $CODMinCost = intval(@$selected_expedition->setting->minimum_cod_fee ?? 0);
         
         $codFeeAmount = floatval(@$selected_expedition->setting->cod_fee_amount ?? 0 );
-        $codFee = 0;
-        if( $selected_expedition->force_insurance == true ){
-            $codFee =  $codFeeAmount + $insuranceFee;
-        }else{
-            $codFee = $codFeeAmount;        
-        }
+        
+        $codFee = $codFeeAmount;        
         
         $codFee = $codFee < $CODMinCost ? $CODMinCost : $codFee;
 
