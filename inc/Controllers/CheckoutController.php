@@ -26,6 +26,9 @@ class CheckoutController
 
         if (is_plugin_active('woocommerce/woocommerce.php')) {
 
+            // validation cod minimum dan maximum
+            add_action('woocommerce_checkout_update_order_review', array($this,'kj_validate_shipping_method_on_update') );
+
             //before total order checkout
             add_action('woocommerce_review_order_before_order_total',array($this,'kj_reviewOrderBeforeTotalOrder'));
 
@@ -127,9 +130,22 @@ class CheckoutController
     }
 
     function kj_checkout_field_validation() {
-        $field_key = $this->field_destination_key;
-        if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-            wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+        try {
+           
+            $field_key = $this->field_destination_key;
+            
+            if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
+                wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+            }
+
+            (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
+                'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
+                'payment_method'    => WC()->session->get('chosen_payment_method'),
+                'cart_total'        => WC()->cart->total
+            ]))->call();
+        
+        }catch (\Throwable $th) {
+            (new \Inc\Base\BaseInit())->logThis('kj_checkout_field_validation',[$th->getMessage()]);   
         }
     }
 
@@ -530,6 +546,21 @@ class CheckoutController
 
     public function kj_beforeCheckoutForm(){
         WC()->session->set( 'chosen_shipping_methods', null );
+    }
+
+    public function kj_validate_shipping_method_on_update($posted_data) {
+        
+        try {
+            parse_str($posted_data, $output);
+            
+            (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
+                'shipping_method'   => $output['shipping_method'],
+                'payment_method'    => $output['payment_method'],
+                'cart_total'        => WC()->cart->total
+            ]))->call();
+        } catch (\Throwable $th) {
+            (new \Inc\Base\BaseInit())->logThis('kj_validate_shipping_method_on_update',[$th->getMessage()]);   
+        }
     }
 
 }
