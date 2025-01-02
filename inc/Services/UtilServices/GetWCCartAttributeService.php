@@ -53,12 +53,18 @@ class GetWCCartAttributeService extends BaseService{
             }
             if ($product->meta_key === '_length'){
                 $cartProducts[$product->post_id]['length']  = @$product->meta_value ?? 0;
+            }else{
+                $cartProducts[$product->post_id]['length']  = 0;
             }
             if ($product->meta_key === '_width'){
                 $cartProducts[$product->post_id]['width']   = @$product->meta_value ?? 0;
+            }else {
+                $cartProducts[$product->post_id]['width']   = 0;
             }
             if ($product->meta_key === '_height'){
                 $cartProducts[$product->post_id]['height']  = @$product->meta_value ?? 0;
+            }else {
+                $cartProducts[$product->post_id]['height']  = 0;
             }
         }
         
