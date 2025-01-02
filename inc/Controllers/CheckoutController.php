@@ -127,9 +127,22 @@ class CheckoutController
     }
 
     function kj_checkout_field_validation() {
-        $field_key = $this->field_destination_key;
-        if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-            wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+        try {
+           
+            $field_key = $this->field_destination_key;
+            
+            if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
+                wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+            }
+
+            (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
+                'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
+                'payment_method'    => WC()->session->get('chosen_payment_method'),
+                'cart_total'        => WC()->cart->total
+            ]))->call();
+        
+        }catch (\Throwable $th) {
+            (new \Inc\Base\BaseInit())->logThis('kj_checkout_field_validation',[$th->getMessage()]);   
         }
     }
 
