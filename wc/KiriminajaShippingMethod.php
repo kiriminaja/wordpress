@@ -147,19 +147,34 @@ add_filter( 'woocommerce_add_to_cart_validation', 'kj_add_the_date_validation', 
 function kj_add_the_date_validation( $passed, $product_id ) { 
     
     $product = get_product( $product_id );
+
+    $length = $product->get_length();
+    $width = $product->get_width();
+    $height = $product->get_height();
     
     $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
     if(!$settingRepo||$settingRepo->value === null){
-        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja"), "error");
+        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja'), "error");
+        $passed = false;
+    }
+    /**
+     * Check Product Weight
+     */
+    if( empty($product->get_weight()) ){
+        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'kiriminaja'), "error");
         $passed = false;
     }
 
-    if( empty($product->get_weight()) ){
-        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman"), "error");
+    /**
+     * Check Product Dimention
+     */
+    if ( empty($length) || empty($width) || empty($height)) {
+        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimention untuk Pengiriman', 'kiriminaja'), 'error');
         $passed = false;
     }
 
     return $passed;
+
 }
 
 add_filter( 'woocommerce_shipping_calculator_enable_country', '__return_false' );
