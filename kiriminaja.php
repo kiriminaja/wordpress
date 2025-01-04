@@ -80,8 +80,30 @@ if (! function_exists('kjHelper')) {
     }
 }
 
+add_action( 'admin_notices', 'kj_shipping_plugin_woocommerce_notice' );
+function kj_shipping_plugin_woocommerce_notice() {
+    // Check if WooCommerce is not active
+    if ( ! class_exists( 'WooCommerce' ) && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+        echo '<div class="notice notice-error"><p><strong>Kiriminaja Shipping Plugin</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.</p></div>';
+        deactivate_plugins( plugin_basename( __FILE__ ) );
+    }
+}
+
 /** Activation*/
 function activate_kj_plugin(){
+
+    if ( ! class_exists( 'WooCommerce' ) ) {
+        // Deactivate the plugin
+        deactivate_plugins( plugin_basename( __FILE__ ) );
+
+        // Display admin notice
+        wp_die(
+            '<p><strong>Custom Shipping Plugin</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>' .
+            '<p><a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">&laquo; Return to Plugins</a></p>',
+            'Plugin Activation Error',
+        );
+    }
+
     (new \Inc\Migration\SetupMigration())->register();
     (new \Inc\Base\Activate())->activate();
     (new \Inc\Pages\AdminPost())->register();
@@ -90,6 +112,7 @@ function activate_kj_plugin(){
 }
 /** Deactivation*/
 function deactivate_kj_plugin(){
+    
     (new \Inc\Base\Deactivate())->deactivate();
 }
 /** activation*/
