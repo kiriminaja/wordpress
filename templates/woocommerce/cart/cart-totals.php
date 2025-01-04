@@ -41,10 +41,14 @@ defined( 'ABSPATH' ) || exit;
 		<?php endforeach; ?>
 
 		<?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
-
+		
 			<?php do_action( 'woocommerce_cart_totals_before_shipping' ); ?>
 
-			<?php wc_cart_totals_shipping_html(); ?>
+			<?php 
+				if( is_cart() && 'yes' === get_option( 'woocommerce_enable_shipping_calc' ) ){
+					wc_cart_totals_shipping_html(); 
+				}
+			?>
 
 			<?php do_action( 'woocommerce_cart_totals_after_shipping' ); ?>
 
