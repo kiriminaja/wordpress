@@ -105,6 +105,11 @@ function kj_shippingMethod(){
 
                 $chosen_payment_method = WC()->session->get('chosen_payment_method');
 
+                /** Validation Payment Method */
+                if(!$chosen_payment_method){
+                    return [];
+                }
+
                 $is_cod = $chosen_payment_method === 'cod';
 
                 $options = $pricingData->results ?? [];
