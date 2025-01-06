@@ -365,6 +365,12 @@ class CheckoutController
     public function kj_order_details($order){
         $transactionKiriminaja = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
 
+        $shipping_method_id = array_shift( $order->get_shipping_methods() )['method_id'];
+
+        if( $shipping_method_id != 'kiriminaja' ){
+            return false;
+        }
+
         $html = '
             <tr>
 				<th scope="row">'.__('Ekspedisi','kiriminaja').':</th>

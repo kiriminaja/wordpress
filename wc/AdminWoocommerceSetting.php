@@ -40,14 +40,25 @@ class AdminWoocommerceSettings
         
         $order    = wc_get_order( $post->ID );
         $transactionKiriminaja = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
-    
+        
+        $ka_id_shipping = 'kiriminaja';
+        $shipping_method_id = array_shift( $order->get_shipping_methods() )['method_id'];
+
+
         if ( 'shipping_method' === $column ) {
             echo $order->get_shipping_method();
         }
 
         if ( 'payment_method' === $column ) {
+
             if($order->get_payment_method() == 'cod'){
+                
                 echo $order->get_payment_method();
+                
+                if( $shipping_method_id != $ka_id_shipping ){
+                    return false;
+                }
+
                 echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee));
                 
                 if( $order->get_meta( '_kj_ppn' )){
@@ -64,6 +75,11 @@ class AdminWoocommerceSettings
             $insurance_front = $order->get_meta('_kj_insurance');
             $insurance_admin_billing = ucfirst( $order->get_meta('_billing_kj_insurance') ) ?? '';
             $insurance_admin_shipping = Ucfirst( $order->get_meta('_shipping_kj_insurance') ) ?? '';
+
+            if( $shipping_method_id != $ka_id_shipping ){
+                echo '-';
+                return false;
+            }
 
             if( !empty($insurance_admin_billing) ){
                 echo $insurance_admin_billing ? 'Yes':'No';
