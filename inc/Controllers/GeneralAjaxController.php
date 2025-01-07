@@ -73,9 +73,11 @@ function kj_getDestinationArea(){
     public function kj_getDataAfterUpdateCheckout(){
         $post = $_POST;
 
+        $check_shipping = $post['shipping_metode_id'] ?? '';
+        $ex_shipping = explode('_',$check_shipping);
 
         $datas = [];
-        if( !empty($post['shipping_metode_id']) ){
+        if( !empty($post['shipping_metode_id']) && $ex_shipping[0] == 'kiriminaja' ){
             $insurance = empty($post['insurance']) ? 0 : 1;
 
             $payload =[

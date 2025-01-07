@@ -163,4 +163,14 @@ function deleteShippingZone(){
     }
 }
 
+/** 
+ * Add filter to disable sslverify
+ * set true to enable sslverify
+ * set false to disable sslverify
+ * */
+add_filter('http_request_args', 'setSSLVerifyWordpress',10, 2);
+function setSSLVerifyWordpress($args, $url) {
+    $args['sslverify'] = true; 
+    return $args;
+}
 
