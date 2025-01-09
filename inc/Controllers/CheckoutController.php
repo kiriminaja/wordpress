@@ -62,6 +62,7 @@ class CheckoutController
              */
             add_filter('woocommerce_checkout_fields', array($this,'kj_billing_fields'), 100);            
 
+            add_filter('woocommerce_shipping_chosen_method', array($this,'kj_shipping_chosen_method'), 10, 2);
         }
     }
 
@@ -549,6 +550,21 @@ class CheckoutController
 
     public function kj_beforeCheckoutForm(){
         WC()->session->set( 'chosen_shipping_methods', null );
+    }
+
+    /**
+     * Get the chosen shipping method. 
+     * Fixing Intermiten Issue Shipping Method not checked
+     *
+     * @param string $method Chosen shipping method.
+     * @param array $available_methods Available shipping methods.
+     * @return string
+     */
+    public function kj_shipping_chosen_method($method, $available_methods) {
+        if (isset($_POST['shipping_method'][0]) && array_key_exists($_POST['shipping_method'][0], $available_methods)) {
+            return $_POST['shipping_method'][0];
+        }
+        return $method;
     }
 
 }

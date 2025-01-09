@@ -14,8 +14,8 @@
     <script>
 
         jQuery(document).ready(function($) {    
-                getSearchAreaKelurahan();
-                changeDistrict();
+            getSearchAreaKelurahan();
+            changeDistrict();
 
             <?php if(is_cart()): ?>
 
@@ -26,6 +26,11 @@
                 jQuery( document.body ).on( 'updated_cart_totals', function(){
                     getSearchAreaKelurahan();
                     changeDistrict(); 
+                });
+
+                // Save chosen shipping method to local storage
+                jQuery(document).on('change', 'input[name="shipping_method[0]"]', function() {
+                    localStorage.setItem('chosen_shipping_method', jQuery(this).val());
                 });
             <?php endif; ?>
 
@@ -183,6 +188,16 @@
         }); 
 
         jQuery(document.body).one('updated_checkout', function() {
+            /**
+             * set chosen shipping method from local storage
+             * remove local storage
+             */
+            if (localStorage.getItem('chosen_shipping_method')) {
+                jQuery('input[name="shipping_method[0]"][value="' + localStorage.getItem('chosen_shipping_method') + '"]').prop('checked', true);                    
+            }
+
+            localStorage.removeItem('chosen_shipping_method');
+
             AjaxHandleCodInsurance();
         });
 
@@ -210,11 +225,11 @@
 
                 jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
                 
-                jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
-                                                                                           
-                    ajaxCodInsurance();
-
-                });
+                setTimeout(() => {
+                    jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
+                        ajaxCodInsurance();
+                    });
+                }, 300);
 
             <?php } ?>
 
@@ -298,7 +313,7 @@
                         error:function(xhr){
                             alert("Sorry System Trouble Error Code : "+xhr.status);                                
                          }
-                    });
+            });
         }
 
     </script>
