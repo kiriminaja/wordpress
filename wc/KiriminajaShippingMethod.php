@@ -4,7 +4,7 @@
  * --------------------------------
  * Admin Setting
  */
-add_action('woocommerce_shipping_init', 'kj_shippingMethod');
+add_action('woocommerce_shipping_init', 'kj_shippingMethod',99);
 function kj_shippingMethod(){
     if (!class_exists('ShippingMethodController')) {
         class ShippingMethodController extends WC_Shipping_Method
@@ -128,7 +128,7 @@ function kj_shippingMethod(){
 
                         $filteredOptions[] = [
                             'key'=>$option->service.'_'.$option->service_type,
-                            'value'=>$option->service_name.' (Rp'.(localMoneyFormat($shipping_cost)).')',
+                            'value'=>$option->service_name,
                             'cost'=>$shipping_cost
                         ];    
                     }
