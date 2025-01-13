@@ -174,7 +174,7 @@ function kj_add_the_date_validation( $passed, $product_id ) {
      * Check Product Dimention
      */
     if ( empty($length) || empty($width) || empty($height)) {
-        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimention untuk Pengiriman', 'kiriminaja'), 'error');
+        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman', 'kiriminaja'), 'error');
         $passed = false;
     }
 
