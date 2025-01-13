@@ -66,6 +66,7 @@ class CheckoutController
              */
             add_filter('woocommerce_checkout_fields', array($this,'kj_billing_fields'), 100);            
 
+            add_filter('woocommerce_shipping_chosen_method', array($this,'kj_shipping_chosen_method'), 10, 2);
         }
     }
 
@@ -95,11 +96,12 @@ class CheckoutController
 		</tr>
         <tr class="kj_cart_item_cod_fee" style="display:none;">
 			<td class="kj-cod-fee">
-				<label for="kj_cod_fee">'. __('COD Fee','kiriminaja').'</label>											
+				<label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja').'</label>		
+                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
             </td>
 			<td class="kj-cod-fee kj-cost-codfee"></td>
 		</tr>';
-
+        
         echo $table;
     }
 
@@ -222,9 +224,22 @@ class CheckoutController
     }
 
     function kj_checkout_field_validation() {
-        $field_key = $this->field_destination_key;
-        if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-            wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+        try {
+           
+            $field_key = $this->field_destination_key;
+            
+            if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
+                wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+            }
+
+            (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
+                'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
+                'payment_method'    => WC()->session->get('chosen_payment_method'),
+                'cart_total'        => WC()->cart->total
+            ]))->call();
+        
+        }catch (\Throwable $th) {
+            (new \Inc\Base\BaseInit())->logThis('kj_checkout_field_validation',[$th->getMessage()]);   
         }
     }
 
@@ -234,6 +249,7 @@ class CheckoutController
     }
 
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
+
         /** if kj_field value is not exist or null then prevent*/
         if (!@$_SESSION["kj_expedition"]) { return; }
         
@@ -242,8 +258,14 @@ class CheckoutController
         $kj_destination_area_name       = $_SESSION["kj_destination_area_name"];
         $kj_expedition                  = $_SESSION["kj_expedition"];
         $kj_checkout_token              = $_SESSION["kj_checkout_token"];
-        $insurance                      = $_SESSION["billing_insurance"];
         $payment_method                 = $_SESSION["payment_method"];
+        $force_insurance                = $_SESSION["force_insurance"];
+        
+        if( $force_insurance == 1 ){
+            $insurance = 1;
+        }else{
+            $insurance = $_SESSION["billing_insurance"];
+        }
 
         // remove all session variables
         session_unset();
@@ -270,7 +292,7 @@ class CheckoutController
     
     function afterCheckoutBeforeCreated($order,$data ){
         /** if kj_field value is not exist or null then prevent*/
-        
+
         if (!@$_POST['shipping_method'][0]) { return; }
         
         
@@ -294,8 +316,8 @@ class CheckoutController
         $_SESSION["kj_checkout_token"]              = @$_POST['kj_checkout_token'];
         $_SESSION["billing_insurance"]              = isset($insurance_post) ? 1 : 0;
         $_SESSION["payment_method"]                 = @$_POST['payment_method'];
+        $_SESSION["force_insurance"]                = intval( @$_POST['kj_force_insurance'] );
 
-        
         /** 
          * save to custom order metadata 
          * field kelurahan 
@@ -335,6 +357,9 @@ class CheckoutController
         
         //save meta Insurance shipping woocommerce
         if( isset($data['kj_shipping_insurance']) && !empty($data['kj_shipping_insurance']) ) $order->update_meta_data( '_shipping_kj_insurance', sanitize_text_field( ( $data['kj_shipping_insurance'] == true ) ? 'yes' : '' ) );
+        
+        //flag order ppn
+        $order->update_meta_data( '_kj_ppn', true );
 
     }
     
@@ -437,6 +462,12 @@ class CheckoutController
     public function kj_order_details($order){
         $transactionKiriminaja = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
 
+        $shipping_method_id = array_shift( $order->get_shipping_methods() )['method_id'];
+
+        if( $shipping_method_id != 'kiriminaja' ){
+            return false;
+        }
+
         $html = '
             <tr>
 				<th scope="row">'.__('Ekspedisi','kiriminaja').':</th>
@@ -458,7 +489,10 @@ class CheckoutController
         if( $order->get_payment_method() == 'cod'){
             $html .= '
             <tr>
-				<th scope="row">'.__('COD Fee','kiriminaja').':</th>
+				<th scope="row">
+                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','kiriminaja').'</label>		
+                    <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
+                </th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->cod_fee).'</td>
 			</tr>';
         }
@@ -612,6 +646,21 @@ class CheckoutController
 
     public function kj_beforeCheckoutForm(){
         WC()->session->set( 'chosen_shipping_methods', null );
+    }
+
+    /**
+     * Get the chosen shipping method. 
+     * Fixing Intermiten Issue Shipping Method not checked
+     *
+     * @param string $method Chosen shipping method.
+     * @param array $available_methods Available shipping methods.
+     * @return string
+     */
+    public function kj_shipping_chosen_method($method, $available_methods) {
+        if (isset($_POST['shipping_method'][0]) && array_key_exists($_POST['shipping_method'][0], $available_methods)) {
+            return $_POST['shipping_method'][0];
+        }
+        return $method;
     }
 
 }

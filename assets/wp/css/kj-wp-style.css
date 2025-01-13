@@ -75,3 +75,7 @@ tr.woocommerce-shipping-totals{
 #billing_country_field,#shipping_country_field {
     display: none !important;
 }
+
+.woocommerce-page table.shop_table th.product-name {
+    width: 25% !important;
+}
