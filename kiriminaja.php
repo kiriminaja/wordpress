@@ -98,7 +98,7 @@ function activate_kj_plugin(){
 
         // Display admin notice
         wp_die(
-            '<p><strong>Custom Shipping Plugin</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>' .
+            '<p><strong>Plugin Kiriminaja</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>' .
             '<p><a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">&laquo; Return to Plugins</a></p>',
             'Plugin Activation Error',
         );

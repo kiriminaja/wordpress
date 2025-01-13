@@ -54,7 +54,8 @@ class Enqueue extends BaseInit{
          */
         $screen    = get_current_screen();
         $screen_id = $screen ? $screen->id : '';
-        if( $this->is_order_meta_box_screen($screen_id) && get_current_screen()->post_type === 'shop_order' ) {
+        
+        if( $screen->post_type === 'shop_order' ) {
             
             wp_enqueue_style('kiriminaja-shoporder-css', $this->plugin_url.'assets/admin/css/kj-shop-order-style.css',array(),KJ_PLUGIN_VERSION,'all');
         
