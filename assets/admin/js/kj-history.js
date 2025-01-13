@@ -122,7 +122,9 @@ jQuery(document).ready(function($){
     });
 
     //select2
-    $('.ka-select2').select2();
+    $('.ka-select2').select2({
+        minimumInputLength:3,
+    });
 
     var scrollBody = $('#tbhistory').closest('.dataTables_scroll').find('.dataTables_scrollBody');
     $('#tbhistory').on('processing.dt', function (e, settings, processing) {
