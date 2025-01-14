@@ -63,7 +63,18 @@ class CheckoutController
             add_filter('woocommerce_checkout_fields', array($this,'kj_billing_fields'), 100);            
 
             add_filter('woocommerce_shipping_chosen_method', array($this,'kj_shipping_chosen_method'), 10, 2);
+            
+            add_filter( 'woocommerce_cart_needs_shipping', array($this,'kj_filter_cart_needs_shipping'));
         }
+    }
+
+    function kj_filter_cart_needs_shipping( $needs_shipping ) {
+        if ( is_cart() ) {
+            if( $needs_shipping && get_option( 'woocommerce_enable_shipping_calc' ) === 'no' ){
+                WC()->session->set( 'destination_id', null );
+            }
+        }
+        return $needs_shipping;
     }
 
     function kj_reviewOrderBeforeTotalOrder(){
