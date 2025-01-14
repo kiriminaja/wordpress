@@ -82,9 +82,25 @@ if (! function_exists('kjHelper')) {
 
 add_action( 'admin_notices', 'kj_shipping_plugin_woocommerce_notice' );
 function kj_shipping_plugin_woocommerce_notice() {
-    // Check if WooCommerce is not active
+
+    if ( ! function_exists( 'is_plugin_active' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+
     if ( ! class_exists( 'WooCommerce' ) && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
-        echo '<div class="notice notice-error"><p><strong>Kiriminaja Shipping Plugin</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.</p></div>';
+
+        $message = sprintf(
+            wp_kses(
+                /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
+                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'kiriminaja' ),
+                [ 'strong' => [] ]
+            ),
+            __( 'Plugin Kiriminaja', 'kiriminaja' ),
+            __( 'WooCommerce', 'kiriminaja' )
+        );
+
+        echo '<div class="notice notice-error"><p>' . $message . '</p></div>';
+
         deactivate_plugins( plugin_basename( __FILE__ ) );
     }
 }
@@ -97,11 +113,20 @@ function activate_kj_plugin(){
         deactivate_plugins( plugin_basename( __FILE__ ) );
 
         // Display admin notice
-        wp_die(
-            '<p><strong>Custom Shipping Plugin</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>' .
-            '<p><a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">&laquo; Return to Plugins</a></p>',
-            'Plugin Activation Error',
+        $message = sprintf(
+            wp_kses(
+                /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
+                __( '<p><strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>', 'kiriminaja' ),
+                [ 'p' => [], 'strong' => [] ]
+            ),
+            'Plugin Kiriminaja',
+            'WooCommerce'
         );
+        
+        $message .= '<p><a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">&laquo; ' . __( 'Return to Plugins', 'kiriminaja' ) . '</a></p>';
+        
+        wp_die( $message, __( 'Plugin Activation Error', 'kiriminaja' ) );
+        
     }
 
     (new \Inc\Migration\SetupMigration())->register();
