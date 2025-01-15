@@ -9,7 +9,7 @@
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
- * Text Domain:     kiriminaja
+ * Text Domain:     plugin-wp
  * Domain Path:     /lang
  * WC requires at least: 5.0.0
  * WC tested up to: 7.1
@@ -92,11 +92,11 @@ function kj_shipping_plugin_woocommerce_notice() {
         $message = sprintf(
             wp_kses(
                 /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
-                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'kiriminaja' ),
+                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'plugin-wp' ),
                 [ 'strong' => [] ]
             ),
-            __( 'Plugin Kiriminaja', 'kiriminaja' ),
-            __( 'WooCommerce', 'kiriminaja' )
+            __( 'Plugin Kiriminaja', 'plugin-wp' ),
+            __( 'WooCommerce', 'plugin-wp' )
         );
 
         echo '<div class="notice notice-error"><p>' . $message . '</p></div>';
@@ -116,17 +116,24 @@ function activate_kj_plugin(){
         $message = sprintf(
             wp_kses(
                 /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
-                __( '<p><strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>', 'kiriminaja' ),
-                [ 'p' => [], 'strong' => [] ]
+                __(
+                    '%1$s requires %2$s to be installed and activated. Please install and activate WooCommerce before activating this plugin.',
+                    'plugin-wp'
+                ),
+                [] // No HTML allowed in the translatable string
             ),
-            'Plugin Kiriminaja',
-            'WooCommerce'
+            '<strong>Plugin Kiriminaja</strong>',
+            '<strong>WooCommerce</strong>'
         );
-        
-        $message .= '<p><a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">&laquo; ' . __( 'Return to Plugins', 'kiriminaja' ) . '</a></p>';
-        
-        wp_die( $message, __( 'Plugin Activation Error', 'kiriminaja' ) );
-        
+
+        $message .= '<p><a href="' . esc_url(admin_url('plugins.php')) . '">&laquo; ' . esc_html__('Return to Plugins', 'plugin-wp') . '</a></p>';
+
+        // Output the error message
+        wp_die(
+            wp_kses_post('<p>' . $message . '</p>'),
+            esc_html__('Plugin Activation Error', 'plugin-wp')
+        );
+
     }
 
     (new \Inc\Migration\SetupMigration())->register();
