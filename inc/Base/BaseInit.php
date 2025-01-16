@@ -22,7 +22,7 @@ class BaseInit{
         
         $bt = debug_backtrace();
         $caller = array_shift($bt);
-        error_log(date("[Y-m-d H:i:s] ").json_encode([
+        error_log(gmdate("[Y-m-d H:i:s] ").wp_json_encode([
             'log_name'      => $test, 
             'log_result'    => $loggedItem,
             'file'          => $caller['file'],

@@ -3,7 +3,7 @@
         <div class="woocommerce-layout">
             <div class="woocommerce-layout__header is-scrolled">
                 <div class="woocommerce-layout__header-wrapper">
-                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo kjHelper()->tlThis('KiriminAja Configuration',@$locale); ?></h1>
+                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html( kjHelper()->tlThis('KiriminAja Configuration',$locale) ); ?></h1>
                 </div>
             </div>
             <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
@@ -28,11 +28,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    '.kjHelper()->tlThis('WooCommerce is not yet installed or activated',@$locale).'                                       
+                                                    '.esc_html( kjHelper()->tlThis('WooCommerce is not yet installed or activated',$locale)).'                                       
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    '.kjHelper()->tlThis('This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features',@$locale).'
+                                                    '.esc_html( kjHelper()->tlThis('This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features',$locale)).'
                                                 </div>
                                             </div>
                                         </div>
@@ -56,11 +56,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    '.kjHelper()->tlThis('All Setup',@$locale).'!
+                                                    '.esc_html( kjHelper()->tlThis('All Setup',$locale) ).'!
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    '.kjHelper()->tlThis('Now you’re connected with KiriminAja',@$locale).'
+                                                    '.esc_html( kjHelper()->tlThis('Now you’re connected with KiriminAja',$locale) ).'
                                                 </div>
                                             </div>
                                         </div>
@@ -79,11 +79,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    '.kjHelper()->tlThis('Fill The Shipment Address',@$locale).'
+                                                    '.esc_html( kjHelper()->tlThis('Fill The Shipment Address',$locale) ).'
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    '.kjHelper()->tlThis('Complete shipping information to enable pricing API',@$locale).'
+                                                    '.esc_html( kjHelper()->tlThis('Complete shipping information to enable pricing API',$locale) ).'
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div>
@@ -101,7 +101,7 @@
                                                                     </defs>
                                                                 </svg>
 
-                                                                <span style="margin-left: 6px">'.kjHelper()->tlThis('Set Address',@$locale).'</span>
+                                                                <span style="margin-left: 6px">'.esc_html( kjHelper()->tlThis('Set Address',$locale) ).'</span>
                                                             </div>
                                                         </div>
                                                     </button>
@@ -117,11 +117,11 @@
                                 <div class="row-divider"></div>
                                 <!--NAVBAR-->
                                 <nav style="margin-top: 1rem;margin-bottom: 1.5rem" class="nav-tab-wrapper woo-nav-tab-wrapper">
-                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo kjHelper()->tlThis('Integration',@$locale); ?></a>
+                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo esc_html( kjHelper()->tlThis('Integration',$locale) ); ?></a>
                                     <?php
                                     if (@$approvedSetupKey->value){
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.kjHelper()->tlThis('Shipping',@$locale).'</a>';
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.kjHelper()->tlThis('Advanced',@$locale).'</a>';
+                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.esc_html( kjHelper()->tlThis('Shipping',$locale) ).'</a>';
+                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.esc_html( kjHelper()->tlThis('Advanced',$locale) ).'</a>';
                                     }
                                     ?>
                                 </nav>
@@ -141,7 +141,7 @@
                                     </div>
                                 </div>
                                 <div class="row-divider"></div>
-                                <p style="font-weight: 500">KiriminAja Plugin v.<?php echo KJ_VERSION_PLUGIN; ?></p>
+                                <p style="font-weight: 500">KiriminAja Plugin v.<?php echo wp_kses_post( KJ_VERSION_PLUGIN ); ?></p>
                             </div>
                         </div>
                     </div>
@@ -180,11 +180,11 @@
 
     /** Page Content Util*/
     function toggleThis(elem,menu){
-        window.location.href = '<?php echo  @home_url().'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+menu
+        window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+menu
     }
     
     function getTabData(){
-        var menu = '<?php echo @$activeTab;?>'
+        var menu = '<?php echo esc_html($activeTab);?>'
         
         jQuery('.nav-tab').removeClass("nav-tab-active")
         jQuery(`.nav-tab.${menu}`).addClass("nav-tab-active");
@@ -272,7 +272,7 @@
        
             areaSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo  kjHelper()->tlThis('Select Option',@$locale); ?>",
+                placeholder: "<?php echo  esc_html( kjHelper()->tlThis('Select Option',$locale) ); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxRouteGenerator(),
@@ -303,7 +303,7 @@
     function searchExpedition(){
        
        jQuery('.tab-shipping [name="origin_whitelist_expedition[]"]').select2({
-           placeholder: "<?php echo  kjHelper()->tlThis('Select Option',@$locale); ?>",
+           placeholder: "<?php echo  esc_html( kjHelper()->tlThis('Select Option',$locale) ); ?>",
            allowClear: true,
            ajax: {
                url: ajaxRouteGenerator(),

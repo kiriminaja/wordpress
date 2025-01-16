@@ -10,26 +10,15 @@ class EditOrderController{
         add_filter( 'wc_order_is_editable', array($this,'kj_custom_order_status_editable'), 9999, 2 );
     }
 
-    public function addKjOrderDetail($order){
-        /** This hook return when client side only, therefore cant do serverside php */
-        
+    public function addKjOrderDetail($order){        
         $service = (new \Inc\Services\OrderEditPageServices\ShippingInfoServices())->wcOrderId($order)->call();
         if ($service->status !== 200){return;}
         
-        $willBeReplaced = [
-            '{$orderId}',
-            '{$trackingUrl}',
-            '{$kjOrderData}'
-        ];
-        $replaceWith = [
-            $order,
-            home_url().'/kiriminaja-tracking?order_id='.$order,
-            json_encode($service->data)
-        ];
-        
-        $content = file_get_contents(plugin_dir_path(dirname(__FILE__,2)). 'templates/order/edit.php');
-        echo str_replace(
-        $willBeReplaced, $replaceWith, $content);
+        $orderId = esc_html($order);
+        $trackingUrl = esc_url( home_url().'/kiriminaja-tracking?order_id='.$order);
+        $kjOrderData = wp_json_encode($service->data);
+    
+        include_once KJ_DIR .'/templates/order/edit.php';
     
     }
 
@@ -45,7 +34,7 @@ class EditOrderController{
         $post = $_POST;
         
         if ( ! wp_verify_nonce( $post['nonce'], $this->nonce ) ) {
-            die( __( 'Security check', 'plugin-wp' ) ); 
+            die( esc_html__( 'Security check', 'plugin-wp' ) ); 
         }
 
         $order_id       = (int) $post['order_id'];
@@ -396,7 +385,7 @@ class EditOrderController{
             <td class="total">'.wc_price($insurance).'</td>
         </tr>';
 
-        echo $table;
+        echo wp_kses_post( $table );
     }
 
 

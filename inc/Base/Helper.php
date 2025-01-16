@@ -75,12 +75,13 @@ class Helper extends  BaseInit {
     public function tlThis($text='',$lang='en_US'){
         switch ($lang){
             case "id_ID":
-                $string = file_get_contents($this->plugin_path."/lang/id_ID.json");
+                $string = file_get_contents($this->plugin_path."/lang/id_ID.json"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
                 break;
             default :
-                $string = file_get_contents($this->plugin_path."/lang/en_US.json");
+                $string = file_get_contents($this->plugin_path."/lang/en_US.json"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
                 break;
         }
+
         $langLib = (array) json_decode($string);
         return @$langLib[$text] ?? $text;
     }

@@ -26,10 +26,10 @@ define( 'KJ_PLUGIN_VERSION', rand(0,999));
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
-define('KIRIMINAJA_VERSION', '2.0.0');
+define('KIRIMINAJA_VERSION', '2.0.1');
 define('KJ_SLUG' ,plugin_basename(__DIR__));
 define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
-define('KJ_VERSION_PLUGIN', '2.0.1');
+define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.1') );
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
@@ -99,7 +99,7 @@ function kj_shipping_plugin_woocommerce_notice() {
             __( 'WooCommerce', 'plugin-wp' )
         );
 
-        echo '<div class="notice notice-error"><p>' . $message . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . wp_kses_post($message) . '</p></div>';
 
         deactivate_plugins( plugin_basename( __FILE__ ) );
     }
@@ -205,4 +205,3 @@ function setSSLVerifyWordpress($args, $url) {
     $args['sslverify'] = true; 
     return $args;
 }
-

@@ -25,10 +25,10 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo @$_GET['page']; ?>">
+                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo $_GET['key'] ?? ''; ?>">
-                                    <input type="text" name="month" value="<?php echo $_GET['month'] ?? ''; ?>">
+                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key']) ?? ''; ?>">
+                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month']) ?? ''; ?>">
                                 </form>
 
 
@@ -48,13 +48,13 @@
                                                     </div>
                                                     <div class="row-divider" style="margin-top: .5rem"></div>
                                                     <div style="font-weight: 500;">
-                                                        - <?php echo kjHelper()->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.',@$locale); ?>
+                                                        - <?php echo esc_html( kjHelper()->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.',$locale) ); ?>
                                                         <br>
-                                                        - <?php echo kjHelper()->tlThis('Only transaction / order with billing region is Indonesia can be shown here.',@$locale); ?>
+                                                        - <?php echo esc_html( kjHelper()->tlThis('Only transaction / order with billing region is Indonesia can be shown here.',$locale) ); ?>
                                                         <br>
-                                                        - <?php echo kjHelper()->tlThis('Only transaction / order which has not been request pickuped can be shown here.',@$locale); ?>
+                                                        - <?php echo esc_html( kjHelper()->tlThis('Only transaction / order which has not been request pickuped can be shown here.',$locale) ); ?>
                                                         <br>
-                                                        - <?php echo kjHelper()->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.',@$locale); ?>
+                                                        - <?php echo esc_html( kjHelper()->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.',$locale) ); ?>
                                                     </div>
                                                 </div>
                                             </div>
@@ -72,7 +72,7 @@
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.$key.'" '.(isset($_GET['month']) ? $_GET['month']===$key ? "selected" : "" : "").'>'.$value.'</option>';
+                                                                echo '<option value="'.esc_attr($key).'" '.(isset($_GET['month']) ? esc_html($_GET['month'])===$key ? "selected" : "" : "").'>'.esc_html($value).'</option>';
                                                             }
                                                         }
                                                         ?>
@@ -89,7 +89,7 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo @$_GET['key']; ?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key']); ?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -109,12 +109,12 @@
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
                                                 <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
                                             </th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Order',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Date',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Status',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Billing',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Ship To',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Total',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Order',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Date',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Status',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Billing',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Ship To',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Total',$locale) ); ?></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -131,24 +131,24 @@
                                                     echo '
                                                       <tr class="">
                                                         <td class="manage-column column-thumb">
-                                                            <input type="checkbox" name="transaction_id[]" value="'.@$row->order_id.'">
+                                                            <input type="checkbox" name="transaction_id[]" value="'.esc_attr($row->order_id).'">
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                        <a href="'.(home_url().'/wp-admin/post.php?post='.@$row->wc_order_id.'&action=edit').'" target="_blank" style="font-weight: 700">#'.@$row->wc_order_id.' '.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.' </a>
+                                                        <a href="'.(esc_url(home_url()).'/wp-admin/post.php?post='.esc_attr($row->wc_order_id).'&action=edit').'" target="_blank" style="font-weight: 700">#'.esc_html($row->wc_order_id).' '.esc_html($shippingData->_billing_first_name).' '.esc_html($shippingData->_billing_last_name).' </a>
                                                         </td>
-                                                        <td class="manage-column column-thumb">'.date('M d, Y',strtotime(@$row->wc_date_created)).'</td>
+                                                        <td class="manage-column column-thumb">'.esc_html(date('M d, Y',strtotime($row->wc_date_created)) ).'</td>
                                                         <td class="manage-column column-thumb">
-                                                        <span class="kj-badge processing">'.kjHelper()->transactionStatusLabel(@$row->status).'</span>
+                                                        <span class="kj-badge processing">'.esc_html( kjHelper()->transactionStatusLabel($row->status)).'</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>'.@$shippingData->_billing_first_name.' '.@$shippingData->_billing_last_name.', '.@$shippingData->_billing_address_1.', '.@$shippingData->_billing_address_2.', '.@$row->destination_sub_district.', '.@$shippingData->_billing_postcode.'</div>
+                                                            <div>'.esc_html($shippingData->_billing_first_name.' '.$shippingData->_billing_last_name.', '.$shippingData->_billing_address_1.', '.$shippingData->_billing_address_2.', '.$row->destination_sub_district.', '.$shippingData->_billing_postcode).'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via '.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").'</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.@$row->wc_order_id.'`)">'.(@$shippingData->_shipping_first_name ?? @$shippingData->_billing_first_name).' '.(@$shippingData->_shipping_last_name ?? @$shippingData->_billing_last_name).', '.(@$shippingData->_shipping_address_1 ?? @$shippingData->_billing_address_1).', '.(@$shippingData->_shipping_address_2 ?? @$shippingData->_billing_address_2).', '.@$row->destination_sub_district.', '.(@$shippingData->_shipping_postcode ?? @$shippingData->_billing_postcode).'</div>
+                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.esc_html($row->wc_order_id).'`)">'.esc_html( ($shippingData->_shipping_first_name ?? $shippingData->_billing_first_name).' '.($shippingData->_shipping_last_name ?? $shippingData->_billing_last_name).', '.($shippingData->_shipping_address_1 ?? $shippingData->_billing_address_1).', '.($shippingData->_shipping_address_2 ?? $shippingData->_billing_address_2).', '.$row->destination_sub_district.', '.($shippingData->_shipping_postcode ?? $shippingData->_billing_postcode) ).'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
-                                                            <div>via '.strtoupper(@$row->service).'</div>
+                                                            <div>via '.esc_html(strtoupper($row->service)).'</div>
                                                             <div style="position: relative; margin-top: .1rem"></div>
                                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -156,17 +156,17 @@
                                                                 <path d="M5.3998 5.40005V1.80005H1.7998V5.40005H5.3998ZM10.1998 5.40005V1.80005H6.5998V5.40005H10.1998ZM5.3998 10.2V6.60005H1.7998V10.2H5.3998ZM10.1998 10.2V6.60005H6.5998V10.2H10.1998Z" fill="black"/>
                                                                 </g>
                                                                 </svg>
-                                                                <span style="margin-left: .5rem">'.strtoupper(@$row->status).'</span>
+                                                                <span style="margin-left: .5rem">'.esc_html(strtoupper($row->status)).'</span>
                                                             </div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <p style="font-weight: 600">('.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").') Rp'.localMoneyFormat($shippingFee).'</p>
+                                                            <p style="font-weight: 600">('.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").') Rp'.esc_html(localMoneyFormat($shippingFee)).'</p>
                                                         </td>
                                                     </tr>
                                                     ';
                                                 }
                                             }else{
-                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.kjHelper()->tlThis('Not Found',@$locale).'</td></tr>';
+                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html(kjHelper()->tlThis('Not Found',$locale)).'</td></tr>';
                                             }
                                             ?>
                                         
@@ -176,12 +176,12 @@
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
                                                 <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
                                             </th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Order',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Date',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Status',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Billing',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Ship To',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Total',@$locale); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Order',$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Date',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Status',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Billing',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Ship To',$locale) ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Total',$locale) ); ?></th>
                                         </tr>
                                         </tfoot>
                                     </table>
@@ -197,7 +197,7 @@
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.$key.'" '.(@$_GET['month']===$key ? "selected" : "").'>'.$value.'</option>';
+                                                                echo '<option value="'.esc_attr($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>';
                                                             }
                                                         }
                                                         ?>
@@ -216,7 +216,7 @@
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo KJ_VERSION_PLUGIN; ?></p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KJ_VERSION_PLUGIN); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -385,7 +385,7 @@
                     return
                 }
 
-                window.location.href = `<?php echo @home_url().'/wp-admin/admin.php?page=kiriminaja-request-pickup'; ?>&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-request-pickup'; ?>&pickup_number=${resp?.data?.pickup_number}`;
                 
                 
             }
