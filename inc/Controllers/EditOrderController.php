@@ -45,7 +45,7 @@ class EditOrderController{
         $post = $_POST;
         
         if ( ! wp_verify_nonce( $post['nonce'], $this->nonce ) ) {
-            die( __( 'Security check', 'kiriminaja' ) ); 
+            die( __( 'Security check', 'plugin-wp' ) ); 
         }
 
         $order_id       = (int) $post['order_id'];
@@ -307,7 +307,7 @@ class EditOrderController{
         
 
         $billing_fields['kj_destination_area'] = array(
-            'label' => __( 'Subdistrict', 'kiriminaja' ),
+            'label' => __( 'Subdistrict', 'plugin-wp' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -316,7 +316,7 @@ class EditOrderController{
         );
 
         $billing_fields['kj_destination_name'] = array(
-            'label' => __( '', 'kiriminaja' ),
+            'label' => '',
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -324,7 +324,7 @@ class EditOrderController{
         );
 
         $billing_fields['kj_insurance'] = array(
-            'label' => __( 'Insurance', 'kiriminaja' ),
+            'label' => __( 'Insurance', 'plugin-wp' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -348,7 +348,7 @@ class EditOrderController{
     
 
         $shipping_fields['kj_destination_area'] = array(
-            'label' => __( 'Subdistrict', 'kiriminaja' ),
+            'label' => __( 'Subdistrict', 'plugin-wp' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -357,7 +357,7 @@ class EditOrderController{
         );
 
         $shipping_fields['kj_destination_name'] = array(
-            'label' => __( '', 'kiriminaja' ),
+            'label' => '',
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -365,7 +365,7 @@ class EditOrderController{
         );
 
         $shipping_fields['kj_insurance'] = array(
-            'label' => __( 'Insurance', 'kiriminaja' ),
+            'label' => __( 'Insurance', 'plugin-wp' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -386,12 +386,12 @@ class EditOrderController{
         $insurance_style = ( empty($insurance) ) ? 'none' : 'show';
         
         $table = '<tr class="codfee" style="display:'.$insurance_style.';">
-            <td class="label">'.__('Cod Fee','kiriminaja').':</td>
+            <td class="label">'.__('Cod Fee','plugin-wp').':</td>
             <td width="1%"></td>
             <td class="total">'.wc_price($cod).'</td>
         </tr>
         <tr class="insurancefee" style="display:'.$cod_style.';">
-            <td class="label">'.__('Insurance Fee','kiriminaja').':</td>
+            <td class="label">'.__('Insurance Fee','plugin-wp').':</td>
             <td width="1%"></td>
             <td class="total">'.wc_price($insurance).'</td>
         </tr>';

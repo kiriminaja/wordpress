@@ -7,9 +7,10 @@
             array(
                 'id' => '_kj_weight',
                 'placeholder' => 'Weight',
-                'label' => __('Weight '.'('.$weight_unit.')', 'kiriminaja'),
+                // Translators: %s weight unit
+                'label' => sprintf( esc_html__( 'Weight (%s)', 'plugin-wp' ), esc_attr( $weight_unit ) ),
                 'desc_tip' => 'true',
-                'description'=>__('Weight Form', 'kiriminaja'),
+                'description'=>__('Weight Form', 'plugin-wp'),
                 'type' => 'number',
                 'custom_attributes' => array(
                     'min' => 0
@@ -23,9 +24,10 @@
             array(
                 'id' => '_kj_length',
                 'desc_tip' => true,
-                'description'=>__('Length Form', 'kiriminaja'),
+                'description'=>__('Length Form', 'plugin-wp'),
                 'placeholder' => 'Length',
-                'label' => __('Length '.'('.$dimension_unit.')', 'kiriminaja'),
+                // Translators: %s length unit
+                'label' => sprintf( __( 'Length (%s)', 'plugin-wp' ), esc_attr( $dimension_unit ) ),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_length',true) ?? ''
             )
@@ -35,9 +37,10 @@
             array(
                 'id' => '_kj_width',
                 'desc_tip' => true,
-                'description'=>__('Width Form', 'kiriminaja'),
+                'description'=>__('Width Form', 'plugin-wp'),
                 'placeholder' => 'Width',
-                'label' => __('Width '.'('.$dimension_unit.')', 'kiriminaja'),
+                // Translators: %s width unit
+                'label' => sprintf( __( 'Width (%s)', 'plugin-wp' ), esc_attr( $dimension_unit ) ),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_width',true) ?? ''
             )
@@ -47,9 +50,10 @@
             array(
                 'id' => '_kj_height',
                 'desc_tip' => true,
-                'description'=>__('Height Form', 'kiriminaja'),
+                'description'=>__('Height Form', 'plugin-wp'),
                 'placeholder' => 'Height',
-                'label' => __('Height '.'('.$dimension_unit.')', 'kiriminaja'),
+                // Translators: %s height unit
+                'label' => sprintf( __( 'Height (%s)', 'plugin-wp' ), esc_attr( $dimension_unit ) ),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_height',true) ?? ''
             )

@@ -84,13 +84,13 @@ class CheckoutController
         
         $table = '<tr class="kj_cart_item_insurane" style="display:none;">
 			<td class="kj-cart-insurance">
-				<label for="kj_cart_insurance">'.__('Insurance','kiriminaja').'</label>											
+				<label for="kj_cart_insurance">'.__('Insurance','plugin-wp').'</label>											
             </td>
 			<td class="kj-cart-insurance kj-cost-insurance"></td>
 		</tr>
         <tr class="kj_cart_item_cod_fee" style="display:none;">
 			<td class="kj-cod-fee">
-				<label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja').'</label>		
+				<label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee','plugin-wp').'</label>		
                 <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
             </td>
 			<td class="kj-cod-fee kj-cost-codfee"></td>
@@ -102,13 +102,13 @@ class CheckoutController
         
         if ($_POST['billing_country'] === "ID"){
             if (empty($_POST['kj_destination_area'])) {
-                wc_add_notice( __( "<strong>Kelurahan</strong> is a required field", 'woocommerce' ), 'error' );
+                wc_add_notice( __( "<strong>Kelurahan</strong> is a required field", 'plugin-wp' ), 'error' );
             }
             if (empty($_POST['kj_expedition'])) {
-                wc_add_notice( __( "<strong>Ekspedisi</strong> is a required field", 'woocommerce' ), 'error' );
+                wc_add_notice( __( "<strong>Ekspedisi</strong> is a required field", 'plugin-wp' ), 'error' );
             }
             if (empty($_POST['kj_checkout_token'])) {
-                wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'woocommerce' ), 'error' );
+                wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'plugin-wp' ), 'error' );
             }
         }
     }
@@ -144,7 +144,7 @@ class CheckoutController
             $field_key = $this->field_destination_key;
             
             if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-                wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
+                wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'plugin-wp'),'error' );
             }
 
             (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
@@ -385,18 +385,18 @@ class CheckoutController
 
         $html = '
             <tr>
-				<th scope="row">'.__('Ekspedisi','kiriminaja').':</th>
+				<th scope="row">'.__('Ekspedisi','plugin-wp').':</th>
 				<td class="wc-block-order-confirmation-totals__total">'.$order->get_shipping_method().'</td>
 			</tr>
             <tr>
-				<th scope="row">'.__('Tracking','kiriminaja').':</th>
-				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.home_url().'/tracking?order_id='.$order->get_id().'">'.__('Click','kiriminaja').'</a></td>
+				<th scope="row">'.__('Tracking','plugin-wp').':</th>
+				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.home_url().'/tracking?order_id='.$order->get_id().'">'.__('Click','plugin-wp').'</a></td>
 			</tr>';
 
         if( $order->get_meta('_'.$this->field_insurance_key) == true ){
             $html .= '
             <tr>
-				<th scope="row">'.__('Insurance','kiriminaja').':</th>
+				<th scope="row">'.__('Insurance','plugin-wp').':</th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->insurance_cost).'</td>
 			</tr>';
         }
@@ -405,7 +405,7 @@ class CheckoutController
             $html .= '
             <tr>
 				<th scope="row">
-                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','kiriminaja').'</label>		
+                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','plugin-wp').'</label>		
                     <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
                 </th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->cod_fee).'</td>
@@ -431,13 +431,13 @@ class CheckoutController
             
             if ($_POST['billing_country'] === "ID"){
                 if (empty($_POST['kj_destination_area'])) {
-                    wc_add_notice( __( "<strong>District</strong> is a required field", 'kiriminaja' ), 'error' );
+                    wc_add_notice( __( "<strong>District</strong> is a required field", 'plugin-wp' ), 'error' );
                 }
                 if (empty($_POST['shipping_method'][0])) {
-                    wc_add_notice( __( "<strong>Shipping</strong> is a required field", 'kiririminaja' ), 'error' );
+                    wc_add_notice( __( "<strong>Shipping</strong> is a required field", 'plugin-wp' ), 'error' );
                 }
                 if (empty($_POST['kj_checkout_token'])) {
-                    wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'kiriminaja' ), 'error' );
+                    wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'plugin-wp' ), 'error' );
                 }
 
             }
@@ -462,7 +462,8 @@ class CheckoutController
                         }
 
                         if( $weight == 0 ){
-                            $message = __("Berat Produk ".$_product->get_name()." Perlu di Setting",'kiriminaja');
+                            /* translators: %s: product name */
+                            $message = sprintf(__("Berat Produk %s Perlu di Setting", 'plugin-wp'), $_product->get_name());
                             $messageType = "error";
                             wc_add_notice($message, $messageType);
                         }
@@ -512,7 +513,7 @@ class CheckoutController
 
         //add field billing District
         $fields['billing'][$field_key] = array(
-            'label'     => __(esc_html__('District', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('District', 'plugin-wp'),
             'required'  => true,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -523,7 +524,7 @@ class CheckoutController
 
         //add field shipping District
         $fields['shipping'][$this->field_shipping_destination_key] = array(
-            'label'     => __(esc_html__('District', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('District', 'plugin-wp'),
             'required'  => true,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -539,7 +540,7 @@ class CheckoutController
         $field_key = $this->field_insurance_key;
 
         $fields['billing'][$field_key] = array(
-            'label'     => __(esc_html__('Insurance Shipping', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('Insurance Shipping', 'plugin-wp'),
             'required'  => false,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -548,7 +549,7 @@ class CheckoutController
         );
 
         $fields['shipping'][$this->field_shipping_insurance_key] = array(
-            'label'     => __(esc_html__('Insurance Shipping', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('Insurance Shipping', 'plugin-wp'),
             'required'  => false,
             'class'     => array('form-row-wide'),
             'clear'     => true,
