@@ -20,7 +20,7 @@
 </section>
 <script type="text/javascript">
     jQuery(document).ready(function() {
-        var transaction = JSON.stringify(<?php echo json_encode(@$transaction); ?>);
+        var transaction = JSON.stringify(<?php echo wp_json_encode(@$transaction); ?>);
         transaction = JSON.parse(transaction);
         
         if (!transaction) { return; }

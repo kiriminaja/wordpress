@@ -169,9 +169,9 @@
                                                     <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">'.esc_html($row->pickup_number).'</div>
-                                                        <div style="font-size: 12px;">Requested: '.esc_html(date('Y/m/d H:i',strtotime($row->created_at))).'</div>
+                                                        <div style="font-size: 12px;">Requested: '.esc_html(gmdate('Y/m/d H:i',strtotime($row->created_at))).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html(date('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">Rp. '.esc_html(localMoneyFormat($row->cost ?? 0)).'</div>
                                                     </td>

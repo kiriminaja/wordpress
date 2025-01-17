@@ -136,7 +136,7 @@
                                                         <td class="manage-column column-thumb">
                                                         <a href="'.(esc_url(home_url()).'/wp-admin/post.php?post='.esc_attr($row->wc_order_id).'&action=edit').'" target="_blank" style="font-weight: 700">#'.esc_html($row->wc_order_id).' '.esc_html($shippingData->_billing_first_name).' '.esc_html($shippingData->_billing_last_name).' </a>
                                                         </td>
-                                                        <td class="manage-column column-thumb">'.esc_html(date('M d, Y',strtotime($row->wc_date_created)) ).'</td>
+                                                        <td class="manage-column column-thumb">'.esc_html(gmdate('M d, Y',strtotime($row->wc_date_created)) ).'</td>
                                                         <td class="manage-column column-thumb">
                                                         <span class="kj-badge processing">'.esc_html( kjHelper()->transactionStatusLabel($row->status)).'</span>
                                                         </td>
