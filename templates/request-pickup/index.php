@@ -60,19 +60,6 @@ class requestPickupIndex {
         }
 
         /** Main Query*/
-        // $query = "(
-        //     SELECT 
-        //     `".$paymentTable."`.*
-        //     ,sum(CASE WHEN `".$transactionTable."`.cod_fee = 0 THEN `".$transactionTable."`.shipping_cost+`".$transactionTable."`.insurance_cost ELSE 0 END) as cost
-        //     FROM `".$paymentTable."` 
-        //     INNER JOIN `".$transactionTable."`
-        //     ON `".$paymentTable."`.pickup_number = `".$transactionTable."`.pickup_number
-        //     ".@$whereCondition."
-        //     GROUP BY `".$paymentTable."`.pickup_number
-        //     ORDER BY `".$paymentTable."`.created_at DESC
-        //     )";
-
-
         $results = $wpdb->get_results( 
             "(
                 SELECT 
