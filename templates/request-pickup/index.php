@@ -61,17 +61,19 @@ class requestPickupIndex {
 
         /** Main Query*/
         $results = $wpdb->get_results( 
-            "(
-                SELECT 
-                `{$paymentTable}`.*
-                ,sum(CASE WHEN `{$transactionTable}`.cod_fee = 0 THEN `{$transactionTable}`.shipping_cost+`{$transactionTable}`.insurance_cost ELSE 0 END) as cost
-                FROM `{$paymentTable}` 
-                INNER JOIN `{$transactionTable}`
-                ON `{$paymentTable}`.pickup_number = `{$transactionTable}`.pickup_number
-                {$whereCondition}
-                GROUP BY `{$paymentTable}`.pickup_number
-                ORDER BY `{$paymentTable}`.created_at DESC
-            )" . "LIMIT ${offset}, ${items_per_page}" 
+            $wpdb->prepare(
+                "(
+                    SELECT 
+                    {$paymentTable}.*
+                    ,sum(CASE WHEN {$transactionTable}.cod_fee = 0 THEN {$transactionTable}.shipping_cost+{$transactionTable}.insurance_cost ELSE 0 END) as cost
+                    FROM {$paymentTable} 
+                    INNER JOIN {$transactionTable}
+                    ON {$paymentTable}.pickup_number = {$transactionTable}.pickup_number
+                    {$whereCondition}
+                    GROUP BY {$paymentTable}.pickup_number
+                    ORDER BY {$paymentTable}.created_at DESC
+                )" . "LIMIT ${offset}, ${items_per_page}" 
+            )
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
