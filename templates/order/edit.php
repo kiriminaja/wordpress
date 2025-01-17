@@ -3,9 +3,10 @@
         getKiriminAjaTransactionData()
     })
     function getKiriminAjaTransactionData(){
-        let orderId = `{$orderId}`;
-        let trackingUrl = `{$trackingUrl}`;
-        let kjOrderData = `{$kjOrderData}`;
+        let orderId = `<?php echo esc_html($orderId); ?>`;
+        let trackingUrl = `<?php echo esc_url($trackingUrl); ?>`;
+        let kjOrderData = `<?php echo wp_kses_data($kjOrderData); ?>`;
+        
         let kjOrderDataParsed = JSON.parse(kjOrderData);
         
         let label_ppn = '11%';

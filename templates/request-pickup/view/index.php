@@ -16,11 +16,11 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo @$_GET['page']; ?>">
+                                    <input type="text" name="page" value="<?php echo esc_html($_GET['page']); ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo @$_GET['key']; ?>">
-                                    <input type="text" name="status" value="<?php echo @$_GET['status']; ?>">
-                                    <input type="text" name="month" value="<?php echo @$_GET['month']; ?>">
+                                    <input type="text" name="key" value="<?php echo esc_html($_GET['key']); ?>">
+                                    <input type="text" name="status" value="<?php echo esc_html($_GET['status']); ?>">
+                                    <input type="text" name="month" value="<?php echo esc_html($_GET['month']); ?>">
                                 </form>
                                 
                                 
@@ -44,7 +44,7 @@
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.$key.'" '.(@$_GET['month']===$key ? "selected" : "").'>'.$value.'</option>';
+                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>';
                                                             }                                                            
                                                         }
                                                         ?>
@@ -61,7 +61,7 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo @$_GET['key']; ?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_html($_GET['key']); ?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -79,12 +79,12 @@
                                         <thead>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Pickup Number',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Schedule',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Fees',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Orders',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Payment Status',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo kjHelper()->tlThis('Action',@$locale); ?></span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Pickup Number',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Schedule',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Fees',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Orders',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Payment Status',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kjHelper()->tlThis('Action',@$locale)); ?></span></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -143,39 +143,60 @@
                                                             </button>
                                                 ';
 
+                                                $allowed_html = [
+                                                    'button' => [
+                                                        'class' => [],
+                                                        'type' => [],
+                                                        'onclick' => [],
+                                                    ],
+                                                    'div' => [
+                                                        'style' => [],
+                                                    ],
+                                                    'span' => [],
+                                                ];
+
+                                                $allowed_status_content = [
+                                                    'div' => [
+                                                        'class' => []
+                                                    ],
+                                                    'span' => []
+                                                ];
+                                                
+                                                
+
                                                 echo '
                                                 <tr class="">
-                                                    <td style="font-weight: 700;" class="thumb column-thumb">'.$id+(($page-1)*$items_per_page+1).'</td>
+                                                    <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="font-weight: 700">'.@$row->pickup_number.'</div>
-                                                        <div style="font-size: 12px;">Requested: '.date('Y/m/d H:i',strtotime(@$row->created_at)).'</div>
+                                                        <div style="font-weight: 700">'.esc_html($row->pickup_number).'</div>
+                                                        <div style="font-size: 12px;">Requested: '.esc_html(date('Y/m/d H:i',strtotime($row->created_at))).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.date('Y/m/d H:i',strtotime(@$row->pickup_schedule)).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html(date('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="font-weight: 700">Rp. '.localMoneyFormat(@$row->cost ?? 0).'</div>
+                                                        <div style="font-weight: 700">Rp. '.esc_html(localMoneyFormat($row->cost ?? 0)).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.@$row->order_amt.' Order</td>
-                                                    <td class="manage-column column-thumb">'.$statusContent.'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html($row->order_amt).' Order</td>
+                                                    <td class="manage-column column-thumb">'.wp_kses($statusContent, $allowed_status_content).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">'.$btnGroup.'</div>
+                                                        <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">'.wp_kses($btnGroup, $allowed_html).'</div>
                                                     </td>
                                                 </tr>
                                                 ';
                                             }
                                         }else{
-                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.kjHelper()->tlThis('Not Found',@$locale).'</td></tr>';
+                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kjHelper()->tlThis('Not Found',@$locale)).'</td></tr>';
                                         }
                                         ?>
                                         </tbody>
                                         <tfoot>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Pickup Number',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Schedule',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Fees',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Orders',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo kjHelper()->tlThis('Payment Status',@$locale); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo kjHelper()->tlThis('Action',@$locale); ?></span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Pickup Number',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Schedule',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Fees',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Orders',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Payment Status',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kjHelper()->tlThis('Action',@$locale)); ?></span></th>
                                         </tr>
                                         </tfoot>
                                     </table>
@@ -191,7 +212,7 @@
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.$key.'" '.(@$_GET['month']===$key ? "selected" : "").'>'.$value.'</option>';
+                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>';
                                                             }
                                                         }
                                                         ?>
@@ -211,7 +232,7 @@
                                                     <span style="font-weight: 700;"><?php echo count($results) ?> items</span>
                                                     <div>
                                                         <button <?php echo @$prev_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
-                                                            <?php echo @$prev_page_link!='' ? '<a href="'.$prev_page_link.'" class="inset-absolute"></a>' : ''; ?>
+                                                            <?php echo esc_attr($prev_page_link)!='' ? '<a href="'.esc_url($prev_page_link).'" class="inset-absolute"></a>' : ''; ?>
                                                             <div style="display: flex">
                                                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -221,10 +242,10 @@
                                                             </div>
                                                         </button>
                                                     </div>
-                                                    <span style="font-weight: 700;"> <?php echo $page; ?> of <?php echo $total_pages; ?> </span>
+                                                    <span style="font-weight: 700;"> <?php echo esc_html($page); ?> of <?php echo esc_html($total_pages); ?> </span>
                                                     <div>
                                                         <button <?php echo @$next_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
-                                                            <?php echo @$next_page_link!='' ? '<a href="'.$next_page_link.'" class="inset-absolute"></a>' : ''; ?>
+                                                            <?php echo esc_attr($next_page_link)!='' ? '<a href="'.esc_url($next_page_link).'" class="inset-absolute"></a>' : ''; ?>
 
                                                             <div style="display: flex">
                                                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -240,7 +261,7 @@
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v.3.1</p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KJ_VERSION_PLUGIN); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -314,7 +335,7 @@
                 
                 const payment_data = resp?.data?.payment_data
                 const transactions_data = resp?.data?.transactions_data
-                const wcOrderUrlBase = '<?php echo home_url().'/wp-admin/post.php?post='; ?>'
+                const wcOrderUrlBase = '<?php echo esc_url( home_url().'/wp-admin/post.php?post='); ?>'
                 
                 
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
@@ -330,8 +351,8 @@
                     if (transaction?.cod_fee > 0){
                         transactionCost += Number(transaction?.cod_fee ?? 0)+Number(transaction?.transaction_value ?? 0)
                     }
-                    const transactionUrl = `<?php echo @home_url().'/wp-admin/post.php' ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
-                    const printResiUrl = `<?php echo @home_url().'/transaction-resi-print' ?>?oids=${transaction?.order_id}`;
+                    const transactionUrl = `<?php echo esc_url( home_url().'/wp-admin/post.php' ) ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
+                    const printResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transaction?.order_id}`;
                     
                     let btnGroup = ``;
                     if (transaction?.awb){
