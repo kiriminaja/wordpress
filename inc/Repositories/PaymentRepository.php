@@ -13,7 +13,13 @@ class PaymentRepository{
 
     public function getPaymentById($id){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE `id`  = ".$id."");
+        $query = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM `{$this->table}` WHERE `id` = %d",
+                $id
+            ) 
+        );
+
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -23,7 +29,12 @@ class PaymentRepository{
     
     public function getPaymentByPaymentId($paymentId){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE pickup_number  = '".$paymentId."'");
+        $query = $wpdb->get_row( 
+            $wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE pickup_number = %s", 
+                $paymentId
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -33,7 +44,11 @@ class PaymentRepository{
     
     public function getPaymentByOldestDate(){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE created_at IS NOT NULL ORDER BY created_at ASC");
+        $query = $wpdb->get_row( 
+            $wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL ORDER BY created_at ASC"
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -53,26 +68,26 @@ class PaymentRepository{
 
     public function createPayment($payload){
         global $wpdb;
-        $wpdb->query("INSERT INTO ".$this->table."
-            (
-            `pickup_number`, 
-            `status`, 
-            `method`, 
-            `order_amt`, 
-            `pickup_schedule`, 
-            `created_at`
-            )
-            VALUES
-            (
-            '".$payload['pickup_number']."',
-            '".$payload['status']."',
-            '".$payload['method']."',
-            '".$payload['order_amt']."',
-            '".$payload['pickup_schedule']."',
-            '".$payload['created_at']."'
-            )
-            ");
 
+        $wpdb->query(
+            $wpdb->prepare(
+                "INSERT INTO {$this->table} (
+                `pickup_number`, 
+                `status`, 
+                `method`, 
+                `order_amt`, 
+                `pickup_schedule`, 
+                `created_at`
+                ) VALUES (%s, %s, %s, %s, %s, %s)",
+                $payload['pickup_number'],  // %s
+                $payload['status'],        // %s
+                $payload['method'],        // %s
+                $payload['order_amt'], // %s
+                $payload['pickup_schedule'], // %s
+                $payload['created_at']      // %s
+            )
+        );
+        
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

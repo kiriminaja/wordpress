@@ -297,6 +297,56 @@
         showDetail(previousSelectedPaymentId)
     }
 
+    function kjRequestPickupProcess(){
+        jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
+
+        let orderid = jQuery('#request-pickup-modal').find('.kj-modal-content button').data('tid');
+
+        let orderIds = [orderid];
+
+        const modalElem = jQuery('#request-pickup-modal')
+        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
+        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
+        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
+
+        modalElemLoader.removeClass('kj-hidden')
+        modalElemContent.addClass('kj-hidden')
+        modalElemErr.addClass('kj-hidden')
+        
+        jQuery.ajax({
+            type: "post",
+            url: ajaxRouteGenerator(),
+            data: {
+                action: "kj_request_pickup_transaction",  // the action to fire in the server
+                data: {
+                    schedule : jQuery('[name="schedule-opt"]:checked').val(),
+                    order_ids : orderIds
+                },         // any JS object
+            },
+            complete: function (response) {
+                /** Reset Err*/
+                jQuery('#request-pickup-modal .err_msg').empty()
+                jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
+    
+                
+                const resp = JSON.parse(response.responseText).data;
+                if (resp?.status !== 200){
+
+                    modalElemLoader.addClass('kj-hidden')
+                    modalElemErr.addClass('kj-hidden')
+                    modalElemContent.removeClass('kj-hidden')
+                    
+                    jQuery('#request-pickup-modal .err_msg').text('*'+resp?.message)
+                    jQuery('#request-pickup-modal .err_msg').removeClass('kj-hidden')
+                    return
+                }
+
+                window.location.href = `<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-request-pickup'; ?>&pickup_number=${resp?.data?.pickup_number}`;
+                
+                
+            }
+        })
+    }
 
 
     function showDetail(paymentId){
@@ -451,9 +501,6 @@
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
 
-                console.log('showPaymentForm')
-                console.log(resp)
-
                 if (resp?.status !== 200){
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
@@ -528,9 +575,7 @@
             },
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
-
-                console.log(resp)
-
+                
                 if (resp?.status !== 200){
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
@@ -541,6 +586,7 @@
                 modalElemContent.removeClass('kj-hidden')
                 modalElemErr.addClass('kj-hidden')
 
+                jQuery('#request-pickup-modal').find('.kj-modal-content button').attr('data-tid',resp.data.transactions_data[0].order_id);
 
             },
         });

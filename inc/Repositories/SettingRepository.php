@@ -12,7 +12,13 @@ class SettingRepository{
     
     public function getIntegrationData(){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE `key` IN ('oid_prefix','setup_key')" );
+        $query = $wpdb->get_results( 
+            $wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE `key` IN (%s, %s)",
+                'oid_prefix',
+                'setup_key'
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false; 
@@ -54,7 +60,7 @@ class SettingRepository{
 
         $table = $wpdb->prefix . 'kiriminaja_settings';
         
-        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE `key` IN ('origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_latitude','origin_longitude','origin_zip_code')" );
+        $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_latitude','origin_longitude','origin_zip_code')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -134,7 +140,7 @@ class SettingRepository{
 
     public function getCallbackData(){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE `key` IN ('callback_url')" );
+        $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('callback_url')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -158,7 +164,12 @@ class SettingRepository{
 
     public function getSettingByKey($key){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE `key`  = '".$key."'");
+        $query = $wpdb->get_row( 
+            $wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE `key` = %s",
+                $key
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -169,7 +180,7 @@ class SettingRepository{
     public function getSettingByArray($array){
         global $wpdb;
         $keywords_imploded = implode("','",$array);
-        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE `key` IN ('$keywords_imploded')" );
+        $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('$keywords_imploded')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -180,7 +191,12 @@ class SettingRepository{
     public function validateWhiteListExpedition($data){
         global $wpdb;
 
-        $origin_whitelist_expedition_id = $wpdb->get_row( "SELECT `value` FROM `".$this->table."` WHERE `key`  = 'origin_whitelist_expedition_id' " );
+        $origin_whitelist_expedition_id = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT `value` FROM {$this->table} WHERE `key` = %s",
+                'origin_whitelist_expedition_id' // %s
+            ) 
+        );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);

@@ -356,7 +356,7 @@
         modalElemLoader.removeClass('kj-hidden')
         modalElemContent.addClass('kj-hidden')
         modalElemErr.addClass('kj-hidden')
-
+        
         jQuery.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
