@@ -281,7 +281,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     
-                    $canceledAt = $package->canceled_at ?? date('Y-m-d H:i:s');
+                    $canceledAt = $package->canceled_at ?? gmdate('Y-m-d H:i:s');
 
                     $payload['changes']=[
                         'canceled_at'   =>  kjHelper()->dateConvertGMT( $canceledAt ),

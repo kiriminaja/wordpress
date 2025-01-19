@@ -12,7 +12,12 @@ class WpPostMetaRepository{
     
     public function getRequiredRowsByPostId($post_id){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE post_id  = '".$post_id."'");
+        $query = $wpdb->get_results( 
+            $wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE post_id = %d",
+                $post_id
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -22,8 +27,22 @@ class WpPostMetaRepository{
     
     public function getRequiredRowsByPostIdsAndMetaKeys($post_ids, $meta_keys){
         global $wpdb;
-        $query = $wpdb->get_results( "SELECT * FROM `".$this->table."` WHERE post_id IN ('".implode("', '", $post_ids)."') 
-        AND meta_key IN ('".implode("', '", $meta_keys)."')");
+        
+        $post_ids_placeholders = implode(', ', array_fill(0, count($post_ids), '%d'));
+        $meta_keys_placeholders = implode(', ', array_fill(0, count($meta_keys), '%s'));
+
+        $query = $wpdb->get_results( 
+            $wpdb->prepare(
+                "
+                SELECT * 
+                FROM {$this->table} 
+                WHERE post_id IN ($post_ids_placeholders) 
+                AND meta_key IN ($meta_keys_placeholders)
+                ",
+                ...$post_ids, // Masukkan nilai post_ids
+                ...$meta_keys // Masukkan nilai meta_keys
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
@@ -33,7 +52,13 @@ class WpPostMetaRepository{
     
     public function getRequiredRowsByPostIdAndMetaKey($post_id, $meta_key){
         global $wpdb;
-        $query = $wpdb->get_row( "SELECT * FROM `".$this->table."` WHERE post_id = ".$post_id." AND meta_key = '".$meta_key."'");
+        $query = $wpdb->get_row( 
+            $wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE post_id = %d AND meta_key = %s",
+                $post_id,
+                $meta_key
+            )
+        );
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;

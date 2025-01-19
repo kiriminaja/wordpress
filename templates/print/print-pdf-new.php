@@ -40,9 +40,9 @@ foreach ($transactions as $index => $transaction){
 
     echo '<table  style="width: 100%; height: 95%; border-collapse: collapse; margin-top: .25rem" border="1">
             <tr>
-                <td style="border-right: 0; padding: .5rem">
-                    <img src="https://kiriminaja.com/assets/home/2.png" height="25px" alt="">
-                </td>
+                <td style="border-right: 0; padding: .5rem">';
+                    echo '<img src="https://kiriminaja.com/assets/home/2.png" height="25px" alt="">'; //phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent
+                '</td>
                  <td style="border-left: 0;text-align: right; font-size: 1rem; font-weight: 700; padding: .5rem">
                      '.(esc_html($transaction->cod_fee) > 0 ? 'COD Rp'. esc_html(localMoneyFormat($transactionCost)) : 'NON-COD').'
                 </td>

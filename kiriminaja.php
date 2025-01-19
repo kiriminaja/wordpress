@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
@@ -20,9 +19,10 @@ if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_
     @ini_set( 'display_errors', 1 );
 }
 
-date_default_timezone_set('Asia/Jakarta'); // Atur timezone ke GMT+7
+// Atur timezone ke GMT+7
+date_default_timezone_set('Asia/Jakarta'); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
 
-define( 'KJ_PLUGIN_VERSION', rand(0,999));
+define( 'KJ_PLUGIN_VERSION', rand(0,999)); // phpcs:ignore WordPress.WP.AlternativeFunctions.rand_rand
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');

@@ -56,7 +56,7 @@
                         </div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
-                            <button class="button-wp btn-lg" type="button">
+                            <button onclick="kjRequestPickupProcess()" class="button-wp btn-lg" type="button">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                     <span style="margin: auto">Pick Schedule</span>
                                 </div>

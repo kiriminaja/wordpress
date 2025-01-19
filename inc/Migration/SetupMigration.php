@@ -31,22 +31,35 @@ class SetupMigration {
             dbDelta($sql);
 
             /** Settings Table Value*/
-            $wpdb->query("INSERT INTO ".$table_name."
-            (`key`, `value`)
-            VALUES
-            ('api_key', null),
-            ('setup_key', null),
-            ('oid_prefix', null),
-            ('origin_name', null),
-            ('origin_phone', null),
-            ('origin_address', null),
-            ('origin_sub_district_id', null),
-            ('origin_sub_district_name', null),
-            ('origin_latitude', null),
-            ('origin_longitude', null),
-            ('callback_url', null),
-            ('origin_zip_code', null)
-            ");
+            $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT INTO $table_name (`key`, `value`) VALUES
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s)",
+                    'api_key', null,
+                    'setup_key', null,
+                    'oid_prefix', null,
+                    'origin_name', null,
+                    'origin_phone', null,
+                    'origin_address', null,
+                    'origin_sub_district_id', null,
+                    'origin_sub_district_name', null,
+                    'origin_latitude', null,
+                    'origin_longitude', null,
+                    'callback_url', null,
+                    'origin_zip_code', null
+                )
+            );
         }
         
         /** Alters*/

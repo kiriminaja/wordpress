@@ -4,7 +4,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,5 +60,5 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 * First release of the plugin.
 
 == Upgrade Notice ==
-= 2.0.0 =
+= 2.0.1 =
 This is the first stable release. Please report any issues.
