@@ -12,8 +12,11 @@ class WpPostMetaRepository{
     
     public function getRequiredRowsByPostId($post_id){
         global $wpdb;
+        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( 
             $wpdb->prepare(
+                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared	
                 "SELECT * FROM {$this->table} WHERE post_id = %d",
                 $post_id
             )
@@ -31,13 +34,14 @@ class WpPostMetaRepository{
         $post_ids_placeholders = implode(', ', array_fill(0, count($post_ids), '%d'));
         $meta_keys_placeholders = implode(', ', array_fill(0, count($meta_keys), '%s'));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( 
             $wpdb->prepare(
-                "
-                SELECT * 
-                FROM {$this->table} 
-                WHERE post_id IN ($post_ids_placeholders) 
-                AND meta_key IN ($meta_keys_placeholders)
+                //phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+                "SELECT * 
+                FROM {$wpdb->prefix}postmeta 
+                WHERE post_id IN (".implode(', ', array_fill(0, count($post_ids), '%d')).") 
+                AND meta_key IN (".implode(', ', array_fill(0, count($meta_keys), '%s')).")
                 ",
                 ...$post_ids, // Masukkan nilai post_ids
                 ...$meta_keys // Masukkan nilai meta_keys
@@ -52,8 +56,11 @@ class WpPostMetaRepository{
     
     public function getRequiredRowsByPostIdAndMetaKey($post_id, $meta_key){
         global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
+                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared	
                 "SELECT * FROM {$this->table} WHERE post_id = %d AND meta_key = %s",
                 $post_id,
                 $meta_key

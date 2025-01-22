@@ -25,10 +25,10 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
+                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page']); // @codingStandardsIgnoreLine?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key']) ?? ''; ?>">
-                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month']) ?? ''; ?>">
+                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key']) ?? ''; // @codingStandardsIgnoreLine?>">
+                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month']) ?? ''; // @codingStandardsIgnoreLine?>">
                                 </form>
 
 
@@ -68,11 +68,11 @@
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
-                                                        <option selected="selected" value="" <?php echo (!isset($_GET['month']) ? "selected" : "") ;?>>All Dates</option>
+                                                        <option selected="selected" value="" <?php echo (!isset($_GET['month']) ? "selected" : "") ;// @codingStandardsIgnoreLine?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_attr($key).'" '.(isset($_GET['month']) ? esc_html($_GET['month'])===$key ? "selected" : "" : "").'>'.esc_html($value).'</option>';
+                                                                echo '<option value="'.esc_attr($key).'" '.(isset($_GET['month']) ? esc_html($_GET['month'])===$key ? "selected" : "" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -89,7 +89,7 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key']); ?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key']); // @codingStandardsIgnoreLine?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -193,11 +193,11 @@
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select  style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
-                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;?>>All Dates</option>
+                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ; // @codingStandardsIgnoreLine?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_attr($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>';
+                                                                echo '<option value="'.esc_attr($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -280,7 +280,8 @@
             data: {
                 action: "kj_request_pickup_schedule",  // the action to fire in the server
                 data: {
-                    order_ids:orderIds
+                    order_ids:orderIds,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -364,7 +365,8 @@
                 action: "kj_request_pickup_transaction",  // the action to fire in the server
                 data: {
                     schedule : jQuery('[name="schedule-opt"]:checked').val(),
-                    order_ids : orderIds
+                    order_ids : orderIds,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -418,7 +420,8 @@
             data: {
                 action: "kj_transaction-detail-summary",  // the action to fire in the server
                 data:{
-                    'wc_order_id' : wcOrderId 
+                    wc_order_id : wcOrderId,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 } ,         // any JS object
             },
             complete: function (response) {

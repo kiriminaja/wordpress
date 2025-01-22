@@ -314,6 +314,7 @@
                    return {
                        data:search,
                        action: 'kiriminaja_search_expedition',
+                       nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                    };
                },
                processResults: function (response) {
@@ -341,6 +342,7 @@
             data: {
                 action: "kj_store_origin_data",  // the action to fire in the server
                 data: {
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>",      
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
                     origin_phone:jQuery('.tab-shipping [name="origin_phone"]').val(),
                     origin_address:jQuery('.tab-shipping [name="origin_address"]').val(),
@@ -384,6 +386,7 @@
                 action: "kj_store_call_back_data",  // the action to fire in the server
                 data: {
                     callback_url:jQuery('.tab-advanced [name="callback_url"]').val(),
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"      
                 },         // any JS object
             },
             complete: function (response) {

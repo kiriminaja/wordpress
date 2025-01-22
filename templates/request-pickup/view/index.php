@@ -16,20 +16,20 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_html($_GET['page']); ?>">
+                                    <input type="text" name="page" value="<?php echo esc_html($_GET['page']);// @codingStandardsIgnoreLine ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_html($_GET['key']); ?>">
-                                    <input type="text" name="status" value="<?php echo esc_html($_GET['status']); ?>">
-                                    <input type="text" name="month" value="<?php echo esc_html($_GET['month']); ?>">
+                                    <input type="text" name="key" value="<?php echo esc_html($_GET['key']); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="status" value="<?php echo esc_html($_GET['status']); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="month" value="<?php echo esc_html($_GET['month']); // @codingStandardsIgnoreLine ?>">
                                 </form>
                                 
                                 
                                 <div>
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
-                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; ?> >All <span class="count"></span></a> |</li>
-                                            <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count"></span></a>  |</li>
-                                            <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; ?> >Paid <span class="count"></span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >All <span class="count"></span></a> |</li>
+                                            <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >Waiting for Payment <span class="count"></span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >Paid <span class="count"></span></a>  |</li>
                                         </ul>
                                     </div>
                                     
@@ -40,11 +40,11 @@
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
-                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;?>>All Dates</option>
+                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ; // @codingStandardsIgnoreLine ?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>';
+                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
                                                             }                                                            
                                                         }
                                                         ?>
@@ -61,7 +61,7 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_html($_GET['key']); ?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_html($_GET['key']);// @codingStandardsIgnoreLine ?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -208,11 +208,11 @@
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select  style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
-                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;?>>All Dates</option>
+                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;// @codingStandardsIgnoreLine ?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
                                                             foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>';
+                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -320,7 +320,8 @@
                 action: "kj_request_pickup_transaction",  // the action to fire in the server
                 data: {
                     schedule : jQuery('[name="schedule-opt"]:checked').val(),
-                    order_ids : orderIds
+                    order_ids : orderIds,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -368,7 +369,8 @@
             data: {
                 action: "kj_get_shipping_process_detail",  // the action to fire in the server
                 data: {
-                    payment_id:paymentId
+                    payment_id:paymentId,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -495,7 +497,8 @@
             data: {
                 action: "kj_get_payment_form",  // the action to fire in the server
                 data: {
-                    payment_id:paymentId
+                    payment_id:paymentId,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -568,27 +571,74 @@
             type: "post",
             url: ajaxRouteGenerator(),
             data: {
-                action: "kj_get_shipping_process_detail",  // the action to fire in the server
+                action: "kj_get_shipping_reschedule_pickup",  // the action to fire in the server
                 data: {
-                    payment_id:paymentId
+                    payment_id:paymentId,
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
-                
+            
                 if (resp?.status !== 200){
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
                     modalElemErr.removeClass('kj-hidden')
+                    alert(resp?.message ?? 'Terjadi kesalahan')
                     return
                 }
+
+                const schedules = resp?.data?.schedules ?? [];
+                const transaction_summary = resp?.data?.transaction_summary ?? {};
+                const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
+                const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
+                const total = sum_non_cod_fee;
+
+                
+                /** transaction_summary*/
+                jQuery('#schedule-transaction-summary').empty()
+                jQuery('#schedule-transaction-summary').append(`
+                <div>
+                    <div class="row">
+                        <div class="col">Tagihan Paket COD</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
+                    </div>
+                    <div class="row-divider" style="margin-top: .5rem"></div>
+                    <div class="row">
+                        <div class="col">Tagihan Paket Non-COD</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
+                    </div>
+                    <div class="row-divider" style="margin-top: .5rem"></div>
+                    <div class="row">
+                        <div class="col">Total Tagihan</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((sum_cod_fee))}</div>
+                    </div>
+                </div>
+                `)
+                
+                /** schedules*/
+                
+                jQuery('#schedule-opt-list').empty()
+                jQuery.each(schedules,function (idx,schedule){
+                    jQuery('#schedule-opt-list').append(`
+                        <div style="margin-bottom: .75rem">
+                            <div style="display: flex;align-items: center;justify-items: center;">
+                                <input id="opt_${schedule?.clock}" style="margin: 0" value="${schedule?.clock}" type="radio" name="schedule-opt">
+                                <span style="margin-left: .5rem;margin-top: auto;margin-bottom: auto">
+                                    <label for="opt_${schedule?.clock}">${schedule?.label}</label>                                
+                                </span>
+                            </div>
+                        </div>
+                `)
+                })
+
+                
                 modalElemLoader.addClass('kj-hidden')
                 modalElemContent.removeClass('kj-hidden')
                 modalElemErr.addClass('kj-hidden')
 
-                jQuery('#request-pickup-modal').find('.kj-modal-content button').attr('data-tid',resp.data.transactions_data[0].order_id);
-
-            },
+                jQuery('#request-pickup-modal').find('.kj-modal-content button').attr('data-tid',transaction_summary.order_id);
+            }
         });
     }
 

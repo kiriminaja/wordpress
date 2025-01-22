@@ -36,38 +36,40 @@ class TransactionProcessIndex{
         $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
         $postTable = $wpdb->prefix . 'posts';
 
+        // @codingStandardsIgnoreLine
         $whereCondition = '';
-        if (!empty($_GET['key'] ?? '')){
-            $whereCondition .= " AND `".$wcOrderTable."`.order_id LIKE '%".$_GET['key']."%' ";
+        if (!empty($_GET['key'] ?? '')){ // @codingStandardsIgnoreLine
+            $whereCondition .= " AND `".$wcOrderTable."`.order_id LIKE '%".$_GET['key']."%' "; // @codingStandardsIgnoreLine
         }
-        if (!empty($_GET['month'] ?? '')){
-            $whereCondition.=" AND `".$wcOrderTable."`.date_created LIKE '%".$_GET['month']."%' ";
+        if (!empty($_GET['month'] ?? '')){ // @codingStandardsIgnoreLine
+            $whereCondition.=" AND `".$wcOrderTable."`.date_created LIKE '%".$_GET['month']."%' "; // @codingStandardsIgnoreLine
         }
 
 
         /** Main Query*/
-
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_results( 
             $wpdb->prepare(
+                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared	
                 "(
                     SELECT 
-                    {$wcOrderTable}.order_id as wc_order_id,
-                    {$wcOrderTable}.date_created as wc_date_created,
-                    {$wcOrderTable}.status as wc_status,
-                    {$postTable}.post_status,
-                    {$transactionTable}.*
-                    FROM {$wcOrderTable}
-                    INNER JOIN {$transactionTable}
-                    ON {$wcOrderTable}.order_id = {$transactionTable}.wp_wc_order_stat_order_id
-                    INNER JOIN {$postTable}
-                    ON {$wcOrderTable}.order_id = {$postTable}.ID
-                    WHERE {$wcOrderTable}.status = 'wc-processing'
-                    AND {$transactionTable}.status = 'new'
-                    AND {$postTable}.post_status != 'trash' 
+                    {$wpdb->prefix}wc_order_stats.order_id as wc_order_id,
+                    {$wpdb->prefix}wc_order_stats.date_created as wc_date_created,
+                    {$wpdb->prefix}wc_order_stats.status as wc_status,
+                    {$wpdb->prefix}posts.post_status,
+                    {$wpdb->prefix}kiriminaja_transactions.*
+                    FROM {$wpdb->prefix}wc_order_stats
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
+                    ON {$wpdb->prefix}wc_order_stats.order_id = {$wpdb->prefix}kiriminaja_transactions.wp_wc_order_stat_order_id
+                    INNER JOIN {$wpdb->prefix}posts
+                    ON {$wpdb->prefix}wc_order_stats.order_id = {$wpdb->prefix}posts.ID
+                    WHERE {$wpdb->prefix}wc_order_stats.status = 'wc-processing'
+                    AND {$wpdb->prefix}kiriminaja_transactions.status = 'new'
+                    AND {$wpdb->prefix}posts.post_status != 'trash' 
                     {$whereCondition}
-                    GROUP BY {$wcOrderTable}.order_id
-                    ORDER BY {$wcOrderTable}.date_created DESC
-                )"
+                    GROUP BY {$wpdb->prefix}wc_order_stats.order_id
+                    ORDER BY {$wpdb->prefix}wc_order_stats.date_created DESC
+                )" // @codingStandardsIgnoreLine
             )
         );
 

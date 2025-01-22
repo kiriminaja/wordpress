@@ -34,7 +34,7 @@ class GetShippingProcessDetailService extends BaseService{
         if (!$this->transactionRepo) {
             return self::error([],'Server Error');
         }
-
+        
         self::paymentSum();
         
         return self::success([

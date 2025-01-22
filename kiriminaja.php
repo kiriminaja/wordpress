@@ -16,7 +16,7 @@
 
 /** prevent unauthorized access othe than wordpress */
 if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) || wp_doing_ajax() ) {
-    @ini_set( 'display_errors', 1 );
+    @ini_set( 'display_errors', 1 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 }
 
 // Atur timezone ke GMT+7
