@@ -123,7 +123,7 @@ class AdminPost
         #set Legacy Woocommerce Kiriminaja
         $data   = array( 'option_value'=>'no');
         $where  = array( 'option_name' => 'woocommerce_custom_orders_table_enabled' );
-        $wpdb->update( $wpdb->prefix . 'options', $data, $where );        
+        $wpdb->update( $wpdb->prefix . 'options', $data, $where );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching      
     }
 
     /** Set Shipping Woocommerce Calculate Shipping Cart */

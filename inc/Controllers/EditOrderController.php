@@ -31,11 +31,13 @@ class EditOrderController{
     
     public function kj_getExpeditionByPricing(){
         
-        $post = $_POST;
         
-        if ( ! wp_verify_nonce( $post['nonce'], $this->nonce ) ) {
+        if ( !isset($_POST['nonce']) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] )), $this->nonce ) ) {
             die( esc_html__( 'Security check', 'plugin-wp' ) ); 
         }
+
+        $post = $_POST;
+
 
         $order_id       = (int) $post['order_id'];
         $destination_id = (int) $post['destination_id'];
@@ -386,27 +388,6 @@ class EditOrderController{
         </tr>';
 
         echo wp_kses_post( $table );
-    }
-
-
-    public function kj_calculationCodFeeAndInsuranceFee(){
-
-        $get_calculate_pricing = $this->kj_calculationAdminOrder($_POST);
-
-        if( empty($get_calculate_pricing) ){
-            wp_send_json_error(['code'=>'404','message'=>'Calculation Failed']);
-        }
-
-        $cod_fee        = wc_price($get_calculate_pricing['cod_amt']) ?? 0;
-        $insurance_fee  = wc_price($get_calculate_pricing['insurance_amt']) ?? 0;
-
-        wp_send_json_success([
-            'cod_fee' => $cod_fee,
-            'insurance_fee' => $insurance_fee,
-            'cod_fee_number'=>$get_calculate_pricing['cod_amt'],
-            'insurance_fee_number'=>$get_calculate_pricing['insurance_amt'],
-        ]);
-
     }
     
 }

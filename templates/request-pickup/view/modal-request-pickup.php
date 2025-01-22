@@ -21,7 +21,7 @@
                     <div class="kj-modal-content kj-hidden">
 
                         <div style="margin-top: .75rem"></div>
-                        <div style="padding: 10px;border: 1px solid #c3c4c7;background-color: #ffffff">
+                        <div id="schedule-transaction-summary" style="padding: 10px;border: 1px solid #c3c4c7;background-color: #ffffff">
                             <div class="row">
                                 <div class="col">Tagihan Paket COD</div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
@@ -39,21 +39,20 @@
                         </div>
                         <div style="margin-top: .75rem"></div>
                         <div>
-                            <div style="overflow: auto; max-height: 30vh; font-weight: 600">
+                            <div id="schedule-opt-list" style="overflow: auto; max-height: 30vh; font-weight: 600">
                                 <?php
                                 for ($i=0;$i<=10;$i++){
-                                    echo '
-                                <div style="margin-bottom: .75rem">
-                                    <div style="display: flex">
-                                        <input style="margin: 0" value="15" type="radio" name="tax_input[product_cat][]" id="in-product_cat-15">
-                                        <span style="margin-left: .5rem;margin-top: auto;margin-bottom: auto">Tuesday, 2024-02-06 08:00</span>
-                                    </div>
-                                </div>
-                        ';
+                                    echo '<div style="margin-bottom: .75rem">
+                                        <div style="display: flex">
+                                            <input style="margin: 0" value="15" type="radio" name="schedule-opt">
+                                            <span style="margin-left: .5rem;margin-top: auto;margin-bottom: auto">Tuesday, 2024-02-06 08:00</span>
+                                        </div>
+                                    </div>';
                                 }
                                 ?>
                             </div>
                         </div>
+                        <div style="margin-top: .75rem; font-weight: 600;color: red" class="err_msg kj-hidden"></div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
                             <button onclick="kjRequestPickupProcess()" class="button-wp btn-lg" type="button">

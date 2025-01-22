@@ -86,8 +86,14 @@ class Helper extends  BaseInit {
         return @$langLib[$text] ?? $text;
     }
     
-    public function devForceTrue(){
-        return  @$_GET['devForceTrue'] && strlen(@$_GET['devForceTrue']) > 0;
+    public function devForceTrue() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['devForceTrue'])) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $devForceTrue = sanitize_text_field(wp_unslash($_GET['devForceTrue']));
+            return !empty($devForceTrue);
+        }
+        return false;
     }
 
     public function minAmount($value, $minAmount = 1){

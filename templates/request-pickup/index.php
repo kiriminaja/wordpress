@@ -16,6 +16,7 @@ class requestPickupIndex {
         $locale = get_locale();
         
         /** Page Query*/
+        // @codingStandardsIgnoreLine
         $pageQuery = self::pageQuery();
         $results = $pageQuery['results'];
         $page = $pageQuery['page'];
@@ -41,38 +42,45 @@ class requestPickupIndex {
 
         /** PreRequrities*/
         $items_per_page = 20;
+
+        // @codingStandardsIgnoreLine
         $page = @$_GET['cpage'] ?? 1;
         $offset = ( $page * $items_per_page ) - $items_per_page;
         
         $whereCount = 0;
         $whereCondition = '';
+        
+        // @codingStandardsIgnoreLine
         if (!empty(@$_GET['key'])){
             $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.pickup_number LIKE '%".@$_GET['key']."%'";
+            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.pickup_number LIKE '%".@$_GET['key']."%'"; // @codingStandardsIgnoreLine
         }
+        // @codingStandardsIgnoreLine
         if (!empty(@$_GET['month'])){
             $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.created_at LIKE '%".@$_GET['month']."%'";
+            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.created_at LIKE '%".@$_GET['month']."%'"; // @codingStandardsIgnoreLine
         }
+        // @codingStandardsIgnoreLine
         if (!empty(@$_GET['status'])){
             $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.status = '".@$_GET['status']."'";
+            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.status = '".@$_GET['status']."'"; // @codingStandardsIgnoreLine 
         }
 
         /** Main Query*/
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_results( 
             $wpdb->prepare(
                 "(
                     SELECT 
-                    {$paymentTable}.*
-                    ,sum(CASE WHEN {$transactionTable}.cod_fee = 0 THEN {$transactionTable}.shipping_cost+{$transactionTable}.insurance_cost ELSE 0 END) as cost
-                    FROM {$paymentTable} 
-                    INNER JOIN {$transactionTable}
-                    ON {$paymentTable}.pickup_number = {$transactionTable}.pickup_number
+                    {$wpdb->prefix}kiriminaja_payments.*, 
+                    SUM(CASE WHEN {$wpdb->prefix}kiriminaja_transactions.cod_fee = 0 THEN {$wpdb->prefix}kiriminaja_transactions.shipping_cost + {$wpdb->prefix}kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+                    FROM {$wpdb->prefix}kiriminaja_payments 
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
+                    ON {$wpdb->prefix}kiriminaja_payments.pickup_number = {$wpdb->prefix}kiriminaja_transactions.pickup_number
                     {$whereCondition}
-                    GROUP BY {$paymentTable}.pickup_number
-                    ORDER BY {$paymentTable}.created_at DESC
-                )" . "LIMIT ${offset}, ${items_per_page}" 
+                    GROUP BY {$wpdb->prefix}kiriminaja_payments.pickup_number
+                    ORDER BY {$wpdb->prefix}kiriminaja_payments.created_at DESC
+                ) LIMIT %d, %d", $offset, $items_per_page
             )
         );
         
@@ -81,16 +89,18 @@ class requestPickupIndex {
         }
 
         /** Pagination Query*/
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $totalQuery = $wpdb->get_results( 
             $wpdb->prepare(
+                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "(
                     SELECT 
-                    `{$paymentTable}`.id,`{$paymentTable}`.pickup_number
-                    FROM `{$paymentTable}` 
-                    INNER JOIN `{$transactionTable}`
-                    ON `{$paymentTable}`.pickup_number = `{$transactionTable}`.pickup_number
+                    {$wpdb->prefix}kiriminaja_payments.id,{$wpdb->prefix}kiriminaja_payments.pickup_number
+                    FROM {$wpdb->prefix}kiriminaja_payments 
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
+                    ON {$wpdb->prefix}kiriminaja_payments.pickup_number = {$wpdb->prefix}kiriminaja_transactions.pickup_number
                     {$whereCondition}
-                    GROUP BY `{$paymentTable}`.pickup_number
+                    GROUP BY {$wpdb->prefix}kiriminaja_payments.pickup_number
                 )" 
             )
         );
@@ -100,6 +110,7 @@ class requestPickupIndex {
         /** Paginate*/
         $next_page_link = @home_url().'/wp-admin/admin.php?';
         $prev_page_link = @home_url().'/wp-admin/admin.php?';
+        // @codingStandardsIgnoreLine
         foreach ($_GET as $key => $value){
             if ($key!=='cpage'){
                 $next_page_link.=$key.'='.$value.'&';

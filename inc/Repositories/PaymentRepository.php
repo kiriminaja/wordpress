@@ -13,8 +13,10 @@ class PaymentRepository{
 
     public function getPaymentById($id){
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row(
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT * FROM `{$this->table}` WHERE `id` = %d",
                 $id
             ) 
@@ -29,8 +31,11 @@ class PaymentRepository{
     
     public function getPaymentByPaymentId($paymentId){
         global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT * FROM {$this->table} WHERE pickup_number = %s", 
                 $paymentId
             )
@@ -44,8 +49,11 @@ class PaymentRepository{
     
     public function getPaymentByOldestDate(){
         global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL ORDER BY created_at ASC"
             )
         );
@@ -58,6 +66,7 @@ class PaymentRepository{
 
     public function updatePaymentByCallback($payloads){
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
@@ -68,9 +77,11 @@ class PaymentRepository{
 
     public function createPayment($payload){
         global $wpdb;
-
+        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query(
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "INSERT INTO {$this->table} (
                 `pickup_number`, 
                 `status`, 

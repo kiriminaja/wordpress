@@ -12,6 +12,8 @@ class WpWcOrderStatRepository{
 
     public function updateOrderByCallback($payloads){
         global $wpdb;
+        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);

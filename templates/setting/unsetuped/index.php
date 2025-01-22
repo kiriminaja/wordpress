@@ -161,7 +161,8 @@
             data: {
                 action: "kj_store_integration_data",  // the action to fire in the server
                 data: {
-                    setup_key:jQuery('#setup-form [name="setup_key"]').val()
+                    setup_key:jQuery('#setup-form [name="setup_key"]').val(),
+                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"      
                 },         // any JS object
             },
             complete: function (response) {

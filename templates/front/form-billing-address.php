@@ -78,7 +78,7 @@
                         'different_address': different_address,
                         'text':root.find('option:selected').text(),
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':"<?php echo esc_html( wp_create_nonce('kj-destination') ); ?>",
+                        'nonce':"<?php echo esc_js( wp_create_nonce('kj-destination') ); ?>",
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
@@ -142,7 +142,8 @@
         function getSearchAreaKelurahan(){
             let ajaxurl = "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>";
             let subDistrictSelectElem = jQuery(`[name="<?php echo esc_html( $field_key ); ?>"],[name=kj_shipping_destination_area]`); 
-       
+            let nonce = "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>";
+
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
                 placeholder: "<?php echo esc_html__('Select Option','plugin-wp'); ?>",
@@ -155,6 +156,7 @@
                     data: function (search) {
                         return {
                             data:search,
+                            nonce:nonce,
                             action: 'kiriminaja_subdistrict_search'
                         };
                     },
@@ -263,7 +265,7 @@
 
             let data = {
                 action:'kj_get_data_after_update_checkout',
-                nonce:"<?php echo esc_html( wp_create_nonce('kj-update-checkout') ); ?>",
+                nonce:"<?php echo esc_js( wp_create_nonce('kj-update-checkout') ); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 payment_method,

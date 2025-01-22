@@ -16,17 +16,31 @@ class GeneralAjaxController{
     }
     
     function kiriminajaSubdistrictSearch() {
-        $data = $_POST['data'];
 
-        if( empty($data['search']) ){
-            $data['search'] = sanitize_text_field($data['term']);
-        }
-        
         try {
-            $kiriminajaSubDistrictSearch = (new \Inc\Services\KiriminajaApiService())->sub_district_search($data['search']);
-            if ($kiriminajaSubDistrictSearch->status!==200){wp_send_json_success([]);}
-            wp_send_json_success($kiriminajaSubDistrictSearch->data);
+
+            if ( isset($_POST['nonce']) && 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['nonce']) ), KJ_NONCE) ) 
+            {
+                // phpcs:ignore-start WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+                $data = (isset($_POST['data']) && !empty($_POST['data'])) 
+                    ? array_map('sanitize_text_field', $_POST['data']) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+                    : [];
+                // phpcs:ignore-end
+                    
+                if( empty($data['search']) ){
+                    $data['search'] = sanitize_text_field($data['term']);
+                }
+                $kiriminajaSubDistrictSearch = (new \Inc\Services\KiriminajaApiService())->sub_district_search($data['search']);
+                
+                if ($kiriminajaSubDistrictSearch->status!==200){wp_send_json_success([]);}
+                wp_send_json_success($kiriminajaSubDistrictSearch->data);
+            }else{
+                wp_send_json_error(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+            }
+
             wp_die();
+        
         }catch (Throwable $e){
             wp_send_json_success([]);
             wp_die();
@@ -36,8 +50,8 @@ class GeneralAjaxController{
 function kj_getDestinationArea(){
 
         // Check for nonce security      
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'kj-destination' ) ) {
-            wp_send_json_success(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+        if ( isset($_POST['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['nonce'])), 'kj-destination' ) ) {
+            wp_send_json_error(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
             wp_die();
         }
         
@@ -62,7 +76,7 @@ function kj_getDestinationArea(){
         WC()->session->set( 'destination_id', $destination_id );
         WC()->session->set( 'destination_name', sanitize_text_field($post['text']) );
         WC()->session->set( 'kj_payment_method', sanitize_text_field( $payment ) );
-        WC()->session->set( 'kj_insurance', $_POST['insurance'] );
+        WC()->session->set( 'kj_insurance', sanitize_text_field($post['insurance']) );
 
         WC()->cart->calculate_totals();
 
@@ -71,6 +85,13 @@ function kj_getDestinationArea(){
     }
 
     public function kj_getDataAfterUpdateCheckout(){
+
+        // Check for nonce security      
+        if ( isset($_POST['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['nonce'])), 'kj-update-checkout' ) ) {
+            wp_send_json_error(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+            wp_die();
+        }
+        
         $post = $_POST;
 
         $check_shipping = $post['shipping_metode_id'] ?? '';
