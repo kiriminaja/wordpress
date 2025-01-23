@@ -22,7 +22,7 @@ class GetWCCartAttributeService extends BaseService{
         $this->cartsProductAttributeCollection  = self::getCartsProductAttributeCollection();
         $this->cartsProcessedAttribute          = self::getCartsProcessedAttribute();
         $this->cartsConvertedAttribute          = self::getCartsConvertedAttribute();
-
+        
         return self::success($this->cartsConvertedAttribute,'success');
     }
     
@@ -50,14 +50,11 @@ class GetWCCartAttributeService extends BaseService{
         foreach ($wpPostMetaRepo as $product){
             if ($product->meta_key === '_weight'){
                 $cartProducts[$product->post_id]['weight']  = @$product->meta_value ?? 0;
-            }
-            if ($product->meta_key === '_length'){
+            }else if ($product->meta_key === '_length'){
                 $cartProducts[$product->post_id]['length']  = @$product->meta_value ?? 0;
-            }
-            if ($product->meta_key === '_width'){
+            }else if ($product->meta_key === '_width'){
                 $cartProducts[$product->post_id]['width']   = @$product->meta_value ?? 0;
-            }
-            if ($product->meta_key === '_height'){
+            }else if ($product->meta_key === '_height'){
                 $cartProducts[$product->post_id]['height']  = @$product->meta_value ?? 0;
             }
         }
