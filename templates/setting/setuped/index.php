@@ -282,6 +282,7 @@
                     data: function (search) {
                         return {
                             data:search,
+                            nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>",
                             action: 'kiriminaja_subdistrict_search'
                         };
                     },
