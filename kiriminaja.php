@@ -3,7 +3,7 @@
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
  * Description:     Integrate to all best delivery services across the nusantara
- * Version:         2.0.1
+ * Version:         2.0.3
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
@@ -26,10 +26,9 @@ define( 'KJ_PLUGIN_VERSION', rand(0,999)); // phpcs:ignore WordPress.WP.Alternat
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
-define('KIRIMINAJA_VERSION', '2.0.1');
 define('KJ_SLUG' ,plugin_basename(__DIR__));
 define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
-define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.1') );
+define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.3') );
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
