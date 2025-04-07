@@ -106,7 +106,7 @@ class SendRequestPickupTransactionService extends BaseService{
 
         $items = [];
         foreach ($order->get_items() as $item) {
-            $items[] = $item->get_name() . ' (Qty: ' . $item->get_quantity() . ')';
+            $items[] = $item->get_name() . ' (' . $item->get_quantity() . ')';
         }
         $note = implode(', ', $items);
         
@@ -129,6 +129,7 @@ class SendRequestPickupTransactionService extends BaseService{
                 "service"                   => $transaction->service,
                 "service_type"              => $transaction->service_name,
                 "item_name"                 => "Order No : ".$transaction->wp_wc_order_stat_order_id ." | ".get_home_url(), // order_id kiriminaja,
+                "note"                      => $note, // Nama barang (Qty number)  
                 "package_type_id"           => 7, // 7 = Regular
                 "cod"=> $transaction->cod_fee > 0 ? 
                     (
