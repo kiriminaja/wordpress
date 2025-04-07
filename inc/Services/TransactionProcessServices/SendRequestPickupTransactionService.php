@@ -102,16 +102,18 @@ class SendRequestPickupTransactionService extends BaseService{
     private function getPackagesData(){
         $repo = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
         
-        $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
-
-        $items = [];
-        foreach ($order->get_items() as $item) {
-            $items[] = $item->get_name() . ' (' . $item->get_quantity() . ')';
-        }
-        $note = implode(', ', $items);
-        
         return array_map(function ($transaction){
             $shipping_info = json_decode($transaction->shipping_info);
+
+            $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
+
+            $items = [];
+            foreach ($order->get_items() as $item) {
+                $items[] = $item->get_name() . ' (' . $item->get_quantity() . ')';
+            }
+            
+            $note = implode(",", $items);
+            
             return [
                 "order_id"                  => $transaction->order_id,
                 "destination_name"          => (@$shipping_info->_shipping_first_name ?? @$shipping_info->_billing_first_name).' '.(@$shipping_info->_shipping_last_name ?? @$shipping_info->_billing_last_name),
