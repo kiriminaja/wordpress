@@ -130,7 +130,7 @@
             </div>
             <div class="state-err kj-hidden">
                 <div style="text-align: center; margin-top: 4rem">
-                    <span style="font-weight: 700" id="err_msg"><?php esc_hmtl_e('Order tidak ditemukan','plugin-wp'); ?></span>
+                    <span style="font-weight: 700" id="err_msg"><?php esc_html_e('Order tidak ditemukan','plugin-wp'); ?></span>
                 </div>
             </div>
             <div class="state-loading kj-hidden">
@@ -192,13 +192,12 @@
 
         wp.ajax.post( "kj-tracking-ajax", {
             order_number:jQuery('[name="order_number"]').val()
-        })
-            .done(function(response) {  
+        }).done(function(response) {  
                               
-                hideStateComponent()
-                jQuery('.track-btn').removeClass('kj-hidden')
+            hideStateComponent()
+            jQuery('.track-btn').removeClass('kj-hidden')
 
-                if (response.status === 200){
+            if (response.status === 200){
                     jQuery('.state-success').removeClass('kj-hidden')
 
                     const trackingHistories = response?.data?.histories ?? [];
@@ -246,15 +245,13 @@
                                 <td>${trackData.created_at}</td>
                                 <td>${trackData.status}</td>
                             </tr>`)
-                    });
+                    });                    
+                return
+            }
 
-                    
-                    return
-                }
-
-                jQuery('.state-err').removeClass('kj-hidden')
-                jQuery('#err_msg').text(response?.message)
-            });
+            jQuery('.state-err').removeClass('kj-hidden')
+            jQuery('#err_msg').text(response?.message)
+        });
     }
 
     const url = new URL(window.location.href);
