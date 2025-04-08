@@ -1,8 +1,7 @@
 {
-    "name": "ideapad/saksenengmu-plugin",
+    "name": "kiriminaja/wordpress",
     "autoload": {
         "psr-4": {
-            "Ideapad\\SaksenengmuPlugin\\": "src/",
             "Inc\\": "./inc"
         }
     },
