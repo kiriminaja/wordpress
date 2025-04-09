@@ -15,7 +15,7 @@ class EditOrderController{
         if ($service->status !== 200){return;}
         
         $orderId = esc_html($order);
-        $trackingUrl = esc_url( home_url().'/kiriminaja-tracking?order_id='.$order);
+        $trackingUrl = esc_url( home_url().'/tracking?order_id='.$order);
         $kjOrderData = wp_json_encode($service->data);
     
         include_once KJ_DIR .'/templates/order/edit.php';
