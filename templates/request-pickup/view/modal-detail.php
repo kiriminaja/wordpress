@@ -83,7 +83,7 @@
                                         <span style="font-weight: 700;"> 1 of 2 </span>
                                         <div>
                                             <button style="position: relative" class="button-wp-blank" type="button">
-                                                <a href="http://localhost/works/wp_kj_test_v2/wordpress/wp-admin/admin.php?page=kiriminaja-request-pickup&amp;cpage=2" class="inset-absolute"></a>
+                                                <a href="#" class="inset-absolute"></a>
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -204,7 +204,7 @@
                                         <span style="font-weight: 700;"> 1 of 2 </span>
                                         <div>
                                             <button style="position: relative" class="button-wp-blank" type="button">
-                                                <a href="http://localhost/works/wp_kj_test_v2/wordpress/wp-admin/admin.php?page=kiriminaja-request-pickup&amp;cpage=2" class="inset-absolute"></a>
+                                                <a href="#" class="inset-absolute"></a>
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

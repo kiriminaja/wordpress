@@ -87,19 +87,20 @@ class SettingService extends BaseService{
     }
     
     public function storeOriginData(array $payloads){
-        try {
+        try {            
             $validate = (new \Inc\Base\Validator())->validateMultiple([
-                [$payloads['origin_name'],'Nama Toko / Pengirim',['required','max:250']],
-                [$payloads['origin_phone'],'No. Hp',['required','max:15']],
-                [$payloads['origin_address'],'Alamat',['required','max:250']],
-                [$payloads['origin_latitude'],'Latitude',['required','max:250']],
-                [$payloads['origin_longitude'],'Longitude',['required','max:250']],
-                [$payloads['origin_sub_district_id'],'Area Pengirim',['required']],
+                [$payloads['origin_name'] ?? '','Nama Toko / Pengirim',['required','max:250']],
+                [$payloads['origin_phone'] ?? '','No. Hp',['required','max:15']],
+                [$payloads['origin_address'] ?? '','Alamat',['required','max:250']],
+                [$payloads['origin_latitude'] ?? '','Latitude',['required','max:250']],
+                [$payloads['origin_longitude'] ?? '','Longitude',['required','max:250']],
+                [$payloads['origin_sub_district_id'] ?? '','Area Pengirim',['required']],
                 [$payloads['origin_sub_district_name'],'Area Pengirim',['required','max:250']],
-                [$payloads['origin_zip_code'],'Zipcode',['required','max:10']],
+                [$payloads['origin_zip_code'] ?? '','Zipcode',['required','max:10']],
                 [$payloads['origin_whitelist_expedition_id'],'Whitelist Expedition',[]],
                 [$payloads['origin_whitelist_expedition_name'],'Whitelist Expedition',[]],
             ]);
+
             
             if (!$validate['status']){ return self::error([],$validate['msg']);}
 

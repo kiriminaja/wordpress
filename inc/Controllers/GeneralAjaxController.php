@@ -73,9 +73,11 @@ function kj_getDestinationArea(){
     public function kj_getDataAfterUpdateCheckout(){
         $post = $_POST;
 
+        $check_shipping = $post['shipping_metode_id'] ?? '';
+        $ex_shipping = explode('_',$check_shipping);
 
         $datas = [];
-        if( !empty($post['shipping_metode_id']) ){
+        if( !empty($post['shipping_metode_id']) && $ex_shipping[0] == 'kiriminaja' ){
             $insurance = empty($post['insurance']) ? 0 : 1;
 
             $payload =[
@@ -87,7 +89,7 @@ function kj_getDestinationArea(){
             ];
 
             $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
-      
+            
             if( !empty($service->data) ){
                 
                 if( !empty($post['payment_method'])  ){
@@ -107,6 +109,10 @@ function kj_getDestinationArea(){
 
                     $datas['price_total'] = wc_price( $cod_amt + $insurance_amt + $order_total );
                 }
+
+                $datas['force_insurance'] = $service->data['calculation_result']['selected_expedition']->force_insurance == false ? 0 : 1;
+
+                $datas['services'] = $service->data;
                 
                 WC()->cart->calculate_totals();
                 

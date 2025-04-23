@@ -71,7 +71,7 @@ jobs:
         with:
           file: woocommerce.json
           field: download_url
-          value: https://storage.googleapis.com/${{ secrets.GCS_KA_PRD_WEB }}/wp/kiriminaja-${{ github.ref_name }}.zip
+          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-${{ github.ref_name }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1

@@ -141,7 +141,7 @@
                                     </div>
                                 </div>
                                 <div class="row-divider"></div>
-                                <p style="font-weight: 500">KiriminAja Plugin v.3.1</p>
+                                <p style="font-weight: 500">KiriminAja Plugin v.<?php echo KJ_VERSION_PLUGIN; ?></p>
                             </div>
                         </div>
                     </div>
@@ -272,7 +272,7 @@
        
             areaSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?= kjHelper()->tlThis('Select Option',@$locale); ?>",
+                placeholder: "<?php echo  kjHelper()->tlThis('Select Option',@$locale); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxRouteGenerator(),
@@ -303,7 +303,7 @@
     function searchExpedition(){
        
        jQuery('.tab-shipping [name="origin_whitelist_expedition[]"]').select2({
-           placeholder: "<?= kjHelper()->tlThis('Select Option',@$locale); ?>",
+           placeholder: "<?php echo  kjHelper()->tlThis('Select Option',@$locale); ?>",
            allowClear: true,
            ajax: {
                url: ajaxRouteGenerator(),

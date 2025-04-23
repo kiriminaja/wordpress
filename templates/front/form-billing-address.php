@@ -2,9 +2,10 @@
     
     <!--Other invisible Field-->
     <div style="display: none">
-        <input type="hidden" name="kj_checkout_token" value="<?= $kj_checkout_token; ?>">
-        <input type="hidden" name="kj_destination_area_name" value="<?= $dentination_name; ?>">
-        <input type="hidden" name="kj_shipping_destination_area_name" value="<?= $shipping_dentination_name; ?>">
+        <input type="hidden" name="kj_checkout_token" value="<?php echo  $kj_checkout_token; ?>">
+        <input type="hidden" name="kj_destination_area_name" value="<?php echo  $dentination_name; ?>">
+        <input type="hidden" name="kj_shipping_destination_area_name" value="<?php echo  $shipping_dentination_name; ?>">
+        <input type="hidden" name="kj_force_insurance" value="0">
     </div>
 
 </div>
@@ -13,8 +14,8 @@
     <script>
 
         jQuery(document).ready(function($) {    
-                getSearchAreaKelurahan();
-                changeDistrict();
+            getSearchAreaKelurahan();
+            changeDistrict();
 
             <?php if(is_cart()): ?>
 
@@ -25,6 +26,11 @@
                 jQuery( document.body ).on( 'updated_cart_totals', function(){
                     getSearchAreaKelurahan();
                     changeDistrict(); 
+                });
+
+                // Save chosen shipping method to local storage
+                jQuery(document).on('change', 'input[name="shipping_method[0]"]', function() {
+                    localStorage.setItem('chosen_shipping_method', jQuery(this).val());
                 });
             <?php endif; ?>
 
@@ -41,7 +47,7 @@
           
         function changeDistrict(){
             
-            let kelurahanArea = "select#<?= $field_key; ?>,select#kj_shipping_destination_area";
+            let kelurahanArea = "select#<?php echo  $field_key; ?>,select#kj_shipping_destination_area";
             
             jQuery(kelurahanArea).change( function () {
                 let root = jQuery(this);
@@ -72,7 +78,7 @@
                         'different_address': different_address,
                         'text':root.find('option:selected').text(),
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':"<?= wp_create_nonce('kj-destination'); ?>",
+                        'nonce':"<?php echo  wp_create_nonce('kj-destination'); ?>",
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
@@ -135,11 +141,11 @@
          */
         function getSearchAreaKelurahan(){
             let ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
-            let subDistrictSelectElem = jQuery(`[name="<?= $field_key; ?>"],[name=kj_shipping_destination_area]`); 
+            let subDistrictSelectElem = jQuery(`[name="<?php echo  $field_key; ?>"],[name=kj_shipping_destination_area]`); 
        
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?= kjHelper()->tlThis('Select Option',@$locale); ?>",
+                placeholder: "<?php echo __('Select Option','kiriminaja'); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,
@@ -182,13 +188,22 @@
         }); 
 
         jQuery(document.body).one('updated_checkout', function() {
+            /**
+             * set chosen shipping method from local storage
+             * remove local storage
+             */
+            if (localStorage.getItem('chosen_shipping_method')) {
+                jQuery('input[name="shipping_method[0]"][value="' + localStorage.getItem('chosen_shipping_method') + '"]').prop('checked', true);                    
+            }
+
+            localStorage.removeItem('chosen_shipping_method');
+
             AjaxHandleCodInsurance();
         });
 
 
         function kj_changeCodPaymentMethod(){
             jQuery(document).on('change','[name="payment_method"]:checked,#kj_insurance,#kj_shipping_insurance',function() {
-                
                 AjaxHandleCodInsurance();
             });
 
@@ -210,11 +225,11 @@
 
                 jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
                 
-                jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
-                                                                                           
-                    ajaxCodInsurance();
-
-                });
+                setTimeout(() => {
+                    jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
+                        ajaxCodInsurance();
+                    });
+                }, 300);
 
             <?php } ?>
 
@@ -222,6 +237,7 @@
         }
 
         function ajaxCodInsurance(){
+           
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
             let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
@@ -243,10 +259,11 @@
             );
 
             let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
-            
+                        
+
             let data = {
                 action:'kj_get_data_after_update_checkout',
-                nonce:"<?= wp_create_nonce('kj-update-checkout'); ?>",
+                nonce:"<?php echo  wp_create_nonce('kj-update-checkout'); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 payment_method,
@@ -261,8 +278,7 @@
                         beforeSend:function(){
                             jQuery('#order_review').find('.shop_table').block({ message: null });
                         },
-                        success:function(response){                        
-        
+                        success:function(response){                                 
                             jQuery('#order_review').find('.shop_table').unblock();  
                 
                             let insurance_res = response?.data?.insurance_fee ?? 0;
@@ -279,9 +295,13 @@
                             }else{
                                 jQuery('.kj_cart_item_cod_fee').show();
                             }
-                          
+
+                            jQuery('[name=kj_force_insurance]').val(response?.data?.force_insurance); 
+
                             jQuery('#order_review').find('.order-total td').html(response?.data?.price_total);  
                             
+
+
                             /**
                              * Display cost insurance information
                              * Display cost codfee information
@@ -293,7 +313,7 @@
                         error:function(xhr){
                             alert("Sorry System Trouble Error Code : "+xhr.status);                                
                          }
-                    });
+            });
         }
 
     </script>

@@ -27,6 +27,7 @@ wc_cart_contents
     private $carts;
     private $selectedExpedition;
 
+    private float $ppn = 0.11;
     
     public function __construct($payload){
         $this->payload = $payload;
@@ -99,13 +100,17 @@ wc_cart_contents
         if (!$this->selectedExpedition){
             return self::error([],'Expedition Not Found');
         }
-
+        
+        // add ppn
+        $checkoutCalculation = self::checkoutCalculation(); 
+       
         return self::success([
             'cart'                  => $this->carts,
             'pricing'               => $this->pricingData,
             'payload'               => $this->payload,
-            'calculation_result'    => self::checkoutCalculation(),
+            'calculation_result'    => $checkoutCalculation,
             'carts_attribute'       => $cartAttributes->data,
+            'pricing_payload'       => $pricingPayload,
         ]);
     }
     
@@ -125,6 +130,7 @@ wc_cart_contents
         $cod_amt = self::getCalculateCODFee();
         $ongkirFee = intval(intval(@$selected_expedition->cost ?? 0) - intval(@$selected_expedition->discount_amount ?? 0));
         $total_amt = $ongkirFee+$cod_amt+$insurance_amt+$cartTotal;
+        
         return [
             'cart_total_amt' => $cartTotal,
             'cod_amt' => $cod_amt,
@@ -154,18 +160,18 @@ wc_cart_contents
     }
     
     private function getCalculateInsuranceFee(){
-        if (!self::isInsurance()){ return 0 ;}
-        $cartTotal = self::getCartTotal();
-        $selected_expedition = $this->selectedExpedition;
-        $insuranceRate = floatval(@$selected_expedition->setting->insurance_fee ?? 0.0);
-        $insuranceAddCost = intval(@$selected_expedition->setting->insurance_add_cost ?? 0);
-        $insuranceMinCost = intval(@$selected_expedition->setting->insurance_minimum_cost ?? 0);
-        $ongkirFee = intval(@$selected_expedition->cost ?? 0);
-        
-        $insuranceFee = (($cartTotal+$ongkirFee)*$insuranceRate)+$insuranceAddCost;
-        $insuranceFee = $insuranceFee < $insuranceMinCost ? $insuranceMinCost : $insuranceFee;
-
-        return ceil($insuranceFee);
+        if (self::isInsurance() == true || $this->selectedExpedition->force_insurance == true){ 
+            $cartTotal = self::getCartTotal();
+            $selected_expedition = $this->selectedExpedition;
+            $insuranceRate = floatval(@$selected_expedition->setting->insurance_fee ?? 0.0);
+            $insuranceAddCost = intval(@$selected_expedition->setting->insurance_add_cost ?? 0);
+            $ongkirFee = intval(@$selected_expedition->cost ?? 0);
+            $insuranceAmount = floatval(@$selected_expedition->insurance ?? 0);
+            
+            return $insuranceAmount;
+        }else{            
+            return 0 ;
+        }
     }
     
     private function getCalculateCODFee(){
@@ -177,7 +183,10 @@ wc_cart_contents
         $codRate = floatval(@$selected_expedition->setting->cod_fee ?? 0.0);
         $CODMinCost = intval(@$selected_expedition->setting->minimum_cod_fee ?? 0);
         
-        $codFee=($cartTotal+$ongkirFee+$insuranceFee)*$codRate;
+        $codFeeAmount = floatval(@$selected_expedition->setting->cod_fee_amount ?? 0 );
+        
+        $codFee = $codFeeAmount;        
+        
         $codFee = $codFee < $CODMinCost ? $CODMinCost : $codFee;
 
         return ceil($codFee);

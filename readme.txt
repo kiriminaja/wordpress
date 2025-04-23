@@ -1,11 +1,11 @@
-=== Kiriminaja ===
+=== KiriminAja ===
 Contributors: kiriminaja
 Tags: shipping, ecommerce, WooCommerce, logistics
-Requires at least: 6.1
-Tested up to: 6.6.2
+Requires at least: 6.0
+Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 2.0.1
-License: GPLv2
+Stable tag: 2.0.0
+License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Easily integrate to more than couriers across the Indonesia
@@ -56,9 +56,9 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 
 == Changelog ==
 
-= 3.1.0 =
+= 2.0.0 =
 * First release of the plugin.
 
 == Upgrade Notice ==
-= 3.1.0 =
+= 2.0.0 =
 This is the first stable release. Please report any issues.

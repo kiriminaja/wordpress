@@ -47,7 +47,8 @@ $calculator_text          = '';
 			<?php woocommerce_shipping_calculator( $calculator_text ); ?>
 		<?php endif; ?>
 
-        <?php if ( ! empty( $available_methods ) && is_array( $available_methods ) && get_option( 'woocommerce_enable_shipping_calc' ) != 'no' ) : ?>
+        <?php 
+		if ( ! empty( $available_methods ) && is_array( $available_methods ) ) : ?>
 			<ul id="shipping_method" class="woocommerce-shipping-methods">
 				<?php foreach ( $available_methods as $method ) : ?>
 					<li>
