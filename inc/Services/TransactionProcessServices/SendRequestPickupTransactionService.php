@@ -116,10 +116,10 @@ class SendRequestPickupTransactionService extends BaseService
             $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
             $itemNames = [];
             foreach ($order->get_items() as $item) {
-                $itemNames[] = $item->get_name();
+                $itemNames[] = $item->get_name().' ('.$item->get_quantity().')';
             }
 
-            $combinedItemNames = implode(", ", $itemNames);
+            $combinedItemNames = implode(" | ", $itemNames);
 
             if (strlen($combinedItemNames) > 255) {
                 $countItemNames = count($itemNames);
@@ -127,7 +127,7 @@ class SendRequestPickupTransactionService extends BaseService
                 if (isset($itemNames[0]) && strlen($itemNames[0]) <= 200) {
                     $combinedItemNames = $countItemNames > 1 ? $itemNames[0] . " dan " . ($countItemNames - 1) . " produk lainnya" : $itemNames[0];
                 } else {
-                    $combinedItemNames = $countItemNames . " Bundle";
+                    $combinedItemNames = $countItemNames . " Jenis Produk";
                 }
             }
             $item_name = $combinedItemNames;
