@@ -125,7 +125,7 @@ class SendRequestPickupTransactionService extends BaseService
                 $countItemNames = count($itemNames);
 
                 if (isset($itemNames[0]) && strlen($itemNames[0]) <= 200) {
-                    $combinedItemNames = $countItemNames > 1 ? $itemNames[0] . " dan " . ($countItemNames - 1) . " produk lainnya" : $itemNames[0];
+                    $combinedItemNames = $countItemNames > 1 ? $itemNames[0] . " dan " . ($countItemNames - 1) . " jenis produk lainnya" : $itemNames[0];
                 } else {
                     $combinedItemNames = $countItemNames . " Jenis Produk";
                 }
