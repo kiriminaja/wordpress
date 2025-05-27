@@ -22,6 +22,7 @@ class TrackingFrontPageController{
     
     public function trackingAjaxHandler(){
         try {
+            // @codingStandardsIgnoreLine
             $service = (new \Inc\Services\KiriminAjaTrackingService())->order_number($_POST['order_number'])->call();
             if ($service->status!==200){wp_send_json_success($service);}
             wp_send_json_success($service);

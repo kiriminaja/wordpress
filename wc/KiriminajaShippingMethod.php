@@ -12,12 +12,12 @@ function kj_shippingMethod(){
             public function __construct(){
                 
                 $this->id = 'kiriminaja';
-                $this->method_title = __('Kiriminaja', 'kiriminaja');
-                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'kiriminaja');
+                $this->method_title = __('Kiriminaja', 'plugin-wp');
+                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'plugin-wp');
                 
                 $this->init();
                 $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
-                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'kiriminaja');
+                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'plugin-wp');
             }
     
             /**
@@ -32,14 +32,14 @@ function kj_shippingMethod(){
             function initFormFields(){
                 $this->form_fields = array(
                         'enabled' => array(
-                        'title' => __('Enable', 'kiriminaja'),
+                        'title' => __('Enable', 'plugin-wp'),
                         'type' => 'checkbox',
                         'default' => 'yes'
                     ),
                     'title' => array(
-                        'title' => __('Title', 'kiriminaja'),
+                        'title' => __('Title', 'plugin-wp'),
                         'type' => 'text',
-                        'default' => __('Kiriminaja Shipping', 'kiriminaja')
+                        'default' => __('Kiriminaja Shipping', 'plugin-wp')
                     ),
                 );
             }
@@ -64,7 +64,7 @@ function kj_shippingMethod(){
 
                 $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
                 if(!$settingRepo||$settingRepo->value === null){
-                    wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja"), "error");
+                    wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'plugin-wp'), "error");
                     return;
                 }
 
@@ -107,8 +107,10 @@ function kj_shippingMethod(){
                 $chosen_payment_method = WC()->session->get('chosen_payment_method');
 
                 /** Validation Payment Method */
-                if(!$chosen_payment_method){
-                    return [];
+                if( is_checkout() ){
+                    if(!$chosen_payment_method){
+                        return [];
+                    }
                 }
 
                 $is_cod = $chosen_payment_method === 'cod';
@@ -160,14 +162,14 @@ function kj_add_the_date_validation( $passed, $product_id ) {
     
     $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
     if(!$settingRepo||$settingRepo->value === null){
-        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja'), "error");
+        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'plugin-wp'), "error");
         $passed = false;
     }
     /**
      * Check Product Weight
      */
     if( empty($product->get_weight()) ){
-        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'kiriminaja'), "error");
+        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'plugin-wp'), "error");
         $passed = false;
     }
 
@@ -175,7 +177,7 @@ function kj_add_the_date_validation( $passed, $product_id ) {
      * Check Product Dimention
      */
     if ( empty($length) || empty($width) || empty($height)) {
-        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimention untuk Pengiriman', 'kiriminaja'), 'error');
+        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman', 'plugin-wp'), 'error');
         $passed = false;
     }
 

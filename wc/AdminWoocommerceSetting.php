@@ -26,9 +26,9 @@ class AdminWoocommerceSettings
         foreach ($columns as $column_name => $column_info) {
             $new_columns[$column_name] = $column_info;
             if ('order_status' === $column_name) {
-                $new_columns['shipping_method'] = __('Shipping', 'kiriminaja');
-                $new_columns['payment_method'] = __('Payment', 'kiriminaja');
-                $new_columns['is_insurance'] = __('Insurance', 'kiriminaja');
+                $new_columns['shipping_method'] = __('Shipping', 'plugin-wp');
+                $new_columns['payment_method'] = __('Payment', 'plugin-wp');
+                $new_columns['is_insurance'] = __('Insurance', 'plugin-wp');
             }
         }
         return $new_columns;
@@ -46,28 +46,28 @@ class AdminWoocommerceSettings
 
 
         if ( 'shipping_method' === $column ) {
-            echo $order->get_shipping_method();
+            echo $order->get_shipping_method(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         }
 
         if ( 'payment_method' === $column ) {
 
             if($order->get_payment_method() == 'cod'){
                 
-                echo $order->get_payment_method();
+                echo $order->get_payment_method(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 
                 if( $shipping_method_id != $ka_id_shipping ){
                     return false;
                 }
 
-                echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee));
+                echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 
                 if( $order->get_meta( '_kj_ppn' )){
-                    echo '<br/><em>('.__('include 11% Vat','kiriminaja').')</em>';
+                    echo '<br/><em>('.esc_html__('include 11% Vat','plugin-wp').')</em>';
                 }
 
             }else{
                 echo 'Non Cod';
-                echo '<br/>Method: '. $order->get_payment_method();
+                echo '<br/>Method: '. $order->get_payment_method(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             }
         }
 
@@ -84,17 +84,17 @@ class AdminWoocommerceSettings
             if( !empty($insurance_admin_billing) ){
                 echo $insurance_admin_billing ? 'Yes':'No';
                 if($insurance_admin_billing){
-                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 }
             }else if(!empty($insurance_admin_shipping)){
                 echo $insurance_admin_shipping ? 'Yes':'No';
                 if($insurance_admin_shipping){
-                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 }
             }else{ 
                 echo $insurance_front ? 'Yes':'No';
                 if($insurance_front){
-                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost));
+                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 }
             }
 

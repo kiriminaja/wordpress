@@ -24,7 +24,7 @@ class GenerateOrderId extends BaseService{
     }
     
     public function generateOrderId(){
-        return $this->prefix.rand(1000000000,9999999999);
+        return $this->prefix.wp_rand(1000000000,9999999999);
     }
     
     

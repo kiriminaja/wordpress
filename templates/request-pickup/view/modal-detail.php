@@ -8,8 +8,23 @@
                         <path d="M16.0659 8.99481C16.3588 8.70191 16.3588 8.22704 16.0659 7.93415C15.773 7.64125 15.2981 7.64125 15.0052 7.93415L12 10.9393L8.99482 7.93415C8.70192 7.64125 8.22705 7.64125 7.93416 7.93415C7.64126 8.22704 7.64126 8.70191 7.93416 8.99481L10.9394 12L7.93415 15.0052C7.64125 15.2981 7.64125 15.773 7.93415 16.0659C8.22704 16.3588 8.70191 16.3588 8.99481 16.0659L12 13.0607L15.0052 16.0659C15.2981 16.3588 15.773 16.3588 16.0659 16.0659C16.3588 15.773 16.3588 15.2981 16.0659 15.0052L13.0607 12L16.0659 8.99481Z" fill="black"/>
                     </svg>
                 </div>
-                <div class="content-header" style="background-color: white" >
-                    <h1>Request Pickup Detail</h1>
+                <div class="content-header" style="background-color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <h1><?php esc_html_e('Request Pickup Detail','plugin-wp'); ?></h1>
+                    <div style="margin-right: 3rem;">
+                        <button class="button-wp p-relative" type="button" style="border-radius: 4px;">
+                            <a href="#" target="_blank" class="inset-absolute" id="print-all-resi"></a>
+                            <div style="display: flex">
+                                <div style="display: flex;align-items: center;justify-items: center;margin: auto">
+                                    <div style="position: relative; top: 1px">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9.59961 8.79998H5.59961V9.59998H9.59961V8.79998ZM10.3996 12H5.59961V12.8H10.3996V12ZM7.99961 10.4H5.59961V11.2H7.99961V10.4ZM13.5996 4.79998H11.9996V1.59998H3.99961V4.79998H2.39961C1.91961 4.79998 1.59961 5.11998 1.59961 5.59998V9.59998C1.59961 10.08 1.91961 10.4 2.39961 10.4H3.99961V14.4H11.9996V10.4H13.5996C14.0796 10.4 14.3996 10.08 14.3996 9.59998V5.59998C14.3996 5.11998 14.0796 4.79998 13.5996 4.79998ZM11.1996 13.6H4.79961V7.99998H11.1996V13.6ZM11.1996 4.79998H4.79961V2.39998H11.1996V4.79998ZM12.7996 7.19998H11.9996V6.39998H12.7996V7.19998Z" fill="white"/>
+                                        </svg>
+                                    </div>
+                                    <span style="margin-left: 6px">Print Semua</span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
                 </div>
                 <div class="content-body">
 
@@ -27,21 +42,21 @@
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div>Total Paket</div>
+                                        <div> <?php esc_html_e('Total Paket','plugin-wp'); ?></div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div>Paket Cash on Delivery</div>
+                                        <div><?php esc_html_e('Paket Cash on Delivery','plugin-wp'); ?></div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-non-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div>Paket Non-COD</div>
+                                        <div><?php esc_html_e('Paket Non-COD','plugin-wp'); ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -59,7 +74,7 @@
                                         <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
-                                                    <span>Apply</span>
+                                                    <span><?php esc_html_e('Apply','plugin-wp'); ?></span>
                                                 </div>
                                             </div>
                                         </button>
@@ -104,11 +119,11 @@
                             <thead>
                             <tr>
                                 <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                <th scope="col" class="manage-column column-thumb">Package</th>
-                                <th scope="col" class="manage-column column-thumb">Shipment</th>
-                                <th scope="col" class="manage-column column-thumb">Fees</th>
-                                <th scope="col" class="manage-column column-thumb">Status</th>
-                                <th scope="col" class="manage-column column-thumb"><span style="float: right">Action</span></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Package','plugin-wp'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment','plugin-wp'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Fees','plugin-wp'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','plugin-wp'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php esc_html_e('Action','plugin-wp');?></span></th>
                             </tr>
                             </thead>
                             <tbody id="the-list">
@@ -221,7 +236,7 @@
                     </div>
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
-                        <p style="margin-bottom: 1.5rem">Terjadi Kesalahan !</p>
+                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','plugin-wp'); ?></p>
                         <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
                     </div>
 

@@ -1,9 +1,8 @@
 <p class="form-row form-row-wide">
-    <label for="custom_select_field"><?php _e('Kelurahan', 'woocommerce'); ?> <span class="required">*</span></label>
+    <label for="custom_select_field"><?php esc_html_e('Kelurahan', 'plugin-wp'); ?> <span class="required">*</span></label>
     <select name="custom_select_field_shipping" id="custom_select_field_shipping" class="select2 custom_select_field_shipping" style="width: 100%;" required></select>
 </p>
 <script type="text/javascript">
-    console.log('asass')
     let subdistrictAjaxTimeoutShipping = null
     const elemSelectNameShipping = 'custom_select_field_shipping';
 

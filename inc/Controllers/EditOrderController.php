@@ -48,26 +48,15 @@ class EditOrderController{
 
     }
 
-    public function addKjOrderDetail($order){
-        /** This hook return when client side only, therefore cant do serverside php */
-        
+    public function addKjOrderDetail($order){        
         $service = (new \Inc\Services\OrderEditPageServices\ShippingInfoServices())->wcOrderId($order)->call();
         if ($service->status !== 200){return;}
         
-        $willBeReplaced = [
-            '{$orderId}',
-            '{$trackingUrl}',
-            '{$kjOrderData}'
-        ];
-        $replaceWith = [
-            $order,
-            home_url().'/tracking?order_id='.$order,
-            json_encode($service->data)
-        ];
-
-        $content = file_get_contents(plugin_dir_path(dirname(__FILE__,2)). 'templates/order/edit.php');
-        echo str_replace(
-        $willBeReplaced, $replaceWith, $content);
+        $orderId = esc_html($order);
+        $trackingUrl = esc_url( home_url().'/tracking?order_id='.$order);
+        $kjOrderData = wp_json_encode($service->data);
+    
+        include_once KJ_DIR .'/templates/order/edit.php';
     
     }
 
@@ -80,11 +69,13 @@ class EditOrderController{
     
     public function kj_getExpeditionByPricing(){
         
-        $post = $_POST;
         
-        if ( ! wp_verify_nonce( $post['nonce'], $this->nonce ) ) {
-            die( __( 'Security check', 'kiriminaja' ) ); 
+        if ( !isset($_POST['nonce']) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] )), $this->nonce ) ) {
+            die( esc_html__( 'Security check', 'plugin-wp' ) ); 
         }
+
+        $post = $_POST;
+
 
         $order_id       = (int) $post['order_id'];
         $destination_id = (int) $post['destination_id'];
@@ -357,7 +348,7 @@ class EditOrderController{
         );
 
         $billing_fields['kj_destination_area'] = array(
-            'label' => __( 'Subdistrict', 'kiriminaja' ),
+            'label' => __( 'Subdistrict', 'plugin-wp' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -366,7 +357,7 @@ class EditOrderController{
         );
 
         $billing_fields['kj_destination_name'] = array(
-            'label' => __( '', 'kiriminaja' ),
+            'label' => '',
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -374,7 +365,7 @@ class EditOrderController{
         );
 
         $billing_fields['kj_insurance'] = array(
-            'label' => __( 'Insurance', 'kiriminaja' ),
+            'label' => __( 'Insurance', 'plugin-wp' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -417,7 +408,7 @@ class EditOrderController{
         );
 
         $shipping_fields['kj_destination_area'] = array(
-            'label' => __( 'Subdistrict', 'kiriminaja' ),
+            'label' => __( 'Subdistrict', 'plugin-wp' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -426,7 +417,7 @@ class EditOrderController{
         );
 
         $shipping_fields['kj_destination_name'] = array(
-            'label' => __( '', 'kiriminaja' ),
+            'label' => '',
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -434,7 +425,7 @@ class EditOrderController{
         );
 
         $shipping_fields['kj_insurance'] = array(
-            'label' => __( 'Insurance', 'kiriminaja' ),
+            'label' => __( 'Insurance', 'plugin-wp' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -474,71 +465,18 @@ class EditOrderController{
 
         $insurance_post = $shipping_insurance ?: $billing_insurance;
         
-
-        //check Shipping Method
-        $shipping_methods = $order->get_items( 'shipping' );
-
-        $found = FALSE;
-        foreach ( $shipping_methods as $shipping_method ) {
-            $method_ID = $shipping_method->get_method_id();
-            if( $method_ID == 'kiriminaja' ){
-                $found = TRUE;
-                break;
-            } 
-        }
-
-        if( !$found ) return;
-
-        $table = '';
-        if( $order->get_payment_method() === 'cod' ){
-            $table .= '<tr class="codfee" style="display:' . esc_attr($cod_style) . ';">
-            <td class="label">' . esc_html__('Cod Fee', 'kiriminaja') . ':</td>
+        $table = '<tr class="codfee" style="display:'.$insurance_style.';">
+            <td class="label">'.__('Cod Fee','plugin-wp').':</td>
             <td width="1%"></td>
-            <td class="total">' . wc_price($cod) . '</td>
-            </tr>';
-        }else{
-            $table .= '<tr class="codfee" style="display:' . esc_attr($cod_style) . ';">
-            <td class="label">' . esc_html__('Cod Fee', 'kiriminaja') . ':</td>
+            <td class="total">'.wc_price($cod).'</td>
+        </tr>
+        <tr class="insurancefee" style="display:'.$cod_style.';">
+            <td class="label">'.__('Insurance Fee','plugin-wp').':</td>
             <td width="1%"></td>
-            <td class="total">' . wc_price(0) . '</td>
-            </tr>';
-        }
+            <td class="total">'.wc_price($insurance).'</td>
+        </tr>';
 
-        if( $insurance_post === 'yes' ){
-            $table .= '<tr class="insurancefee" style="display:' . esc_attr($insurance_style) . ';">
-            <td class="label">' . esc_html__('Insurance Fee', 'kiriminaja') . ':</td>
-            <td width="1%"></td>
-            <td class="total">' . wc_price($insurance) . '</td>
-            </tr>';
-        }else{
-            $table .= '<tr class="insurancefee" style="display:' . esc_attr($insurance_style) . ';">
-            <td class="label">' . esc_html__('Insurance Fee', 'kiriminaja') . ':</td>
-            <td width="1%"></td>
-            <td class="total">' . wc_price(0) . '</td>
-            </tr>';
-        }
-    
-        echo $table;
-    }    
-
-    public function kj_calculationCodFeeAndInsuranceFee(){
-
-        $get_calculate_pricing = $this->kj_calculationAdminOrder($_POST);
-
-        if( empty($get_calculate_pricing) ){
-            wp_send_json_error(['code'=>'404','message'=>'Calculation Failed']);
-        }
-
-        $cod_fee        = wc_price($get_calculate_pricing['cod_amt']) ?? 0;
-        $insurance_fee  = wc_price($get_calculate_pricing['insurance_amt']) ?? 0;
-
-        wp_send_json_success([
-            'cod_fee' => $cod_fee,
-            'insurance_fee' => $insurance_fee,
-            'cod_fee_number'=>$get_calculate_pricing['cod_amt'],
-            'insurance_fee_number'=>$get_calculate_pricing['insurance_amt'],
-        ]);
-
+        echo wp_kses_post( $table );
     }
 
     public function kj_save_post_shop_order($post_id, $post, $update){

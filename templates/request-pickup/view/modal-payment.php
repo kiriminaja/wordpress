@@ -8,7 +8,7 @@
                     </svg>
                 </div>
                 <div class="content-header" >
-                    <h1>Scan to Pay</h1>
+                    <h1><?php esc_html_e('Scan to Pay','plugin-wp'); ?></h1>
                 </div>
                 <div class="content-body">
 
@@ -78,7 +78,9 @@
                         <div>
                             <button class="button-wp btn-lg" type="button" onclick="refreshShowPaymentForm()">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                    <span style="margin: auto">Refresh</span>
+                                    <span style="margin: auto">
+                                        <?php esc_html_e('Refresh','plugin-wp'); ?>
+                                    </span>
                                 </div>
                             </button>
                         </div>
@@ -86,8 +88,10 @@
                     </div>
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
-                        <p style="margin-bottom: 1.5rem">Terjadi Kesalahan !</p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowPaymentForm()">Refresh</button>
+                        <p style="margin-bottom: 1.5rem">
+                            <?php esc_html_e('Terjadi Kesalahan !','plugin-wp');?>
+                        </p>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowPaymentForm()"><?php esc_html_e('Refresh','plugin-wp'); ?></button>
                     </div>
 
                 </div>

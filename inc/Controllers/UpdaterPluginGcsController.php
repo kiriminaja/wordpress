@@ -119,7 +119,7 @@ class UpdaterPluginGcsController
 
         if (
             $remote
-            && version_compare(KIRIMINAJA_VERSION,$remote->version, '<')
+            && version_compare(KJ_VERSION_PLUGIN,$remote->version, '<')
             && version_compare($remote->requires, get_bloginfo('version'), '<=')
             && version_compare($remote->requires_php, PHP_VERSION, '<')
         ) {

@@ -67,7 +67,31 @@ class CheckoutController
             add_filter('woocommerce_checkout_fields', array($this,'kj_billing_fields'), 100);            
 
             add_filter('woocommerce_shipping_chosen_method', array($this,'kj_shipping_chosen_method'), 10, 2);
+            
+            add_filter( 'woocommerce_cart_needs_shipping', array($this,'kj_filter_cart_needs_shipping'));
+            
+            add_action('woocommerce_checkout_before_customer_details', array($this,'kj_add_checkout_nonce_field' ) );
+            
+            add_action( 'woocommerce_cart_calculate_fees', array($this,'kj_shipping_method_update') );
         }
+    }
+
+    function kj_shipping_method_update() {
+        if ( isset( $_POST['shipping_method'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+            WC()->session->set( 'chosen_shipping_methods',  null );
+            WC()->session->set( 'chosen_shipping_methods',  $_POST['shipping_method'] ); // phpcs:ignore WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash	
+        }else{
+            WC()->session->set( 'chosen_shipping_methods',  null );
+        }
+    }
+
+    function kj_filter_cart_needs_shipping( $needs_shipping ) {
+        if ( is_cart() ) {
+            if( $needs_shipping && get_option( 'woocommerce_enable_shipping_calc' ) === 'no' ){
+                WC()->session->set( 'destination_id', null );
+            }
+        }
+        return $needs_shipping;
     }
 
     function kj_reviewOrderBeforeTotalOrder(){
@@ -90,112 +114,22 @@ class CheckoutController
 		</tr>
         <tr class="kj_cart_item_insurane" style="display:none;">
 			<td class="kj-cart-insurance">
-				<label for="kj_cart_insurance">'.__('Insurance','kiriminaja').'</label>											
+				<label for="kj_cart_insurance">'.__('Insurance','plugin-wp').'</label>											
             </td>
 			<td class="kj-cart-insurance kj-cost-insurance"></td>
 		</tr>
         <tr class="kj_cart_item_cod_fee" style="display:none;">
 			<td class="kj-cod-fee">
-				<label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja').'</label>		
+				<label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee','plugin-wp').'</label>		
                 <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
             </td>
 			<td class="kj-cod-fee kj-cost-codfee"></td>
 		</tr>';
-        
-        echo $table;
+        echo wp_kses_post( $table );
     }
 
-    function kj_cartBeforeTotalOrder(){
-
-        if( !is_cart() ){
-            return;
-        }
-
-        $wc_session_data = $this->kj_getSessionWCShippingAndSubtotal();
-
-        if( empty($wc_session_data) ) return;
-
-        $table = '
-        <tr class="order-total">
-			<th>'.__('Label','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
-			<td data-title="Total">'.$wc_session_data['label'].'</td>
-		</tr>
-        <tr class="order-total">
-			<th>'.__('Cost','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
-			<td data-title="Subtotal">'.$wc_session_data['cost'].'</td>
-		</tr>
-        <tr class="order-total">
-			<th>'.__('Subtotal','kiriminaja').'</th>
-			<td data-title="Total">'.$wc_session_data['cart_subtotal'].'</td>
-		</tr>';
-
-        echo $table;
-    }
-
-    function kj_getSessionWCShippingAndSubtotal(){
-        
-        $chosen_methods = WC()->session->get('chosen_shipping_methods'); 
-        $chosen_method = isset($chosen_methods[0]) ? $chosen_methods[0] : '';
-
-        if( empty( $chosen_method ) ) {
-            return $data = array(); 
-        }
-
-        $shipping_method_id = preg_replace('/_.*$/', '', $chosen_method);
-
-        if( $shipping_method_id != $this->shipping_method_id ){
-            return $data = array();  // not kiriminaja shipping
-        }
-
-        $packages = WC()->shipping->get_packages();
-        
-        $cost = 0; $label = ''; $found = false;
-        foreach ($packages as $package) {
-            $shipping_methods = $package['rates'];
-            if (isset($shipping_methods[$chosen_method])) {
-                $shipping_rate = $shipping_methods[$chosen_method];
-                
-                if( $shipping_rate->method_id === $this->shipping_method_id ){
-                    $label = $shipping_rate->label;
-                    $cost = (float)$shipping_rate->cost;   
-                    $found = true;
-                }
-
-            }
-        }
-
-        if(!$found ){
-            return $data = array();  // not kiriminaja shipping
-        }
-
-        if( !empty($label) ) {
-            $label = $this->getLabelShipping( $label );
-        }
-
-        $cart_subtotal = WC()->cart->get_cart_subtotal();
-
-        $data =  compact('cost','label','cart_subtotal');
-
-        return $data;
-    }
-
-    function getLabelShipping($string){
-        return preg_replace('/\s*\(.*?\)/', '', $string);
-    }
-
-    function rei_after_checkout_validation( $posted ) {
-        
-        if ($_POST['billing_country'] === "ID"){
-            if (empty($_POST['kj_destination_area'])) {
-                wc_add_notice( __( "<strong>Kelurahan</strong> is a required field", 'woocommerce' ), 'error' );
-            }
-            if (empty($_POST['kj_expedition'])) {
-                wc_add_notice( __( "<strong>Ekspedisi</strong> is a required field", 'woocommerce' ), 'error' );
-            }
-            if (empty($_POST['kj_checkout_token'])) {
-                wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'woocommerce' ), 'error' );
-            }
-        }
+    function kj_add_checkout_nonce_field(){
+        wp_nonce_field(KJ_NONCE, 'checkout_kiriminaja_nonce_field');
     }
 
     function custom_shipping_content() {
@@ -225,18 +159,24 @@ class CheckoutController
 
     function kj_checkout_field_validation() {
         try {
-           
-            $field_key = $this->field_destination_key;
-            
-            if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-                wc_add_notice( _e('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja'),'error' );
-            }
 
-            (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
-                'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
-                'payment_method'    => WC()->session->get('chosen_payment_method'),
-                'cart_total'        => WC()->cart->total
-            ]))->call();
+             // Verifikasi Nonce
+            if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) {
+                
+                $field_key = $this->field_destination_key;
+                
+                if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
+                    wc_add_notice( esc_html__('<strong>Field Kelurahan</strong> is a required field.', 'plugin-wp'),'error' );
+                }
+
+                (new \Inc\Services\CheckoutServices\ValidationCodCalculationService([
+                    'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
+                    'payment_method'    => WC()->session->get('chosen_payment_method'),
+                    'cart_total'        => WC()->cart->total
+                ]))->call();
+            
+            }
         
         }catch (\Throwable $th) {
             (new \Inc\Base\BaseInit())->logThis('kj_checkout_field_validation',[$th->getMessage()]);   
@@ -250,21 +190,23 @@ class CheckoutController
 
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
 
-        /** if kj_field value is not exist or null then prevent*/
-        if (!@$_SESSION["kj_expedition"]) { return; }
-        
+        /** if kj_field value is not exist or null then prevent*/        
+        if ( !isset($_SESSION["kj_expedition"]) || empty($_SESSION["kj_expedition"]) ) {
+            return;
+        }
+
         /** Get data from session*/
-        $kj_destination_area            = $_SESSION["kj_destination_area"];
-        $kj_destination_area_name       = $_SESSION["kj_destination_area_name"];
-        $kj_expedition                  = $_SESSION["kj_expedition"];
-        $kj_checkout_token              = $_SESSION["kj_checkout_token"];
-        $payment_method                 = $_SESSION["payment_method"];
-        $force_insurance                = $_SESSION["force_insurance"];
+        $kj_destination_area            = isset($_SESSION["kj_destination_area"]) ? sanitize_text_field($_SESSION["kj_destination_area"]) :'' ;
+        $kj_destination_area_name       = isset($_SESSION["kj_destination_area_name"]) ? sanitize_text_field($_SESSION["kj_destination_area_name"]) : '';
+        $kj_expedition                  = isset($_SESSION["kj_expedition"]) ? sanitize_text_field($_SESSION["kj_expedition"]) : '';
+        $kj_checkout_token              = isset($_SESSION["kj_checkout_token"]) ? sanitize_text_field($_SESSION["kj_checkout_token"]) : '';
+        $payment_method                 = isset($_SESSION["payment_method"]) ? sanitize_text_field($_SESSION["payment_method"]) : '';
+        $force_insurance                = isset($_SESSION["force_insurance"]) ? sanitize_text_field($_SESSION["force_insurance"]) : '';
         
         if( $force_insurance == 1 ){
             $insurance = 1;
         }else{
-            $insurance = $_SESSION["billing_insurance"];
+            $insurance = isset($_SESSION["billing_insurance"])   ? sanitize_text_field($_SESSION["billing_insurance"]) : '';
         }
 
         // remove all session variables
@@ -293,73 +235,86 @@ class CheckoutController
     function afterCheckoutBeforeCreated($order,$data ){
         /** if kj_field value is not exist or null then prevent*/
 
-        if (!@$_POST['shipping_method'][0]) { return; }
-        
-        
-        if( empty($_POST['ship_to_different_address']) ){
-            $destination_area = $_POST['kj_destination_area'];
-            $destinasi_name = $_POST['kj_destination_area_name'];
-            $insurance_post = $_POST[$this->field_insurance_key];
-        }else{
-            $destinasi_name = $_POST['kj_shipping_destination_area_name'];
-            $insurance_post = $_POST['kj_shipping_insurance'];
-            $destination_area = $_POST['kj_shipping_destination_area'];
-        }
+        if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
+            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+        {
 
-        /** Store custom field value in session*/
-        session_start();
-        $kj_filter_methods = substr(@$_POST['shipping_method'][0],11);//remove kiriminaja_
+            if (isset($_POST['shipping_method'][0]) && !empty($_POST['shipping_method'][0])) {
+                $shipping_method = sanitize_text_field(
+                    wp_unslash(
+                        $_POST['shipping_method'][0]
+                    )
+                );
+            } else {
+                return;
+            }
+            
+            if( empty($_POST['ship_to_different_address']) ){
+                $destination_area = isset($_POST['kj_destination_area']) ? sanitize_text_field( wp_unslash($_POST['kj_destination_area'])) : '';
+                $destinasi_name = isset($_POST['kj_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kj_destination_area_name'])) : '';
+                $insurance_post = isset($_POST[$this->field_insurance_key]) ? sanitize_text_field(wp_unslash($_POST[$this->field_insurance_key])) : '';
+            }else{
+                $destinasi_name = isset($_POST['kj_shipping_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kj_shipping_destination_area_name'])) : '';
+                $insurance_post = isset( $_POST['kj_shipping_insurance'] ) ? sanitize_text_field(wp_unslash($_POST['kj_shipping_insurance'])) : '';
+                $destination_area = isset($_POST['kj_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kj_shipping_destination_area'])) : '';
+            }
 
-        $_SESSION["kj_destination_area"]            = $destination_area;
-        $_SESSION["kj_destination_area_name"]       = $destinasi_name;
-        $_SESSION["kj_expedition"]                  = $kj_filter_methods;
-        $_SESSION["kj_checkout_token"]              = @$_POST['kj_checkout_token'];
-        $_SESSION["billing_insurance"]              = isset($insurance_post) ? 1 : 0;
-        $_SESSION["payment_method"]                 = @$_POST['payment_method'];
-        $_SESSION["force_insurance"]                = intval( @$_POST['kj_force_insurance'] );
+            /** Store custom field value in session*/
+            session_start();
+            $kj_filter_methods = substr(sanitize_text_field(wp_unslash($_POST['shipping_method'][0])),11);//remove kiriminaja_
 
-        /** 
-         * save to custom order metadata 
-         * field kelurahan 
-         **/
-        $field_key = $this->field_destination_key;
-        if ( isset($destination_area) && ! empty($destination_area) ) {
-            $order->update_meta_data( '_' . $field_key, sanitize_text_field($destination_area) );
-        }
+            $_SESSION["kj_destination_area"]            = $destination_area;
+            $_SESSION["kj_destination_area_name"]       = $destinasi_name;
+            $_SESSION["kj_expedition"]                  = $kj_filter_methods;
+            $_SESSION["kj_checkout_token"]              = isset($_POST['kj_checkout_token']) ? sanitize_text_field(wp_unslash($_POST['kj_checkout_token'])) : '';
+            $_SESSION["billing_insurance"]              = isset($insurance_post) ? 1 : 0;
+            $_SESSION["payment_method"]                 = isset($_POST['payment_method']) ? sanitize_text_field(wp_unslash($_POST['payment_method'])) : '';
+            $_SESSION["force_insurance"]                = isset($_POST['kj_force_insurance']) ? intval( $_POST['kj_force_insurance'] ) : 0;
 
-        if( isset($insurance_post) && !empty($insurance_post) ){
-            $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
-        }
-        
-        /** 
-         * save to custom order metadata 
-         * field kelurahan 
-         **/
-        $field_key = $this->field_destination_key;
-        if ( isset($destination_area) && ! empty($destination_area) ) {
-            $order->update_meta_data( '_' . $field_key, sanitize_text_field($destination_area) );
-        }
+            /** 
+             * save to custom order metadata 
+             * field kelurahan 
+             **/
+            $field_key = $this->field_destination_key;
+            if ( isset($destination_area) && ! empty($destination_area) ) {
+                $order->update_meta_data( '_' . $field_key, sanitize_text_field($destination_area) );
+            }
 
-        if( isset($insurance_post) && !empty($insurance_post) ){
-            $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
-        }
+            if( isset($insurance_post) && !empty($insurance_post) ){
+                $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
+            }
+            
+            /** 
+             * save to custom order metadata 
+             * field kelurahan 
+             **/
+            $field_key = $this->field_destination_key;
+            if ( isset($destination_area) && ! empty($destination_area) ) {
+                $order->update_meta_data( '_' . $field_key, sanitize_text_field($destination_area) );
+            }
 
-        //save meta subdistrict billing woocommerce
-        if( isset($_POST['kj_destination_area']) && !empty($_POST['kj_destination_area']) ) $order->update_meta_data( '_billing_kj_destination_area', sanitize_text_field($_POST['kj_destination_area']) );
-        if( isset($_POST['kj_destination_area_name']) && !empty($_POST['kj_destination_area_name']) ) $order->update_meta_data( '_billing_kj_destination_name', sanitize_text_field($_POST['kj_destination_area_name']) );
+            if( isset($insurance_post) && !empty($insurance_post) ){
+                $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
+            }
 
-        //save meta Insurance billing woocommerce
-        if( isset($data['kj_insurance']) && !empty($data['kj_insurance']) ) $order->update_meta_data( '_billing_kj_insurance', sanitize_text_field( ( $data['kj_insurance'] == true ) ? 'yes' : '' ) );
-        
-        //save meta subdistrict shipping woocommerce
-        if( isset($_POST['kj_shipping_destination_area']) && !empty($_POST['kj_shipping_destination_area']) ) $order->update_meta_data( '_shipping_kj_destination_area', sanitize_text_field($_POST['kj_shipping_destination_area']) );
-        if( isset($_POST['kj_shipping_destination_area_name']) && !empty($_POST['kj_shipping_destination_area_name']) ) $order->update_meta_data( '_shipping_kj_destination_name', sanitize_text_field($_POST['kj_shipping_destination_area_name']) );
-        
-        //save meta Insurance shipping woocommerce
-        if( isset($data['kj_shipping_insurance']) && !empty($data['kj_shipping_insurance']) ) $order->update_meta_data( '_shipping_kj_insurance', sanitize_text_field( ( $data['kj_shipping_insurance'] == true ) ? 'yes' : '' ) );
-        
-        //flag order ppn
-        $order->update_meta_data( '_kj_ppn', true );
+            //save meta subdistrict billing woocommerce
+            if( isset($_POST['kj_destination_area']) && !empty($_POST['kj_destination_area']) ) $order->update_meta_data( '_billing_kj_destination_area', sanitize_text_field(wp_unslash($_POST['kj_destination_area'])) );
+            if( isset($_POST['kj_destination_area_name']) && !empty($_POST['kj_destination_area_name']) ) $order->update_meta_data( '_billing_kj_destination_name', sanitize_text_field(wp_unslash($_POST['kj_destination_area_name'])) );
+
+            //save meta Insurance billing woocommerce
+            if( isset($data['kj_insurance']) && !empty($data['kj_insurance']) ) $order->update_meta_data( '_billing_kj_insurance', sanitize_text_field( ( wp_unslash($data['kj_insurance']) == true ) ? 'yes' : '' ) );
+            
+            //save meta subdistrict shipping woocommerce
+            if( isset($_POST['kj_shipping_destination_area']) && !empty($_POST['kj_shipping_destination_area']) ) $order->update_meta_data( '_shipping_kj_destination_area', sanitize_text_field(wp_unslash($_POST['kj_shipping_destination_area'])) );
+            if( isset($_POST['kj_shipping_destination_area_name']) && !empty($_POST['kj_shipping_destination_area_name']) ) $order->update_meta_data( '_shipping_kj_destination_name', sanitize_text_field(wp_unslash($_POST['kj_shipping_destination_area_name'])) );
+            
+            //save meta Insurance shipping woocommerce
+            if( isset($data['kj_shipping_insurance']) && !empty($data['kj_shipping_insurance']) ) $order->update_meta_data( '_shipping_kj_insurance', sanitize_text_field( ( wp_unslash($data['kj_shipping_insurance']) == true ) ? 'yes' : '' ) );
+            
+            //flag order ppn
+            $order->update_meta_data( '_kj_ppn', true );
+
+        } // end nonce check security
 
     }
     
@@ -370,13 +325,21 @@ class CheckoutController
          */
 
         try {
+            if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+            {
+
             $service = (new \Inc\Services\CheckoutServices\OngkirPricingService([
-                'destination_area_id'   => $_POST['data']['destination_area_id'],
-                'is_cod'                => $_POST['data']['payment_method']==='cod',
+                'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'])) :'',
+                'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash($_POST['data']['payment_method'])) : '' ) === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
             ]))->call();
+                
+                wp_send_json_success($service);
             
-            wp_send_json_success($service);
+            }else{
+                wp_send_json_error(['msg'=>'Security Check Nonce Checkout']);
+            }
 
         }catch (\Throwable $th){
             wp_send_json_success([
@@ -396,14 +359,21 @@ class CheckoutController
          */
         
         try {
-            $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
-                'destination_area_id'   => $_POST['data']['destination_area_id'],
-                'expedition'            => $_POST['data']['expedition'],
-                'is_insurance'          => $_POST['data']['insurance'] === "true",
-                'is_cod'                => $_POST['data']['payment_method'] === 'cod',
-                'wc_cart_contents'      => WC()->cart->cart_contents,
-            ]))->call();
-            wp_send_json_success($service);
+            if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+            {
+                $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
+                    'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'] )) : '',
+                    'expedition'            => isset($_POST['data']['expedition']) ? sanitize_text_field( wp_unslash( $_POST['data']['expedition'] )) : '',
+                    'is_insurance'          => ( isset($_POST['data']['insurance']) ? sanitize_text_field( wp_unslash( $_POST['data']['insurance'] )) : '' ) === "true",
+                    'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash( $_POST['data']['payment_method'])) : '') === 'cod',
+                    'wc_cart_contents'      => WC()->cart->cart_contents,
+                ]))->call();
+                wp_send_json_success($service);
+            }else{
+                wp_send_json_error(['msg'=>'Security Check Nonce Checkout']);
+            }
+
         }catch (\Throwable $th){
             wp_send_json_success([
                 'status'    => 400,
@@ -425,32 +395,32 @@ class CheckoutController
                 <table style="width: 100%; font-size: 1rem" class="woocommerce-table woocommerce-table--order-details shop_table order_details">            
                     <thead>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Order Number',$locale).'</th>
-                            <th class="" style="text-align: right">'.@$transaction->wp_wc_order_stat_order_id.'</th>
+                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Order Number',$locale) ).'</th>
+                            <th class="" style="text-align: right">'.esc_html($transaction->wp_wc_order_stat_order_id).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Date',$locale).'</th>
-                            <th class="" style="text-align: right">'.date('d F Y H:i',strtotime(@$transaction->created_at)).'</th>
+                            <th class="" style="text-align: left">'.esc_html(kjHelper()->tlThis('Date',$locale)).'</th>
+                            <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( esc_html($transaction->created_at) ) ) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Payment Method',$locale).'</th>
-                            <th class="" style="text-align: right">'.@$paymentMethod->meta_value.'</th>
+                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Payment Method',$locale) ).'</th>
+                            <th class="" style="text-align: right">'.esc_html( $paymentMethod->meta_value ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Sub Total',$locale).'</th>
-                            <th class="" style="text-align: right">Rp.'.localMoneyFormat(@$transaction->transaction_value).'</th>
+                            <th class="" style="text-align: left">'.esc_html(kjHelper()->tlThis('Sub Total',$locale)).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( localMoneyFormat( esc_html($transaction->transaction_value) ) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Shipping Fee',$locale).'</th>
-                            <th class="" style="text-align: right">Rp.'.localMoneyFormat((@$transaction->shipping_cost ?? 0) + (@$transaction->insurance_cost ?? 0) + (@$transaction->cod_fee ?? 0)).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Shipping Fee',$locale) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( localMoneyFormat((esc_html($transaction->shipping_cost) ?? 0) + (esc_html($transaction->insurance_cost) ?? 0) + (esc_html($transaction->cod_fee) ?? 0)) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Payment Total',$locale).'</th>
-                            <th class="" style="text-align: right">Rp.'.localMoneyFormat((@$transaction->transaction_value ?? 0) + (@$transaction->shipping_cost ?? 0) + (@$transaction->insurance_cost ?? 0) + (@$transaction->cod_fee ?? 0)).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Payment Total',$locale) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( localMoneyFormat(( esc_html( $transaction->transaction_value ) ?? 0) + (esc_html( $transaction->shipping_cost ) ?? 0) + (esc_html( $transaction->insurance_cost ) ?? 0) + (esc_html( $transaction->cod_fee ) ?? 0)) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.kjHelper()->tlThis('Tracking',$locale).'</th>
-                            <th class="" style="text-align: right"><a href="'.home_url().'/tracking?order_id='.@$transaction->wp_wc_order_stat_order_id.'" target="_blank">CLICK</a></th>
+                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Tracking',$locale) ).'</th>
+                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.esc_html($transaction->wp_wc_order_stat_order_id) ).'" target="_blank">CLICK</a></th>
                         </tr>
                     </thead>
                 </table>            
@@ -470,18 +440,18 @@ class CheckoutController
 
         $html = '
             <tr>
-				<th scope="row">'.__('Ekspedisi','kiriminaja').':</th>
+				<th scope="row">'.__('Ekspedisi','plugin-wp').':</th>
 				<td class="wc-block-order-confirmation-totals__total">'.$order->get_shipping_method().'</td>
 			</tr>
             <tr>
-				<th scope="row">'.__('Tracking','kiriminaja').':</th>
-				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.home_url().'/tracking?order_id='.$order->get_id().'">'.__('Click','kiriminaja').'</a></td>
+				<th scope="row">'.__('Tracking','plugin-wp').':</th>
+				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.home_url().'/tracking?order_id='.$order->get_id().'">'.__('Click','plugin-wp').'</a></td>
 			</tr>';
 
         if( $order->get_meta('_'.$this->field_insurance_key) == true ){
             $html .= '
             <tr>
-				<th scope="row">'.__('Insurance','kiriminaja').':</th>
+				<th scope="row">'.__('Insurance','plugin-wp').':</th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->insurance_cost).'</td>
 			</tr>';
         }
@@ -490,14 +460,14 @@ class CheckoutController
             $html .= '
             <tr>
 				<th scope="row">
-                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','kiriminaja').'</label>		
+                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','plugin-wp').'</label>		
                     <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
                 </th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->cod_fee).'</td>
 			</tr>';
         }
         
-        echo  $html;
+        echo  wp_kses_post( $html );
 
     }
 
@@ -512,52 +482,56 @@ class CheckoutController
     public function kj_validateOrder($posted){
         $packages = WC()->shipping->get_packages();
         
-        if( isset($_POST['billing_country']) ){
-            
-            if ($_POST['billing_country'] === "ID"){
-                if (empty($_POST['kj_destination_area'])) {
-                    wc_add_notice( __( "<strong>District</strong> is a required field", 'kiriminaja' ), 'error' );
-                }
-                if (empty($_POST['shipping_method'][0])) {
-                    wc_add_notice( __( "<strong>Shipping</strong> is a required field", 'kiririminaja' ), 'error' );
-                }
-                if (empty($_POST['kj_checkout_token'])) {
-                    wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'kiriminaja' ), 'error' );
-                }
-
-            }
-        }
-
-        $chosen_methods = WC()->session->get('chosen_shipping_methods');
-        
-        if( $chosen_methods != null ){
-            $kj_filter_methods = substr($chosen_methods[0],0,10);//kiriminaja
-        
-            if ($kj_filter_methods == 'kiriminaja') {
-                foreach ($packages as $i => $package) {
-                            
-                    $weight = 0;
-                    foreach ($package['contents'] as $item_id => $values) {
-                        $_product = $values['data'];
-    
-                        if( empty( $_product->get_weight() ) ){
-                            $weight = 0;
-                        }else{
-                            $weight = $_product->get_weight() * $values['quantity'];
-                        }
-
-                        if( $weight == 0 ){
-                            $message = __("Berat Produk ".$_product->get_name()." Perlu di Setting",'kiriminaja');
-                            $messageType = "error";
-                            wc_add_notice($message, $messageType);
-                        }
+        if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
+            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+        {
+            if( isset($_POST['billing_country']) ){
+                
+                if ($_POST['billing_country'] === "ID"){
+                    if (empty($_POST['kj_destination_area'])) {
+                        wc_add_notice( __( "<strong>District</strong> is a required field", 'plugin-wp' ), 'error' );
                     }
-                    
-                }
+                    if (empty($_POST['shipping_method'][0])) {
+                        wc_add_notice( __( "<strong>Shipping</strong> is a required field", 'plugin-wp' ), 'error' );
+                    }
+                    if (empty($_POST['kj_checkout_token'])) {
+                        wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'plugin-wp' ), 'error' );
+                    }
     
+                }
             }
-        }
-
+    
+            $chosen_methods = WC()->session->get('chosen_shipping_methods');
+            
+            if( $chosen_methods != null ){
+                $kj_filter_methods = substr($chosen_methods[0],0,10);//kiriminaja
+            
+                if ($kj_filter_methods == 'kiriminaja') {
+                    foreach ($packages as $i => $package) {
+                                
+                        $weight = 0;
+                        foreach ($package['contents'] as $item_id => $values) {
+                            $_product = $values['data'];
+        
+                            if( empty( $_product->get_weight() ) ){
+                                $weight = 0;
+                            }else{
+                                $weight = $_product->get_weight() * $values['quantity'];
+                            }
+    
+                            if( $weight == 0 ){
+                                /* translators: %s: product name */
+                                $message = sprintf(__("Berat Produk %s Perlu di Setting", 'plugin-wp'), $_product->get_name());
+                                $messageType = "error";
+                                wc_add_notice($message, $messageType);
+                            }
+                        }
+                        
+                    }
+        
+                }
+            }
+        } // security Check
     }
 
     public function kj_billing_fields($fields){
@@ -597,7 +571,7 @@ class CheckoutController
 
         //add field billing District
         $fields['billing'][$field_key] = array(
-            'label'     => __(esc_html__('District', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('District', 'plugin-wp'),
             'required'  => true,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -608,7 +582,7 @@ class CheckoutController
 
         //add field shipping District
         $fields['shipping'][$this->field_shipping_destination_key] = array(
-            'label'     => __(esc_html__('District', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('District', 'plugin-wp'),
             'required'  => true,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -624,7 +598,7 @@ class CheckoutController
         $field_key = $this->field_insurance_key;
 
         $fields['billing'][$field_key] = array(
-            'label'     => __(esc_html__('Insurance Shipping', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('Insurance Shipping', 'plugin-wp'),
             'required'  => false,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -633,7 +607,7 @@ class CheckoutController
         );
 
         $fields['shipping'][$this->field_shipping_insurance_key] = array(
-            'label'     => __(esc_html__('Insurance Shipping', 'kiriminaja'),'kiriminaja'),
+            'label'     => esc_html__('Insurance Shipping', 'plugin-wp'),
             'required'  => false,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -657,9 +631,15 @@ class CheckoutController
      * @return string
      */
     public function kj_shipping_chosen_method($method, $available_methods) {
-        if (isset($_POST['shipping_method'][0]) && array_key_exists($_POST['shipping_method'][0], $available_methods)) {
-            return $_POST['shipping_method'][0];
+        if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
+            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+        {
+            if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
+                return sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
+            }
+
         }
+
         return $method;
     }
 
