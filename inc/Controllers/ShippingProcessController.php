@@ -1,124 +1,149 @@
 <?php
+
 namespace Inc\Controllers;
 
 use Inc\Repositories\KiriminajaApiRepository;
-use Inc\Services\KiriminajaApiService;
 use Inc\Services\ShippingProcessServices\GetShippingProcessDetailService;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Inc\Services\ShippingProcessServices\GetShippingProcessPayment;
 use Throwable;
 
-class ShippingProcessController{
-    public function register(){
+class ShippingProcessController
+{
+    public function register()
+    {
         /** getShippingProcessDetail */
-        add_action('wp_ajax_kj_get_shipping_process_detail', array($this,'getShippingProcessDetail'));
+        add_action('wp_ajax_kj_get_shipping_process_detail', array($this, 'getShippingProcessDetail'));
         /** getPaymentForm */
-        add_action('wp_ajax_kj_get_payment_form', array($this,'getPaymentForm'));
+        add_action('wp_ajax_kj_get_payment_form', array($this, 'getPaymentForm'));
 
-        add_action('wp_ajax_kj_get_shipping_reschedule_pickup',array($this,'getShippingReschedulePickup'));
-        
+        add_action('wp_ajax_kj_get_shipping_reschedule_pickup', array($this, 'getShippingReschedulePickup'));
+
         /** Resi Print */
-        add_action( 'init', function (){
-            add_feed( 'transaction-resi-print', array($this,'resiPrint') );
-        } );
+        add_action('init', function () {
+            add_feed('transaction-resi-print', array($this, 'resiPrint'));
+        });
     }
 
-    function getShippingReschedulePickup(){
+    function getShippingReschedulePickup()
+    {
         // Check for nonce security      
-        if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
-            wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+        if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
+            wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
             wp_die();
         }
 
-        $payment_id = isset( $_POST['data']['payment_id'] ) ?  sanitize_text_field( wp_unslash( $_POST['data']['payment_id'] )) : '';
+        $payment_id = isset($_POST['data']['payment_id']) ?  sanitize_text_field(wp_unslash($_POST['data']['payment_id'])) : '';
 
         $service = (new GetShippingProcessDetailService())->paymentId($payment_id)->call();
-        
-        if ($service->status!==200){ wp_send_json_error($service);}
-        
-        $transactions_data = $service->data['transactions_data']; //array
-        
-        $order_ids = array_map(function($transaction){ return $transaction->order_id; },$transactions_data);
 
-        
+        if ($service->status !== 200) {
+            wp_send_json_error($service);
+        }
+
+        $transactions_data = $service->data['transactions_data']; //array
+
+        $order_ids = array_map(function ($transaction) {
+            return $transaction->order_id;
+        }, $transactions_data);
+
+
         $service_pickup = (new \Inc\Services\TransactionProcessServices\GetRequestPickupScheduleService())
             ->orderIds($order_ids)
             ->call();
-    
+
         $service_pickup->data['transaction_summary']['order_id'] = $order_ids[0];
-            
+
         wp_send_json_success($service_pickup);
     }
-    
-    function getShippingProcessDetail() {
+
+    function getShippingProcessDetail()
+    {
         try {
             // Check for nonce security      
-            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
-                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+            if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
+                wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
 
-            $payment_id = isset( $_POST['data']['payment_id'] ) ?  sanitize_text_field( wp_unslash( $_POST['data']['payment_id'] )) : '';
+            $payment_id = isset($_POST['data']['payment_id']) ?  sanitize_text_field(wp_unslash($_POST['data']['payment_id'])) : '';
 
             $service = (new GetShippingProcessDetailService())->paymentId($payment_id)->call();
-            if ($service->status!==200){ wp_send_json_error($service);}
+            if ($service->status !== 200) {
+                wp_send_json_error($service);
+            }
             wp_send_json_success($service);
-        }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+        } catch (Throwable $e) {
+            wp_send_json_error(['status' => 400, $e->getMessage()]);
         }
     }
-    
-    function getPaymentForm(){
+
+    function getPaymentForm()
+    {
         try {
             // Check for nonce security      
-            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
-                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+            if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
+                wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
 
-            $payment_id = isset($_POST['data']['payment_id']) ? sanitize_text_field( wp_unslash( $_POST['data']['payment_id'] ) ) : '';
-            
+            $payment_id = isset($_POST['data']['payment_id']) ? sanitize_text_field(wp_unslash($_POST['data']['payment_id'])) : '';
+
             $service = (new GetShippingProcessPayment())->payment_id($payment_id)->call();
-            if ($service->status!==200){ wp_send_json_error($service);}
+            if ($service->status !== 200) {
+                wp_send_json_error($service);
+            }
             wp_send_json_success($service);
-        }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,$e->getMessage()]);
+        } catch (Throwable $e) {
+            wp_send_json_error(['status' => 400, $e->getMessage()]);
         }
-    }
-    
-    function resiPrint() {
-        // instantiate and use the dompdf class
-        // @codingStandardsIgnoreLine
-        $orderIdsParam = @$_GET['oids'];
-        $orderIds = array_unique(explode(',',$orderIdsParam) ?? []);
-        if (count($orderIds)<1) return ''; 
-        
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml(self::printResiHtml($orderIds));
-        $dompdf->setPaper(array(0, 0, 283.465, 425.197), 'portrait');
-        
-        // Render the HTML as PDF
-        $dompdf->render();
-        ob_end_clean();
-        // Output the generated PDF to Browser
-        $dompdf->stream($orderIds[0]."-".count($orderIds).".pdf");
-    }
-    
-    function printResiHtml($orderIds){
-        $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIdsForResiPrint($orderIds);
-        (new \Inc\Base\BaseInit())->logThis('$transactions',[$transactions]);
-        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
-        $originDataArr = [];
-        foreach ($shippingRepo as $obj){
-            $originDataArr[$obj->key]=$obj->value;
-        }
-        
-        ob_start();
-        include plugin_dir_path(dirname(__FILE__,2)) . 'templates/print/print-pdf-new.php';
-        return ob_get_clean();
     }
 
+    function resiPrint()
+    {
+        try {
+            $orderIdsParam = @$_GET['oids'];
+            $orderIds = array_unique(explode(',', $orderIdsParam) ?? []);
+            if (count($orderIds) < 1) {
+                wp_redirect(home_url('/404'));
+                exit;
+            }
+            $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIdsForResiPrint($orderIds);
+
+            $awbs = [];
+            $pickupNumber = '';
+            foreach ($transactions as $transaction) {
+                if (isset($transaction->awb) && !empty($transaction->awb)) {
+                    $awbs[] = $transaction->awb;
+                }
+                if (isset($transaction->pickup_number) && !empty($transaction->pickup_number)) {
+                    $pickupNumber = $transaction->pickup_number;
+                }
+            }
+
+            $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
+
+            if (
+                !isset($getAwbData['data']->data->url) ||
+                empty($getAwbData['data']->data->url)
+            ) {
+                wp_redirect(home_url('/404'));
+                exit;
+            }
+
+            $pdfUrl = $getAwbData['data']->data->url;
+            $pdfContent = @file_get_contents($pdfUrl);
+            if ($pdfContent === false) {
+                wp_redirect(home_url('/404'));
+                exit;
+            }
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="print-resi-' . $pickupNumber . '.pdf"');
+            header('Content-Length: ' . strlen($pdfContent));
+            echo $pdfContent;
+            exit;
+        } catch (\Throwable $e) {
+            wp_redirect(home_url('/404'));
+            exit;
+        }
+    }
 }

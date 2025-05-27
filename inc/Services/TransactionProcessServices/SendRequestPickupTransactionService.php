@@ -106,39 +106,50 @@ class SendRequestPickupTransactionService extends BaseService
         return $array;
     }
 
-    private function getPackagesData()
-    {
+    private function getPackagesData(){
         $repo = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
-
-        return array_map(function ($transaction) {
+        
+        return array_map(function ($transaction){
             $shipping_info = json_decode($transaction->shipping_info);
 
             $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
             $itemNames = [];
+            $itemsPayload = [];
             foreach ($order->get_items() as $item) {
-                $itemNames[] = $item->get_name().' ('.$item->get_quantity().')';
+                $itemNames[] = $item->get_name();
+                $product = wc_get_product($item->get_product_id());
+                $weight = (new \Inc\Utils\WeightConverter())->toGram($product ? $product->get_weight() : 0); // Convert kg to gram
+                $itemsPayload[] = [
+                    "qty"=> $item->get_quantity(),
+                    "weight"=> $weight, // Convert kg to gram
+                    "length"=> $product ? $product->get_length() : 0,
+                    "width"=> $product ? $product->get_width() : 0,
+                    "height"=> $product ? $product->get_height() : 0,
+                    "name"=> $item->get_name(),
+                    "price"=> $product ? $product->get_price() : 0,
+                ];
             }
 
-            $combinedItemNames = implode(" | ", $itemNames);
+            $combinedItemNames = implode(", ", $itemNames);
 
             if (strlen($combinedItemNames) > 255) {
                 $countItemNames = count($itemNames);
 
                 if (isset($itemNames[0]) && strlen($itemNames[0]) <= 200) {
-                    $combinedItemNames = $countItemNames > 1 ? $itemNames[0] . " dan " . ($countItemNames - 1) . " jenis produk lainnya" : $itemNames[0];
+                    $combinedItemNames = $countItemNames > 1 ? $itemNames[0] . " dan " . ($countItemNames - 1) . " produk lainnya" : $itemNames[0];
                 } else {
-                    $combinedItemNames = $countItemNames . " Jenis Produk";
+                    $combinedItemNames = $countItemNames . " Bundle";
                 }
             }
             $item_name = $combinedItemNames;
 
-            $note = "Order No : " . $transaction->wp_wc_order_stat_order_id . " | " . get_home_url();
-
-            return [
+            $note = "Order No : ".$transaction->wp_wc_order_stat_order_id ." | ".get_home_url();
+            
+            $result = [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => (@$shipping_info->_shipping_first_name ?? @$shipping_info->_billing_first_name) . ' ' . (@$shipping_info->_shipping_last_name ?? @$shipping_info->_billing_last_name),
+                "destination_name"          => (@$shipping_info->_shipping_first_name ?? @$shipping_info->_billing_first_name).' '.(@$shipping_info->_shipping_last_name ?? @$shipping_info->_billing_last_name),
                 "destination_phone"         => @$shipping_info->_billing_phone,
-                "destination_address"       => (@$shipping_info->_shipping_address_1 ?? @$shipping_info->_billing_address_1) . ' ' . (@$shipping_info->_shipping_address_2 ?? @$shipping_info->_billing_address_2) . ', ' . @$transaction->destination_sub_district,
+                "destination_address"       => (@$shipping_info->_shipping_address_1 ?? @$shipping_info->_billing_address_1).' '.(@$shipping_info->_shipping_address_2 ?? @$shipping_info->_billing_address_2).', '.@$transaction->destination_sub_district,
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
                 "destination_zipcode"       => @$shipping_info->_shipping_postcode,
                 "weight"                    => kjHelper()->minAmount($transaction->weight),
@@ -153,7 +164,7 @@ class SendRequestPickupTransactionService extends BaseService
                 "item_name"                 => $item_name, // order_id kiriminaja,
                 "note"                      => $note, // Nama barang (Qty number)  
                 "package_type_id"           => 7, // 7 = Regular
-                "cod" => $transaction->cod_fee > 0 ?
+                "cod"=> $transaction->cod_fee > 0 ? 
                     (
                         $transaction->transaction_value +
                         $transaction->shipping_cost +
@@ -161,6 +172,10 @@ class SendRequestPickupTransactionService extends BaseService
                         $transaction->cod_fee
                     ) : 0
             ];
-        }, $repo);
+            if(count($itemsPayload) > 0){
+                $result['items'] = $itemsPayload;
+            }
+            return $result;
+        },$repo);
     }
 }

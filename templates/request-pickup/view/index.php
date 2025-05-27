@@ -395,7 +395,9 @@
                 jQuery('#request-pickup-detail-modal #package-non-cod-count').text(kjMoneyFormat(payment_data.non_cod_count ?? 0))
 
                 jQuery('#request-pickup-detail-modal #the-list').empty()
+                let transactionIdList = [];
                 transactions_data.forEach(function (transaction,index){
+                    transactionIdList.push(transaction?.order_id);
                     const parsedShippingInfo = JSON.parse(transaction.shipping_info)
                     
                     let transactionCost = 0
@@ -467,7 +469,9 @@
                         </tr>
                     `)
                 })
+                const printAllResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transactionIdList.join(',')}`;
 
+                jQuery('#request-pickup-detail-modal #print-all-resi').attr('href',printAllResiUrl);
 
             },
         });
