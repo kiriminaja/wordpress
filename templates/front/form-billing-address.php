@@ -2,9 +2,9 @@
     
     <!--Other invisible Field-->
     <div style="display: none">
-        <input type="hidden" name="kj_checkout_token" value="<?php echo  $kj_checkout_token; ?>">
-        <input type="hidden" name="kj_destination_area_name" value="<?php echo  $dentination_name; ?>">
-        <input type="hidden" name="kj_shipping_destination_area_name" value="<?php echo  $shipping_dentination_name; ?>">
+        <input type="hidden" name="kj_checkout_token" value="<?php echo esc_html($kj_checkout_token); ?>">
+        <input type="hidden" name="kj_destination_area_name" value="<?php echo  esc_html($dentination_name); ?>">
+        <input type="hidden" name="kj_shipping_destination_area_name" value="<?php echo  esc_html($shipping_dentination_name); ?>">
         <input type="hidden" name="kj_force_insurance" value="0">
     </div>
 
@@ -47,7 +47,7 @@
           
         function changeDistrict(){
             
-            let kelurahanArea = "select#<?php echo  $field_key; ?>,select#kj_shipping_destination_area";
+            let kelurahanArea = "select#<?php echo  esc_html($field_key); ?>,select#kj_shipping_destination_area";
             
             jQuery(kelurahanArea).change( function () {
                 let root = jQuery(this);
@@ -69,7 +69,7 @@
                 
                 
                 jQuery.ajax({
-                    url:"<?php echo admin_url('admin-ajax.php'); ?>",
+                    url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
                     type: 'post',
                     data: {
                         action:'getDestinationArea',
@@ -78,7 +78,7 @@
                         'different_address': different_address,
                         'text':root.find('option:selected').text(),
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':"<?php echo  wp_create_nonce('kj-destination'); ?>",
+                        'nonce':"<?php echo esc_js( wp_create_nonce('kj-destination') ); ?>",
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
@@ -140,12 +140,13 @@
          * Get Kelurahan by search key up New
          */
         function getSearchAreaKelurahan(){
-            let ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
-            let subDistrictSelectElem = jQuery(`[name="<?php echo  $field_key; ?>"],[name=kj_shipping_destination_area]`); 
-       
+            let ajaxurl = "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>";
+            let subDistrictSelectElem = jQuery(`[name="<?php echo esc_html( $field_key ); ?>"],[name=kj_shipping_destination_area]`); 
+            let nonce = "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>";
+
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo __('Select Option','kiriminaja'); ?>",
+                placeholder: "<?php echo esc_html__('Select Option','plugin-wp'); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,
@@ -155,6 +156,7 @@
                     data: function (search) {
                         return {
                             data:search,
+                            nonce:nonce,
                             action: 'kiriminaja_subdistrict_search'
                         };
                     },
@@ -263,7 +265,7 @@
 
             let data = {
                 action:'kj_get_data_after_update_checkout',
-                nonce:"<?php echo  wp_create_nonce('kj-update-checkout'); ?>",
+                nonce:"<?php echo esc_js( wp_create_nonce('kj-update-checkout') ); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 payment_method,
@@ -271,7 +273,7 @@
             };
 
             jQuery.ajax({
-                        url:"<?php echo admin_url('admin-ajax.php'); ?>",
+                        url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
                         type: 'post',
                         data: data,
                         dataType:'JSON',

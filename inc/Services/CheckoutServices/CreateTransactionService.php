@@ -44,7 +44,7 @@ class CreateTransactionService extends BaseService{
             /** Generating Payload*/
             $payload = [
                 'order_id'                      => (new \Inc\Services\KiriminAja\GenerateOrderId())->call(),
-                'shipping_info'                 => json_encode($requiredPostMeta['data']),
+                'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
                 'destination_sub_district_id'   => $this->payload['kj_destination_area'],
                 'destination_sub_district'      => $this->payload['kj_destination_area_name'],
                 'status'                        => 'new',
@@ -58,7 +58,7 @@ class CreateTransactionService extends BaseService{
                 'insurance_cost'                => $checkoutCalc['data']['calculation_result']['insurance_amt'],
                 'cod_fee'                       => $checkoutCalc['data']['calculation_result']['cod_amt'],
                 'transaction_value'             => $checkoutCalc['data']['calculation_result']['cart_total_amt'],
-                'created_at'                    => date('Y-m-d H:i:s',strtotime("now")),
+                'created_at'                    => gmdate('Y-m-d H:i:s',strtotime("now")),
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],
 
             ];

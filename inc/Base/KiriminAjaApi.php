@@ -11,7 +11,7 @@ class KiriminAjaApi
     {
         global $wp_version;
 
-        $this->base_url = 'https://client.kiriminaja.com';
+        $this->base_url = 'https://dev-core.bakso.my.id';
 
         $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
@@ -81,7 +81,7 @@ class KiriminAjaApi
 
     public function post($endpoint, $body = array())
     {
-        $args = wp_parse_args(array('body' => json_encode($body)), $this->default_args);
+        $args = wp_parse_args(array('body' => wp_json_encode($body)), $this->default_args);
         $response = wp_remote_post($this->base_url . $endpoint, $args);
         if (class_exists('WPMonolog')) {
             global $logger;

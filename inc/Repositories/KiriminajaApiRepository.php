@@ -61,5 +61,11 @@ class KiriminajaApiRepository extends KiriminAjaApi{
 
     public function get_couriers(){
         return $this->post('/api/mitra/couriers');
-    }    
+    }
+
+    public function getPrintAwb($awb){
+        return $this->post('/api/mitra/v6.1/awb/print',[
+            'awb' => $awb,
+        ]);
+    }
 }

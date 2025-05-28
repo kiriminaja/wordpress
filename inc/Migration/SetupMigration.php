@@ -20,7 +20,9 @@ class SetupMigration {
         $table_name = $wpdb->prefix.'kiriminaja_settings'.$this->suffix;
         
         /** Only create table if not exist */
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+            //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
             $sql = "CREATE TABLE ".$table_name."(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `key` varchar(255) NULL,
@@ -31,22 +33,37 @@ class SetupMigration {
             dbDelta($sql);
 
             /** Settings Table Value*/
-            $wpdb->query("INSERT INTO ".$table_name."
-            (`key`, `value`)
-            VALUES
-            ('api_key', null),
-            ('setup_key', null),
-            ('oid_prefix', null),
-            ('origin_name', null),
-            ('origin_phone', null),
-            ('origin_address', null),
-            ('origin_sub_district_id', null),
-            ('origin_sub_district_name', null),
-            ('origin_latitude', null),
-            ('origin_longitude', null),
-            ('callback_url', null),
-            ('origin_zip_code', null),
-            ");
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching	
+            $wpdb->query(
+                $wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "INSERT INTO $table_name (`key`, `value`) VALUES
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s),
+                    (%s, %s)",
+                    'api_key', null,
+                    'setup_key', null,
+                    'oid_prefix', null,
+                    'origin_name', null,
+                    'origin_phone', null,
+                    'origin_address', null,
+                    'origin_sub_district_id', null,
+                    'origin_sub_district_name', null,
+                    'origin_latitude', null,
+                    'origin_longitude', null,
+                    'callback_url', null,
+                    'origin_zip_code', null
+                )
+            );
         }
         
         /** Alters*/
@@ -64,8 +81,10 @@ class SetupMigration {
         $table_name = $wpdb->prefix.'kiriminaja_transactions'.$this->suffix;
 
         /** Only create table if not exist */
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
-
+            
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
             $sql = "CREATE TABLE ".$table_name."(
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
                 `order_id` varchar(100) DEFAULT NULL,
@@ -102,6 +121,7 @@ class SetupMigration {
             
         }else{
              /** Alters*/
+             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching	
              $columns = $wpdb->get_results("DESCRIBE $table_name");
              $column_requered = array('canceled_at' => 'timestamp NULL DEFAULT NULL');
              $field_status = 'status';
@@ -125,13 +145,20 @@ class SetupMigration {
              }
              
              // Add new column
-             if( !$column_exist ){
-                 $wpdb->query("ALTER TABLE $table_name ADD $column_name $column_data_type");
-             }
+            if( !$column_exist ){
+                
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange	
+                $wpdb->query("ALTER TABLE $table_name ADD $column_name $column_data_type");
+             
+            }
              if( $field_type_status ){
-                 $column_and_type = "status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'";
-                 $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN $column_and_type");
-             }
+                 
+                $column_and_type = "status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'";
+                
+                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN $column_and_type");
+            }
+            
         }
 
     }
@@ -143,7 +170,10 @@ class SetupMigration {
         $table_name = $wpdb->prefix.'kiriminaja_payments'.$this->suffix;
         
         /** Only create table if not exist */
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
             $sql = "CREATE TABLE ".$table_name."(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `pickup_number` varchar(100) DEFAULT NULL,

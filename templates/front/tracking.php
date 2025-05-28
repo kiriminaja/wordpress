@@ -107,30 +107,30 @@
 <div style="min-height: 40vh" class="woocommerce woocommerce-page">
     <form style="width: 100%" name="checkout" method="post" class="checkout woocommerce-checkout"  enctype="multipart/form-data" novalidate="novalidate">
         <div class="col2-set" id="">
-            <h3 >Pesanan Anda</h3>
+            <h3 ><?php esc_html_e('Pesanan Anda','plugin-wp'); ?></h3>
             <div class="woocommerce-checkout-review-order">
 
 
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">
-                    <label for="billing_company" class="">Nomor Resi <span style="color:red;">*</span></label>
+                    <label for="billing_company" class=""><?php esc_html_e('Nomor Resi','plugin-wp'); ?> <span style="color:red;">*</span></label>
                     <span class="woocommerce-input-wrapper">
                         <input type="text" class="input-text" name="order_number" placeholder="Masukan Nomor Resi atau Nomor Order ..." value="" autocomplete="organization">
                     </span>
                 </p>
 
-                <button style="width: 100%" type="button" onclick="trackOrder()" class="button track-btn alt wp-element-button track-btn">Lacak Pesanan</button>
+                <button style="width: 100%" type="button" onclick="trackOrder()" class="button track-btn alt wp-element-button track-btn"><?php esc_html_e('Lacak Pesanan','plugin-wp'); ?></button>
             </div>
         </div>
         <div class="col2-set" id="tracking-result">
             <div style="margin-top: 2rem"></div>
             <div class="state-blank">
                 <div style="text-align: center">
-                    <span style="font-weight: 700">Untuk mendapatkan informasi pesanan anda<br>Klik Track Pesanan</span>
+                    <span style="font-weight: 700"><?php esc_html_e('Untuk mendapatkan informasi pesanan anda','plugin-wp'); ?><br><?php esc_html_e('Klik Track Pesanan','plugin-wp'); ?></span>
                 </div>
             </div>
             <div class="state-err kj-hidden">
                 <div style="text-align: center; margin-top: 4rem">
-                    <span style="font-weight: 700" id="err_msg">Order tidak ditemukan</span>
+                    <span style="font-weight: 700" id="err_msg"><?php esc_html_e('Order tidak ditemukan','plugin-wp'); ?></span>
                 </div>
             </div>
             <div class="state-loading kj-hidden">
@@ -192,13 +192,12 @@
 
         wp.ajax.post( "kj-tracking-ajax", {
             order_number:jQuery('[name="order_number"]').val()
-        })
-            .done(function(response) {  
+        }).done(function(response) {  
                               
-                hideStateComponent()
-                jQuery('.track-btn').removeClass('kj-hidden')
+            hideStateComponent()
+            jQuery('.track-btn').removeClass('kj-hidden')
 
-                if (response.status === 200){
+            if (response.status === 200){
                     jQuery('.state-success').removeClass('kj-hidden')
 
                     const trackingHistories = response?.data?.histories ?? [];
@@ -246,15 +245,13 @@
                                 <td>${trackData.created_at}</td>
                                 <td>${trackData.status}</td>
                             </tr>`)
-                    });
+                    });                    
+                return
+            }
 
-                    
-                    return
-                }
-
-                jQuery('.state-err').removeClass('kj-hidden')
-                jQuery('#err_msg').text(response?.message)
-            });
+            jQuery('.state-err').removeClass('kj-hidden')
+            jQuery('#err_msg').text(response?.message)
+        });
     }
 
     const url = new URL(window.location.href);

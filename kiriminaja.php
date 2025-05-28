@@ -1,15 +1,14 @@
 <?php
-
 /**
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
  * Description:     Integrate to all best delivery services across the nusantara
- * Version:         2.0.1
+ * Version:         2.0.5
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
- * Text Domain:     kiriminaja
+ * Text Domain:     plugin-wp
  * Domain Path:     /lang
  * WC requires at least: 5.0.0
  * WC tested up to: 7.1
@@ -17,19 +16,19 @@
 
 /** prevent unauthorized access othe than wordpress */
 if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) || wp_doing_ajax() ) {
-    @ini_set( 'display_errors', 1 );
+    @ini_set( 'display_errors', 1 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 }
 
-date_default_timezone_set('Asia/Jakarta'); // Atur timezone ke GMT+7
+// Atur timezone ke GMT+7
+date_default_timezone_set('Asia/Jakarta'); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
 
-define( 'KJ_PLUGIN_VERSION', rand(0,999));
+define( 'KJ_PLUGIN_VERSION', rand(0,999)); // phpcs:ignore WordPress.WP.AlternativeFunctions.rand_rand
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
-define('KIRIMINAJA_VERSION', '2.0.1');
 define('KJ_SLUG' ,plugin_basename(__DIR__));
 define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
-define('KJ_VERSION_PLUGIN', '2.0.1');
+define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.5') );
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
@@ -82,9 +81,25 @@ if (! function_exists('kjHelper')) {
 
 add_action( 'admin_notices', 'kj_shipping_plugin_woocommerce_notice' );
 function kj_shipping_plugin_woocommerce_notice() {
-    // Check if WooCommerce is not active
+
+    if ( ! function_exists( 'is_plugin_active' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+
     if ( ! class_exists( 'WooCommerce' ) && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
-        echo '<div class="notice notice-error"><p><strong>Kiriminaja Shipping Plugin</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.</p></div>';
+
+        $message = sprintf(
+            wp_kses(
+                /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
+                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'plugin-wp' ),
+                [ 'strong' => [] ]
+            ),
+            __( 'Plugin Kiriminaja', 'plugin-wp' ),
+            __( 'WooCommerce', 'plugin-wp' )
+        );
+
+        echo '<div class="notice notice-error"><p>' . wp_kses_post($message) . '</p></div>';
+
         deactivate_plugins( plugin_basename( __FILE__ ) );
     }
 }
@@ -97,11 +112,27 @@ function activate_kj_plugin(){
         deactivate_plugins( plugin_basename( __FILE__ ) );
 
         // Display admin notice
-        wp_die(
-            '<p><strong>Plugin Kiriminaja</strong> requires <strong>WooCommerce</strong> to be installed and activated. Please install and activate WooCommerce before activating this plugin.</p>' .
-            '<p><a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">&laquo; Return to Plugins</a></p>',
-            'Plugin Activation Error',
+        $message = sprintf(
+            wp_kses(
+                /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
+                __(
+                    '%1$s requires %2$s to be installed and activated. Please install and activate WooCommerce before activating this plugin.',
+                    'plugin-wp'
+                ),
+                [] // No HTML allowed in the translatable string
+            ),
+            '<strong>Plugin Kiriminaja</strong>',
+            '<strong>WooCommerce</strong>'
         );
+
+        $message .= '<p><a href="' . esc_url(admin_url('plugins.php')) . '">&laquo; ' . esc_html__('Return to Plugins', 'plugin-wp') . '</a></p>';
+
+        // Output the error message
+        wp_die(
+            wp_kses_post('<p>' . $message . '</p>'),
+            esc_html__('Plugin Activation Error', 'plugin-wp')
+        );
+
     }
 
     (new \Inc\Migration\SetupMigration())->register();
@@ -173,4 +204,3 @@ function setSSLVerifyWordpress($args, $url) {
     $args['sslverify'] = true; 
     return $args;
 }
-

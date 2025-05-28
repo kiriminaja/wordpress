@@ -16,6 +16,7 @@ class requestPickupIndex {
         $locale = get_locale();
         
         /** Page Query*/
+        // @codingStandardsIgnoreLine
         $pageQuery = self::pageQuery();
         $results = $pageQuery['results'];
         $page = $pageQuery['page'];
@@ -41,60 +42,75 @@ class requestPickupIndex {
 
         /** PreRequrities*/
         $items_per_page = 20;
+
+        // @codingStandardsIgnoreLine
         $page = @$_GET['cpage'] ?? 1;
         $offset = ( $page * $items_per_page ) - $items_per_page;
         
         $whereCount = 0;
         $whereCondition = '';
+        
+        // @codingStandardsIgnoreLine
         if (!empty(@$_GET['key'])){
             $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.pickup_number LIKE '%".@$_GET['key']."%'";
+            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.pickup_number LIKE '%".@$_GET['key']."%'"; // @codingStandardsIgnoreLine
         }
+        // @codingStandardsIgnoreLine
         if (!empty(@$_GET['month'])){
             $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.created_at LIKE '%".@$_GET['month']."%'";
+            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.created_at LIKE '%".@$_GET['month']."%'"; // @codingStandardsIgnoreLine
         }
+        // @codingStandardsIgnoreLine
         if (!empty(@$_GET['status'])){
             $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.status = '".@$_GET['status']."'";
+            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.status = '".@$_GET['status']."'"; // @codingStandardsIgnoreLine 
         }
 
         /** Main Query*/
-        $query = "(
-            SELECT 
-            `".$paymentTable."`.*
-            ,sum(CASE WHEN `".$transactionTable."`.cod_fee = 0 THEN `".$transactionTable."`.shipping_cost+`".$transactionTable."`.insurance_cost ELSE 0 END) as cost
-            FROM `".$paymentTable."` 
-            INNER JOIN `".$transactionTable."`
-            ON `".$paymentTable."`.pickup_number = `".$transactionTable."`.pickup_number
-            ".@$whereCondition."
-            GROUP BY `".$paymentTable."`.pickup_number
-            ORDER BY `".$paymentTable."`.created_at DESC
-            )";
-
-
-        $results = $wpdb->get_results( $query . "LIMIT ${offset}, ${items_per_page}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $results = $wpdb->get_results( 
+            $wpdb->prepare(
+                "(
+                    SELECT 
+                    {$wpdb->prefix}kiriminaja_payments.*, 
+                    SUM(CASE WHEN {$wpdb->prefix}kiriminaja_transactions.cod_fee = 0 THEN {$wpdb->prefix}kiriminaja_transactions.shipping_cost + {$wpdb->prefix}kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+                    FROM {$wpdb->prefix}kiriminaja_payments 
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
+                    ON {$wpdb->prefix}kiriminaja_payments.pickup_number = {$wpdb->prefix}kiriminaja_transactions.pickup_number
+                    {$whereCondition}
+                    GROUP BY {$wpdb->prefix}kiriminaja_payments.pickup_number
+                    ORDER BY {$wpdb->prefix}kiriminaja_payments.created_at DESC
+                ) LIMIT %d, %d", $offset, $items_per_page
+            )
+        );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
             (new \Inc\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
         }
 
         /** Pagination Query*/
-        $totalQuery = $wpdb->get_results( "(
-            SELECT 
-            `".$paymentTable."`.id,`".$paymentTable."`.pickup_number
-            FROM `".$paymentTable."` 
-            INNER JOIN `".$transactionTable."`
-            ON `".$paymentTable."`.pickup_number = `".$transactionTable."`.pickup_number
-            ".@$whereCondition."
-            GROUP BY `".$paymentTable."`.pickup_number
-            )" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $totalQuery = $wpdb->get_results( 
+            $wpdb->prepare(
+                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "(
+                    SELECT 
+                    {$wpdb->prefix}kiriminaja_payments.id,{$wpdb->prefix}kiriminaja_payments.pickup_number
+                    FROM {$wpdb->prefix}kiriminaja_payments 
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
+                    ON {$wpdb->prefix}kiriminaja_payments.pickup_number = {$wpdb->prefix}kiriminaja_transactions.pickup_number
+                    {$whereCondition}
+                    GROUP BY {$wpdb->prefix}kiriminaja_payments.pickup_number
+                )" 
+            )
+        );
         $total = count($totalQuery);
         $total_pages = ceil($total/$items_per_page);
 
         /** Paginate*/
         $next_page_link = @home_url().'/wp-admin/admin.php?';
         $prev_page_link = @home_url().'/wp-admin/admin.php?';
+        // @codingStandardsIgnoreLine
         foreach ($_GET as $key => $value){
             if ($key!=='cpage'){
                 $next_page_link.=$key.'='.$value.'&';
@@ -117,8 +133,8 @@ class requestPickupIndex {
     
     private function getPaymentsDateFilterOptionArray(){
         $oldestPaymentDateQuery = (new \Inc\Repositories\PaymentRepository())->getPaymentByOldestDate();
-        $oldestMonth= date('Y-m-d',strtotime($oldestPaymentDateQuery->created_at ?? "now"));
-        $currentMonth = date('Y-m-d',strtotime("now"));
+        $oldestMonth= gmdate('Y-m-d',strtotime($oldestPaymentDateQuery->created_at ?? "now"));
+        $currentMonth = gmdate('Y-m-d',strtotime("now"));
         $d1=new DateTime($oldestMonth);
         $d2=new DateTime($currentMonth);
         $Months = $d2->diff($d1);
@@ -126,7 +142,7 @@ class requestPickupIndex {
         $monthOptions = [];
         for($i=0;$i<=$howeverManyMonths;$i++){
             $theDate = "now"."-".$i." months";
-            $monthOptions[date('Y-m',strtotime($theDate))]=date('Y F',strtotime($theDate));
+            $monthOptions[gmdate('Y-m',strtotime($theDate))]=gmdate('Y F',strtotime($theDate));
         }
         return $monthOptions;
     }

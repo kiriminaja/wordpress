@@ -50,7 +50,16 @@ class SettingController{
     }
     function storeIntegrationData() {
         try {
-            $service = (new \Inc\Services\SettingService())->processingSetupKey($_POST['data']['setup_key']);
+            
+            // Check for nonce security      
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+                wp_die();
+            }
+
+            $setup_key = isset($_POST['data']['setup_key']) ? sanitize_text_field( wp_unslash($_POST['data']['setup_key'])) : '';
+            $service = (new \Inc\Services\SettingService())->processingSetupKey($setup_key);
+
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -80,12 +89,22 @@ class SettingController{
     
     function storeOriginData(){
         try {
+
+            // Check for nonce security      
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+                wp_die();
+            }
+
             if( !isset($_POST['data']['origin_whitelist_expedition_id'])){
                 $_POST['data']['origin_whitelist_expedition_id']  = '';
                 $_POST['data']['origin_whitelist_expedition_name'] = '';
             }
 
-            $service = (new \Inc\Services\SettingService())->storeOriginData($_POST['data'] ?? []);
+            $data = isset($_POST['data']) ? wp_unslash($_POST['data']) : [];  // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            
+            $service = (new \Inc\Services\SettingService())->storeOriginData($data);
+
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -107,7 +126,16 @@ class SettingController{
     
     function storeCallbackData(){
         try {
-            $service = (new \Inc\Services\SettingService())->storeCallbackData($_POST['data'] ?? []);
+            
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+                wp_die();
+            }
+
+            $data = isset($_POST['data']) ? wp_unslash($_POST['data']) : [];  // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+            $service = (new \Inc\Services\SettingService())->storeCallbackData($data);
+
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -117,7 +145,14 @@ class SettingController{
 
     function storeWhitelistExpedition(){
         try {
-            $search = $_POST['data']['term'] ?? '';
+
+            // Check for nonce security      
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+                wp_die();
+            }
+
+            $search = isset( $_POST['data']['term'] ) ? sanitize_text_field( wp_unslash( $_POST['data']['term'] )) : '';
             $kiriminajaExpedition = (new \Inc\Services\KiriminajaApiService())->get_couriers();
             
             if( !empty($kiriminajaExpedition ) ){

@@ -4,7 +4,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 2.0.0
+Stable tag: 2.0.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,10 +55,23 @@ Yes, you can define rules based on weight, destination, or order total.
 Currently, this plugin only supports domestic shipping within Indonesia.
 
 == Changelog ==
+= 2.0.5 =
+* Add capability to create package with multiple items.
+* Change the print AWB to use the new API.
 
-= 2.0.0 =
-* First release of the plugin.
+= 2.0.4 =
+* Bug fixes and performance improvements.
+
+= 2.0.3 =
+* Bug fixes and performance improvements.
+
+= 2.0.2 =
+* Improved integration with WooCommerce.
+
+= 2.0.1 =
+* First stable release. Please report any issues.
 
 == Upgrade Notice ==
-= 2.0.0 =
-This is the first stable release. Please report any issues.
+
+= 2.0.3 =
+This update includes bug fixes and improvements for better performance. Please ensure to update to this version for a smoother experience.
