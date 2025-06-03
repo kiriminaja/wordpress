@@ -9,7 +9,7 @@
             <div>Order Prefix</div>
             <div style="margin-top: .5rem"></div>
             <div>
-                <input style="width: 100%; max-width: 25rem" name="prefix" type="text" class="input-text regular-input" readonly value="<?php echo esc_attr($inputValueArr['oid_prefix']);?>">
+                <input style="width: 100%; max-width: 25rem" name="prefix" type="text" class="input-text regular-input" readonly value="<?php echo esc_attr($inputValueArr['oid_prefix'] ?? '');?>">
             </div>
         </div>
 
