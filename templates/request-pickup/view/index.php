@@ -397,7 +397,6 @@
                 jQuery('#request-pickup-detail-modal #the-list').empty()
                 let transactionIdList = [];
                 transactions_data.forEach(function (transaction,index){
-                    transactionIdList.push(transaction?.order_id);
                     const parsedShippingInfo = JSON.parse(transaction.shipping_info)
                     
                     let transactionCost = 0
@@ -410,6 +409,7 @@
                     
                     let btnGroup = ``;
                     if (transaction?.awb){
+                        transactionIdList.push(transaction?.order_id);
                         btnGroup += `<button class="button-wp p-relative" type="button">
                                         <a href="${printResiUrl}" target="_blank" class="inset-absolute"></a>
                                         <div style="display: flex">
@@ -470,7 +470,11 @@
                     `)
                 })
                 const printAllResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transactionIdList.join(',')}`;
-
+                if( transactionIdList.length === 0){
+                    jQuery('#request-pickup-detail-modal #print-all-resi-btn').hide();
+                } else {
+                    jQuery('#request-pickup-detail-modal #print-all-resi-btn').show();
+                }
                 jQuery('#request-pickup-detail-modal #print-all-resi').attr('href',printAllResiUrl);
 
             },
