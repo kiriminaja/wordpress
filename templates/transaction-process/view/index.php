@@ -25,10 +25,10 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page']); // @codingStandardsIgnoreLine?>">
+                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page'] ?? ''); // @codingStandardsIgnoreLine?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key']) ?? ''; // @codingStandardsIgnoreLine?>">
-                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month']) ?? ''; // @codingStandardsIgnoreLine?>">
+                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key']?? '') ; // @codingStandardsIgnoreLine?>">
+                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month'] ?? ''); // @codingStandardsIgnoreLine?>">
                                 </form>
 
 
@@ -89,7 +89,7 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key']); // @codingStandardsIgnoreLine?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key'] ?? ''); // @codingStandardsIgnoreLine?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -141,12 +141,19 @@
                                                         <span class="kj-badge processing">'.esc_html( kjHelper()->transactionStatusLabel($row->status)).'</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>'.esc_html($shippingData->_billing_first_name.' '.$shippingData->_billing_last_name.', '.$shippingData->_billing_address_1.', '.$shippingData->_billing_address_2.', '.$row->destination_sub_district.', '.$shippingData->_billing_postcode).'</div>
+                                                            <div>'.esc_html(
+                                                                ($shippingData->_billing_first_name ?? '') . ' ' .
+                                                                ($shippingData->_billing_last_name ?? '') . ', ' .
+                                                                ($shippingData->_billing_address_1 ?? '') . ', ' .
+                                                                ($shippingData->_billing_address_2 ?? '') . ', ' .
+                                                                ($row->destination_sub_district ?? '') . ', ' .
+                                                                ($shippingData->_billing_postcode ?? '')
+                                                            ).'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via '.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").'</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.esc_html($row->wc_order_id).'`)">'.esc_html( ($shippingData->_shipping_first_name ?? $shippingData->_billing_first_name).' '.($shippingData->_shipping_last_name ?? $shippingData->_billing_last_name).', '.($shippingData->_shipping_address_1 ?? $shippingData->_billing_address_1).', '.($shippingData->_shipping_address_2 ?? $shippingData->_billing_address_2).', '.$row->destination_sub_district.', '.($shippingData->_shipping_postcode ?? $shippingData->_billing_postcode) ).'</div>
+                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.esc_html($row->wc_order_id).'`)">'.esc_html( ($shippingData->_shipping_first_name ?? $shippingData->_billing_first_name ?? '').' '.($shippingData->_shipping_last_name ?? $shippingData->_billing_last_name ?? '').', '.($shippingData->_shipping_address_1 ?? $shippingData->_billing_address_1 ?? '').', '.($shippingData->_shipping_address_2 ?? $shippingData->_billing_address_2 ?? '').', '.$row->destination_sub_district.', '.($shippingData->_shipping_postcode ?? $shippingData->_billing_postcode ?? '') ).'</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via '.esc_html(strtoupper($row->service)).'</div>
                                                             <div style="position: relative; margin-top: .1rem"></div>

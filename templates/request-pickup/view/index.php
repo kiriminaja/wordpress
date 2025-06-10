@@ -16,11 +16,11 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_html($_GET['page']);// @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="page" value="<?php echo esc_html($_GET['page'] ?? '');// @codingStandardsIgnoreLine ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_html($_GET['key']); // @codingStandardsIgnoreLine ?>">
-                                    <input type="text" name="status" value="<?php echo esc_html($_GET['status']); // @codingStandardsIgnoreLine ?>">
-                                    <input type="text" name="month" value="<?php echo esc_html($_GET['month']); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="key" value="<?php echo esc_html($_GET['key'] ?? ''); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="status" value="<?php echo esc_html($_GET['status'] ?? ''); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="month" value="<?php echo esc_html($_GET['month'] ?? ''); // @codingStandardsIgnoreLine ?>">
                                 </form>
                                 
                                 
@@ -61,7 +61,7 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_html($_GET['key']);// @codingStandardsIgnoreLine ?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_html($_GET['key'] ?? '');// @codingStandardsIgnoreLine ?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -395,6 +395,7 @@
                 jQuery('#request-pickup-detail-modal #package-non-cod-count').text(kjMoneyFormat(payment_data.non_cod_count ?? 0))
 
                 jQuery('#request-pickup-detail-modal #the-list').empty()
+                let transactionIdList = [];
                 transactions_data.forEach(function (transaction,index){
                     const parsedShippingInfo = JSON.parse(transaction.shipping_info)
                     
@@ -408,6 +409,7 @@
                     
                     let btnGroup = ``;
                     if (transaction?.awb){
+                        transactionIdList.push(transaction?.order_id);
                         btnGroup += `<button class="button-wp p-relative" type="button">
                                         <a href="${printResiUrl}" target="_blank" class="inset-absolute"></a>
                                         <div style="display: flex">
@@ -467,7 +469,13 @@
                         </tr>
                     `)
                 })
-
+                const printAllResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transactionIdList.join(',')}`;
+                if( transactionIdList.length === 0){
+                    jQuery('#request-pickup-detail-modal #print-all-resi-btn').hide();
+                } else {
+                    jQuery('#request-pickup-detail-modal #print-all-resi-btn').show();
+                }
+                jQuery('#request-pickup-detail-modal #print-all-resi').attr('href',printAllResiUrl);
 
             },
         });

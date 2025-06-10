@@ -12,7 +12,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_name" placeholder="<?php echo esc_html( kjHelper()->tlThis('Sender Name',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_name']);?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_name" placeholder="<?php echo esc_html( kjHelper()->tlThis('Sender Name',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_name'] ?? '');?>" >
             </td>
         </tr>
         <tr valign="top">
@@ -22,7 +22,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo esc_html( kjHelper()->tlThis('Sender Phone',$locale) ); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_phone']);?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo esc_html( kjHelper()->tlThis('Sender Phone',$locale) ); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_phone'] ?? '');?>" >
             </td>
         </tr>
         
@@ -33,7 +33,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo esc_html(kjHelper()->tlThis('Address',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_address']);?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo esc_html(kjHelper()->tlThis('Address',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_address'] ?? '');?>" >
             </td>
         </tr>
         <!-- Lat Long -->
@@ -44,7 +44,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_latitude" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Latitude',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_latitude']);?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_latitude" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Latitude',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_latitude'] ?? '');?>" >
             </td>
         </tr>
 
@@ -55,7 +55,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_longitude" placeholder="<?php echo esc_html(kjHelper()->tlThis('Longitude',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_longitude']);?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_longitude" placeholder="<?php echo esc_html(kjHelper()->tlThis('Longitude',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_longitude'] ?? '');?>" >
             </td>
         </tr>
 
@@ -68,7 +68,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Zipcode',$locale)); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_zip_code']);?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Zipcode',$locale)); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_zip_code'] ?? '');?>" >
             </td>
         </tr>
         <tr valign="top">
