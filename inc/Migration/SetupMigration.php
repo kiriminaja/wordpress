@@ -122,41 +122,18 @@ class SetupMigration {
         }else{
              /** Alters*/
              // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching	
-             $columns = $wpdb->get_results("DESCRIBE $table_name");
-             $column_requered = array('canceled_at' => 'timestamp NULL DEFAULT NULL');
-             $field_status = 'status';
-             $field_canceled_at = 'canceled_at';
-             $field_type_status = false;
-             $column_exist = false;
-             foreach( $column_requered as $column_name => $column_data_type ){
-                 foreach( $columns as $column ){
-                     // update data Type Column Table
-                     if( ( $column->Field === $field_status) ){
-                         $field_type_status = true; 
-                         break;
-                     }    
-                     // update add new column
-                     if ( $column->Field === $column_name ) {
-                         $column_exist = true;    
-                         break;    
-                     }     
-                                     
-                 }
-             }
-             
-             // Add new column
-            if( !$column_exist ){
-                
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange	
-                $wpdb->query("ALTER TABLE $table_name ADD $column_name $column_data_type");
-             
+            $columns = $wpdb->get_col("DESCRIBE $table_name", 0);
+
+            // Add 'canceled_at' column if it doesn't exist
+            if (!in_array('canceled_at', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query("ALTER TABLE $table_name ADD canceled_at timestamp NULL DEFAULT NULL");
             }
-             if( $field_type_status ){
-                 
-                $column_and_type = "status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'";
-                
-                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN $column_and_type");
+
+            // Ensure 'status' column has the correct enum values
+            if (in_array('status', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
             }
             
         }

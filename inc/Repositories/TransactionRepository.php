@@ -304,6 +304,26 @@ class TransactionRepository{
         return $query;
     }
 
+    public function getTransctionByOrderIds($orderIds){
+        global $wpdb;
+
+        $transactionTable = $wpdb->prefix . 'kiriminaja_transactions';
+        $placeholders = implode(', ', array_fill(0, count($orderIds), '%s'));
+        $preparedQuery = $wpdb->prepare(
+            //phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+            "SELECT * FROM {$transactionTable} WHERE order_id IN ($placeholders)",
+            ...$orderIds
+        );
+        error_log('Prepared Query: ' . $preparedQuery);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $query = $wpdb->get_results($preparedQuery);
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+
     public function getCountTransactionProcessNew(){
         global $wpdb;
 

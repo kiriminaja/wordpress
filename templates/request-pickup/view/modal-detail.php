@@ -11,7 +11,7 @@
                 <div class="content-header" style="background-color: white; display: flex; justify-content: space-between; align-items: center;">
                     <h1><?php esc_html_e('Request Pickup Detail','plugin-wp'); ?></h1>
                     <div style="margin-right: 3rem;">
-                        <button class="button-wp p-relative" type="button" style="border-radius: 4px;">
+                        <button class="button-wp p-relative" type="button" style="border-radius: 4px; display: none;" id="print-all-resi-btn">
                             <a href="#" target="_blank" class="inset-absolute" id="print-all-resi"></a>
                             <div style="display: flex">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">

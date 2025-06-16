@@ -10,7 +10,7 @@
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="callback_url" type="text" class="input-text regular-input" value="<?php echo esc_url( $inputValueArr['callback_url'] );?>" >
+                <input style="width: 100%; max-width: 25rem" name="callback_url" type="text" class="input-text regular-input" value="<?php echo esc_url( $inputValueArr['callback_url'] ?? '' );?>" >
             </td>
         </tr>
         </tbody>

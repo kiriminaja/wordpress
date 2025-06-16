@@ -107,19 +107,21 @@ class ShippingProcessController
                 wp_redirect(home_url('/404'));
                 exit;
             }
-            $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIdsForResiPrint($orderIds);
+            $transactions = (new \Inc\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
 
             $awbs = [];
-            $pickupNumber = '';
+            $filename = '';
             foreach ($transactions as $transaction) {
                 if (isset($transaction->awb) && !empty($transaction->awb)) {
                     $awbs[] = $transaction->awb;
                 }
                 if (isset($transaction->pickup_number) && !empty($transaction->pickup_number)) {
-                    $pickupNumber = $transaction->pickup_number;
+                    $filename = $transaction->pickup_number;
                 }
             }
-
+            if (count($awbs) == 1) {
+                $filename = $awbs[0] ?? 'resi';
+            }
             $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
 
             if (
@@ -137,7 +139,7 @@ class ShippingProcessController
                 exit;
             }
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="print-resi-' . $pickupNumber . '.pdf"');
+            header('Content-Disposition: attachment; filename="print-resi-' . $filename . '.pdf"');
             header('Content-Length: ' . strlen($pdfContent));
             echo $pdfContent;
             exit;
