@@ -381,4 +381,114 @@ class TransactionRepository{
         }
         return true;
     }
+
+    public function getHistoryPackageDatatable(array $payloads){
+        global $wpdb;
+
+        $search_value = $payloads['search_value'];
+        $start        = $payloads['start'];
+        $length       = $payloads['length'];
+        $status       = $payloads['status'];
+        $advancedsearch = $payloads['advancedsearch'];
+        $total_query = '';
+
+        $table_name = $this->table;
+        
+        $query = "SELECT * FROM $table_name WHERE destination_sub_district != '0' ";
+
+        if (!empty($search_value)) {
+            $query .= $wpdb->prepare(" AND (order_id LIKE %s OR destination_sub_district LIKE %s)", '%' . $wpdb->esc_like($search_value) . '%', '%' . $wpdb->esc_like($search_value) . '%');
+        }
+        
+        if($status != 'all'){
+            $query .= " AND status='$status' ";
+            $total_query = " AND status='$status' ";
+        }
+
+        $sql_total = "SELECT COUNT(*) FROM $table_name WHERE destination_sub_district != '0' $total_query";
+
+        if(!empty($advancedsearch)){
+            if( isset( $advancedsearch['stext'] ) && !empty($advancedsearch['stext']) ){
+                switch ($advancedsearch['prefix']) {
+                    case 'oid':
+                        $query.= $wpdb->prepare(" AND order_id LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        $sql_total .= $wpdb->prepare(" AND order_id LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        break;
+                    case 'awb':
+                        $query.= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        $sql_total .= $wpdb->prepare(" AND awb LIKE %s", '%'. $wpdb->esc_like($advancedsearch['stext']). '%');
+                        break;
+                    case 'hp':
+                        $query .= $wpdb->prepare(" AND JSON_EXTRACT(shipping_info, '$._billing_phone') = %s", $wpdb->esc_like($advancedsearch['stext']));
+                        $sql_total .= $wpdb->prepare(" AND JSON_EXTRACT(shipping_info, '$._billing_phone') = %s", $wpdb->esc_like($advancedsearch['stext']));
+                        break;
+                }
+                
+            }
+            if( isset( $advancedsearch['expedition'] ) && !empty($advancedsearch['expedition']) ){
+                $query.= $wpdb->prepare(" AND service = %s", $advancedsearch['expedition']);
+                $sql_total .= $wpdb->prepare(" AND service = %s", $advancedsearch['expedition']);
+            }
+
+            if( isset( $advancedsearch['payment'] ) && !empty($advancedsearch['payment']) ){
+                if ($advancedsearch['payment'] == 'cod') {
+                    $sql_total .= $wpdb->prepare(" AND cod_fee > %d", 0);
+                    $query .= $wpdb->prepare(" AND cod_fee > %d", 0);
+                }else{
+                    $sql_total .= $wpdb->prepare(" AND cod_fee = %d", 0);
+                    $query .= $wpdb->prepare(" AND cod_fee = %d", 0);
+                } 
+            }
+            
+            if( isset($advancedsearch['shippingaddress']) && !empty($advancedsearch['shippingaddress']) ){
+                $query.= $wpdb->prepare(" AND destination_sub_district_id = %d", $advancedsearch['shippingaddress']);
+                $sql_total .= $wpdb->prepare(" AND destination_sub_district_id = %d", $advancedsearch['shippingaddress']);
+            }
+        }
+
+        $query .= " ORDER BY created_at DESC"; 
+        
+        $total_count = $wpdb->get_var($sql_total);
+
+        if ($length != -1) {
+            $query .= $wpdb->prepare(" LIMIT %d, %d", $start, $length);
+        }
+
+        
+        $results = $wpdb->get_results($query,'ARRAY_A');
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        
+        return compact(
+            'results',
+            'total_count',
+        );
+
+    }
+
+    public function getCountTabHistory($status='all'){
+        global $wpdb;
+        
+        $andWhere = ( $status != 'all' ) ? " AND status = '$status' " : '';
+
+        $query = $wpdb->get_var("SELECT COUNT(*) FROM ".$this->table." WHERE destination_sub_district != '0' $andWhere");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
+
+    public function getShippingAddress(){
+        global $wpdb;
+        $query = $wpdb->get_results("SELECT DISTINCT destination_sub_district_id,destination_sub_district FROM ".$this->table." WHERE destination_sub_district != '0' AND destination_sub_district != '' ORDER BY destination_sub_district ASC");
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        return $query;
+    }
 }

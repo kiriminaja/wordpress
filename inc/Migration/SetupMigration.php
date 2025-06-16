@@ -138,7 +138,6 @@ class SetupMigration {
             
         }
 
-        /** Alters*/
     }
     
     private function paymentsTable(){

@@ -1,7 +1,17 @@
 <script>
-    jQuery(document).ready(function (){
-        getKiriminAjaTransactionData()
-    })
+    var $ = jQuery;
+    var orderIDdataItem;
+    var orderIDdataItemShipping = document.querySelector('#order_shipping_line_items tr.shipping').getAttribute('data-order_item_id');
+    var orderItemLineClass = $('#order_shipping_line_items .shipping');
+
+    jQuery(document).ready(function (){  
+        /**
+         * Get Tracking By Order Number (Order ID) from Woocommerce
+         **/      
+        getKiriminAjaTransactionData();
+    
+    });
+
     function getKiriminAjaTransactionData(){
         let orderId = `<?php echo esc_html($orderId); ?>`;
         let trackingUrl = `<?php echo esc_url($trackingUrl); ?>`;
@@ -12,6 +22,7 @@
         let label_ppn = '11%';
         let tBodycontent = '';
         
+        jQuery('#side-sortables').find('#woocommerce-customer-history').remove();
         jQuery('#side-sortables').append(`
 <div id="woocommerce-customer-history" class="postbox ">
    <div class="postbox-header">

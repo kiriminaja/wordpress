@@ -37,6 +37,7 @@ class SettingController{
 
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
+        
     }
     function getIntegrationData() {
         try {

@@ -19,12 +19,16 @@ class CheckoutController
     private $field_shipping_destination_key  = 'kj_shipping_destination_area';
     private $field_shipping_insurance_key  = 'kj_shipping_insurance';
 
+    private $shipping_method_id = 'kiriminaja';
 
     public function register()
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
         if (is_plugin_active('woocommerce/woocommerce.php')) {
+
+            //before total oder cart
+            add_action('woocommerce_cart_totals_before_order_total',array($this,'kj_cartBeforeTotalOrder'));
 
             //before total order checkout
             add_action('woocommerce_review_order_before_order_total',array($this,'kj_reviewOrderBeforeTotalOrder'));
@@ -91,11 +95,24 @@ class CheckoutController
     }
 
     function kj_reviewOrderBeforeTotalOrder(){
+
         if( !is_checkout() ){
             return false;
         }
+
+        $wc_session_data = $this->kj_getSessionWCShippingAndSubtotal();
         
-        $table = '<tr class="kj_cart_item_insurane" style="display:none;">
+        if( empty($wc_session_data) ) return;
+
+        $table = '<tr class="kj-label-shipping-checkout">
+			<th>'.__('Label','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
+			<td>'.$wc_session_data['label'].'</td>
+		</tr>
+        <tr class="kj-cost-shipping-checkout">
+			<th>'.__('Cost','kiriminaja').'<em style="font-size: 12px;font-weight: 300;">(Shipping)</em></th>
+			<td>'.wc_price($wc_session_data['cost']).'</td>
+		</tr>
+        <tr class="kj_cart_item_insurane" style="display:none;">
 			<td class="kj-cart-insurance">
 				<label for="kj_cart_insurance">'.__('Insurance','plugin-wp').'</label>											
             </td>

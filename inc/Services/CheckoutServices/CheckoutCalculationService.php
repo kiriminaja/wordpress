@@ -70,7 +70,7 @@ wc_cart_contents
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
-
+        
         
         (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
@@ -96,6 +96,7 @@ wc_cart_contents
 
         /** jika expedisi terpilih  tidak ada*/
         $this->selectedExpedition = self::getSelectedExpedition();
+        
         if (!$this->selectedExpedition){
             return self::error([],'Expedition Not Found');
         }
@@ -151,6 +152,7 @@ wc_cart_contents
     private function getSelectedExpedition(){
         $service = explode('_',$this->expedition)[0];
         $service_type = explode('_',$this->expedition)[1];
+
         $selected_expedition = array_filter(@$this->pricingData->results ?? [],function ($obj) use ($service,$service_type){
             return strtolower($obj->service) == strtolower($service) && strtolower($obj->service_type) == strtolower($service_type);
         });

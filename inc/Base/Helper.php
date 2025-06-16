@@ -114,4 +114,45 @@ class Helper extends  BaseInit {
     
         return $date->format("Y-m-d H:i:s");
     }
+
+    public function getTransactionStatus($status):string{
+
+        switch ($status){
+            case "new":
+                return "Req Pickup";
+                break;
+            case "request_pickup":
+                return "Request Pickup";
+                break;
+            case "pending":
+                return "Pending";
+                break;
+            case "finished":
+                return "Paket Terkirim";
+                break;
+            case "shipped":
+                return "Proses Pengiriman";
+                break;
+            case "return":
+                return "Proses Pengembalian";
+                break;
+            case "returned":
+                return "Paket Selesai di Kembalikan";
+                break;
+            case "rejected":
+                return "Paket Ditolak";
+                break;
+            case "canceled":
+                return "Paket Batal";
+                break;
+            default;
+            return "-";
+        }
+      
+    }
+
+    public function changeDateFormat($datetime,$format = "Y-m-d H:i:s"){
+        $date = date_create($datetime);
+        return date_format($date,$format);
+    }
 }

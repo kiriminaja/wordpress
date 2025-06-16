@@ -233,4 +233,5 @@ class SettingRepository{
         return $datas;
         
     }
+
 }

@@ -269,7 +269,6 @@ class CallbackHandlerService extends BaseService{
     /** Cancel Packages Callback */
     public function canceledPackages(){
         try {
-
             foreach ($this->packages as $package){
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));

@@ -100,6 +100,7 @@
                                                         <span>Paid</span>
                                                     </div>
                                                 ';
+
                                                 if (@$row->status!=="paid"){
                                                     if (strtotime(@$row->pickup_schedule)>strtotime("now")){
                                                         $btnGroup.='
@@ -374,7 +375,9 @@
                 },         // any JS object
             },
             complete: function (response) {
+                
                 const resp = JSON.parse(response.responseText).data;
+                
                 if (resp?.status !== 200){
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
