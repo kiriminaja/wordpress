@@ -25,7 +25,7 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: 'zip'
-          filename: kiriminaja-${{ github.ref_name }}-dev.zip
+          filename: kiriminaja-${{ github.ref_name }}.zip
           exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
 
       - name: Authenticate to GCP
@@ -37,7 +37,7 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ github.ref_name }}-dev.zip
+          path: kiriminaja-${{ github.ref_name }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: 'publicRead'
 #  deploy:
