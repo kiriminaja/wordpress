@@ -5,12 +5,47 @@ on:
       - staging
 
 jobs:
-  deploy:
-    runs-on: [self-hosted,kaj-dev-runner]
+  upload-gcs-prd:
+    name: 'Build & Push'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - uses: actions/checkout@v2
-         
-      - name: Deploy
-        run: |
-          cd /home/devstag/kaj-stg/kaj-stg-latest-plugin-wp/wp-content/plugins/plugin-wp # navigate into the folder
-          git pull origin staging # pull the latest code from branch staging
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get current time
+        id: date
+        run: echo "::set-output name=date::$(TZ="Asia/Jakarta" date +'%Y-%m-%d %H:%I')"
+
+      - name: Archive release
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: 'zip'
+          filename: kiriminaja-${{ github.ref_name }}.zip
+          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_PRD_CICD }}
+
+      - name: Uploading ZIP
+        id: upload-zip
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: kiriminaja-${{ github.ref_name }}.zip
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
+          predefinedAcl: 'publicRead'
+#  deploy:
+#    runs-on: [self-hosted,kaj-dev-runner]
+#    steps:
+#      - uses: actions/checkout@v2
+#         
+#      - name: Deploy
+#        run: |
+#          cd /home/devstag/kaj-stg/kaj-stg-latest-plugin-wp/wp-content/plugins/plugin-wp # navigate into the folder
+#          git pull origin staging # pull the latest code from branch staging
