@@ -55,6 +55,9 @@ Yes, you can define rules based on weight, destination, or order total.
 Currently, this plugin only supports domestic shipping within Indonesia.
 
 == Changelog ==
+= 2.0.6 =
+* Fix issue on webhook handler.
+
 = 2.0.5 =
 * Add capability to create package with multiple items.
 * Change the print AWB to use the new API.

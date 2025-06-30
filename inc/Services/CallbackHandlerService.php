@@ -30,8 +30,9 @@ class CallbackHandlerService extends BaseService{
             return self::error([],'Authorization failed');
         }
 
-        $this->packages = @$this->body->data ?? [];
- 
+        if (isset($this->body->data) && !empty($this->body->data)) {
+            $this->packages = [$this->body->data];
+        }
         $orderIds = array_column($this->packages, 'order_id') ?? [];
         /** check if transaction exists */
         $this->transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
