@@ -33,7 +33,7 @@ class EditOrderController{
         
         
         if ( !isset($_POST['nonce']) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] )), $this->nonce ) ) {
-            die( esc_html__( 'Security check', 'plugin-wp' ) ); 
+            die( esc_html__( 'Security check', 'kiriminaja' ) ); 
         }
 
         $post = $_POST;
@@ -298,7 +298,7 @@ class EditOrderController{
         
 
         $billing_fields['kj_destination_area'] = array(
-            'label' => __( 'Subdistrict', 'plugin-wp' ),
+            'label' => __( 'Subdistrict', 'kiriminaja' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -315,7 +315,7 @@ class EditOrderController{
         );
 
         $billing_fields['kj_insurance'] = array(
-            'label' => __( 'Insurance', 'plugin-wp' ),
+            'label' => __( 'Insurance', 'kiriminaja' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -339,7 +339,7 @@ class EditOrderController{
     
 
         $shipping_fields['kj_destination_area'] = array(
-            'label' => __( 'Subdistrict', 'plugin-wp' ),
+            'label' => __( 'Subdistrict', 'kiriminaja' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -356,7 +356,7 @@ class EditOrderController{
         );
 
         $shipping_fields['kj_insurance'] = array(
-            'label' => __( 'Insurance', 'plugin-wp' ),
+            'label' => __( 'Insurance', 'kiriminaja' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
@@ -377,12 +377,12 @@ class EditOrderController{
         $insurance_style = ( empty($insurance) ) ? 'none' : 'show';
         
         $table = '<tr class="codfee" style="display:'.$insurance_style.';">
-            <td class="label">'.__('Cod Fee','plugin-wp').':</td>
+            <td class="label">'.__('Cod Fee','kiriminaja').':</td>
             <td width="1%"></td>
             <td class="total">'.wc_price($cod).'</td>
         </tr>
         <tr class="insurancefee" style="display:'.$cod_style.';">
-            <td class="label">'.__('Insurance Fee','plugin-wp').':</td>
+            <td class="label">'.__('Insurance Fee','kiriminaja').':</td>
             <td width="1%"></td>
             <td class="total">'.wc_price($insurance).'</td>
         </tr>';

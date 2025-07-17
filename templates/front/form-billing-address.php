@@ -146,7 +146,7 @@
 
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo esc_html__('Select Option','plugin-wp'); ?>",
+                placeholder: "<?php echo esc_html__('Select Option','kiriminaja'); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,

@@ -142,9 +142,8 @@ class SendRequestPickupTransactionService extends BaseService
                 }
             }
             $item_name = $combinedItemNames;
-
             $note = "Order No : ".$transaction->wp_wc_order_stat_order_id ." | ".get_home_url();
-            
+            $note = preg_replace('/^[a-zA-Z\d.\/:,\+\-()\'\"_&;?\s]*$/', '', $note);
             $result = [
                 "order_id"                  => $transaction->order_id,
                 "destination_name"          => (@$shipping_info->_shipping_first_name ?? @$shipping_info->_billing_first_name).' '.(@$shipping_info->_shipping_last_name ?? @$shipping_info->_billing_last_name),
