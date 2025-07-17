@@ -26,9 +26,9 @@ class AdminWoocommerceSettings
         foreach ($columns as $column_name => $column_info) {
             $new_columns[$column_name] = $column_info;
             if ('order_status' === $column_name) {
-                $new_columns['shipping_method'] = __('Shipping', 'plugin-wp');
-                $new_columns['payment_method'] = __('Payment', 'plugin-wp');
-                $new_columns['is_insurance'] = __('Insurance', 'plugin-wp');
+                $new_columns['shipping_method'] = __('Shipping', 'kiriminaja');
+                $new_columns['payment_method'] = __('Payment', 'kiriminaja');
+                $new_columns['is_insurance'] = __('Insurance', 'kiriminaja');
             }
         }
         return $new_columns;
@@ -62,7 +62,7 @@ class AdminWoocommerceSettings
                 echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 
                 if( $order->get_meta( '_kj_ppn' )){
-                    echo '<br/><em>('.esc_html__('include 11% Vat','plugin-wp').')</em>';
+                    echo '<br/><em>('.esc_html__('include 11% Vat','kiriminaja').')</em>';
                 }
 
             }else{
