@@ -55,7 +55,7 @@ class CreateTransactionService extends BaseService{
                 "width"                         => $checkoutCalc['data']['carts_attribute']['width'],
                 "height"                        => $checkoutCalc['data']['carts_attribute']['height'],
                 'shipping_cost'                 => $checkoutCalc['data']['calculation_result']['ongkir_fee_amt'],
-                'insurance_cost'                => $checkoutCalc['data']['calculation_result']['insurance_amt'],
+                'insurance_cost'                => $this->payload['checkout_post_data']['kj_insurance'] ? $checkoutCalc['data']['calculation_result']['insurance_amt'] : 0,
                 'cod_fee'                       => $checkoutCalc['data']['calculation_result']['cod_amt'],
                 'transaction_value'             => $checkoutCalc['data']['calculation_result']['cart_total_amt'],
                 'created_at'                    => gmdate('Y-m-d H:i:s',strtotime("now")),
@@ -134,7 +134,7 @@ class CreateTransactionService extends BaseService{
         $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
             'destination_area_id'   => $this->payload['kj_destination_area'],
             'expedition'            => $this->payload['kj_expedition'],
-            'is_insurance'          => $this->payload['is_insurance'] ?? 0,
+            'is_insurance'          => $this->payload['kj_insurance'] ?? 0,
             'is_cod'                => $this->payload['is_cod'],
             'wc_cart_contents'      => $this->payload['wc_cart_contents'],
         ]))->call();
