@@ -125,16 +125,17 @@ function kj_getDestinationArea(){
 
                 if( !empty($post['payment_method']) || !empty($post['shipping_metode_id']) ){
                     $cod_amt = (float) $service->data['calculation_result']['cod_amt'] ?? 0;
+                    $ongkir_amt = (float) $service->data['calculation_result']['ongkir_fee_amt'] ?? 0;
                     $insurance_amt = (float) $service->data['calculation_result']['insurance_amt'] ?? 0;
-                    $order_total = (float) WC()->cart->get_total('raw');
+                    $order_total = (float) $service->data['calculation_result']['cart_total_amt'] ?? 0;
 
-                    $datas['price_total'] = wc_price( $cod_amt + $insurance_amt + $order_total );
+                    $datas['price_total'] = wc_price( $cod_amt + $insurance_amt + $order_total + $ongkir_amt );
                 }
 
                 $datas['force_insurance'] = $service->data['calculation_result']['selected_expedition']->force_insurance == false ? 0 : 1;
 
                 $datas['services'] = $service->data;
-                
+
                 WC()->cart->calculate_totals();
                 
                 wp_send_json_success( $datas );

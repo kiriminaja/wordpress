@@ -431,7 +431,7 @@ class CheckoutController
 				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.home_url().'/tracking?order_id='.$order->get_id().'">'.__('Click','plugin-wp').'</a></td>
 			</tr>';
 
-        if( $order->get_meta('_'.$this->field_insurance_key) == true ){
+        if( $order->get_meta('_'.$this->field_insurance_key) == true || $transactionKiriminaja->insurance_cost > 0 ){
             $html .= '
             <tr>
 				<th scope="row">'.__('Insurance','plugin-wp').':</th>
