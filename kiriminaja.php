@@ -3,12 +3,12 @@
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
  * Description:     Integrate to all best delivery services across the nusantara
- * Version:         2.0.6
+ * Version:         2.0.7
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
- * Text Domain:     plugin-wp
+ * Text Domain:     kiriminaja
  * Domain Path:     /lang
  * WC requires at least: 5.0.0
  * WC tested up to: 7.1
@@ -28,7 +28,7 @@ define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
 define('KJ_SLUG' ,plugin_basename(__DIR__));
 define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
-define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.6') );
+define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.7') );
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
@@ -91,11 +91,11 @@ function kj_shipping_plugin_woocommerce_notice() {
         $message = sprintf(
             wp_kses(
                 /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
-                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'plugin-wp' ),
+                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'kiriminaja' ),
                 [ 'strong' => [] ]
             ),
-            __( 'Plugin Kiriminaja', 'plugin-wp' ),
-            __( 'WooCommerce', 'plugin-wp' )
+            __( 'Plugin Kiriminaja', 'kiriminaja' ),
+            __( 'WooCommerce', 'kiriminaja' )
         );
 
         echo '<div class="notice notice-error"><p>' . wp_kses_post($message) . '</p></div>';
@@ -117,7 +117,7 @@ function activate_kj_plugin(){
                 /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
                 __(
                     '%1$s requires %2$s to be installed and activated. Please install and activate WooCommerce before activating this plugin.',
-                    'plugin-wp'
+                    'kiriminaja'
                 ),
                 [] // No HTML allowed in the translatable string
             ),
@@ -125,12 +125,12 @@ function activate_kj_plugin(){
             '<strong>WooCommerce</strong>'
         );
 
-        $message .= '<p><a href="' . esc_url(admin_url('plugins.php')) . '">&laquo; ' . esc_html__('Return to Plugins', 'plugin-wp') . '</a></p>';
+        $message .= '<p><a href="' . esc_url(admin_url('plugins.php')) . '">&laquo; ' . esc_html__('Return to Plugins', 'kiriminaja') . '</a></p>';
 
         // Output the error message
         wp_die(
             wp_kses_post('<p>' . $message . '</p>'),
-            esc_html__('Plugin Activation Error', 'plugin-wp')
+            esc_html__('Plugin Activation Error', 'kiriminaja')
         );
 
     }

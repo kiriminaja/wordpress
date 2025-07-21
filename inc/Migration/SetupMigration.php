@@ -126,13 +126,13 @@ class SetupMigration {
 
             // Add 'canceled_at' column if it doesn't exist
             if (!in_array('canceled_at', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $wpdb->query("ALTER TABLE $table_name ADD canceled_at timestamp NULL DEFAULT NULL");
             }
 
             // Ensure 'status' column has the correct enum values
             if (in_array('status', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
             }
             

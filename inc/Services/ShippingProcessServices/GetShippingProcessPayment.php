@@ -67,6 +67,9 @@ class GetShippingProcessPayment extends BaseService{
     }
     
     private function convertTimeToSettingTimezone($dateTime){
+        if (empty($dateTime)) {
+            return gmdate('Y-m-d H:i:s');
+        }
         $dt = new DateTime("now", new DateTimeZone($this->timeZone));
         $dt->setTimestamp(strtotime($dateTime));
         $date = $dt->format('Y-m-d H:i:s');
