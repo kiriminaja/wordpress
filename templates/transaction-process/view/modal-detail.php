@@ -10,7 +10,7 @@
                 </div>
                 <div class="content-header" style="background-color: white;position: relative" >
                     <h1>Order #<span class="wc-order-id"></span></h1>
-                    <div style="position: absolute;top: 16px;right: 36px;" class="status-container"><span class="kj-badge processing"><?php esc_html_e('New','plugin-wp');?></span></div>
+                    <div style="position: absolute;top: 16px;right: 36px;" class="status-container"><span class="kj-badge processing"><?php esc_html_e('New','kiriminaja');?></span></div>
                     
                 </div>
                 <div class="content-body" style="padding: 20px 0 20px 0">
@@ -115,8 +115,8 @@
                     </div>
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
-                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','plugin-wp'); ?></p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="showTransactionSummaryModalRefresh()"><?php esc_html_e('Refresh','plugin-wp'); ?></button>
+                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','kiriminaja'); ?></p>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="showTransactionSummaryModalRefresh()"><?php esc_html_e('Refresh','kiriminaja'); ?></button>
                     </div>
 
                 </div>

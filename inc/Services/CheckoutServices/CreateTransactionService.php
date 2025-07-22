@@ -3,6 +3,7 @@
 namespace Inc\Services\CheckoutServices;
 
 use Inc\Base\BaseService;
+use WC_Order_Item_Fee;
 
 class CreateTransactionService extends BaseService{
     
@@ -32,7 +33,7 @@ class CreateTransactionService extends BaseService{
         try {
             
             $checkoutCalc = self::getCheckoutCalculation();
-            
+
             if (!$checkoutCalc['status']){ 
                 return self::error([],$checkoutCalc['message']);
             }
@@ -42,6 +43,13 @@ class CreateTransactionService extends BaseService{
             if (!$requiredPostMeta['status']){ return self::error([],$requiredPostMeta['message']);}
 
             /** Generating Payload*/
+
+            if ( $this->payload['checkout_post_data']['kj_insurance'] || @$checkoutCalc['data']['calculation_result']['selected_expedition']->force_insurance ) {
+                $insurance_cost = $checkoutCalc['data']['calculation_result']['insurance_amt'];
+            } else {
+                $insurance_cost = 0;
+            }
+
             $payload = [
                 'order_id'                      => (new \Inc\Services\KiriminAja\GenerateOrderId())->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
@@ -55,12 +63,11 @@ class CreateTransactionService extends BaseService{
                 "width"                         => $checkoutCalc['data']['carts_attribute']['width'],
                 "height"                        => $checkoutCalc['data']['carts_attribute']['height'],
                 'shipping_cost'                 => $checkoutCalc['data']['calculation_result']['ongkir_fee_amt'],
-                'insurance_cost'                => $checkoutCalc['data']['calculation_result']['insurance_amt'],
+                'insurance_cost'                => $insurance_cost,
                 'cod_fee'                       => $checkoutCalc['data']['calculation_result']['cod_amt'],
                 'transaction_value'             => $checkoutCalc['data']['calculation_result']['cart_total_amt'],
                 'created_at'                    => gmdate('Y-m-d H:i:s',strtotime("now")),
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],
-
             ];
             
             /** Update WC Total Order */
@@ -83,6 +90,7 @@ class CreateTransactionService extends BaseService{
 
     private function updateWcTotalOrder(){
 
+       
         $order = wc_get_order($this->payload['order_id']);
         $total_order = $order->get_total();
 
@@ -92,18 +100,30 @@ class CreateTransactionService extends BaseService{
             return self::error([],$checkoutCalc['message']);
         }
 
-        $is_insurance = $this->payload['is_insurance'] ?? 0;
+        $is_insurance = $this->payload['checkout_post_data']['kj_insurance'] || @$checkoutCalc['data']['calculation_result']['selected_expedition']->force_insurance ?? 0;
         $is_cod = $this->payload['is_cod'] ?? 0;
         
         if( $is_cod ){
-            $total_order += $checkoutCalc['data']['calculation_result']['cod_amt'];
+            $cod_amt = $checkoutCalc['data']['calculation_result']['cod_amt'];
+            $total_order += $cod_amt;
+            $cod_fee = new WC_Order_Item_Fee();
+            $cod_fee->set_name('COD Fee');
+            $cod_fee->set_amount($cod_amt);
+            $cod_fee->set_total($cod_amt);
+            $order->add_item($cod_fee); 
         }
 
         if( $is_insurance  ){
-            $total_order += $checkoutCalc['data']['calculation_result']['insurance_amt'];
+            $insurance_amt = $checkoutCalc['data']['calculation_result']['insurance_amt'];
+            $total_order += $insurance_amt;
+            $insurance_fee = new WC_Order_Item_Fee();
+            $insurance_fee->set_name('Insurance');
+            $insurance_fee->set_amount($insurance_amt);
+            $insurance_fee->set_total($insurance_amt);
+            $order->add_item($insurance_fee);
         }
-
-        $order->set_total($total_order);
+        
+        $order->calculate_totals();
         $order->save();
     }
     
@@ -131,6 +151,11 @@ class CreateTransactionService extends BaseService{
     }
     
     private function getCheckoutCalculation(){
+        if ($this->payload['checkout_post_data']['kj_insurance'] || @$checkoutCalc['data']['calculation_result']['selected_expedition']->force_insurance) {
+            $this->payload['is_insurance'] = 1;
+        } else {
+            $this->payload['is_insurance'] = 0;
+        }
         $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
             'destination_area_id'   => $this->payload['kj_destination_area'],
             'expedition'            => $this->payload['kj_expedition'],

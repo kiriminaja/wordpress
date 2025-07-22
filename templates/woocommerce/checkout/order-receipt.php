@@ -22,20 +22,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <ul class="order_details">
 	<li class="order">
-		<?php esc_html_e( 'Order number:', 'plugin-wp' ); ?>
+		<?php esc_html_e( 'Order number:', 'kiriminaja' ); ?>
 		<strong><?php echo esc_html( $order->get_order_number() ); ?></strong>
 	</li>
 	<li class="date">
-		<?php esc_html_e( 'Date:', 'plugin-wp' ); ?>
+		<?php esc_html_e( 'Date:', 'kiriminaja' ); ?>
 		<strong><?php echo esc_html( wc_format_datetime( $order->get_date_created() ) ); ?></strong>
 	</li>
 	<li class="total">
-		<?php esc_html_e( 'Total:', 'plugin-wp' ); ?>
+		<?php esc_html_e( 'Total:', 'kiriminaja' ); ?>
 		<strong><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></strong>
 	</li>
 	<?php if ( $order->get_payment_method_title() ) : ?>
 	<li class="method">
-		<?php esc_html_e( 'Payment method:', 'plugin-wp' ); ?>
+		<?php esc_html_e( 'Payment method:', 'kiriminaja' ); ?>
 		<strong><?php echo wp_kses_post( $order->get_payment_method_title() ); ?></strong>
 	</li>
 	<?php endif; ?>

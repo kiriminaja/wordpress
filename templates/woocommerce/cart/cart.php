@@ -27,12 +27,12 @@ do_action( 'woocommerce_before_cart' ); ?>
         <table class="shop_table shop_table_responsive cart woocommerce-cart-form__contents" cellspacing="0">
             <thead>
                 <tr>
-                    <th class="product-remove"><span class="screen-reader-text"><?php esc_html_e( 'Remove item', 'plugin-wp' ); ?></span></th>
-                    <th class="product-thumbnail"><span class="screen-reader-text"><?php esc_html_e( 'Thumbnail image', 'plugin-wp' ); ?></span></th>
-                    <th class="product-name"><?php esc_html_e( 'Product', 'plugin-wp' ); ?></th>
-                    <th class="product-price"><?php esc_html_e( 'Price', 'plugin-wp' ); ?></th>
-                    <th class="product-quantity"><?php esc_html_e( 'Quantity', 'plugin-wp' ); ?></th>
-                    <th class="product-subtotal"><?php esc_html_e( 'Subtotal', 'plugin-wp' ); ?></th>
+                    <th class="product-remove"><span class="screen-reader-text"><?php esc_html_e( 'Remove item', 'kiriminaja' ); ?></span></th>
+                    <th class="product-thumbnail"><span class="screen-reader-text"><?php esc_html_e( 'Thumbnail image', 'kiriminaja' ); ?></span></th>
+                    <th class="product-name"><?php esc_html_e( 'Product', 'kiriminaja' ); ?></th>
+                    <th class="product-price"><?php esc_html_e( 'Price', 'kiriminaja' ); ?></th>
+                    <th class="product-quantity"><?php esc_html_e( 'Quantity', 'kiriminaja' ); ?></th>
+                    <th class="product-subtotal"><?php esc_html_e( 'Subtotal', 'kiriminaja' ); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -65,7 +65,7 @@ do_action( 'woocommerce_before_cart' ); ?>
                                             '<a href="%s" class="remove" aria-label="%s" data-product_id="%s" data-product_sku="%s">&times;</a>',
                                             esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
                                             /* translators: %s is the product name */
-                                            esc_attr( sprintf( __( 'Remove %s from cart', 'plugin-wp' ), wp_strip_all_tags( $product_name ) ) ),
+                                            esc_attr( sprintf( __( 'Remove %s from cart', 'kiriminaja' ), wp_strip_all_tags( $product_name ) ) ),
                                             esc_attr( $product_id ),
                                             esc_attr( $_product->get_sku() )
                                         ),
@@ -88,7 +88,7 @@ do_action( 'woocommerce_before_cart' ); ?>
                             ?>
                             </td>
 
-                            <td class="product-name" data-title="<?php esc_attr_e( 'Product', 'plugin-wp' ); ?>">
+                            <td class="product-name" data-title="<?php esc_attr_e( 'Product', 'kiriminaja' ); ?>">
                             <?php
                             if ( ! $product_permalink ) {
                                 echo wp_kses_post( $product_name . '&nbsp;' );
@@ -109,19 +109,19 @@ do_action( 'woocommerce_before_cart' ); ?>
 
                             // Backorder notification.
                             if ( $_product->backorders_require_notification() && $_product->is_on_backorder( $cart_item['quantity'] ) ) {
-                                echo wp_kses_post( apply_filters( 'woocommerce_cart_item_backorder_notification', '<p class="backorder_notification">' . esc_html__( 'Available on backorder', 'plugin-wp' ) . '</p>', $product_id ) );
+                                echo wp_kses_post( apply_filters( 'woocommerce_cart_item_backorder_notification', '<p class="backorder_notification">' . esc_html__( 'Available on backorder', 'kiriminaja' ) . '</p>', $product_id ) );
                             }
                             ?>
                             </td>
 
-                            <td class="product-price" data-title="<?php esc_attr_e( 'Price', 'plugin-wp' ); ?>">
+                            <td class="product-price" data-title="<?php esc_attr_e( 'Price', 'kiriminaja' ); ?>">
                                 <?php
                                     echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $_product ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                                     // PHPCS: XSS ok.
                                 ?>
                             </td>
 
-                            <td class="product-quantity" data-title="<?php esc_attr_e( 'Quantity', 'plugin-wp' ); ?>">
+                            <td class="product-quantity" data-title="<?php esc_attr_e( 'Quantity', 'kiriminaja' ); ?>">
                             <?php
                             if ( $_product->is_sold_individually() ) {
                                 $min_quantity = 1;
@@ -148,7 +148,7 @@ do_action( 'woocommerce_before_cart' ); ?>
                             ?>
                             </td>
 
-                            <td class="product-subtotal" data-title="<?php esc_attr_e( 'Subtotal', 'plugin-wp' ); ?>">
+                            <td class="product-subtotal" data-title="<?php esc_attr_e( 'Subtotal', 'kiriminaja' ); ?>">
                                 <?php
                                     echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                                     // PHPCS: XSS ok.
@@ -167,12 +167,12 @@ do_action( 'woocommerce_before_cart' ); ?>
 
                         <?php if ( wc_coupons_enabled() ) { ?>
                             <div class="coupon">
-                                <label for="coupon_code" class="screen-reader-text"><?php esc_html_e( 'Coupon:', 'plugin-wp' ); ?></label> <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'plugin-wp' ); ?>" /> <button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'plugin-wp' ); ?>"><?php esc_html_e( 'Apply coupon', 'plugin-wp' ); ?></button>
+                                <label for="coupon_code" class="screen-reader-text"><?php esc_html_e( 'Coupon:', 'kiriminaja' ); ?></label> <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'kiriminaja' ); ?>" /> <button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'kiriminaja' ); ?>"><?php esc_html_e( 'Apply coupon', 'kiriminaja' ); ?></button>
                                 <?php do_action( 'woocommerce_cart_coupon' ); ?>
                             </div>
                         <?php } ?>
 
-                        <button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="update_cart" value="<?php esc_attr_e( 'Update cart', 'plugin-wp' ); ?>"><?php esc_html_e( 'Update cart', 'plugin-wp' ); ?></button>
+                        <button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="update_cart" value="<?php esc_attr_e( 'Update cart', 'kiriminaja' ); ?>"><?php esc_html_e( 'Update cart', 'kiriminaja' ); ?></button>
 
                         <?php do_action( 'woocommerce_cart_actions' ); ?>
 
