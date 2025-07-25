@@ -55,9 +55,27 @@ class KiriminAjaApi
         $body = wp_remote_retrieve_body($response);
         $body = json_decode($body);
         if (false === $body->status) {
+
+            if (!empty($body->errors)) {
+                $errorMessages = [];
+                foreach ($body->errors as $field => $messages) {
+                    if (is_array($messages)) {
+                        foreach ($messages as $msg) {
+                            $errorMessages[] = $msg;
+                        }
+                    } else {
+                        $errorMessages[] = $messages;
+                    }
+                }
+
+                $finalMessage = "Terdapat beberapa kesalahan pada data yang dikirim: " . implode(", ", str_replace(".", "", $errorMessages));
+
+            } else {
+                $finalMessage = isset($body->text) ? $body->text : 'Unknown error';
+            }
             return array(
                 'status' => false,
-                'data' => isset($body->text) ? $body->text : 'Unknown error'
+                'data' => $finalMessage
             );
         }
         return array(
