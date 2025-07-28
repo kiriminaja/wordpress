@@ -68,7 +68,7 @@ class KiriminAjaApi
                     }
                 }
 
-                $finalMessage = "Terdapat beberapa kesalahan pada data yang dikirim: " . implode(", ", str_replace(".", "", $errorMessages));
+                $finalMessage = "Terdapat beberapa kesalahan pada data yang dikirim: " . implode(" ", $errorMessages);
 
             } else {
                 $finalMessage = isset($body->text) ? $body->text : 'Unknown error';
