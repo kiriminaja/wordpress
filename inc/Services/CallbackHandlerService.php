@@ -31,9 +31,12 @@ class CallbackHandlerService extends BaseService{
         }
 
         if (isset($this->body->data) && !empty($this->body->data)) {
-            $this->packages = [$this->body->data];
+            $this->packages = $this->body->data;
         }
         $orderIds = array_column($this->packages, 'order_id') ?? [];
+        if (empty($orderIds)) {
+            return self::error([],'No Order ID Found');
+        }
         /** check if transaction exists */
         $this->transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
         if(count($this->transactions)<1){
