@@ -101,7 +101,8 @@ class ShippingProcessController
     function resiPrint()
     {
         try {
-            $orderIdsParam = @$_GET['oids'];
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $orderIdsParam = isset($_GET['oids']) ? sanitize_text_field(wp_unslash($_GET['oids'])) : '';
             $orderIds = array_unique(explode(',', $orderIdsParam) ?? []);
             if (count($orderIds) < 1) {
                 wp_redirect(home_url('/404'));
@@ -141,7 +142,7 @@ class ShippingProcessController
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="print-resi-' . $filename . '.pdf"');
             header('Content-Length: ' . strlen($pdfContent));
-            echo $pdfContent;
+            echo $pdfContent; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             exit;
         } catch (\Throwable $e) {
             wp_redirect(home_url('/404'));

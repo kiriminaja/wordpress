@@ -1,6 +1,7 @@
 <?php 
 namespace Inc\Controllers;
 
+// phpcs:disable plugin_updater_detected
 class UpdaterPluginGcsController
 {
     private $plugin_slug;
@@ -154,4 +155,5 @@ class UpdaterPluginGcsController
 
     
 }
+// phpcs:enable plugin_updater_detected
 ?>

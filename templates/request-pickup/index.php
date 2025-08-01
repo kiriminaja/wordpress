@@ -43,45 +43,45 @@ class requestPickupIndex {
         /** PreRequrities*/
         $items_per_page = 20;
 
-        // @codingStandardsIgnoreLine
-        $page = @$_GET['cpage'] ?? 1;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $page = isset($_GET['cpage']) ? absint($_GET['cpage']) : 1;
         $offset = ( $page * $items_per_page ) - $items_per_page;
         
-        $whereCount = 0;
-        $whereCondition = '';
+        $whereConditions = [];
         
-        // @codingStandardsIgnoreLine
-        if (!empty(@$_GET['key'])){
-            $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.pickup_number LIKE '%".@$_GET['key']."%'"; // @codingStandardsIgnoreLine
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!empty(sanitize_text_field(wp_unslash($_GET['key'] ?? '')))) {
+            $key = sanitize_text_field(wp_unslash($_GET['key'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $whereConditions[] = $wpdb->prepare("kiriminaja_payments.pickup_number LIKE %s", '%' . $wpdb->esc_like($key) . '%');
         }
-        // @codingStandardsIgnoreLine
-        if (!empty(@$_GET['month'])){
-            $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.created_at LIKE '%".@$_GET['month']."%'"; // @codingStandardsIgnoreLine
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!empty(sanitize_text_field(wp_unslash($_GET['month'] ?? '')))) {
+            $month = sanitize_text_field(wp_unslash($_GET['month'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $whereConditions[] = $wpdb->prepare("kiriminaja_payments.created_at LIKE %s", '%' . $wpdb->esc_like($month) . '%');
         }
-        // @codingStandardsIgnoreLine
-        if (!empty(@$_GET['status'])){
-            $whereCount+=1;
-            $whereCondition.=($whereCount===0 ? "WHERE" : "AND")." `".$paymentTable."`.status = '".@$_GET['status']."'"; // @codingStandardsIgnoreLine 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!empty(sanitize_text_field(wp_unslash($_GET['status'] ?? '')))) {
+            $status = sanitize_text_field(wp_unslash($_GET['status'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $whereConditions[] = $wpdb->prepare("kiriminaja_payments.status = %s", $status);
         }
 
+        $whereCondition = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
         /** Main Query*/
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $baseQuery = "SELECT 
+            kiriminaja_payments.*, 
+            SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+            FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
+            INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+            ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
+            " . $whereCondition . "
+            GROUP BY kiriminaja_payments.pickup_number
+            ORDER BY kiriminaja_payments.created_at DESC
+            LIMIT %d, %d";
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
         $results = $wpdb->get_results( 
-            $wpdb->prepare(
-                "(
-                    SELECT 
-                    {$wpdb->prefix}kiriminaja_payments.*, 
-                    SUM(CASE WHEN {$wpdb->prefix}kiriminaja_transactions.cod_fee = 0 THEN {$wpdb->prefix}kiriminaja_transactions.shipping_cost + {$wpdb->prefix}kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
-                    FROM {$wpdb->prefix}kiriminaja_payments 
-                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
-                    ON {$wpdb->prefix}kiriminaja_payments.pickup_number = {$wpdb->prefix}kiriminaja_transactions.pickup_number
-                    {$whereCondition}
-                    GROUP BY {$wpdb->prefix}kiriminaja_payments.pickup_number
-                    ORDER BY {$wpdb->prefix}kiriminaja_payments.created_at DESC
-                ) LIMIT %d, %d", $offset, $items_per_page
-            )
+            $wpdb->prepare($baseQuery, $offset, $items_per_page) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
@@ -89,32 +89,27 @@ class requestPickupIndex {
         }
 
         /** Pagination Query*/
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $totalQuery = $wpdb->get_results( 
-            $wpdb->prepare(
-                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "(
-                    SELECT 
-                    {$wpdb->prefix}kiriminaja_payments.id,{$wpdb->prefix}kiriminaja_payments.pickup_number
-                    FROM {$wpdb->prefix}kiriminaja_payments 
-                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions
-                    ON {$wpdb->prefix}kiriminaja_payments.pickup_number = {$wpdb->prefix}kiriminaja_transactions.pickup_number
-                    {$whereCondition}
-                    GROUP BY {$wpdb->prefix}kiriminaja_payments.pickup_number
-                )" 
-            )
-        );
+        $countQuery = "SELECT 
+            kiriminaja_payments.id, kiriminaja_payments.pickup_number
+            FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
+            INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+            ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
+            " . $whereCondition . "
+            GROUP BY kiriminaja_payments.pickup_number";
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        $totalQuery = $wpdb->get_results($countQuery); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $total = count($totalQuery);
         $total_pages = ceil($total/$items_per_page);
 
         /** Paginate*/
-        $next_page_link = @home_url().'/wp-admin/admin.php?';
-        $prev_page_link = @home_url().'/wp-admin/admin.php?';
-        // @codingStandardsIgnoreLine
+        $next_page_link = home_url() . '/wp-admin/admin.php?';
+        $prev_page_link = home_url() . '/wp-admin/admin.php?';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         foreach ($_GET as $key => $value){
-            if ($key!=='cpage'){
-                $next_page_link.=$key.'='.$value.'&';
-                $prev_page_link.=$key.'='.$value.'&';
+            if ($key !== 'cpage'){
+                $next_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field($value)) . '&';
+                $prev_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field($value)) . '&';
             }
         }
         $next_page_link= $page+1<=$total_pages ? $next_page_link.'cpage='.$page+1 : '';

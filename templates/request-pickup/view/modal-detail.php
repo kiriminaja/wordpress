@@ -9,7 +9,7 @@
                     </svg>
                 </div>
                 <div class="content-header" style="background-color: white; display: flex; justify-content: space-between; align-items: center;">
-                    <h1><?php esc_html_e('Request Pickup Detail','plugin-wp'); ?></h1>
+                    <h1><?php esc_html_e('Request Pickup Detail','kiriminaja'); ?></h1>
                     <div style="margin-right: 3rem;">
                         <button class="button-wp p-relative" type="button" style="border-radius: 4px; display: none;" id="print-all-resi-btn">
                             <a href="#" target="_blank" class="inset-absolute" id="print-all-resi"></a>
@@ -42,21 +42,21 @@
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div> <?php esc_html_e('Total Paket','plugin-wp'); ?></div>
+                                        <div> <?php esc_html_e('Total Paket','kiriminaja'); ?></div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div><?php esc_html_e('Paket Cash on Delivery','plugin-wp'); ?></div>
+                                        <div><?php esc_html_e('Paket Cash on Delivery','kiriminaja'); ?></div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-non-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div><?php esc_html_e('Paket Non-COD','plugin-wp'); ?></div>
+                                        <div><?php esc_html_e('Paket Non-COD','kiriminaja'); ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -74,7 +74,7 @@
                                         <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
-                                                    <span><?php esc_html_e('Apply','plugin-wp'); ?></span>
+                                                    <span><?php esc_html_e('Apply','kiriminaja'); ?></span>
                                                 </div>
                                             </div>
                                         </button>
@@ -119,11 +119,11 @@
                             <thead>
                             <tr>
                                 <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Package','plugin-wp'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment','plugin-wp'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Fees','plugin-wp'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','plugin-wp'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php esc_html_e('Action','plugin-wp');?></span></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Package','kiriminaja'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment','kiriminaja'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Fees','kiriminaja'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','kiriminaja'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php esc_html_e('Action','kiriminaja');?></span></th>
                             </tr>
                             </thead>
                             <tbody id="the-list">
@@ -236,7 +236,7 @@
                     </div>
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
-                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','plugin-wp'); ?></p>
+                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','kiriminaja'); ?></p>
                         <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
                     </div>
 
