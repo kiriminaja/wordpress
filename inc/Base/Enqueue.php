@@ -33,7 +33,7 @@ class Enqueue extends BaseInit{
         // Option 1: Manually enqueue the wp-util library.
         wp_enqueue_script( 'wp-util' );
         // Option 2: Make wp-util a dependency of your script (usually better).
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ]);
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ], KJ_PLUGIN_VERSION, true);
     }
     
     function enqueueAdmin(){
@@ -55,30 +55,30 @@ class Enqueue extends BaseInit{
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_PLUGIN_VERSION,true);
 
         
-        wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css');
+        wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css', array(), KJ_PLUGIN_VERSION);
 
 
-        wp_enqueue_style('kj'.'wc_5', $this->plugin_url.'assets/admin/css/kj-wc-style/app.style.css');
-        wp_enqueue_style('kj'.'wc_5.5', $this->plugin_url.'assets/admin/css/kj-wc-style/app-custom.style.css');
-        wp_enqueue_style('kj'.'wc_1', $this->plugin_url.'assets/admin/css/kj-wc-style/3538.style.css');
-        wp_enqueue_style('kj'.'wc_2', $this->plugin_url.'assets/admin/css/kj-wc-style/5502.style.css');
-        wp_enqueue_style('kj'.'wc_3', $this->plugin_url.'assets/admin/css/kj-wc-style/8597.style.css');
+        wp_enqueue_style('kj'.'wc_5', $this->plugin_url.'assets/admin/css/kj-wc-style/app.style.css', array(), KJ_PLUGIN_VERSION);
+        wp_enqueue_style('kj'.'wc_5.5', $this->plugin_url.'assets/admin/css/kj-wc-style/app-custom.style.css', array(), KJ_PLUGIN_VERSION);
+        wp_enqueue_style('kj'.'wc_1', $this->plugin_url.'assets/admin/css/kj-wc-style/3538.style.css', array(), KJ_PLUGIN_VERSION);
+        wp_enqueue_style('kj'.'wc_2', $this->plugin_url.'assets/admin/css/kj-wc-style/5502.style.css', array(), KJ_PLUGIN_VERSION);
+        wp_enqueue_style('kj'.'wc_3', $this->plugin_url.'assets/admin/css/kj-wc-style/8597.style.css', array(), KJ_PLUGIN_VERSION);
 
 
 
 
         /** QR CODE */
-        wp_enqueue_script('qrcode', $this->plugin_url.'assets/admin/js/qrcode.min.js');
+        wp_enqueue_script('qrcode', $this->plugin_url.'assets/admin/js/qrcode.min.js', array(), KJ_PLUGIN_VERSION, true);
         /** print */
-        wp_enqueue_style('printCss', $this->plugin_url.'assets/admin/css/print.min.css');
-        wp_enqueue_script('printJs', $this->plugin_url.'assets/admin/js/print.min.js');
+        wp_enqueue_style('printCss', $this->plugin_url.'assets/admin/css/print.min.css', array(), KJ_PLUGIN_VERSION);
+        wp_enqueue_script('printJs', $this->plugin_url.'assets/admin/js/print.min.js', array(), KJ_PLUGIN_VERSION, true);
         
         /** Select 2*/
         //Add the Select2 CSS file
         wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0'); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
 
         //Add the Select2 JavaScript file
-        wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', 'jquery', '4.1.0-rc.0'); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
+        wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array('jquery'), '4.1.0-rc.0', true); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
 
    
     }

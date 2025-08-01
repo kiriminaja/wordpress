@@ -12,12 +12,12 @@ function kj_shippingMethod(){
             public function __construct(){
                 
                 $this->id = 'kiriminaja';
-                $this->method_title = __('Kiriminaja', 'plugin-wp');
-                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'plugin-wp');
+                $this->method_title = __('Kiriminaja', 'kiriminaja');
+                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'kiriminaja');
                 
                 $this->init();
                 $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
-                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'plugin-wp');
+                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'kiriminaja');
             }
     
             /**
@@ -32,14 +32,14 @@ function kj_shippingMethod(){
             function initFormFields(){
                 $this->form_fields = array(
                         'enabled' => array(
-                        'title' => __('Enable', 'plugin-wp'),
+                        'title' => __('Enable', 'kiriminaja'),
                         'type' => 'checkbox',
                         'default' => 'yes'
                     ),
                     'title' => array(
-                        'title' => __('Title', 'plugin-wp'),
+                        'title' => __('Title', 'kiriminaja'),
                         'type' => 'text',
-                        'default' => __('Kiriminaja Shipping', 'plugin-wp')
+                        'default' => __('Kiriminaja Shipping', 'kiriminaja')
                     ),
                 );
             }
@@ -64,7 +64,7 @@ function kj_shippingMethod(){
 
                 $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
                 if(!$settingRepo||$settingRepo->value === null){
-                    wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'plugin-wp'), "error");
+                    wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja'), "error");
                     return;
                 }
 
@@ -153,7 +153,7 @@ function kj_addShippingMethod($methods){
 add_filter( 'woocommerce_add_to_cart_validation', 'kj_add_the_date_validation', 10, 5 );
 function kj_add_the_date_validation( $passed, $product_id ) { 
     
-    $product = get_product( $product_id );
+    $product = wc_get_product( $product_id );
 
     $length = $product->get_length();
     $width = $product->get_width();
@@ -161,14 +161,14 @@ function kj_add_the_date_validation( $passed, $product_id ) {
     
     $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
     if(!$settingRepo||$settingRepo->value === null){
-        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'plugin-wp'), "error");
+        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja'), "error");
         $passed = false;
     }
     /**
      * Check Product Weight
      */
     if( empty($product->get_weight()) ){
-        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'plugin-wp'), "error");
+        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'kiriminaja'), "error");
         $passed = false;
     }
 
@@ -176,7 +176,7 @@ function kj_add_the_date_validation( $passed, $product_id ) {
      * Check Product Dimention
      */
     if ( empty($length) || empty($width) || empty($height)) {
-        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman', 'plugin-wp'), 'error');
+        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman', 'kiriminaja'), 'error');
         $passed = false;
     }
 

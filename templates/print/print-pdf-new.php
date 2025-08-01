@@ -41,7 +41,7 @@ foreach ($transactions as $index => $transaction){
     echo '<table  style="width: 100%; height: 95%; border-collapse: collapse; margin-top: .25rem" border="1">
             <tr>
                 <td style="border-right: 0; padding: .5rem">';
-                    echo '<img src="https://kiriminaja.com/assets/home/2.png" height="25px" alt="">'; //phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent
+                    echo '<img src="' . esc_url('https://kiriminaja.com/assets/home/2.png') . '" height="25px" alt="">'; // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
                 '</td>
                  <td style="border-left: 0;text-align: right; font-size: 1rem; font-weight: 700; padding: .5rem">
                      '.(esc_html($transaction->cod_fee) > 0 ? 'COD Rp'. esc_html(localMoneyFormat($transactionCost)) : 'NON-COD').'
@@ -55,8 +55,8 @@ foreach ($transactions as $index => $transaction){
                     </div>
                     <div style="display: inline-block; margin-top: 1.25rem">
                         <div style="display: inline-block;border: 1px solid #000;padding: .15rem">
-                            <img src="https://kiriminaja-static-file.imgix.net/home-v3/logistics/'.esc_html($transaction?->service).'.png" height="20px" alt="">
-                        </div>
+                            <img src="' . esc_url('https://kiriminaja-static-file.imgix.net/home-v3/logistics/' . $transaction->service . '.png') . '" height="20px" alt="">'; // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
+                        '</div>
                         <div style="display: inline-block;padding: .15rem .5rem">
                             Tipe Layanan
                             <br>
@@ -66,8 +66,8 @@ foreach ($transactions as $index => $transaction){
                 </td>
                 <td style="border-left: 0;padding: .5rem; position: relative">
                     <div style="position: relative; text-align: center">
-                        <img src="data:image/png;base64,'.esc_html(base64_encode(KJ_GENERATE_BARCODE()->getBarcode(strtoupper(esc_html($transaction?->awb)),KJ_GENERATE_BARCODE()::TYPE_CODE_128_A)) ).'" style="width: 95%;height: 30px" class="package-awb">
-                        <div style="text-align: center; font-weight: 700; margin-top: .5rem">'.esc_html($transaction?->awb).'</div>
+                        <img src="data:image/png;base64,'.esc_html(base64_encode(KJ_GENERATE_BARCODE()->getBarcode(strtoupper(esc_html($transaction?->awb)),KJ_GENERATE_BARCODE()::TYPE_CODE_128_A)) ).'" style="width: 95%;height: 30px" class="package-awb">'; // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
+                        '<div style="text-align: center; font-weight: 700; margin-top: .5rem">'.esc_html($transaction?->awb).'</div>
                     </div>
                 </td>
             </tr>

@@ -31,14 +31,14 @@ class ValidationCodCalculationService extends BaseService{
     private function validateMinimumCodValue(){
         if( $this->payload['cart_total'] < $this->minCodValue ){
             // Translators: %s is the minimum COD amount formatted as a price.
-            wc_add_notice( sprintf( esc_html__( 'Minimum COD is %s', 'plugin-wp' ), wc_price( $this->minCodValue ) ), 'error' );
+            wc_add_notice( sprintf( esc_html__( 'Minimum COD is %s', 'kiriminaja' ), wc_price( $this->minCodValue ) ), 'error' );
         }
     }
 
     private function validateMaximumCodValue(){
         if( $this->payload['cart_total'] > $this->maxCodValue ){
             // Translators: %s is the maximum COD amount formatted as a price.
-            wc_add_notice( sprintf( esc_html__( 'Maximum COD is %s', 'plugin-wp' ), wc_price($this->maxCodValue) ), 'error' );
+            wc_add_notice( sprintf( esc_html__( 'Maximum COD is %s', 'kiriminaja' ), wc_price($this->maxCodValue) ), 'error' );
         }
     }
 }

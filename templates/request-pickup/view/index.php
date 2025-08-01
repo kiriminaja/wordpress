@@ -546,6 +546,12 @@
 
 
             },
+            error: function (xhr, status, error) {
+                modalElemLoader.addClass('kj-hidden')
+                modalElemContent.addClass('kj-hidden')
+                modalElemErr.removeClass('kj-hidden')
+                console.error("Error fetching payment form:", error);
+            }
         });
     }
     function refreshShowPaymentForm(){
