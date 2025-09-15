@@ -10,7 +10,7 @@ class KiriminAjaApi
     public function __construct()
     {
         global $wp_version;
-        $this->base_url = 'https://stg-core.bakso.my.id'; // PRODUCTION
+        $this->base_url = 'https://stg-kaj-mitra-srvc-ext.bakso.my.id'; // STAGING
         
         $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
