@@ -84,14 +84,14 @@ class TransactionRepository{
                 "SELECT 
                     {$wpdb->prefix}kiriminaja_transactions.*, 
                     {$wpdb->prefix}wc_order_stats.date_paid as wc_date_paid,
-                    {$wpdb->prefix}.post_status as wc_post_status
+                    {$wpdb->prefix}posts.post_status as wc_post_status
                 FROM {$wpdb->prefix}kiriminaja_transactions
                 INNER JOIN {$wpdb->prefix}wc_order_stats
                 ON {$wpdb->prefix}kiriminaja_transactions.wp_wc_order_stat_order_id = {$wpdb->prefix}wc_order_stats.order_id
-                INNER JOIN {$wpdb->prefix}.post_status
-                ON {$wpdb->prefix}kiriminaja_transactions.wp_wc_order_stat_order_id = {$wpdb->prefix}.post_status.ID
+                INNER JOIN {$wpdb->prefix}posts
+                ON {$wpdb->prefix}wc_order_stats.order_id = {$wpdb->prefix}posts.ID
                 WHERE {$wpdb->prefix}kiriminaja_transactions.wp_wc_order_stat_order_id = %d
-                AND {$wpdb->prefix}.post_status.post_status != %s
+                AND {$wpdb->prefix}posts.post_status != %s
                 GROUP BY {$wpdb->prefix}kiriminaja_transactions.wp_wc_order_stat_order_id",
                 $wp_wc_order_stat_order_id,
                 'trash'
