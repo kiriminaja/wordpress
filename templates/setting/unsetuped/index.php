@@ -166,18 +166,35 @@
                 },         // any JS object
             },
             complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
-                if (resp?.status === 200){
-                    window.location.reload()
-                    return
-                }
-                
-                jQuery('#setup-form .alert').removeClass('kj-hidden')
-                jQuery('#setup-form .alert .msg').text(resp.message)
+                try {
+                    const resp = JSON.parse(response.responseText).data;
+                    if (resp?.status === 200){
+                        window.location.reload()
+                        return
+                    }
+                    
+                    jQuery('#setup-form .alert').removeClass('kj-hidden')
+                    jQuery('#setup-form .alert .msg').text(resp.message)
 
-                jQuery('#setup-form .kj-btn-group').removeClass('kj-hidden')
-                jQuery('#setup-form .kj-loader').addClass('kj-hidden')
+                    jQuery('#setup-form .kj-btn-group').removeClass('kj-hidden')
+                    jQuery('#setup-form .kj-loader').addClass('kj-hidden')
+                } catch (e) {
+                    // kalau bukan JSON, tampilkan langsung isi response
+                    console.error("Invalid JSON:", response.responseText);
+                    jQuery('#setup-form .alert').removeClass('kj-hidden');
+                    jQuery('#setup-form .alert .msg').html("⚠️ Server Error:<br>" + response.responseText);
+                } finally {
+                    jQuery('#setup-form .kj-btn-group').removeClass('kj-hidden');
+                    jQuery('#setup-form .kj-loader').addClass('kj-hidden');
+                }
             },
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr.responseText);
+                jQuery('#setup-form .alert').removeClass('kj-hidden');
+                jQuery('#setup-form .alert .msg').text("Server error, cek log!");
+                jQuery('#setup-form .kj-btn-group').removeClass('kj-hidden');
+                jQuery('#setup-form .kj-loader').addClass('kj-hidden');
+            }
         });
     });
 
