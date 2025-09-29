@@ -4,7 +4,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2.0.9
+Stable tag: 2.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,8 @@ Yes, you can define rules based on weight, destination, or order total.
 Currently, this plugin only supports domestic shipping within Indonesia.
 
 == Changelog ==
+= 2.1.0 =
+* Add log cannot integrate setup key
 = 2.0.9 =
 * Fix query tracking on buyer page
 = 2.0.8 =
