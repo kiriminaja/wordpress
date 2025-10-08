@@ -38,7 +38,7 @@ class SendRequestPickupTransactionService extends BaseService
             "packages"      => $getPackageData,
             "name"          => @$getOriginData['origin_name'],
             "zipcode"       => @$getOriginData['origin_zip_code'],
-            "schedule"      => $this->schedule
+            "schedule"      => $this->schedule, // '2024-09-01T10:00:00+07:00' --- IGNORE ---
         ];
 
         /** 
@@ -63,7 +63,7 @@ class SendRequestPickupTransactionService extends BaseService
             $payload['changes'] = [
                 'status' => 'request_pickup',
                 'pickup_number' => @$pickupRequest['data']->pickup_number,
-                'request_pickup_at' => gmdate('Y-m-d H:i:s')
+                'request_pickup_at' => date('Y-m-d H:i:s')
             ];
             $payload['condition'] = [
                 'order_id' => $orderId
@@ -79,7 +79,7 @@ class SendRequestPickupTransactionService extends BaseService
             'method'            => '',
             'order_amt'         => count($getPackageData),
             'pickup_schedule'   => $this->schedule,
-            'created_at'        => gmdate('Y-m-d H:i:s', strtotime("now")),
+            'created_at'        => date('Y-m-d H:i:s', strtotime("now")),
         ]);
 
         return self::success([
