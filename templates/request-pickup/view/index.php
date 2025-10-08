@@ -169,9 +169,9 @@
                                                     <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">'.esc_html($row->pickup_number).'</div>
-                                                        <div style="font-size: 12px;">Requested: '.esc_html(gmdate('Y/m/d H:i',strtotime($row->created_at))).'</div>
+                                                        <div style="font-size: 12px;">Requested: '.esc_html(date('Y/m/d H:i',strtotime($row->created_at))).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html(date('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">Rp. '.esc_html(localMoneyFormat($row->cost ?? 0)).'</div>
                                                     </td>
@@ -389,7 +389,7 @@
                 const transactions_data = resp?.data?.transactions_data
                 const wcOrderUrlBase = '<?php echo esc_url( home_url().'/wp-admin/post.php?post='); ?>'
                 
-                
+                jQuery('#request-pickup-detail-modal-title').text("<?php esc_html_e('Request Pickup Detail','kiriminaja'); ?> - "+payment_data.pickup_number)
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-cod-count').text(kjMoneyFormat(payment_data.cod_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-non-cod-count').text(kjMoneyFormat(payment_data.non_cod_count ?? 0))
@@ -399,14 +399,37 @@
                 transactions_data.forEach(function (transaction,index){
                     const parsedShippingInfo = JSON.parse(transaction.shipping_info)
                     
-                    let transactionCost = 0
-                    transactionCost += Number(transaction?.shipping_cost ?? 0)+Number(transaction?.insurance_cost ?? 0)
+                    let codValue = 0
+                    codValue += Number(transaction?.shipping_cost ?? 0)+Number(transaction?.insurance_cost ?? 0)
                     if (transaction?.cod_fee > 0){
-                        transactionCost += Number(transaction?.cod_fee ?? 0)+Number(transaction?.transaction_value ?? 0)
+                        codValue += Number(transaction?.cod_fee ?? 0)+Number(transaction?.transaction_value ?? 0)
                     }
+                    let transactionFee = 0
+                    if (transaction.codValue === 0){
+                        transactionFee = Number(transaction?.shipping_cost ?? 0)+Number(transaction?.insurance_cost ?? 0)
+                    }
+
                     const transactionUrl = `<?php echo esc_url( home_url().'/wp-admin/post.php' ) ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
                     const printResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transaction?.order_id}`;
-                    
+                    const formatFeeString = (value) => {
+                        if (!value){
+                            return 
+                        }
+                        return '<div style="font-size: 12px;">'+value+'</div>'
+                    }
+                    const feeContentArr = [];
+                    if (transaction?.shipping_cost > 0){
+                        feeContentArr.push(formatFeeString(`Shipping: ${kjMoneyFormat(transaction?.shipping_cost,'Rp')}`));
+                    }
+                    if (transaction?.insurance_cost > 0){
+                        feeContentArr.push(formatFeeString(`Insurance: ${kjMoneyFormat(transaction?.insurance_cost,'Rp')}`));
+                    }
+                    if (transaction?.cod_fee > 0){
+                        feeContentArr.push(formatFeeString(`COD Fee: ${kjMoneyFormat(transaction?.cod_fee,'Rp')}`));
+                    }
+                    if (feeContentArr.length===0){
+                        feeContentArr.push('-');
+                    }
                     let btnGroup = ``;
                     if (transaction?.awb){
                         transactionIdList.push(transaction?.order_id);
@@ -451,10 +474,17 @@
                             <td class="manage-column column-thumb">
                                 <div style="font-weight: 700">${printAsString(transaction?.awb,'-')}</div>
                                 <div style="font-weight: 700">${(transaction?.service).toUpperCase()} – ${(transaction?.service_name).toUpperCase()}</div>
-                                <div style="font-size: 12px;">Last Update: 2024/01/01 00:00</div>
+                                <div style="font-size: 12px;">Pickup Schedule: ${(payment_data?.schedule)}</div>
+                            </td>
+
+                            <td class="manage-column column-thumb">
+                                <div style="font-weight: 700">${kjMoneyFormat(transaction?.transaction_value,'Rp')}</div>
                             </td>
                             <td class="manage-column column-thumb">
-                                <div style="font-weight: 700">${kjMoneyFormat(transactionCost,'Rp')}</div>
+                                ${feeContentArr.join(' ')}
+                            </td>
+                            <td class="manage-column column-thumb">
+                                <div style="font-weight: 700">${kjMoneyFormat(codValue,'Rp')}</div>
                             </td>
                             <td class="manage-column column-thumb">
                                 <div style="text-transform: capitalize" class="kj-badge ${transaction?.status_classes}">
