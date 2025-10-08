@@ -42,6 +42,9 @@ jobs:
           predefinedAcl: 'publicRead'
           headers: |
             Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+          gzip: true
+          resumable: true
+          concurrency: 100
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
 #    steps:
