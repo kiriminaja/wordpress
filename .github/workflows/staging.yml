@@ -41,7 +41,7 @@ jobs:
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: 'publicRead'
           headers: |
-            cache-Control: no-store, no-cache, must-revalidate, max-age=0
+            cache-control: no-store, no-cache, must-revalidate, max-age=0
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
 #    steps:
