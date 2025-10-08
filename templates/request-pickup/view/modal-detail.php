@@ -9,7 +9,7 @@
                     </svg>
                 </div>
                 <div class="content-header" style="background-color: white; display: flex; justify-content: space-between; align-items: center;">
-                    <h1><?php esc_html_e('Request Pickup Detail','kiriminaja'); ?></h1>
+                    <h1 id="request-pickup-detail-modal-title"><?php esc_html_e('Request Pickup Detail','kiriminaja'); ?></h1>
                     <div style="margin-right: 3rem;">
                         <button class="button-wp p-relative" type="button" style="border-radius: 4px; display: none;" id="print-all-resi-btn">
                             <a href="#" target="_blank" class="inset-absolute" id="print-all-resi"></a>
@@ -121,7 +121,9 @@
                                 <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
                                 <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Package','kiriminaja'); ?></th>
                                 <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment','kiriminaja'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Item Value','kiriminaja'); ?></th>
                                 <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Fees','kiriminaja'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('COD Value','kiriminaja'); ?></th>
                                 <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','kiriminaja'); ?></th>
                                 <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php esc_html_e('Action','kiriminaja');?></span></th>
                             </tr>
