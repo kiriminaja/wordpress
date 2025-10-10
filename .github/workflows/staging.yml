@@ -40,6 +40,8 @@ jobs:
           path: kiriminaja-${{ github.ref_name }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: 'publicRead'
+          headers: |
+            cache-control: no-store, no-cache, must-revalidate, max-age=0
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
 #    steps:
