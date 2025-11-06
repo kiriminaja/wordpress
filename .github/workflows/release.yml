@@ -2,15 +2,12 @@ name: Publish
 
 on:
   release:
-    types: ['published']
-  push:
-    tags:
-      - '*'
+    types: ["published"]
 
 jobs:
   build:
-    if: '!github.event.release.prerelease'
-    name: 'Build & Push'
+    if: "!github.event.release.prerelease"
+    name: "Build & Push"
     runs-on: ubuntu-latest
 
     defaults:
@@ -19,7 +16,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          # Extract version from tag (remove 'v' prefix if present)
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
 
       - name: Get current time
         id: date
@@ -28,9 +36,9 @@ jobs:
       - name: Archive release
         uses: thedoctor0/zip-release@0.7.5
         with:
-          type: 'zip'
-          filename: kiriminaja-${{ github.ref_name }}.zip
-          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+          type: "zip"
+          filename: kiriminaja-${{ steps.get_version.outputs.version }}.zip
+          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes *.sh .vscode .idea *.md !README.md COMPLIANCE_CHECKLIST.md download-libraries.sh update-version.sh"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
@@ -41,37 +49,37 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ github.ref_name }}.zip
+          path: kiriminaja-${{ steps.get_version.outputs.version }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"
 
       - name: Initiate Json File
         id: rewrite-json
         uses: devops-actions/json-to-file@v1.0.0
         with:
           filename: woocommerce.json
-          json: "{\"name\":\"KiriminAja Plugin\",\"slug\":\"kiriminaja\",\"author\":\"<a href='https://kiriminaja.com'>KiriminAja</a>\",\"author_profile\":\"https://kiriminaja.com/about\",\"tested\":\"7.0\",\"requires_php\":\"7.0\",\"sections\":{\"description\":\"KiriminAja Plugin Update\",\"installation\":\"Click the activation button.\",\"changelog\":\"Bug fixing and performance improvement\"}}"
+          json: '{"name":"KiriminAja Plugin","slug":"kiriminaja","author":"<a href=''https://kiriminaja.com''>KiriminAja</a>","author_profile":"https://kiriminaja.com/about","tested":"7.0","requires_php":"7.0","sections":{"description":"KiriminAja Plugin Update","installation":"Click the activation button.","changelog":"Bug fixing and performance improvement"}}'
 
       - name: Update version value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: version
-          value: ${{ github.ref_name }}
+          value: ${{ steps.get_version.outputs.version }}
 
       - name: Update requires value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: requires
-          value: ${{ github.ref_name }}
+          value: ${{ steps.get_version.outputs.version }}
 
       - name: Update download url value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: download_url
-          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-${{ github.ref_name }}.zip
+          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-${{ steps.get_version.outputs.version }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1
@@ -86,4 +94,4 @@ jobs:
         with:
           path: woocommerce.json
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"

@@ -18,7 +18,23 @@ class CallbackController{
     function kiriminAjaCallback()
     {
         try {
-            $header = apache_request_headers();
+            // Get headers in a server-agnostic way (works on Apache, Nginx, etc.)
+            $header = array();
+            if (function_exists('getallheaders')) {
+                $header = getallheaders();
+            } else {
+                // Fallback for servers without getallheaders()
+                foreach ($_SERVER as $key => $value) {
+                    if (strpos($key, 'HTTP_') === 0) {
+                        $header_key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                        $header[$header_key] = $value;
+                    } elseif (in_array($key, array('CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5'), true)) {
+                        $header_key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
+                        $header[$header_key] = $value;
+                    }
+                }
+            }
+            
             $body = json_decode(file_get_contents("php://input"));
 
             (new \Inc\Base\BaseInit())->logThis('kiriminAjaCallback',[$body]);

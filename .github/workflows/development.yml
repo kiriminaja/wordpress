@@ -6,7 +6,7 @@ on:
 
 jobs:
   upload-gcs-prd:
-    name: 'Build & Push'
+    name: "Build & Push"
     runs-on: ubuntu-latest
 
     defaults:
@@ -17,16 +17,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get version from plugin file
+        id: get_base_version
+        run: |
+          # Extract base version from kiriminaja.php (e.g., 2.0.10)
+          BASE_VERSION=$(grep "Version:" kiriminaja.php | head -1 | awk '{print $NF}')
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+
+      - name: Generate development version
+        id: get_version
+        run: |
+          # Create development version: base.runid-dev (e.g., 2.0.10001-dev)
+          BASE="${{ steps.get_base_version.outputs.base_version }}"
+          VERSION="${BASE}${{ github.run_id }}-dev"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Development version: $VERSION"
+
       - name: Get current time
         id: date
-        run: echo "::set-output name=date::$(TZ="Asia/Jakarta" date +'%Y-%m-%d %H:%I')"
+        run: echo "date=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
 
       - name: Archive release
         uses: thedoctor0/zip-release@0.7.5
         with:
-          type: 'zip'
-          filename: kiriminaja-${{ github.ref_name }}.zip
-          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+          type: "zip"
+          filename: kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip
+          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes *.sh .vscode .idea *.md !README.md"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
@@ -37,16 +54,56 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ github.ref_name }}.zip
-          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          path: kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp/development
+          predefinedAcl: "publicRead"
           headers: |
             cache-control: no-store, no-cache, must-revalidate, max-age=0
+
+      - name: Create version info file
+        run: |
+          cat > development-version.json << EOF
+          {
+            "name": "KiriminAja Plugin (Development)",
+            "slug": "kiriminaja-development",
+            "version": "${{ steps.get_version.outputs.version }}",
+            "base_version": "${{ steps.get_base_version.outputs.base_version }}",
+            "build_id": "${{ github.run_id }}",
+            "branch": "${{ github.ref_name }}",
+            "download_url": "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip",
+            "last_updated": "${{ steps.date.outputs.date }}",
+            "commit_sha": "${{ github.sha }}",
+            "environment": "development"
+          }
+          EOF
+          cat development-version.json
+
+      - name: Upload version info
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: development-version.json
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp/development
+          predefinedAcl: "publicRead"
+          headers: |
+            cache-control: no-store, no-cache, must-revalidate, max-age=0
+
+      - name: Summary
+        run: |
+          echo "## Development Build Complete 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Base Version:** ${{ steps.get_base_version.outputs.base_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Download URL:**" >> $GITHUB_STEP_SUMMARY
+          echo "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip" >> $GITHUB_STEP_SUMMARY
+
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
 #    steps:
 #      - uses: actions/checkout@v2
-#         
+#
 #      - name: Deploy
 #        run: |
 #          cd /home/devstag/kaj-dev-latest-plugin-wp/wp-content/plugins/plugin-wp # navigate into the folder
