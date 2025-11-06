@@ -2,7 +2,7 @@
 /**
  * Plugin Name:     KiriminAja
  * Plugin URI:      https://developer.kiriminaja.com
- * Description:     Integrate to all best delivery services across the nusantara
+ * Description:     KiriminAja plugin for Shopify simplifies your online store’s shipping management with automation, speed, and efficiency. Display real-time shipping rates from multiple couriers, offer COD options, schedule pickups, print labels, and track deliveries directly from your Shopify dashboard. Enjoy discounted shipping, flat-rate promotions, comprehensive reports, and an integrated system that helps your business grow through easier, safer, and more reliable deliveries across Indonesia 
  * Version:         2.0.10
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
@@ -14,33 +14,22 @@
  * WC tested up to: 7.1
  */
 
-/** prevent unauthorized access othe than wordpress */
+/** prevent unauthorized access other than wordpress */
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) || wp_doing_ajax() ) {
     @ini_set( 'display_errors', 1 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 }
 
-// Atur timezone ke GMT+7
-date_default_timezone_set('Asia/Jakarta'); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
-
-define( 'KJ_PLUGIN_VERSION', rand(0,999)); // phpcs:ignore WordPress.WP.AlternativeFunctions.rand_rand
+define( 'KJ_PLUGIN_VERSION', '2.0.10' );
 define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
 define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
 define('KJ_SLUG' ,plugin_basename(__DIR__));
 define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
 define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.10') );
-
-/** opt 1 */
-if ( ! defined( 'ABSPATH' ) ) { die; }
-
-/** opt 2 */
-defined('ABSPATH') or die('die !!!');
-
-/** opt 3 */
-if (!function_exists('add_action')){
-    echo 'die !!!';
-    exit;
-}
 
 if ( file_exists(dirname(__FILE__) . '/vendor/autoload.php')){
     require_once dirname(__FILE__) . '/vendor/autoload.php';
@@ -49,9 +38,6 @@ if ( file_exists(dirname(__FILE__) . '/vendor/autoload.php')){
 /** Define constants*/
 if ( ! defined( 'KJ_PLUGIN_BASENAME' ) ) {
     define ('KJ_PLUGIN_BASENAME', plugin_basename(__FILE__));
-}
-if ( ! defined( 'ABSPATH' ) ) {
-    define( 'ABSPATH', dirname( __FILE__ ) . '/' );
 }
 
 

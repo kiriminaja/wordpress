@@ -15,7 +15,7 @@ class ShippingProcessController
         add_action('wp_ajax_kj_get_shipping_process_detail', array($this, 'getShippingProcessDetail'));
         /** getPaymentForm */
         add_action('wp_ajax_kj_get_payment_form', array($this, 'getPaymentForm'));
-
+        /** getReschedulePickup */
         add_action('wp_ajax_kj_get_shipping_reschedule_pickup', array($this, 'getShippingReschedulePickup'));
 
         /** Resi Print */
@@ -26,6 +26,11 @@ class ShippingProcessController
 
     function getShippingReschedulePickup()
     {
+        // Check user capability
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+        }
+        
         // Check for nonce security      
         if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
             wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
@@ -59,6 +64,11 @@ class ShippingProcessController
     function getShippingProcessDetail()
     {
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
+            
             // Check for nonce security      
             if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
                 wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
@@ -80,6 +90,11 @@ class ShippingProcessController
     function getPaymentForm()
     {
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
+            
             // Check for nonce security      
             if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
                 wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);

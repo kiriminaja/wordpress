@@ -1,0 +1,49 @@
+# WordPress.org Plugin Distribution Ignore File
+# Files and directories listed here will be excluded from the plugin ZIP
+
+# Development files
+.git
+.github
+.gitignore
+.gitattributes
+.editorconfig
+.vscode
+.idea
+.DS_Store
+
+# Documentation (not needed in distribution)
+COMPLIANCE_CHECKLIST.md
+VERSION_MANAGEMENT.md
+
+# Scripts
+download-libraries.sh
+update-version.sh
+Makefile
+
+# Node/NPM
+node_modules
+package.json
+package-lock.json
+yarn.lock
+
+# Composer dev dependencies
+/vendor/bin
+
+# Build files
+*.map
+*.log
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Testing
+tests
+phpunit.xml
+.phpunit.result.cache
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
