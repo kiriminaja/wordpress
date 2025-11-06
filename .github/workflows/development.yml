@@ -34,7 +34,40 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Development version: $VERSION"
 
-      - name: Get current time
+      - name: Update version in files
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          BASE="${{ steps.get_base_version.outputs.base_version }}"
+          
+          # Update kiriminaja.php - Plugin header version
+          sed -i "s/\* Version:.*/* Version:         $VERSION/" kiriminaja.php
+          
+          # Update kiriminaja.php - KJ_PLUGIN_VERSION constant
+          sed -i "s/define( 'KJ_PLUGIN_VERSION', '.*' );/define( 'KJ_PLUGIN_VERSION', '$VERSION' );/" kiriminaja.php
+          
+          # Update kiriminaja.php - KJ_VERSION_PLUGIN constant
+          sed -i "s/define('KJ_VERSION_PLUGIN', sanitize_text_field('.*') );/define('KJ_VERSION_PLUGIN', sanitize_text_field('$VERSION') );/" kiriminaja.php
+          
+          # Update readme.txt - Stable tag
+          sed -i "s/Stable tag: .*/Stable tag: $VERSION/" readme.txt
+          
+          # Get latest commit message for changelog
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          
+          # Add changelog entry for development build
+          CHANGELOG_ENTRY="= $VERSION =\n* [DEVELOPMENT] Build #${{ github.run_id }}\n* $COMMIT_MSG\n"
+          
+          # Insert changelog entry after "== Changelog ==" line
+          awk -v entry="$CHANGELOG_ENTRY" '
+            /^== Changelog ==/ {
+              print
+              print entry
+              next
+            }
+            { print }
+          ' readme.txt > readme.txt.tmp && mv readme.txt.tmp readme.txt
+          
+          echo "✅ Updated version to $VERSION in kiriminaja.php and readme.txt with changelog"      - name: Get current time
         id: date
         run: echo "date=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
 
@@ -42,8 +75,8 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          filename: kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip
-          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes *.sh .vscode .idea *.md !README.md"
+          filename: kiriminaja-${{ steps.get_version.outputs.version }}.zip
+          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes *.sh Makefile .vscode .idea *.md !README.md"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
@@ -54,7 +87,7 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip
+          path: kiriminaja-${{ steps.get_version.outputs.version }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp/development
           predefinedAcl: "publicRead"
           headers: |
@@ -70,7 +103,7 @@ jobs:
             "base_version": "${{ steps.get_base_version.outputs.base_version }}",
             "build_id": "${{ github.run_id }}",
             "branch": "${{ github.ref_name }}",
-            "download_url": "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip",
+            "download_url": "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}.zip",
             "last_updated": "${{ steps.date.outputs.date }}",
             "commit_sha": "${{ github.sha }}",
             "environment": "development"

@@ -33,7 +33,48 @@ jobs:
         id: date
         run: echo "::set-output name=date::$(TZ="Asia/Jakarta" date +'%Y-%m-%d %H:%I')"
 
-      - name: Archive release
+      - name: Download release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+
+          # List all assets from this release
+          echo "Fetching release assets..."
+          ASSETS=$(gh release view ${{ github.ref_name }} --json assets -q '.assets[].name')
+          echo "Available assets:"
+          echo "$ASSETS"
+
+          # Try to find the ZIP file (could be with or without 'v' prefix)
+          ZIP_NAME=""
+          for asset in $ASSETS; do
+            if [[ $asset == kiriminaja-*.zip ]]; then
+              ZIP_NAME=$asset
+              break
+            fi
+          done
+
+          if [ -z "$ZIP_NAME" ]; then
+            echo "❌ No ZIP file found in release assets!"
+            echo "Expected: kiriminaja-*.zip"
+            echo "Building from source instead..."
+            exit 1
+          fi
+
+          echo "📦 Downloading $ZIP_NAME..."
+          gh release download ${{ github.ref_name }} -p "$ZIP_NAME"
+
+          # Rename to expected filename if different
+          EXPECTED_NAME="kiriminaja-${VERSION}.zip"
+          if [ "$ZIP_NAME" != "$EXPECTED_NAME" ]; then
+            echo "Renaming $ZIP_NAME to $EXPECTED_NAME"
+            mv "$ZIP_NAME" "$EXPECTED_NAME"
+          fi
+
+          echo "✅ Downloaded and ready: $EXPECTED_NAME"
+
+      - name: Fallback - Build from source if download fails
+        if: failure()
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"

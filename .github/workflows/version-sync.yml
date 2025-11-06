@@ -27,6 +27,25 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      - name: Get tag message
+        id: get_tag_message
+        run: |
+          # Fetch the annotated tag message
+          TAG=${GITHUB_REF#refs/tags/}
+          MESSAGE=$(git tag -l --format='%(contents)' "$TAG")
+
+          # If no annotated tag message, try to get commit message
+          if [ -z "$MESSAGE" ]; then
+            MESSAGE=$(git log -1 --pretty=%B)
+          fi
+
+          # Store message (escape for multiline)
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "Tag message retrieved"
+
       - name: Update kiriminaja.php
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
@@ -45,11 +64,37 @@ jobs:
       - name: Update readme.txt
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
+          MESSAGE="${{ steps.get_tag_message.outputs.message }}"
 
           # Update Stable tag
           sed -i "s/Stable tag: .*/Stable tag: $VERSION/" readme.txt
 
-          echo "✅ Updated readme.txt"
+          # Prepare changelog entry with proper formatting
+          CHANGELOG_ENTRY="= $VERSION =\n"
+
+          # Process message line by line and add asterisks
+          if [ -n "$MESSAGE" ]; then
+            while IFS= read -r line; do
+              if [ -n "$line" ]; then
+                CHANGELOG_ENTRY="${CHANGELOG_ENTRY}* $line\n"
+              fi
+            done <<< "$MESSAGE"
+          else
+            CHANGELOG_ENTRY="${CHANGELOG_ENTRY}* New release\n"
+          fi
+
+          # Insert changelog entry after "== Changelog ==" line
+          # Using awk to insert after the Changelog header
+          awk -v entry="$CHANGELOG_ENTRY" '
+            /^== Changelog ==/ {
+              print
+              print entry
+              next
+            }
+            { print }
+          ' readme.txt > readme.txt.tmp && mv readme.txt.tmp readme.txt
+
+          echo "✅ Updated readme.txt with version $VERSION and changelog"
 
       - name: Check if files changed
         id: check_changes
