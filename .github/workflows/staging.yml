@@ -1,4 +1,5 @@
-name: Plugin Wordrpress Kiriminaja Staging
+name: Staging Deploy
+
 on:
   push:
     branches:
