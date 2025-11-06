@@ -1,4 +1,4 @@
-name: Plugin Wordrpress Kiriminaja Development
+name: Development
 on:
   push:
     branches:
