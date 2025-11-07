@@ -78,7 +78,7 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          filename: kiriminaja-${{ steps.get_version.outputs.version }}-stg.zip
+          filename: kiriminaja-${{ steps.get_version.outputs.version }}.zip
           exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes *.sh .vscode .idea *.md !README.md"
 
       - name: Authenticate to GCP
@@ -133,7 +133,7 @@ jobs:
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Download URL:**" >> $GITHUB_STEP_SUMMARY
-          echo "https://kaj-prd-core-web-assets.kiriminaja.com/wp/staging/kiriminaja-${{ steps.get_version.outputs.version }}-stg.zip" >> $GITHUB_STEP_SUMMARY
+          echo "https://kaj-prd-core-web-assets.kiriminaja.com/wp/staging/kiriminaja-${{ steps.get_version.outputs.version }}.zip" >> $GITHUB_STEP_SUMMARY
 
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
