@@ -8,7 +8,7 @@
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
- * Text Domain:     kiriminaja
+ * Text Domain:     kiriminaja-official
  * Domain Path:     /lang
  * WC requires at least: 5.0.0
  * WC tested up to: 7.1

@@ -23,7 +23,9 @@ final class Init {
             Controllers\CheckoutController::class,
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,
-            Controllers\UpdaterPluginGcsController::class,
+            // UpdaterPluginGcsController is disabled for WordPress.org submission
+            // Custom updaters are not permitted - WordPress.org handles updates automatically
+            // Controllers\UpdaterPluginGcsController::class,
         ];
     }
 
