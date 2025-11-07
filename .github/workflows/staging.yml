@@ -39,25 +39,25 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           BASE="${{ steps.get_base_version.outputs.base_version }}"
-          
+
           # Update kiriminaja.php - Plugin header version
           sed -i "s/\* Version:.*/* Version:         $VERSION/" kiriminaja.php
-          
+
           # Update kiriminaja.php - KJ_PLUGIN_VERSION constant
           sed -i "s/define( 'KJ_PLUGIN_VERSION', '.*' );/define( 'KJ_PLUGIN_VERSION', '$VERSION' );/" kiriminaja.php
-          
+
           # Update kiriminaja.php - KJ_VERSION_PLUGIN constant
           sed -i "s/define('KJ_VERSION_PLUGIN', sanitize_text_field('.*') );/define('KJ_VERSION_PLUGIN', sanitize_text_field('$VERSION') );/" kiriminaja.php
-          
+
           # Update readme.txt - Stable tag
           sed -i "s/Stable tag: .*/Stable tag: $VERSION/" readme.txt
-          
+
           # Get latest commit message for changelog
           COMMIT_MSG=$(git log -1 --pretty=%B)
-          
+
           # Add changelog entry for staging build
           CHANGELOG_ENTRY="= $VERSION =\n* [STAGING] Build #${{ github.run_id }}\n* $COMMIT_MSG\n"
-          
+
           # Insert changelog entry after "== Changelog ==" line
           awk -v entry="$CHANGELOG_ENTRY" '
             /^== Changelog ==/ {
@@ -67,8 +67,10 @@ jobs:
             }
             { print }
           ' readme.txt > readme.txt.tmp && mv readme.txt.tmp readme.txt
-          
-          echo "✅ Updated version to $VERSION in kiriminaja.php and readme.txt with changelog"      - name: Get current time
+
+          echo "✅ Updated version to $VERSION in kiriminaja.php and readme.txt with changelog"
+
+      - name: Get current time
         id: date
         run: echo "date=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
 
