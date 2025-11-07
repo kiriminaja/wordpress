@@ -79,7 +79,7 @@ jobs:
         with:
           type: "zip"
           filename: kiriminaja-${{ steps.get_version.outputs.version }}.zip
-          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes *.sh .vscode .idea *.md !README.md COMPLIANCE_CHECKLIST.md download-libraries.sh update-version.sh"
+          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes .distignore *.sh Makefile .vscode .idea *.md !README.md"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
