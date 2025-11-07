@@ -30,7 +30,7 @@ jobs:
         run: |
           # Create development version: base.runid-dev (e.g., 2.0.10001-dev)
           BASE="${{ steps.get_base_version.outputs.base_version }}"
-          VERSION="${BASE}${{ github.run_id }}-dev"
+          VERSION="${BASE}${{ github.run_id }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Development version: $VERSION"
 
@@ -132,7 +132,7 @@ jobs:
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Download URL:**" >> $GITHUB_STEP_SUMMARY
-          echo "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}-dev.zip" >> $GITHUB_STEP_SUMMARY
+          echo "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}.zip" >> $GITHUB_STEP_SUMMARY
 
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
