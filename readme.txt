@@ -1,4 +1,4 @@
-=== KiriminAja ===
+=== KiriminAja Official ===
 Contributors: kiriminaja
 Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0

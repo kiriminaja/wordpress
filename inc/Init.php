@@ -23,7 +23,6 @@ final class Init {
             Controllers\CheckoutController::class,
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,
-            Controllers\UpdaterPluginGcsController::class,
         ];
     }
 

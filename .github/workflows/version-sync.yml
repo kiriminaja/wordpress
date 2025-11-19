@@ -1,0 +1,147 @@
+name: Version Sync
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  sync-version:
+    name: "Sync Version Numbers"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get tag version
+        id: get_version
+        run: |
+          # Get the tag name (e.g., 2.0.11 or v2.0.11)
+          TAG=${GITHUB_REF#refs/tags/}
+          # Remove 'v' prefix if present
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Get tag message
+        id: get_tag_message
+        run: |
+          # Fetch the annotated tag message
+          TAG=${GITHUB_REF#refs/tags/}
+          MESSAGE=$(git tag -l --format='%(contents)' "$TAG")
+
+          # If no annotated tag message, try to get commit message
+          if [ -z "$MESSAGE" ]; then
+            MESSAGE=$(git log -1 --pretty=%B)
+          fi
+
+          # Store message (escape for multiline)
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "Tag message retrieved"
+
+      - name: Update kiriminaja.php
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+
+          # Update plugin header version
+          sed -i "s/\* Version:.*/* Version:         $VERSION/" kiriminaja.php
+
+          # Update KJ_PLUGIN_VERSION constant
+          sed -i "s/define( 'KJ_PLUGIN_VERSION', '.*' );/define( 'KJ_PLUGIN_VERSION', '$VERSION' );/" kiriminaja.php
+
+          # Update KJ_VERSION_PLUGIN constant
+          sed -i "s/define('KJ_VERSION_PLUGIN', sanitize_text_field('.*') );/define('KJ_VERSION_PLUGIN', sanitize_text_field('$VERSION') );/" kiriminaja.php
+
+          echo "✅ Updated kiriminaja.php"
+
+      - name: Update readme.txt
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          MESSAGE="${{ steps.get_tag_message.outputs.message }}"
+
+          # Update Stable tag
+          sed -i "s/Stable tag: .*/Stable tag: $VERSION/" readme.txt
+
+          # Prepare changelog entry with proper formatting
+          CHANGELOG_ENTRY="= $VERSION =\n"
+
+          # Process message line by line and add asterisks
+          if [ -n "$MESSAGE" ]; then
+            while IFS= read -r line; do
+              if [ -n "$line" ]; then
+                CHANGELOG_ENTRY="${CHANGELOG_ENTRY}* $line\n"
+              fi
+            done <<< "$MESSAGE"
+          else
+            CHANGELOG_ENTRY="${CHANGELOG_ENTRY}* New release\n"
+          fi
+
+          # Insert changelog entry after "== Changelog ==" line
+          # Using awk to insert after the Changelog header
+          awk -v entry="$CHANGELOG_ENTRY" '
+            /^== Changelog ==/ {
+              print
+              print entry
+              next
+            }
+            { print }
+          ' readme.txt > readme.txt.tmp && mv readme.txt.tmp readme.txt
+
+          echo "✅ Updated readme.txt with version $VERSION and changelog"
+
+      - name: Check if files changed
+        id: check_changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No version changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changes detected"
+          fi
+
+      - name: Commit and push if changed
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add kiriminaja.php readme.txt
+          git commit -m "chore: sync version to $VERSION [skip ci]"
+
+          # Push to the branch (not the tag)
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" == "HEAD" ]; then
+            # We're in detached HEAD state (on a tag), find the branch
+            BRANCH=$(git branch -r --contains HEAD | grep -v HEAD | head -1 | sed 's|origin/||' | xargs)
+          fi
+
+          git push origin HEAD:${BRANCH}
+
+          echo "✅ Pushed version sync to branch: ${BRANCH}"
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "## Version Sync Complete 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Updated Files:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ kiriminaja.php" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ readme.txt" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_changes.outputs.changed }}" == "true" ]; then
+            echo "Changes have been committed and pushed to the repository." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No changes were needed (version already up to date)." >> $GITHUB_STEP_SUMMARY
+          fi

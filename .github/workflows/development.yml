@@ -1,4 +1,4 @@
-name: Plugin Wordrpress Kiriminaja Development
+name: Development
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   upload-gcs-prd:
-    name: 'Build & Push'
+    name: "Build & Push"
     runs-on: ubuntu-latest
 
     defaults:
@@ -17,16 +17,68 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get version from plugin file
+        id: get_base_version
+        run: |
+          # Extract base version from kiriminaja.php (e.g., 2.0.10)
+          BASE_VERSION=$(grep "Version:" kiriminaja.php | head -1 | awk '{print $NF}')
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+
+      - name: Generate development version
+        id: get_version
+        run: |
+          # Create development version: base.runid-dev (e.g., 2.0.10001-dev)
+          BASE="${{ steps.get_base_version.outputs.base_version }}"
+          VERSION="${BASE}${{ github.run_id }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Development version: $VERSION"
+
+      - name: Update version in files
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          BASE="${{ steps.get_base_version.outputs.base_version }}"
+
+          # Update kiriminaja.php - Plugin header version
+          sed -i "s/\* Version:.*/* Version:         $VERSION/" kiriminaja.php
+
+          # Update kiriminaja.php - KJ_PLUGIN_VERSION constant
+          sed -i "s/define( 'KJ_PLUGIN_VERSION', '.*' );/define( 'KJ_PLUGIN_VERSION', '$VERSION' );/" kiriminaja.php
+
+          # Update kiriminaja.php - KJ_VERSION_PLUGIN constant
+          sed -i "s/define('KJ_VERSION_PLUGIN', sanitize_text_field('.*') );/define('KJ_VERSION_PLUGIN', sanitize_text_field('$VERSION') );/" kiriminaja.php
+
+          # Update readme.txt - Stable tag
+          sed -i "s/Stable tag: .*/Stable tag: $VERSION/" readme.txt
+
+          # Get latest commit message for changelog
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          # Add changelog entry for development build
+          CHANGELOG_ENTRY="= $VERSION =\n* [DEVELOPMENT] Build #${{ github.run_id }}\n* $COMMIT_MSG\n"
+
+          # Insert changelog entry after "== Changelog ==" line
+          awk -v entry="$CHANGELOG_ENTRY" '
+            /^== Changelog ==/ {
+              print
+              print entry
+              next
+            }
+            { print }
+          ' readme.txt > readme.txt.tmp && mv readme.txt.tmp readme.txt
+
+          echo "✅ Updated version to $VERSION in kiriminaja.php and readme.txt with changelog"
+
       - name: Get current time
         id: date
-        run: echo "::set-output name=date::$(TZ="Asia/Jakarta" date +'%Y-%m-%d %H:%I')"
+        run: echo "date=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
 
       - name: Archive release
         uses: thedoctor0/zip-release@0.7.5
         with:
-          type: 'zip'
-          filename: kiriminaja-${{ github.ref_name }}.zip
-          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+          type: "zip"
+          filename: kiriminaja-${{ steps.get_version.outputs.version }}.zip
+          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes .distignore *.sh Makefile .vscode .idea *.md !README.md"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
@@ -37,16 +89,56 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ github.ref_name }}.zip
-          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          path: kiriminaja-${{ steps.get_version.outputs.version }}.zip
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp/development
+          predefinedAcl: "publicRead"
           headers: |
             cache-control: no-store, no-cache, must-revalidate, max-age=0
+
+      - name: Create version info file
+        run: |
+          cat > development-version.json << EOF
+          {
+            "name": "KiriminAja Plugin (Development)",
+            "slug": "kiriminaja-development",
+            "version": "${{ steps.get_version.outputs.version }}",
+            "base_version": "${{ steps.get_base_version.outputs.base_version }}",
+            "build_id": "${{ github.run_id }}",
+            "branch": "${{ github.ref_name }}",
+            "download_url": "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}.zip",
+            "last_updated": "${{ steps.date.outputs.date }}",
+            "commit_sha": "${{ github.sha }}",
+            "environment": "development"
+          }
+          EOF
+          cat development-version.json
+
+      - name: Upload version info
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: development-version.json
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp/development
+          predefinedAcl: "publicRead"
+          headers: |
+            cache-control: no-store, no-cache, must-revalidate, max-age=0
+
+      - name: Summary
+        run: |
+          echo "## Development Build Complete 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Base Version:** ${{ steps.get_base_version.outputs.base_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Download URL:**" >> $GITHUB_STEP_SUMMARY
+          echo "https://kaj-prd-core-web-assets.kiriminaja.com/wp/development/kiriminaja-${{ steps.get_version.outputs.version }}.zip" >> $GITHUB_STEP_SUMMARY
+
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
 #    steps:
 #      - uses: actions/checkout@v2
-#         
+#
 #      - name: Deploy
 #        run: |
 #          cd /home/devstag/kaj-dev-latest-plugin-wp/wp-content/plugins/plugin-wp # navigate into the folder

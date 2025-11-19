@@ -9,37 +9,36 @@ class SettingController{
     public function register(){
         /** getIntegrationData*/
         add_action('wp_ajax_kj_get_integration_data', array($this,'getIntegrationData'));
-        add_action('wp_ajax_nopriv_kj_get_integration_data', array($this,'getIntegrationData'));
         
         /** storeIntegrationData*/
         add_action('wp_ajax_kj_store_integration_data', array($this,'storeIntegrationData'));
-        add_action('wp_ajax_nopriv_kj_store_integration_data', array($this,'storeIntegrationData'));
         
-        /** storeIntegrationData*/
+        /** disconnectIntegration*/
         add_action('wp_ajax_kj_disconnect_integration', array($this,'disconnectIntegration'));
-        add_action('wp_ajax_nopriv_kj_disconnect_integration', array($this,'disconnectIntegration'));
         
-        /** storeIntegrationData*/
+        /** getOriginData*/
         add_action('wp_ajax_kj_get_origin_data', array($this,'getOriginData'));
-        add_action('wp_ajax_nopriv_kj_get_origin_data', array($this,'getOriginData'));
         
-        /** storeIntegrationData*/
+        /** storeOriginData*/
         add_action('wp_ajax_kj_store_origin_data', array($this,'storeOriginData'));
-        add_action('wp_ajax_nopriv_kj_store_origin_data', array($this,'storeOriginData'));
         
-        /** storeIntegrationData*/
+        /** getCallbackData*/
         add_action('wp_ajax_kj_get_call_back_data', array($this,'getCallbackData'));
-        add_action('wp_ajax_nopriv_kj_get_call_back_data', array($this,'getCallbackData'));
         
         /** storeCallbackData*/
         add_action('wp_ajax_kj_store_call_back_data', array($this,'storeCallbackData'));
-        add_action('wp_ajax_nopriv_kj_store_call_back_data', array($this,'storeCallbackData'));
 
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
     }
+    
     function getIntegrationData() {
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
+            
             $service = (new \Inc\Services\SettingService())->getIntegrationData();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -49,6 +48,10 @@ class SettingController{
     }
     function storeIntegrationData() {
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
             
             // Check for nonce security      
             if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
@@ -68,6 +71,11 @@ class SettingController{
     
     function disconnectIntegration(){
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
+            
             $service = (new \Inc\Services\SettingService())->disconnectIntegration();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -78,6 +86,11 @@ class SettingController{
     
     function getOriginData(){
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
+            
             $service = (new \Inc\Services\SettingService())->getOriginData();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -88,6 +101,10 @@ class SettingController{
     
     function storeOriginData(){
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
 
             // Check for nonce security      
             if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
@@ -113,6 +130,11 @@ class SettingController{
     
     function getCallbackData(){
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
+            
             $service = (new \Inc\Services\SettingService())->getCallbackData();
 
             
@@ -125,6 +147,10 @@ class SettingController{
     
     function storeCallbackData(){
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
             
             if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
@@ -144,6 +170,10 @@ class SettingController{
 
     function storeWhitelistExpedition(){
         try {
+            // Check user capability
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(['status'=>403,'message'=>'Unauthorized access']);
+            }
 
             // Check for nonce security      
             if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
