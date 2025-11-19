@@ -105,6 +105,8 @@ class SetupMigration {
                 `insurance_cost` double DEFAULT NULL,
                 `cod_fee` double DEFAULT NULL,
                 `transaction_value` double DEFAULT NULL,
+                `discount_amount` double DEFAULT NULL,
+                `discount_percentage` double DEFAULT NULL,
                 `created_at` timestamp NULL DEFAULT NULL,
                 `request_pickup_at` timestamp NULL DEFAULT NULL,
                 `shipped_at` timestamp NULL DEFAULT NULL,
@@ -134,6 +136,18 @@ class SetupMigration {
             if (in_array('status', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
+            }
+
+            // Add 'discount_amount' column if it doesn't exist
+            if (!in_array('discount_amount', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query("ALTER TABLE $table_name ADD discount_amount double DEFAULT NULL");
+            }
+
+            // Add 'discount_percentage' column if it doesn't exist
+            if (!in_array('discount_percentage', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query("ALTER TABLE $table_name ADD discount_percentage double DEFAULT NULL");
             }
             
         }

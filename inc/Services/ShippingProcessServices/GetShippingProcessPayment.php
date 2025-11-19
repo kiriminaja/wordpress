@@ -55,8 +55,7 @@ class GetShippingProcessPayment extends BaseService{
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
-                $sum_fee_non_cod+=$transaction->shipping_cost;
-                $sum_fee_non_cod+=$transaction->insurance_cost;
+                $sum_fee_non_cod+=($transaction->shipping_cost - $transaction->discount_amount) + $transaction->insurance_cost;
             }
         }
         
