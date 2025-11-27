@@ -215,7 +215,8 @@ class SendRequestPickupTransactionService extends BaseService
                 "package_type_id"           => 7,
                 "cod" => $transaction->cod_fee > 0 ? 
                     ($transaction->transaction_value +
-                    $transaction->shipping_cost +
+                    $transaction->shipping_cost -
+                    $transaction->discount_amount +
                     $transaction->insurance_cost +
                     $transaction->cod_fee) : 0,
                 "discount_amount" => $transaction->discount_amount ?? 0,
