@@ -38,8 +38,7 @@ class GetRequestPickupScheduleService extends BaseService {
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
-                $sum_fee_non_cod    +=  $transaction->shipping_cost;
-                $sum_fee_non_cod    +=  $transaction->insurance_cost;
+                $sum_fee_non_cod+=($transaction->shipping_cost - $transaction->discount_amount) + $transaction->insurance_cost;
             }
         }
 
@@ -53,7 +52,7 @@ class GetRequestPickupScheduleService extends BaseService {
     
     private function scheduleOptionFormatter($schedules){
         return array_map(function ($schedule){
-            $schedule->label = gmdate('l, Y-m-d H:i',strtotime($schedule->clock));
+            $schedule->label = date('l, Y-m-d H:i',strtotime($schedule->clock));
             return $schedule;
         },$schedules);
     }

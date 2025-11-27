@@ -1,3 +1,10 @@
+<?php
+// Cache frequently used values
+$helper = kjHelper();
+$homeUrl = home_url();
+$adminUrl = $homeUrl . '/wp-admin';
+$nonce = wp_create_nonce(KJ_NONCE);
+?>
 <div class="kj-wrapper kj-wrap">
     <div class="wrap ">
         <div id="root">
@@ -25,10 +32,13 @@
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page'] ?? ''); // @codingStandardsIgnoreLine?>">
+                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page'] ?? ''); // @codingStandardsIgnoreLine
+                                                                            ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key']?? '') ; // @codingStandardsIgnoreLine?>">
-                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month'] ?? ''); // @codingStandardsIgnoreLine?>">
+                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key'] ?? ''); // @codingStandardsIgnoreLine
+                                                                            ?>">
+                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month'] ?? ''); // @codingStandardsIgnoreLine
+                                                                            ?>">
                                 </form>
 
 
@@ -39,7 +49,7 @@
                                             <div style="display:flex;">
                                                 <div>
                                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M1 10C1.41 10.29 1.96 10.43 2.5 10.43C3.05 10.43 3.59 10.29 4 10C4.62 9.54 5 8.83 5 8C5 8.83 5.37 9.54 6 10C6.41 10.29 6.96 10.43 7.5 10.43C8.05 10.43 8.59 10.29 9 10C9.62 9.54 10 8.83 10 8C10 8.83 10.37 9.54 11 10C11.41 10.29 11.96 10.43 12.51 10.43C13.05 10.43 13.59 10.29 14 10C14.62 9.54 15 8.83 15 8C15 8.83 15.37 9.54 16 10C16.41 10.29 16.96 10.43 17.5 10.43C18.05 10.43 18.59 10.29 19 10C19.63 9.54 20 8.83 20 8V7L17 0H4L0 7V8C0 8.83 0.37 9.54 1 10ZM3 18.99H8V13.99H12V18.99H17V11.99C16.63 11.94 16.28 11.77 16 11.56C15.37 11.11 15 10.83 15 10C15 10.83 14.62 11.11 14 11.56C13.59 11.86 13.05 11.99 12.51 12C11.96 12 11.41 11.86 11 11.56C10.37 11.11 10 10.83 10 10C10 10.83 9.62 11.11 9 11.56C8.59 11.86 8.05 11.99 7.5 12C6.96 12 6.41 11.86 6 11.56C5.37 11.11 5 10.83 5 9.99C5 10.83 4.62 11.11 4 11.56C3.71 11.77 3.37 11.94 3 12V18.99Z" fill="black"/>
+                                                        <path d="M1 10C1.41 10.29 1.96 10.43 2.5 10.43C3.05 10.43 3.59 10.29 4 10C4.62 9.54 5 8.83 5 8C5 8.83 5.37 9.54 6 10C6.41 10.29 6.96 10.43 7.5 10.43C8.05 10.43 8.59 10.29 9 10C9.62 9.54 10 8.83 10 8C10 8.83 10.37 9.54 11 10C11.41 10.29 11.96 10.43 12.51 10.43C13.05 10.43 13.59 10.29 14 10C14.62 9.54 15 8.83 15 8C15 8.83 15.37 9.54 16 10C16.41 10.29 16.96 10.43 17.5 10.43C18.05 10.43 18.59 10.29 19 10C19.63 9.54 20 8.83 20 8V7L17 0H4L0 7V8C0 8.83 0.37 9.54 1 10ZM3 18.99H8V13.99H12V18.99H17V11.99C16.63 11.94 16.28 11.77 16 11.56C15.37 11.11 15 10.83 15 10C15 10.83 14.62 11.11 14 11.56C13.59 11.86 13.05 11.99 12.51 12C11.96 12 11.41 11.86 11 11.56C10.37 11.11 10 10.83 10 10C10 10.83 9.62 11.11 9 11.56C8.59 11.86 8.05 11.99 7.5 12C6.96 12 6.41 11.86 6 11.56C5.37 11.11 5 10.83 5 9.99C5 10.83 4.62 11.11 4 11.56C3.71 11.77 3.37 11.94 3 12V18.99Z" fill="black" />
                                                     </svg>
                                                 </div>
                                                 <div style="margin-left: 8px">
@@ -48,31 +58,32 @@
                                                     </div>
                                                     <div class="row-divider" style="margin-top: .5rem"></div>
                                                     <div style="font-weight: 500;">
-                                                        - <?php echo esc_html( kjHelper()->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.',$locale) ); ?>
+                                                        - <?php echo esc_html($helper->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.', $locale)); ?>
                                                         <br>
-                                                        - <?php echo esc_html( kjHelper()->tlThis('Only transaction / order with billing region is Indonesia can be shown here.',$locale) ); ?>
+                                                        - <?php echo esc_html($helper->tlThis('Only transaction / order with billing region is Indonesia can be shown here.', $locale)); ?>
                                                         <br>
-                                                        - <?php echo esc_html( kjHelper()->tlThis('Only transaction / order which has not been request pickuped can be shown here.',$locale) ); ?>
+                                                        - <?php echo esc_html($helper->tlThis('Only transaction / order which has not been request pickuped can be shown here.', $locale)); ?>
                                                         <br>
-                                                        - <?php echo esc_html( kjHelper()->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.',$locale) ); ?>
+                                                        - <?php echo esc_html($helper->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.', $locale)); ?>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    
+
                                     <div class="container-fluid p-0">
                                         <div class="row">
                                             <div class="col">
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
-                                                    <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
-                                                        <option selected="selected" value="" <?php echo (!isset($_GET['month']) ? "selected" : "") ;// @codingStandardsIgnoreLine?>>All Dates</option>
+                                                    <select style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
+                                                        <option selected="selected" value="" <?php echo (!isset($_GET['month']) ? "selected" : ""); // @codingStandardsIgnoreLine
+                                                                                                ?>>All Dates</option>
                                                         <?php
-                                                        if (@$monthOptions && count($monthOptions)>0){
-                                                            foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_attr($key).'" '.(isset($_GET['month']) ? esc_html($_GET['month'])===$key ? "selected" : "" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
+                                                        if (@$monthOptions && count($monthOptions) > 0) {
+                                                            foreach ($monthOptions as $key => $value) {
+                                                                echo '<option value="' . esc_attr($key) . '" ' . (isset($_GET['month']) ? esc_html($_GET['month']) === $key ? "selected" : "" : "") . '>' . esc_html($value) . '</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -89,7 +100,8 @@
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key'] ?? ''); // @codingStandardsIgnoreLine?>">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key'] ?? ''); // @codingStandardsIgnoreLine
+                                                                                                                                                                                                        ?>">
                                                     <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
@@ -105,57 +117,82 @@
                                     <div class="row-divider"></div>
                                     <table class="wp-list-table widefat fixed striped table-view-list posts">
                                         <thead>
-                                        <tr>
-                                            <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
-                                                <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
-                                            </th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Order',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Date',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Status',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Billing',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Ship To',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Total',$locale) ); ?></th>
-                                        </tr>
+                                            <tr>
+                                                <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
+                                                    <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
+                                                </th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Order', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Date', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Status', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Billing', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Ship To', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Total', $locale)); ?></th>
+                                            </tr>
                                         </thead>
                                         <tbody id="the-list">
 
 
                                             <?php
-                                            if (@$results&&count($results)>0){
-                                                foreach($results as $id => $row){
-                                                    $shippingData = json_decode(@$row->shipping_info);
-                                                    $shippingFee = (@$row->shipping_cost ?? 0) + (@$row->insurance_cost ?? 0);
-                                                    if ((@$row->cod_fee ?? 0) > 0){
-                                                        $shippingFee += (@$row->transaction_value ?? 0) + (@$row->cod_fee ?? 0);
+                                            if (!empty($results)) {
+                                                foreach ($results as $id => $row) {
+                                                    $shippingData = json_decode($row->shipping_info ?? '{}');
+                                                    
+                                                    // Calculate shipping fee
+                                                    $shippingCost = (float) ($row->shipping_cost ?? 0);
+                                                    $insuranceCost = (float) ($row->insurance_cost ?? 0);
+                                                    $discountAmount = (float) ($row->discount_amount ?? 0);
+                                                    $codFee = (float) ($row->cod_fee ?? 0);
+                                                    $transactionValue = (float) ($row->transaction_value ?? 0);
+                                                    
+                                                    $shippingFee = ($shippingCost + $insuranceCost) - $discountAmount;
+                                                    if ($codFee > 0) {
+                                                        $shippingFee += $transactionValue + $codFee;
                                                     }
+                                                    
+                                                    // Cache shipping data properties
+                                                    $billingFirstName = $shippingData->_billing_first_name ?? '';
+                                                    $billingLastName = $shippingData->_billing_last_name ?? '';
+                                                    $billingAddress1 = $shippingData->_billing_address_1 ?? '';
+                                                    $billingAddress2 = $shippingData->_billing_address_2 ?? '';
+                                                    $billingPostcode = $shippingData->_billing_postcode ?? '';
+                                                    $shippingFirstName = $shippingData->_shipping_first_name ?? $billingFirstName;
+                                                    $shippingLastName = $shippingData->_shipping_last_name ?? $billingLastName;
+                                                    $shippingAddress1 = $shippingData->_shipping_address_1 ?? $billingAddress1;
+                                                    $shippingAddress2 = $shippingData->_shipping_address_2 ?? $billingAddress2;
+                                                    $shippingPostcode = $shippingData->_shipping_postcode ?? $billingPostcode;
+                                                    $destinationSubDistrict = $row->destination_sub_district ?? '';
+                                                    $paymentMethod = $shippingData->_payment_method ?? '';
+                                                    $isCod = $paymentMethod === 'cod';
+                                                    $paymentLabel = $isCod ? 'COD' : 'NON COD';
+                                                    
+                                                    // Build URLs
+                                                    $orderEditUrl = $adminUrl . '/post.php?post=' . esc_attr($row->wc_order_id) . '&action=edit';
+                                                    $orderDate = gmdate('M d, Y', strtotime($row->wc_date_created));
+                                                    $statusLabel = $helper->transactionStatusLabel($row->status);
+                                                    $serviceName = strtoupper($row->service);
+                                                    $statusUpper = strtoupper($row->status);
+                                                    
                                                     echo '
                                                       <tr class="">
                                                         <td class="manage-column column-thumb">
-                                                            <input type="checkbox" name="transaction_id[]" value="'.esc_attr($row->order_id).'">
+                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($row->order_id) . '">
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                        <a href="'.(esc_url(home_url()).'/wp-admin/post.php?post='.esc_attr($row->wc_order_id).'&action=edit').'" target="_blank" style="font-weight: 700">#'.esc_html($row->wc_order_id).' '.esc_html($shippingData->_billing_first_name).' '.esc_html($shippingData->_billing_last_name).' </a>
+                                                        <a href="' . esc_url($orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($row->wc_order_id) . ' ' . esc_html($billingFirstName) . ' ' . esc_html($billingLastName) . ' </a>
                                                         </td>
-                                                        <td class="manage-column column-thumb">'.esc_html(gmdate('M d, Y',strtotime($row->wc_date_created)) ).'</td>
+                                                        <td class="manage-column column-thumb">' . esc_html($orderDate) . '</td>
                                                         <td class="manage-column column-thumb">
-                                                        <span class="kj-badge processing">'.esc_html( kjHelper()->transactionStatusLabel($row->status)).'</span>
+                                                        <span class="kj-badge processing">' . esc_html($statusLabel) . '</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>'.esc_html(
-                                                                ($shippingData->_billing_first_name ?? '') . ' ' .
-                                                                ($shippingData->_billing_last_name ?? '') . ', ' .
-                                                                ($shippingData->_billing_address_1 ?? '') . ', ' .
-                                                                ($shippingData->_billing_address_2 ?? '') . ', ' .
-                                                                ($row->destination_sub_district ?? '') . ', ' .
-                                                                ($shippingData->_billing_postcode ?? '')
-                                                            ).'</div>
+                                                            <div>' . esc_html(trim($billingFirstName . ' ' . $billingLastName . ', ' . $billingAddress1 . ', ' . $billingAddress2 . ', ' . $destinationSubDistrict . ', ' . $billingPostcode)) . '</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
-                                                            <div>via '.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").'</div>
+                                                            <div>via ' . esc_html($paymentLabel) . '</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`'.esc_html($row->wc_order_id).'`)">'.esc_html( ($shippingData->_shipping_first_name ?? $shippingData->_billing_first_name ?? '').' '.($shippingData->_shipping_last_name ?? $shippingData->_billing_last_name ?? '').', '.($shippingData->_shipping_address_1 ?? $shippingData->_billing_address_1 ?? '').', '.($shippingData->_shipping_address_2 ?? $shippingData->_billing_address_2 ?? '').', '.$row->destination_sub_district.', '.($shippingData->_shipping_postcode ?? $shippingData->_billing_postcode ?? '') ).'</div>
+                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`' . esc_js($row->wc_order_id) . '`)">' . esc_html(trim($shippingFirstName . ' ' . $shippingLastName . ', ' . $shippingAddress1 . ', ' . $shippingAddress2 . ', ' . $destinationSubDistrict . ', ' . $shippingPostcode)) . '</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
-                                                            <div>via '.esc_html(strtoupper($row->service)).'</div>
+                                                            <div>via ' . esc_html($serviceName) . '</div>
                                                             <div style="position: relative; margin-top: .1rem"></div>
                                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,33 +200,33 @@
                                                                 <path d="M5.3998 5.40005V1.80005H1.7998V5.40005H5.3998ZM10.1998 5.40005V1.80005H6.5998V5.40005H10.1998ZM5.3998 10.2V6.60005H1.7998V10.2H5.3998ZM10.1998 10.2V6.60005H6.5998V10.2H10.1998Z" fill="black"/>
                                                                 </g>
                                                                 </svg>
-                                                                <span style="margin-left: .5rem">'.esc_html(strtoupper($row->status)).'</span>
+                                                                <span style="margin-left: .5rem">' . esc_html($statusUpper) . '</span>
                                                             </div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <p style="font-weight: 600">('.(@$shippingData->_payment_method==="cod" ? "COD" : "NON COD").') Rp'.esc_html(localMoneyFormat($shippingFee)).'</p>
+                                                            <p style="font-weight: 600">(' . esc_html($paymentLabel) . ') Rp' . esc_html(localMoneyFormat($shippingFee)) . '</p>
                                                         </td>
                                                     </tr>
                                                     ';
                                                 }
-                                            }else{
-                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html(kjHelper()->tlThis('Not Found',$locale)).'</td></tr>';
+                                            } else {
+                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html($helper->tlThis('Not Found', $locale)) . '</td></tr>';
                                             }
                                             ?>
-                                        
+
                                         </tbody>
                                         <tfoot>
-                                        <tr>
-                                            <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
-                                                <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
-                                            </th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Order',$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Date',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Status',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Billing',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Ship To',$locale) ); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Total',$locale) ); ?></th>
-                                        </tr>
+                                            <tr>
+                                                <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
+                                                    <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
+                                                </th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Order', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Date', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Status', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Billing', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Ship To', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Total', $locale)); ?></th>
+                                            </tr>
                                         </tfoot>
                                     </table>
 
@@ -199,12 +236,13 @@
                                             <div class="col">
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
-                                                    <select  style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
-                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ; // @codingStandardsIgnoreLine?>>All Dates</option>
+                                                    <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
+                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : ""); // @codingStandardsIgnoreLine
+                                                                                                ?>>All Dates</option>
                                                         <?php
-                                                        if (@$monthOptions && count($monthOptions)>0){
-                                                            foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_attr($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
+                                                        if (@$monthOptions && count($monthOptions) > 0) {
+                                                            foreach ($monthOptions as $key => $value) {
+                                                                echo '<option value="' . esc_attr($key) . '" ' . (@$_GET['month'] === $key ? "selected" : "") . '>' . esc_html($value) . '</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -238,79 +276,93 @@
 
     <?php include 'modal-request-pickup.php' ?>
     <?php include 'modal-detail.php' ?>
-    
+
 </div>
 
 <!--Table Search-->
 <script type="text/javascript">
-    function applySearch (key,value){
-        if (jQuery(`#table-form [name="${key}"]`).length > 0){
-            jQuery(`#table-form [name="${key}"]`).val(value)
-            jQuery(`#table-form`).trigger('submit')
-        }
-    }
-</script>
-<script>
-    let orderIds = [];
-    jQuery(document).on('change','#check_order_id_all_top, #check_order_id_all_bottom',function (){
-        const is_checked = jQuery(this).prop('checked')
-        jQuery('#check_order_id_all_top').prop('checked',is_checked)
-        jQuery('#check_order_id_all_bottom').prop('checked',is_checked)
-        jQuery('[name="transaction_id[]"]').prop('checked',is_checked)
-    })
-    function kjRequestPickupSchedule(){
-
-        /** Reset orderIds*/
-        orderIds = []
-        jQuery('input[name="transaction_id[]"]:checked').each(function() {
-            orderIds.push(jQuery(this).val());
+    (function($) {
+        'use strict';
+        
+        // Cache jQuery selectors
+        let orderIds = [];
+        let lastwcOrderIdForshowTransactionSummaryModal = 0;
+        const $checkAllTop = $('#check_order_id_all_top');
+        const $checkAllBottom = $('#check_order_id_all_bottom');
+        const $transactionCheckboxes = () => $('[name="transaction_id[]"]');
+        
+        // Make functions globally accessible
+        window.applySearch = function(key, value) {
+            if ($(`#table-form [name="${key}"]`).length > 0) {
+                $(`#table-form [name="${key}"]`).val(value);
+                $(`#table-form`).trigger('submit');
+            }
+        };
+        
+        $(document).on('change', '#check_order_id_all_top, #check_order_id_all_bottom', function() {
+            const is_checked = $(this).prop('checked');
+            $checkAllTop.prop('checked', is_checked);
+            $checkAllBottom.prop('checked', is_checked);
+            $transactionCheckboxes().prop('checked', is_checked);
         });
 
-        if (orderIds.length === 0){
-            alert('There is no selected transaction')
-            return
-        }
-        
-        const modalElem = jQuery('#request-pickup-modal')
-        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
-        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
-        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
+        window.kjRequestPickupSchedule = function() {
+        /** Reset orderIds*/
+        orderIds = [];
+        $('input[name="transaction_id[]"]:checked').each(function() {
+            orderIds.push($(this).val());
+        });
 
-        modalElem.removeClass('kj-hidden')
-        modalElemLoader.removeClass('kj-hidden')
-        modalElemContent.addClass('kj-hidden')
-        modalElemErr.addClass('kj-hidden')
+        if (orderIds.length === 0) {
+            alert('There is no selected transaction');
+            return;
+        }
+
+        const $modal = $('#request-pickup-modal');
+        const modalElem = $modal[0];
+        const modalElemContent = $modal.find('.kj-modal-content')[0];
+        const modalElemLoader = $modal.find('.kj-modal-loader')[0];
+        const modalElemErr = $modal.find('.kj-err-container')[0];
         
-        jQuery.ajax({
+        const $modalElem = $modal;
+        const $modalElemContent = $(modalElemContent);
+        const $modalElemLoader = $(modalElemLoader);
+        const $modalElemErr = $(modalElemErr)
+
+        $modalElem.removeClass('kj-hidden');
+        $modalElemLoader.removeClass('kj-hidden');
+        $modalElemContent.addClass('kj-hidden');
+        $modalElemErr.addClass('kj-hidden');
+
+        $.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
             data: {
-                action: "kj_request_pickup_schedule",  // the action to fire in the server
+                action: "kj_request_pickup_schedule",
                 data: {
-                    order_ids:orderIds,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
-                },         // any JS object
+                    order_ids: orderIds,
+                    nonce: "<?php echo esc_js($nonce); ?>"
+                }
             },
-            complete: function (response) {
+            complete: function(response) {
                 const resp = JSON.parse(response.responseText).data;
-                
-                if (resp?.status !== 200){
-                    modalElemLoader.addClass('kj-hidden')
-                    modalElemContent.addClass('kj-hidden')
-                    modalElemErr.removeClass('kj-hidden')
-                    alert(resp?.message ?? 'Terjadi kesalahan')
-                    return
+
+                if (resp?.status !== 200) {
+                    $modalElemLoader.addClass('kj-hidden');
+                    $modalElemContent.addClass('kj-hidden');
+                    $modalElemErr.removeClass('kj-hidden');
+                    alert(resp?.message ?? 'Terjadi kesalahan');
+                    return;
                 }
 
                 const schedules = resp?.data?.schedules ?? [];
                 const transaction_summary = resp?.data?.transaction_summary ?? {};
                 const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
                 const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
-                const total = sum_non_cod_fee;
 
                 /** transaction_summary*/
-                jQuery('#schedule-transaction-summary').empty()
-                jQuery('#schedule-transaction-summary').append(`
+                const $scheduleSummary = $('#schedule-transaction-summary');
+                $scheduleSummary.empty().append(`
                 <div>
                     <div class="row">
                         <div class="col">Tagihan Paket COD</div>
@@ -327,13 +379,13 @@
                         <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((sum_cod_fee))}</div>
                     </div>
                 </div>
-                `)
-                
+                `);
+
                 /** schedules*/
-                
-                jQuery('#schedule-opt-list').empty()
-                jQuery.each(schedules,function (idx,schedule){
-                    jQuery('#schedule-opt-list').append(`
+                const $scheduleList = $('#schedule-opt-list');
+                $scheduleList.empty();
+                $.each(schedules, function(idx, schedule) {
+                    $scheduleList.append(`
                         <div style="margin-bottom: .75rem">
                             <div style="display: flex;align-items: center;justify-items: center;">
                                 <input id="opt_${schedule?.clock}" style="margin: 0" value="${schedule?.clock}" type="radio" name="schedule-opt">
@@ -343,115 +395,107 @@
                             </div>
                         </div>
                 `)
-                })
+                });
 
-                
-                modalElemLoader.addClass('kj-hidden')
-                modalElemContent.removeClass('kj-hidden')
-                modalElemErr.addClass('kj-hidden')
+                $modalElemLoader.addClass('kj-hidden');
+                $modalElemContent.removeClass('kj-hidden');
+                $modalElemErr.addClass('kj-hidden');
             }
-        })
-        
-    }
-    function kjRequestPickupProcess(){
-        jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
+        });
+    };
 
-        const modalElem = jQuery('#request-pickup-modal')
-        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
-        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
-        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
-
-        modalElemLoader.removeClass('kj-hidden')
-        modalElemContent.addClass('kj-hidden')
-        modalElemErr.addClass('kj-hidden')
+    window.kjRequestPickupProcess = function() {
+        const $modal = $('#request-pickup-modal');
+        const $errMsg = $modal.find('.err_msg');
+        const $modalContent = $modal.find('.kj-modal-content');
+        const $modalLoader = $modal.find('.kj-modal-loader');
+        const $modalErr = $modal.find('.kj-err-container');
         
-        jQuery.ajax({
+        $errMsg.addClass('kj-hidden');
+        $modalLoader.removeClass('kj-hidden');
+        $modalContent.addClass('kj-hidden');
+        $modalErr.addClass('kj-hidden');
+
+        $.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
             data: {
-                action: "kj_request_pickup_transaction",  // the action to fire in the server
+                action: "kj_request_pickup_transaction",
                 data: {
-                    schedule : jQuery('[name="schedule-opt"]:checked').val(),
-                    order_ids : orderIds,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
-                },         // any JS object
+                    schedule: $('[name="schedule-opt"]:checked').val(),
+                    order_ids: orderIds,
+                    nonce: "<?php echo esc_js($nonce); ?>"
+                }
             },
-            complete: function (response) {
+            complete: function(response) {
                 /** Reset Err*/
-                jQuery('#request-pickup-modal .err_msg').empty()
-                jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
-    
-                
-                const resp = JSON.parse(response.responseText).data;
-                if (resp?.status !== 200){
+                $errMsg.empty().addClass('kj-hidden');
 
-                    modalElemLoader.addClass('kj-hidden')
-                    modalElemErr.addClass('kj-hidden')
-                    modalElemContent.removeClass('kj-hidden')
-                    
-                    jQuery('#request-pickup-modal .err_msg').text('*'+resp?.message)
-                    jQuery('#request-pickup-modal .err_msg').removeClass('kj-hidden')
-                    return
+                const resp = JSON.parse(response.responseText).data;
+                if (resp?.status !== 200) {
+                    $modalLoader.addClass('kj-hidden');
+                    $modalErr.addClass('kj-hidden');
+                    $modalContent.removeClass('kj-hidden');
+                    $errMsg.text('*' + resp?.message).removeClass('kj-hidden');
+                    return;
                 }
 
-                window.location.href = `<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-request-pickup'; ?>&pickup_number=${resp?.data?.pickup_number}`;
-                
-                
+                window.location.href = `<?php echo esc_url($adminUrl); ?>/admin.php?page=kiriminaja-request-pickup&pickup_number=${resp?.data?.pickup_number}`;
             }
-        })
-    }
+        });
+    };
 
-    let lastwcOrderIdForshowTransactionSummaryModal = 0;
-    function showTransactionSummaryModalRefresh(){
-        showTransactionSummaryModal(lastwcOrderIdForshowTransactionSummaryModal)
-    }
-    function showTransactionSummaryModal(wcOrderId){
+    window.showTransactionSummaryModalRefresh = function() {
+        window.showTransactionSummaryModal(lastwcOrderIdForshowTransactionSummaryModal);
+    };
+
+    window.showTransactionSummaryModal = function(wcOrderId) {
         lastwcOrderIdForshowTransactionSummaryModal = wcOrderId;
-        const modalElem = jQuery('#transaction-detail-modal')
-        const modalElemContent = jQuery('#transaction-detail-modal .kj-modal-content')
-        const modalElemLoader = jQuery('#transaction-detail-modal .kj-modal-loader')
-        const modalElemErr = jQuery('#transaction-detail-modal .kj-err-container')
+        
+        const $modal = $('#transaction-detail-modal');
+        const $modalContent = $modal.find('.kj-modal-content');
+        const $modalLoader = $modal.find('.kj-modal-loader');
+        const $modalErr = $modal.find('.kj-err-container');
+        const $statusContainer = $modal.find('.status-container');
+        const $wcOrderId = $modal.find('.wc-order-id');
 
         /** Show Modal & show loader*/
-        modalElem.removeClass('kj-hidden')
-        modalElemLoader.removeClass('kj-hidden')
-        modalElemContent.addClass('kj-hidden')
-        modalElemErr.addClass('kj-hidden')
+        $modal.removeClass('kj-hidden');
+        $modalLoader.removeClass('kj-hidden');
+        $modalContent.addClass('kj-hidden');
+        $modalErr.addClass('kj-hidden');
+        $statusContainer.empty();
 
-        /** Status*/
-        jQuery('#transaction-detail-modal .status-container').empty()
-
-        jQuery.ajax({
+        $.ajax({
             type: "post",
             url: ajaxRouteGenerator(),
             data: {
-                action: "kj_transaction-detail-summary",  // the action to fire in the server
-                data:{
-                    wc_order_id : wcOrderId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
-                } ,         // any JS object
+                action: "kj_transaction-detail-summary",
+                data: {
+                    wc_order_id: wcOrderId,
+                    nonce: "<?php echo esc_js($nonce); ?>"
+                }
             },
-            complete: function (response) {
+            complete: function(response) {
                 const resp = JSON.parse(response.responseText).data;
 
-                if (resp?.status !== 200){
-                    /** Hide loader & SHow Err*/
-                    modalElemLoader.addClass('kj-hidden')
-                    modalElemContent.addClass('kj-hidden')
-                    modalElemErr.removeClass('kj-hidden')
-                    return
+                if (resp?.status !== 200) {
+                    /** Hide loader & Show Err*/
+                    $modalLoader.addClass('kj-hidden');
+                    $modalContent.addClass('kj-hidden');
+                    $modalErr.removeClass('kj-hidden');
+                    return;
                 }
-                
-                let checkout_data       = resp?.data?.checkout_data
-                let cart_data           = resp?.data?.cart_data
-                let transaction_data    = resp?.data?.transaction_data
+
+                const checkout_data = resp?.data?.checkout_data;
+                const cart_data = resp?.data?.cart_data;
+                const transaction_data = resp?.data?.transaction_data;
 
                 /** Add transaction number to modal*/
-                jQuery('#transaction-detail-modal .wc-order-id').text(wcOrderId)
+                $wcOrderId.text(wcOrderId);
 
                 /** Empty and add content*/
-                jQuery('#transaction-detail-modal .kj-modal-content').empty()
-                jQuery('#transaction-detail-modal .kj-modal-content').append(`
+                $modalContent.empty().append(`
                 <div>
                     <div style="padding: 0 15px 0 15px;">
                         <!--1 row-->
@@ -526,29 +570,24 @@
                                 <th colspan="2">Shipping Fee</th>
                                 <th>Rp.${kjMoneyFormat(transaction_data?.shipping_cost ?? 0)}</th>
                             </tr>
-                            `
-                            +
-                            (
-                            transaction_data?.cod_fee > 0 ? 
-                            `
+                            ` +
+                    (
+                        transaction_data?.cod_fee > 0 ?
+                        `
                             <tr>
                             <th colspan="2">COD Fee</th>
                             <th>Rp.${kjMoneyFormat(transaction_data?.cod_fee ?? 0)}</th>
-                            </tr>` 
-                            : 
-                            '')
-                            +
-                            (
-                            transaction_data?.insurance_cost > 0 ?
-                            `
+                            </tr>` :
+                        '') +
+                    (
+                        transaction_data?.insurance_cost > 0 ?
+                        `
                             <tr>
                             <th colspan="2">Insurance Fee</th>
                             <th>Rp.${kjMoneyFormat(transaction_data?.insurance_cost ?? 0)}</th>
-                            </tr>`
-                            :
-                            '')
-                            +
-                            `
+                            </tr>` :
+                        '') +
+                    `
                             <tr>
                                 <th colspan="2">Total</th>
                                 <th>Rp.${kjMoneyFormat(
@@ -567,33 +606,30 @@
                         </table>
                     </div>
                 </div>
-                `)
-                
+                `);
+
                 /** Status*/
-                jQuery('#transaction-detail-modal .status-container').empty()
-                jQuery('#transaction-detail-modal .status-container').append(`<span class="${resp?.data?.status_classes}">${resp?.data?.status_label}</span>`)
-                
+                $statusContainer.empty().append(`<span class="${resp?.data?.status_classes}">${resp?.data?.status_label}</span>`);
 
                 /**emptying and add the cart table list*/
-                jQuery('#transaction-detail-modal .kj-modal-content #cart-table tbody').empty()
+                const $cartTableBody = $modalContent.find('#cart-table tbody').empty();
                 
-                jQuery.each(cart_data,function (index, obj){
-                    jQuery('#transaction-detail-modal .kj-modal-content #cart-table tbody').append(`
+                $.each(cart_data, function(index, obj) {
+                    $cartTableBody.append(`
                     <tr>
                         <td>${obj?.product_name}</td>
                         <td>${kjMoneyFormat(obj?.product_qty ?? 0)}</td>
                         <td>Rp.${kjMoneyFormat(obj?.product_gross_revenue ?? 0)}</td>
                     </tr>
-                    `)
-                })
-                
-                /** Show Modal*/
-                modalElemLoader.addClass('kj-hidden')
-                modalElemContent.removeClass('kj-hidden')
-            }
-        })
-        
+                    `);
+                });
 
-        
-    }
+                /** Show Modal*/
+                $modalLoader.addClass('kj-hidden');
+                $modalContent.removeClass('kj-hidden');
+            }
+        });
+    };
+    
+    })(jQuery);
 </script>
