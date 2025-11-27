@@ -184,6 +184,7 @@ class CheckoutCalculationService extends BaseService{
         if (!$this->isCOD()) { 
             return 0;
         }
+
         
         $codFeeAmount = (float) ($this->selectedExpedition->setting->cod_fee_amount ?? 0);
         $codMinCost = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
