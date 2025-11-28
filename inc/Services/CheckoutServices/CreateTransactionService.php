@@ -68,7 +68,7 @@ class CreateTransactionService extends BaseService{
                 "length"                        => $cartsAttr['length'],
                 "width"                         => $cartsAttr['width'],
                 "height"                        => $cartsAttr['height'],
-                'shipping_cost'                 => $calcResult['ongkir_fee_amt'],
+                'shipping_cost'                 => $calcResult['ongkir_fee_raw'],
                 'insurance_cost'                => $insurance_cost,
                 'cod_fee'                       => $calcResult['cod_amt'],
                 'transaction_value'             => $calcResult['cart_total_amt'],

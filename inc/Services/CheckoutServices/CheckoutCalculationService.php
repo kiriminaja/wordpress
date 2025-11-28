@@ -127,7 +127,7 @@ class CheckoutCalculationService extends BaseService{
         $selected_expedition = $this->selectedExpedition;
         $insurance_amt = $this->getCalculateInsuranceFee();
         $cod_amt = $this->getCalculateCODFee();
-        $ongkirFee = (int) ($selected_expedition->cost ?? 0);
+        $ongkirFee = (int) ($selected_expedition->cost ?? 0) - (int) ($selected_expedition->discount_amount ?? 0);
         $total_amt = $ongkirFee + $cod_amt + $insurance_amt + $cartTotal;
         
         return [
@@ -135,6 +135,7 @@ class CheckoutCalculationService extends BaseService{
             'cod_amt' => $cod_amt,
             'insurance_amt' => $insurance_amt,
             'ongkir_fee_amt' => $ongkirFee,
+            'ongkir_fee_raw' => (int) ($selected_expedition->cost ?? 0),
             'calc_total_amt' => $total_amt,
             'selected_expedition' => $selected_expedition,
             'discount_amt' => (int) ($selected_expedition->discount_amount ?? 0),
