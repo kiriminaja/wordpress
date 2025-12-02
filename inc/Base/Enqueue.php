@@ -6,8 +6,8 @@ use \Inc\Base\BaseInit;
 
 class Enqueue extends BaseInit{
     
-    private $is_vite_enabled = true;
-    private $is_vite_dev = true;
+    private $is_vite_enabled = false;
+    private $is_vite_dev = false;
     private $vite_server = 'http://localhost:3000';
     
     public function __construct() {
@@ -75,7 +75,7 @@ class Enqueue extends BaseInit{
         $manifest = json_decode(file_get_contents($manifest_path), true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         
         if (isset($manifest[$entry])) {
-            return $this->plugin_url . 'assets/' . $manifest[$entry]['file'];
+            return $this->plugin_url . 'dist/' . $manifest[$entry]['file'];
         }
         
         return false;
@@ -98,7 +98,7 @@ class Enqueue extends BaseInit{
         
         if (isset($manifest[$entry]['css'])) {
             return array_map(function($css) {
-                return $this->plugin_url . 'assets/' . $css;
+                return $this->plugin_url . 'dist/' . $css;
             }, $manifest[$entry]['css']);
         }
         
@@ -178,12 +178,12 @@ class Enqueue extends BaseInit{
 
         // Load Vite-built Vue app if available
         if ($this->is_vite_enabled) {
-            $vue_entry = $this->getViteAsset('admin/main.ts');
+            $vue_entry = $this->getViteAsset('frontend/src/admin/main.ts');
             if ($vue_entry) {
                 wp_enqueue_script('kiriminaja-admin-vue', $vue_entry, array(), KJ_PLUGIN_VERSION, true);
                 
                 // Localize script for Vue app with AJAX data
-                wp_localize_script('kiriminaja-admin-vue', 'kiriminaja_admin', array(
+                wp_localize_script('kiriminaja-admin-vue', 'myjs', array(
                     'ajaxurl' => admin_url('admin-ajax.php'),
                     'nonce' => wp_create_nonce('kiriminaja_ajax_nonce'),
                     'wp_ajax_nonce' => wp_create_nonce('wp_ajax_nonce')
@@ -196,7 +196,7 @@ class Enqueue extends BaseInit{
                     return $tag;
                 }, 10, 2);
                 
-                $css_files = $this->getViteCss('admin/main.ts');
+                $css_files = $this->getViteCss('frontend/src/admin/main.ts');
                 foreach ($css_files as $index => $css_url) {
                     wp_enqueue_style('kiriminaja-admin-vue-' . $index, $css_url, array(), KJ_PLUGIN_VERSION);
                 }
