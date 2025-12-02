@@ -202,6 +202,13 @@ class Enqueue extends BaseInit{
             if ($vue_entry) {
                 wp_enqueue_script('kiriminaja-admin-vue', $vue_entry, array(), KJ_PLUGIN_VERSION, true);
                 
+                // Localize script for Vue app with AJAX data
+                wp_localize_script('kiriminaja-admin-vue', 'kiriminaja_admin', array(
+                    'ajaxurl' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('kiriminaja_ajax_nonce'),
+                    'wp_ajax_nonce' => wp_create_nonce('wp_ajax_nonce')
+                ));
+                
                 add_filter('script_loader_tag', function($tag, $handle) {
                     if ('kiriminaja-admin-vue' === $handle) {
                         return str_replace('<script', '<script type="module" crossorigin', $tag);

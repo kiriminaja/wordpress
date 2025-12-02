@@ -14,11 +14,11 @@ export default defineConfig({
       ui: {
         dashboardNavbar: {
           slots: {
-            root: "h-(--ui-header-height) shrink-0 flex sticky top-0 bg-white left-0 right-0 items-center justify-between border-b border-default px-4 sm:px-6 gap-1.5",
+            root: "h-(--ui-header-height) shrink-0 flex sticky z-100 top-0 bg-white left-0 right-0 items-center justify-between border-b border-default px-4 sm:px-6 gap-1.5",
             left: "flex items-center gap-1.5 min-w-0",
             icon: "shrink-0 size-5 self-center me-1.5",
             title:
-              "flex items-center gap-1.5 font-semibold text-highlighted truncate",
+              "flex items-center gap-1.5 !text-base !m-0 !font-semibold text-highlighted p-0 truncate",
             center: "hidden lg:flex",
             right: "flex items-center shrink-0 gap-1.5",
             toggle: "",
@@ -33,6 +33,48 @@ export default defineConfig({
               },
             },
           },
+        },
+        breadcrumb: {
+          slots: {
+            root: "relative min-w-0",
+            list: "flex items-center gap-1.5 !m-0",
+            item: "flex min-w-0 !m-0",
+            link: "group relative flex items-center gap-1.5 text-sm min-w-0 focus-visible:outline-primary",
+            linkLeadingIcon: "shrink-0 size-5",
+            linkLeadingAvatar: "shrink-0",
+            linkLeadingAvatarSize: "2xs",
+            linkLabel: "truncate",
+            separator: "flex !m-0",
+            separatorIcon: "shrink-0 size-5 text-muted",
+          },
+          variants: {
+            active: {
+              true: {
+                link: "text-primary font-semibold",
+              },
+              false: {
+                link: "text-muted font-medium",
+              },
+            },
+            disabled: {
+              true: {
+                link: "cursor-not-allowed opacity-75",
+              },
+            },
+            to: {
+              true: "",
+            },
+          },
+          compoundVariants: [
+            {
+              disabled: false,
+              active: false,
+              to: true,
+              class: {
+                link: ["hover:text-default", "transition-colors"],
+              },
+            },
+          ],
         },
       },
     }),

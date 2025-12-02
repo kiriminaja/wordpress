@@ -1,18 +1,6 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-/* Admin App Styles */
-#kiriminaja-admin-root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-:root {
-  --ui-primary: var(--wp-admin-theme-color);
-}
-
 #wpcontent {
   @apply pl-0;
 }
@@ -21,6 +9,14 @@
   @apply m-0;
 }
 
-#wpbody .wrap {
-  @apply m-0;
+.toplevel_page_kiriminaja-konfigurasi .wp-submenu .wp-first-item {
+  @apply hidden;
+}
+
+#kaj-admin-root ul {
+  @apply !m-0;
+}
+
+:root {
+  --ui-primary: var(--wp-admin-theme-color);
 }

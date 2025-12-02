@@ -5,7 +5,7 @@ import ui from "@nuxt/ui/vue-plugin";
 import "./style.css";
 
 function mountApp() {
-  const mountPoint = document.getElementById("kiriminaja-admin-root");
+  const mountPoint = document.getElementById("kaj-admin-root");
 
   if (mountPoint) {
     const app = createApp(App);
@@ -17,7 +17,6 @@ function mountApp() {
     app.use(router);
     app.use(ui);
     app.mount(mountPoint);
-    console.log("KiriminAja Admin Vue app mounted");
   } else {
     console.warn("KiriminAja Admin mount point not found");
   }

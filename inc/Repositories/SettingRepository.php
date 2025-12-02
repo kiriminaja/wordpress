@@ -233,4 +233,40 @@ class SettingRepository{
         return $datas;
         
     }
+    
+    /**
+     * Update or create a setting by key
+     * @param string $key
+     * @param string $value
+     * @return bool
+     */
+    public function updateOrCreateSetting($key, $value) {
+        global $wpdb;
+        
+        // First try to update existing record
+        $updated = $wpdb->update(
+            $this->table,
+            array('value' => $value),
+            array('key' => $key)
+        ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        
+        // If no rows were updated, insert new record
+        if ($updated === 0) {
+            $wpdb->insert(
+                $this->table,
+                array(
+                    'key' => $key,
+                    'value' => $value
+                )
+            ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        }
+        
+        // Check for database errors
+        if (strlen(@$wpdb->last_error ?? '') > 0) {
+            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            return false;
+        }
+        
+        return true;
+    }
 }

@@ -1,148 +1,148 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, watch } from "vue";
+import Integration from "../components/config/integration.vue";
+import Shipping from "../components/config/shipping.vue";
+import Advanced from "../components/config/advanced.vue";
+import Page from "../components/page.vue";
 
 interface MenuItem {
   id: string;
   title: string;
   description: string;
   icon: string;
+  page?: any;
 }
 
+// Reactive URL query management
 const currentPath = ref<string | null>(null);
 const isWooCommerceActive = ref(true);
-const PageComponent = ref<any>(null);
 const isLoadingPage = ref(false);
+
+// Initialize from URL params
+const initializeFromUrl = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  currentPath.value = urlParams.get("path");
+};
+
+// Watch for URL changes (browser back/forward)
+const handlePopState = () => {
+  initializeFromUrl();
+};
+
+// Initialize on mount
+initializeFromUrl();
+window.addEventListener("popstate", handlePopState);
+
+const currentPage = computed(() => {
+  return menuItems.find((item) => item.id === currentPath.value) || null;
+});
 
 const menuItems: MenuItem[] = [
   {
     id: "integration",
     title: "Change Setup Key",
     description:
-      "Configure your KiriminAja API credentials and connection settings",
+      "Update your KiriminAja Setup Key to connect a different account",
     icon: "i-lucide-key",
+    page: Integration,
   },
   {
     id: "shipping",
-    title: "Shipping Origin",
-    description: "Set up your warehouse or store location information",
+    title: "Store Address",
+    description:
+      "This is where your business is located. Tax rates and shipping rates will use this address.",
     icon: "i-lucide-map-pin",
+    page: Shipping,
+  },
+  {
+    id: "couriers",
+    title: "Couriers",
+    description: "Add, remove, or update courier services for your shipments",
+    icon: "i-lucide-truck",
+    page: Advanced, // Uncomment and create Couriers component when ready
   },
   {
     id: "advanced",
     title: "Advanced Settings",
-    description: "Configure webhooks and expedition whitelist",
+    description: "Configure your integration webhooks event handler urls",
     icon: "i-lucide-settings",
+    page: Advanced,
   },
 ];
 
-onMounted(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const path = urlParams.get("path");
-  if (path) {
-    loadPage(path);
-  }
+const parentUrl = computed(() => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("path");
+  return url.toString();
 });
 
-async function loadPage(pathId: string) {
-  isLoadingPage.value = true;
-  currentPath.value = pathId;
-
-  try {
-    const module = await import(`../pages/${pathId}.vue`);
-    PageComponent.value = module.default;
-  } catch (error) {
-    console.error(`Failed to load page: ${pathId}`, error);
-    PageComponent.value = null;
-  } finally {
-    isLoadingPage.value = false;
-  }
-}
-
-function navigateToPath(pathId: string) {
+const navigateToPath = (pathId: string) => {
   const url = new URL(window.location.href);
   url.searchParams.set("path", pathId);
   window.history.pushState({}, "", url.toString());
-  loadPage(pathId);
-}
-
-function goBack() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("path");
-  window.history.pushState({}, "", url.toString());
-  currentPath.value = null;
-  PageComponent.value = null;
-}
+  currentPath.value = pathId;
+};
 </script>
 
 <template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Settings" />
-    </template>
-    <template #body>
-      <UAlert
-        v-if="!isWooCommerceActive"
-        title="WooCommerce Required"
-        description="Please install and activate WooCommerce to use KiriminAja shipping integration."
-        color="amber"
-        class="mb-4"
-      />
+  <Page
+    :title="currentPage?.title ?? 'Settings'"
+    :backAction="currentPath ? { label: 'Settings', to: parentUrl } : undefined"
+  >
+    <UAlert
+      v-if="!isWooCommerceActive"
+      title="WooCommerce Required"
+      description="Please install and activate WooCommerce to use KiriminAja shipping integration."
+      color="amber"
+      class="mb-4"
+    />
 
-      <div
-        v-if="!currentPath"
-        class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+    <div
+      v-if="!currentPath"
+      class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+    >
+      <UCard
+        v-for="item in menuItems"
+        :key="item.id"
+        class="cursor-pointer group hover:shadow-lg transition-shadow duration-200"
+        @click="navigateToPath(item.id)"
       >
-        <UCard
-          v-for="item in menuItems"
-          :key="item.id"
-          class="cursor-pointer hover:shadow-lg transition-shadow"
-          :ui="{ body: 'hover:bg-gray-50 transition-colors' }"
-          @click="navigateToPath(item.id)"
-        >
-          <div class="flex items-start gap-4">
-            <div
-              class="flex items-center justify-center p-3 bg-gray-100 rounded-xl shrink-0"
-            >
-              <UIcon :name="item.icon" class="w-6 h-6" />
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 mb-1">
-                {{ item.title }}
-              </h3>
-              <p class="text-sm text-gray-600">{{ item.description }}</p>
-            </div>
-          </div>
-        </UCard>
-      </div>
-
-      <div v-else>
-        <div class="mb-4">
-          <UButton
-            icon="i-lucide-arrow-left"
-            variant="ghost"
-            color="gray"
-            @click="goBack"
-          >
-            Back to Menu
-          </UButton>
-        </div>
-
-        <div v-if="isLoadingPage" class="text-center py-12">
+        <div class="flex items-start gap-4">
           <div
-            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"
-          ></div>
-          <p class="mt-4 text-gray-600">Loading page...</p>
+            class="flex items-start justify-center p-2 bg-primary/10 text-primary rounded-full shrink-0"
+          >
+            <UIcon :name="item.icon" class="w-6 h-6" />
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold m-0 text-primary">
+              {{ item.title }}
+            </h3>
+            <div class="text-sm">{{ item.description }}</div>
+          </div>
+          <UIcon
+            name="i-lucide-chevron-right"
+            class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors duration-200"
+          />
         </div>
+      </UCard>
+    </div>
 
-        <component v-else-if="PageComponent" :is="PageComponent" />
-
-        <UAlert
-          v-else
-          title="Page Not Found"
-          description="The requested page could not be loaded."
-          color="red"
-        />
+    <div v-else>
+      <div v-if="isLoadingPage" class="text-center py-12">
+        <div
+          class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"
+        ></div>
+        <p class="mt-4 text-gray-600">Loading page...</p>
       </div>
-    </template>
-  </UDashboardPanel>
+
+      <component v-else-if="currentPage?.page" :is="currentPage.page" />
+
+      <UAlert
+        v-else
+        title="Page Not Found"
+        description="The requested page could not be loaded."
+        color="red"
+      />
+    </div>
+  </Page>
 </template>

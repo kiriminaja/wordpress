@@ -10,21 +10,9 @@ class Admin extends BaseInit{
     public function register(){
         /** add pages*/
         
-        $subPages  = [
-            [
-                'parent_slug'=>'kiriminaja-konfigurasi',
-                'page_title'=>'KiriminAja Settings',
-                'menu_title'=>'Settings',
-                'capability'=>'manage_options',
-                'menu_slug'=>'kiriminaja-konfigurasi',
-                'callback'=> function(){
-                    require_once $this->plugin_path.'templates/setting/index.php';
-                }
-            ]
-        ];
+        $subPages =[];
         if(KJ_CHECK_WOOCOMMERCE()){
-
-            $subPages = array_merge($subPages,[
+            $subPages = [
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Transaction Process',
@@ -45,11 +33,20 @@ class Admin extends BaseInit{
                         require_once $this->plugin_path.'templates/request-pickup/index.php';
                     }
                 ]
-            ]);
-
-
+            ];
         }
-        
+
+
+        $subPages[] = [
+            'parent_slug'=>'kiriminaja-konfigurasi',
+            'page_title'=>'KiriminAja Settings',
+            'menu_title'=>'Settings',
+            'capability'=>'manage_options',
+            'menu_slug'=>'kiriminaja-konfigurasi',
+            'callback'=> function(){
+                require_once $this->plugin_path.'templates/setting/index.php';
+            }
+        ];        
         
         (new PageGenerator())
             ->addPages([
@@ -62,7 +59,7 @@ class Admin extends BaseInit{
                         require_once $this->plugin_path.'templates/setting/index.php';
                     },
                     'icon_url'=>'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik00MS45MDYyIDQxLjE5NDJDMzcuMDcyNSAzNi40MDU2IDI5LjU5OTkgMzYuMTU0NSAyNC43NjYyIDQwLjkzNjhDMTkuOTMyNSA0NS43MjU0IDIwLjE1NzggNTMuODA5NSAyNC45OTE1IDU4LjU5ODFMNTYuNjY0OCA5MC4xMjk5QzYxLjU2OTMgOTUuMDM0NCA2OS4xMTI3IDk1LjI3MjYgNzMuOTQ2NSA5MC40ODM5Qzc4Ljc4MDIgODUuNjk1MiA3OC43MzUxIDc4LjAyOTUgNzMuNzk4NCA3My4wOTI4TDQxLjkwNjIgNDEuMTk0MloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMzcuOTM0OSAxNS44MDkxQzM2LjA3NDggMTYuMjAxOCAzNS4yNDQ1IDE4LjUzODIgMzYuNTEyNSAxOS45NDEzTDQxLjIzNjggMjQuNjY1NkwyNC43NzI1IDQwLjkzNjdDMjAuMTU3NyA0NS41NTE2IDE5LjI2MyA1Mi44NjMzIDI0Ljk5NzggNTguNTk4MUw1MC42OTE4IDg0LjIyMTJWNDkuOTU0TDU4LjY2IDQyLjA2OTVMNjMuMjA0MSA0Ni42MkM2NC40Nzg1IDQ4LjAxNjcgNjYuODAyIDQ3LjUzNCA2Ny4zODc3IDQ1LjczODJMNzguODc2NiAxMC4yMDMxQzc5LjQ2MjMgOC40MTM3NSA3Ny44NzI1IDYuNjYzMDYgNzYuMDEyNCA3LjA1NTY4TDM3LjkzNDkgMTUuODA5MVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
-                    'position'=>56,
+                    'position'=>40,
                 ]
             ])
             ->addSubPages($subPages)
