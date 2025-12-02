@@ -64,7 +64,7 @@ class Enqueue extends BaseInit{
      */
     private function getViteAsset($entry) {
         if ($this->is_vite_dev) {
-            return $this->vite_server . '/frontend/src/' . $entry;
+            return $this->vite_server . '/' . $entry;
         }
         
         $manifest_path = KJ_DIR . 'dist/.vite/manifest.json';
