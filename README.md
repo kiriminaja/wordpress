@@ -98,7 +98,7 @@ The plugin automatically detects if Vue assets are available:
 
 **With build** (after `make build`):
 
-- Detects `assets/.vite/manifest.json`
+- Detects `dist/.vite/manifest.json`
 - Loads Vue apps automatically
 - Legacy scripts continue working
 - Both systems coexist
@@ -139,7 +139,7 @@ if (result.success && result.data) {
 
 - Run `make build` to create manifest.json
 - Check browser console for errors
-- Verify `assets/.vite/manifest.json` exists
+- Verify `dist/.vite/manifest.json` exists
 
 **TypeScript errors?**
 

@@ -5,8 +5,6 @@ debug.log
 # Frontend build artifacts
 /node_modules/
 /dist/
-/assets/.vite/
-/assets/admin/
 
 # Bun lockfile
 bun.lockb

@@ -40,7 +40,7 @@ class Enqueue extends BaseInit{
      * Check if Vite is enabled (manifest exists or dev server running)
      */
     private function checkViteEnabled() {
-        $manifest_path = KJ_DIR . 'assets/.vite/manifest.json';
+        $manifest_path = KJ_DIR . 'dist/.vite/manifest.json';
         $has_manifest = file_exists($manifest_path);
         
         // In debug mode, also check if dev server is running
@@ -67,7 +67,7 @@ class Enqueue extends BaseInit{
             return $this->vite_server . '/frontend/src/' . $entry;
         }
         
-        $manifest_path = KJ_DIR . 'assets/.vite/manifest.json';
+        $manifest_path = KJ_DIR . 'dist/.vite/manifest.json';
         if (!file_exists($manifest_path)) {
             return false;
         }
@@ -89,7 +89,7 @@ class Enqueue extends BaseInit{
             return array();
         }
         
-        $manifest_path = KJ_DIR . 'assets/.vite/manifest.json';
+        $manifest_path = KJ_DIR . 'dist/.vite/manifest.json';
         if (!file_exists($manifest_path)) {
             return array();
         }

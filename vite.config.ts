@@ -88,7 +88,7 @@ export default defineConfig({
     manifest: true,
 
     // Output directory - builds directly to WordPress plugin assets
-    outDir: resolve(__dirname, "assets"),
+    outDir: resolve(__dirname, "dist"),
 
     // Empty the output directory before building
     emptyOutDir: false,
