@@ -1,3 +1,5 @@
+import { WpAjaxAction } from "@/types/wp-ajax-actions";
+
 interface AjaxResponse<T = any> extends Response {
   success?: boolean;
   data?: T;
@@ -8,7 +10,7 @@ interface AjaxResponse<T = any> extends Response {
  * Composable for making WordPress AJAX requests
  */
 export const useAppFetch = async <T = any>(
-  action: string,
+  action: WpAjaxAction,
   body?: Record<string, string>
 ): Promise<AjaxResponse<T>> => {
   // Create URLSearchParams for application/x-www-form-urlencoded

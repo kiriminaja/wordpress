@@ -7,12 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "generate:ajax": "bun frontend/src/generate-ajax-option.ts",
+    "postinstall": "bun run generate:ajax"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
     "@nuxt/ui": "^4.2.1",
     "@tailwindcss/vite": "^4.1.17",
+    "@types/node": "^24.10.1",
     "@vueuse/core": "11.0.0",
     "vue": "^3.4.21",
     "vue-router": "^4.6.3",
@@ -21,6 +24,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue/tsconfig": "^0.5.1",
+    "fast-glob": "^3.3.3",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.3.3",
     "vite": "^5.1.6",
