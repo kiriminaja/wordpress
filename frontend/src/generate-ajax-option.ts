@@ -3,6 +3,10 @@ import glob from "fast-glob";
 
 const ACTION_REGEX = /add_action\(\s*['"]wp_ajax_([^'"]+)['"]\s*,/g;
 
+/**
+ * Script to generate TypeScript types for WordPress AJAX actions
+ * by scanning PHP files for add_action('wp_ajax_{action_name}', ...) calls.
+ */
 async function run() {
   const files = await glob("**/*.php", { ignore: ["vendor/**"] });
 
