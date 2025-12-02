@@ -55,13 +55,6 @@ const menuItems: MenuItem[] = [
     page: Shipping,
   },
   {
-    id: "couriers",
-    title: "Couriers",
-    description: "Add, remove, or update courier services for your shipments",
-    icon: "i-lucide-truck",
-    page: Advanced, // Uncomment and create Couriers component when ready
-  },
-  {
     id: "advanced",
     title: "Advanced Settings",
     description: "Configure your integration webhooks event handler urls",

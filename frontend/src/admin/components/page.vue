@@ -9,6 +9,9 @@
   </UDashboardNavbar>
   <div class="p-3">
     <slot />
+    <div class="text-center mt-3">
+      Version: | © 2025 PT Selalu Siap Solusi. All rights reserved.
+    </div>
   </div>
 </template>
 <script setup lang="ts">

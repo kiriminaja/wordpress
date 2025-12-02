@@ -111,9 +111,9 @@ class Enqueue extends BaseInit{
     public function addViteDevClient() {
         $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
         if (!in_array($page,[
-            'kiriminaja-konfigurasi',
-            'kiriminaja-transaction-process',
-            'kiriminaja-request-pickup'])){return;}
+            'settings',
+            'transactions',
+            'payment'])){return;}
             
         echo '<script type="module" crossorigin src="' . esc_url($this->vite_server . '/@vite/client') . '"></script>' . "\n";
     }
@@ -165,9 +165,9 @@ class Enqueue extends BaseInit{
 
         $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
         if (!in_array($page,[
-            'kiriminaja-konfigurasi',
-            'kiriminaja-transaction-process',
-            'kiriminaja-request-pickup'])){return;}
+            'settings',
+            'transactions',
+            'payment'])){return;}
 
         wp_localize_script(
             'myjs',

@@ -80,80 +80,84 @@ async function saveSettings() {
       <p class="mt-4 text-gray-600">Loading settings...</p>
     </div>
 
-    <!-- Integration Content -->
-    <UCard
-      v-else
-      :ui="{
-        body: 'space-y-3',
-      }"
-    >
-      <UFormField label="Setup Key" name="setup_key" required>
-        <UInput
-          id="setup_key"
-          v-model="settings.setup_key"
-          :type="show ? 'text' : 'password'"
-          :ui="{ trailing: 'pe-1' }"
-          class="w-full"
-          placeholder="Input your setup key for KiriminAja"
-        >
-          <template #trailing>
-            <UButton
-              color="neutral"
-              variant="link"
-              size="sm"
-              :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-              @click="show = !show"
-            />
-          </template>
-        </UInput>
-      </UFormField>
+    <UCard v-else>
+      <div class="grid lg:grid-cols-2 gap-5">
+        <UForm class="space-y-3">
+          <div class="font-semibold text-base">Connection</div>
+          <UFormField label="Setup Key" name="setup_key" required>
+            <UInput
+              id="setup_key"
+              v-model="settings.setup_key"
+              :type="show ? 'text' : 'password'"
+              :ui="{ trailing: 'pe-1' }"
+              class="w-full"
+              placeholder="Input your setup key for KiriminAja"
+            >
+              <template #trailing>
+                <UButton
+                  color="neutral"
+                  variant="link"
+                  size="sm"
+                  :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  @click="show = !show"
+                />
+              </template>
+            </UInput>
+          </UFormField>
 
-      <UFormField label="Order ID Prefix" name="oid_prefix">
-        <UInput
-          id="oid_prefix"
-          v-model="settings.oid_prefix"
-          type="text"
-          class="w-full"
-          placeholder="e.g., WC"
-        />
-      </UFormField>
-      <UAlert
-        title="Accept Our Privacy & Policy"
-        variant="soft"
-        icon="lucide:info"
-        color="info"
-        class="p-3"
-      >
-        <template #description>
-          By clicking Connect, you agree to accept KiriminAja's
-          <a
-            href="//kiriminaja.com/syarat-ketentuan"
-            class="underline"
-            target="_blank"
+          <UAlert
+            title="Accept Our Privacy & Policy"
+            variant="soft"
+            icon="lucide:info"
+            class="p-3"
           >
-            terms and conditions
-          </a>
-          and it's
-          <a
-            href="//kiriminaja.com/privacy-policy"
-            class="underline"
-            target="_blank"
-          >
-            privacy policy
-          </a>
-        </template>
-      </UAlert>
+            <template #description>
+              By clicking Connect, you agree to accept KiriminAja's
+              <a
+                href="//kiriminaja.com/syarat-ketentuan"
+                class="underline"
+                target="_blank"
+              >
+                terms and conditions
+              </a>
+              and it's
+              <a
+                href="//kiriminaja.com/privacy-policy"
+                class="underline"
+                target="_blank"
+              >
+                privacy policy
+              </a>
+            </template>
+          </UAlert>
 
-      <template #footer>
-        <UButton
-          :loading="saving"
-          icon="lucide:plug-zap"
-          :disabled="saving"
-          @click="saveSettings"
-        >
-          Save Settings
-        </UButton>
-      </template>
+          <UButton
+            :loading="saving"
+            icon="lucide:plug-zap"
+            :disabled="saving || !settings.setup_key?.length"
+            @click="saveSettings"
+          >
+            Connect
+          </UButton>
+        </UForm>
+        <div class="space-y-3">
+          <div class="font-semibold text-base">
+            How to Obtain Your Kiriminaja Credentials
+          </div>
+          <ol>
+            <li>
+              Log in to your Kiriminaja dashboard: https://app.kiriminaja.com
+            </li>
+            <li>Go to the Settings menu and select App Integrations</li>
+            <li>Click Add Integration and choose Shopify</li>
+            <li>Enter your domain: https://your-shop.com</li>
+            <li>Please allow up to 2 business days for API generation.</li>
+            <li>Setup Key will appear on the App Integrations page.</li>
+            <li>Copy and paste the Setup Key above.</li>
+            <li>Start using KiriminAja in your store.</li>
+          </ol>
+        </div>
+      </div>
     </UCard>
   </div>
 </template>

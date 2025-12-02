@@ -31,11 +31,11 @@ onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search);
   const page = urlParams.get("page");
 
-  if (page === "kiriminaja-konfigurasi") {
+  if (page === "settings") {
     currentPage.value = "configuration";
-  } else if (page === "kiriminaja-transaction-process") {
+  } else if (page === "transactions") {
     currentPage.value = "transaction";
-  } else if (page === "kiriminaja-request-pickup") {
+  } else if (page === "payment") {
     currentPage.value = "pickup";
   }
 });

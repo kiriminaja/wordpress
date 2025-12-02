@@ -95,6 +95,7 @@ async function saveSettings() {
             id="callback_url"
             v-model="settings.callback_url"
             type="url"
+            class="w-full"
             placeholder="https://yoursite.com/callback"
           />
           <template #help>
@@ -110,6 +111,7 @@ async function saveSettings() {
             id="origin_whitelist_expedition_id"
             v-model="settings.origin_whitelist_expedition_id"
             type="text"
+            class="w-full"
             placeholder="e.g., jne,tiki,pos"
           />
           <template #help>

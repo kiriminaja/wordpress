@@ -14,7 +14,8 @@
     "@nuxt/ui": "^4.2.1",
     "@tailwindcss/vite": "^4.1.17",
     "vue": "^3.4.21",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

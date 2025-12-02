@@ -14,21 +14,31 @@ class Admin extends BaseInit{
         if(KJ_CHECK_WOOCOMMERCE()){
             $subPages = [
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'settings',
                     'page_title'=>'KiriminAja Transaction Process',
                     'menu_title'=>'Transactions',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'kiriminaja-transaction-process',
+                    'menu_slug'=>'transactions',
                     'callback'=> function(){
                         require_once $this->plugin_path.'templates/transaction-process/index.php';
                     }
                 ],
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'Payment & Shipment',
-                    'menu_title'=>'Payment & Shipment',
+                    'parent_slug'=>'settings',
+                    'page_title'=>'Payment',
+                    'menu_title'=>'Payment',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'kiriminaja-request-pickup',
+                    'menu_slug'=>'payment',
+                    'callback'=> function() {
+                        require_once $this->plugin_path.'templates/request-pickup/index.php';
+                    }
+                ],
+                [
+                    'parent_slug'=>'settings',
+                    'page_title'=>'Tracking',
+                    'menu_title'=>'Tracking',
+                    'capability'=>'manage_options',
+                    'menu_slug'=>'payment',
                     'callback'=> function() {
                         require_once $this->plugin_path.'templates/request-pickup/index.php';
                     }
@@ -38,11 +48,11 @@ class Admin extends BaseInit{
 
 
         $subPages[] = [
-            'parent_slug'=>'kiriminaja-konfigurasi',
+            'parent_slug'=>'settings',
             'page_title'=>'KiriminAja Settings',
             'menu_title'=>'Settings',
             'capability'=>'manage_options',
-            'menu_slug'=>'kiriminaja-konfigurasi',
+            'menu_slug'=>'settings',
             'callback'=> function(){
                 require_once $this->plugin_path.'templates/setting/index.php';
             }
@@ -54,7 +64,7 @@ class Admin extends BaseInit{
                     'page_title'=>'KiriminAja',
                     'menu_title'=>'KiriminAja',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'kiriminaja-konfigurasi',
+                    'menu_slug'=>'settings',
                     'callback'=> function(){
                         require_once $this->plugin_path.'templates/setting/index.php';
                     },
@@ -68,7 +78,7 @@ class Admin extends BaseInit{
     
         /** Add pages link in plugin menu links*/
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">Settings</a>';
+            $settings_link = '<a href="admin.php?page=settings">Settings</a>';
             array_push($links,$settings_link);
             return $links;
         });
@@ -86,9 +96,9 @@ class Admin extends BaseInit{
 
             if( (int) $transaction_count_new == 0) return;
             
-            foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
+            foreach ( $submenu['settings'] as $key => $menu_item ) {
                 if ( 0 === strpos( $menu_item[0], 'Transaction Process' ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['settings'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
                     break;
                 }
             }

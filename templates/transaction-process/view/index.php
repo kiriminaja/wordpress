@@ -394,7 +394,7 @@
                     return
                 }
 
-                window.location.href = `<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-request-pickup'; ?>&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=payment'; ?>&pickup_number=${resp?.data?.pickup_number}`;
                 
                 
             }

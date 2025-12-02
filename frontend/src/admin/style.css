@@ -9,14 +9,17 @@
   @apply m-0;
 }
 
-.toplevel_page_kiriminaja-konfigurasi .wp-submenu .wp-first-item {
-  @apply hidden;
-}
-
 #kaj-admin-root ul {
   @apply !m-0;
 }
 
-:root {
-  --ui-primary: var(--wp-admin-theme-color);
+.bg-primary {
+  @apply bg-(--wp-admin-theme-color);
+}
+.text-primary {
+  @apply text-(--wp-admin-theme-color);
+}
+
+.bg-primary\/10 {
+  @apply bg-[rgba(var(--wp-admin-theme-color--rgb),0.1)];
 }

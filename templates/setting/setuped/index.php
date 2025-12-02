@@ -180,7 +180,7 @@
 
     /** Page Content Util*/
     function toggleThis(elem,menu){
-        window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+menu
+        window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=settings&tab='?>'+menu
     }
     
     function getTabData(){

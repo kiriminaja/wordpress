@@ -107,6 +107,7 @@ async function saveSettings() {
             id="origin_name"
             v-model="settings.origin_name"
             type="text"
+            class="w-full"
             placeholder="e.g., Main Warehouse"
           />
         </UFormField>
@@ -116,6 +117,7 @@ async function saveSettings() {
             id="origin_phone"
             v-model="settings.origin_phone"
             type="tel"
+            class="w-full"
             placeholder="e.g., 081234567890"
           />
         </UFormField>
@@ -125,6 +127,7 @@ async function saveSettings() {
             id="origin_address"
             v-model="settings.origin_address"
             :rows="3"
+            class="w-full"
             placeholder="Complete address of your shipping origin"
           />
         </UFormField>
@@ -135,6 +138,7 @@ async function saveSettings() {
               id="origin_latitude"
               v-model="settings.origin_latitude"
               type="text"
+              class="w-full"
               placeholder="-6.200000"
             />
           </UFormField>
@@ -144,6 +148,7 @@ async function saveSettings() {
               id="origin_longitude"
               v-model="settings.origin_longitude"
               type="text"
+              class="w-full"
               placeholder="106.816666"
             />
           </UFormField>
@@ -154,6 +159,7 @@ async function saveSettings() {
             id="origin_zip_code"
             v-model="settings.origin_zip_code"
             type="text"
+            class="w-full"
             placeholder="e.g., 12345"
           />
         </UFormField>
@@ -167,6 +173,7 @@ async function saveSettings() {
             id="origin_sub_district_id"
             v-model="settings.origin_sub_district_id"
             type="text"
+            class="w-full"
             placeholder="e.g., 3174010001"
           />
         </UFormField>
@@ -176,6 +183,7 @@ async function saveSettings() {
           title="Origin data is complete!"
           description="Your shipping origin is properly configured."
           color="green"
+          class="w-full"
         />
       </div>
 
