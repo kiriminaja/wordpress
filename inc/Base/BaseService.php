@@ -13,7 +13,7 @@ class BaseService{
      * @param string|null $customCode
      * @return ServiceResponse
      */
-    protected static function success($data, string $message = "success", string $customCode = null): ServiceResponse {
+    protected static function success($data, string $message = "success", string|null $customCode = null): ServiceResponse {
         return new ServiceResponse($data, $message, 200, $customCode);
     }
 
@@ -26,7 +26,7 @@ class BaseService{
      * @param string|null $customCode
      * @return ServiceResponse
      */
-    protected static function error($data, string $message = "error", int $status = 400, string $customCode = null): ServiceResponse {
+    protected static function error($data, string $message = "error", int $status = 400, string|null $customCode = null): ServiceResponse {
         return new ServiceResponse($data, $message, $status, $customCode);
     }
     

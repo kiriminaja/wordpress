@@ -40,7 +40,7 @@ const currentPage = computed(() => {
 const menuItems: MenuItem[] = [
   {
     id: "integration",
-    title: "Change Setup Key",
+    title: "Account Configuration",
     description:
       "Update your KiriminAja Setup Key to connect a different account",
     icon: "lucide:key-square",
@@ -48,7 +48,7 @@ const menuItems: MenuItem[] = [
   },
   {
     id: "shipping",
-    title: "Store Address",
+    title: "Shipping",
     description:
       "This is where your business is located. Tax rates and shipping rates will use this address.",
     icon: "lucide:store",
@@ -63,15 +63,13 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-const parentUrl = computed(() => {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("path");
-  return url.toString();
-});
-
 const navigateToPath = (pathId: string) => {
   const url = new URL(window.location.href);
-  url.searchParams.set("path", pathId);
+  if (pathId === "") {
+    url.searchParams.delete("path");
+  } else {
+    url.searchParams.set("path", pathId);
+  }
   window.history.pushState({}, "", url.toString());
   currentPath.value = pathId;
 };
@@ -80,7 +78,11 @@ const navigateToPath = (pathId: string) => {
 <template>
   <Page
     :title="currentPage?.title ?? 'Settings'"
-    :backAction="currentPath ? { label: 'Settings', to: parentUrl } : undefined"
+    :backAction="
+      currentPath
+        ? { label: 'Settings', onAction: () => navigateToPath('') }
+        : undefined
+    "
   >
     <UAlert
       v-if="!isWooCommerceActive"

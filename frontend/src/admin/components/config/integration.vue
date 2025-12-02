@@ -8,12 +8,12 @@ interface IntegrationSettings {
 }
 
 const toast = useToast();
+const configured = ref(false);
 const settings = ref<IntegrationSettings>({});
 const loading = ref(true);
 const saving = ref(false);
 const message = ref<{ type: "success" | "error"; text: string } | null>(null);
 const show = ref(false);
-const { getSettings, saveSettings: saveSettingsAjax } = useAppFetch();
 
 onMounted(async () => {
   await loadSettings();
@@ -22,9 +22,11 @@ onMounted(async () => {
 async function loadSettings() {
   loading.value = true;
   try {
-    const result = await getSettings("integration");
-    if (result && result.settings) {
-      settings.value = result.settings || {};
+    const res = await useAppFetch("kj_get_integration_data");
+    const result = await res.json();
+    if (result && result.data.data.setup_key) {
+      configured.value = true;
+      settings.value = result.data.data || {};
     }
   } catch (e) {
     console.error("Failed to load settings:", e);
@@ -42,7 +44,11 @@ async function saveSettings() {
   saving.value = true;
   message.value = null;
   try {
-    const result = await saveSettingsAjax("integration", settings.value);
+    const res = await useAppFetch("kj_store_integration_data", settings.value);
+    const result = await res.json();
+    if (result && !result.success) {
+      throw new Error(result?.data?.message || "Failed to save settings");
+    }
     toast.add({
       color: "success",
       title: "Settings saved successfully!",
@@ -84,61 +90,86 @@ async function saveSettings() {
       <div class="grid lg:grid-cols-2 gap-5">
         <UForm class="space-y-3">
           <div class="font-semibold text-base">Connection</div>
-          <UFormField label="Setup Key" name="setup_key" required>
-            <UInput
-              id="setup_key"
-              v-model="settings.setup_key"
-              :type="show ? 'text' : 'password'"
-              :ui="{ trailing: 'pe-1' }"
-              class="w-full"
-              placeholder="Input your setup key for KiriminAja"
+          <template v-if="!configured">
+            <UFormField label="Setup Key" name="setup_key" required>
+              <UInput
+                id="setup_key"
+                v-model="settings.setup_key"
+                :type="show || configured ? 'text' : 'password'"
+                :ui="{ trailing: 'pe-1' }"
+                :disabled="configured"
+                class="w-full"
+                placeholder="Input your setup key for KiriminAja"
+              >
+                <template v-if="!configured" #trailing>
+                  <UButton
+                    color="neutral"
+                    variant="link"
+                    size="sm"
+                    :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                    @click="show = !show"
+                  />
+                </template>
+              </UInput>
+            </UFormField>
+            <UAlert
+              title="Accept Our Privacy & Policy"
+              variant="soft"
+              icon="lucide:info"
+              class="p-3"
             >
-              <template #trailing>
-                <UButton
-                  color="neutral"
-                  variant="link"
-                  size="sm"
-                  :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                  @click="show = !show"
-                />
+              <template #description>
+                By clicking Connect, you agree to accept KiriminAja's
+                <a
+                  href="//kiriminaja.com/syarat-ketentuan"
+                  class="underline"
+                  target="_blank"
+                >
+                  terms and conditions
+                </a>
+                and it's
+                <a
+                  href="//kiriminaja.com/privacy-policy"
+                  class="underline"
+                  target="_blank"
+                >
+                  privacy policy
+                </a>
               </template>
-            </UInput>
-          </UFormField>
+            </UAlert>
 
-          <UAlert
-            title="Accept Our Privacy & Policy"
-            variant="soft"
-            icon="lucide:info"
-            class="p-3"
-          >
-            <template #description>
-              By clicking Connect, you agree to accept KiriminAja's
-              <a
-                href="//kiriminaja.com/syarat-ketentuan"
-                class="underline"
-                target="_blank"
-              >
-                terms and conditions
-              </a>
-              and it's
-              <a
-                href="//kiriminaja.com/privacy-policy"
-                class="underline"
-                target="_blank"
-              >
-                privacy policy
-              </a>
-            </template>
-          </UAlert>
+            <UButton
+              v-if="!configured"
+              :loading="saving"
+              icon="lucide:plug-zap"
+              :disabled="saving || !settings.setup_key?.length"
+              @click="saveSettings"
+            >
+              Connect
+            </UButton>
+          </template>
 
-          <UButton
-            :loading="saving"
-            icon="lucide:plug-zap"
-            :disabled="saving || !settings.setup_key?.length"
-            @click="saveSettings"
-          >
-            Connect
-          </UButton>
+          <template v-else>
+            <UFormField label="Order Prefix">
+              <UInput
+                id="oid_prefix"
+                v-model="settings.oid_prefix"
+                type="text"
+                class="w-full"
+                placeholder="e.g., KJ-"
+                disabled
+              />
+            </UFormField>
+            <UAlert
+              title="Order Prefix Means"
+              variant="soft"
+              icon="lucide:info"
+              class="p-3"
+              description="Order Prefix are unique identifier to package order_id, it's unique based on each integration. One app represents single prefix."
+            />
+
+            <UButton icon="lucide:unplug" color="error"> Disconnect </UButton>
+          </template>
         </UForm>
         <div class="space-y-3">
           <div class="font-semibold text-base">

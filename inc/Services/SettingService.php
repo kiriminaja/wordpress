@@ -34,9 +34,10 @@ class SettingService extends BaseService
             }
 
             //custom url validation when local set to dev kj only development test
+            // TODO: Bad development experience since local testing needs to use localhost url
             $setupPayload = [
                 'setup_key' => $setupKey,
-                'callback_url' => @home_url() . '/kiriminaja-callback'
+                'callback_url' => "https://yan.ad/coba-lagi"
             ];
 
             $repo = (new \Inc\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
@@ -45,7 +46,7 @@ class SettingService extends BaseService
             $arrayRepoData = (array) $arrayRepo['data'];
 
             if (!@$arrayRepo['status'] || !@$arrayRepoData['status']) {
-                return self::error([], 'Invalid Setup Key');
+                return self::error($arrayRepo, 'Invalid Setup Key');
             }
 
             /** Storing result to DB*/

@@ -10,7 +10,7 @@ class KiriminAjaApi
     public function __construct()
     {
         global $wp_version;
-        $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
+        $this->base_url = 'https://dev-kaj-mitra-srvc-ext.bakso.my.id'; // PRODUCTION
         
         $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
@@ -89,6 +89,7 @@ class KiriminAjaApi
     {
         $args = wp_parse_args(array('body' => $body), $this->default_args);
         $response = wp_remote_get($this->base_url . $endpoint, $args);
+        error_log(print_r($response, true));
         if (class_exists('WPMonolog')) {
             global $logger;
             $logger->addDebug('[GET] ' . $this->base_url . $endpoint . ' | ' . serialize($args) . ' | ' . serialize($this->populate_output($response)));

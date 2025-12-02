@@ -11,7 +11,12 @@
             'font-semibold': key === items.length - 1,
           }"
         >
-          <a v-if="value.to" :href="value.to" class="text-inherit! opacity-80">
+          <a
+            v-if="value.to"
+            href="#"
+            class="text-inherit! opacity-80"
+            @click.prevent="props.backAction?.onAction"
+          >
             {{ value.label }}
           </a>
           <span v-else>
@@ -43,7 +48,7 @@ const props = defineProps<{
   title: string;
   backAction?: {
     label: string;
-    to?: string;
+    onAction?: () => void;
   };
 }>();
 
@@ -58,7 +63,7 @@ const items = computed(() => {
   if (props.backAction) {
     breadcrumbItems.push({
       label: props.backAction.label,
-      to: props.backAction.to || null,
+      to: "#",
     });
   }
 

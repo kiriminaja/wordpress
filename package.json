@@ -13,6 +13,7 @@
     "@headlessui/vue": "^1.7.23",
     "@nuxt/ui": "^4.2.1",
     "@tailwindcss/vite": "^4.1.17",
+    "@vueuse/core": "11.0.0",
     "vue": "^3.4.21",
     "vue-router": "^4.6.3",
     "zod": "^4.1.13"

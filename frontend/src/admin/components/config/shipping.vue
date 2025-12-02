@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { useAppFetch } from "@/admin/composables/useAppFetch";
 import { ref, onMounted, computed } from "vue";
+import Search from "../coverage/search.vue";
 
 interface ShippingSettings {
   origin_name?: string;
@@ -8,6 +10,7 @@ interface ShippingSettings {
   origin_latitude?: string;
   origin_longitude?: string;
   origin_sub_district_id?: string;
+  origin_sub_district_name?: string;
   origin_zip_code?: string;
 }
 
@@ -39,9 +42,10 @@ onMounted(async () => {
 async function loadSettings() {
   loading.value = true;
   try {
-    const result = await getSettings("shipping");
-    if (result && result.settings) {
-      settings.value = result.settings || {};
+    const res = await useAppFetch("kj_get_origin_data");
+    const result = await res.json();
+    if (result && result.data?.data) {
+      settings.value = result.data.data || {};
     }
   } catch (e) {
     console.error("Failed to load settings:", e);
@@ -59,7 +63,7 @@ async function saveSettings() {
   saving.value = true;
   message.value = null;
   try {
-    const result = await saveSettingsAjax("shipping", settings.value);
+    const res = await useAppFetch("kj_store_origin_data", settings.value);
     toast.add({
       color: "success",
       title: "Settings saved successfully!",
@@ -99,7 +103,7 @@ async function saveSettings() {
 
     <!-- Shipping Origin Content -->
     <UCard v-else>
-      <div class="space-y-4">
+      <UForm class="space-y-4">
         <UFormField label="Origin Name" name="origin_name" required>
           <UInput
             id="origin_name"
@@ -162,34 +166,24 @@ async function saveSettings() {
           />
         </UFormField>
 
-        <UFormField
-          label="Sub District ID"
-          name="origin_sub_district_id"
-          required
-        >
-          <UInput
+        <UFormField label="Area" name="origin_sub_district_id" required>
+          <Search
             id="origin_sub_district_id"
             v-model="settings.origin_sub_district_id"
+            v-model:text="settings.origin_sub_district_name"
             type="text"
             class="w-full"
             placeholder="e.g., 3174010001"
           />
         </UFormField>
-
-        <UAlert
-          v-if="isOriginDataComplete"
-          title="Origin data is complete!"
-          description="Your shipping origin is properly configured."
-          color="green"
-          class="w-full"
-        />
-      </div>
-
-      <template #footer>
-        <UButton :loading="saving" :disabled="saving" @click="saveSettings">
+        <UButton
+          :loading="saving"
+          :disabled="saving || !isOriginDataComplete"
+          @click="saveSettings"
+        >
           Save Settings
         </UButton>
-      </template>
+      </UForm>
     </UCard>
   </div>
 </template>

@@ -13,5 +13,6 @@ interface WordPressAjax {
 }
 
 interface Window {
+  nonce?: string;
   myjs?: WordPressAjax;
 }

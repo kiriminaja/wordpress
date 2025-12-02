@@ -3,6 +3,9 @@ import vue from "@vitejs/plugin-vue";
 import tailwind from "@tailwindcss/vite";
 import ui from "@nuxt/ui/vite";
 import { resolve } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -141,9 +144,10 @@ export default defineConfig({
       protocol: "ws",
     },
 
-    // Watch for changes
+    // Watch for changes with polling enabled
     watch: {
       usePolling: true,
+      ignored: ["**/inc/**", "**/templates/**"],
     },
   },
 
