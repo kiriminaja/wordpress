@@ -183,6 +183,7 @@ export default defineConfig({
       "@": resolve(__dirname, "frontend/src"),
       "@admin": resolve(__dirname, "frontend/src/admin"),
       "@wp": resolve(__dirname, "frontend/src/wp"),
+      "@shared": resolve(__dirname, "frontend/src/shared"),
       "@components": resolve(__dirname, "frontend/src/components"),
     },
   },
