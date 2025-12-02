@@ -13,8 +13,8 @@ class Admin extends BaseInit{
         $subPages  = [
             [
                 'parent_slug'=>'kiriminaja-konfigurasi',
-                'page_title'=>'KiriminAja Configuration',
-                'menu_title'=>'KiriminAja',
+                'page_title'=>'KiriminAja Settings',
+                'menu_title'=>'Settings',
                 'capability'=>'manage_options',
                 'menu_slug'=>'kiriminaja-konfigurasi',
                 'callback'=> function(){
@@ -28,7 +28,7 @@ class Admin extends BaseInit{
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Transaction Process',
-                    'menu_title'=>'Transaction Process',
+                    'menu_title'=>'Transactions',
                     'capability'=>'manage_options',
                     'menu_slug'=>'kiriminaja-transaction-process',
                     'callback'=> function(){
@@ -37,8 +37,8 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'Shipment Process',
-                    'menu_title'=>'Shipment Process',
+                    'page_title'=>'Payment & Shipment',
+                    'menu_title'=>'Payment & Shipment',
                     'capability'=>'manage_options',
                     'menu_slug'=>'kiriminaja-request-pickup',
                     'callback'=> function() {

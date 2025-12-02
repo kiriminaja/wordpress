@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Admin App Styles */
+#kiriminaja-admin-root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  --ui-primary: var(--wp-admin-theme-color);
+}
+
+#wpcontent {
+  @apply pl-0;
+}
+
+#wpbody {
+  @apply m-0;
+}
+
+#wpbody .wrap {
+  @apply m-0;
+}

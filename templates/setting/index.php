@@ -1,4 +1,18 @@
 <?php
+// Check if Vue app should handle this page
+$use_vue = file_exists(KJ_DIR . 'assets/.vite/manifest.json') || (defined('WP_DEBUG') && WP_DEBUG);
+
+if ($use_vue) {
+    // Let Vue handle the configuration page - mount point is added by Enqueue class
+    ?>
+    <div class="wrap">
+        <div id="kiriminaja-admin-root"></div>
+    </div>
+    <?php
+    return;
+}
+
+// Legacy PHP rendering below
 class settingIndex {
     function __construct(){
         global $approvedSetupKey;
