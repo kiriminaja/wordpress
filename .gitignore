@@ -6,6 +6,7 @@ debug.log
 /node_modules/
 /dist/
 /assets/.vite/
+/assets/admin/
 
 # Bun lockfile
 bun.lockb
