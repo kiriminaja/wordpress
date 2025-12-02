@@ -114,7 +114,7 @@ interface ShipmentData {
   status: "pending" | "shipped" | "delivered";
 }
 
-const { post } = useWpAjax();
+const { post } = useAppFetch();
 const result = await post<ShipmentData>("get_shipment", { id });
 
 if (result.success && result.data) {
@@ -198,9 +198,9 @@ const props = withDefaults(defineProps<Props>(), {
 ### Using Composables
 
 ```typescript
-import { useWpAjax } from "@/composables/useWpAjax";
+import { useAppFetch } from "@/composables/useAppFetch";
 
-const { loading, error, post } = useWpAjax();
+const { loading, error, post } = useAppFetch();
 
 async function saveData() {
   const result = await post("my_action", { data: "value" });

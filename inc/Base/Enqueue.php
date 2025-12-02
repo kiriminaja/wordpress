@@ -137,26 +137,6 @@ class Enqueue extends BaseInit{
         // Option 1: Manually enqueue the wp-util library.
         wp_enqueue_script( 'wp-util' );
         
-        // Load Vite-built Vue app if available
-        if ($this->is_vite_enabled) {
-            $vue_entry = $this->getViteAsset('wp/main.ts');
-            if ($vue_entry) {
-                wp_enqueue_script('kiriminaja-wp-vue', $vue_entry, array('wp-util'), KJ_PLUGIN_VERSION, true);
-                
-                add_filter('script_loader_tag', function($tag, $handle) {
-                    if ('kiriminaja-wp-vue' === $handle) {
-                        return str_replace('<script', '<script type="module" crossorigin', $tag);
-                    }
-                    return $tag;
-                }, 10, 2);
-                
-                $css_files = $this->getViteCss('wp/main.ts');
-                foreach ($css_files as $index => $css_url) {
-                    wp_enqueue_style('kiriminaja-wp-vue-' . $index, $css_url, array(), KJ_PLUGIN_VERSION);
-                }
-            }
-        }
-        
         // Legacy script (fallback or coexist)
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ], KJ_PLUGIN_VERSION, true);
     }

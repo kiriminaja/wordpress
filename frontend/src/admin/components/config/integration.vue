@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useWpAjax } from "../../composables/useWpAjax";
+import { useAppFetch } from "@/admin/composables/useAppFetch";
 
 interface IntegrationSettings {
   setup_key?: string;
@@ -13,7 +13,7 @@ const loading = ref(true);
 const saving = ref(false);
 const message = ref<{ type: "success" | "error"; text: string } | null>(null);
 const show = ref(false);
-const { getSettings, saveSettings: saveSettingsAjax } = useWpAjax();
+const { getSettings, saveSettings: saveSettingsAjax } = useAppFetch();
 
 onMounted(async () => {
   await loadSettings();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useWpAjax } from "../../composables/useWpAjax";
+import { useAppFetch } from "@/admin/composables/useAppFetch";
 
 interface AdvancedSettings {
   callback_url?: string;
@@ -17,7 +17,7 @@ const {
   error,
   getSettings,
   saveSettings: saveSettingsAjax,
-} = useWpAjax();
+} = useAppFetch();
 
 onMounted(async () => {
   await loadSettings();

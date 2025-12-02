@@ -6,11 +6,7 @@
 }
 
 #wpbody {
-  @apply m-0;
-}
-
-#kaj-admin-root ul {
-  @apply !m-0;
+  @apply mt-0;
 }
 
 .bg-primary {

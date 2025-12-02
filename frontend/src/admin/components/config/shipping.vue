@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useWpAjax } from "../../composables/useWpAjax";
 
 interface ShippingSettings {
   origin_name?: string;
@@ -17,7 +16,6 @@ const settings = ref<ShippingSettings>({});
 const loading = ref(true);
 const saving = ref(false);
 const message = ref<{ type: "success" | "error"; text: string } | null>(null);
-const { getSettings, saveSettings: saveSettingsAjax } = useWpAjax();
 
 const isOriginDataComplete = computed(() => {
   const requiredFields = [

@@ -94,7 +94,6 @@ export default defineConfig({
       // Multiple entry points for admin and frontend
       input: {
         admin: resolve(__dirname, "frontend/src/admin/main.ts"),
-        wp: resolve(__dirname, "frontend/src/wp/main.ts"),
       },
 
       output: {

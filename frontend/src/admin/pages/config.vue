@@ -43,7 +43,7 @@ const menuItems: MenuItem[] = [
     title: "Change Setup Key",
     description:
       "Update your KiriminAja Setup Key to connect a different account",
-    icon: "i-lucide-key",
+    icon: "lucide:key-square",
     page: Integration,
   },
   {
@@ -51,14 +51,14 @@ const menuItems: MenuItem[] = [
     title: "Store Address",
     description:
       "This is where your business is located. Tax rates and shipping rates will use this address.",
-    icon: "i-lucide-map-pin",
+    icon: "lucide:store",
     page: Shipping,
   },
   {
     id: "advanced",
     title: "Advanced Settings",
     description: "Configure your integration webhooks event handler urls",
-    icon: "i-lucide-settings",
+    icon: "lucide:tool-case",
     page: Advanced,
   },
 ];
