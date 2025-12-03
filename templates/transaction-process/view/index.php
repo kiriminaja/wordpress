@@ -3,7 +3,7 @@
     <div class="wrap ">
         <div id="root">
             <div class="woocommerce-layout">
-                <div class="woocommerce-layout__header is-scrolled">
+                <div class="">
                     <div class="woocommerce-layout__header-wrapper">
                         <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Transaction Process</h1>
                         <div style="padding-right: 40px">
@@ -104,7 +104,7 @@
                                     </div>
 
                                     <div class="row-divider"></div>
-                                    <table class="wp-list-table widefat fixed striped table-view-list posts">
+                                    <table class="wp-list-table widefat striped table-view-list posts">
                                         <thead>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">

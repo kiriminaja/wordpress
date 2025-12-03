@@ -14,6 +14,7 @@ export type WpAjaxAction =
   | "kj_request_pickup_schedule"
   | "kj_request_pickup_transaction"
   | "kj_transaction-detail-summary"
+  | "kaj_transactions"
   | "kj_get_integration_data"
   | "nopriv_kj_get_integration_data"
   | "kj_store_integration_data"
