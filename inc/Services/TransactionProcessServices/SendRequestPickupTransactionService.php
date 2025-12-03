@@ -8,6 +8,8 @@ class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
     public string $schedule = '';
+    private $originDataCache = null;
+    private $helperCache = null;
 
     public function orderIds($orderIds)
     {
@@ -20,75 +22,98 @@ class SendRequestPickupTransactionService extends BaseService
         $this->schedule = $schedule;
         return $this;
     }
+    
+    private function helper()
+    {
+        if ($this->helperCache === null) {
+            $this->helperCache = kjHelper();
+        }
+        return $this->helperCache;
+    }
 
     public function call()
     {
-        if (count($this->orderIds) === 0) {
+        if (empty($this->orderIds)) {
             return self::error([], 'There is no id');
         }
-        if (!$this->schedule || $this->schedule === '') {
+        if (empty($this->schedule)) {
             return self::error([], 'Schedule is required');
         }
-        $getOriginData = self::getOriginData();
-        $getPackageData = self::getPackagesData();
+        
+        $getOriginData = $this->getOriginData();
+        $getPackageData = $this->getPackagesData();
+        
+        if (empty($getPackageData)) {
+            return self::error([], 'No valid packages found');
+        }
+        
         $payload = [
-            "address"       => @$getOriginData['origin_address'],
-            "phone"         => @$getOriginData['origin_phone'],
-            "kelurahan_id"  => @$getOriginData['origin_sub_district_id'],
+            "address"       => $getOriginData['origin_address'] ?? '',
+            "phone"         => $getOriginData['origin_phone'] ?? '',
+            "kelurahan_id"  => $getOriginData['origin_sub_district_id'] ?? '',
             "packages"      => $getPackageData,
-            "name"          => @$getOriginData['origin_name'],
-            "zipcode"       => @$getOriginData['origin_zip_code'],
-            "schedule"      => $this->schedule, // '2024-09-01T10:00:00+07:00' --- IGNORE ---
+            "name"          => $getOriginData['origin_name'] ?? '',
+            "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
+            "schedule"      => $this->schedule,
         ];
 
         /** 
          * Lion dan Pos Indonesia 
          * Set Lat dan Long
-         * 
          **/
-        if (in_array($getPackageData[0]['service'], ['lion', 'posindonesia'])) {
-            $payload['latitude'] = $getOriginData['origin_latitude'];
-            $payload['longitude'] = $getOriginData['origin_longitude'];
+        $firstService = $getPackageData[0]['service'] ?? '';
+        if (in_array($firstService, ['lion', 'posindonesia'], true)) {
+            $payload['latitude'] = $getOriginData['origin_latitude'] ?? '';
+            $payload['longitude'] = $getOriginData['origin_longitude'] ?? '';
         }
 
         $pickupRequest = (new \Inc\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
         (new \Inc\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
-        if (!@$pickupRequest['status'] || !@$pickupRequest['data']->status) {
-            return self::error([], @$pickupRequest['data']->text ?? @$pickupRequest['data'] ?? 'Something is wrong');
+        
+        if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
+            return self::error([], $pickupRequest['data']->text ?? $pickupRequest['data'] ?? 'Something is wrong');
         }
 
+        $pickupNumber = $pickupRequest['data']->pickup_number ?? '';
+        $currentTime = gmdate('Y-m-d H:i:s');
+        
         /** Update Package Status to Request Pickup*/
+        $transactionRepo = new \Inc\Repositories\TransactionRepository();
         foreach ($this->orderIds as $orderId) {
-            $payload = [];
-            $payload['changes'] = [
-                'status' => 'request_pickup',
-                'pickup_number' => @$pickupRequest['data']->pickup_number,
-                'request_pickup_at' => date('Y-m-d H:i:s')
+            $payload = [
+                'changes' => [
+                    'status' => 'request_pickup',
+                    'pickup_number' => $pickupNumber,
+                    'request_pickup_at' => $currentTime
+                ],
+                'condition' => [
+                    'order_id' => $orderId
+                ]
             ];
-            $payload['condition'] = [
-                'order_id' => $orderId
-            ];
-
-            (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+            $transactionRepo->updateTransactionByCallback($payload);
         }
 
         /** Create Payment*/
         (new \Inc\Repositories\PaymentRepository())->createPayment([
-            'pickup_number'     => @$pickupRequest['data']->pickup_number,
-            'status'            => @$pickupRequest['data']->payment_status === 'paid' ? 'paid' : 'unpaid',
+            'pickup_number'     => $pickupNumber,
+            'status'            => ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid',
             'method'            => '',
             'order_amt'         => count($getPackageData),
             'pickup_schedule'   => $this->schedule,
-            'created_at'        => date('Y-m-d H:i:s', strtotime("now")),
+            'created_at'        => $currentTime,
         ]);
 
         return self::success([
-            'pickup_number' => @$pickupRequest['data']->pickup_number,
+            'pickup_number' => $pickupNumber,
         ], 'success');
     }
 
     private function getOriginData()
     {
+        if ($this->originDataCache !== null) {
+            return $this->originDataCache;
+        }
+        
         $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray([
             'origin_name',
             'origin_phone',
@@ -103,78 +128,106 @@ class SendRequestPickupTransactionService extends BaseService
         foreach ($repo as $setting) {
             $array[$setting->key] = $setting->value;
         }
+        
+        $this->originDataCache = $array;
         return $array;
     }
 
     private function getPackagesData(){
         $repo = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
         
-        return array_map(function ($transaction){
+        if (empty($repo)) {
+            return [];
+        }
+        
+        $helper = $this->helper();
+        $weightConverter = new \Inc\Utils\WeightConverter();
+        $homeUrl = get_home_url();
+        
+        return array_map(function ($transaction) use ($helper, $weightConverter, $homeUrl) {
             $shipping_info = json_decode($transaction->shipping_info);
-
             $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
+            
+            if (!$order) {
+                return null;
+            }
+            
             $itemNames = [];
             $itemsPayload = [];
+            
             foreach ($order->get_items() as $item) {
-                $itemNames[] = $item->get_name();
-                $product = wc_get_product($item->get_product_id());
-                $weight = (new \Inc\Utils\WeightConverter())->toGram($product ? $product->get_weight() : 0); // Convert kg to gram
-                $itemsPayload[] = [
-                    "qty"=> $item->get_quantity(),
-                    "weight"=> $weight, // Convert kg to gram
-                    "length"=> $product ? $product->get_length() : 0,
-                    "width"=> $product ? $product->get_width() : 0,
-                    "height"=> $product ? $product->get_height() : 0,
-                    "name"=> $item->get_name(),
-                    "price"=> $product ? $product->get_price() : 0,
-                ];
+                $itemName = $item->get_name();
+                $itemNames[] = $itemName;
+                
+                $product = $item->get_product();
+                if ($product) {
+                    $weight = $weightConverter->toGram($product->get_weight());
+                    $itemsPayload[] = [
+                        "qty" => $item->get_quantity(),
+                        "weight" => $weight,
+                        "length" => $product->get_length() ?: 0,
+                        "width" => $product->get_width() ?: 0,
+                        "height" => $product->get_height() ?: 0,
+                        "name" => $itemName,
+                        "price" => $product->get_price() ?: 0,
+                    ];
+                }
             }
 
+            // Optimize item name generation
             $combinedItemNames = implode(", ", $itemNames);
-
             if (strlen($combinedItemNames) > 255) {
                 $countItemNames = count($itemNames);
-
-                if (isset($itemNames[0]) && strlen($itemNames[0]) <= 200) {
-                    $combinedItemNames = $countItemNames > 1 ? $itemNames[0] . " dan " . ($countItemNames - 1) . " produk lainnya" : $itemNames[0];
+                if ($countItemNames > 1 && isset($itemNames[0]) && strlen($itemNames[0]) <= 200) {
+                    $combinedItemNames = $itemNames[0] . " dan " . ($countItemNames - 1) . " produk lainnya";
                 } else {
                     $combinedItemNames = $countItemNames . " Bundle";
                 }
             }
-            $item_name = $combinedItemNames;
-            $note = "Order No : ".$transaction->wp_wc_order_stat_order_id ." | ".get_home_url();
-            $note = preg_replace('/^[a-zA-Z\d.\/:,\+\-()\'\"_&;?\s]*$/', '', $note);
+            
+            $note = "Order No : " . $transaction->wp_wc_order_stat_order_id . " | " . $homeUrl;
+            $note = preg_replace('/[^a-zA-Z\d.\/:,\+\-()\'\"_&;?\s]/', '', $note);
+            
+            // Get shipping/billing info with fallbacks
+            $firstName = $shipping_info->_shipping_first_name ?? $shipping_info->_billing_first_name ?? '';
+            $lastName = $shipping_info->_shipping_last_name ?? $shipping_info->_billing_last_name ?? '';
+            $address1 = $shipping_info->_shipping_address_1 ?? $shipping_info->_billing_address_1 ?? '';
+            $address2 = $shipping_info->_shipping_address_2 ?? $shipping_info->_billing_address_2 ?? '';
+            
             $result = [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => (@$shipping_info->_shipping_first_name ?? @$shipping_info->_billing_first_name).' '.(@$shipping_info->_shipping_last_name ?? @$shipping_info->_billing_last_name),
-                "destination_phone"         => @$shipping_info->_billing_phone,
-                "destination_address"       => (@$shipping_info->_shipping_address_1 ?? @$shipping_info->_billing_address_1).' '.(@$shipping_info->_shipping_address_2 ?? @$shipping_info->_billing_address_2).', '.@$transaction->destination_sub_district,
+                "destination_name"          => trim($firstName . ' ' . $lastName),
+                "destination_phone"         => $shipping_info->_billing_phone ?? '',
+                "destination_address"       => trim($address1 . ' ' . $address2 . ', ' . ($transaction->destination_sub_district ?? '')),
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
-                "destination_zipcode"       => @$shipping_info->_shipping_postcode,
-                "weight"                    => kjHelper()->minAmount($transaction->weight),
-                "width"                     => kjHelper()->minAmount($transaction->width),
-                "height"                    => kjHelper()->minAmount($transaction->height),
-                "length"                    => kjHelper()->minAmount($transaction->length),
+                "destination_zipcode"       => $shipping_info->_shipping_postcode ?? '',
+                "weight"                    => $helper->minAmount($transaction->weight),
+                "width"                     => $helper->minAmount($transaction->width),
+                "height"                    => $helper->minAmount($transaction->height),
+                "length"                    => $helper->minAmount($transaction->length),
                 "item_value"                => $transaction->transaction_value,
                 "insurance_amount"          => $transaction->insurance_cost,
                 "shipping_cost"             => $transaction->shipping_cost,
                 "service"                   => $transaction->service,
                 "service_type"              => $transaction->service_name,
-                "item_name"                 => $item_name, // order_id kiriminaja,
-                "note"                      => $note, // Nama barang (Qty number)  
-                "package_type_id"           => 7, // 7 = Regular
-                "cod"=> $transaction->cod_fee > 0 ? 
-                    (
-                        $transaction->transaction_value +
-                        $transaction->shipping_cost +
-                        $transaction->insurance_cost +
-                        $transaction->cod_fee
-                    ) : 0
+                "item_name"                 => $combinedItemNames,
+                "note"                      => $note,
+                "package_type_id"           => 7,
+                "cod" => $transaction->cod_fee > 0 ? 
+                    ($transaction->transaction_value +
+                    $transaction->shipping_cost -
+                    $transaction->discount_amount +
+                    $transaction->insurance_cost +
+                    $transaction->cod_fee) : 0,
+                "discount_amount" => $transaction->discount_amount ?? 0,
+                "discount_percentage" => $transaction->discount_percentage ?? 0,
             ];
-            if(count($itemsPayload) > 0){
+            
+            if (!empty($itemsPayload)) {
                 $result['items'] = $itemsPayload;
             }
+            
             return $result;
-        },$repo);
+        }, $repo);
     }
 }

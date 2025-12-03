@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name:     KiriminAja
- * Plugin URI:      https://developer.kiriminaja.com
- * Description:     Integrate to all best delivery services across the nusantara
- * Version:         2.0.10
- * Author:          KiriminAja
+ * Plugin Name:     KiriminAja Official
+ * Plugin URI:      https://kiriminaja.com/solusi/plugin-woocommerce
+ * Description:     KiriminAja plugin for Woocommerce simplifies your online store’s shipping management with automation, speed, and efficiency. Display real-time shipping rates from multiple couriers, offer COD options, schedule pickups, print labels, and track deliveries directly from your Woocommerce dashboard. Enjoy discounted shipping, flat-rate promotions, comprehensive reports, and an integrated system that helps your business grow through easier, safer, and more reliable deliveries across Indonesia
+ * Version:         2.0.11
+ * Author:          KiriminAja Technology Team
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
@@ -28,7 +28,7 @@ define( 'KJ_URL', plugin_dir_url( __FILE__ ));
 define( 'KJ_NONCE', 'kj-nonce');
 define('KJ_SLUG' ,plugin_basename(__DIR__));
 define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
-define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.10') );
+define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.11') );
 
 /** opt 1 */
 if ( ! defined( 'ABSPATH' ) ) { die; }
@@ -151,6 +151,23 @@ register_activation_hook(__FILE__, 'activate_kj_plugin');
 /** deactivation*/
 register_deactivation_hook(__FILE__, 'deactivate_kj_plugin');
 
+/** Run migration on plugin update */
+add_action('upgrader_process_complete', 'kj_plugin_update_migration', 10, 2);
+function kj_plugin_update_migration($upgrader_object, $options) {
+    // Check if this is a plugin update
+    if ($options['action'] == 'update' && $options['type'] == 'plugin') {
+        // Check if our plugin is being updated
+        if (isset($options['plugins'])) {
+            foreach ($options['plugins'] as $plugin) {
+                if ($plugin == plugin_basename(__FILE__)) {
+                    // Run migration
+                    (new \Inc\Migration\SetupMigration())->register();
+                    break;
+                }
+            }
+        }
+    }
+}
 
 /** Services*/
 if (class_exists('Inc\\Init')){
