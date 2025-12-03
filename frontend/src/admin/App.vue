@@ -33,11 +33,11 @@ onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search);
   const page = urlParams.get("page");
 
-  if (page === "settings") {
+  if (page === "kaj-settings") {
     currentPage.value = "configuration";
-  } else if (page === "transactions") {
+  } else if (page === "kaj-transactions") {
     currentPage.value = "transaction";
-  } else if (page === "payment") {
+  } else if (page === "kaj-payment") {
     currentPage.value = "pickup";
   } else {
     currentPage.value = page as

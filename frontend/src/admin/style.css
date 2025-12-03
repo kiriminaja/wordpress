@@ -1,6 +1,67 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+@theme {
+  --ui-bg: var(--color-surface);
+  --ui-primary: var(--color-primary);
+  --ui-border: var(--color-outlineVariant);
+  --ui-border-accented: var(--color-outlineVariant);
+  --color-primary: #7d3eb9;
+  --color-onPrimary: #ffffff;
+  --color-primaryContainer: #f0dbff;
+  --color-onPrimaryContainer: #2c0051;
+  --color-secondary: #665a6f;
+  --color-onSecondary: #ffffff;
+  --color-secondaryContainer: #edddf6;
+  --color-onSecondaryContainer: #211829;
+  --color-tertiary: #805157;
+  --color-onTertiary: #ffffff;
+  --color-tertiaryContainer: #ffd9dc;
+  --color-onTertiaryContainer: #321016;
+  --color-error: #ba1a1a;
+  --color-onError: #ffffff;
+  --color-errorContainer: #ffdad6;
+  --color-onErrorContainer: #410002;
+  --color-info: #2b5ea7;
+  --color-onInfo: #ffffff;
+  --color-infoContainer: #d7e3ff;
+  --color-onInfoContainer: #001b3e;
+  --color-success: #006d38;
+  --color-onSuccess: #ffffff;
+  --color-successContainer: #74fda2;
+  --color-onSuccessContainer: #00210d;
+  --color-warning: #9d4300;
+  --color-onWarning: #ffffff;
+  --color-warningContainer: #ffdbca;
+  --color-onWarningContainer: #341100;
+  --color-background: #ffffff;
+  --color-onBackground: #1d1b1e;
+  --color-outline: #7c757e;
+  --color-outlineVariant: #ccc4ce;
+  --color-surface: #fef7fc;
+  --color-onSurface: #1d1b1e;
+  --color-surfaceVariant: #e9dfeb;
+  --color-onSurfaceVariant: #4a454e;
+  --color-inverseSurface: #322f33;
+  --color-onInverseSurface: #f6eff4;
+  --color-surfaceBright: #fef7fc;
+  --color-surfaceDim: #ded8dd;
+  --color-surfaceContainerLowest: #ffffff;
+  --color-surfaceContainerLow: #f8f2f6;
+  --color-surfaceContainer: #f3ecf1;
+  --color-surfaceContainerHigh: #ede6eb;
+  --color-surfaceContainerHighest: #e7e1e5;
+  --animate-aurora: aurora 60s linear infinite;
+  @keyframes aurora {
+    from {
+      background-position: 50% 50%, 50% 50%;
+    }
+    to {
+      background-position: 350% 50%, 350% 50%;
+    }
+  }
+}
+
 #wpcontent {
   @apply pl-0;
 }
@@ -9,17 +70,16 @@
   @apply mt-0;
 }
 
-.bg-primary {
-  @apply bg-(--wp-admin-theme-color);
-}
-.text-primary {
-  @apply text-(--wp-admin-theme-color);
-}
-
-.bg-primary\/10 {
-  @apply bg-[rgba(var(--wp-admin-theme-color--rgb),0.1)];
-}
-
 .update-nag {
   @apply block m-2;
+}
+
+.toplevel_page_kiriminaja .wp-first-item {
+  @apply hidden!;
+}
+
+@layer components {
+  button {
+    @apply cursor-pointer;
+  }
 }

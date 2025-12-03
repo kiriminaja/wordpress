@@ -6,6 +6,13 @@ use \Inc\Base\BaseInit;
 
 class Enqueue extends BaseInit{
     
+    private const INTERNAL_PATH = [
+        'kiriminaja',
+        'kaj-settings',
+        'kaj-transactions',
+        'kaj-payment',
+        'kaj-tracking'
+    ];
     private $is_vite_enabled = false;
     private $is_vite_dev = false;
     private $vite_server = 'http://localhost:3000';
@@ -110,10 +117,7 @@ class Enqueue extends BaseInit{
      */
     public function addViteDevClient() {
         $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
-        if (!in_array($page,[
-            'settings',
-            'transactions',
-            'payment'])){return;}
+        if (!in_array($page, self::INTERNAL_PATH)){return;}
             
         echo '<script type="module" crossorigin src="' . esc_url($this->vite_server . '/@vite/client') . '"></script>' . "\n";
     }
@@ -144,11 +148,7 @@ class Enqueue extends BaseInit{
     function enqueueAdmin(){
 
         $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
-        if (!in_array($page,[
-            'settings',
-            'transactions',
-            'payment',
-            'tracking'])){return;}
+        if (!in_array($page, self::INTERNAL_PATH)){return;}
 
         wp_localize_script(
             'myjs',
@@ -201,6 +201,12 @@ class Enqueue extends BaseInit{
                 foreach ($css_files as $index => $css_url) {
                     wp_enqueue_style('kiriminaja-admin-vue-' . $index, $css_url, array(), KJ_PLUGIN_VERSION);
                 }
+
+                // Also check for main entry CSS in development
+                if ($this->is_vite_dev) {
+                    wp_enqueue_style('kiriminaja-admin-vue-style', $this->vite_server . '/frontend/src/admin/style.css', array(), KJ_PLUGIN_VERSION);
+                }
+
             }
         }
         

@@ -17,16 +17,6 @@
 
         </div>
     </div>
-
-<!--    <table class="form-table">-->
-<!--        <tbody>-->
-<!--        <tr valign="top">-->
-<!--            <th scope="row" class="titledesc">--><?php //esc_html_e('Store Origin', 'kiriminaja'); ?><!--</th>-->
-<!--            <td class="forminp forminp-single_select_page_with_search">-->
-<!--            </td>-->
-<!--        </tr>-->
-<!--        </tbody>-->
-<!--    </table>-->
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function($) {

@@ -1,3 +1,4 @@
+<?php require __DIR__ . "/../../vite.render.php"; ?>
 <div class="kj-wrapper kj-wrap">
     <div class="wrap ">
         <div id="root">

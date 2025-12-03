@@ -14,31 +14,31 @@ class Admin extends BaseInit{
         if(KJ_CHECK_WOOCOMMERCE()){
             $subPages = [
                 [
-                    'parent_slug'=>'settings',
+                    'parent_slug'=>'kiriminaja',
                     'page_title'=>'KiriminAja Transaction Process',
-                    'menu_title'=>'Transactions',
+                    'menu_title'=>'Transactions'. $this->transaction_count(),
                     'capability'=>'manage_options',
-                    'menu_slug'=>'transactions',
+                    'menu_slug'=>'kaj-transactions',
                     'callback'=> function(){
                         require_once $this->plugin_path.'templates/transaction-process/index.php';
                     }
                 ],
                 [
-                    'parent_slug'=>'settings',
+                    'parent_slug'=>'kiriminaja',
                     'page_title'=>'Payment',
                     'menu_title'=>'Payment',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'payment',
+                    'menu_slug'=>'kaj-payment',
                     'callback'=> function() {
                         require_once $this->plugin_path.'templates/request-pickup/index.php';
                     }
                 ],
                 [
-                    'parent_slug'=>'settings',
+                    'parent_slug'=>'kiriminaja',
                     'page_title'=>'Tracking',
                     'menu_title'=>'Tracking',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'tracking',
+                    'menu_slug'=>'kaj-tracking',
                     'callback'=> function() {
                         require_once $this->plugin_path.'templates/tracking/index.php';
                     }
@@ -48,11 +48,11 @@ class Admin extends BaseInit{
 
 
         $subPages[] = [
-            'parent_slug'=>'settings',
+            'parent_slug'=>'kiriminaja',
             'page_title'=>'KiriminAja Settings',
             'menu_title'=>'Settings',
             'capability'=>'manage_options',
-            'menu_slug'=>'settings',
+            'menu_slug'=>'kaj-settings',
             'callback'=> function(){
                 require_once $this->plugin_path.'templates/setting/index.php';
             }
@@ -62,9 +62,9 @@ class Admin extends BaseInit{
             ->addPages([
                 [
                     'page_title'=>'KiriminAja',
-                    'menu_title'=>'KiriminAja',
+                    'menu_title'=>'KiriminAja'. $this->transaction_count(),
                     'capability'=>'manage_options',
-                    'menu_slug'=>'settings',
+                    'menu_slug'=>'kiriminaja',
                     'callback'=> function(){
                         require_once $this->plugin_path.'templates/setting/index.php';
                     },
@@ -82,27 +82,17 @@ class Admin extends BaseInit{
             array_push($links,$settings_link);
             return $links;
         });
-
-        add_action( 'admin_head', [$this,'kj_add_transaction_status_count']);
-
     }
 
-    function kj_add_transaction_status_count(){
-        if ( class_exists( 'WooCommerce' ) ) {
-
-            global $submenu;
-
-            $transaction_count_new = kjHelper()->kjCountTransactionProcess();
-
-            if( (int) $transaction_count_new == 0) return;
-            
-            foreach ( $submenu['settings'] as $key => $menu_item ) {
-                if ( 0 === strpos( $menu_item[0], 'Transaction Process' ) ) {
-                    $submenu['settings'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
-                    break;
-                }
-            }
+    public function transaction_count(){
+        $count = 0;
+        if (class_exists( 'WooCommerce' )) {
+            $count = kjHelper()->kjCountTransactionProcess();
         }
+        if ($count==0){
+            return '';
+        }
+        return '<span class="update-plugins"><span class="plugin-count">' . esc_html( $count ) . '</span></span>';
     }
 
 }

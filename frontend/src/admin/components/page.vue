@@ -1,3 +1,39 @@
+<script setup lang="ts">
+import { computed, useSlots } from "vue";
+
+const props = defineProps<{
+  title: string;
+  backAction?: {
+    label: string;
+    onAction?: () => void;
+  };
+}>();
+
+const items = computed(() => {
+  const breadcrumbItems: Record<string, any>[] = [
+    {
+      icon: "i-lucide-home",
+      to: "/docs",
+    },
+  ];
+
+  if (props.backAction) {
+    breadcrumbItems.push({
+      label: props.backAction.label,
+      to: "#",
+    });
+  }
+
+  breadcrumbItems.push({
+    label: props.title,
+  });
+
+  return breadcrumbItems;
+});
+
+const slots = useSlots();
+</script>
+
 <template>
   <div class="sticky top-0 bg-white p-3 flex justify-between gap-3">
     <ul class="m-0! p-0! flex items-center">
@@ -32,7 +68,9 @@
         </li>
       </template>
     </ul>
-    <slot name="actions" />
+    <div v-if="slots.actions" class="flex justify-end gap-1">
+      <slot name="actions" />
+    </div>
   </div>
   <div class="p-3">
     <slot />
@@ -41,36 +79,3 @@
     </div>
   </div>
 </template>
-<script setup lang="ts">
-import { computed } from "vue";
-
-const props = defineProps<{
-  title: string;
-  backAction?: {
-    label: string;
-    onAction?: () => void;
-  };
-}>();
-
-const items = computed(() => {
-  const breadcrumbItems: Record<string, any>[] = [
-    {
-      icon: "i-lucide-home",
-      to: "/docs",
-    },
-  ];
-
-  if (props.backAction) {
-    breadcrumbItems.push({
-      label: props.backAction.label,
-      to: "#",
-    });
-  }
-
-  breadcrumbItems.push({
-    label: props.title,
-  });
-
-  return breadcrumbItems;
-});
-</script>

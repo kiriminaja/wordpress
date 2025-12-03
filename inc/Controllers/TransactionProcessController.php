@@ -10,6 +10,7 @@ class TransactionProcessController{
         add_action('wp_ajax_kj_request_pickup_schedule', array($this,'getRequestPickupSchedule'));
         add_action('wp_ajax_kj_request_pickup_transaction', array($this,'sendRequestPickupTransaction'));
         add_action('wp_ajax_kj_transaction-detail-summary', array($this,'getTransactionDetailSummary'));
+        add_action('wp_ajax_kaj_transactions', [$this, 'getTransactions']);
     }
     
     public function getRequestPickupSchedule(){
@@ -81,6 +82,26 @@ class TransactionProcessController{
 
             wp_send_json_success($service);
             
+        }catch (\Throwable $th){
+            wp_send_json_success([
+                'status'    => 400,
+                'message'   => $th->getMessage(),
+            ]);
+        }
+    }
+
+    public function getTransactions(){
+        try {
+            // Check for nonce security      
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+                wp_die();
+            }
+
+            $service = (new \Inc\Services\TransactionProcessServices\GetTransactionProcessService())
+                ->call();
+
+            wp_send_json_success($service);
         }catch (\Throwable $th){
             wp_send_json_success([
                 'status'    => 400,
