@@ -56,8 +56,9 @@ const menuItems: MenuItem[] = [
   },
   {
     id: "advanced",
-    title: "Advanced Settings",
-    description: "Configure your integration webhooks event handler urls",
+    title: "Webhook",
+    description:
+      "This page is how the wordpress communicate with kiriminaja api.",
     icon: "lucide:tool-case",
     page: Advanced,
   },

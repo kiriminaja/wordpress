@@ -4,7 +4,6 @@ import { useAppFetch } from "@/admin/composables/useAppFetch";
 
 interface AdvancedSettings {
   callback_url?: string;
-  origin_whitelist_expedition_id?: string;
 }
 
 const toast = useToast();
@@ -26,10 +25,10 @@ onMounted(async () => {
 async function loadSettings() {
   loading.value = true;
   try {
-    const res = await useAppFetch("kiriminaja_search_expedition");
+    const res = await useAppFetch("kj_get_call_back_data");
     const result = await res.json();
-    if (result && result.settings) {
-      settings.value = result.settings || {};
+    if (result && result.data?.data) {
+      settings.value = result.data.data || {};
     }
   } catch (e) {
     console.error("Failed to load settings:", e);
@@ -90,7 +89,7 @@ async function saveSettings() {
 
     <!-- Advanced Settings Content -->
     <UCard v-else>
-      <div class="space-y-4">
+      <UForm class="space-y-4">
         <UFormField label="Callback URL" name="callback_url">
           <UInput
             id="callback_url"
@@ -104,28 +103,10 @@ async function saveSettings() {
           </template>
         </UFormField>
 
-        <UFormField
-          label="Whitelisted Expeditions"
-          name="origin_whitelist_expedition_id"
-        >
-          <UInput
-            id="origin_whitelist_expedition_id"
-            v-model="settings.origin_whitelist_expedition_id"
-            type="text"
-            class="w-full"
-            placeholder="e.g., jne,tiki,pos"
-          />
-          <template #help>
-            Comma-separated expedition IDs to enable (leave empty for all)
-          </template>
-        </UFormField>
-      </div>
-
-      <template #footer>
         <UButton :loading="saving" :disabled="saving" @click="saveSettings">
           Save Settings
         </UButton>
-      </template>
+      </UForm>
     </UCard>
   </div>
 </template>
