@@ -38,9 +38,9 @@ class Admin extends BaseInit{
                     'page_title'=>'Tracking',
                     'menu_title'=>'Tracking',
                     'capability'=>'manage_options',
-                    'menu_slug'=>'payment',
+                    'menu_slug'=>'tracking',
                     'callback'=> function() {
-                        require_once $this->plugin_path.'templates/request-pickup/index.php';
+                        require_once $this->plugin_path.'templates/tracking/index.php';
                     }
                 ]
             ];

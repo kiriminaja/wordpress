@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import Integration from "../components/config/integration.vue";
 import Shipping from "../components/config/shipping.vue";
 import Advanced from "../components/config/advanced.vue";
 import Page from "../components/page.vue";
+import { navigateTo } from "../composables/navigateTo";
 
 interface MenuItem {
   id: string;
@@ -65,13 +66,7 @@ const menuItems: MenuItem[] = [
 ];
 
 const navigateToPath = (pathId: string) => {
-  const url = new URL(window.location.href);
-  if (pathId === "") {
-    url.searchParams.delete("path");
-  } else {
-    url.searchParams.set("path", pathId);
-  }
-  window.history.pushState({}, "", url.toString());
+  navigateTo("path", pathId);
   currentPath.value = pathId;
 };
 </script>

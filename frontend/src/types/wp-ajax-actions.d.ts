@@ -1,5 +1,5 @@
 
-// AUTO-GENERATED FILE — DO NOT EDIT
+// AUTO-GENERATED FILE — DO NOT EDIT - Run "bun run generate:ajax" to regenerate, need to commit this file
 export type WpAjaxAction =
   | "kj-get-expedition-ajax"
   | "nopriv_kj-get-expedition-ajax"

@@ -147,7 +147,8 @@ class Enqueue extends BaseInit{
         if (!in_array($page,[
             'settings',
             'transactions',
-            'payment'])){return;}
+            'payment',
+            'tracking'])){return;}
 
         wp_localize_script(
             'myjs',
