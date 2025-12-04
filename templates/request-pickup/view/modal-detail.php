@@ -1,4 +1,9 @@
-<!--Modal-->
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div id="request-pickup-detail-modal" class="kj-hidden">
     <div class="modal-container">
         <div style="background-color: #f0f0f1" tabindex="0" class="media-modal" role="dialog">
@@ -9,7 +14,7 @@
                     </svg>
                 </div>
                 <div class="content-header" style="background-color: white; display: flex; justify-content: space-between; align-items: center;">
-                    <h1 id="request-pickup-detail-modal-title"><?php esc_html_e('Request Pickup Detail','kiriminaja'); ?></h1>
+                    <h1 id="request-pickup-detail-modal-title"><?php esc_html_e('Request Pickup Detail','kiriminaja-official'); ?></h1>
                     <div style="margin-right: 3rem;">
                         <button class="button-wp p-relative" type="button" style="border-radius: 4px; display: none;" id="print-all-resi-btn">
                             <a href="#" target="_blank" class="inset-absolute" id="print-all-resi"></a>
@@ -42,21 +47,21 @@
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div> <?php esc_html_e('Total Paket','kiriminaja'); ?></div>
+                                        <div> <?php esc_html_e('Total Paket','kiriminaja-official'); ?></div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div><?php esc_html_e('Paket Cash on Delivery','kiriminaja'); ?></div>
+                                        <div><?php esc_html_e('Paket Cash on Delivery','kiriminaja-official'); ?></div>
                                     </div>
                                 </div>
                                 <div class="col">
                                     <div style="border:1px solid #dadadc;padding: .5rem .75rem; background-color: #ffffff">
                                         <div style="font-weight: 600;"><span id="package-non-cod-count">10.0000</span></div>
                                         <div class="row-divider" style="margin-top: .5rem"></div>
-                                        <div><?php esc_html_e('Paket Non-COD','kiriminaja'); ?></div>
+                                        <div><?php esc_html_e('Paket Non-COD','kiriminaja-official'); ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -74,7 +79,7 @@
                                         <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
-                                                    <span><?php esc_html_e('Apply','kiriminaja'); ?></span>
+                                                    <span><?php esc_html_e('Apply','kiriminaja-official'); ?></span>
                                                 </div>
                                             </div>
                                         </button>
@@ -119,13 +124,13 @@
                             <thead>
                             <tr>
                                 <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Package','kiriminaja'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment','kiriminaja'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Item Value','kiriminaja'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Fees','kiriminaja'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('COD Value','kiriminaja'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','kiriminaja'); ?></th>
-                                <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php esc_html_e('Action','kiriminaja');?></span></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Package','kiriminaja-official'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment','kiriminaja-official'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Item Value','kiriminaja-official'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Fees','kiriminaja-official'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('COD Value','kiriminaja-official'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','kiriminaja-official'); ?></th>
+                                <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php esc_html_e('Action','kiriminaja-official');?></span></th>
                             </tr>
                             </thead>
                             <tbody id="the-list">
@@ -238,7 +243,7 @@
                     </div>
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
-                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','kiriminaja'); ?></p>
+                        <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','kiriminaja-official'); ?></p>
                         <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
                     </div>
 

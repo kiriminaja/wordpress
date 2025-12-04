@@ -1,3 +1,9 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <span style="font-size: 18px; font-weight: 600">Webhooks</span>
 <div class="row-divider" style="margin-top: .5rem"></div>
 <span><?php echo esc_html( kjHelper()->tlThis('This page is how the wordpress communicate with kiriminaja api.',$locale) ); ?></span><div class="kj-form">

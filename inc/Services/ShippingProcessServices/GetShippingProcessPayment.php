@@ -1,11 +1,14 @@
 <?php
+namespace KiriminAjaOfficial\Services\ShippingProcessServices;
 
-namespace Inc\Services\ShippingProcessServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 use DateTime;
 use DateTimeZone;
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class GetShippingProcessPayment extends BaseService{
     
     public $payment_id = 0;
@@ -22,15 +25,12 @@ class GetShippingProcessPayment extends BaseService{
     }
     
     public function call(){
-
-        $getKjPayment = (new \Inc\Repositories\KiriminajaApiRepository())->getPayment([
+        $getKjPayment = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPayment([
             'payment_id'=>$this->payment_id
         ]);
-
         if (!$getKjPayment['status']){ return  self::error([],@$getKjPayment['data'] ?? 'Terjadi Kesalahan');}
         
-        $getPayment = (new \Inc\Repositories\PaymentRepository())->getPaymentByPaymentId($this->payment_id);
-
+        $getPayment = (new \KiriminAjaOfficial\Repositories\PaymentRepository())->getPaymentByPaymentId($this->payment_id);
         self::transactionsSummaryProccess();
         return self::success([
             'payment_data'          =>  @$getKjPayment['data']->data,
@@ -44,8 +44,7 @@ class GetShippingProcessPayment extends BaseService{
     }
     
     private function transactionsSummaryProccess(){
-        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByPickupNumber($this->payment_id);
-
+        $transactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByPickupNumber($this->payment_id);
         $count_cod = 0;
         $count_non_cod = 0;
         $sum_fee_cod = 0;
@@ -55,8 +54,7 @@ class GetShippingProcessPayment extends BaseService{
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
-                $sum_fee_non_cod+=$transaction->shipping_cost;
-                $sum_fee_non_cod+=$transaction->insurance_cost;
+                $sum_fee_non_cod+=($transaction->shipping_cost - $transaction->discount_amount) + $transaction->insurance_cost;
             }
         }
         
@@ -73,12 +71,9 @@ class GetShippingProcessPayment extends BaseService{
         $dt = new DateTime("now", new DateTimeZone($this->timeZone));
         $dt->setTimestamp(strtotime($dateTime));
         $date = $dt->format('Y-m-d H:i:s');
-
-        (new \Inc\Base\BaseInit())->logThis('$tz',[$this->timeZone]);
-        (new \Inc\Base\BaseInit())->logThis('$dt',[$dt->format('Y-m-d H:i:s')]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$tz',[$this->timeZone]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$dt',[$dt->format('Y-m-d H:i:s')]);
         
         return $date;
     }
-    
-    
 }

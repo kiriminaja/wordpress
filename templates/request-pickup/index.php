@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 
 
 class requestPickupIndex {
@@ -27,7 +32,7 @@ class requestPickupIndex {
 
         /** Month Options*/
         $monthOptions = self::getPaymentsDateFilterOptionArray();
-        (new \Inc\Base\BaseInit())->logThis('$monthOptions',[$monthOptions]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$monthOptions',[$monthOptions]);
         
         /** Return vars and view*/
         include 'view/index.php';
@@ -85,7 +90,7 @@ class requestPickupIndex {
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
         }
 
         /** Pagination Query*/
@@ -127,7 +132,7 @@ class requestPickupIndex {
     }
     
     private function getPaymentsDateFilterOptionArray(){
-        $oldestPaymentDateQuery = (new \Inc\Repositories\PaymentRepository())->getPaymentByOldestDate();
+        $oldestPaymentDateQuery = (new \KiriminAjaOfficial\Repositories\PaymentRepository())->getPaymentByOldestDate();
         $oldestMonth= gmdate('Y-m-d',strtotime($oldestPaymentDateQuery->created_at ?? "now"));
         $currentMonth = gmdate('Y-m-d',strtotime("now"));
         $d1=new DateTime($oldestMonth);

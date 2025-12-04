@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class KiriminAjaApi
 {
@@ -12,7 +16,7 @@ class KiriminAjaApi
         global $wp_version;
         $this->base_url = 'https://dev-kaj-mitra-srvc-ext.bakso.my.id'; // PRODUCTION
         
-        $dbApiToken = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
+        $dbApiToken = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
         $this->default_args = array(
             'timeout' => 30,
@@ -35,7 +39,6 @@ class KiriminAjaApi
             'filename' => null,
         );
     }
-
     private function populate_output($response)
     {
         if (is_wp_error($response)) {
@@ -45,17 +48,15 @@ class KiriminAjaApi
             );
         }
         if (200 !== wp_remote_retrieve_response_code($response)) {
-            (new \Inc\Base\BaseInit())->logThis('api_call_err',$response);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('api_call_err',$response);
             return array(
                 'status' => false,
                 'data' => 'Error ' . wp_remote_retrieve_response_code($response)
             );
         }
-
         $body = wp_remote_retrieve_body($response);
         $body = json_decode($body);
         if (false === $body->status) {
-
             if (!empty($body->errors)) {
                 $errorMessages = [];
                 foreach ($body->errors as $field => $messages) {
@@ -67,9 +68,7 @@ class KiriminAjaApi
                         $errorMessages[] = $messages;
                     }
                 }
-
                 $finalMessage = "Terdapat beberapa kesalahan pada data yang dikirim: " . implode(" ", $errorMessages);
-
             } else {
                 $finalMessage = isset($body->text) ? $body->text : 'Unknown error';
             }
@@ -84,7 +83,6 @@ class KiriminAjaApi
         );
     }
     
-
     public function get($endpoint, $body = array())
     {
         $args = wp_parse_args(array('body' => $body), $this->default_args);
@@ -96,7 +94,6 @@ class KiriminAjaApi
         }
         return $this->populate_output($response);
     }
-
     public function post($endpoint, $body = array())
     {
         $args = wp_parse_args(array('body' => wp_json_encode($body)), $this->default_args);
@@ -107,5 +104,4 @@ class KiriminAjaApi
         }
         return $this->populate_output($response);
     }
-    
 }

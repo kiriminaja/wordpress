@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class PageGenerator{
     
@@ -22,7 +26,6 @@ class PageGenerator{
         $this->admin_subpages = array_merge($this->admin_subpages,$pages);
         return $this;
     }
-
     public function addAdminMenu(){
         foreach ($this->admin_pages as $page){
             add_menu_page($page['page_title'],$page['menu_title'],$page['capability'],$page['menu_slug'],$page['callback'],$page['icon_url'],$page['position']);
@@ -31,5 +34,4 @@ class PageGenerator{
             add_submenu_page($page['parent_slug'],$page['page_title'],$page['menu_title'],$page['capability'],$page['menu_slug'],$page['callback']);
         }
     }
-    
 }

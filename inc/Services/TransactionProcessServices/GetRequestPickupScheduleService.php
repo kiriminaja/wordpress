@@ -1,7 +1,12 @@
 <?php
-namespace Inc\Services\TransactionProcessServices;
-use Inc\Base\BaseService;
+namespace KiriminAjaOfficial\Services\TransactionProcessServices;
 
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+use KiriminAjaOfficial\Base\BaseService;
 class GetRequestPickupScheduleService extends BaseService {
     
     public array $orderIds = [];
@@ -12,12 +17,11 @@ class GetRequestPickupScheduleService extends BaseService {
     }
     
     public function call(){
-        $scheduleRepo = (new \Inc\Repositories\KiriminajaApiRepository())->getRequestPickupSchedule();
+        $scheduleRepo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getRequestPickupSchedule();
         if (!@$scheduleRepo['status'] || !@$scheduleRepo['data']->status){
             return self::error([],@$scheduleRepo['data']->text ?? 'Something is wrong');
         }
         
-
         $transactionSummaryData = self::transactionSummaryData();
         
         return self::success([
@@ -27,7 +31,7 @@ class GetRequestPickupScheduleService extends BaseService {
     }
     
     private function transactionSummaryData(){
-        $transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
                 
         $count_cod = 0;
         $count_non_cod = 0;
@@ -38,11 +42,9 @@ class GetRequestPickupScheduleService extends BaseService {
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
-                $sum_fee_non_cod    +=  $transaction->shipping_cost;
-                $sum_fee_non_cod    +=  $transaction->insurance_cost;
+                $sum_fee_non_cod+=($transaction->shipping_cost - $transaction->discount_amount) + $transaction->insurance_cost;
             }
         }
-
         $array = [];
         $array['count_cod']         =   $count_cod;
         $array['count_non_cod']     =   $count_non_cod;
@@ -53,9 +55,8 @@ class GetRequestPickupScheduleService extends BaseService {
     
     private function scheduleOptionFormatter($schedules){
         return array_map(function ($schedule){
-            $schedule->label = gmdate('l, Y-m-d H:i',strtotime($schedule->clock));
+            $schedule->label = date('l, Y-m-d H:i',strtotime($schedule->clock));
             return $schedule;
         },$schedules);
     }
-    
 }

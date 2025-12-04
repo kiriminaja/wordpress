@@ -1,8 +1,12 @@
 <?php
-namespace Inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class CallbackController{
-
     public function register(){
         /** Adding New Route*/
         add_action( 'init', function (){
@@ -19,11 +23,21 @@ class CallbackController{
     {
         try {
             $header = apache_request_headers();
-            $body = json_decode(file_get_contents("php://input"));
-
-            (new \Inc\Base\BaseInit())->logThis('kiriminAjaCallback',[$body]);
+            $raw_body = file_get_contents("php://input");
+            $body = json_decode($raw_body);
             
-            $service = (new \Inc\Services\CallbackHandlerService())->header($header)->body($body)->call();
+            // Validate and sanitize the decoded body
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                wp_send_json_error([
+                    'status'=>false,
+                    'text'=>'Invalid JSON input',
+                    'data'=>[]
+                ]);
+                return;
+            }
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriminAjaCallback',[$body]);
+            
+            $service = (new \KiriminAjaOfficial\Services\CallbackHandlerService())->header($header)->body($body)->call();
             if ($service->status!==200){
                 wp_send_json_error([
                     'status'=>false,

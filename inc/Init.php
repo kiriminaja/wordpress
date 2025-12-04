@@ -1,11 +1,14 @@
 <?php
+namespace KiriminAjaOfficial;
 
-namespace Inc;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 /** final : not extandable */
 final class Init {
     
-
     /**
      * store all the classes inside array
      * @return string[]
@@ -23,11 +26,9 @@ final class Init {
             Controllers\CheckoutController::class,
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,
-            Controllers\UpdaterPluginGcsController::class,
-            Controllers\ConfigurationAjaxController::class,
+            Controllers\ConfigurationAjaxController::class
         ];
     }
-
     /**
      * loop through the classes, initialize and call register if exist
      * @return void
@@ -41,7 +42,6 @@ final class Init {
             
         }
     }
-
     /**
      * return new instance
      * @param $class

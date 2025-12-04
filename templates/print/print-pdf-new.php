@@ -1,4 +1,11 @@
-<?php require __DIR__ . "/../../vite.render.php"; ?>
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+require __DIR__ . "/../../vite.render.php";
+?>
 
 <!doctype html>
 <html lang="en">

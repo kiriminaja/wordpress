@@ -1,3 +1,9 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <script>
     jQuery(document).ready(function (){
         getKiriminAjaTransactionData()

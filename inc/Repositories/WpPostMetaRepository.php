@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class WpPostMetaRepository{
-
     public $table;
     public function __construct(){
         global $wpdb;
@@ -22,7 +25,7 @@ class WpPostMetaRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
@@ -33,7 +36,6 @@ class WpPostMetaRepository{
         
         $post_ids_placeholders = implode(', ', array_fill(0, count($post_ids), '%d'));
         $meta_keys_placeholders = implode(', ', array_fill(0, count($meta_keys), '%s'));
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( 
             $wpdb->prepare(
@@ -48,7 +50,7 @@ class WpPostMetaRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
@@ -56,7 +58,6 @@ class WpPostMetaRepository{
     
     public function getRequiredRowsByPostIdAndMetaKey($post_id, $meta_key){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -67,7 +68,7 @@ class WpPostMetaRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;

@@ -1,10 +1,13 @@
 <?php
+namespace KiriminAjaOfficial\Pages;
 
-namespace Inc\Pages;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use \Inc\Base\BaseInit;
-use \Inc\Base\PageGenerator;
-
+use \KiriminAjaOfficial\Base\BaseInit;
+use \KiriminAjaOfficial\Base\PageGenerator;
 class Admin extends BaseInit{
     
     public function register(){
@@ -94,5 +97,4 @@ class Admin extends BaseInit{
         }
         return '<span class="update-plugins"><span class="plugin-count">' . esc_html( $count ) . '</span></span>';
     }
-
 }

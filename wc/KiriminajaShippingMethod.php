@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 /**
  * Create Shipping Method Kiriminaja
  * --------------------------------
@@ -11,13 +16,13 @@ function kj_shippingMethod(){
         {
             public function __construct(){
                 
-                $this->id = 'kiriminaja';
-                $this->method_title = __('Kiriminaja', 'kiriminaja');
-                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'kiriminaja');
+                $this->id = 'kiriminaja-official';
+                $this->method_title = __('Kiriminaja', 'kiriminaja-official');
+                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'kiriminaja-official');
                 
                 $this->init();
                 $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
-                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'kiriminaja');
+                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'kiriminaja-official');
             }
     
             /**
@@ -32,14 +37,14 @@ function kj_shippingMethod(){
             function initFormFields(){
                 $this->form_fields = array(
                         'enabled' => array(
-                        'title' => __('Enable', 'kiriminaja'),
+                        'title' => __('Enable', 'kiriminaja-official'),
                         'type' => 'checkbox',
                         'default' => 'yes'
                     ),
                     'title' => array(
-                        'title' => __('Title', 'kiriminaja'),
+                        'title' => __('Title', 'kiriminaja-official'),
                         'type' => 'text',
-                        'default' => __('Kiriminaja Shipping', 'kiriminaja')
+                        'default' => __('Kiriminaja Shipping', 'kiriminaja-official')
                     ),
                 );
             }
@@ -62,14 +67,14 @@ function kj_shippingMethod(){
                     $height += (int) $_product->get_height();
                 }
 
-                $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+                $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
                 if(!$settingRepo||$settingRepo->value === null){
-                    wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja'), "error");
+                    wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
                     return;
                 }
 
                 /** convert unit weight */
-                $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+                $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
                     'wc_cart_contents' => WC()->cart->get_cart()
                 ]))->call();
 
@@ -85,7 +90,7 @@ function kj_shippingMethod(){
                     'courier' => "", // 'jne', 'pos', 'tiki', 'jet'
                 ];
 
-                $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($payload);
+                $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 
                 $res_pricing = $kjPricing['data']; //object
                 foreach($this->filterOptions($res_pricing,$quantity) as $row){
@@ -117,7 +122,7 @@ function kj_shippingMethod(){
                 $options = $pricingData->results ?? [];
 
                 
-                $validate = (new \Inc\Repositories\SettingRepository())->validateWhiteListExpedition($options);
+                $validate = (new \KiriminAjaOfficial\Repositories\SettingRepository())->validateWhiteListExpedition($options);
                 
                 
                 $options = $validate;
@@ -159,16 +164,16 @@ function kj_add_the_date_validation( $passed, $product_id ) {
     $width = $product->get_width();
     $height = $product->get_height();
     
-    $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+    $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
     if(!$settingRepo||$settingRepo->value === null){
-        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja'), "error");
+        wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
         $passed = false;
     }
     /**
      * Check Product Weight
      */
     if( empty($product->get_weight()) ){
-        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'kiriminaja'), "error");
+        wc_add_notice(__("Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman",'kiriminaja-official'), "error");
         $passed = false;
     }
 
@@ -176,7 +181,7 @@ function kj_add_the_date_validation( $passed, $product_id ) {
      * Check Product Dimention
      */
     if ( empty($length) || empty($width) || empty($height)) {
-        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman', 'kiriminaja'), 'error');
+        wc_add_notice(__('Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman', 'kiriminaja-official'), 'error');
         $passed = false;
     }
 

@@ -1,4 +1,11 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="wrap">
+
     <h1>KiriminAja</h1>
 
 

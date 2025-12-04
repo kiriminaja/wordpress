@@ -1,6 +1,12 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <?php require __DIR__ . "/../../vite.render.php"; ?>
-
 <div class="kj-wrapper kj-wrap">
+
     <div class="wrap ">
         <div id="root">
             <div class="woocommerce-layout">
@@ -15,18 +21,18 @@
                                 <form id="table-form" action="" style="display: none">
                                     <input type="text" name="page" value="<?php echo esc_html($_GET['page'] ?? '');// @codingStandardsIgnoreLine ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_html($_GET['key'] ?? ''); // @codingStandardsIgnoreLine ?>">
-                                    <input type="text" name="status" value="<?php echo esc_html($_GET['status'] ?? ''); // @codingStandardsIgnoreLine ?>">
-                                    <input type="text" name="month" value="<?php echo esc_html($_GET['month'] ?? ''); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="key" value="<?php echo esc_html(sanitize_text_field($_GET['key'] ?? '')); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="status" value="<?php echo esc_html(sanitize_text_field($_GET['status'] ?? '')); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="month" value="<?php echo esc_html(sanitize_text_field($_GET['month'] ?? '')); // @codingStandardsIgnoreLine ?>">
                                 </form>
                                 
                                 
                                 <div>
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
-                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !@$_GET['status']||@$_GET['status']==='all' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >All <span class="count"></span></a> |</li>
-                                            <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo @$_GET['status']==='unpaid' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >Waiting for Payment <span class="count"></span></a>  |</li>
-                                            <li ><a href="#" onclick="applySearch('status','paid')" <?php echo @$_GET['status']==='paid' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >Paid <span class="count"></span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','')" <?php echo !sanitize_text_field($_GET['status'] ?? '')||sanitize_text_field($_GET['status'] ?? '')==='all' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >All <span class="count"></span></a> |</li>
+                                            <li ><a href="#" onclick="applySearch('status','unpaid')" <?php echo sanitize_text_field($_GET['status'] ?? '')==='unpaid' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >Waiting for Payment <span class="count"></span></a>  |</li>
+                                            <li ><a href="#" onclick="applySearch('status','paid')" <?php echo sanitize_text_field($_GET['status'] ?? '')==='paid' ? 'class="current"' : ''; // @codingStandardsIgnoreLine ?> >Paid <span class="count"></span></a>  |</li>
                                         </ul>
                                     </div>
                                     
@@ -386,7 +392,7 @@
                 const transactions_data = resp?.data?.transactions_data
                 const wcOrderUrlBase = '<?php echo esc_url( home_url().'/wp-admin/post.php?post='); ?>'
                 
-                jQuery('#request-pickup-detail-modal-title').text("<?php esc_html_e('Request Pickup Detail','kiriminaja'); ?> - "+payment_data.pickup_number)
+                jQuery('#request-pickup-detail-modal-title').text("<?php esc_html_e('Request Pickup Detail','kiriminaja-official'); ?> - "+payment_data.pickup_number)
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-cod-count').text(kjMoneyFormat(payment_data.cod_count ?? 0))
                 jQuery('#request-pickup-detail-modal #package-non-cod-count').text(kjMoneyFormat(payment_data.non_cod_count ?? 0))

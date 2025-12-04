@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Services\CheckoutServices;
 
-namespace Inc\Services\CheckoutServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class OngkirPricingService extends BaseService{
     
     private bool $is_cod = false;
@@ -16,18 +19,16 @@ class OngkirPricingService extends BaseService{
         $this->wc_cart_contents     = @$payload['wc_cart_contents'];
         return $this;
     }
-
     public function call(){
         
-        $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         if(!$settingRepo||$settingRepo->value === null){
             return self::error([],'Terjadi Kesalahan!');
         }  
         
-        $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+        $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
-
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
@@ -44,10 +45,10 @@ class OngkirPricingService extends BaseService{
             'courier'                   => null
         ];
         
-        (new \Inc\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
         
-        $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
-        (new \Inc\Base\BaseInit())->logThis('$kjPricing',[$kjPricing]);
+        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kjPricing',[$kjPricing]);
         
         if(!$kjPricing['data']->status){
             return self::error([],@$kjPricing['data'] ?? 'Terjadi Kesalahan!');
@@ -71,5 +72,4 @@ class OngkirPricingService extends BaseService{
         }
         return $filteredOptions;
     }
-    
 }

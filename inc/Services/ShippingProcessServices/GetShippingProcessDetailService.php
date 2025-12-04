@@ -1,11 +1,14 @@
 <?php
+namespace KiriminAjaOfficial\Services\ShippingProcessServices;
 
-namespace Inc\Services\ShippingProcessServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-use Inc\Repositories\PaymentRepository;
-use Inc\Repositories\TransactionRepository;
-
+use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\PaymentRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 class GetShippingProcessDetailService extends BaseService{
     
     public $paymentId = 0;
@@ -74,5 +77,4 @@ class GetShippingProcessDetailService extends BaseService{
             return $transaction;
         },$transactions);
     }
-    
 }

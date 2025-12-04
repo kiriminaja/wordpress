@@ -1,4 +1,11 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="wrap kj-wrap">
+
     <div id="root">
         <div class="woocommerce-layout">
             <div class="woocommerce-layout__header is-scrolled">

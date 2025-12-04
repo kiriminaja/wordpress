@@ -24,9 +24,9 @@ $totals = $order->get_order_item_totals(); // phpcs:ignore WordPress.WP.GlobalVa
 	<table class="shop_table">
 		<thead>
 			<tr>
-				<th class="product-name"><?php esc_html_e( 'Product', 'kiriminaja' ); ?></th>
-				<th class="product-quantity"><?php esc_html_e( 'Qty', 'kiriminaja' ); ?></th>
-				<th class="product-total"><?php esc_html_e( 'Totals', 'kiriminaja' ); ?></th>
+				<th class="product-name"><?php esc_html_e( 'Product', 'kiriminaja-official' ); ?></th>
+				<th class="product-quantity"><?php esc_html_e( 'Qty', 'kiriminaja-official' ); ?></th>
+				<th class="product-total"><?php esc_html_e( 'Totals', 'kiriminaja-official' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -86,7 +86,7 @@ $totals = $order->get_order_item_totals(); // phpcs:ignore WordPress.WP.GlobalVa
 					}
 				} else {
 					echo '<li>';
-					wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'kiriminaja' ) ), 'notice' ); // phpcs:ignore WooCommerce.Commenting.CommentHooks.MissingHookComment
+					wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'kiriminaja-official' ) ), 'notice' ); // phpcs:ignore WooCommerce.Commenting.CommentHooks.MissingHookComment
 					echo '</li>';
 				}
 				?>

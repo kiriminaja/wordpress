@@ -1,18 +1,17 @@
 {
-    "name": "kiriminaja/wordpress",
-    "autoload": {
-        "psr-4": {
-            "Inc\\": "./inc"
-        }
-    },
-    "authors": [
-        {
-            "name": "FaizRA",
-            "email": "faizniflehim@gmail.com"
-        }
-    ],
-    "require": {
-        "dompdf/dompdf": "^2.0",
-        "picqer/php-barcode-generator": "^2.4"
+  "name": "kiriminaja/wordpress",
+  "autoload": {
+    "psr-4": {
+      "KiriminAjaOfficial\\": "./inc"
     }
+  },
+  "authors": [
+    {
+      "name": "FaizRA",
+      "email": "faizniflehim@gmail.com"
+    }
+  ],
+  "require": {
+    "picqer/php-barcode-generator": "^2.4.2"
+  }
 }

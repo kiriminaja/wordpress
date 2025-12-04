@@ -1,12 +1,15 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class BaseInit{
     public $plugin_path;
     public $plugin_url;
     public $plugin;
-
     public function __construct() {
         /** this file path and wnt to ancestor 2 times*/
         $this->plugin_path =  plugin_dir_path(dirname(__FILE__,2));
@@ -14,18 +17,14 @@ class BaseInit{
         $plugin = plugin_basename( dirname( __FILE__, 3 ) );
         $this->plugin = $plugin . "/" . 'kiriminaja.php' ;
     }
-
     public function logThis($test='log',$loggedItem=[]){
-
         $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
         $request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
-
         if (!empty($host) && !empty($request_uri)) {
             $actual_link = "https://$host$request_uri";
         } else {
             $actual_link = home_url(); // URL fallback jika input tidak valid.
         }
-
         if (!strpos($actual_link,'localhost')) { return; }
         
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace

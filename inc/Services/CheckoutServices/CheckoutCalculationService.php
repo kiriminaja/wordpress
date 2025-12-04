@@ -1,17 +1,20 @@
 <?php
+namespace KiriminAjaOfficial\Services\CheckoutServices;
 
-namespace Inc\Services\CheckoutServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class CheckoutCalculationService extends BaseService{
     
     /*
-destination_area_id
-expedition
-is_insurance
-is_cod
-wc_cart_contents
+        destination_area_id
+        expedition
+        is_insurance
+        is_cod
+        wc_cart_contents
     
      * */
     
@@ -22,43 +25,41 @@ wc_cart_contents
     public bool $is_insurance = false;
     public bool $is_cod = false;
     
-    
-    private $pricingData;
     private $carts;
     private $selectedExpedition;
-
-    private float $ppn = 0.11;
+    private $pricingData;
+    private $expeditionParts;
     
     public function __construct($payload){
         $this->payload = $payload;
-        $this->destination_area_id  = @$payload['destination_area_id'];
-        $this->expedition           = @$payload['expedition'];
-        $this->wc_cart_contents     = @$payload['wc_cart_contents'];
-        $this->is_insurance         = @$payload['is_insurance'];
-        $this->is_cod               = @$payload['is_cod'];
+        $this->destination_area_id  = $payload['destination_area_id'] ?? 0;
+        $this->expedition           = $payload['expedition'] ?? '';
+        $this->wc_cart_contents     = $payload['wc_cart_contents'] ?? [];
+        $this->is_insurance         = $payload['is_insurance'] ?? false;
+        $this->is_cod               = $payload['is_cod'] ?? false;
+        
+        // Cache expedition parts to avoid multiple explode calls
+        $this->expeditionParts = $this->expedition ? explode('_', $this->expedition, 2) : ['', ''];
+        
         return $this;
     }
-
     public function call(){
         $this->carts = $this->wc_cart_contents;
         
         /** Origin Data*/
-        $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         if(!$settingRepo||$settingRepo->value === null){
             return self::error([],'Terjadi Kesalahan!');
         }
-
         /** Cart Attribute Data*/
-        $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+        $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
-
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
         
-        $courier = explode('_',$this->expedition)[0];
-
+        $courier = $this->expeditionParts[0];
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
             'subdistrict_destination'   => $this->destination_area_id,
@@ -70,13 +71,12 @@ wc_cart_contents
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
-
         
-        (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
-        $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
         
-        (new \Inc\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
         
         if($kjPricing['status'] != 200){
             return self::error([],@$kjPricing['message'] ?? 'Terjadi Kesalahan!');
@@ -89,20 +89,17 @@ wc_cart_contents
         
         /** jika opsi expedisi tidak ada*/
         $this->pricingData = @$kjPricing['data'];
-
         if (count(@$this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }
-
         /** jika expedisi terpilih  tidak ada*/
-        $this->selectedExpedition = self::getSelectedExpedition();
+        $this->selectedExpedition = $this->getSelectedExpedition();
         if (!$this->selectedExpedition){
             return self::error([],'Expedition Not Found');
         }
         
-        // add ppn
-        $checkoutCalculation = self::checkoutCalculation(); 
-       
+        $checkoutCalculation = $this->checkoutCalculation();
+        
         return self::success([
             'cart'                  => $this->carts,
             'pricing'               => $this->pricingData,
@@ -113,30 +110,32 @@ wc_cart_contents
         ]);
     }
     
-    private function isInsurance(){
-        return $this->is_insurance;
+    private function isInsurance(): bool{
+        return (bool) $this->is_insurance;
     }
-    private function isCOD(){
-        return $this->is_cod;
+    
+    private function isCOD(): bool{
+        return (bool) $this->is_cod;
     }
     
     private function checkoutCalculation(){
-        $cartTotal = self::getCartTotal();
-        $is_cod = self::isCOD();
-        $is_insurance = self::isInsurance();
+        $cartTotal = $this->getCartTotal();
         $selected_expedition = $this->selectedExpedition;
-        $insurance_amt = self::getCalculateInsuranceFee();
-        $cod_amt = self::getCalculateCODFee();
-        $ongkirFee = intval(intval(@$selected_expedition->cost ?? 0) - intval(@$selected_expedition->discount_amount ?? 0));
-        $total_amt = $ongkirFee+$cod_amt+$insurance_amt+$cartTotal;
+        $insurance_amt = $this->getCalculateInsuranceFee();
+        $cod_amt = $this->getCalculateCODFee();
+        $ongkirFee = (int) ($selected_expedition->cost ?? 0) - (int) ($selected_expedition->discount_amount ?? 0);
+        $total_amt = $ongkirFee + $cod_amt + $insurance_amt + $cartTotal;
         
         return [
             'cart_total_amt' => $cartTotal,
             'cod_amt' => $cod_amt,
             'insurance_amt' => $insurance_amt,
             'ongkir_fee_amt' => $ongkirFee,
+            'ongkir_fee_raw' => (int) ($selected_expedition->cost ?? 0),
             'calc_total_amt' => $total_amt,
             'selected_expedition' => $selected_expedition,
+            'discount_amt' => (int) ($selected_expedition->discount_amount ?? 0),
+            'discount_percentage' => (float) ($selected_expedition->discount_percentage ?? 0.0),
         ];
     }
     
@@ -149,45 +148,44 @@ wc_cart_contents
     }
     
     private function getSelectedExpedition(){
-        $service = explode('_',$this->expedition)[0];
-        $service_type = explode('_',$this->expedition)[1];
-        $selected_expedition = array_filter(@$this->pricingData->results ?? [],function ($obj) use ($service,$service_type){
-            return strtolower($obj->service) == strtolower($service) && strtolower($obj->service_type) == strtolower($service_type);
-        });
-        return @$selected_expedition[array_key_first($selected_expedition)];
+        $service = $this->expeditionParts[0];
+        $service_type = $this->expeditionParts[1] ?? '';
+        
+        if (empty($service) || empty($service_type)) {
+            return null;
+        }
+        
+        $results = $this->pricingData->results ?? [];
+        $serviceLower = strtolower($service);
+        $serviceTypeLower = strtolower($service_type);
+        
+        foreach ($results as $result) {
+            if (strtolower($result->service) === $serviceLower && 
+                strtolower($result->service_type) === $serviceTypeLower) {
+                return $result;
+            }
+        }
+        
+        return null;
     }
     
     private function getCalculateInsuranceFee(){
-        if (self::isInsurance() == true || $this->selectedExpedition->force_insurance == true){ 
-            $cartTotal = self::getCartTotal();
-            $selected_expedition = $this->selectedExpedition;
-            $insuranceRate = floatval(@$selected_expedition->setting->insurance_fee ?? 0.0);
-            $insuranceAddCost = intval(@$selected_expedition->setting->insurance_add_cost ?? 0);
-            $ongkirFee = intval(@$selected_expedition->cost ?? 0);
-            $insuranceAmount = floatval(@$selected_expedition->insurance ?? 0);
-            
-            return $insuranceAmount;
-        }else{            
-            return 0 ;
+        if ($this->isInsurance() || ($this->selectedExpedition->force_insurance ?? false)) { 
+            return (float) ($this->selectedExpedition->insurance ?? 0);
         }
+        
+        return 0;
     }
     
     private function getCalculateCODFee(){
-        if (!self::isCOD()){ return 0 ;}
-        $selected_expedition = $this->selectedExpedition;
-        $cartTotal = self::getCartTotal();
-        $ongkirFee = intval(@$selected_expedition->cost ?? 0);
-        $insuranceFee = self::getCalculateInsuranceFee();
-        $codRate = floatval(@$selected_expedition->setting->cod_fee ?? 0.0);
-        $CODMinCost = intval(@$selected_expedition->setting->minimum_cod_fee ?? 0);
+        if (!$this->isCOD()) { 
+            return 0;
+        }
         
-        $codFeeAmount = floatval(@$selected_expedition->setting->cod_fee_amount ?? 0 );
+        $codFeeAmount = (float) ($this->selectedExpedition->setting->cod_fee_amount ?? 0);
+        $codMinCost = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
         
-        $codFee = $codFeeAmount;        
-        
-        $codFee = $codFee < $CODMinCost ? $CODMinCost : $codFee;
-
-        return ceil($codFee);
-    }
-    
+        $codFee = max($codFeeAmount, $codMinCost);
+        return (int) ceil($codFee);
+    }   
 }

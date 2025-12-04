@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 class AdminWoocommerceSettings 
 {
     function __construct(){
@@ -26,9 +31,9 @@ class AdminWoocommerceSettings
         foreach ($columns as $column_name => $column_info) {
             $new_columns[$column_name] = $column_info;
             if ('order_status' === $column_name) {
-                $new_columns['shipping_method'] = __('Shipping', 'kiriminaja');
-                $new_columns['payment_method'] = __('Payment', 'kiriminaja');
-                $new_columns['is_insurance'] = __('Insurance', 'kiriminaja');
+                $new_columns['shipping_method'] = __('Shipping', 'kiriminaja-official');
+                $new_columns['payment_method'] = __('Payment', 'kiriminaja-official');
+                $new_columns['is_insurance'] = __('Insurance', 'kiriminaja-official');
             }
         }
         return $new_columns;
@@ -39,10 +44,11 @@ class AdminWoocommerceSettings
         global $post;
         
         $order    = wc_get_order( $post->ID );
-        $transactionKiriminaja = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
+        $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
         
-        $ka_id_shipping = 'kiriminaja';
-        $shipping_method_id = array_shift( $order->get_shipping_methods() )['method_id'];
+        $ka_id_shipping = 'kiriminaja-official';
+        $shipping_methods = $order->get_shipping_methods();
+        $shipping_method_id = array_shift( $shipping_methods )['method_id'];
 
 
         if ( 'shipping_method' === $column ) {
@@ -62,7 +68,7 @@ class AdminWoocommerceSettings
                 echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 
                 if( $order->get_meta( '_kj_ppn' )){
-                    echo '<br/><em>('.esc_html__('include 11% Vat','kiriminaja').')</em>';
+                    echo '<br/><em>('.esc_html__('include 11% Vat','kiriminaja-official').')</em>';
                 }
 
             }else{

@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use \Inc\Base\BaseInit;
-
+use \KiriminAjaOfficial\Base\BaseInit;
 class Enqueue extends BaseInit{
     
     private const INTERNAL_PATH = [
@@ -121,10 +124,8 @@ class Enqueue extends BaseInit{
             
         echo '<script type="module" crossorigin src="' . esc_url($this->vite_server . '/@vite/client') . '"></script>' . "\n";
     }
-
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
-
         wp_localize_script(
             'myjs',
             'myjs',
@@ -135,18 +136,14 @@ class Enqueue extends BaseInit{
         
         wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), '4.0.13', true ); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
         wp_enqueue_style( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css', array(), '4.0.13' ); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
-
         wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/wp/css/kj-wp-style.css',array(),wp_rand(),'all');
-
         // Option 1: Manually enqueue the wp-util library.
         wp_enqueue_script( 'wp-util' );
-        
-        // Legacy script (fallback or coexist)
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ], KJ_PLUGIN_VERSION, true);
+        // Option 2: Make wp-util a dependency of your script (usually better).
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ], KJ_VERSION_PLUGIN, true);
     }
     
     function enqueueAdmin(){
-
         $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
         if (!in_array($page, self::INTERNAL_PATH)){return;}
 
@@ -157,21 +154,20 @@ class Enqueue extends BaseInit{
                 'ajaxurl' => admin_url( 'admin-ajax.php' )
             )
         );
-        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css',array(),KJ_PLUGIN_VERSION,'all');
+        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css',array(),KJ_VERSION_PLUGIN,'all');
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_VERSION_PLUGIN,true);
         
-        wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css', array(), KJ_PLUGIN_VERSION);
-
-        wp_enqueue_style('kj'.'wc_5', $this->plugin_url.'assets/admin/css/kj-wc-style/app.style.css', array(), KJ_PLUGIN_VERSION);
-        wp_enqueue_style('kj'.'wc_5.5', $this->plugin_url.'assets/admin/css/kj-wc-style/app-custom.style.css', array(), KJ_PLUGIN_VERSION);
-        wp_enqueue_style('kj'.'wc_1', $this->plugin_url.'assets/admin/css/kj-wc-style/3538.style.css', array(), KJ_PLUGIN_VERSION);
-        wp_enqueue_style('kj'.'wc_2', $this->plugin_url.'assets/admin/css/kj-wc-style/5502.style.css', array(), KJ_PLUGIN_VERSION);
-        wp_enqueue_style('kj'.'wc_3', $this->plugin_url.'assets/admin/css/kj-wc-style/8597.style.css', array(), KJ_PLUGIN_VERSION);
-
+        wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css', array(), KJ_VERSION_PLUGIN);
+        wp_enqueue_style('kj'.'wc_5', $this->plugin_url.'assets/admin/css/kj-wc-style/app.style.css', array(), KJ_VERSION_PLUGIN);
+        wp_enqueue_style('kj'.'wc_5.5', $this->plugin_url.'assets/admin/css/kj-wc-style/app-custom.style.css', array(), KJ_VERSION_PLUGIN);
+        wp_enqueue_style('kj'.'wc_1', $this->plugin_url.'assets/admin/css/kj-wc-style/3538.style.css', array(), KJ_VERSION_PLUGIN);
+        wp_enqueue_style('kj'.'wc_2', $this->plugin_url.'assets/admin/css/kj-wc-style/5502.style.css', array(), KJ_VERSION_PLUGIN);
+        wp_enqueue_style('kj'.'wc_3', $this->plugin_url.'assets/admin/css/kj-wc-style/8597.style.css', array(), KJ_VERSION_PLUGIN);
         /** QR CODE */
-        wp_enqueue_script('qrcode', $this->plugin_url.'assets/admin/js/qrcode.min.js', array(), KJ_PLUGIN_VERSION, true);
+        wp_enqueue_script('qrcode', $this->plugin_url.'assets/admin/js/qrcode.min.js', array(), KJ_VERSION_PLUGIN, true);
         /** print */
-        wp_enqueue_style('printCss', $this->plugin_url.'assets/admin/css/print.min.css', array(), KJ_PLUGIN_VERSION);
-        wp_enqueue_script('printJs', $this->plugin_url.'assets/admin/js/print.min.js', array(), KJ_PLUGIN_VERSION, true);
+        wp_enqueue_style('printCss', $this->plugin_url.'assets/admin/css/print.min.css', array(), KJ_VERSION_PLUGIN);
+        wp_enqueue_script('printJs', $this->plugin_url.'assets/admin/js/print.min.js', array(), KJ_VERSION_PLUGIN, true);
         
         /** Select 2*/
         wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0'); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
@@ -181,7 +177,7 @@ class Enqueue extends BaseInit{
         if ($this->is_vite_enabled) {
             $vue_entry = $this->getViteAsset('frontend/src/admin/main.ts');
             if ($vue_entry) {
-                wp_enqueue_script('kiriminaja-admin-vue', $vue_entry, array(), KJ_PLUGIN_VERSION, true);
+                wp_enqueue_script('kiriminaja-admin-vue', $vue_entry, array(), KJ_VERSION_PLUGIN, true);
                 
                 // Localize script for Vue app with AJAX data
                 wp_localize_script('kiriminaja-admin-vue', 'myjs', array(
@@ -199,19 +195,22 @@ class Enqueue extends BaseInit{
                 
                 $css_files = $this->getViteCss('frontend/src/admin/main.ts');
                 foreach ($css_files as $index => $css_url) {
-                    wp_enqueue_style('kiriminaja-admin-vue-' . $index, $css_url, array(), KJ_PLUGIN_VERSION);
+                    wp_enqueue_style('kiriminaja-admin-vue-' . $index, $css_url, array(), KJ_VERSION_PLUGIN);
                 }
 
                 // Also check for main entry CSS in development
                 if ($this->is_vite_dev) {
-                    wp_enqueue_style('kiriminaja-admin-vue-style', $this->vite_server . '/frontend/src/admin/style.css', array(), KJ_PLUGIN_VERSION);
+                    wp_enqueue_style('kiriminaja-admin-vue-style', $this->vite_server . '/frontend/src/admin/style.css', array(), KJ_VERSION_PLUGIN);
                 }
 
             }
         }
         
         // Legacy script (fallback or coexist)
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_PLUGIN_VERSION,true);
-    }
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_VERSION_PLUGIN,true);
     
+        //Add the Select2 JavaScript file
+        wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array('jquery'), '4.1.0-rc.0', true); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
+   
+    }   
 }

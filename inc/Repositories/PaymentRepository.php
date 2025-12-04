@@ -1,16 +1,17 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class PaymentRepository{
-
     public $table;
     public function __construct(){
         global $wpdb;
         $this->table = $wpdb->prefix . 'kiriminaja_payments';
     }
-
-
     public function getPaymentById($id){
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -21,9 +22,8 @@ class PaymentRepository{
                 $id
             ) 
         );
-
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
@@ -31,7 +31,6 @@ class PaymentRepository{
     
     public function getPaymentByPaymentId($paymentId){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -41,7 +40,7 @@ class PaymentRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
@@ -49,7 +48,6 @@ class PaymentRepository{
     
     public function getPaymentByOldestDate(){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -58,23 +56,21 @@ class PaymentRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
     }
-
     public function updatePaymentByCallback($payloads){
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return true;
     }
-
     public function createPayment($payload){
         global $wpdb;
         
@@ -100,10 +96,9 @@ class PaymentRepository{
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return true;
     }
-    
 }

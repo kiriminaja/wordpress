@@ -1,11 +1,13 @@
 <?php
+namespace KiriminAjaOfficial\Services\UtilServices;
 
-namespace Inc\Services\UtilServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class GetWCCartAttributeService extends BaseService{
-
     private array $wc_cart_contents                 = [];
     private array $cartsProductAttributes           = [];
     private array $cartsProductAttributeCollection  = [];
@@ -31,7 +33,7 @@ class GetWCCartAttributeService extends BaseService{
         foreach ($this->wc_cart_contents as $cart){
             $ids[] = $cart['product_id'];
         }
-        $wpPostMetaRepo = (new \Inc\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdsAndMetaKeys($ids,[
+        $wpPostMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdsAndMetaKeys($ids,[
             '_weight',
             '_length',
             '_width',
@@ -87,11 +89,9 @@ class GetWCCartAttributeService extends BaseService{
             'height_highest'    => max($heightArr),
             'height_sum'        => array_sum($heightArr),
             'height_collection' => $heightArr,
-
             'length_highest'    => max($lengthArr),
             'length_sum'        => array_sum($lengthArr),
             'length_collection' => $lengthArr,
-
             'width_highest'    => max($widthArr),
             'width_sum'        => array_sum($widthArr),
             'width_collection' => $widthArr,
@@ -133,7 +133,6 @@ class GetWCCartAttributeService extends BaseService{
                 'length'        => $cartsProductAttributeCollection['length_sum'],  
                 'width'         => $cartsProductAttributeCollection['width_highest'],
                 'item_value'    => $cartsProductAttributeCollection['transaction_value'],
-
             ];
         }
         
@@ -157,10 +156,8 @@ class GetWCCartAttributeService extends BaseService{
     private function getCartsConvertedAttribute(){
         $weightMultiplier = 1;
         $dimensionMultiplier = 1;
-
         $weight_unit = get_option('woocommerce_weight_unit') ?? '';
         $dimension_unit = get_option('woocommerce_dimension_unit') ?? '';
-
         /** convert weight to gr */
         switch ($weight_unit) {
             case "kg":
@@ -178,7 +175,6 @@ class GetWCCartAttributeService extends BaseService{
             default:
                 $weightMultiplier = 1;
         }
-
         /** convert dimension to cm*/
         switch ($dimension_unit) {
             case "m":
@@ -199,7 +195,6 @@ class GetWCCartAttributeService extends BaseService{
             default:
                 $dimensionMultiplier = 1;
         }
-
         return [
             'weight'      => $this->cartsProcessedAttribute['weight'] * $weightMultiplier,
             'height'      => $this->cartsProcessedAttribute['height'] * $dimensionMultiplier,

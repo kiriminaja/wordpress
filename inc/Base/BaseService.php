@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Utils\ServiceResponse;
-
+use KiriminAjaOfficial\Utils\ServiceResponse;
 class BaseService{
     /**
      * To return success response of the service
@@ -16,7 +19,6 @@ class BaseService{
     protected static function success($data, string $message = "success", string|null $customCode = null): ServiceResponse {
         return new ServiceResponse($data, $message, 200, $customCode);
     }
-
     /**
      * To return error response of the service
      *
@@ -29,6 +31,5 @@ class BaseService{
     protected static function error($data, string $message = "error", int $status = 400, string|null $customCode = null): ServiceResponse {
         return new ServiceResponse($data, $message, $status, $customCode);
     }
-    
-    
+       
 }

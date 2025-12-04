@@ -20,3 +20,5 @@ bun.lockb
 # Build artifacts
 *.zip
 !vendor/**/*.zip
+
+*.zip

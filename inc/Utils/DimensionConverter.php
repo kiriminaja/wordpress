@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Utils;
 
-namespace Inc\Utils;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class DimensionConverter
 {
