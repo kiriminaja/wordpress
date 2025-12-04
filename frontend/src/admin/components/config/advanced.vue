@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useAppFetch } from "@/admin/composables/useAppFetch";
+import Card from "@/admin/components/ui/card.vue";
+import { useToast } from "@/admin/composables/useToast";
 
 interface AdvancedSettings {
   callback_url?: string;
@@ -33,7 +35,7 @@ async function loadSettings() {
   } catch (e) {
     console.error("Failed to load settings:", e);
     toast.add({
-      color: "red",
+      color: "error",
       title: "Failed to load settings",
       description: "An error occurred while fetching advanced settings.",
     });
@@ -55,7 +57,7 @@ async function saveSettings() {
   } catch (e) {
     console.error("Failed to save settings:", e);
     toast.add({
-      color: "red",
+      color: "error",
       title: "Failed to save settings",
       description:
         e instanceof Error
@@ -66,6 +68,14 @@ async function saveSettings() {
     saving.value = false;
   }
 }
+
+const simulateToast = () => {
+  toast.add({
+    title: "This is a simulated toast" + new Date().toLocaleTimeString(),
+    description: "Hello from the advanced settings page!",
+    color: "info",
+  });
+};
 </script>
 
 <template>
@@ -79,6 +89,13 @@ async function saveSettings() {
       class="mb-4"
     />
 
+    <button
+      @click="simulateToast"
+      class="mb-4 px-4 py-2 bg-blue-500 text-white rounded"
+    >
+      SIMULATE TOAST
+    </button>
+
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
       <div
@@ -88,7 +105,8 @@ async function saveSettings() {
     </div>
 
     <!-- Advanced Settings Content -->
-    <UCard v-else>
+    <Card v-else>
+      CONFIG
       <UForm class="space-y-4">
         <UFormField label="Callback URL" name="callback_url">
           <UInput
@@ -107,6 +125,6 @@ async function saveSettings() {
           Save Settings
         </UButton>
       </UForm>
-    </UCard>
+    </Card>
   </div>
 </template>

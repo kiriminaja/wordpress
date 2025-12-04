@@ -1,13 +1,14 @@
 import { createApp } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import App from "./App.vue";
-import ui from "@nuxt/ui/vue-plugin";
 import "./style.css";
+import { createPinia } from "pinia";
 
 function mountApp() {
   const mountPoint = document.getElementById("kaj-admin-root");
 
   if (mountPoint) {
+    const pinia = createPinia();
     const app = createApp(App);
     const router = createRouter({
       routes: [],
@@ -15,7 +16,7 @@ function mountApp() {
     });
 
     app.use(router);
-    app.use(ui);
+    app.use(pinia);
     app.mount(mountPoint);
   } else {
     console.warn("KiriminAja Admin mount point not found");

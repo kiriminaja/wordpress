@@ -1,10 +1,8 @@
+<script setup lang="ts">
+import UiCard from "./card.vue";
+</script>
 <template>
-  <UCard
-    :ui="{
-      header: 'py-2 px-3',
-      body: 'p-0',
-    }"
-  >
+  <UiCard>
     <template #header> Row Header </template>
     <div class="divide-y divide-default">
       <div class="flex gap-1 py-2 px-2.5 font-semibold items-center">
@@ -49,5 +47,5 @@
         </div>
       </div>
     </div>
-  </UCard>
+  </UiCard>
 </template>

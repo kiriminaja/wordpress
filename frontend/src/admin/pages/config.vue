@@ -5,6 +5,8 @@ import Shipping from "../components/config/shipping.vue";
 import Advanced from "../components/config/advanced.vue";
 import Page from "../components/page.vue";
 import { navigateTo } from "../composables/navigateTo";
+import UiCard from "../components/ui/card.vue";
+import { Icon } from "@iconify/vue";
 
 interface MenuItem {
   id: string;
@@ -92,17 +94,17 @@ const navigateToPath = (pathId: string) => {
       v-if="!currentPath"
       class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
     >
-      <UCard
+      <UiCard
         v-for="item in menuItems"
         :key="item.id"
-        class="cursor-pointer group hover:shadow-lg transition-shadow duration-200"
+        class="cursor-pointer hover:shadow"
         @click="navigateToPath(item.id)"
       >
         <div class="flex items-start gap-4">
           <div
             class="flex items-start justify-center p-2 bg-primary/10 text-primary rounded-full shrink-0"
           >
-            <UIcon :name="item.icon" class="w-6 h-6" />
+            <Icon :icon="item.icon" class="w-6 h-6" />
           </div>
           <div class="flex-1">
             <h3 class="text-lg font-semibold m-0 text-primary">
@@ -110,12 +112,12 @@ const navigateToPath = (pathId: string) => {
             </h3>
             <div class="text-sm">{{ item.description }}</div>
           </div>
-          <UIcon
-            name="i-lucide-chevron-right"
-            class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors duration-200"
+          <Icon
+            icon="lucide:chevron-right"
+            class="size-5 shrink-0 text-gray-400 group-hover:text-primary transition-colors duration-200"
           />
         </div>
-      </UCard>
+      </UiCard>
     </div>
 
     <div v-else>

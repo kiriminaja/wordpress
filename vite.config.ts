@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import tailwind from "@tailwindcss/vite";
-import ui from "@nuxt/ui/vite";
+import Components from "unplugin-vue-components/vite";
+import RekaResolver from "reka-ui/resolver";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -12,79 +13,9 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwind(),
-    ui({
-      colorMode: false,
-      ui: {
-        breadcrumb: {
-          slots: {
-            root: "relative min-w-0",
-            list: "flex items-center gap-1.5 !m-0",
-            item: "flex min-w-0 !m-0",
-            link: "group relative flex items-center gap-1.5 text-sm min-w-0 focus-visible:outline-primary",
-            linkLeadingIcon: "shrink-0 size-5",
-            linkLeadingAvatar: "shrink-0",
-            linkLeadingAvatarSize: "2xs",
-            linkLabel: "truncate",
-            separator: "flex !m-0",
-            separatorIcon: "shrink-0 size-5 text-muted",
-          },
-          variants: {
-            active: {
-              true: {
-                link: "text-primary font-semibold",
-              },
-              false: {
-                link: "text-muted font-medium",
-              },
-            },
-            disabled: {
-              true: {
-                link: "cursor-not-allowed opacity-75",
-              },
-            },
-            to: {
-              true: "",
-            },
-          },
-          compoundVariants: [
-            {
-              disabled: false,
-              active: false,
-              to: true,
-              class: {
-                link: ["hover:text-default", "transition-colors"],
-              },
-            },
-          ],
-        },
-        card: {
-          slots: {
-            root: "rounded-lg overflow-hidden",
-            header: "p-4 sm:px-6",
-            body: "p-4 sm:p-6",
-            footer: "p-4 sm:px-6",
-          },
-          variants: {
-            variant: {
-              solid: {
-                root: "bg-inverted text-inverted",
-              },
-              outline: {
-                root: "bg-default ring ring-default divide-y divide-default",
-              },
-              soft: {
-                root: "bg-elevated/50 divide-y divide-default",
-              },
-              subtle: {
-                root: "bg-elevated/50 ring ring-default divide-y divide-default",
-              },
-            },
-          },
-          defaultVariants: {
-            variant: "outline",
-          },
-        },
-      },
+    Components({
+      dts: true,
+      resolvers: [RekaResolver()],
     }),
   ],
 

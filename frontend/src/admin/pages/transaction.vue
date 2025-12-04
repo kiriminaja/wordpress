@@ -3,6 +3,7 @@ import Table from "../components/ui/table.vue";
 import Page from "../components/page.vue";
 import { useAppFetch } from "../composables/useAppFetch";
 import { onMounted } from "vue";
+import Button from "../components/ui/button.vue";
 
 const loadData = () => {
   useAppFetch("kaj_transactions");
@@ -15,16 +16,8 @@ onMounted(() => {
 <template>
   <Page title="Transactions">
     <template #actions>
-      <UButton color="neutral" variant="outline">Print Labels</UButton>
-      <UModal
-        :ui="{
-          overlay: 'z-[9999] bg-black/80',
-          content: 'z-[10000]',
-        }"
-        title="Process Shipment"
-      >
-        <UButton>Process Shipment</UButton>
-      </UModal>
+      <Button color="secondary" variant="outline">Print Labels</Button>
+      <Button>Process Shipment</Button>
     </template>
     <Table />
   </Page>

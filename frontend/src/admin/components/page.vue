@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, useSlots } from "vue";
+import { Icon } from "@iconify/vue";
 
 const props = defineProps<{
   title: string;
@@ -109,7 +110,7 @@ onMounted(() => {
           v-if="key < items.length - 1"
           class="inline-block mx-2 text-gray-400 m-0"
         >
-          <UIcon name="lucide:chevron-right" class="size-4" />
+          <Icon icon="lucide:chevron-right" class="size-4" />
         </li>
       </template>
     </ul>

@@ -29,7 +29,7 @@
       "@wp/*": ["./frontend/src/wp/*"],
       "@shared/*": ["./frontend/src/shared/*"],
       "@components/*": ["./frontend/src/components/*"],
-      "#build/ui": ["./node_modules/.nuxt-ui/ui"]
+      "@admin-components/*": ["./frontend/src/admin/components/*"]
     }
   },
   "include": [

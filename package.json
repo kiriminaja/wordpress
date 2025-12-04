@@ -13,15 +13,21 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
-    "@nuxt/ui": "^4.2.1",
     "@tailwindcss/vite": "^4.1.17",
     "@types/node": "^24.10.1",
     "@vueuse/core": "11.3.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "pinia": "^3.0.4",
+    "reka-ui": "^2.6.1",
+    "tailwind-merge": "^3.4.0",
+    "unplugin-vue-components": "^30.0.0",
     "vue": "^3.6.0-alpha.5",
     "vue-router": "^4.6.3",
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@iconify/vue": "^5.0.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/tsconfig": "^0.8.1",
     "fast-glob": "^3.3.3",

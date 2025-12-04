@@ -1,9 +1,10 @@
 <template>
-  <UApp>
+  <ToastProvider>
+    <Toast />
     <RouterView>
       <component :is="computedPage" />
     </RouterView>
-  </UApp>
+  </ToastProvider>
 </template>
 
 <script setup lang="ts">
@@ -12,9 +13,11 @@ import Config from "./pages/config.vue";
 import Transaction from "./pages/transaction.vue";
 import Payment from "./pages/payment.vue";
 import Tracking from "./pages/tracking.vue";
-import { navigateToPage } from "./composables/navigateTo";
+import Toast from "./components/ui/toast.vue";
+import { handlePageClick } from "./composables/navigateTo";
+import { ToastProvider } from "reka-ui";
 
-const routes = {
+const routes: Record<string, any> = {
   "kaj-settings": Config,
   "kaj-transactions": Transaction,
   "kaj-payment": Payment,
@@ -27,31 +30,49 @@ const computedPage = computed(() => {
   return routes[currentPage.value];
 });
 
-const handlePageClick = () => {
-  const parent = document.querySelector(".toplevel_page_kiriminaja");
-
-  if (!parent) return;
-
-  const subMenus = parent.getElementsByTagName("a");
-
-  // prevent default click behavior
-  for (let i = 0; i < subMenus.length; i++) {
-    subMenus[i].addEventListener("click", (e) => {
-      const page = subMenus[i].getAttribute("href")?.split("page=")[1];
-      if (page) {
-        e.preventDefault();
-        currentPage.value = page as keyof typeof routes;
-        navigateToPage(page);
-      }
-    });
+const syncPageFromUrl = () => {
+  const url = new URL(window.location.href);
+  const page = url.searchParams.get("page") as keyof typeof routes;
+  if (page && routes[page]) {
+    currentPage.value = page;
   }
 };
 
 onMounted(() => {
-  const page = window.location.href
-    .split("page=")[1]
-    ?.split("&")[0] as keyof typeof routes;
-  currentPage.value = page;
-  handlePageClick();
+  // Initial sync
+  syncPageFromUrl();
+
+  // Handle browser back/forward navigation
+  window.addEventListener("popstate", syncPageFromUrl);
+
+  handlePageClick((page) => {
+    currentPage.value = page;
+  });
 });
+
+const open = ref(false);
+const eventDateRef = ref(new Date());
+const timerRef = ref(0);
+
+function oneWeekAway() {
+  const now = new Date();
+  const inOneWeek = now.setDate(now.getDate() + 7);
+  return new Date(inOneWeek);
+}
+
+function prettyDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "full",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function handleClick() {
+  open.value = false;
+  window.clearTimeout(timerRef.value);
+  timerRef.value = window.setTimeout(() => {
+    eventDateRef.value = oneWeekAway();
+    open.value = true;
+  }, 100);
+}
 </script>
