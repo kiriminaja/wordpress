@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "generate:ajax": "bun frontend/src/generate-ajax-option.ts",
-    "postinstall": "bun run generate:ajax"
+    "generate": "bun frontend/src/generate-wp-option.ts",
+    "postinstall": "bun run generate"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",

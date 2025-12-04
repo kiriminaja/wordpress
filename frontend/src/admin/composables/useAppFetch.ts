@@ -1,4 +1,4 @@
-import { WpAjaxAction } from "@/types/wp-ajax-actions";
+import { WpAjaxAction } from "@/types/wp";
 
 interface AjaxResponse<T = any> extends Response {
   success?: boolean;

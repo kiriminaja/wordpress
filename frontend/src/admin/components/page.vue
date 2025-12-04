@@ -75,7 +75,7 @@ onMounted(() => {
 
 <template>
   <div
-    class="fixed top-(--top-space) left-(--left-space) shadow z-30 right-0 bg-white p-3 flex justify-between gap-3"
+    class="fixed top-(--top-space) left-(--left-space) shadow z-30 right-0 h-12 bg-white px-3 py-2.5 flex justify-between gap-3"
     :style="{
       '--top-space': wrapperSize.top + 'px',
       '--left-space': wrapperSize.left + 'px',
@@ -117,7 +117,7 @@ onMounted(() => {
       <slot name="actions" />
     </div>
   </div>
-  <div class="px-3 pb-3 pt-20">
+  <div class="px-3 pb-3 pt-16">
     <slot />
     <div class="text-center mt-3">
       Version: | © 2025 PT Selalu Siap Solusi. All rights reserved.
