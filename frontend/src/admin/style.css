@@ -71,7 +71,7 @@
 }
 
 .update-nag {
-  @apply block m-2;
+  @apply hidden;
 }
 
 .toplevel_page_kiriminaja .wp-first-item {

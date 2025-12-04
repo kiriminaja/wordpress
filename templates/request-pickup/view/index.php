@@ -1,12 +1,9 @@
+<?php require __DIR__ . "/../../vite.render.php"; ?>
+
 <div class="kj-wrapper kj-wrap">
     <div class="wrap ">
         <div id="root">
             <div class="woocommerce-layout">
-                <div class="woocommerce-layout__header is-scrolled">
-                    <div class="woocommerce-layout__header-wrapper">
-                        <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Shipment Process</h1>
-                    </div>
-                </div>
                 <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
                     <div id="woocommerce-layout__notice-list" class="woocommerce-layout__notice-list"></div>
                     <div class="woocommerce-layout__main">

@@ -1,3 +1,5 @@
+<?php require __DIR__ . "/../../vite.render.php"; ?>
+
 <!doctype html>
 <html lang="en">
 <head>

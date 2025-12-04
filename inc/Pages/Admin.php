@@ -25,8 +25,8 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja',
-                    'page_title'=>'Payment',
-                    'menu_title'=>'Payment',
+                    'page_title'=>'Payments',
+                    'menu_title'=>'Payments',
                     'capability'=>'manage_options',
                     'menu_slug'=>'kaj-payment',
                     'callback'=> function() {

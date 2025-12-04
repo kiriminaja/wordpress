@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useSlots } from "vue";
+import { computed, onMounted, onUnmounted, reactive, useSlots } from "vue";
 
 const props = defineProps<{
   title: string;
@@ -8,6 +8,11 @@ const props = defineProps<{
     onAction?: () => void;
   };
 }>();
+
+const wrapperSize = reactive({
+  left: 0,
+  top: 0,
+});
 
 const items = computed(() => {
   const breadcrumbItems: Record<string, any>[] = [
@@ -32,10 +37,50 @@ const items = computed(() => {
 });
 
 const slots = useSlots();
+const calculateWpContent = () => {
+  const wpContent = document.getElementById("wpcontent");
+  if (wpContent) {
+    // get margin left of wpContent
+    const style = window.getComputedStyle(wpContent);
+    wrapperSize.left = parseInt(style.marginLeft) || 0;
+  }
+
+  const adminBar = document.getElementById("wpadminbar");
+  if (adminBar) {
+    wrapperSize.top = adminBar.offsetHeight;
+  }
+};
+
+const resizeObserver = new ResizeObserver(() => {
+  calculateWpContent();
+});
+
+onMounted(() => {
+  calculateWpContent();
+
+  const wpContent = document.getElementById("wpcontent");
+  if (wpContent) {
+    resizeObserver.observe(wpContent);
+  }
+});
+
+onUnmounted(() => {
+  resizeObserver.disconnect();
+});
+
+onMounted(() => {
+  calculateWpContent();
+});
 </script>
 
 <template>
-  <div class="sticky top-0 bg-white p-3 flex justify-between gap-3">
+  <div
+    class="fixed top-(--top-space) left-(--left-space) shadow z-30 right-0 bg-white p-3 flex justify-between gap-3"
+    :style="{
+      '--top-space': wrapperSize.top + 'px',
+      '--left-space': wrapperSize.left + 'px',
+    }"
+  >
     <ul class="m-0! p-0! flex items-center">
       <li class="m-0">
         <img src="https://kiriminaja.com/favicon.ico" class="w-6 h-6" alt="" />
@@ -72,7 +117,7 @@ const slots = useSlots();
       <slot name="actions" />
     </div>
   </div>
-  <div class="p-3">
+  <div class="px-3 pb-3 pt-20">
     <slot />
     <div class="text-center mt-3">
       Version: | © 2025 PT Selalu Siap Solusi. All rights reserved.
