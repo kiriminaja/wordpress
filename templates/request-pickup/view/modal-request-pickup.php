@@ -1,9 +1,11 @@
-<div id="request-pickup-modal" class="kj-hidden">
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
+<div id="request-pickup-modal" class="kj-hidden">
     <div class="modal-container">
         <div style="width: 100%; max-width: 400px;background-color: #f0f0f1" tabindex="0" class="media-modal" role="dialog">
             <div class="media-modal-container">

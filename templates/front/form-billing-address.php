@@ -1,10 +1,11 @@
-<div id="kj_destination_area_group">
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
-    
+<div id="kj_destination_area_group">    
     <!--Other invisible Field-->
     <div style="display: none">
         <input type="hidden" name="kj_checkout_token" value="<?php echo esc_html($kj_checkout_token); ?>">

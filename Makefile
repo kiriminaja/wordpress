@@ -4,7 +4,7 @@ PLUGIN_NAME := kiriminaja
 VERSION_RAW := $(shell git describe --tags --abbrev=0)
 VERSION := $(shell echo $(VERSION_RAW) | awk -F. '{$$NF+=1; OFS="."; print $$1,$$2,$$3}')
 ZIP_FILE := $(PLUGIN_NAME)-$(VERSION).zip
-EXCLUSIONS := '*.git* *.github* /*node_modules/* .editorconfig .gitattributes .Makefile .gitignore .DS_Store .idea/* .vscode/* .github/* .git/* *.zip'
+EXCLUSIONS := .git/\* .github/\* .idea/\* .vscode/\* node_modules/\* .editorconfig .gitattributes Makefile .gitignore .DS_Store \*.zip
 
 .PHONY: zip
 

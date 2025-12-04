@@ -1,10 +1,11 @@
-<section class="woocommerce-order-details">
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
-
+<section class="woocommerce-order-details">
     <h2 class="woocommerce-order-details__title">Pembayaran</h2>
 
     <table class="woocommerce-table woocommerce-table--order-details shop_table order_details">

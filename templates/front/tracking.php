@@ -1,9 +1,11 @@
-<style>
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
+<style>
     body .is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
         max-width: 1000px;
     }

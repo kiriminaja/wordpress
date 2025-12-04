@@ -1,9 +1,11 @@
-<!doctype html>
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">

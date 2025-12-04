@@ -1,8 +1,10 @@
-<div class="kj-wrapper kj-wrap">
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
+<div class="kj-wrapper kj-wrap">
 
     <div class="wrap ">
         <div id="root">

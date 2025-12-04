@@ -2,7 +2,7 @@
 Contributors: kiriminaja
 Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.0
 Stable tag: 2.0.20
 License: GPL-2.0-or-later

@@ -1,9 +1,11 @@
-<div class="kj-wc-general-shipping">
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
+<div class="kj-wc-general-shipping">
     <?php 
     $weight_unit = get_option('woocommerce_weight_unit');
     $dimension_unit = get_option('woocommerce_dimension_unit');

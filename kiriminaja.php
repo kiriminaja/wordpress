@@ -169,8 +169,8 @@ function kj_plugin_update_migration($upgrader_object, $options) {
 }
 
 /** Services*/
-if (class_exists('Inc\\Init')){
-    Inc\Init::register_services();
+if (class_exists('KiriminAjaOfficial\\Init')){
+    KiriminAjaOfficial\Init::register_services();
 }
 
 /**

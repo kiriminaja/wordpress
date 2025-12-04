@@ -20,10 +20,9 @@ class ComposerStaticInit2a92e45b83ec7e30f57a385046aa0f5c
         array (
             'Masterminds\\' => 12,
         ),
-        'I' => 
+        'K' => 
         array (
-            'Inc\\' => 4,
-            'Ideapad\\SaksenengmuPlugin\\' => 26,
+            'KiriminAjaOfficial\\' => 19,
         ),
         'F' => 
         array (
@@ -52,13 +51,9 @@ class ComposerStaticInit2a92e45b83ec7e30f57a385046aa0f5c
         array (
             0 => __DIR__ . '/..' . '/masterminds/html5/src',
         ),
-        'Inc\\' => 
+        'KiriminAjaOfficial\\' => 
         array (
             0 => __DIR__ . '/../..' . '/inc',
-        ),
-        'Ideapad\\SaksenengmuPlugin\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/src',
         ),
         'FontLib\\' => 
         array (

@@ -1,9 +1,11 @@
-<span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kjHelper()->tlThis('Store Address',$locale) ); ?></span>
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
 
+<span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kjHelper()->tlThis('Store Address',$locale) ); ?></span>
 <div class="row-divider" style="margin-top: .5rem"></div>
 <span><?php echo esc_html( kjHelper()->tlThis('This is where your business is located. Tax rates and shipping rates will use this address.', $locale) ); ?></span>
 

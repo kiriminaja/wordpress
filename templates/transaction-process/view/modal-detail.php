@@ -1,9 +1,9 @@
-<!--Modal-->
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
-
+?>
 <div id="transaction-detail-modal" class="kj-hidden">
     <div class="modal-container">
         <div style="background-color: #f0f0f1" tabindex="0" class="media-modal" role="dialog">

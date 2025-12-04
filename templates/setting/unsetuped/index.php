@@ -1,8 +1,10 @@
-<div class="wrap kj-wrap">
+<?php
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+?>
+<div class="wrap kj-wrap">
 
     <div id="root">
         <div class="woocommerce-layout">

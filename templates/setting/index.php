@@ -1,5 +1,4 @@
 <?php
-// Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -16,7 +15,7 @@ class settingIndex {
         $locale = get_locale();
         
         /** Check if  setup key exist*/
-        $approvedSetupKey = (new Inc\Repositories\SettingRepository())->getSettingByKey('setup_key');
+        $approvedSetupKey = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('setup_key');
 
         /** data value query*/
         $arrayParam = [];

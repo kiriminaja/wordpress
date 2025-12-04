@@ -10,8 +10,7 @@ return array(
     'Sabberworm\\CSS\\' => array($vendorDir . '/sabberworm/php-css-parser/src'),
     'Picqer\\Barcode\\' => array($vendorDir . '/picqer/php-barcode-generator/src'),
     'Masterminds\\' => array($vendorDir . '/masterminds/html5/src'),
-    'Inc\\' => array($baseDir . '/inc'),
-    'Ideapad\\SaksenengmuPlugin\\' => array($baseDir . '/src'),
+    'KiriminAjaOfficial\\' => array($baseDir . '/inc'),
     'FontLib\\' => array($vendorDir . '/phenx/php-font-lib/src/FontLib'),
     'Dompdf\\' => array($vendorDir . '/dompdf/dompdf/src'),
 );
