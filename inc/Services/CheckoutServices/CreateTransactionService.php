@@ -1,10 +1,13 @@
 <?php
+namespace KiriminAjaOfficial\Services\CheckoutServices;
 
-namespace Inc\Services\CheckoutServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
+use KiriminAjaOfficial\Base\BaseService;
 use WC_Order_Item_Fee;
-
 class CreateTransactionService extends BaseService{
     
     private $payload;
@@ -33,17 +36,14 @@ class CreateTransactionService extends BaseService{
         try {
             
             $checkoutCalc = $this->getCheckoutCalculation();
-
             if (!$checkoutCalc['status']){ 
                 return self::error([],$checkoutCalc['message']);
             }
             
             $requiredPostMeta = $this->getRequiredPostMeta();
-
             if (!$requiredPostMeta['status']){ 
                 return self::error([],$requiredPostMeta['message']);
             }
-
             /** Generating Payload*/
             $calcResult = $checkoutCalc['data']['calculation_result'];
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];
@@ -52,12 +52,10 @@ class CreateTransactionService extends BaseService{
             $insurance_cost = ($this->payload['checkout_post_data']['kj_insurance'] || $forceInsurance) 
                 ? $calcResult['insurance_amt'] 
                 : 0;
-
             // Cache expedition split to avoid duplicate explode
             $expeditionParts = $this->payload['kj_expedition'] ? explode('_', $this->payload['kj_expedition'], 2) : ['', ''];
-
             $payload = [
-                'order_id'                      => (new \Inc\Services\KiriminAja\GenerateOrderId())->call(),
+                'order_id'                      => (new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId())->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
                 'destination_sub_district_id'   => $this->payload['kj_destination_area'],
                 'destination_sub_district'      => $this->payload['kj_destination_area_name'],
@@ -81,7 +79,7 @@ class CreateTransactionService extends BaseService{
             /** Update WC Total Order */
             $this->updateWcTotalOrder($checkoutCalc);
             
-            $createTransactionRepo = (new \Inc\Repositories\TransactionRepository())->createTransaction($payload);
+            $createTransactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->createTransaction($payload);
             
             /** Save in Log Transaction*/
             update_post_meta( $this->payload['order_id'], 'log_after_checkout_order', compact('payload','createTransactionRepo') );
@@ -91,17 +89,15 @@ class CreateTransactionService extends BaseService{
             }
             return self::success([],'success');
         }catch (\Throwable $th){
-            (new \Inc\Base\BaseInit())->logThis('err',[$th->getMessage()]);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('err',[$th->getMessage()]);
             return self::error([],'fail creating transaction');
         }
     }
-
     private function updateWcTotalOrder($checkoutCalc){
         $order = wc_get_order($this->payload['order_id']);
         if (!$order) {
             return;
         }
-
         $calcResult = $checkoutCalc['data']['calculation_result'];
         $forceInsurance = @$calcResult['selected_expedition']->force_insurance ?? 0;
         $is_insurance = $this->payload['checkout_post_data']['kj_insurance'] || $forceInsurance;
@@ -115,7 +111,6 @@ class CreateTransactionService extends BaseService{
             $cod_fee->set_total($cod_amt);
             $order->add_item($cod_fee); 
         }
-
         if ($is_insurance) {
             $insurance_amt = $calcResult['insurance_amt'];
             $insurance_fee = new WC_Order_Item_Fee();
@@ -131,8 +126,8 @@ class CreateTransactionService extends BaseService{
     
     private function getRequiredPostMeta(){
         try {
-            $postMetaRepo = (new \Inc\Repositories\WpPostMetaRepository())->getRequiredRowsByPostId($this->payload['order_id']);
-            (new \Inc\Base\BaseInit())->logThis('$postMetaRepo',[$postMetaRepo]);
+            $postMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostId($this->payload['order_id']);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$postMetaRepo',[$postMetaRepo]);
             
             // Use array_column for more efficient mapping
             $returnArr = [];
@@ -164,7 +159,7 @@ class CreateTransactionService extends BaseService{
         
         $this->payload['is_insurance'] = !empty($this->payload['checkout_post_data']['kj_insurance']) ? 1 : 0;
         
-        $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService([
+        $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
             'destination_area_id'   => $this->payload['kj_destination_area'],
             'expedition'            => $this->payload['kj_expedition'],
             'is_insurance'          => $this->payload['is_insurance'],
@@ -190,6 +185,4 @@ class CreateTransactionService extends BaseService{
         $this->checkoutCalcCache = $result;
         return $result;
     }
-    
-    
 }

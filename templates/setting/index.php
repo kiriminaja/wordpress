@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 class settingIndex {
     function __construct(){
         global $approvedSetupKey;
@@ -16,15 +21,15 @@ class settingIndex {
         /** data value query*/
         $arrayParam = [];
         $repo = [];
-        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_latitude','origin_longitude','origin_sub_district_id','origin_sub_district_name','origin_zip_code','origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
+        $shippingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_latitude','origin_longitude','origin_sub_district_id','origin_sub_district_name','origin_zip_code','origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
         // @codingStandardsIgnoreLine
         $activeTab = @$_GET['tab'] ?? 'tab-integration';
         if (@$activeTab==='tab-integration'){
-            $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
         } elseif (@$activeTab==='tab-shipping'){
             $repo = $shippingRepo;
         } elseif (@$activeTab==='tab-advanced'){
-            $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
         }
         $inputValueArr = [];
         foreach ($repo as $obj){

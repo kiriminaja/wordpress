@@ -1,24 +1,25 @@
 <?php
-namespace Inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class GeneralAjaxController{
-
     public function register(){
         add_action('wp_ajax_kiriminaja_subdistrict_search', array($this,'kiriminajaSubdistrictSearch'));
         add_action('wp_ajax_nopriv_kiriminaja_subdistrict_search', array($this,'kiriminajaSubdistrictSearch'));
                 
        add_action('wp_ajax_getDestinationArea', array($this,'kj_getDestinationArea') );
        add_action('wp_ajax_nopriv_getDestinationArea', array($this,'kj_getDestinationArea') );
-
        add_action('wp_ajax_kj_get_data_after_update_checkout', array($this,'kj_getDataAfterUpdateCheckout'));
        add_action('wp_ajax_nopriv_kj_get_data_after_update_checkout', array($this,'kj_getDataAfterUpdateCheckout'));
     
     }
     
     function kiriminajaSubdistrictSearch() {
-
         try {
-
             if ( isset($_POST['nonce']) && 
                 wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['nonce']) ), KJ_NONCE) ) 
             {
@@ -31,14 +32,13 @@ class GeneralAjaxController{
                 if( empty($data['search']) ){
                     $data['search'] = sanitize_text_field($data['term']);
                 }
-                $kiriminajaSubDistrictSearch = (new \Inc\Services\KiriminajaApiService())->sub_district_search($data['search']);
+                $kiriminajaSubDistrictSearch = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->sub_district_search($data['search']);
                 
                 if ($kiriminajaSubDistrictSearch->status!==200){wp_send_json_success([]);}
                 wp_send_json_success($kiriminajaSubDistrictSearch->data);
             }else{
                 wp_send_json_error(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
             }
-
             wp_die();
         
         }catch (Throwable $e){
@@ -48,7 +48,6 @@ class GeneralAjaxController{
     }
     
 function kj_getDestinationArea(){
-
         // Check for nonce security      
         if ( isset($_POST['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['nonce'])), 'kj-destination' ) ) {
             wp_send_json_error(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
@@ -63,9 +62,7 @@ function kj_getDestinationArea(){
                 wp_die();
             }
         }
-
         $destination_id = (int) $post['val'];
-
         $payment = !empty($post['payment_method']) ? $post['payment_method'] : null;
         
         if( !empty($post['different_address']) ){
@@ -77,15 +74,11 @@ function kj_getDestinationArea(){
         WC()->session->set( 'destination_name', sanitize_text_field($post['text']) );
         WC()->session->set( 'kj_payment_method', sanitize_text_field( $payment ) );
         WC()->session->set( 'kj_insurance', sanitize_text_field($post['insurance']) );
-
         WC()->cart->calculate_totals();
-
         wp_send_json_success(['code'=>'200','msg'=>'Success']);
         
     }
-
     public function kj_getDataAfterUpdateCheckout(){
-
         // Check for nonce security      
         if ( isset($_POST['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['nonce'])), 'kj-update-checkout' ) ) {
             wp_send_json_error(['code'=>'401','msg'=>wc_add_notice('Security Check Kiriminaja', "error")]);
@@ -93,14 +86,11 @@ function kj_getDestinationArea(){
         }
         
         $post = $_POST;
-
         $check_shipping = $post['shipping_metode_id'] ?? '';
         $ex_shipping = explode('_',$check_shipping);
-
         $datas = [];
-        if( !empty($post['shipping_metode_id']) && $ex_shipping[0] == 'kiriminaja' ){
+        if( !empty($post['shipping_metode_id']) && $ex_shipping[0] == 'kiriminaja-official' ){
             $insurance = empty($post['insurance']) ? 0 : 1;
-
             $payload =[
                 'destination_area_id'   => (int)$post['destination_id'],
                 'expedition'            => substr($post['shipping_metode_id'],11),
@@ -108,8 +98,7 @@ function kj_getDestinationArea(){
                 'is_cod'                => $post['payment_method'] === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
             ];
-
-            $service = (new \Inc\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
+            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
             
             if( !empty($service->data) ){
                 
@@ -122,34 +111,25 @@ function kj_getDestinationArea(){
                     $datas['insurance_fee'] = wc_price($service->data['calculation_result']['insurance_amt']) ?? 0;
                     $datas['is_insurance'] = $service->data['calculation_result']['insurance_amt'];
                 }
-
                 if( !empty($post['payment_method']) || !empty($post['shipping_metode_id']) ){
                     $cod_amt = (float) $service->data['calculation_result']['cod_amt'] ?? 0;
                     $ongkir_amt = (float) $service->data['calculation_result']['ongkir_fee_amt'] ?? 0;
                     $insurance_amt = (float) $service->data['calculation_result']['insurance_amt'] ?? 0;
                     $order_total = (float) $service->data['calculation_result']['cart_total_amt'] ?? 0;
-
                     $datas['price_total'] = wc_price( $cod_amt + $insurance_amt + $order_total + $ongkir_amt );
                 }
-
                 $datas['force_insurance'] = $service->data['calculation_result']['selected_expedition']->force_insurance == false ? 0 : 1;
-
                 $datas['services'] = $service->data;
-
                 WC()->cart->calculate_totals();
                 
                 wp_send_json_success( $datas );
             }else{
                 
                 WC()->cart->calculate_totals();
-
                 wp_send_json_error( ['is_insurance'=>0,'is_cod_amt'=>0] );
             }
         }
-
         WC()->cart->calculate_totals();
-
         wp_send_json_error( ['is_insurance'=>0,'is_cod_amt'=>0] );
-
     }
 }

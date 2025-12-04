@@ -1,8 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
-
-use Inc\Base\BaseInit;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class Activate {
     public function activate(){

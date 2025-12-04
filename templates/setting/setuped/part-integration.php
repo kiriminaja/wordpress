@@ -1,4 +1,9 @@
 <span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kjHelper()->tlThis('Integration',$locale) ); ?></span>
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 <div class="row-divider" style="margin-top: .5rem"></div>
 <span><?php echo esc_html( kjHelper()->tlThis('An integration for utilizing KiriminAja to do shipment.',$locale) ); ?></span>
 

@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 // Cache frequently used values
 $helper = kjHelper();
 $homeUrl = home_url();
@@ -32,12 +37,12 @@ $nonce = wp_create_nonce(KJ_NONCE);
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_attr($_GET['page'] ?? ''); // @codingStandardsIgnoreLine
+                                    <input type="text" name="page" value="<?php echo esc_attr(sanitize_text_field($_GET['page'] ?? '')); // @codingStandardsIgnoreLine
                                                                             ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_attr($_GET['key'] ?? ''); // @codingStandardsIgnoreLine
+                                    <input type="text" name="key" value="<?php echo esc_attr(sanitize_text_field($_GET['key'] ?? '')); // @codingStandardsIgnoreLine
                                                                             ?>">
-                                    <input type="text" name="month" value="<?php echo esc_attr($_GET['month'] ?? ''); // @codingStandardsIgnoreLine
+                                    <input type="text" name="month" value="<?php echo esc_attr(sanitize_text_field($_GET['month'] ?? '')); // @codingStandardsIgnoreLine
                                                                             ?>">
                                 </form>
 

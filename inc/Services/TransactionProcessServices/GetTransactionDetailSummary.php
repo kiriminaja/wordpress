@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Services\TransactionProcessServices;
 
-namespace Inc\Services\TransactionProcessServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class GetTransactionDetailSummary extends BaseService{
     
     private int $wcOrderId = 0;
@@ -13,13 +16,12 @@ class GetTransactionDetailSummary extends BaseService{
     }
     
     public function call(){
-        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($this->wcOrderId);
+        $transactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($this->wcOrderId);
         if (!$transactionRepo){ return self::error([],'Terjadi Kesalahan'); }
         
-        $cartProductRepo = (new \Inc\Repositories\WpWcOrderProductLookup())->getProductsCartDataByOrderId($this->wcOrderId);
+        $cartProductRepo = (new \KiriminAjaOfficial\Repositories\WpWcOrderProductLookup())->getProductsCartDataByOrderId($this->wcOrderId);
         if (!$cartProductRepo){ return self::error([],'Terjadi Kesalahan'); }
-
-        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
+        $shippingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
         $originDataArr = [];
         foreach ($shippingRepo as $obj){
             $originDataArr[$obj->key]=$obj->value;
@@ -35,6 +37,4 @@ class GetTransactionDetailSummary extends BaseService{
             'status_classes'        => kjHelper()->transactionStatusClass(@$transactionRepo->status),
         ]);
     }
-    
-    
 }

@@ -20,8 +20,8 @@ defined( 'ABSPATH' ) || exit;
 <table class="shop_table woocommerce-checkout-review-order-table">
 	<thead>
 		<tr>
-			<th class="product-name"><?php esc_html_e( 'Product', 'kiriminaja' ); ?></th>
-			<th class="product-total"><?php esc_html_e( 'Subtotal', 'kiriminaja' ); ?></th>
+			<th class="product-name"><?php esc_html_e( 'Product', 'kiriminaja-official' ); ?></th>
+			<th class="product-total"><?php esc_html_e( 'Subtotal', 'kiriminaja-official' ); ?></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -52,7 +52,7 @@ defined( 'ABSPATH' ) || exit;
 	</tbody>
 	<tfoot>
 		<tr class="cart-subtotal">
-			<th><?php esc_html_e( 'Subtotal', 'kiriminaja' ); ?></th>
+			<th><?php esc_html_e( 'Subtotal', 'kiriminaja-official' ); ?></th>
 			<td><?php wc_cart_totals_subtotal_html(); ?></td>
 		</tr>
 
@@ -72,7 +72,7 @@ defined( 'ABSPATH' ) || exit;
 							}
 						} else {
 							echo '<li>';
-							wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'kiriminaja' ) ), 'notice' ); // phpcs:ignore WooCommerce.Commenting.CommentHooks.MissingHookComment
+							wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'kiriminaja-official' ) ), 'notice' ); // phpcs:ignore WooCommerce.Commenting.CommentHooks.MissingHookComment
 							echo '</li>';
 						}
 						?>
@@ -126,7 +126,7 @@ defined( 'ABSPATH' ) || exit;
 		<?php do_action( 'woocommerce_review_order_before_order_total' ); ?>
 
 		<tr class="order-total">
-			<th><?php esc_html_e( 'Total', 'kiriminaja' ); ?></th>
+			<th><?php esc_html_e( 'Total', 'kiriminaja-official' ); ?></th>
 			<td><?php echo 'Rp'.localMoneyFormat(esc_html(0)); ?></td>
 		</tr>
 

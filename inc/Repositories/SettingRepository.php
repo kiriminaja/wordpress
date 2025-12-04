@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class SettingRepository{
     
@@ -22,12 +26,11 @@ class SettingRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false; 
         }
         return $query;
     }
-
     /**
      * @param $payload
      * $payload['api_key']
@@ -56,21 +59,17 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => null), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return true;
     }
-
     public function getOriginData(){
         global $wpdb;
-
         $table = $wpdb->prefix . 'kiriminaja_settings';
-
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_latitude','origin_longitude','origin_zip_code')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
     }
-
     /**
      * @param $payload
      * $payload['origin_name']
@@ -99,7 +98,6 @@ class SettingRepository{
             || 
             !$payload['origin_sub_district_name']
         ){throw new \Exception('payload err');}
-
         $wpdb->update($this->table, array('value' => @$payload['origin_name']), array('key' => 'origin_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['origin_phone']), array('key' => 'origin_phone')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['origin_address']), array('key' => 'origin_address')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -122,7 +120,6 @@ class SettingRepository{
                     '%s',
                 ) 
             );
-
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->insert(
                 $this->table, 
@@ -136,25 +133,22 @@ class SettingRepository{
                 ) 
             );
         }
-
         $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_id']), array('key' => 'origin_whitelist_expedition_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_name']), array('key' => 'origin_whitelist_expedition_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         
         return true;
     }
-
     public function getCallbackData(){
         global $wpdb;
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('callback_url')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
         
     }
-
     /**
      * @param $payload
      * $payload['link_callback']
@@ -166,11 +160,8 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return true;
     }
-
-
     public function getSettingByKey($key){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -180,27 +171,24 @@ class SettingRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
     }
-
     public function getSettingByArray($array){
         global $wpdb;
         $keywords_imploded = implode("','",$array);
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('$keywords_imploded')" );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
     }
-
     public function validateWhiteListExpedition($data){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $origin_whitelist_expedition_id = $wpdb->get_row(
             $wpdb->prepare(
@@ -211,7 +199,7 @@ class SettingRepository{
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         $datas = [];
@@ -223,12 +211,10 @@ class SettingRepository{
                     continue;
                 }
                 $datas[]=$row;
-
             }
         }else{
             $datas = $data;
         }
-
         
         return $datas;
         

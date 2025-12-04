@@ -1,16 +1,18 @@
 <?php
+namespace KiriminAjaOfficial\Services;
 
-namespace Inc\Services;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use \Inc\Base\BaseService;
-
+use \KiriminAjaOfficial\Base\BaseService;
 class SettingService extends BaseService
 {
-
     public function getIntegrationData()
     {
         try {
-            $repo = (new \Inc\Repositories\SettingRepository())->getIntegrationData();
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getIntegrationData();
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -23,60 +25,51 @@ class SettingService extends BaseService
         }
         return self::success($response);
     }
-
     public function processingSetupKey($setupKey)
     {
         try {
-
-            $validate = (new \Inc\Base\Validator())->validateMultiple([[$setupKey, 'setup key', ['required']]]);
+            $validate = (new \KiriminAjaOfficial\Base\Validator())->validateMultiple([[$setupKey, 'setup key', ['required']]]);
             if (!$validate['status']) {
                 return self::error([], $validate['msg']);
             }
-
             //custom url validation when local set to dev kj only development test
             $setupPayload = [
                 'setup_key' => $setupKey,
                 'callback_url' => @home_url() . '/kiriminaja-callback'
             ];
-
-            $repo = (new \Inc\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
-
+            $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
             $arrayRepo = (array) $repo;
             $arrayRepoData = (array) $arrayRepo['data'];
-
             if (!@$arrayRepo['status'] || !@$arrayRepoData['status']) {
                 return self::error([], 'Invalid Setup Key');
             }
-
             /** Storing result to DB*/
             $arrayRepoDataData = (array) $arrayRepoData['result'];
-            (new \Inc\Repositories\SettingRepository())->storeIntegrationData([
+            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeIntegrationData([
                 'api_key' => sanitize_text_field($arrayRepoDataData['api_key']),
                 'oid_prefix' => sanitize_text_field($arrayRepoDataData['oid_prefix']),
                 'setup_key' => sanitize_text_field($setupPayload['setup_key']),
                 'callback_url' => $setupPayload['callback_url'],
             ]);
         } catch (\Throwable $th) {
-            (new \Inc\Base\BaseInit())->logThis('processingSetupKey errr', $th->getMessage());
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('processingSetupKey errr', $th->getMessage());
             return self::error([], $th->getMessage());
         }
         return self::success([]);
     }
-
     public function disconnectIntegration()
     {
         try {
-            $repo = (new \Inc\Repositories\SettingRepository())->disconnectIntegration();
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->disconnectIntegration();
         } catch (\Throwable $th) {
             return self::error([], $th->getMessage());
         }
         return self::success([]);
     }
-
     public function getOriginData()
     {
         try {
-            $repo = (new \Inc\Repositories\SettingRepository())->getOriginData();
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getOriginData();
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -89,11 +82,10 @@ class SettingService extends BaseService
         }
         return self::success($response);
     }
-
     public function storeOriginData(array $payloads)
     {
         try {
-            $validate = (new \Inc\Base\Validator())->validateMultiple([
+            $validate = (new \KiriminAjaOfficial\Base\Validator())->validateMultiple([
                 [$payloads['origin_name'] ?? '', 'Nama Toko / Pengirim', ['required', 'max:250']],
                 [$payloads['origin_phone'] ?? '', 'No. Hp', ['required', 'max:15']],
                 [$payloads['origin_address'] ?? '', 'Alamat', ['required', 'max:250']],
@@ -105,14 +97,11 @@ class SettingService extends BaseService
                 [$payloads['origin_whitelist_expedition_id'], 'Whitelist Expedition', []],
                 [$payloads['origin_whitelist_expedition_name'], 'Whitelist Expedition', []],
             ]);
-
-
             if (!$validate['status']) {
                 return self::error([], $validate['msg']);
             }
-
             /** Storing to DB*/
-            (new \Inc\Repositories\SettingRepository())->storeOriginData([
+            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeOriginData([
                 'origin_name'               =>  sanitize_text_field($payloads['origin_name']),
                 'origin_phone'              =>  sanitize_text_field($payloads['origin_phone']),
                 'origin_address'            =>  sanitize_text_field($payloads['origin_address']),
@@ -125,18 +114,16 @@ class SettingService extends BaseService
                 'origin_whitelist_expedition_name'  =>  !empty($payloads['origin_whitelist_expedition_name']) ? implode(',', $payloads['origin_whitelist_expedition_name']) : null,
             ]);
         } catch (\Throwable $th) {
-            (new \Inc\Base\BaseInit())->logThis('storeOriginData errr', $th->getMessage());
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeOriginData errr', $th->getMessage());
             return self::error([], $th->getMessage());
         }
         return self::success([]);
     }
-
     public function getCallbackData()
     {
         try {
-            $repo = (new \Inc\Repositories\SettingRepository())->getCallbackData();
-            (new \Inc\Base\BaseInit())->logThis('$repo', [$repo]);
-
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getCallbackData();
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo', [$repo]);
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -149,30 +136,27 @@ class SettingService extends BaseService
         }
         return self::success($response);
     }
-
     public function storeCallbackData(array $payloads)
     {
         try {
-            $validate = (new \Inc\Base\Validator())->validateMultiple([
+            $validate = (new \KiriminAjaOfficial\Base\Validator())->validateMultiple([
                 [$payloads['callback_url'], 'Link Callback', ['required']],
             ]);
             if (!$validate['status']) {
                 return self::error([], $validate['msg']);
             }
-
             /** Store to KJ*/
-            $repo = (new \Inc\Repositories\KiriminajaApiRepository())->setCallback($payloads['callback_url']);
+            $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->setCallback($payloads['callback_url']);
             if (!@$repo['status'] || !@$repo['data']->status) {
-                (new \Inc\Base\BaseInit())->logThis('storeCallbackData errr', $repo);
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $repo);
                 return self::error([], @$repo['data'] ?? 'Something is wrong');
             }
-
             /** Storing to DB*/
-            (new \Inc\Repositories\SettingRepository())->storeCallbackData([
+            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeCallbackData([
                 'callback_url' => sanitize_text_field($payloads['callback_url']),
             ]);
         } catch (\Throwable $th) {
-            (new \Inc\Base\BaseInit())->logThis('storeCallbackData errr', $th->getMessage());
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $th->getMessage());
             return self::error([], $th->getMessage());
         }
         return self::success([]);

@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Services\OrderEditPageServices;
 
-namespace Inc\Services\OrderEditPageServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class ShippingInfoServices extends BaseService{
     
     public int $wcOrderId = 0;
@@ -14,7 +17,7 @@ class ShippingInfoServices extends BaseService{
     }
     
     public function call(){
-        $repo = (new \Inc\Repositories\TransactionRepository())->getTransactionByWCOrderId($this->wcOrderId);
+        $repo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId($this->wcOrderId);
         if (!$repo) { return self::error([],'Not Found');}
         
         return self::success([
@@ -41,5 +44,4 @@ class ShippingInfoServices extends BaseService{
             (@$repo->transaction_value ?? 0)-
             (@$repo->discount_amount ?? 0);
     }
-    
 }

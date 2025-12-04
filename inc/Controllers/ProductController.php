@@ -1,5 +1,10 @@
 <?php 
-namespace inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class ProductController{
     

@@ -30,12 +30,12 @@ $calculator_text          = '';
 		<?php
         if ( ! $has_calculated_shipping || ! $formatted_destination ){
 			if ( is_cart() && 'no' === get_option( 'woocommerce_enable_shipping_calc' ) ) {
-				echo wp_kses_post( apply_filters( 'woocommerce_shipping_not_enabled_on_cart_html', __( 'Shipping costs are calculated during checkout.', 'kiriminaja' ) ) );
+				echo wp_kses_post( apply_filters( 'woocommerce_shipping_not_enabled_on_cart_html', __( 'Shipping costs are calculated during checkout.', 'kiriminaja-official' ) ) );
 			} else {
 				echo wp_kses_post( apply_filters( 'woocommerce_shipping_may_be_available_html', '' ) );
 			}
 		}else {
-			$calculator_text = esc_html__( 'Enter a different address', 'kiriminaja' );
+			$calculator_text = esc_html__( 'Enter a different address', 'kiriminaja-official' );
 		}
 		?>
 
@@ -72,10 +72,10 @@ $calculator_text          = '';
 					<?php
 					if ( $formatted_destination ) {
 						// Translators: $s shipping destination.
-						printf( esc_html__( 'Shipping to %s.', 'kiriminaja' ) . ' ', '<strong>' . esc_html( $formatted_destination ) . '</strong>' );
-						$calculator_text = esc_html__( 'Change address', 'kiriminaja' );
+						printf( esc_html__( 'Shipping to %s.', 'kiriminaja-official' ) . ' ', '<strong>' . esc_html( $formatted_destination ) . '</strong>' );
+						$calculator_text = esc_html__( 'Change address', 'kiriminaja-official' );
 					} else {
-						echo wp_kses_post( apply_filters( 'woocommerce_shipping_estimate_html', __( 'Shipping options will be updated during checkout.', 'kiriminaja' ) ) );
+						echo wp_kses_post( apply_filters( 'woocommerce_shipping_estimate_html', __( 'Shipping options will be updated during checkout.', 'kiriminaja-official' ) ) );
 					}
 					?>
 				</p>

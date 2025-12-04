@@ -1,4 +1,9 @@
 <div class="wrap">
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
     <h1>KiriminAja</h1>
 
 
@@ -21,7 +26,7 @@
 <!--    <table class="form-table">-->
 <!--        <tbody>-->
 <!--        <tr valign="top">-->
-<!--            <th scope="row" class="titledesc">--><?php //esc_html_e('Store Origin', 'kiriminaja'); ?><!--</th>-->
+<!--            <th scope="row" class="titledesc">--><?php //esc_html_e('Store Origin', 'kiriminaja-official'); ?><!--</th>-->
 <!--            <td class="forminp forminp-single_select_page_with_search">-->
 <!--            </td>-->
 <!--        </tr>-->

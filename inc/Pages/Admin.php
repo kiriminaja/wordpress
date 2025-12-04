@@ -1,10 +1,13 @@
 <?php
+namespace KiriminAjaOfficial\Pages;
 
-namespace Inc\Pages;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use \Inc\Base\BaseInit;
-use \Inc\Base\PageGenerator;
-
+use \KiriminAjaOfficial\Base\BaseInit;
+use \KiriminAjaOfficial\Base\PageGenerator;
 class Admin extends BaseInit{
     
     public function register(){
@@ -23,7 +26,6 @@ class Admin extends BaseInit{
             ]
         ];
         if(KJ_CHECK_WOOCOMMERCE()){
-
             $subPages = array_merge($subPages,[
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
@@ -46,8 +48,6 @@ class Admin extends BaseInit{
                     }
                 ]
             ]);
-
-
         }
         
         
@@ -75,18 +75,12 @@ class Admin extends BaseInit{
             array_push($links,$settings_link);
             return $links;
         });
-
         add_action( 'admin_head', [$this,'kj_add_transaction_status_count']);
-
     }
-
     function kj_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {
-
             global $submenu;
-
             $transaction_count_new = kjHelper()->kjCountTransactionProcess();
-
             if( (int) $transaction_count_new == 0) return;
             
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
@@ -97,5 +91,4 @@ class Admin extends BaseInit{
             }
         }
     }
-
 }

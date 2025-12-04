@@ -1,4 +1,9 @@
 <style>
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
     body .is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
         max-width: 1000px;
     }
@@ -107,30 +112,30 @@
 <div style="min-height: 40vh" class="woocommerce woocommerce-page">
     <form style="width: 100%" name="checkout" method="post" class="checkout woocommerce-checkout"  enctype="multipart/form-data" novalidate="novalidate">
         <div class="col2-set" id="">
-            <h3 ><?php esc_html_e('Pesanan Anda','kiriminaja'); ?></h3>
+            <h3 ><?php esc_html_e('Pesanan Anda','kiriminaja-official'); ?></h3>
             <div class="woocommerce-checkout-review-order">
 
 
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">
-                    <label for="billing_company" class=""><?php esc_html_e('Nomor Resi','kiriminaja'); ?> <span style="color:red;">*</span></label>
+                    <label for="billing_company" class=""><?php esc_html_e('Nomor Resi','kiriminaja-official'); ?> <span style="color:red;">*</span></label>
                     <span class="woocommerce-input-wrapper">
                         <input type="text" class="input-text" name="order_number" placeholder="Masukan Nomor Resi atau Nomor Order ..." value="" autocomplete="organization">
                     </span>
                 </p>
 
-                <button style="width: 100%" type="button" onclick="trackOrder()" class="button track-btn alt wp-element-button track-btn"><?php esc_html_e('Lacak Pesanan','kiriminaja'); ?></button>
+                <button style="width: 100%" type="button" onclick="trackOrder()" class="button track-btn alt wp-element-button track-btn"><?php esc_html_e('Lacak Pesanan','kiriminaja-official'); ?></button>
             </div>
         </div>
         <div class="col2-set" id="tracking-result">
             <div style="margin-top: 2rem"></div>
             <div class="state-blank">
                 <div style="text-align: center">
-                    <span style="font-weight: 700"><?php esc_html_e('Untuk mendapatkan informasi pesanan anda','kiriminaja'); ?><br><?php esc_html_e('Klik Track Pesanan','kiriminaja'); ?></span>
+                    <span style="font-weight: 700"><?php esc_html_e('Untuk mendapatkan informasi pesanan anda','kiriminaja-official'); ?><br><?php esc_html_e('Klik Track Pesanan','kiriminaja-official'); ?></span>
                 </div>
             </div>
             <div class="state-err kj-hidden">
                 <div style="text-align: center; margin-top: 4rem">
-                    <span style="font-weight: 700" id="err_msg"><?php esc_html_e('Order tidak ditemukan','kiriminaja'); ?></span>
+                    <span style="font-weight: 700" id="err_msg"><?php esc_html_e('Order tidak ditemukan','kiriminaja-official'); ?></span>
                 </div>
             </div>
             <div class="state-loading kj-hidden">

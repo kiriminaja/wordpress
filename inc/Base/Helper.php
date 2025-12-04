@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class Helper extends  BaseInit {
     public function transactionStatusLabel($status = ''){
@@ -81,7 +85,6 @@ class Helper extends  BaseInit {
                 $string = file_get_contents($this->plugin_path."/lang/en_US.json"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
                 break;
         }
-
         $langLib = (array) json_decode($string);
         return @$langLib[$text] ?? $text;
     }
@@ -95,16 +98,13 @@ class Helper extends  BaseInit {
         }
         return false;
     }
-
     public function minAmount($value, $minAmount = 1){
         $theValue = intval($value ?? 0);
         return $theValue >= $minAmount ? $theValue : $minAmount;
     }
-
     public function kjCountTransactionProcess(){
-        return (new \Inc\Repositories\TransactionRepository())->getCountTransactionProcessNew();
+        return (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getCountTransactionProcessNew();
     }
-
     public function dateConvertGMT($tgl) {
         $timezone = new \DateTimeZone("Asia/Bangkok");
     

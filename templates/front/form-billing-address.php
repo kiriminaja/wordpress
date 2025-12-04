@@ -1,4 +1,9 @@
 <div id="kj_destination_area_group">
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
     
     <!--Other invisible Field-->
     <div style="display: none">
@@ -146,7 +151,7 @@
 
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo esc_html__('Select Option','kiriminaja'); ?>",
+                placeholder: "<?php echo esc_html__('Select Option','kiriminaja-official'); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,

@@ -1,4 +1,9 @@
 <!doctype html>
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">

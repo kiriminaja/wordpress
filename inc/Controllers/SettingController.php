@@ -1,11 +1,13 @@
 <?php
-namespace Inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 use Throwable;
-
 class SettingController{
-
-
     public function register(){
         /** getIntegrationData*/
         add_action('wp_ajax_kj_get_integration_data', array($this,'getIntegrationData'));
@@ -34,13 +36,12 @@ class SettingController{
         /** storeCallbackData*/
         add_action('wp_ajax_kj_store_call_back_data', array($this,'storeCallbackData'));
         add_action('wp_ajax_nopriv_kj_store_call_back_data', array($this,'storeCallbackData'));
-
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
     }
     function getIntegrationData() {
         try {
-            $service = (new \Inc\Services\SettingService())->getIntegrationData();
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->getIntegrationData();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -55,10 +56,8 @@ class SettingController{
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
-
             $setup_key = isset($_POST['data']['setup_key']) ? sanitize_text_field( wp_unslash($_POST['data']['setup_key'])) : '';
-            $service = (new \Inc\Services\SettingService())->processingSetupKey($setup_key);
-
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->processingSetupKey($setup_key);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -68,7 +67,7 @@ class SettingController{
     
     function disconnectIntegration(){
         try {
-            $service = (new \Inc\Services\SettingService())->disconnectIntegration();
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->disconnectIntegration();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -78,7 +77,7 @@ class SettingController{
     
     function getOriginData(){
         try {
-            $service = (new \Inc\Services\SettingService())->getOriginData();
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->getOriginData();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -88,22 +87,18 @@ class SettingController{
     
     function storeOriginData(){
         try {
-
             // Check for nonce security      
             if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
-
             if( !isset($_POST['data']['origin_whitelist_expedition_id'])){
                 $_POST['data']['origin_whitelist_expedition_id']  = '';
                 $_POST['data']['origin_whitelist_expedition_name'] = '';
             }
-
             $data = isset($_POST['data']) ? wp_unslash($_POST['data']) : [];  // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
             
-            $service = (new \Inc\Services\SettingService())->storeOriginData($data);
-
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->storeOriginData($data);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
@@ -113,8 +108,7 @@ class SettingController{
     
     function getCallbackData(){
         try {
-            $service = (new \Inc\Services\SettingService())->getCallbackData();
-
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->getCallbackData();
             
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -130,29 +124,23 @@ class SettingController{
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
-
             $data = isset($_POST['data']) ? wp_unslash($_POST['data']) : [];  // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-            $service = (new \Inc\Services\SettingService())->storeCallbackData($data);
-
+            $service = (new \KiriminAjaOfficial\Services\SettingService())->storeCallbackData($data);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
-
     function storeWhitelistExpedition(){
         try {
-
             // Check for nonce security      
             if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
-
             $search = isset( $_POST['data']['term'] ) ? sanitize_text_field( wp_unslash( $_POST['data']['term'] )) : '';
-            $kiriminajaExpedition = (new \Inc\Services\KiriminajaApiService())->get_couriers();
+            $kiriminajaExpedition = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers();
             
             if( !empty($kiriminajaExpedition ) ){
                 $kiriminajaExpedition = array_filter($kiriminajaExpedition->data, function($item) use ($search){

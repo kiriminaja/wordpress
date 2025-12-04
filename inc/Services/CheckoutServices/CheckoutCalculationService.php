@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Services\CheckoutServices;
 
-namespace Inc\Services\CheckoutServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class CheckoutCalculationService extends BaseService{
     
     /*
@@ -40,27 +43,23 @@ class CheckoutCalculationService extends BaseService{
         
         return $this;
     }
-
     public function call(){
         $this->carts = $this->wc_cart_contents;
         
         /** Origin Data*/
-        $settingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         if(!$settingRepo||$settingRepo->value === null){
             return self::error([],'Terjadi Kesalahan!');
         }
-
         /** Cart Attribute Data*/
-        $cartAttributes = (new \Inc\Services\UtilServices\GetWCCartAttributeService([
+        $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
         ]))->call();
-
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
         
         $courier = $this->expeditionParts[0];
-
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
             'subdistrict_destination'   => $this->destination_area_id,
@@ -72,13 +71,12 @@ class CheckoutCalculationService extends BaseService{
             'item_value'                => $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
-
         
-        (new \Inc\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
-        $kjPricing = (new \Inc\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
         
-        (new \Inc\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
         
         if($kjPricing['status'] != 200){
             return self::error([],@$kjPricing['message'] ?? 'Terjadi Kesalahan!');
@@ -91,11 +89,9 @@ class CheckoutCalculationService extends BaseService{
         
         /** jika opsi expedisi tidak ada*/
         $this->pricingData = @$kjPricing['data'];
-
         if (count(@$this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }
-
         /** jika expedisi terpilih  tidak ada*/
         $this->selectedExpedition = $this->getSelectedExpedition();
         if (!$this->selectedExpedition){
@@ -185,14 +181,11 @@ class CheckoutCalculationService extends BaseService{
         if (!$this->isCOD()) { 
             return 0;
         }
-
         
         $codFeeAmount = (float) ($this->selectedExpedition->setting->cod_fee_amount ?? 0);
         $codMinCost = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
         
         $codFee = max($codFeeAmount, $codMinCost);
-
         return (int) ceil($codFee);
-    }
-    
+    }   
 }

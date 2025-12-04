@@ -1,4 +1,4 @@
-=== KiriminAja ===
+=== KiriminAja Official ===
 Contributors: kiriminaja
 Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
@@ -8,11 +8,11 @@ Stable tag: 2.0.11
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Easily integrate to more than couriers across the Indonesia
+Easily integrate with multiple couriers across Indonesia
 
 == Description ==
 
-Kiriminaja is a platform that makes it easy to send packages and find expeditions according to people's needs, with COD and Non-COD delivery methods developed by PT Selalu Siap Solusi.
+KiriminAja is a platform that makes it easy to send packages and find expeditions according to people's needs, with COD and Non-COD delivery methods developed by PT Selalu Siap Solusi.
 
 **Key Features:**
 * Ease of sending packages with various expedition options.
@@ -25,18 +25,18 @@ This plugin is perfect for eCommerce store owners looking for a hassle-free ship
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/kiriminaja` directory, or install the plugin through the WordPress plugins screen directly.
+1. Upload the plugin files to the `/wp-content/plugins/kiriminaja-official` directory, or install the plugin through the WordPress plugins screen directly.
 2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Navigate to `Kiriminaja > Integration` to configure your integration shipping options.
-4. Navigate to `Kiriminaja > Shipping` to configure your shipping options SiteOrigin.
-5. Set Whitelist Shipping
+3. Navigate to `KiriminAja > Integration` to configure your integration and shipping options.
+4. Navigate to `KiriminAja > Shipping` to configure your shipping preferences.
+5. Set up your shipping whitelist and preferences.
 
 == Frequently Asked Questions ==
 
-= KiriminAja what expedition =
+= What expeditions does KiriminAja support? =
 KiriminAja is a package delivery management platform with COD and non-COD delivery methods on various expeditions. You are a platform user who accesses KiriminAja services, whether registered as an account owner or not.
 
-= Can COD be done without Marketplace? =
+= Can COD be done without a marketplace? =
 Yes, you can use J&T Express COD service to send goods without having to go through online buying and selling platforms such as marketplaces.
 
 = Does this plugin support Indonesia Domestic shipping? =

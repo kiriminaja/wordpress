@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 
 class TransactionProcessIndex
 {
@@ -12,11 +17,11 @@ class TransactionProcessIndex
         /** Page Query */
         $pageQuery = $this->pageQuery();
         $results = $pageQuery['results'];
-        (new \Inc\Base\BaseInit())->logThis('$results', [$results]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$results', [$results]);
 
         /** Month Options */
         $monthOptions = $this->getTransactionsDateFilterOptionArray();
-        (new \Inc\Base\BaseInit())->logThis('$monthOptions', [$monthOptions]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$monthOptions', [$monthOptions]);
 
         /** Return vars and view */
         include 'view/index.php';
@@ -68,7 +73,7 @@ class TransactionProcessIndex
         $results = $wpdb->get_results($query);
 
         if (!empty($wpdb->last_error)) {
-            (new \Inc\Base\BaseInit())->logThis('last_error', $wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error', $wpdb->last_error);
         }
 
         return ['results' => $results];
@@ -76,8 +81,8 @@ class TransactionProcessIndex
 
     private function getTransactionsDateFilterOptionArray()
     {
-        $oldestTransactionDateQuery = (new \Inc\Repositories\TransactionRepository())->getTransactionByOldestDate();
-        (new \Inc\Base\BaseInit())->logThis('$oldestTransactionDateQuery', [$oldestTransactionDateQuery]);
+        $oldestTransactionDateQuery = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOldestDate();
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$oldestTransactionDateQuery', [$oldestTransactionDateQuery]);
 
         $oldestMonth = new DateTime($oldestTransactionDateQuery->created_at ?? 'now');
         $currentMonth = new DateTime('now');

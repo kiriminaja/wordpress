@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Migration;
 
-namespace Inc\Migration;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class SetupMigration {
     
@@ -13,9 +17,7 @@ class SetupMigration {
     }
     
     private function settingsTable(){
-
         global $wpdb;
-
         /** Settings Table*/
         $table_name = $wpdb->prefix.'kiriminaja_settings'.$this->suffix;
         
@@ -31,7 +33,6 @@ class SetupMigration {
             );";
             require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
             dbDelta($sql);
-
             /** Settings Table Value*/
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching	
             $wpdb->query(
@@ -76,10 +77,8 @@ class SetupMigration {
      */
     private function transactionsTable(){
         global $wpdb;
-
         /** Transactions Table*/
         $table_name = $wpdb->prefix.'kiriminaja_transactions'.$this->suffix;
-
         /** Only create table if not exist */
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
@@ -125,25 +124,21 @@ class SetupMigration {
              /** Alters*/
              // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching	
             $columns = $wpdb->get_col("DESCRIBE $table_name", 0);
-
             // Add 'canceled_at' column if it doesn't exist
             if (!in_array('canceled_at', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $wpdb->query("ALTER TABLE $table_name ADD canceled_at timestamp NULL DEFAULT NULL");
             }
-
             // Ensure 'status' column has the correct enum values
             if (in_array('status', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
             }
-
             // Add 'discount_amount' column if it doesn't exist
             if (!in_array('discount_amount', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $wpdb->query("ALTER TABLE $table_name ADD discount_amount double DEFAULT NULL");
             }
-
             // Add 'discount_percentage' column if it doesn't exist
             if (!in_array('discount_percentage', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -151,20 +146,17 @@ class SetupMigration {
             }
             
         }
-
         /** Alters*/
     }
     
     private function paymentsTable(){
         global $wpdb;
-
         /** Payments Table*/
         $table_name = $wpdb->prefix.'kiriminaja_payments'.$this->suffix;
         
         /** Only create table if not exist */
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
-
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
             $sql = "CREATE TABLE ".$table_name."(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -179,8 +171,6 @@ class SetupMigration {
             require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
             dbDelta($sql);
         }
-
         /** Alters*/
     }
-    
 }
