@@ -249,7 +249,7 @@ class SettingRepository{
         
         // Check for database errors
         if (strlen(@$wpdb->last_error ?? '') > 0) {
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         

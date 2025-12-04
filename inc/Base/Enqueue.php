@@ -177,7 +177,9 @@ class Enqueue extends BaseInit{
         if ($this->is_vite_enabled) {
             $vue_entry = $this->getViteAsset('frontend/src/admin/main.ts');
             if ($vue_entry) {
-                wp_enqueue_script('kiriminaja-admin-vue', $vue_entry, array(), KJ_VERSION_PLUGIN, true);
+                // In dev mode, don't add version to avoid conflicts with Vite's dev server
+                $version = $this->is_vite_dev ? null : KJ_VERSION_PLUGIN;
+                wp_enqueue_script('kiriminaja-admin-vue', $vue_entry, array(), $version, true);
                 
                 // Localize script for Vue app with AJAX data
                 wp_localize_script('kiriminaja-admin-vue', 'myjs', array(
@@ -195,12 +197,13 @@ class Enqueue extends BaseInit{
                 
                 $css_files = $this->getViteCss('frontend/src/admin/main.ts');
                 foreach ($css_files as $index => $css_url) {
-                    wp_enqueue_style('kiriminaja-admin-vue-' . $index, $css_url, array(), KJ_VERSION_PLUGIN);
+                    $css_version = $this->is_vite_dev ? null : KJ_VERSION_PLUGIN;
+                    wp_enqueue_style('kiriminaja-admin-vue-' . $index, $css_url, array(), $css_version);
                 }
 
                 // Also check for main entry CSS in development
                 if ($this->is_vite_dev) {
-                    wp_enqueue_style('kiriminaja-admin-vue-style', $this->vite_server . '/frontend/src/admin/style.css', array(), KJ_VERSION_PLUGIN);
+                    wp_enqueue_style('kiriminaja-admin-vue-style', $this->vite_server . '/frontend/src/admin/style.css', array(), null);
                 }
 
             }

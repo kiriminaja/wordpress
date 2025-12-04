@@ -187,7 +187,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     /** Page Content Util*/
     function toggleThis(elem,menu){
-        window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=settings&tab='?>'+menu
+        window.location.href = '<?php echo esc_url(admin_url('admin.php?page=kiriminaja&tab=')); ?>'+menu
     }
     
     function getTabData(){

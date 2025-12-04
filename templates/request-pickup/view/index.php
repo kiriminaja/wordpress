@@ -345,7 +345,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return
                 }
 
-                window.location.href = `<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=payment'; ?>&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url(admin_url('admin.php?page=kaj-payment')); ?>&pickup_number=${resp?.data?.pickup_number}`;
                 
                 
             }
@@ -390,7 +390,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 
                 const payment_data = resp?.data?.payment_data
                 const transactions_data = resp?.data?.transactions_data
-                const wcOrderUrlBase = '<?php echo esc_url( home_url().'/wp-admin/post.php?post='); ?>'
+                const wcOrderUrlBase = '<?php echo esc_url( admin_url('post.php?post=')); ?>'
                 
                 jQuery('#request-pickup-detail-modal-title').text("<?php esc_html_e('Request Pickup Detail','kiriminaja-official'); ?> - "+payment_data.pickup_number)
                 jQuery('#request-pickup-detail-modal #package-count').text(kjMoneyFormat(payment_data.package_count ?? 0))
@@ -412,7 +412,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         transactionFee = Number(transaction?.shipping_cost ?? 0)+Number(transaction?.insurance_cost ?? 0)
                     }
 
-                    const transactionUrl = `<?php echo esc_url( home_url().'/wp-admin/post.php' ) ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
+                    const transactionUrl = `<?php echo esc_url( admin_url('post.php') ); ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
                     const printResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transaction?.order_id}`;
                     const formatFeeString = (value) => {
                         if (!value){

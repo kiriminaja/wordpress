@@ -108,8 +108,8 @@ class requestPickupIndex {
         $total_pages = ceil($total/$items_per_page);
 
         /** Paginate*/
-        $next_page_link = home_url() . '/wp-admin/admin.php?';
-        $prev_page_link = home_url() . '/wp-admin/admin.php?';
+        $next_page_link = admin_url('admin.php?');
+        $prev_page_link = admin_url('admin.php?');
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         foreach ($_GET as $key => $value){
             if ($key !== 'cpage'){

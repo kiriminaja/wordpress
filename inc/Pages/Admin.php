@@ -55,7 +55,7 @@ class Admin extends BaseInit{
             'page_title'=>'KiriminAja Settings',
             'menu_title'=>'Settings',
             'capability'=>'manage_options',
-            'menu_slug'=>'kaj-settings',
+            'menu_slug'=>'kiriminaja',
             'callback'=> function(){
                 require_once $this->plugin_path.'templates/setting/index.php';
             }
@@ -81,7 +81,7 @@ class Admin extends BaseInit{
     
         /** Add pages link in plugin menu links*/
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $settings_link = '<a href="admin.php?page=settings">Settings</a>';
+            $settings_link = '<a href="admin.php?page=kiriminaja">Settings</a>';
             array_push($links,$settings_link);
             return $links;
         });

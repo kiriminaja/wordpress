@@ -144,7 +144,7 @@ class TransactionProcessController{
         $results = $wpdb->get_results($query);
 
         if (!empty($wpdb->last_error)) {
-            (new \Inc\Base\BaseInit())->logThis('last_error', $wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error', $wpdb->last_error);
         }
 
         return ['results' => $results];

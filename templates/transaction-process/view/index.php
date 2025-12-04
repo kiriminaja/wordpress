@@ -9,7 +9,7 @@ require __DIR__ . "/../../vite.render.php";
 // Cache frequently used values
 $helper = kjHelper();
 $homeUrl = home_url();
-$adminUrl = $homeUrl . '/wp-admin';
+$adminUrl = admin_url();
 $nonce = wp_create_nonce(KJ_NONCE);
 ?>
 <div class="kj-wrapper kj-wrap">
@@ -173,7 +173,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                     $paymentLabel = $isCod ? 'COD' : 'NON COD';
                                                     
                                                     // Build URLs
-                                                    $orderEditUrl = $adminUrl . '/post.php?post=' . esc_attr($row->wc_order_id) . '&action=edit';
+                                                    $orderEditUrl = admin_url('post.php?post=' . esc_attr($row->wc_order_id) . '&action=edit');
                                                     $orderDate = gmdate('M d, Y', strtotime($row->wc_date_created));
                                                     $statusLabel = $helper->transactionStatusLabel($row->status);
                                                     $serviceName = strtoupper($row->service);
@@ -447,7 +447,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                     return;
                 }
 
-                window.location.href = `<?php echo esc_url($adminUrl); ?>/admin.php?page=payment&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url(admin_url('admin.php?page=payment')); ?>&pickup_number=${resp?.data?.pickup_number}`;
             }
         });
     };

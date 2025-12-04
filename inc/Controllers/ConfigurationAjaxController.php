@@ -1,9 +1,9 @@
 <?php
 
-namespace Inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
 
-use Inc\Base\BaseInit;
-use Inc\Repositories\SettingRepository;
+use KiriminAjaOfficial\Base\BaseInit;
+use KiriminAjaOfficial\Repositories\SettingRepository;
 
 class ConfigurationAjaxController extends BaseInit {
     
