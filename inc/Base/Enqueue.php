@@ -144,9 +144,6 @@ class Enqueue extends BaseInit{
     }
     
     function enqueueAdmin(){
-        $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
-        if (!in_array($page, self::INTERNAL_PATH)){return;}
-
         wp_localize_script(
             'myjs',
             'myjs',

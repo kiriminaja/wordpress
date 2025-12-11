@@ -1,0 +1,1 @@
+export const emojiRegex = /[^\x00-\x7F]+/gu;

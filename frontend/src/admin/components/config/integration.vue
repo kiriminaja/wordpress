@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useAppFetch } from "@/admin/composables/useAppFetch";
+import { useToast } from "@/admin/composables/useToast";
 
 interface IntegrationSettings {
   setup_key?: string;
@@ -31,7 +32,7 @@ async function loadSettings() {
   } catch (e) {
     console.error("Failed to load settings:", e);
     toast.add({
-      color: "red",
+      color: "error",
       title: "Failed to load settings",
       description: "An error occurred while fetching integration settings.",
     });
@@ -69,15 +70,6 @@ async function saveSettings() {
 
 <template>
   <div>
-    <!-- Success/Error Messages -->
-    <UAlert
-      v-if="message"
-      :title="message.type === 'success' ? 'Success' : 'Error'"
-      :description="message.text"
-      :color="message.type === 'success' ? 'green' : 'red'"
-      class="mb-4"
-    />
-
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
       <div
@@ -86,13 +78,13 @@ async function saveSettings() {
       <p class="mt-4 text-gray-600">Loading settings...</p>
     </div>
 
-    <UCard v-else>
+    <UiCard v-else>
       <div class="grid lg:grid-cols-2 gap-5">
-        <UForm class="space-y-3">
+        <UiForm class="space-y-3">
           <div class="font-semibold text-base">Connection</div>
           <template v-if="!configured">
-            <UFormField label="Setup Key" name="setup_key" required>
-              <UInput
+            <UiFormField label="Setup Key" name="setup_key" required>
+              <UiInput
                 id="setup_key"
                 v-model="settings.setup_key"
                 :type="show || configured ? 'text' : 'password'"
@@ -102,17 +94,16 @@ async function saveSettings() {
                 placeholder="Input your setup key for KiriminAja"
               >
                 <template v-if="!configured" #trailing>
-                  <UButton
-                    color="neutral"
+                  <UiButton
                     variant="link"
                     size="sm"
                     :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
                     @click="show = !show"
                   />
                 </template>
-              </UInput>
-            </UFormField>
-            <UAlert
+              </UiInput>
+            </UiFormField>
+            <UiAlert
               title="Accept Our Privacy & Policy"
               variant="soft"
               icon="lucide:info"
@@ -136,9 +127,9 @@ async function saveSettings() {
                   privacy policy
                 </a>
               </template>
-            </UAlert>
+            </UiAlert>
 
-            <UButton
+            <UiButton
               v-if="!configured"
               :loading="saving"
               icon="lucide:plug-zap"
@@ -146,12 +137,12 @@ async function saveSettings() {
               @click="saveSettings"
             >
               Connect
-            </UButton>
+            </UiButton>
           </template>
 
           <template v-else>
-            <UFormField label="Order Prefix">
-              <UInput
+            <UiFormField label="Order Prefix">
+              <UiInput
                 id="oid_prefix"
                 v-model="settings.oid_prefix"
                 type="text"
@@ -159,18 +150,18 @@ async function saveSettings() {
                 placeholder="e.g., KJ-"
                 disabled
               />
-            </UFormField>
-            <UAlert
+            </UiFormField>
+            <UiAlert
               title="Order Prefix Means"
               variant="soft"
               icon="lucide:info"
-              class="p-3"
+              class="p-3 mb-3"
               description="Order Prefix are unique identifier to package order_id, it's unique based on each integration. One app represents single prefix."
             />
 
-            <UButton icon="lucide:unplug" color="error"> Disconnect </UButton>
+            <UiButton icon="lucide:unplug" color="error"> Disconnect </UiButton>
           </template>
-        </UForm>
+        </UiForm>
         <div class="space-y-3">
           <div class="font-semibold text-base">
             How to Obtain Your Kiriminaja Credentials
@@ -189,6 +180,6 @@ async function saveSettings() {
           </ol>
         </div>
       </div>
-    </UCard>
+    </UiCard>
   </div>
 </template>

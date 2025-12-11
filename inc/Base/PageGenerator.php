@@ -8,8 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class PageGenerator{
     
-    public $admin_pages = array();
-    public $admin_subpages = array();
+    public $admin_pages = [];
+    public $admin_subpages = [];
     
     public function register(){
         if ( ! empty($this->admin_pages)){

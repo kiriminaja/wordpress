@@ -82,11 +82,11 @@ const navigateToPath = (pathId: string) => {
         : undefined
     "
   >
-    <UAlert
+    <UiAlert
       v-if="!isWooCommerceActive"
       title="WooCommerce Required"
       description="Please install and activate WooCommerce to use KiriminAja shipping integration."
-      color="amber"
+      color="warning"
       class="mb-4"
     />
 
@@ -97,12 +97,12 @@ const navigateToPath = (pathId: string) => {
       <UiCard
         v-for="item in menuItems"
         :key="item.id"
-        class="cursor-pointer hover:shadow"
+        class="cursor-pointer hover:shadow-lg"
         @click="navigateToPath(item.id)"
       >
         <div class="flex items-start gap-4">
           <div
-            class="flex items-start justify-center p-2 bg-primary/10 text-primary rounded-full shrink-0"
+            class="flex items-start justify-center p-2 button rounded-full! shrink-0"
           >
             <Icon :icon="item.icon" class="w-6 h-6" />
           </div>
@@ -130,11 +130,11 @@ const navigateToPath = (pathId: string) => {
 
       <component v-else-if="currentPage?.page" :is="currentPage.page" />
 
-      <UAlert
+      <UiAlert
         v-else
         title="Page Not Found"
         description="The requested page could not be loaded."
-        color="red"
+        color="error"
       />
     </div>
   </Page>

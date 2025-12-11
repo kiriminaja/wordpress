@@ -13,20 +13,20 @@ class Admin extends BaseInit{
     public function register(){
         /** add pages*/
         
-        $subPages =[];
+        $subPages =[
+            [
+                'parent_slug'=>'kiriminaja',
+                'page_title'=>'Transactions',
+                'menu_title'=>'Transactions'. $this->transaction_count(),
+                'capability'=>'manage_options',
+                'menu_slug'=>'kaj-transactions',
+                'callback'=> function(){
+                    require_once $this->plugin_path.'templates/vite.render.php';
+                }
+            ]
+        ];
         if(KJ_CHECK_WOOCOMMERCE()){
-            $subPages = [
-                [
-                    'parent_slug'=>'kiriminaja',
-                    'page_title'=>'KiriminAja Transaction Process',
-                    'menu_title'=>'Transactions'. $this->transaction_count(),
-                    'capability'=>'manage_options',
-                    'menu_slug'=>'kaj-transactions',
-                    'callback'=> function(){
-                        require_once $this->plugin_path.'templates/vite.render.php';
-                    }
-                ],
-                [
+            $subPages[] = [
                     'parent_slug'=>'kiriminaja',
                     'page_title'=>'Payments',
                     'menu_title'=>'Payments',
@@ -35,17 +35,17 @@ class Admin extends BaseInit{
                     'callback'=> function() {
                         require_once $this->plugin_path.'templates/vite.render.php';
                     }
-                ],
-                [
-                    'parent_slug'=>'kiriminaja',
-                    'page_title'=>'Tracking',
-                    'menu_title'=>'Tracking',
-                    'capability'=>'manage_options',
-                    'menu_slug'=>'kaj-tracking',
-                    'callback'=> function() {
-                        require_once $this->plugin_path.'templates/vite.render.php';
-                    }
-                ]
+            ];
+            
+            $subPages[] = [
+                'parent_slug'=>'kiriminaja',
+                'page_title'=>'Tracking',
+                'menu_title'=>'Tracking',
+                'capability'=>'manage_options',
+                'menu_slug'=>'kaj-tracking',
+                'callback'=> function() {
+                    require_once $this->plugin_path.'templates/vite.render.php';
+                }
             ];
         }
 
@@ -84,6 +84,16 @@ class Admin extends BaseInit{
             $settings_link = '<a href="admin.php?page=kiriminaja">Settings</a>';
             array_push($links,$settings_link);
             return $links;
+        });
+
+        add_action('wp_dashboard_setup', function(){
+            wp_add_dashboard_widget(
+                'kaj_dashboard_widget',
+                'KiriminAja Setup',
+                function(){
+                    require_once $this->plugin_path.'templates/vite.render.php';
+                }
+            );
         });
     }
 

@@ -14,8 +14,12 @@ export default defineConfig({
     vue(),
     tailwind(),
     Components({
-      dts: true,
+      dts: "frontend/src/admin/components.d.ts",
+      deep: true,
+      dirs: ["frontend/src/admin/components"],
       resolvers: [RekaResolver()],
+      directoryAsNamespace: true,
+      collapseSamePrefixes: true, // optional
     }),
   ],
 

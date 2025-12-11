@@ -2,12 +2,12 @@
 import UiCard from "./card.vue";
 </script>
 <template>
-  <UiCard>
+  <UiCard body-class="p-0">
     <template #header> Row Header </template>
-    <div class="divide-y divide-default">
+    <div class="divide-y divide-outlineVariant">
       <div class="flex gap-1 py-2 px-2.5 font-semibold items-center">
         <div class="flex-1 flex gap-1.5 items-center">
-          <UCheckbox />
+          <UiCheckbox />
           Order / Transaction
         </div>
         <div class="flex-1">Expedition & Service</div>
@@ -21,7 +21,7 @@ import UiCard from "./card.vue";
         class="flex gap-1 py-2 px-2.5 items-center"
       >
         <div class="flex-1 flex gap-1.5 items-center">
-          <UCheckbox />
+          <UiCheckbox />
           <div class="grow">
             <a href="#">#11100</a>
             <div>Yanuar Yanuar</div>
@@ -43,7 +43,7 @@ import UiCard from "./card.vue";
           <div>Insurance: 30000</div>
         </div>
         <div class="flex-1 text-end">
-          <UButton color="neutral" variant="outline" icon="i-lucide-eye" />
+          <UiButton color="secondary" icon="lucide:eye" />
         </div>
       </div>
     </div>

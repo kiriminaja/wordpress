@@ -90,10 +90,6 @@
   }
 }
 
-#wpcontent {
-  @apply pl-0;
-}
-
 #wpbody {
   @apply mt-0;
 }
@@ -109,5 +105,24 @@
 @layer components {
   button {
     @apply cursor-pointer;
+  }
+  .progress-wrapper {
+    @apply inline-flex! pt-1.5! items-center gap-1;
+  }
+  .progress-wrapper svg {
+    @apply translate-y-[-3px];
+  }
+}
+
+@layer base {
+  img,
+  svg,
+  video,
+  canvas,
+  audio,
+  iframe,
+  embed,
+  object {
+    @apply inline;
   }
 }

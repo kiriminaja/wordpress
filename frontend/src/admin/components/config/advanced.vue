@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useAppFetch } from "@/admin/composables/useAppFetch";
-import Card from "@/admin/components/ui/card.vue";
 import { useToast } from "@/admin/composables/useToast";
 
 interface AdvancedSettings {
@@ -81,11 +80,11 @@ const simulateToast = () => {
 <template>
   <div>
     <!-- Success/Error Messages -->
-    <UAlert
+    <UiAlert
       v-if="message"
       :title="message.type === 'success' ? 'Success' : 'Error'"
       :description="message.text"
-      :color="message.type === 'success' ? 'green' : 'red'"
+      :color="message.type === 'success' ? 'success' : 'error'"
       class="mb-4"
     />
 
@@ -105,11 +104,11 @@ const simulateToast = () => {
     </div>
 
     <!-- Advanced Settings Content -->
-    <Card v-else>
+    <UiCard v-else>
       CONFIG
-      <UForm class="space-y-4">
-        <UFormField label="Callback URL" name="callback_url">
-          <UInput
+      <UiForm class="space-y-4">
+        <UiFormField label="Callback URL" name="callback_url">
+          <UiInput
             id="callback_url"
             v-model="settings.callback_url"
             type="url"
@@ -119,12 +118,12 @@ const simulateToast = () => {
           <template #help>
             Webhook URL for status updates from KiriminAja
           </template>
-        </UFormField>
+        </UiFormField>
 
-        <UButton :loading="saving" :disabled="saving" @click="saveSettings">
+        <UiButton :loading="saving" :disabled="saving" @click="saveSettings">
           Save Settings
-        </UButton>
-      </UForm>
-    </Card>
+        </UiButton>
+      </UiForm>
+    </UiCard>
   </div>
 </template>
