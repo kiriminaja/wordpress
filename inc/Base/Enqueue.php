@@ -67,8 +67,6 @@ class Enqueue extends BaseInit{
 
 
 
-        /** QR CODE */
-        wp_enqueue_script('qrcode', $this->plugin_url.'assets/admin/js/qrcode.min.js', array(), KJ_PLUGIN_VERSION, true);
         /** print */
         wp_enqueue_style('printCss', $this->plugin_url.'assets/admin/css/print.min.css', array(), KJ_PLUGIN_VERSION);
         wp_enqueue_script('printJs', $this->plugin_url.'assets/admin/js/print.min.js', array(), KJ_PLUGIN_VERSION, true);
