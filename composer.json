@@ -12,6 +12,6 @@
     }
   ],
   "require": {
-    "picqer/php-barcode-generator": "^2.4.2"
+    "picqer/php-barcode-generator": "^3.2.3"
   }
 }
