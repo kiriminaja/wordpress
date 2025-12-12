@@ -94,6 +94,10 @@
   @apply hidden;
 }
 
+a.wp-first-item[href="admin.php?page=kiriminaja"] {
+  @apply hidden!;
+}
+
 @layer components {
   button {
     @apply cursor-pointer;
