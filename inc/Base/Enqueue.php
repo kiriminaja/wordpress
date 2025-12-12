@@ -160,8 +160,7 @@ class Enqueue extends BaseInit{
         wp_enqueue_style('kj'.'wc_1', $this->plugin_url.'assets/admin/css/kj-wc-style/3538.style.css', array(), KJ_VERSION_PLUGIN);
         wp_enqueue_style('kj'.'wc_2', $this->plugin_url.'assets/admin/css/kj-wc-style/5502.style.css', array(), KJ_VERSION_PLUGIN);
         wp_enqueue_style('kj'.'wc_3', $this->plugin_url.'assets/admin/css/kj-wc-style/8597.style.css', array(), KJ_VERSION_PLUGIN);
-        /** QR CODE */
-        wp_enqueue_script('qrcode', $this->plugin_url.'assets/admin/js/qrcode.min.js', array(), KJ_VERSION_PLUGIN, true);
+
         /** print */
         wp_enqueue_style('printCss', $this->plugin_url.'assets/admin/css/print.min.css', array(), KJ_VERSION_PLUGIN);
         wp_enqueue_script('printJs', $this->plugin_url.'assets/admin/js/print.min.js', array(), KJ_VERSION_PLUGIN, true);

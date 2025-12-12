@@ -57,6 +57,8 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 == Changelog ==
 = 2.0.21 =
 * Comply wordpress.org namespace
+= 2.0.12 =
+* Fixing critical issues on generating qr content
 = 2.0.11 =
 * Implement discount on request pickup.
 = 2.0.10 =

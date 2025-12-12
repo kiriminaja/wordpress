@@ -284,13 +284,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 <!--Table Search-->
+<script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.9.2/lib/qr-code-styling.min.js"></script>
 <script type="text/javascript">
     function applySearch (key,value){
         if (jQuery(`#table-form [name="${key}"]`).length > 0){
             jQuery(`#table-form [name="${key}"]`).val(value)
             jQuery(`#table-form`).trigger('submit')
         }
-    }
+    }    
 </script>
 <!--Request Pickup Detail-->
 <script type="text/javascript">
@@ -568,16 +569,24 @@ if ( ! defined( 'ABSPATH' ) ) {
                 jQuery('#payment-modal #trx-expired-at').text(responseData?.expired_at)
                 jQuery('#payment-modal .trx-pay-amount').text(kjMoneyFormat(responseData?.sum_fee_non_cod,'Rp'))
 
-                var qrcode = new QRCode(document.getElementById("paymentQR"), {
-                    text: responseData?.payment_data?.qr_content,
+                var qrcode = new QRCodeStyling({
+                    data: responseData?.payment_data?.qr_content,
                     width: 256,
                     height: 256,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
+                    dotsOptions: {
+                        color: "#000000",
+                        type: "rounded"
+                    },
+                    backgroundOptions: {
+                        color: "transparent",
+                    },
+                    imageOptions: {
+                        crossOrigin: "anonymous",
+                        margin: 20
+                    }
                 });
 
-
+                qrcode.append(document.getElementById("paymentQR"));
             },
             error: function (xhr, status, error) {
                 modalElemLoader.addClass('kj-hidden')
