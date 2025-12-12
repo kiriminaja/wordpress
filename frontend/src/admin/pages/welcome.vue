@@ -5,7 +5,7 @@
       You're almost there! Once you complete store setup you can start
       delivering through KiriminAja for your customer.
     </p>
-    <UiButton href="/wp-admin/admin.php?page=kiriminaja"
+    <UiButton href="/wp-admin/admin.php?page=kaj-transactions"
       >Start Deliver</UiButton
     >
   </div>

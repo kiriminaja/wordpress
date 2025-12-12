@@ -118,7 +118,7 @@ onMounted(() => {
       <slot name="actions" />
     </div>
   </div>
-  <div class="pb-3 pt-16">
+  <div class="pb-3">
     <slot />
     <div class="text-center mt-3">
       Version: | © 2025 PT Selalu Siap Solusi. All rights reserved.

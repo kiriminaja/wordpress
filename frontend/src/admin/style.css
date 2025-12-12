@@ -90,16 +90,8 @@
   }
 }
 
-#wpbody {
-  @apply mt-0;
-}
-
 .update-nag {
   @apply hidden;
-}
-
-.toplevel_page_kiriminaja .wp-first-item {
-  @apply hidden!;
 }
 
 @layer components {

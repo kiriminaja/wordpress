@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, useTemplateRef, type HTMLAttributes } from "vue";
 import { useVModel } from "@vueuse/core";
-import {
-  BASE_CLASS,
-  BASE_INVALID_CLASS,
-  inputMaskingConfiguration,
-} from "./variants";
+import { inputMaskingConfiguration } from "./variants";
 import { cn } from "@/utils/tailwind";
 import { emojiRegex } from "@/utils/emojiRegex";
 
@@ -133,9 +129,7 @@ defineExpose({
     ref="textInputRef"
     v-model="maskedValue"
     :inputmode="props.inputmode"
-    :class="
-      cn(BASE_CLASS, props.invalid ? BASE_INVALID_CLASS : '', props.class)
-    "
+    :class="cn(props.class)"
     :data-invalid="props.invalid"
     :maxlength="props.maxLength"
     @keypress="onKeyPress"
