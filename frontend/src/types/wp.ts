@@ -1,4 +1,3 @@
-
 // AUTO-GENERATED FILE — DO NOT EDIT - Run "bun run generate:ajax" to regenerate, need to commit this file
 export type WpAjaxAction =
   | "getDestinationArea"
@@ -41,6 +40,14 @@ export type WpAdminPage =
   | "kaj-settings"
   | "kaj-tracking"
   | "kaj-transactions"
-  | "kiriminaja";
+  | "kiriminaja"
+  | "welcome";
 
-export const WP_ADMIN_PAGES: string[] = ["kaj-payment", "kaj-settings", "kaj-tracking", "kaj-transactions", "kiriminaja"] as const;
+export const WP_ADMIN_PAGES: string[] = [
+  "kaj-payment",
+  "kaj-settings",
+  "kaj-tracking",
+  "kaj-transactions",
+  "kiriminaja",
+  "welcome",
+] as const;

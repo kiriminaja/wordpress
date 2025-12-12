@@ -31,24 +31,46 @@ export const navigateToPage = (page: string, preserveParams = true) => {
  * @returns
  */
 export const handlePageClick = (callback?: (page: string) => void) => {
-  const parent = document.querySelector(".toplevel_page_kiriminaja");
+  // Try multiple possible selectors for the KiriminAja menu
+  const possibleSelectors = [
+    ".toplevel_page_kiriminaja",
+    "#toplevel_page_kiriminaja",
+    ".menu-top[id*='kiriminaja']",
+    "li[id*='kiriminaja']",
+  ];
 
-  if (!parent) return;
+  let parent: Element | null = null;
+
+  for (const selector of possibleSelectors) {
+    parent = document.querySelector(selector);
+    if (parent) break;
+  }
+
+  if (!parent) {
+    console.warn(
+      "KiriminAja menu parent element not found. Checked selectors:",
+      possibleSelectors
+    );
+    return;
+  }
 
   const subMenus = parent.getElementsByTagName("a");
 
-  // prevent default click behavior
+  // Add click handlers to menu links
   for (let i = 0; i < subMenus.length; i++) {
     subMenus[i].addEventListener("click", (e) => {
       const href = subMenus[i].getAttribute("href");
       if (href) {
-        e.preventDefault();
         const url = new URL(href, window.location.origin);
         const page = url.searchParams.get("page");
+
+        // Only prevent default and handle navigation for our known pages
         if (page && WP_ADMIN_PAGES.includes(page)) {
+          e.preventDefault();
           window.history.pushState({}, "", href);
           callback?.(page);
         }
+        // For unknown pages, let the browser handle navigation normally
       }
     });
   }
