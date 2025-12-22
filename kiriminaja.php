@@ -33,11 +33,6 @@ if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
 
 
 /** Helper functions */
-if ( ! function_exists( 'kiriof_generate_barcode' ) ) {
-    function kiriof_generate_barcode() {
-        return new \Picqer\Barcode\BarcodeGeneratorPNG();
-    }
-}
 if ( ! function_exists( 'kiriof_check_woocommerce' ) ) {
     function kiriof_check_woocommerce() {
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress hook
