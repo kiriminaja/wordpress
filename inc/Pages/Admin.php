@@ -27,7 +27,7 @@ class Admin extends BaseInit{
                 }
             ]
         ];
-        if(KJ_CHECK_WOOCOMMERCE()){
+        if( kiriof_check_woocommerce() ){
             $subPages = array_merge($subPages,[
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
@@ -77,12 +77,12 @@ class Admin extends BaseInit{
             array_push($links,$settings_link);
             return $links;
         });
-        add_action( 'admin_head', [$this,'kj_add_transaction_status_count']);
+        add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
     }
-    function kj_add_transaction_status_count(){
+    function kiriof_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {
             global $submenu;
-            $transaction_count_new = kjHelper()->kjCountTransactionProcess();
+            $transaction_count_new = kiriof_helper()->kjCountTransactionProcess();
             if( (int) $transaction_count_new == 0) return;
             
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {

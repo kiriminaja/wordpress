@@ -55,7 +55,7 @@ class GetRequestPickupScheduleService extends BaseService {
     
     private function scheduleOptionFormatter($schedules){
         return array_map(function ($schedule){
-            $schedule->label = date('l, Y-m-d H:i',strtotime($schedule->clock));
+            $schedule->label = gmdate('l, Y-m-d H:i',strtotime($schedule->clock));
             return $schedule;
         },$schedules);
     }

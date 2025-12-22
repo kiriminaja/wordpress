@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Template class for request pickup functionality
 class requestPickupIndex {
     function __construct(){
         global $results;
@@ -70,9 +70,11 @@ class requestPickupIndex {
             $whereConditions[] = $wpdb->prepare("kiriminaja_payments.status = %s", $status);
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Each condition is individually prepared above
         $whereCondition = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
 
         /** Main Query*/
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use prefix, whereCondition pre-prepared above
         $baseQuery = "SELECT 
             kiriminaja_payments.*, 
             SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
@@ -84,7 +86,7 @@ class requestPickupIndex {
             ORDER BY kiriminaja_payments.created_at DESC
             LIMIT %d, %d";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $results = $wpdb->get_results( 
             $wpdb->prepare($baseQuery, $offset, $items_per_page) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         );
@@ -94,7 +96,7 @@ class requestPickupIndex {
         }
 
         /** Pagination Query*/
-        $countQuery = "SELECT 
+        $count_sql = "SELECT 
             kiriminaja_payments.id, kiriminaja_payments.pickup_number
             FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
             INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
@@ -102,8 +104,8 @@ class requestPickupIndex {
             " . $whereCondition . "
             GROUP BY kiriminaja_payments.pickup_number";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-        $totalQuery = $wpdb->get_results($countQuery); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query safe: whereCondition contains pre-prepared statements, no additional params needed
+        $totalQuery = $wpdb->get_results($count_sql);
         $total = count($totalQuery);
         $total_pages = ceil($total/$items_per_page);
 

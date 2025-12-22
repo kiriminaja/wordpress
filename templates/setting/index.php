@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class settingIndex {
+class kiriof_settingIndex {
     function __construct(){
         global $approvedSetupKey;
         global $inputValueArr;
@@ -63,7 +63,7 @@ class settingIndex {
 }
 
 
-new settingIndex();
+new kiriof_settingIndex();
 
 
 

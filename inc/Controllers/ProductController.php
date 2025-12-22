@@ -29,17 +29,17 @@ class ProductController{
 
     public function kj_custom_field_shipping_product(){
         global $post;
-        include_once KJ_DIR .'templates/product/general-wc-tab-setting.php'; 
+        include_once KIRIOF_DIR .'templates/product/general-wc-tab-setting.php'; 
     }
 
     public function kj_editproduct_nonce() {
-        wp_nonce_field(KJ_NONCE, 'kj_product_nonce_field');
+        wp_nonce_field( KIRIOF_NONCE, 'kj_product_nonce_field' );
     }
 
     public function kj_save_product_custom_fields($post_id){
        
         // Check for nonce security      
-        if ( isset($_POST['kj_product_nonce_field']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['kj_product_nonce_field'])), KJ_NONCE ) ) {
+        if ( isset($_POST['kj_product_nonce_field']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['kj_product_nonce_field'])), KIRIOF_NONCE ) ) {
             return; // Exit if nonce is not valid
         }
 

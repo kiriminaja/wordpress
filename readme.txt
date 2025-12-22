@@ -4,7 +4,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,31 @@ KiriminAja is a platform that makes it easy to send packages and find expedition
 * With the services and innovations offered, KiriminAja is committed to contributing to the Indonesian economy, by providing solutions and convenience for online business people so that their business continues to grow.
 
 This plugin is perfect for eCommerce store owners looking for a hassle-free shipping solution.
+
+== External Services ==
+
+This plugin connects to KiriminAja API services to provide shipping functionality for your WooCommerce store.
+
+**KiriminAja API**
+* Service: https://client.kiriminaja.com
+* Purpose: Process shipping rates, create shipments, track packages, and manage pickup requests
+* Data sent: Shipping addresses, package dimensions and weight, order details, customer information
+* When: Every time shipping rates are calculated, when shipments are created, and when tracking packages
+* Terms of Service: https://kiriminaja.com/terms
+* Privacy Policy: https://kiriminaja.com/privacy
+
+**KiriminAja Static Assets CDN**
+* Service: https://kiriminaja-static-file.imgix.net
+* Purpose: Display courier logos and shipping-related images
+* Data sent: None (static image requests only)
+* When: When displaying shipping options and courier information in your store
+
+**Print.js Library**
+* This plugin includes Print.js (https://github.com/crabbly/Print.js) for printing shipping labels
+* Source code: https://github.com/crabbly/Print.js
+* License: MIT
+
+By using this plugin, you acknowledge that your store will communicate with KiriminAja's servers to provide shipping services. Please review KiriminAja's terms of service and privacy policy before using this plugin.
 
 == Installation ==
 
@@ -55,8 +80,22 @@ Yes, you can define rules based on weight, destination, or order total.
 Currently, this plugin only supports domestic shipping within Indonesia.
 
 == Changelog ==
+= 2.1.1 =
+* Security improvements: Fixed nonce verification patterns to fail early
+* Security improvements: Fixed SQL injection vulnerability in SettingRepository
+* Security improvements: Improved input sanitization and output escaping
+* Bundled Select2 library locally (no longer loads from CDN)
+* Fixed AJAX endpoint URL generation to use WordPress functions
+* Replaced file_get_contents with WordPress HTTP API
+* Removed PHP session usage
+* Added proper documentation for external services
+* Updated plugin prefix to meet WordPress.org requirements
+* General code quality improvements and WordPress coding standards compliance
+
 = 2.1.0 =
 * Comply wordpress.org namespace
+= 2.0.13 =
+* Fixing critical issues on plugin update process.
 = 2.0.12 =
 * Fixing critical issues on generating qr content
 = 2.0.11 =

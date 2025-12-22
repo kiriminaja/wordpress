@@ -7,10 +7,6 @@ namespace Composer\Autoload;
 class ComposerStaticInit2a92e45b83ec7e30f57a385046aa0f5c
 {
     public static $prefixLengthsPsr4 = array (
-        'P' => 
-        array (
-            'Picqer\\Barcode\\' => 15,
-        ),
         'K' => 
         array (
             'KiriminAjaOfficial\\' => 19,
@@ -18,10 +14,6 @@ class ComposerStaticInit2a92e45b83ec7e30f57a385046aa0f5c
     );
 
     public static $prefixDirsPsr4 = array (
-        'Picqer\\Barcode\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/picqer/php-barcode-generator/src',
-        ),
         'KiriminAjaOfficial\\' => 
         array (
             0 => __DIR__ . '/../..' . '/inc',

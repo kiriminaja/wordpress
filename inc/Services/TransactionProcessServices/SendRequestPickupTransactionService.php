@@ -27,7 +27,7 @@ class SendRequestPickupTransactionService extends BaseService
     private function helper()
     {
         if ($this->helperCache === null) {
-            $this->helperCache = kjHelper();
+            $this->helperCache = kiriof_helper();
         }
         return $this->helperCache;
     }

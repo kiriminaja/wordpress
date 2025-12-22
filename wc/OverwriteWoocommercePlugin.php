@@ -26,6 +26,7 @@ add_filter( 'woocommerce_locate_template', 'kj_override_woocommerce_template', 1
  * @param  string $name     Template file name.
  * @return string           Return the template part from plugin.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kj_override_woocommerce_template_part( $template, $slug, $name ) {
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/templates/woocommerce/
@@ -45,6 +46,7 @@ function kj_override_woocommerce_template_part( $template, $slug, $name ) {
  * @param  string $template_path Template file directory file path.
  * @return string                Return the template file from plugin.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kj_override_woocommerce_template( $template, $template_name, $template_path ) {
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/woocommerce/

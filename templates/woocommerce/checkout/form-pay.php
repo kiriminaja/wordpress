@@ -31,7 +31,9 @@ $totals = $order->get_order_item_totals(); // phpcs:ignore WordPress.WP.GlobalVa
 		</thead>
 		<tbody>
 			<?php if ( count( $order->get_items() ) > 0 ) : ?>
-				<?php foreach ( $order->get_items() as $item_id => $item ) : ?>
+				<?php
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variables
+				foreach ( $order->get_items() as $item_id => $item ) : ?>
 					<?php
 					if ( ! apply_filters( 'woocommerce_order_item_visible', true, $item ) ) {
 						continue;
@@ -57,7 +59,9 @@ $totals = $order->get_order_item_totals(); // phpcs:ignore WordPress.WP.GlobalVa
 		</tbody>
 		<tfoot>
 			<?php if ( $totals ) : ?>
-				<?php foreach ( $totals as $total ) : ?>
+				<?php
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variable
+				foreach ( $totals as $total ) : ?>
 					<tr>
 						<th scope="row" colspan="2"><?php echo $total['label']; ?></th><?php // @codingStandardsIgnoreLine ?>
 						<td class="product-total"><?php echo $total['value']; ?></td><?php // @codingStandardsIgnoreLine ?>
@@ -81,6 +85,7 @@ $totals = $order->get_order_item_totals(); // phpcs:ignore WordPress.WP.GlobalVa
 			<ul class="wc_payment_methods payment_methods methods">
 				<?php
 				if ( ! empty( $available_gateways ) ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variable
 					foreach ( $available_gateways as $gateway ) {
 						wc_get_template( 'checkout/payment-method.php', array( 'gateway' => $gateway ) );
 					}

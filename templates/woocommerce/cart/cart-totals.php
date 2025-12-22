@@ -13,6 +13,8 @@
  * @see     https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
  * @version 2.3.6
+ *
+ * phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -33,7 +35,9 @@ defined( 'ABSPATH' ) || exit;
 			<td style="border-top: 1px solid var(--ast-border-color) !important;" data-title="<?php esc_attr_e( 'Subtotal', 'kiriminaja-official' ); ?>"><?php wc_cart_totals_subtotal_html(); ?></td>
 		</tr>
 
-		<?php foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
+	<?php
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variables
+	foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
 			<tr class="cart-discount coupon-<?php echo esc_attr( sanitize_title( $code ) ); ?>">
 				<th><?php wc_cart_totals_coupon_label( $coupon ); ?></th>
 				<td data-title="<?php echo esc_attr( wc_cart_totals_coupon_label( $coupon, false ) ); ?>"><?php wc_cart_totals_coupon_html( $coupon ); ?></td>
@@ -61,7 +65,9 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php endif; ?>
 
-		<?php foreach ( WC()->cart->get_fees() as $fee ) : ?>
+	<?php
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variable
+	foreach ( WC()->cart->get_fees() as $fee ) : ?>
 			<tr class="fee">
 				<th><?php echo esc_html( $fee->name ); ?></th>
 				<td data-title="<?php echo esc_attr( $fee->name ); ?>"><?php wc_cart_totals_fee_html( $fee ); ?></td>
@@ -70,9 +76,8 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php
 		if ( wc_tax_enabled() && ! WC()->cart->display_prices_including_tax() ) {
-			$taxable_address = WC()->customer->get_taxable_address();
-			$estimated_text  = '';
-
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables	$taxable_address = WC()->customer->get_taxable_address();
+	$estimated_text  = '';
 			if ( WC()->customer->is_customer_outside_base() && ! WC()->customer->has_calculated_shipping() ) {
 				/* translators: %s location. */
 				$estimated_text = sprintf( ' <small>' . esc_html__( '(estimated for %s)', 'kiriminaja-official' ) . '</small>', WC()->countries->estimated_for_prefix( $taxable_address[0] ) . WC()->countries->countries[ $taxable_address[0] ] );

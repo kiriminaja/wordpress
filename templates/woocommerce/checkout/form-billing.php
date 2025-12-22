@@ -33,8 +33,10 @@ defined( 'ABSPATH' ) || exit;
 
 	<div class="woocommerce-billing-fields__field-wrapper">
 		<?php
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
 		$fields = $checkout->get_checkout_fields( 'billing' );
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variables
 		foreach ( $fields as $key => $field ) {
 			woocommerce_form_field( $key, $field, $checkout->get_value( $key ) );
 		}
@@ -61,7 +63,9 @@ defined( 'ABSPATH' ) || exit;
 		<?php if ( $checkout->get_checkout_fields( 'account' ) ) : ?>
 
 			<div class="create-account">
-				<?php foreach ( $checkout->get_checkout_fields( 'account' ) as $key => $field ) : ?>
+				<?php
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variables
+				foreach ( $checkout->get_checkout_fields( 'account' ) as $key => $field ) : ?>
 					<?php woocommerce_form_field( $key, $field, $checkout->get_value( $key ) ); ?>
 				<?php endforeach; ?>
 				<div class="clear"></div>

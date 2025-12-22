@@ -176,13 +176,44 @@ class SettingRepository{
         }
         return $query;
     }
-    public function getSettingByArray($array){
+    public function getSettingByArray( $array ) {
         global $wpdb;
-        $keywords_imploded = implode("','",$array);
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('$keywords_imploded')" );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+
+        if ( empty( $array ) || ! is_array( $array ) ) {
+            return [];
+        }
+
+        $keys = array_values( array_unique( array_filter( array_map( 'sanitize_key', $array ) ) ) );
+        if ( empty( $keys ) ) {
+            return [];
+        }
+
+        $max_keys = 10;
+        $keys     = array_slice( $keys, 0, $max_keys );
+        $keys     = array_pad( $keys, $max_keys, '' );
+
+        [ $k1, $k2, $k3, $k4, $k5, $k6, $k7, $k8, $k9, $k10 ] = $keys;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $query = $wpdb->get_results(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table name uses wpdb prefix; identifier placeholders (%i) require WP 6.2+
+                "SELECT * FROM {$this->table} WHERE `key` IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                $k1,
+                $k2,
+                $k3,
+                $k4,
+                $k5,
+                $k6,
+                $k7,
+                $k8,
+                $k9,
+                $k10
+            )
+        );
+        
+        if ( strlen( $wpdb->last_error ?? '' ) > 0 ) {
+            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( $wpdb->last_error );
             return false;
         }
         return $query;

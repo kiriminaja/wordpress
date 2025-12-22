@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class EditOrderController{
-    private $nonce = KJ_NONCE ;
+    private $nonce = KIRIOF_NONCE ;
     public function register(){
         add_action( 'woocommerce_admin_order_totals_after_total', array($this,'addKjOrderDetail'));
         add_filter( 'wc_order_is_editable', array($this,'kj_custom_order_status_editable'), 9999, 2 );
@@ -20,7 +20,7 @@ class EditOrderController{
         $trackingUrl = esc_url( home_url().'/tracking?order_id='.$order);
         $kjOrderData = wp_json_encode($service->data);
     
-        include_once KJ_DIR .'/templates/order/edit.php';
+        include_once KIRIOF_DIR .'/templates/order/edit.php';
     
     }
     public function kj_custom_order_status_editable($allow_edit, $order){
@@ -31,10 +31,9 @@ class EditOrderController{
     }
     
     public function kj_getExpeditionByPricing(){
-        
-        
-        if ( !isset($_POST['nonce']) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] )), $this->nonce ) ) {
-            die( esc_html__( 'Security check', 'kiriminaja-official' ) ); 
+        // Check for nonce security - fail early
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), $this->nonce ) ) {
+            wp_die( esc_html__( 'Security check failed', 'kiriminaja-official' ) );
         }
         $post = $_POST;
         $order_id       = (int) $post['order_id'];
@@ -82,7 +81,7 @@ class EditOrderController{
             if (!$is_cod || $is_cod && $option->cod){
                 $filteredOptions[] = [
                     'key'=>$option->service.'_'.$option->service_type,
-                    'value'=>$option->service_name.' (Rp'.(localMoneyFormat($option->cost)).')',
+                    'value'=>$option->service_name.' (Rp'.(kiriof_money_format($option->cost)).')',
                     'cost'=>$option->cost
                 ];    
             }

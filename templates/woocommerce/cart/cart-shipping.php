@@ -19,23 +19,24 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$formatted_destination    = isset( $formatted_destination ) ? $formatted_destination : WC()->countries->get_formatted_address( $package['destination'], ', ' );
-$has_calculated_shipping  = ! empty( $has_calculated_shipping );
-$show_shipping_calculator = ! empty( $show_shipping_calculator );
-$calculator_text          = '';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
+$kiriof_formatted_destination    = isset( $kiriof_formatted_destination ) ? $kiriof_formatted_destination : WC()->countries->get_formatted_address( $package['destination'], ', ' );
+$kiriof_has_calculated_shipping  = ! empty( $kiriof_has_calculated_shipping );
+$kiriof_show_shipping_calculator = ! empty( $kiriof_show_shipping_calculator );
+$kiriof_calculator_text          = '';
 ?>
 <tr class="woocommerce-shipping-totals shipping">
 	<th><?php echo wp_kses_post( $package_name ); ?></th>
 	<td data-title="<?php echo esc_attr( $package_name ); ?>">
 		<?php
-        if ( ! $has_calculated_shipping || ! $formatted_destination ){
+        if ( ! $kiriof_has_calculated_shipping || ! $kiriof_formatted_destination ){
 			if ( is_cart() && 'no' === get_option( 'woocommerce_enable_shipping_calc' ) ) {
 				echo wp_kses_post( apply_filters( 'woocommerce_shipping_not_enabled_on_cart_html', __( 'Shipping costs are calculated during checkout.', 'kiriminaja-official' ) ) );
 			} else {
 				echo wp_kses_post( apply_filters( 'woocommerce_shipping_may_be_available_html', '' ) );
 			}
 		}else {
-			$calculator_text = esc_html__( 'Enter a different address', 'kiriminaja-official' );
+			$kiriof_calculator_text = esc_html__( 'Enter a different address', 'kiriminaja-official' );
 		}
 		?>
 
@@ -43,14 +44,16 @@ $calculator_text          = '';
 			<?php echo '<p class="woocommerce-shipping-contents"><small>' . esc_html( $package_details ) . '</small></p>'; ?>
 		<?php endif; ?>
 
-		<?php if ( $show_shipping_calculator ) : ?>
-			<?php woocommerce_shipping_calculator( $calculator_text ); ?>
+		<?php if ( $kirifo_show_shipping_calculator ) : ?>
+			<?php woocommerce_shipping_calculator( $kiriof_calculator_text ); ?>
 		<?php endif; ?>
 
         <?php 
 		if ( ! empty( $available_methods ) && is_array( $available_methods ) ) : ?>
 			<ul id="shipping_method" class="woocommerce-shipping-methods">
-				<?php foreach ( $available_methods as $method ) : ?>
+				<?php
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variable
+				foreach ( $available_methods as $method ) : ?>
 					<li>
 						<?php
 						if ( 1 < count( $available_methods ) ) {
@@ -70,10 +73,10 @@ $calculator_text          = '';
 			<?php if ( is_cart() ) : ?>
 				<p class="woocommerce-shipping-destination" style="display:none;">
 					<?php
-					if ( $formatted_destination ) {
+					if ( $kiriof_formatted_destination ) {
 						// Translators: $s shipping destination.
-						printf( esc_html__( 'Shipping to %s.', 'kiriminaja-official' ) . ' ', '<strong>' . esc_html( $formatted_destination ) . '</strong>' );
-						$calculator_text = esc_html__( 'Change address', 'kiriminaja-official' );
+						printf( esc_html__( 'Shipping to %s.', 'kiriminaja-official' ) . ' ', '<strong>' . esc_html( $kiriof_formatted_destination ) . '</strong>' );
+						$kiriof_calculator_text = esc_html__( 'Change address', 'kiriminaja-official' );
 					} else {
 						echo wp_kses_post( apply_filters( 'woocommerce_shipping_estimate_html', __( 'Shipping options will be updated during checkout.', 'kiriminaja-official' ) ) );
 					}

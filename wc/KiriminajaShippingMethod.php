@@ -10,8 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Admin Setting
  */
 add_action('woocommerce_shipping_init', 'kj_shippingMethod',99);
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce action callback
 function kj_shippingMethod(){
     if (!class_exists('ShippingMethodController')) {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- WooCommerce shipping method class
         class ShippingMethodController extends WC_Shipping_Method
         {
             public function __construct(){
@@ -150,12 +152,14 @@ function kj_shippingMethod(){
 
 
 add_filter('woocommerce_shipping_methods', 'kj_addShippingMethod');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kj_addShippingMethod($methods){
     $methods[] =  'ShippingMethodController';
     return $methods;
 }
 
 add_filter( 'woocommerce_add_to_cart_validation', 'kj_add_the_date_validation', 10, 5 );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kj_add_the_date_validation( $passed, $product_id ) { 
     
     $product = wc_get_product( $product_id );

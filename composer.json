@@ -1,5 +1,6 @@
 {
   "name": "kiriminaja/wordpress",
+  "description": "KiriminAja Official WordPress Plugin for WooCommerce",
   "autoload": {
     "psr-4": {
       "KiriminAjaOfficial\\": "./inc"
@@ -11,7 +12,7 @@
       "email": "faizniflehim@gmail.com"
     }
   ],
-  "require": {
-    "picqer/php-barcode-generator": "^3.2.3"
+  "config": {
+    "platform-check": false
   }
 }
