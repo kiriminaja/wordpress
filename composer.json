@@ -12,10 +12,6 @@
       "email": "faizniflehim@gmail.com"
     }
   ],
-  "require": {
-    "php": ">=7.4",
-    "picqer/php-barcode-generator": "^2.4"
-  },
   "config": {
     "platform-check": false
   }
