@@ -179,16 +179,15 @@ class SettingRepository{
     public function getSettingByArray( $array ) {
         global $wpdb;
         
-        // Create placeholders for each item in array
+        $table_name = sanitize_text_field($this->table);
         $placeholders = implode( ', ', array_fill( 0, count( $array ), '%s' ) );
         
-        // Prepare the query with placeholders
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $wpdb->get_results( 
-            $wpdb->prepare( 
-                "SELECT * FROM {$this->table} WHERE `key` IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $array 
-            ) 
+            $wpdb->prepare(
+                "SELECT * FROM `$table_name` WHERE `key` IN ($placeholders)",
+                ...$array
+            )
         );
         
         if ( strlen( $wpdb->last_error ?? '' ) > 0 ) {

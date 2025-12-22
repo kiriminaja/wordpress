@@ -33,8 +33,10 @@ defined( 'ABSPATH' ) || exit;
 
 			<div class="woocommerce-shipping-fields__field-wrapper">
 				<?php
-				$fields = $checkout->get_checkout_fields( 'shipping' );
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
+			$fields = $checkout->get_checkout_fields( 'shipping' );
 
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variables
 				foreach ( $fields as $key => $field ) {
 					woocommerce_form_field( $key, $field, $checkout->get_value( $key ) );
 				}
@@ -59,7 +61,9 @@ defined( 'ABSPATH' ) || exit;
 		<?php endif; ?>
 
 		<div class="woocommerce-additional-fields__field-wrapper">
-			<?php foreach ( $checkout->get_checkout_fields( 'order' ) as $key => $field ) : ?>
+			<?php
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variables
+			foreach ( $checkout->get_checkout_fields( 'order' ) as $key => $field ) : ?>
 				<?php woocommerce_form_field( $key, $field, $checkout->get_value( $key ) ); ?>
 			<?php endforeach; ?>
 		</div>

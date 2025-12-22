@@ -68,6 +68,7 @@ class CheckoutController
     function kj_shipping_method_update() {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
         if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
             $shipping_methods = array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) );
             WC()->session->set( 'chosen_shipping_methods', $shipping_methods );
         } else {

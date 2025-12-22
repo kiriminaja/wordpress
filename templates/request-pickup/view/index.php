@@ -53,9 +53,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
                                                         <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ; // @codingStandardsIgnoreLine ?>>All Dates</option>
                                                         <?php
-                                                        if (@$monthOptions && count($monthOptions)>0){
-                                                            foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
+                                                        if (@$monthOptions && count($monthOptions)>0){                                              foreach ($monthOptions as $kiriof_key => $kiriof_value){
+                                                                echo '<option value="'.esc_html($kiriof_key).'" '.(@$_GET['month']===$kiriof_key ? "selected" : "").'>'.esc_html($kiriof_value).'</option>'; // @codingStandardsIgnoreLine
                                                             }                                                            
                                                         }
                                                         ?>
@@ -101,20 +100,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <tbody id="the-list">
                                         <?php
                                         if (@$results&&count($results)>0){
-                                            
-                                            foreach($results as $id => $row){
-                                                $btnGroup='';
+                                            foreach($results as $id => $kiriof_row){
+                                                $kiriof_btnGroup='';
 
 
-                                                $statusContent= '
+                                                $kiriof_statusContent= '
                                                     <div class="kj-badge success">
                                                         <span>Paid</span>
                                                     </div>
                                                 ';
-                                                if (@$row->status!=="paid"){
-                                                    if (strtotime(@$row->pickup_schedule)>strtotime("now")){
-                                                        $btnGroup.='
-                                                        <button class="button-wp" type="button" onclick="showPaymentForm(`'.@$row->pickup_number.'`)">
+                                                if (@$kiriof_row->status!=="paid"){
+                                                    if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
+                                                        $kiriof_btnGroup.='
+                                                        <button class="button-wp" type="button" onclick="showPaymentForm(`'.@$kiriof_row->pickup_number.'`)">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -126,8 +124,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                             </button>
                                                         ';                                                        
                                                     }else{
-                                                        $btnGroup.= '
-                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(`'.@$row->pickup_number.'`)">
+                                                        $kiriof_btnGroup.= '
+                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(`'.@$kiriof_row->pickup_number.'`)">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <span>Reschedule</span>
@@ -138,14 +136,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     }
 
                                                     
-                                                    $statusContent= '
+                                                    $kiriof_statusContent= '
                                                         <div class="kj-badge warning">
                                                             <span>Waiting For Payment</span>
                                                         </div>
                                                     ';
                                                 }
-                                                $btnGroup.='
-                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(`'.@$row->pickup_number.'`)">
+                                                $kiriof_btnGroup.='
+                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(`'.@$kiriof_row->pickup_number.'`)">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                        <span>Details</span>
@@ -154,7 +152,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                             </button>
                                                 ';
 
-                                                $allowed_html = [
+                                                $kiriof_allowed_html = [
                                                     'button' => [
                                                         'class' => [],
                                                         'type' => [],
@@ -166,7 +164,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     'span' => [],
                                                 ];
 
-                                                $allowed_status_content = [
+                                                $kiriof_allowed_status_content = [
                                                     'div' => [
                                                         'class' => []
                                                     ],
@@ -179,22 +177,22 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 <tr class="">
                                                     <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="font-weight: 700">'.esc_html($row->pickup_number).'</div>
-                                                        <div style="font-size: 12px;">Requested: '.esc_html(gmdate('Y/m/d H:i',strtotime($row->created_at))).'</div>
+                                                        <div style="font-weight: 700">'.esc_html($kiriof_row->pickup_number).'</div>
+                                                        <div style="font-size: 12px;">Requested: '.esc_html(gmdate('Y/m/d H:i',strtotime($kiriof_row->created_at))).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($kiriof_row->pickup_schedule))).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="font-weight: 700">Rp. '.esc_html(kiriof_money_format($row->cost ?? 0)).'</div>
+                                                        <div style="font-weight: 700">Rp. '.esc_html(kiriof_money_format($kiriof_row->cost ?? 0)).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html($row->order_amt).' Order</td>
-                                                    <td class="manage-column column-thumb">'.wp_kses($statusContent, $allowed_status_content).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html($kiriof_row->order_amt).' Order</td>
+                                                    <td class="manage-column column-thumb">'.wp_kses($kiriof_statusContent, $kiriof_allowed_status_content).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">'.wp_kses($btnGroup, $allowed_html).'</div>
+                                                        <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">'.wp_kses($kiriof_btnGroup, $kiriof_allowed_html).'</div>
                                                     </td>
                                                 </tr>
                                                 ';
-                                            }
-                                        }else{
+                                                }
+                                            } else {
                                             echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kiriof_helper()->tlThis('Not Found',@$locale)).'</td></tr>';
                                         }
                                         ?>
@@ -222,8 +220,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : "") ;// @codingStandardsIgnoreLine ?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions)>0){
-                                                            foreach ($monthOptions as $key => $value){
-                                                                echo '<option value="'.esc_html($key).'" '.(@$_GET['month']===$key ? "selected" : "").'>'.esc_html($value).'</option>'; // @codingStandardsIgnoreLine
+                                                            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template loop variables
+                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value){
+                                                                echo '<option value="'.esc_html($kiriof_key).'" '.(@$_GET['month']===$kiriof_key ? "selected" : "").'>'.esc_html($kiriof_value).'</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -442,10 +441,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                     if (feeContentArr.length===0){
                         feeContentArr.push('-');
                     }
-                    let btnGroup = ``;
+                    let kiriof_btnGroup = ``;
                     if (transaction?.awb){
                         transactionIdList.push(transaction?.order_id);
-                        btnGroup += `<button class="button-wp p-relative" type="button">
+                        kiriof_btnGroup += `<button class="button-wp p-relative" type="button">
                                         <a href="${printResiUrl}" target="_blank" class="inset-absolute"></a>
                                         <div style="display: flex">
                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -461,7 +460,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     </button>`;
 
                     }
-                    btnGroup += `<button class="button-wp-secondary p-relative" type="button">
+                    kiriof_btnGroup += `<button class="button-wp-secondary p-relative" type="button">
                                         <a href="${transactionUrl}" target="_blank" class="inset-absolute"></a>
                                         <div style="display: flex">
                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -505,7 +504,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             </td>
                             <td class="manage-column column-thumb">
                                 <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">
-                                `+btnGroup+`
+                                `+kiriof_btnGroup+`
                                 </div>
                             </td>
                         </tr>

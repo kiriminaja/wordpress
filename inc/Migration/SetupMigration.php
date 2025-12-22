@@ -126,22 +126,22 @@ class SetupMigration {
             $columns = $wpdb->get_col("DESCRIBE $table_name", 0);
             // Add 'canceled_at' column if it doesn't exist
             if (!in_array('canceled_at', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE $table_name ADD canceled_at timestamp NULL DEFAULT NULL");
             }
             // Ensure 'status' column has the correct enum values
             if (in_array('status', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
             }
             // Add 'discount_amount' column if it doesn't exist
             if (!in_array('discount_amount', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE $table_name ADD discount_amount double DEFAULT NULL");
             }
             // Add 'discount_percentage' column if it doesn't exist
             if (!in_array('discount_percentage', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE $table_name ADD discount_percentage double DEFAULT NULL");
             }
             

@@ -5,10 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Cache frequently used values
-$helper = kjHelper();
-$homeUrl = home_url();
-$adminUrl = $homeUrl . '/wp-admin';
-$nonce = wp_create_nonce(KJ_NONCE);
+$kiriof_helper = kiriof_helper();
+$kiriof_homeUrl = home_url();
+$kiriof_kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
+$kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 ?>
 <div class="kj-wrapper kj-wrap">
     <div class="wrap ">
@@ -63,13 +63,13 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                     </div>
                                                     <div class="row-divider" style="margin-top: .5rem"></div>
                                                     <div style="font-weight: 500;">
-                                                        - <?php echo esc_html($helper->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.', $locale)); ?>
+                                                        - <?php echo esc_html($kiriof_helper->tlThis('Recent transaction / order with <u>processing</u> status may not shown here immidiately. If this happen please wait for 30 seconds and refresh the page.', $locale)); ?>
                                                         <br>
-                                                        - <?php echo esc_html($helper->tlThis('Only transaction / order with billing region is Indonesia can be shown here.', $locale)); ?>
+                                                        - <?php echo esc_html($kiriof_helper->tlThis('Only transaction / order with billing region is Indonesia can be shown here.', $locale)); ?>
                                                         <br>
-                                                        - <?php echo esc_html($helper->tlThis('Only transaction / order which has not been request pickuped can be shown here.', $locale)); ?>
+                                                        - <?php echo esc_html($kiriof_helper->tlThis('Only transaction / order which has not been request pickuped can be shown here.', $locale)); ?>
                                                         <br>
-                                                        - <?php echo esc_html($helper->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.', $locale)); ?>
+                                                        - <?php echo esc_html($kiriof_helper->tlThis('Only transaction / order which created when KiriminAja plugin is installed and activated can appear here.', $locale)); ?>
                                                     </div>
                                                 </div>
                                             </div>
@@ -87,8 +87,8 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                                                                 ?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions) > 0) {
-                                                            foreach ($monthOptions as $key => $value) {
-                                                                echo '<option value="' . esc_attr($key) . '" ' . (isset($_GET['month']) ? esc_html($_GET['month']) === $key ? "selected" : "" : "") . '>' . esc_html($value) . '</option>'; // @codingStandardsIgnoreLine
+                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value) {
+                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . (isset($_GET['month']) ? esc_html($_GET['month']) === $kiriof_key ? "selected" : "" : "") . '>' . esc_html($kiriof_value) . '</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -126,12 +126,12 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                 <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
                                                 </th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Order', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Date', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Status', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Billing', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Ship To', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kjHelper()->tlThis('Total', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Order', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Date', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Status', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Billing', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Ship To', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Total', $locale)); ?></th>
                                             </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -139,65 +139,65 @@ $nonce = wp_create_nonce(KJ_NONCE);
 
                                             <?php
                                             if (!empty($results)) {
-                                                foreach ($results as $id => $row) {
-                                                    $shippingData = json_decode($row->shipping_info ?? '{}');
+                                                foreach ($results as $id => $kiriof_row) {
+                                                    $kiriof_shippingData = json_decode($kiriof_row->shipping_info ?? '{}');
                                                     
                                                     // Calculate shipping fee
-                                                    $shippingCost = (float) ($row->shipping_cost ?? 0);
-                                                    $insuranceCost = (float) ($row->insurance_cost ?? 0);
-                                                    $discountAmount = (float) ($row->discount_amount ?? 0);
-                                                    $codFee = (float) ($row->cod_fee ?? 0);
-                                                    $transactionValue = (float) ($row->transaction_value ?? 0);
+                                                    $kiriof_shippingCost = (float) ($kiriof_row->shipping_cost ?? 0);
+                                                    $kiriof_insuranceCost = (float) ($kiriof_row->insurance_cost ?? 0);
+                                                    $kiriof_discountAmount = (float) ($kiriof_row->discount_amount ?? 0);
+                                                    $kiriof_codFee = (float) ($kiriof_row->cod_fee ?? 0);
+                                                    $kiriof_transactionValue = (float) ($kiriof_row->transaction_value ?? 0);
                                                     
-                                                    $shippingFee = ($shippingCost + $insuranceCost) - $discountAmount;
-                                                    if ($codFee > 0) {
-                                                        $shippingFee += $transactionValue + $codFee;
+                                                    $kiriof_shippingFee = ($kiriof_shippingCost + $kiriof_insuranceCost) - $kiriof_discountAmount;
+                                                    if ($kiriof_codFee > 0) {
+                                                        $kiriof_shippingFee += $kiriof_transactionValue + $kiriof_codFee;
                                                     }
                                                     
                                                     // Cache shipping data properties
-                                                    $billingFirstName = $shippingData->_billing_first_name ?? '';
-                                                    $billingLastName = $shippingData->_billing_last_name ?? '';
-                                                    $billingAddress1 = $shippingData->_billing_address_1 ?? '';
-                                                    $billingAddress2 = $shippingData->_billing_address_2 ?? '';
-                                                    $billingPostcode = $shippingData->_billing_postcode ?? '';
-                                                    $shippingFirstName = $shippingData->_shipping_first_name ?? $billingFirstName;
-                                                    $shippingLastName = $shippingData->_shipping_last_name ?? $billingLastName;
-                                                    $shippingAddress1 = $shippingData->_shipping_address_1 ?? $billingAddress1;
-                                                    $shippingAddress2 = $shippingData->_shipping_address_2 ?? $billingAddress2;
-                                                    $shippingPostcode = $shippingData->_shipping_postcode ?? $billingPostcode;
-                                                    $destinationSubDistrict = $row->destination_sub_district ?? '';
-                                                    $paymentMethod = $shippingData->_payment_method ?? '';
-                                                    $isCod = $paymentMethod === 'cod';
-                                                    $paymentLabel = $isCod ? 'COD' : 'NON COD';
+                                                    $kiriof_billingFirstName = $kiriof_shippingData->_billing_first_name ?? '';
+                                                    $kiriof_billingLastName = $kiriof_shippingData->_billing_last_name ?? '';
+                                                    $kiriof_billingAddress1 = $kiriof_shippingData->_billing_address_1 ?? '';
+                                                    $kiriof_billingAddress2 = $kiriof_shippingData->_billing_address_2 ?? '';
+                                                    $kiriof_billingPostcode = $kiriof_shippingData->_billing_postcode ?? '';
+                                                    $kiriof_shippingFirstName = $kiriof_shippingData->_shipping_first_name ?? $kiriof_billingFirstName;
+                                                    $kiriof_shippingLastName = $kiriof_shippingData->_shipping_last_name ?? $kiriof_billingLastName;
+                                                    $kiriof_shippingAddress1 = $kiriof_shippingData->_shipping_address_1 ?? $kiriof_billingAddress1;
+                                                    $kiriof_shippingAddress2 = $kiriof_shippingData->_shipping_address_2 ?? $kiriof_billingAddress2;
+                                                    $kiriof_shippingPostcode = $kiriof_shippingData->_shipping_postcode ?? $kiriof_billingPostcode;
+                                                    $kiriof_destinationSubDistrict = $kiriof_row->destination_sub_district ?? '';
+                                                    $kiriof_paymentMethod = $kiriof_shippingData->_payment_method ?? '';
+                                                    $kiriof_isCod = $kiriof_paymentMethod === 'cod';
+                                                    $kiriof_paymentLabel = $kiriof_isCod ? 'COD' : 'NON COD';
                                                     
                                                     // Build URLs
-                                                    $orderEditUrl = $adminUrl . '/post.php?post=' . esc_attr($row->wc_order_id) . '&action=edit';
-                                                    $orderDate = gmdate('M d, Y', strtotime($row->wc_date_created));
-                                                    $statusLabel = $helper->transactionStatusLabel($row->status);
-                                                    $serviceName = strtoupper($row->service);
-                                                    $statusUpper = strtoupper($row->status);
+                                                    $kiriof_orderEditUrl = $kiriof_adminUrl . '/post.php?post=' . esc_attr($kiriof_row->wc_order_id) . '&action=edit';
+                                                    $kiriof_orderDate = gmdate('M d, Y', strtotime($kiriof_row->wc_date_created));
+                                                    $kiriof_statusLabel = $kiriof_helper->transactionStatusLabel($kiriof_row->status);
+                                                    $kiriof_serviceName = strtoupper($kiriof_row->service);
+                                                    $kiriof_statusUpper = strtoupper($kiriof_row->status);
                                                     
                                                     echo '
                                                       <tr class="">
                                                         <td class="manage-column column-thumb">
-                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($row->order_id) . '">
+                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_row->order_id) . '">
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                        <a href="' . esc_url($orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($row->wc_order_id) . ' ' . esc_html($billingFirstName) . ' ' . esc_html($billingLastName) . ' </a>
+                                                        <a href="' . esc_url($kiriof_orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($kiriof_row->wc_order_id) . ' ' . esc_html($kiriof_billingFirstName) . ' ' . esc_html($kiriof_billingLastName) . ' </a>
                                                         </td>
-                                                        <td class="manage-column column-thumb">' . esc_html($orderDate) . '</td>
+                                                        <td class="manage-column column-thumb">' . esc_html($kiriof_orderDate) . '</td>
                                                         <td class="manage-column column-thumb">
-                                                        <span class="kj-badge processing">' . esc_html($statusLabel) . '</span>
+                                                        <span class="kj-badge processing">' . esc_html($kiriof_statusLabel) . '</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>' . esc_html(trim($billingFirstName . ' ' . $billingLastName . ', ' . $billingAddress1 . ', ' . $billingAddress2 . ', ' . $destinationSubDistrict . ', ' . $billingPostcode)) . '</div>
+                                                            <div>' . esc_html(trim($kiriof_billingFirstName . ' ' . $kiriof_billingLastName . ', ' . $kiriof_billingAddress1 . ', ' . $kiriof_billingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $billingPostcode)) . '</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
-                                                            <div>via ' . esc_html($paymentLabel) . '</div>
+                                                            <div>via ' . esc_html($kiriof_paymentLabel) . '</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`' . esc_js($row->wc_order_id) . '`)">' . esc_html(trim($shippingFirstName . ' ' . $shippingLastName . ', ' . $shippingAddress1 . ', ' . $shippingAddress2 . ', ' . $destinationSubDistrict . ', ' . $shippingPostcode)) . '</div>
+                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`' . esc_js($kiriof_row->wc_order_id) . '`)">' . esc_html(trim($shippingFirstName . ' ' . $shippingLastName . ', ' . $shippingAddress1 . ', ' . $shippingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $shippingPostcode)) . '</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
-                                                            <div>via ' . esc_html($serviceName) . '</div>
+                                                            <div>via ' . esc_html($kiriof_serviceName) . '</div>
                                                             <div style="position: relative; margin-top: .1rem"></div>
                                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -205,17 +205,17 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                                 <path d="M5.3998 5.40005V1.80005H1.7998V5.40005H5.3998ZM10.1998 5.40005V1.80005H6.5998V5.40005H10.1998ZM5.3998 10.2V6.60005H1.7998V10.2H5.3998ZM10.1998 10.2V6.60005H6.5998V10.2H10.1998Z" fill="black"/>
                                                                 </g>
                                                                 </svg>
-                                                                <span style="margin-left: .5rem">' . esc_html($statusUpper) . '</span>
+                                                                <span style="margin-left: .5rem">' . esc_html($kiriof_statusUpper) . '</span>
                                                             </div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <p style="font-weight: 600">(' . esc_html($paymentLabel) . ') Rp' . esc_html(localMoneyFormat($shippingFee)) . '</p>
+                                                            <p style="font-weight: 600">(' . esc_html($kiriof_paymentLabel) . ') Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</p>
                                                         </td>
                                                     </tr>
                                                     ';
                                                 }
                                             } else {
-                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html($helper->tlThis('Not Found', $locale)) . '</td></tr>';
+                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html($kiriof_helper->tlThis('Not Found', $locale)) . '</td></tr>';
                                             }
                                             ?>
 
@@ -225,12 +225,12 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                 <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
                                                 </th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Order', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Date', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Status', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Billing', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Ship To', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($helper->tlThis('Total', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Order', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Date', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Status', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Billing', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Ship To', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Total', $locale)); ?></th>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -246,8 +246,8 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                                                                                 ?>>All Dates</option>
                                                         <?php
                                                         if (@$monthOptions && count($monthOptions) > 0) {
-                                                            foreach ($monthOptions as $key => $value) {
-                                                                echo '<option value="' . esc_attr($key) . '" ' . (@$_GET['month'] === $key ? "selected" : "") . '>' . esc_html($value) . '</option>'; // @codingStandardsIgnoreLine
+                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value) {
+                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . (@$_GET['month'] === $kiriof_key ? "selected" : "") . '>' . esc_html($kiriof_value) . '</option>'; // @codingStandardsIgnoreLine
                                                             }
                                                         }
                                                         ?>
@@ -266,7 +266,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KJ_VERSION_PLUGIN); ?></p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KIRIOF_VERSION); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -346,7 +346,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                 action: "kj_request_pickup_schedule",
                 data: {
                     order_ids: orderIds,
-                    nonce: "<?php echo esc_js($nonce); ?>"
+                    nonce: "<?php echo esc_js($kiriof_nonce); ?>"
                 }
             },
             complete: function(response) {
@@ -429,7 +429,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                 data: {
                     schedule: $('[name="schedule-opt"]:checked').val(),
                     order_ids: orderIds,
-                    nonce: "<?php echo esc_js($nonce); ?>"
+                    nonce: "<?php echo esc_js($kiriof_nonce); ?>"
                 }
             },
             complete: function(response) {
@@ -445,7 +445,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                     return;
                 }
 
-                window.location.href = `<?php echo esc_url($adminUrl); ?>/admin.php?page=kiriminaja-request-pickup&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url($kiriof_adminUrl); ?>/admin.php?page=kiriminaja-request-pickup&pickup_number=${resp?.data?.pickup_number}`;
             }
         });
     };
@@ -478,7 +478,7 @@ $nonce = wp_create_nonce(KJ_NONCE);
                 action: "kj_transaction-detail-summary",
                 data: {
                     wc_order_id: wcOrderId,
-                    nonce: "<?php echo esc_js($nonce); ?>"
+                    nonce: "<?php echo esc_js($kiriof_nonce); ?>"
                 }
             },
             complete: function(response) {

@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div>
                             <div id="schedule-opt-list" style="overflow: auto; max-height: 30vh; font-weight: 600">
                                 <?php
-                                for ($i=0;$i<=10;$i++){
+                                for ($kiriof_i=0;$kiriof_i<=10;$kiriof_i++){
                                     echo '
                                 <div style="margin-bottom: .75rem">
                                     <div style="display: flex">

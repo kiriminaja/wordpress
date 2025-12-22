@@ -5,23 +5,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-class TransactionProcessIndex
+class Kiriof_TransactionProcessIndex
 {
     function __construct()
     {
-        global $results, $page, $items_per_page, $total_pages, $next_page_link, $prev_page_link, $monthOptions, $locale;
+        global $kiriof_results, $page, $items_per_page, $total_pages, $next_page_link, $prev_page_link, $monthOptions, $locale;
 
         /** WP Setting language */
         $locale = get_locale();
 
         /** Page Query */
         $pageQuery = $this->pageQuery();
-        $results = $pageQuery['results'];
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$results', [$results]);
+        $kiriof_results = $pageQuery['results'];
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriof_results', [$kiriof_results]);
 
         /** Month Options */
-        $monthOptions = $this->getTransactionsDateFilterOptionArray();
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$monthOptions', [$monthOptions]);
+        $kiriof_monthOptions = $this->getTransactionsDateFilterOptionArray();
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriof_monthOptions', [$kiriof_monthOptions]);
 
         /** Return vars and view */
         include 'view/index.php';
@@ -63,7 +63,7 @@ class TransactionProcessIndex
         $where_clause = implode(' AND ', $query_parts);
 
         /** Main Query - Single prepare() call for efficiency and compliance */
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $where_clause contains only safe SQL fragments with %s placeholders, actual values are safely bound via ...$prepare_values
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT 
@@ -111,4 +111,4 @@ class TransactionProcessIndex
     }
 }
 
-new TransactionProcessIndex();
+new Kiriof_TransactionProcessIndex();

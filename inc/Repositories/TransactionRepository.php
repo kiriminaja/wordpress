@@ -74,21 +74,23 @@ class TransactionRepository{
     }
     
     public function getTransactionByWCOrderNumberForTracking($wp_wc_order_stat_order_id){
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$wp_wc_order_stat_order_id', [$wp_wc_order_stat_order_id]);
-        
-        // Build table names outside prepare() for cleaner code
-        $wc_stats_table = $this->wpdb->prefix . 'wc_order_stats';
-        $posts_table = $this->wpdb->prefix . 'posts';
+        $wp_wc_order_stat_order_id = absint( $wp_wc_order_stat_order_id );
+        if ( 0 === $wp_wc_order_stat_order_id ) {
+            return false;
+        }
+
+        $transactions_table = esc_sql( $this->table );
+        $wc_stats_table     = esc_sql( $this->wpdb->prefix . 'wc_order_stats' );
+        $posts_table        = esc_sql( $this->wpdb->posts );
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $this->wpdb->get_row(
             $this->wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT 
                     t.*, 
                     w.date_paid as wc_date_paid,
                     p.post_status as wc_post_status
-                FROM {$this->table} t
+                FROM {$transactions_table} t
                 INNER JOIN {$wc_stats_table} w ON t.wp_wc_order_stat_order_id = w.order_id
                 INNER JOIN {$posts_table} p ON w.order_id = p.ID
                 WHERE t.wp_wc_order_stat_order_id = %d AND p.post_status != %s

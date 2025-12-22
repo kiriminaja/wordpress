@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Template class for request pickup functionality
 class requestPickupIndex {
     function __construct(){
         global $results;
@@ -96,8 +96,7 @@ class requestPickupIndex {
         }
 
         /** Pagination Query*/
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use prefix, whereCondition pre-prepared above
-        $countQuery = "SELECT 
+        $count_sql = "SELECT 
             kiriminaja_payments.id, kiriminaja_payments.pickup_number
             FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
             INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
@@ -105,8 +104,8 @@ class requestPickupIndex {
             " . $whereCondition . "
             GROUP BY kiriminaja_payments.pickup_number";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $totalQuery = $wpdb->get_results($countQuery); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query safe: whereCondition contains pre-prepared statements, no additional params needed
+        $totalQuery = $wpdb->get_results($count_sql);
         $total = count($totalQuery);
         $total_pages = ceil($total/$items_per_page);
 
