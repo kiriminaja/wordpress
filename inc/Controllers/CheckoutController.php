@@ -66,11 +66,12 @@ class CheckoutController
         }
     }
     function kj_shipping_method_update() {
-        if ( isset( $_POST['shipping_method'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-            WC()->session->set( 'chosen_shipping_methods',  null );
-            WC()->session->set( 'chosen_shipping_methods',  $_POST['shipping_method'] ); // phpcs:ignore WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash	
-        }else{
-            WC()->session->set( 'chosen_shipping_methods',  null );
+        // This is called during cart calculation, WooCommerce handles nonce
+        if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
+            $shipping_methods = array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) );
+            WC()->session->set( 'chosen_shipping_methods', $shipping_methods );
+        } else {
+            WC()->session->set( 'chosen_shipping_methods', null );
         }
     }
     function kj_filter_cart_needs_shipping( $needs_shipping ) {
@@ -213,15 +214,16 @@ class CheckoutController
                 $insurance_post = isset( $_POST['kj_shipping_insurance'] ) ? sanitize_text_field(wp_unslash($_POST['kj_shipping_insurance'])) : '';
                 $destination_area = isset($_POST['kj_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kj_shipping_destination_area'])) : '';
             }
-            /** Store custom field value in session*/
-            session_start();
-            $kj_filter_methods = substr(sanitize_text_field(wp_unslash($_POST['shipping_method'][0])),11);//remove kiriminaja_
-            $_SESSION["kj_destination_area"]            = $destination_area;
-            $_SESSION["kj_destination_area_name"]       = $destinasi_name;
-            $_SESSION["kj_expedition"]                  = $kj_filter_methods;
-            $_SESSION["kj_checkout_token"]              = isset($_POST['kj_checkout_token']) ? sanitize_text_field(wp_unslash($_POST['kj_checkout_token'])) : '';
-            $_SESSION["billing_insurance"]              = isset($insurance_post) ? 1 : 0;
-            $_SESSION["payment_method"]                 = isset($_POST['payment_method']) ? sanitize_text_field(wp_unslash($_POST['payment_method'])) : '';
+            /** Store custom field value in WooCommerce session (not PHP session) */
+            $kj_filter_methods = substr( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ) ), 11 ); // remove kiriminaja_
+            
+            // Use WooCommerce session instead of PHP session
+            WC()->session->set( 'kj_destination_area', $destination_area );
+            WC()->session->set( 'kj_destination_area_name', $destinasi_name );
+            WC()->session->set( 'kj_expedition', $kj_filter_methods );
+            WC()->session->set( 'kj_checkout_token', isset( $_POST['kj_checkout_token'] ) ? sanitize_text_field( wp_unslash( $_POST['kj_checkout_token'] ) ) : '' );
+            WC()->session->set( 'billing_insurance', isset( $insurance_post ) ? 1 : 0 );
+            WC()->session->set( 'payment_method', isset( $_POST['payment_method'] ) ? sanitize_text_field( wp_unslash( $_POST['payment_method'] ) ) : '' );
             $_SESSION["force_insurance"]                = isset($_POST['kj_force_insurance']) ? intval( $_POST['kj_force_insurance'] ) : 0;
             /** 
              * save to custom order metadata 

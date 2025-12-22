@@ -31,10 +31,9 @@ class EditOrderController{
     }
     
     public function kj_getExpeditionByPricing(){
-        
-        
-        if ( !isset($_POST['nonce']) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] )), $this->nonce ) ) {
-            die( esc_html__( 'Security check', 'kiriminaja-official' ) ); 
+        // Check for nonce security - fail early
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), $this->nonce ) ) {
+            wp_die( esc_html__( 'Security check failed', 'kiriminaja-official' ) );
         }
         $post = $_POST;
         $order_id       = (int) $post['order_id'];

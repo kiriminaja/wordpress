@@ -23,11 +23,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_html($_GET['page'] ?? '');// @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="page" value="<?php echo esc_attr( isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '' ); ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_html(sanitize_text_field($_GET['key'] ?? '')); // @codingStandardsIgnoreLine ?>">
-                                    <input type="text" name="status" value="<?php echo esc_html(sanitize_text_field($_GET['status'] ?? '')); // @codingStandardsIgnoreLine ?>">
-                                    <input type="text" name="month" value="<?php echo esc_html(sanitize_text_field($_GET['month'] ?? '')); // @codingStandardsIgnoreLine ?>">
+                                    <input type="text" name="key" value="<?php echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' ); ?>">
+                                    <input type="text" name="status" value="<?php echo esc_attr( isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '' ); ?>">
+                                    <input type="text" name="month" value="<?php echo esc_attr( isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '' ); ?>">
                                 </form>
                                 
                                 

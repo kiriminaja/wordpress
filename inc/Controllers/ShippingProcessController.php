@@ -49,9 +49,9 @@ class ShippingProcessController
     function getShippingProcessDetail()
     {
         try {
-            // Check for nonce security      
-            if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
-                wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
             $payment_id = isset($_POST['data']['payment_id']) ?  sanitize_text_field(wp_unslash($_POST['data']['payment_id'])) : '';
@@ -115,11 +115,24 @@ class ShippingProcessController
                 exit;
             }
             $pdfUrl = $getAwbData['data']->data->url;
-            $pdfContent = @file_get_contents($pdfUrl);
-            if ($pdfContent === false) {
-                wp_redirect(home_url('/404'));
+            
+            // Use WordPress HTTP API instead of file_get_contents
+            $response = wp_remote_get( $pdfUrl, array(
+                'timeout' => 30,
+                'sslverify' => true,
+            ) );
+            
+            if ( is_wp_error( $response ) ) {
+                wp_redirect( home_url( '/404' ) );
                 exit;
             }
+            
+            $pdfContent = wp_remote_retrieve_body( $response );
+            if ( empty( $pdfContent ) ) {
+                wp_redirect( home_url( '/404' ) );
+                exit;
+            }
+            
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="print-resi-' . $filename . '.pdf"');
             header('Content-Length: ' . strlen($pdfContent));

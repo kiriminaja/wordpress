@@ -176,13 +176,23 @@ class SettingRepository{
         }
         return $query;
     }
-    public function getSettingByArray($array){
+    public function getSettingByArray( $array ) {
         global $wpdb;
-        $keywords_imploded = implode("','",$array);
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('$keywords_imploded')" );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        
+        // Create placeholders for each item in array
+        $placeholders = implode( ', ', array_fill( 0, count( $array ), '%s' ) );
+        
+        // Prepare the query with placeholders
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $query = $wpdb->get_results( 
+            $wpdb->prepare( 
+                "SELECT * FROM {$this->table} WHERE `key` IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $array 
+            ) 
+        );
+        
+        if ( strlen( $wpdb->last_error ?? '' ) > 0 ) {
+            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( $wpdb->last_error );
             return false;
         }
         return $query;
