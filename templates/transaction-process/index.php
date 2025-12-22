@@ -44,26 +44,24 @@ class Kiriof_TransactionProcessIndex
         
         $query_parts[] = 'posts.post_status != %s';
         $prepare_values[] = 'trash';
-        
-        // Dynamic filters
+
+        // Build optional filters as values, but keep SQL placeholders static.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
-        if (!empty(sanitize_text_field(wp_unslash($_GET['key'] ?? '')))) {
-            $key = sanitize_text_field(wp_unslash($_GET['key'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $query_parts[] = 'wc_order_stats.order_id LIKE %s';
-            $prepare_values[] = '%' . $wpdb->esc_like($key) . '%';
-        }
-        
+        $key = sanitize_text_field( wp_unslash( $_GET['key'] ?? '' ) );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
-        if (!empty(sanitize_text_field(wp_unslash($_GET['month'] ?? '')))) {
-            $month = sanitize_text_field(wp_unslash($_GET['month'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $query_parts[] = 'wc_order_stats.date_created LIKE %s';
-            $prepare_values[] = '%' . $wpdb->esc_like($month) . '%';
+        $month = sanitize_text_field( wp_unslash( $_GET['month'] ?? '' ) );
+
+        $key_like   = '';
+        $month_like = '';
+        if ( '' !== $key ) {
+            $key_like = '%' . $wpdb->esc_like( $key ) . '%';
         }
-        
-        $where_clause = implode(' AND ', $query_parts);
+        if ( '' !== $month ) {
+            $month_like = '%' . $wpdb->esc_like( $month ) . '%';
+        }
 
         /** Main Query - Single prepare() call for efficiency and compliance */
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $where_clause contains only safe SQL fragments with %s placeholders, actual values are safely bound via ...$prepare_values
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT 
@@ -77,10 +75,20 @@ class Kiriof_TransactionProcessIndex
                     ON wc_order_stats.order_id = kiriminaja_transactions.wp_wc_order_stat_order_id
                 INNER JOIN {$wpdb->prefix}posts as posts
                     ON wc_order_stats.order_id = posts.ID
-                WHERE {$where_clause}
+                WHERE wc_order_stats.status = %s
+                    AND kiriminaja_transactions.status = %s
+                    AND posts.post_status != %s
+                    AND ( %s = '' OR wc_order_stats.order_id LIKE %s )
+                    AND ( %s = '' OR wc_order_stats.date_created LIKE %s )
                 GROUP BY wc_order_stats.order_id
                 ORDER BY wc_order_stats.date_created DESC",
-                ...$prepare_values
+                'wc-processing',
+                'new',
+                'trash',
+                $key,
+                $key_like,
+                $month,
+                $month_like
             )
         );
 

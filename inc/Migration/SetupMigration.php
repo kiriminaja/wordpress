@@ -19,13 +19,14 @@ class SetupMigration {
     private function settingsTable(){
         global $wpdb;
         /** Settings Table*/
-        $table_name = $wpdb->prefix.'kiriminaja_settings'.$this->suffix;
+        $suffix     = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
+        $table_name = esc_sql( $wpdb->prefix . 'kiriminaja_settings' . $suffix );
         
         /** Only create table if not exist */
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
             //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $sql = "CREATE TABLE ".$table_name."(
+            $sql = "CREATE TABLE `" . $table_name . "`(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `key` varchar(255) NULL,
             `value` varchar(255) NULL,
@@ -38,7 +39,7 @@ class SetupMigration {
             $wpdb->query(
                 $wpdb->prepare(
                     // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                    "INSERT INTO $table_name (`key`, `value`) VALUES
+                    "INSERT INTO `$table_name` (`key`, `value`) VALUES
                     (%s, %s),
                     (%s, %s),
                     (%s, %s),
@@ -78,13 +79,14 @@ class SetupMigration {
     private function transactionsTable(){
         global $wpdb;
         /** Transactions Table*/
-        $table_name = $wpdb->prefix.'kiriminaja_transactions'.$this->suffix;
+        $suffix     = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
+        $table_name = esc_sql( $wpdb->prefix . 'kiriminaja_transactions' . $suffix );
         /** Only create table if not exist */
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
             
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $sql = "CREATE TABLE ".$table_name."(
+            $sql = "CREATE TABLE `" . $table_name . "`(
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
                 `order_id` varchar(100) DEFAULT NULL,
                 `shipping_info` text DEFAULT NULL,
@@ -123,26 +125,26 @@ class SetupMigration {
         }else{
              /** Alters*/
              // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching	
-            $columns = $wpdb->get_col("DESCRIBE $table_name", 0);
+            $columns = $wpdb->get_col("DESCRIBE `$table_name`", 0);
             // Add 'canceled_at' column if it doesn't exist
             if (!in_array('canceled_at', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
-                $wpdb->query("ALTER TABLE $table_name ADD canceled_at timestamp NULL DEFAULT NULL");
+                $wpdb->query("ALTER TABLE `$table_name` ADD canceled_at timestamp NULL DEFAULT NULL");
             }
             // Ensure 'status' column has the correct enum values
             if (in_array('status', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
-                $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
+                $wpdb->query("ALTER TABLE `$table_name` MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
             }
             // Add 'discount_amount' column if it doesn't exist
             if (!in_array('discount_amount', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
-                $wpdb->query("ALTER TABLE $table_name ADD discount_amount double DEFAULT NULL");
+                $wpdb->query("ALTER TABLE `$table_name` ADD discount_amount double DEFAULT NULL");
             }
             // Add 'discount_percentage' column if it doesn't exist
             if (!in_array('discount_percentage', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
-                $wpdb->query("ALTER TABLE $table_name ADD discount_percentage double DEFAULT NULL");
+                $wpdb->query("ALTER TABLE `$table_name` ADD discount_percentage double DEFAULT NULL");
             }
             
         }
@@ -152,13 +154,14 @@ class SetupMigration {
     private function paymentsTable(){
         global $wpdb;
         /** Payments Table*/
-        $table_name = $wpdb->prefix.'kiriminaja_payments'.$this->suffix;
+        $suffix     = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
+        $table_name = esc_sql( $wpdb->prefix . 'kiriminaja_payments' . $suffix );
         
         /** Only create table if not exist */
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if(!($wpdb->get_var( "show tables like '$table_name'" ) == $table_name)){
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $sql = "CREATE TABLE ".$table_name."(
+            $sql = "CREATE TABLE `" . $table_name . "`(
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `pickup_number` varchar(100) DEFAULT NULL,
             `status` enum('paid','unpaid') DEFAULT NULL,

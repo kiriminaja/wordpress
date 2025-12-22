@@ -178,15 +178,37 @@ class SettingRepository{
     }
     public function getSettingByArray( $array ) {
         global $wpdb;
-        
-        $table_name = sanitize_text_field($this->table);
-        $placeholders = implode( ', ', array_fill( 0, count( $array ), '%s' ) );
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $query = $wpdb->get_results( 
+
+        if ( empty( $array ) || ! is_array( $array ) ) {
+            return [];
+        }
+
+        $keys = array_values( array_unique( array_filter( array_map( 'sanitize_key', $array ) ) ) );
+        if ( empty( $keys ) ) {
+            return [];
+        }
+
+        $max_keys = 10;
+        $keys     = array_slice( $keys, 0, $max_keys );
+        $keys     = array_pad( $keys, $max_keys, '' );
+
+        [ $k1, $k2, $k3, $k4, $k5, $k6, $k7, $k8, $k9, $k10 ] = $keys;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $query = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM `$table_name` WHERE `key` IN ($placeholders)",
-                ...$array
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table name uses wpdb prefix; identifier placeholders (%i) require WP 6.2+
+                "SELECT * FROM {$this->table} WHERE `key` IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                $k1,
+                $k2,
+                $k3,
+                $k4,
+                $k5,
+                $k6,
+                $k7,
+                $k8,
+                $k9,
+                $k10
             )
         );
         

@@ -51,7 +51,7 @@ foreach ($transactions as $kiriof_index => $kiriof_transaction){
                     echo '<img src="' . esc_url('https://kiriminaja.com/assets/home/2.png') . '" height="25px" alt="">'; // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
                 '</td>
                  <td style="border-left: 0;text-align: right; font-size: 1rem; font-weight: 700; padding: .5rem">
-                     '.(esc_html($kiriof_transaction->cod_fee) > 0 ? 'COD Rp'. esc_html(localMoneyFormat($kiriof_transactionCost)) : 'NON-COD').'
+                     '.(esc_html($kiriof_transaction->cod_fee) > 0 ? 'COD Rp'. esc_html(kiriof_money_format($kiriof_transactionCost)) : 'NON-COD').'
                 </td>
             </tr>
             
@@ -73,7 +73,7 @@ foreach ($transactions as $kiriof_index => $kiriof_transaction){
                 </td>
                 <td style="border-left: 0;padding: .5rem; position: relative">
                     <div style="position: relative; text-align: center">
-                        <img src="data:image/png;base64,'.esc_html(base64_encode(KJ_GENERATE_BARCODE()->getBarcode(strtoupper(esc_html($kiriof_transaction?->awb)),KJ_GENERATE_BARCODE()::TYPE_CODE_128_A)) ).'" style="width: 95%;height: 30px" class="package-awb">'; // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
+                        <img src="data:image/png;base64,'.esc_html(base64_encode(kiriof_generate_barcode()->getBarcode(strtoupper(esc_html($kiriof_transaction?->awb)),kiriof_generate_barcode()::TYPE_CODE_128_A)) ).'" style="width: 95%;height: 30px" class="package-awb">'; // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
                         '<div style="text-align: center; font-weight: 700; margin-top: .5rem">'.esc_html($kiriof_transaction?->awb).'</div>
                     </div>
                 </td>
@@ -85,12 +85,12 @@ foreach ($transactions as $kiriof_index => $kiriof_transaction){
                         <div style="width: 30%;display: inline-block">
                             Asuransi
                             <br>
-                            <strong>'.(esc_html($kiriof_transaction->insurance_cost) > 0 ? 'Rp.'.esc_html( localMoneyFormat($kiriof_transaction->insurance_cost) ) : '-').'</strong>
+                            <strong>'.(esc_html($kiriof_transaction->insurance_cost) > 0 ? 'Rp.'.esc_html( kiriof_money_format($kiriof_transaction->insurance_cost) ) : '-').'</strong>
                         </div>
                          <div style="width: 30%;display: inline-block">
                             Berat
                             <br>
-                            <strong>'.(esc_html($kiriof_transaction->weight) > 0 ? esc_html(localMoneyFormat($kiriof_transaction->weight)).'gr' : '-').'</strong>        
+                            <strong>'.(esc_html($kiriof_transaction->weight) > 0 ? esc_html(kiriof_money_format($kiriof_transaction->weight)).'gr' : '-').'</strong>        
                         </div>
                          <div style="width: 30%;display: inline-block">
                             Quantity
