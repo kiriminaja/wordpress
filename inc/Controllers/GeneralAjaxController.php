@@ -21,7 +21,7 @@ class GeneralAjaxController{
     function kiriminajaSubdistrictSearch() {
         try {
             if ( isset($_POST['nonce']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['nonce']) ), KJ_NONCE) ) 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['nonce']) ), KIRIOF_NONCE) ) 
             {
                 // phpcs:ignore-start WordPress.Security.ValidatedSanitizedInput.MissingUnslash
                 $data = (isset($_POST['data']) && !empty($_POST['data'])) 
@@ -41,7 +41,7 @@ class GeneralAjaxController{
             }
             wp_die();
         
-        }catch (Throwable $e){
+        }catch (\Throwable $e){
             wp_send_json_success([]);
             wp_die();
         }

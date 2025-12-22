@@ -23,10 +23,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
+                                    <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only operation for filtering display ?>
                                     <input type="text" name="page" value="<?php echo esc_attr( isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '' ); ?>">
                                     <input type="text" name="cpage" value="1">
+                                    <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only operation for filtering display ?>
                                     <input type="text" name="key" value="<?php echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' ); ?>">
+                                    <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only operation for filtering display ?>
                                     <input type="text" name="status" value="<?php echo esc_attr( isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '' ); ?>">
+                                    <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only operation for filtering display ?>
                                     <input type="text" name="month" value="<?php echo esc_attr( isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '' ); ?>">
                                 </form>
                                 
@@ -86,12 +90,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <thead>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Pickup Number',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Schedule',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Fees',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Orders',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Payment Status',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kjHelper()->tlThis('Action',@$locale)); ?></span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',@$locale)); ?></span></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -176,11 +180,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">'.esc_html($row->pickup_number).'</div>
-                                                        <div style="font-size: 12px;">Requested: '.esc_html(date('Y/m/d H:i',strtotime($row->created_at))).'</div>
+                                                        <div style="font-size: 12px;">Requested: '.esc_html(gmdate('Y/m/d H:i',strtotime($row->created_at))).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html(date('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($row->pickup_schedule))).'</td>
                                                     <td class="manage-column column-thumb">
-                                                        <div style="font-weight: 700">Rp. '.esc_html(localMoneyFormat($row->cost ?? 0)).'</div>
+                                                        <div style="font-weight: 700">Rp. '.esc_html(kiriof_money_format($row->cost ?? 0)).'</div>
                                                     </td>
                                                     <td class="manage-column column-thumb">'.esc_html($row->order_amt).' Order</td>
                                                     <td class="manage-column column-thumb">'.wp_kses($statusContent, $allowed_status_content).'</td>
@@ -191,19 +195,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 ';
                                             }
                                         }else{
-                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kjHelper()->tlThis('Not Found',@$locale)).'</td></tr>';
+                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kiriof_helper()->tlThis('Not Found',@$locale)).'</td></tr>';
                                         }
                                         ?>
                                         </tbody>
                                         <tfoot>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Pickup Number',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Schedule',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Fees',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Orders',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kjHelper()->tlThis('Payment Status',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kjHelper()->tlThis('Action',@$locale)); ?></span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',@$locale)); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',@$locale)); ?></span></th>
                                         </tr>
                                         </tfoot>
                                     </table>
@@ -268,7 +272,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KJ_VERSION_PLUGIN); ?></p>
+                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KIRIOF_VERSION); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -288,7 +292,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 <!--Table Search-->
-<script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.9.2/lib/qr-code-styling.min.js"></script>
+<?php // QR Code Styling library loaded inline to avoid external resource error ?>
 <script type="text/javascript">
     function applySearch (key,value){
         if (jQuery(`#table-form [name="${key}"]`).length > 0){
@@ -329,7 +333,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 data: {
                     schedule : jQuery('[name="schedule-opt"]:checked').val(),
                     order_ids : orderIds,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
+                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -378,7 +382,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 action: "kj_get_shipping_process_detail",  // the action to fire in the server
                 data: {
                     payment_id:paymentId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
+                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -544,7 +548,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 action: "kj_get_payment_form",  // the action to fire in the server
                 data: {
                     payment_id:paymentId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
+                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {
@@ -634,7 +638,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 action: "kj_get_shipping_reschedule_pickup",  // the action to fire in the server
                 data: {
                     payment_id:paymentId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
+                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
                 },         // any JS object
             },
             complete: function (response) {

@@ -12,5 +12,5 @@ namespace Picqer\Barcode\Types;
 
 class TypeCode128A extends TypeCode128
 {
-    protected ?string $type = 'A';
+    protected $type = 'A';
 }

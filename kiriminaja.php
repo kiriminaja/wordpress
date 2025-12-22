@@ -40,6 +40,7 @@ if ( ! function_exists( 'kiriof_generate_barcode' ) ) {
 }
 if ( ! function_exists( 'kiriof_check_woocommerce' ) ) {
     function kiriof_check_woocommerce() {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress hook
         return in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ), true );
     }
 }
@@ -113,7 +114,7 @@ function kiriof_activate_plugin() {
     (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
     (new \KiriminAjaOfficial\Base\Activate())->activate();
     (new \KiriminAjaOfficial\Pages\AdminPost())->register();
-    deleteShippingZone();
+    kiriof_delete_shipping_zone();
 
 }
 /** Deactivation*/
@@ -159,6 +160,7 @@ $kiriof_woo_files = [
     'OverwriteWoocommercePlugin',
     'AdminWoocommerceSetting',
 ];
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Internal loop variable
 foreach ( $kiriof_woo_files as $namefile ) {
     include_once KIRIOF_DIR . '/wc/' . $namefile . '.php';
 }

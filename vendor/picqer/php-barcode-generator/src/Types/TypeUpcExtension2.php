@@ -14,9 +14,9 @@ use Picqer\Barcode\Helpers\BinarySequenceConverter;
 
 class TypeUpcExtension2 implements TypeInterface
 {
-    protected int $length = 2;
+    protected $length = 2;
 
-    public function getBarcode(string $code): Barcode
+    public function getBarcodeData(string $code): Barcode
     {
         $len = $this->length;
 

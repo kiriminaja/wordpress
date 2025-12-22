@@ -66,7 +66,7 @@ class CheckoutController
         }
     }
     function kj_shipping_method_update() {
-        // This is called during cart calculation, WooCommerce handles nonce
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
         if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
             $shipping_methods = array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) );
             WC()->session->set( 'chosen_shipping_methods', $shipping_methods );
@@ -103,7 +103,7 @@ class CheckoutController
         echo wp_kses_post( $table );
     }
     function kj_add_checkout_nonce_field(){
-        wp_nonce_field(KJ_NONCE, 'checkout_kiriminaja_nonce_field');
+        wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');
     }
     function custom_shipping_content() {
         echo '<tr class="shipping"><th>Custom Shipping</th><td>Nanti Custom Shipping Disini!</td></tr>';
@@ -127,7 +127,7 @@ class CheckoutController
         try {
              // Verifikasi Nonce
             if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) {
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) {
                 
                 $field_key = $this->field_destination_key;
                 
@@ -193,7 +193,7 @@ class CheckoutController
     function afterCheckoutBeforeCreated($order,$data ){
         /** if kj_field value is not exist or null then prevent*/
         if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
         {
             if (isset($_POST['shipping_method'][0]) && !empty($_POST['shipping_method'][0])) {
                 $shipping_method = sanitize_text_field(
@@ -273,7 +273,7 @@ class CheckoutController
          */
         try {
             if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
             {
             $service = (new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService([
                 'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'])) :'',
@@ -304,7 +304,7 @@ class CheckoutController
         
         try {
             if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
             {
                 $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
                     'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'] )) : '',
@@ -337,31 +337,31 @@ class CheckoutController
                 <table style="width: 100%; font-size: 1rem" class="woocommerce-table woocommerce-table--order-details shop_table order_details">            
                     <thead>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Order Number',$locale) ).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Order Number',$locale) ).'</th>
                             <th class="" style="text-align: right">'.esc_html($transaction->wp_wc_order_stat_order_id).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html(kjHelper()->tlThis('Date',$locale)).'</th>
+                            <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Date',$locale)).'</th>
                             <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( esc_html($transaction->created_at) ) ) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Payment Method',$locale) ).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Method',$locale) ).'</th>
                             <th class="" style="text-align: right">'.esc_html( $paymentMethod->meta_value ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html(kjHelper()->tlThis('Sub Total',$locale)).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( localMoneyFormat( esc_html($transaction->transaction_value) ) ).'</th>
+                            <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Sub Total',$locale)).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format( esc_html($transaction->transaction_value) ) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Shipping Fee',$locale) ).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( localMoneyFormat((esc_html($transaction->shipping_cost) ?? 0) + (esc_html($transaction->insurance_cost) ?? 0) + (esc_html($transaction->cod_fee) ?? 0)) ).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Shipping Fee',$locale) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format((esc_html($transaction->shipping_cost) ?? 0) + (esc_html($transaction->insurance_cost) ?? 0) + (esc_html($transaction->cod_fee) ?? 0)) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Payment Total',$locale) ).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( localMoneyFormat(( esc_html( $transaction->transaction_value ) ?? 0) + (esc_html( $transaction->shipping_cost ) ?? 0) + (esc_html( $transaction->insurance_cost ) ?? 0) + (esc_html( $transaction->cod_fee ) ?? 0)) ).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Total',$locale) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(( esc_html( $transaction->transaction_value ) ?? 0) + (esc_html( $transaction->shipping_cost ) ?? 0) + (esc_html( $transaction->insurance_cost ) ?? 0) + (esc_html( $transaction->cod_fee ) ?? 0)) ).'</th>
                         </tr>
                         <tr>
-                            <th class="" style="text-align: left">'.esc_html( kjHelper()->tlThis('Tracking',$locale) ).'</th>
+                            <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Tracking',$locale) ).'</th>
                             <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.esc_html($transaction->wp_wc_order_stat_order_id) ).'" target="_blank">CLICK</a></th>
                         </tr>
                     </thead>
@@ -416,7 +416,7 @@ class CheckoutController
         $packages = WC()->shipping->get_packages();
         
         if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
         {
             if( isset($_POST['billing_country']) ){
                 
@@ -549,7 +549,7 @@ class CheckoutController
      */
     public function kj_shipping_chosen_method($method, $available_methods) {
         if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KJ_NONCE) ) 
+            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
         {
             if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
                 return sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));

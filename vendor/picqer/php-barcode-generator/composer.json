@@ -7,18 +7,18 @@
     "license": "LGPL-3.0-or-later",
     "authors": [
         {
-            "name": "Casper Bakker",
-            "email": "info@picqer.com",
-            "homepage": "https://picqer.com"
-        },
-        {
             "name": "Nicola Asuni",
             "email": "info@tecnick.com",
             "homepage": "http://nicolaasuni.tecnick.com"
+        },
+        {
+            "name": "Casper Bakker",
+            "email": "info@picqer.com",
+            "homepage": "https://picqer.com"
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.1",
         "ext-mbstring": "*"
     },
     "require-dev": {

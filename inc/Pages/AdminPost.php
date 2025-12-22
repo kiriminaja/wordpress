@@ -13,7 +13,7 @@ use KiriminAjaOfficial\Controllers\ShippingMethodController;
 class AdminPost
 {
     public function register(){
-        if(KJ_CHECK_WOOCOMMERCE()){
+        if( kiriof_check_woocommerce() ){
             if( empty(self::checkPageExist('checkout')) ){
                 self::createPageKiriminaja();
             }else{

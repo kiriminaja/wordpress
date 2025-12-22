@@ -27,7 +27,7 @@ class ShippingProcessController
     function getShippingReschedulePickup()
     {
         // Check for nonce security      
-        if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
+        if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE)) {
             wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
             wp_die();
         }
@@ -68,7 +68,7 @@ class ShippingProcessController
     {
         try {
             // Check for nonce security      
-            if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KJ_NONCE)) {
+            if (isset($_POST['data']['nonce']) && ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE)) {
                 wp_send_json_error(['status' => 400, 'message' => wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
@@ -89,7 +89,7 @@ class ShippingProcessController
             $orderIdsParam = isset($_GET['oids']) ? sanitize_text_field(wp_unslash($_GET['oids'])) : '';
             $orderIds = array_unique(explode(',', $orderIdsParam) ?? []);
             if (count($orderIds) < 1) {
-                wp_redirect(home_url('/404'));
+                wp_safe_redirect(home_url('/404'));
                 exit;
             }
             $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
@@ -111,7 +111,7 @@ class ShippingProcessController
                 !isset($getAwbData['data']->data->url) ||
                 empty($getAwbData['data']->data->url)
             ) {
-                wp_redirect(home_url('/404'));
+                wp_safe_redirect(home_url('/404'));
                 exit;
             }
             $pdfUrl = $getAwbData['data']->data->url;
@@ -123,13 +123,13 @@ class ShippingProcessController
             ) );
             
             if ( is_wp_error( $response ) ) {
-                wp_redirect( home_url( '/404' ) );
+                wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
             
             $pdfContent = wp_remote_retrieve_body( $response );
             if ( empty( $pdfContent ) ) {
-                wp_redirect( home_url( '/404' ) );
+                wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
             
@@ -139,7 +139,7 @@ class ShippingProcessController
             echo $pdfContent; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             exit;
         } catch (\Throwable $e) {
-            wp_redirect(home_url('/404'));
+            wp_safe_redirect(home_url('/404'));
             exit;
         }
     }

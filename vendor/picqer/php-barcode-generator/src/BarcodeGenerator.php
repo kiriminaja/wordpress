@@ -45,7 +45,6 @@ use Picqer\Barcode\Types\TypeCode93;
 use Picqer\Barcode\Types\TypeEan13;
 use Picqer\Barcode\Types\TypeEan8;
 use Picqer\Barcode\Types\TypeIntelligentMailBarcode;
-use Picqer\Barcode\Types\TypeInterface;
 use Picqer\Barcode\Types\TypeInterleaved25;
 use Picqer\Barcode\Types\TypeInterleaved25Checksum;
 use Picqer\Barcode\Types\TypeITF14;
@@ -102,17 +101,14 @@ abstract class BarcodeGenerator
     const TYPE_PHARMA_CODE = 'PHARMA';
     const TYPE_PHARMA_CODE_TWO_TRACKS = 'PHARMA2T';
 
-    /**
-     * @throws UnknownTypeException
-     */
     protected function getBarcodeData(string $code, string $type): Barcode
     {
         $barcodeDataBuilder = $this->createDataBuilderForType($type);
 
-        return $barcodeDataBuilder->getBarcode($code);
+        return $barcodeDataBuilder->getBarcodeData($code);
     }
 
-    protected function createDataBuilderForType(string $type): TypeInterface
+    protected function createDataBuilderForType(string $type)
     {
         switch (strtoupper($type)) {
             case self::TYPE_CODE_32:

@@ -1,5 +1,6 @@
 {
   "name": "kiriminaja/wordpress",
+  "description": "KiriminAja Official WordPress Plugin for WooCommerce",
   "autoload": {
     "psr-4": {
       "KiriminAjaOfficial\\": "./inc"
@@ -12,6 +13,10 @@
     }
   ],
   "require": {
-    "picqer/php-barcode-generator": "^3.2.3"
+    "php": ">=7.4",
+    "picqer/php-barcode-generator": "^2.4"
+  },
+  "config": {
+    "platform-check": false
   }
 }

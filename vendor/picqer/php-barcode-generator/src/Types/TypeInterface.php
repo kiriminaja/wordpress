@@ -6,5 +6,5 @@ use Picqer\Barcode\Barcode;
 
 interface TypeInterface
 {
-    public function getBarcode(string $code): Barcode;
+    public function getBarcodeData(string $code): Barcode;
 }

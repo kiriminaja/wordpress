@@ -98,7 +98,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'return_finished_at'    => kjHelper()->dateConvertGMT($package->date),
+                        'return_finished_at'    => kiriof_helper()->dateConvertGMT($package->date),
                         'status'                => 'returned',
                     ];
                     $payload['condition']=[
@@ -122,11 +122,11 @@ class CallbackHandlerService extends BaseService{
         try {
             
             // save log
-            update_option('processedPackages',$this->packages);
+            update_option( 'kiriof_processed_packages', $this->packages );
             /** Update AWB*/
-            foreach ($this->packages as $package){
+            foreach ( $this->packages as $package ) {
                 // save log item packages
-                update_option('itemProcessedPackages',$package);
+                update_option( 'kiriof_item_processed_packages', $package );
                 
                 $payload = [];
                 $payload['changes']=[
@@ -158,7 +158,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'shipped_at'    =>  kjHelper()->dateConvertGMT($package->shipped_at),
+                    'shipped_at'    =>  kiriof_helper()->dateConvertGMT($package->shipped_at),
                     'status'        =>  'shipped'
                 ];
                 $payload['condition']=[
@@ -184,7 +184,7 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'finished_at'   =>  kjHelper()->dateConvertGMT($package->finished_at),
+                        'finished_at'   =>  kiriof_helper()->dateConvertGMT($package->finished_at),
                         'status'        =>  'finished'
                     ];
                     $payload['condition']=[
@@ -209,7 +209,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'returned_at'   =>  kjHelper()->dateConvertGMT($package->returned_at),
+                    'returned_at'   =>  kiriof_helper()->dateConvertGMT($package->returned_at),
                     'status'        =>  'return'
                     
                 ];
@@ -247,7 +247,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'rejected_at'       =>  kjHelper()->dateConvertGMT($package->rejected_at),
+                    'rejected_at'       =>  kiriof_helper()->dateConvertGMT($package->rejected_at),
                     'rejected_reason'   =>  $package->reason,
                     'status'            =>  'rejected'
                     
@@ -277,7 +277,7 @@ class CallbackHandlerService extends BaseService{
                     
                     $canceledAt = $package->canceled_at ?? gmdate('Y-m-d H:i:s');
                     $payload['changes']=[
-                        'canceled_at'   =>  kjHelper()->dateConvertGMT( $canceledAt ),
+                        'canceled_at'   =>  kiriof_helper()->dateConvertGMT( $canceledAt ),
                         'status'        =>  'canceled'
                     ];
                     $payload['condition']=[

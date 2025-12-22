@@ -17,7 +17,7 @@ class TransactionProcessController{
     
     public function getRequestPickupSchedule(){
         // Check for nonce security      
-        if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+        if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE ) ) {
             wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
             wp_die();
         }
@@ -34,7 +34,7 @@ class TransactionProcessController{
     public function sendRequestPickupTransaction(){
         try {
             // Check for nonce security      
-            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE ) ) {
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }
@@ -64,7 +64,7 @@ class TransactionProcessController{
     public function getTransactionDetailSummary(){
         try {
             // Check for nonce security      
-            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
+            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE ) ) {
                 wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
                 wp_die();
             }

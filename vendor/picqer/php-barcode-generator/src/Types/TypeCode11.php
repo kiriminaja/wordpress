@@ -13,7 +13,7 @@ use Picqer\Barcode\Exceptions\InvalidCharacterException;
 
 class TypeCode11 implements TypeInterface
 {
-    protected array $conversionTable = [
+    protected $conversionTable = [
         '0' => '111121',
         '1' => '211121',
         '2' => '121121',
@@ -28,7 +28,7 @@ class TypeCode11 implements TypeInterface
         'S' => '112211',
     ];
 
-    public function getBarcode(string $code): Barcode
+    public function getBarcodeData(string $code): Barcode
     {
         $barcode = new Barcode($code);
 
@@ -60,27 +60,27 @@ class TypeCode11 implements TypeInterface
 
     private function getCheckDigitC(string $code): string
     {
-        $weight = 1;
-        $checksum = 0;
+        $p = 1;
+        $check = 0;
         for ($i = (strlen($code) - 1); $i >= 0; --$i) {
             $digit = $code[$i];
             if ($digit == '-') {
-                $digitValue = 10;
+                $dval = 10;
             } else {
-                $digitValue = intval($digit);
+                $dval = intval($digit);
             }
-            $checksum += ($digitValue * $weight);
-            ++$weight;
-            if ($weight > 10) {
-                $weight = 1;
+            $check += ($dval * $p);
+            ++$p;
+            if ($p > 10) {
+                $p = 1;
             }
         }
-        $checksum %= 11;
-        if ($checksum == 10) {
-            $checksum = '-';
+        $check %= 11;
+        if ($check == 10) {
+            $check = '-';
         }
 
-        return $checksum;
+        return $check;
     }
 
     private function getCheckDigitK(string $code): string
@@ -89,23 +89,23 @@ class TypeCode11 implements TypeInterface
             return '';
         }
 
-        $weight = 1;
-        $checksum = 0;
+        $p = 1;
+        $check = 0;
         for ($i = (strlen($code) - 1); $i >= 0; --$i) {
             $digit = $code[$i];
             if ($digit == '-') {
-                $digitValue = 10;
+                $dval = 10;
             } else {
-                $digitValue = intval($digit);
+                $dval = intval($digit);
             }
-            $checksum += ($digitValue * $weight);
-            ++$weight;
-            if ($weight > 9) {
-                $weight = 1;
+            $check += ($dval * $p);
+            ++$p;
+            if ($p > 9) {
+                $p = 1;
             }
         }
-        $checksum %= 11;
+        $check %= 11;
 
-        return (string)$checksum;
+        return (string)$check;
     }
 }

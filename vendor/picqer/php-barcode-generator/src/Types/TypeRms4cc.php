@@ -15,9 +15,9 @@ use Picqer\Barcode\BarcodeBar;
 
 class TypeRms4cc implements TypeInterface
 {
-    protected bool $kix = false;
+    protected $kix = false;
 
-    public function getBarcode(string $code): Barcode
+    public function getBarcodeData(string $code): Barcode
     {
         // bar mode
         // 1 = pos 1, length 2
@@ -122,8 +122,8 @@ class TypeRms4cc implements TypeInterface
             ++$len;
 
             // start bar
-            $barcode->addBar(new BarcodeBar(1, 2, true));
-            $barcode->addBar(new BarcodeBar(1, 2, false));
+            $barcode->addBar(new BarcodeBar(1, 2, 1));
+            $barcode->addBar(new BarcodeBar(1, 2, 0));
         }
 
         for ($i = 0; $i < $len; ++$i) {
@@ -150,14 +150,14 @@ class TypeRms4cc implements TypeInterface
                         break;
                 }
 
-                $barcode->addBar(new BarcodeBar(1, $h, true, $p));
-                $barcode->addBar(new BarcodeBar(1, 2, false));
+                $barcode->addBar(new BarcodeBar(1, $h, 1, $p));
+                $barcode->addBar(new BarcodeBar(1, 2, 0));
             }
         }
 
         if (! $this->kix) {
             // stop bar
-            $barcode->addBar(new BarcodeBar(1, 3, true));
+            $barcode->addBar(new BarcodeBar(1, 3, 1));
         }
 
         return $barcode;

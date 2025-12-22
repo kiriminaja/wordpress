@@ -12,5 +12,5 @@ namespace Picqer\Barcode\Types;
 
 class TypeKix extends TypeRms4cc
 {
-    protected bool $kix = true;
+    protected $kix = true;
 }

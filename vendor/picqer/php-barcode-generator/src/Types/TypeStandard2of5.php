@@ -14,9 +14,9 @@ use Picqer\Barcode\Helpers\BinarySequenceConverter;
 
 class TypeStandard2of5 implements TypeInterface
 {
-    protected bool $checksum = false;
+    protected $checksum = false;
 
-    public function getBarcode(string $code): Barcode
+    public function getBarcodeData(string $code): Barcode
     {
         $chr['0'] = '10101110111010';
         $chr['1'] = '11101010101110';
@@ -50,25 +50,25 @@ class TypeStandard2of5 implements TypeInterface
      * Checksum for standard 2 of 5 barcodes.
      *
      * @param $code (string) code to process.
-     * @return string checksum.
+     * @return int checksum.
      * @protected
      */
-    protected function checksum_s25(string $code): string
+    protected function checksum_s25($code)
     {
         $len = strlen($code);
         $sum = 0;
         for ($i = 0; $i < $len; $i += 2) {
-            $sum += intval($code[$i]);
+            $sum += $code[$i];
         }
         $sum *= 3;
         for ($i = 1; $i < $len; $i += 2) {
-            $sum += intval($code[$i]);
+            $sum += ($code[$i]);
         }
         $r = $sum % 10;
         if ($r > 0) {
             $r = (10 - $r);
         }
 
-        return strval($r);
+        return $r;
     }
 }

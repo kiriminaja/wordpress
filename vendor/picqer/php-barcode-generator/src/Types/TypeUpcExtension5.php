@@ -10,5 +10,5 @@ namespace Picqer\Barcode\Types;
 
 class TypeUpcExtension5 extends TypeUpcExtension2
 {
-    protected int $length = 5;
+    protected $length = 5;
 }

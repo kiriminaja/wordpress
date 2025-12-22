@@ -12,10 +12,8 @@ use Picqer\Barcode\Helpers\BinarySequenceConverter;
 
 class TypePharmacode implements TypeInterface
 {
-    public function getBarcode(string $code): Barcode
+    public function getBarcodeData(string $code): Barcode
     {
-        $originalCode = $code;
-
         $code = intval($code);
 
         $seq = '';
@@ -33,6 +31,6 @@ class TypePharmacode implements TypeInterface
         $seq = substr($seq, 0, -2);
         $seq = strrev($seq);
 
-        return BinarySequenceConverter::convert($originalCode, $seq);
+        return BinarySequenceConverter::convert($code, $seq);
     }
 }
