@@ -134,11 +134,18 @@ function kiriof_plugin_update_migration( $upgrader_object, $options ) {
     // Check if this is a plugin update
     if ( 'update' === $options['action'] && 'plugin' === $options['type'] ) {
         // Check if our plugin is being updated
-        if ( isset( $options['plugins'] ) ) {
-            foreach ( $options['plugins'] as $plugin ) {
-                if ( $plugin === plugin_basename( __FILE__ ) ) {
-                    // Run migration
-                    ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
+        if (isset($options['plugins'])) {
+            foreach ($options['plugins'] as $plugin) {
+                if ($plugin == plugin_basename(__FILE__)) {
+                    // Load autoloader if not loaded yet
+                    if ( file_exists(dirname(__FILE__) . '/vendor/autoload.php')){
+                        require_once dirname(__FILE__) . '/vendor/autoload.php';
+                    }
+                    
+                    // Run migration only if class exists
+                    if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
+                        (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+                    }
                     break;
                 }
             }

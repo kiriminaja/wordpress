@@ -94,6 +94,8 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 
 = 2.1.0 =
 * Comply wordpress.org namespace
+= 2.0.13 =
+* Fixing critical issues on plugin update process.
 = 2.0.12 =
 * Fixing critical issues on generating qr content
 = 2.0.11 =
