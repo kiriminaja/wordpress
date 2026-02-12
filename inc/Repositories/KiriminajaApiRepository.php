@@ -3,7 +3,7 @@
 namespace Inc\Repositories;
 
 use Inc\Base\KiriminAjaApi;
-
+const DEFAULT_PICKUP_OPTION = ['PICKUP'];
 class KiriminajaApiRepository extends KiriminAjaApi{
 
     public function sub_district_search($search)
@@ -38,7 +38,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
     
     public function getPricing($payload){
-        return $this->post('/api/mitra/v6.1/shipping_price',[
+        $requesTpayload = [
             'subdistrict_origin'            => $payload['subdistrict_origin'],
             'subdistrict_destination'       => $payload['subdistrict_destination'],
             'weight'                        => $payload['weight'],
@@ -47,8 +47,10 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'height'                        => $payload['height'],
             'insurance'                     => $payload['insurance'],
             'item_value'                    => $payload['item_value'],
-            'courier'                       => $payload['courier']
-        ]);
+            'courier'                       => $payload['courier'],
+            'pickup_option'                => DEFAULT_PICKUP_OPTION,
+        ];
+        return $this->post('/api/mitra/v6.1/shipping_price',$requesTpayload);
     }
     
     public function getRequestPickupSchedule(){
