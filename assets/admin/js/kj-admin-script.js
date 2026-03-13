@@ -1,11 +1,13 @@
 
 function ajaxRouteGenerator(){
+    if (typeof window.myjs === 'object' && window.myjs && window.myjs.ajaxurl) {
+        return window.myjs.ajaxurl;
+    }
+
     let url = `${window.location.origin}/wp-admin/admin-ajax.php`;
-    if (url.includes('localhost') && !url.includes('localhost:')){
-        url = `${window.location.origin}${location.pathname}`
-        let urlSplit = url.split("/wp-admin/");
-        url = urlSplit[0]
-        url += '/wp-admin/admin-ajax.php'
+    const pathMatch = window.location.pathname.match(/^(.*)\/wp-admin\//);
+    if (pathMatch && pathMatch[1] !== '') {
+        url = `${window.location.origin}${pathMatch[1]}/wp-admin/admin-ajax.php`;
     }
     return url
 }

@@ -16,15 +16,6 @@ class Enqueue extends BaseInit{
 
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
-
-        wp_localize_script(
-            'myjs',
-            'myjs',
-            array(
-                'ajaxurl' => admin_url( 'admin-ajax.php' )
-            )
-        );
-        
         wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), '4.0.13', true ); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
         wp_enqueue_style( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css', array(), '4.0.13' ); // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
 
@@ -34,6 +25,14 @@ class Enqueue extends BaseInit{
         wp_enqueue_script( 'wp-util' );
         // Option 2: Make wp-util a dependency of your script (usually better).
         wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/wp/js/kj-wp-script.js', [ 'wp-util' ], KJ_PLUGIN_VERSION, true);
+
+        wp_localize_script(
+            'kiriminPluginScript',
+            'myjs',
+            array(
+                'ajaxurl' => admin_url( 'admin-ajax.php' )
+            )
+        );
     }
     
     function enqueueAdmin(){
@@ -44,15 +43,16 @@ class Enqueue extends BaseInit{
             'kiriminaja-transaction-process',
             'kiriminaja-request-pickup'])){return;}
 
+        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css',array(),KJ_PLUGIN_VERSION,'all');
+        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_PLUGIN_VERSION,true);
+
         wp_localize_script(
-            'myjs',
+            'kiriminPluginScript',
             'myjs',
             array(
                 'ajaxurl' => admin_url( 'admin-ajax.php' )
             )
         );
-        wp_enqueue_style('kiriminPluginStyle', $this->plugin_url.'assets/admin/css/kj-admin-style.css',array(),KJ_PLUGIN_VERSION,'all');
-        wp_enqueue_script('kiriminPluginScript', $this->plugin_url.'assets/admin/js/kj-admin-script.js',array(),KJ_PLUGIN_VERSION,true);
 
         
         wp_enqueue_style('BSGridStyle', $this->plugin_url.'assets/admin/css/bootstrap-grid.css', array(), KJ_PLUGIN_VERSION);
