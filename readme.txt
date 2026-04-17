@@ -1,5 +1,6 @@
 === KiriminAja Official ===
 Contributors: kiriminaja
+Donate link: https://developer.kiriminaja.com/kopi
 Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
@@ -83,6 +84,15 @@ Yes, you can define rules based on weight, destination, or order total.
 
 = Does this plugin support international shipping? =
 Currently, this plugin only supports domestic shipping within Indonesia.
+
+== Screenshots ==
+
+1. KiriminAja integration settings on the dashboard
+2. Setup key configuration for connecting your store
+3. Plugin successfully installed on WordPress
+4. Store address and shipping configuration
+5. WooCommerce payment method settings
+6. Product shipping data setup
 
 == Changelog ==
 = 2.1.4 =
