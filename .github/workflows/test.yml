@@ -101,7 +101,7 @@ jobs:
           if [ "${{ matrix.wc }}" = "latest" ]; then
             echo "slug=woocommerce" >> "$GITHUB_OUTPUT"
           else
-            echo "slug=https://downloads.wordpress.org/plugin/woocommerce.${{ matrix.wc }}.zip" >> "$GITHUB_OUTPUT"
+            echo "slug=https://github.com/woocommerce/woocommerce/releases/download/${{ matrix.wc }}.0/woocommerce.zip" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install WooCommerce
