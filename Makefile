@@ -18,8 +18,6 @@ RSYNC_EXCLUDES := \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=scripts/ \
 	--exclude=.DS_Store \
-	--exclude=composer.json \
-	--exclude=composer.lock \
 	--exclude=.distignore \
 	--exclude=.editorconfig \
 	--exclude=.gitattributes \
@@ -49,5 +47,6 @@ zip: clean
 	@echo "Creating zip archive for $(PLUGIN_SLUG) version $(VERSION)..."
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
+	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f composer.json composer.lock
 	(cd $(BUILD_DIR) && zip -r ../$(ZIP_FILE) $(PLUGIN_SLUG))
 	@echo "Archive created: $(ZIP_FILE)"

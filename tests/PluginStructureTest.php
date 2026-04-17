@@ -188,6 +188,11 @@ final class PluginStructureTest extends TestCase
             $relativePath = str_replace($buildDir . '/', '', $buildPath);
             $sourcePath = PLUGIN_DIR . '/' . $relativePath;
 
+            // Skip vendor (build uses --no-dev so files will differ)
+            if (str_starts_with($relativePath, 'vendor/')) {
+                continue;
+            }
+
             if (!file_exists($sourcePath)) {
                 continue; // Build-only files are OK (e.g., vendor)
             }

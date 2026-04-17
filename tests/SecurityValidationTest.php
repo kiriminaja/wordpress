@@ -127,7 +127,7 @@ final class SecurityValidationTest extends TestCase
                 // Find the method body and check for nonce verification
                 $methodPattern = '/function\s+' . preg_quote($methodName, '/') . '\s*\(/';
                 if (preg_match($methodPattern, $content, $methodMatch, PREG_OFFSET_CAPTURE)) {
-                    $startPos = $methodMatch[0][1];
+                    $startPos = (int) $methodMatch[0][1];
                     // Get the next 2000 chars as method body approximation
                     $methodBody = substr($content, $startPos, 2000);
 
@@ -202,7 +202,7 @@ final class SecurityValidationTest extends TestCase
             preg_match_all('/<?php\s+echo\s+(?!esc_|wp_kses|selected|checked|wc_price)(.+?);/s', $content, $matches, PREG_OFFSET_CAPTURE);
 
             foreach ($matches[0] as $match) {
-                $lineNum = substr_count(substr($content, 0, $match[1]), "\n") + 1;
+                $lineNum = substr_count(substr($content, 0, (int) $match[1]), "\n") + 1;
                 $snippet = trim(substr($match[0], 0, 80));
                 $violations[] = sprintf('%s:%d → %s', $rel, $lineNum, $snippet);
             }
