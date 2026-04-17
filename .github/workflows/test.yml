@@ -133,8 +133,9 @@ jobs:
         run: |
           wp eval '
             $methods = WC()->shipping()->get_shipping_methods();
-            if (!isset($methods["kiriminaja"])) {
-              echo "WARNING: kiriminaja shipping method not registered\n";
+            if (!isset($methods["kiriminaja-official"])) {
+              echo "Registered methods: " . implode(", ", array_keys($methods)) . "\n";
+              echo "FAIL: kiriminaja-official shipping method not registered\n";
               exit(1);
             }
             echo "KiriminAja shipping method registered OK\n";
