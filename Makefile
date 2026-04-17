@@ -28,17 +28,46 @@ RSYNC_EXCLUDES := \
 	--exclude=tests/ \
 	--exclude=.phpunit.cache/
 
-.PHONY: zip clean changelog release test
+.PHONY: zip clean changelog release test tag github-release publish
+
+# BUMP: patch (default), minor, major
+BUMP ?= patch
 
 test:
 	vendor/bin/phpunit --testdox
 
 changelog:
-	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),)
+	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),) $(BUMP)
+
+tag:
+	@echo "Creating git tag v$(VERSION)..."
+	git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
+	@echo "Tag v$(VERSION) created."
+
+github-release:
+	@php scripts/github-release.php $(VERSION)
 
 release: changelog
+	@# Re-read version after changelog bumped it
+	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
 	@$(MAKE) zip
-	@echo "Release $(VERSION) ready!"
+	@echo ""
+	@echo "Release v$(VERSION) ready!"
+	@echo "  1. Commit: git add -A && git commit -m 'chore: release v$(VERSION)'"
+	@echo "  2. Tag:    make tag"
+	@echo "  3. Push:   git push && git push --tags"
+	@echo "  4. GitHub: make github-release"
+	@echo ""
+
+publish: release
+	@# Full flow: build, commit, tag, push, open GitHub release
+	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
+	git add -A
+	git commit -m "chore: release v$(VERSION)"
+	@$(MAKE) tag
+	git push
+	git push --tags
+	@$(MAKE) github-release
 
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)

@@ -4,10 +4,17 @@
  * Generate changelog from git commits and update readme.txt
  *
  * Usage:
- *   php scripts/changelog.php [version] [from-ref]
- *   make changelog                        # auto-bumps patch version (e.g. 2.1.2 -> 2.1.3)
+ *   php scripts/changelog.php [version] [from-ref] [bump-type]
+ *   make changelog                        # auto-bumps patch version (e.g. 2.1.3 -> 2.1.4)
+ *   make changelog BUMP=minor             # bumps minor (e.g. 2.1.4 -> 2.2.0)
+ *   make changelog BUMP=major             # bumps major (e.g. 2.2.0 -> 3.0.0)
  *   make changelog V=2.2.0               # explicit version
  *   make changelog V=2.2.0 FROM=abc1234  # explicit version + starting ref
+ *
+ * Bump types:
+ *   patch (default) — 2.1.3 -> 2.1.4, auto-rolls to minor at .99 (2.1.99 -> 2.2.0)
+ *   minor           — 2.1.4 -> 2.2.0,  auto-rolls to major at .99 (2.99.0 -> 3.0.0)
+ *   major           — 2.2.0 -> 3.0.0
  *
  * Reads git log since the last version in readme.txt (or from-ref),
  * filters commits containing "feature/feat" or "fixing/fix" keywords,
@@ -29,7 +36,8 @@ if ( ! file_exists( $readme ) ) {
 }
 
 // --- Determine version ---
-$version = $argv[1] ?? null;
+$version   = $argv[1] ?? null;
+$bump_type = $argv[3] ?? 'patch';
 
 // Read current version from kiriminaja.php
 $current_version = null;
@@ -41,12 +49,47 @@ if ( file_exists( $plugin ) ) {
 }
 
 if ( ! $version ) {
-    // Auto-bump patch version (e.g. 2.1.2 -> 2.1.3)
     if ( $current_version ) {
-        $parts = explode( '.', $current_version );
-        $parts[ count( $parts ) - 1 ] = (int) end( $parts ) + 1;
-        $version = implode( '.', $parts );
-        echo "Auto-bumped version: {$current_version} -> {$version}\n";
+        $parts = array_map( 'intval', explode( '.', $current_version ) );
+        // Ensure we have at least 3 parts
+        while ( count( $parts ) < 3 ) {
+            $parts[] = 0;
+        }
+        [ $major, $minor, $patch ] = $parts;
+
+        switch ( $bump_type ) {
+            case 'major':
+                $major++;
+                $minor = 0;
+                $patch = 0;
+                break;
+            case 'minor':
+                $minor++;
+                $patch = 0;
+                // Auto-roll to major if minor exceeds 99
+                if ( $minor > 99 ) {
+                    $major++;
+                    $minor = 0;
+                }
+                break;
+            case 'patch':
+            default:
+                $patch++;
+                // Auto-roll to minor if patch exceeds 99
+                if ( $patch > 99 ) {
+                    $minor++;
+                    $patch = 0;
+                    // Auto-roll to major if minor also exceeds 99
+                    if ( $minor > 99 ) {
+                        $major++;
+                        $minor = 0;
+                    }
+                }
+                break;
+        }
+
+        $version = "{$major}.{$minor}.{$patch}";
+        echo "Auto-bumped version ({$bump_type}): {$current_version} -> {$version}\n";
     }
 }
 
