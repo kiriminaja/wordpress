@@ -14,9 +14,9 @@ jQuery(function ($) {
 function kiriofGetTransactionData() {
     let orderId = <?php echo wp_json_encode( (string) $orderId ); ?>;
     let trackingUrl = <?php echo wp_json_encode( (string) $trackingUrl ); ?>;
-    let kjOrderData = <?php echo wp_json_encode( (string) $kjOrderData ); ?>;
+    let kiriofOrderData = <?php echo wp_json_encode( (string) $kiriofOrderData ); ?>;
 
-    let kjOrderDataParsed = JSON.parse(kjOrderData);
+    let kiriofOrderDataParsed = JSON.parse(kiriofOrderData);
 
     let label_ppn = '11%';
     let tBodycontent = '';
@@ -34,37 +34,37 @@ function kiriofGetTransactionData() {
         <tbody>
             <tr>
                 <th>Order ID <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.order_id}</td>
+                <td>${kiriofOrderDataParsed?.order_id}</td>
             </tr>
             <tr>
                 <th>Pickup ID <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.pickup_id}</td>
+                <td>${kiriofOrderDataParsed?.pickup_id}</td>
             </tr>
             <tr>
                 <th>Payment <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.payment_type}</td>
+                <td>${kiriofOrderDataParsed?.payment_type}</td>
             </tr>
             <tr>
                 <th>Service <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.service}</td>
+                <td>${kiriofOrderDataParsed?.service}</td>
             </tr>
             <tr>
                 <th>AWB <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.awb}</td>
+                <td>${kiriofOrderDataParsed?.awb}</td>
             </tr>
             <tr>
                 <th>Status <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.status}</td>
+                <td>${kiriofOrderDataParsed?.status}</td>
             </tr>
             <tr>
                 <th>Shipping Cost <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.shipping_cost}</td>
+                <td>${kiriofOrderDataParsed?.shipping_cost}</td>
             </tr>
             `
             +
             /** COD ROW */
             (
-            kjOrderDataParsed?.cod_fee !=='-'
+            kiriofOrderDataParsed?.cod_fee !=='-'
             ?    
              `
             <tr>
@@ -73,7 +73,7 @@ function kiriofGetTransactionData() {
                     <br/>
                     <em style="font-weight: 500;font-size:12px;">(Include `+label_ppn+` Vat)</em>
                 </th>
-                <td>${kjOrderDataParsed?.cod_fee}</td>
+                <td>${kiriofOrderDataParsed?.cod_fee}</td>
             </tr>
             `   
              :
@@ -82,12 +82,12 @@ function kiriofGetTransactionData() {
             +
             /** Insurance ROW */
             (
-            kjOrderDataParsed?.insurance_fee !=='-'
+            kiriofOrderDataParsed?.insurance_fee !=='-'
                 ?
                 `
             <tr>
                 <th>Insurance Fee <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.insurance_fee}</td>
+                <td>${kiriofOrderDataParsed?.insurance_fee}</td>
             </tr>
             `
                 :
@@ -97,11 +97,11 @@ function kiriofGetTransactionData() {
             `
             <tr>
                 <th>Order Total<span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.transaction_value}</td>
+                <td>${kiriofOrderDataParsed?.transaction_value}</td>
             </tr>
             <tr>
                 <th>Total <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.total}</td>
+                <td>${kiriofOrderDataParsed?.total}</td>
             </tr>
         </tbody>
     </table>

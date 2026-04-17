@@ -35,7 +35,7 @@ class AdminPost
         }
     }
     private function createPageKiriminaja(){
-        $kj_page_checkout = array(
+        $kiriof_page_checkout = array(
             'post_title'    => wp_strip_all_tags( 'Checkout' ),
             'post_content'  => '[woocommerce_checkout]',
             'post_status'   => 'publish',
@@ -44,11 +44,11 @@ class AdminPost
         );
         
         #create page ID
-        $pageID = wp_insert_post( $kj_page_checkout );
+        $pageID = wp_insert_post( $kiriof_page_checkout );
         self::setPageCheckoutWoocommerce( $pageID );     
     }
     private function createPageKiriminajaTracking(){
-        $kj_page = array(
+        $kiriof_page = array(
             'post_title'    => wp_strip_all_tags( 'Tracking' ),
             'post_content'  => '[kiriminaja-tracking-front-page]',
             'post_status'   => 'publish',
@@ -57,10 +57,10 @@ class AdminPost
         );
         
         #create page ID
-        $pageID = wp_insert_post( $kj_page );
+        $pageID = wp_insert_post( $kiriof_page );
     }
     private function createPageCartKiriminaja(){
-        $kj_page = array(
+        $kiriof_page = array(
             'post_title'    => wp_strip_all_tags( 'Cart' ),
             'post_content'  => '[woocommerce_cart]',
             'post_status'   => 'publish',
@@ -69,7 +69,7 @@ class AdminPost
         );
         
         #create page ID
-        $pageID = wp_insert_post( $kj_page );
+        $pageID = wp_insert_post( $kiriof_page );
         self::setPageCartWoocommerce($pageID);
     } 	
     /**

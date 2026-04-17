@@ -54,7 +54,7 @@ function kiriof_shipping_method(){
             public function calculate_shipping( $package = array() ){
                 $country = $package["destination"]["country"];
                 $destination_id = WC()->session->get( 'destination_id' );
-                $kj_insurance = WC()->session->get( 'kj_insurance' );
+                $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
                   
                 
                 $length = 0;
@@ -87,14 +87,14 @@ function kiriof_shipping_method(){
                     'length' => $cartAttributes->data['length'],
                     'width' =>  $cartAttributes->data['width'],
                     'height' => $cartAttributes->data['height'],
-                    'insurance' => (int) $kj_insurance,
+                    'insurance' => (int) $kiriof_insurance,
                     'item_value' => WC()->cart->cart_contents_total,
                     'courier' => "", // 'jne', 'pos', 'tiki', 'jet'
                 ];
 
-                $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
+                $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 
-                $res_pricing = $kjPricing['data']; //object
+                $res_pricing = $kiriofPricing['data']; //object
                 foreach($this->filterOptions($res_pricing,$quantity) as $row){
                     
                     $rate= array(

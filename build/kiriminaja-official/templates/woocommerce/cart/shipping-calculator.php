@@ -88,7 +88,7 @@ do_action( 'woocommerce_before_shipping_calculator' ); ?>
 		<?php endif; ?>
 
         <?php 
-                woocommerce_form_field( 'kj_destination_area', array(
+                woocommerce_form_field( 'kiriof_destination_area', array(
                     'type'        => 'select',
                     'label'       => esc_html__('District', 'kiriminaja-official'),
                     'required'    => true,

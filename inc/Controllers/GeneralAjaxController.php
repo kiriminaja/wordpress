@@ -52,7 +52,7 @@ class GeneralAjaxController
         }
     }
 
-    function kj_getDestinationArea()
+    function kiriof_getDestinationArea()
     {
         // Check for nonce security - fail early
         if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'kiriof-destination')) {
@@ -85,7 +85,7 @@ class GeneralAjaxController
         WC()->cart->calculate_totals();
         wp_send_json_success(['code' => '200', 'msg' => 'Success']);
     }
-    public function kj_getDataAfterUpdateCheckout()
+    public function kiriof_getDataAfterUpdateCheckout()
     {
         // Check for nonce security - fail early
         if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'kiriof-update-checkout')) {

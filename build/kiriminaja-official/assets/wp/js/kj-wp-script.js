@@ -26,7 +26,7 @@ function kiriofPrintAsString (value, placeholder=''){
     return value
 }
 
-jQuery(document).on("input", ".kj_int_input", function() {
+jQuery(document).on("input", ".kiriof_int_input", function() {
     this.value = this.value.replace(/\D/g,'');
     if (jQuery(this).hasClass('duplicate_into')){
         var duplicateTarget=jQuery('input[name="'+$(this).data('duplicate_into')+'"]')

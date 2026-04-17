@@ -9,28 +9,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EditOrderController{
     private $nonce = KIRIOF_NONCE ;
     public function register(){
-        add_action( 'woocommerce_admin_order_totals_after_total', array($this,'addKjOrderDetail'));
-        add_filter( 'wc_order_is_editable', array($this,'kj_custom_order_status_editable'), 9999, 2 );
+        add_action( 'woocommerce_admin_order_totals_after_total', array($this,'addKiriofOrderDetail'));
+        add_filter( 'wc_order_is_editable', array($this,'kiriof_custom_order_status_editable'), 9999, 2 );
     }
-    public function addKjOrderDetail($order){        
+    public function addKiriofOrderDetail($order){        
         $service = (new \KiriminAjaOfficial\Services\OrderEditPageServices\ShippingInfoServices())->wcOrderId($order)->call();
         if ($service->status !== 200){return;}
         
         $orderId = esc_html($order);
         $trackingUrl = esc_url( home_url().'/tracking?order_id='.$order);
-        $kjOrderData = wp_json_encode($service->data);
+        $kiriofOrderData = wp_json_encode($service->data);
     
         include_once KIRIOF_DIR .'/templates/order/edit.php';
     
     }
-    public function kj_custom_order_status_editable($allow_edit, $order){
+    public function kiriof_custom_order_status_editable($allow_edit, $order){
         if ( $order->get_status() === 'processing' ) {
             $allow_edit = true;
         }
         return $allow_edit;
     }
     
-    public function kj_getExpeditionByPricing(){
+    public function kiriof_getExpeditionByPricing(){
         // Check for nonce security - fail early
         if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), $this->nonce ) ) {
             wp_die( esc_html__( 'Security check failed', 'kiriminaja-official' ) );
@@ -61,16 +61,16 @@ class EditOrderController{
             'item_value'=> $order->get_subtotal(),
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
-        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
+        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
         
-        $return = $this->filterOptions($kjPricing['data']);
+        $return = $this->filterOptions($kiriofPricing['data']);
         if( !$return ){
             wp_send_json_error( ['code'=>'404','message'=>'Expedition Not Found'] );
         }
         wp_send_json_success($return);
     }
     public function filterOptions($pricingData){
-        $is_cod = !empty( WC()->session->get( 'kj_payment_method' ) ) ? true : false;
+        $is_cod = !empty( WC()->session->get( 'kiriof_payment_method' ) ) ? true : false;
         $options = $pricingData->results ?? [];
         
         $validate = (new \KiriminAjaOfficial\Repositories\SettingRepository())->validateWhiteListExpedition($options);
@@ -88,33 +88,33 @@ class EditOrderController{
         }
         return $filteredOptions;
     }
-    public function kj_wc_save_order_items($order_id, $items){
+    public function kiriof_wc_save_order_items($order_id, $items){
         //code logic here WC Update
         $order = wc_get_order( $order_id );
         if( array_shift($items['shipping_method']) == 'kiriminaja-official' ){
             
-            if(!empty($items['kj_expedition_name']))
+            if(!empty($items['kiriof_expedition_name']))
             {
-                $expediton_cost = !$items['kj_expedition_cost'] ? 0 : $items['kj_expedition_cost'];    
+                $expediton_cost = !$items['kiriof_expedition_cost'] ? 0 : $items['kiriof_expedition_cost'];    
                 
                 $qty = 0;
                 foreach( $order->get_items() as $item_id_shipping => $item ) {
                     $qty += (int) $item->get_quantity();
                 }
                 $item_price = (int) $expediton_cost * $qty;
-                $calculate_data = $this->kj_calculationAdminOrder([
+                $calculate_data = $this->kiriof_calculationAdminOrder([
                     'order_id' => $order_id,
-                    'kj_subdistrict'=>$items['kj_subdistrict'],
-                    'kj_subdistrict_name'=>$items['kj_subdistrict_name'],
-                    'kj_expedition'=>$items['kj_expedition'],
-                    'kj_expedition_name'=>$items['kj_expedition_name'],
-                    'kj_expedition_cost'=>$item_price,
+                    'kiriof_subdistrict'=>$items['kiriof_subdistrict'],
+                    'kiriof_subdistrict_name'=>$items['kiriof_subdistrict_name'],
+                    'kiriof_expedition'=>$items['kiriof_expedition'],
+                    'kiriof_expedition_name'=>$items['kiriof_expedition_name'],
+                    'kiriof_expedition_cost'=>$item_price,
                 ]);
     
                 foreach( $order->get_items('shipping') as $item_id_shipping => $item ) {
                     
-                    $item->set_method_title( $items['kj_expedition_name'] ); 
-                    $item->set_name( $items['kj_expedition_name'] );
+                    $item->set_method_title( $items['kiriof_expedition_name'] ); 
+                    $item->set_name( $items['kiriof_expedition_name'] );
     
                     $item->set_total( $item_price );
                     $item->calculate_taxes();
@@ -123,13 +123,13 @@ class EditOrderController{
                 }   
                 
                 /* Simpan Di Post Meta */
-                update_post_meta($order_id,'_kj_subdistrict_id',$items['kj_subdistrict']);
-                update_post_meta($order_id,'_kj_subdistrict_name',$items['kj_subdistrict_name']);
-                update_post_meta($order_id,'_kj_expedition_code',$items['kj_expedition']);
-                update_post_meta($order_id,'_kj_expedition_name',$items['kj_expedition_name']);
-                update_post_meta($order_id,'_kj_expedition_cost',$items['kj_expedition_cost']);
-                update_post_meta($order_id,'_kj_insurance_fee',$items['kj_insurancefee_hidden']);
-                update_post_meta($order_id,'_kj_cod_fee',$items['kj_codfee_hidden']);
+                update_post_meta($order_id,'_kiriof_subdistrict_id',$items['kiriof_subdistrict']);
+                update_post_meta($order_id,'_kiriof_subdistrict_name',$items['kiriof_subdistrict_name']);
+                update_post_meta($order_id,'_kiriof_expedition_code',$items['kiriof_expedition']);
+                update_post_meta($order_id,'_kiriof_expedition_name',$items['kiriof_expedition_name']);
+                update_post_meta($order_id,'_kiriof_expedition_cost',$items['kiriof_expedition_cost']);
+                update_post_meta($order_id,'_kiriof_insurance_fee',$items['kiriof_insurancefee_hidden']);
+                update_post_meta($order_id,'_kiriof_cod_fee',$items['kiriof_codfee_hidden']);
             }        
         } 
     
@@ -137,7 +137,7 @@ class EditOrderController{
         $order->calculate_totals();
     
     }
-    public function kj_calculationAdminOrder($payload){
+    public function kiriof_calculationAdminOrder($payload){
         $order = wc_get_order( $payload['order_id'] );
         $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         $transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId($payload['order_id']);
@@ -145,7 +145,7 @@ class EditOrderController{
     
         $insurance = 0;
         foreach($order->get_meta_data() as $key => $value) {
-            if( $value->get_data()['key'] == '_kj_insurance' ){
+            if( $value->get_data()['key'] == '_kiriof_insurance' ){
                 $insurance = $value->get_data()['value'];
             }
         }
@@ -159,11 +159,11 @@ class EditOrderController{
             $height += $product->get_height();
         }
     
-        $courier = explode('_',$payload['kj_expedition']);
+        $courier = explode('_',$payload['kiriof_expedition']);
     
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
-            'subdistrict_destination'   => (int) $payload['kj_subdistrict'],
+            'subdistrict_destination'   => (int) $payload['kiriof_subdistrict'],
             'weight'                    => (int) $weight,
             "length"                    => (int) $length ,
             "width"                     => (int) $width,
@@ -172,10 +172,10 @@ class EditOrderController{
             'item_value'                => $order->get_subtotal(),
             'courier'                   => [$courier[0]]
         ];
-        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
     
-        if( $kjPricing['data'] ){
-            $result_pricing = $kjPricing['data']->results;
+        if( $kiriofPricing['data'] ){
+            $result_pricing = $kiriofPricing['data']->results;
             
             $data_shipping_selected = [];
             foreach($result_pricing as $row ){
@@ -185,23 +185,23 @@ class EditOrderController{
                 $data_shipping_selected = $row;
             }
     
-            $checkoutCalculation = $this->kj_checkoutCalculation(
+            $checkoutCalculation = $this->kiriof_checkoutCalculation(
                 $order->get_subtotal(),
                 $data_shipping_selected,
                 $get_payment_method,
                 $insurance
             );
-            if( !empty($payload['action']) && $payload['action'] == 'kj_calculation_CodFeeAndInsuranceFee' ){
+            if( !empty($payload['action']) && $payload['action'] == 'kiriof_calculation_CodFeeAndInsuranceFee' ){
                 return $checkoutCalculation;
             }
             /** Validasi Transaction*/
             if( empty($transaction) ) return true;
             $payloads = [
-                'destination_sub_district_id' =>(int) $payload['kj_subdistrict'],
-                'destination_sub_district' => (int) $payload['kj_subdistrict_name'],
+                'destination_sub_district_id' =>(int) $payload['kiriof_subdistrict'],
+                'destination_sub_district' => (int) $payload['kiriof_subdistrict_name'],
                 'service' =>$courier[0],
                 'service_name' =>$courier[1],
-                'shipping_cost' => $payload['kj_expedition_cost'],
+                'shipping_cost' => $payload['kiriof_expedition_cost'],
                 'insurance_cost' => !empty($insurance) ? $checkoutCalculation['insurance_amt'] : 0,
                 'cod_fee' => ($order->get_payment_method() == 'cod' ) ? $checkoutCalculation['cod_amt'] : 0,
                 'wp_wc_order_stat_order_id'=>(int) $payload['order_id'],
@@ -213,11 +213,11 @@ class EditOrderController{
     
     }
     
-    public function kj_admin_calculateCOD($total_order,$data_pricing){
+    public function kiriof_admin_calculateCOD($total_order,$data_pricing){
         $selected_expedition = $data_pricing;
         $cartTotal = $total_order;
         $ongkirFee = intval(@$selected_expedition->cost ?? 0);
-        $insuranceFee = $this->kj_admin_calculateInsuranceFee($total_order,$data_pricing);
+        $insuranceFee = $this->kiriof_admin_calculateInsuranceFee($total_order,$data_pricing);
         $codRate = floatval(@$selected_expedition->setting->cod_fee ?? 0.0);
         $CODMinCost = intval(@$selected_expedition->setting->minimum_cod_fee ?? 0);
         
@@ -227,7 +227,7 @@ class EditOrderController{
         return ceil($codFee);
     }
     
-    public function kj_admin_calculateInsuranceFee($total_order,$data_pricing){
+    public function kiriof_admin_calculateInsuranceFee($total_order,$data_pricing){
         $cartTotal = $total_order;
         $selected_expedition = $data_pricing;
         $insuranceRate = floatval(@$selected_expedition->setting->insurance_fee ?? 0.0);
@@ -241,13 +241,13 @@ class EditOrderController{
         return ceil($insuranceFee);
     }
     
-    public function kj_checkoutCalculation($total_order,$data_pricing,$payment_method,$insurance){
+    public function kiriof_checkoutCalculation($total_order,$data_pricing,$payment_method,$insurance){
         $cartTotal = $total_order;
         $is_cod = $payment_method;
         $is_insurance = $insurance;
         $selected_expedition = $data_pricing;
-        $insurance_amt = $this->kj_admin_calculateInsuranceFee($total_order,$data_pricing);
-        $cod_amt = $this->kj_admin_calculateCOD($total_order,$data_pricing);
+        $insurance_amt = $this->kiriof_admin_calculateInsuranceFee($total_order,$data_pricing);
+        $cod_amt = $this->kiriof_admin_calculateCOD($total_order,$data_pricing);
         $ongkirFee = intval(intval(@$selected_expedition->cost ?? 0) - intval(@$selected_expedition->discount_amount ?? 0));
         $total_amt = $ongkirFee+$cod_amt+$insurance_amt+$cartTotal;
         return [
@@ -259,16 +259,16 @@ class EditOrderController{
             'selected_expedition' => $selected_expedition,
         ];
     }
-    public function kj_admin_billing_fields($billing_fields){
+    public function kiriof_admin_billing_fields($billing_fields){
         unset($billing_fields['city']);
         unset($billing_fields['postcode']);
         unset($billing_fields['state']);
         $order = wc_get_order();
         $data  = $order->get_data(); // The Order data
-        $destination_area_id = $order->get_meta('_billing_kj_destination_area',true);
-        $destination_area_name = $order->get_meta('_billing_kj_destination_name',true);
+        $destination_area_id = $order->get_meta('_billing_kiriof_destination_area',true);
+        $destination_area_name = $order->get_meta('_billing_kiriof_destination_name',true);
         
-        $billing_fields['kj_destination_area'] = array(
+        $billing_fields['kiriof_destination_area'] = array(
             'label' => __( 'Subdistrict', 'kiriminaja-official' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
@@ -276,14 +276,14 @@ class EditOrderController{
             'type' => 'select',
             'options' => array($destination_area_id=>$destination_area_name)
         );
-        $billing_fields['kj_destination_name'] = array(
+        $billing_fields['kiriof_destination_name'] = array(
             'label' => '',
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
             'type' => 'hidden',
         );
-        $billing_fields['kj_insurance'] = array(
+        $billing_fields['kiriof_insurance'] = array(
             'label' => __( 'Insurance', 'kiriminaja-official' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
@@ -294,17 +294,17 @@ class EditOrderController{
      
         return $billing_fields;
     }
-    public function kj_admin_shipping_fields($shipping_fields){
+    public function kiriof_admin_shipping_fields($shipping_fields){
         
         unset($shipping_fields['city']);
         unset($shipping_fields['postcode']);
         unset($shipping_fields['state']);
         $order = wc_get_order();
         $data  = $order->get_data(); // The Order data
-        $destination_area_id = $order->get_meta('_shipping_kj_destination_area',true);
-        $destination_area_name = $order->get_meta('_shipping_kj_destination_name',true);
+        $destination_area_id = $order->get_meta('_shipping_kiriof_destination_area',true);
+        $destination_area_name = $order->get_meta('_shipping_kiriof_destination_name',true);
     
-        $shipping_fields['kj_destination_area'] = array(
+        $shipping_fields['kiriof_destination_area'] = array(
             'label' => __( 'Subdistrict', 'kiriminaja-official' ),
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
@@ -312,14 +312,14 @@ class EditOrderController{
             'type' => 'select',
             'options' => array($destination_area_id=>$destination_area_name)
         );
-        $shipping_fields['kj_destination_name'] = array(
+        $shipping_fields['kiriof_destination_name'] = array(
             'label' => '',
             'show'  => false,
             'wrapper_class' => 'form-field-wide',
             'style' => '',
             'type' => 'hidden',
         );
-        $shipping_fields['kj_insurance'] = array(
+        $shipping_fields['kiriof_insurance'] = array(
             'label' => __( 'Insurance', 'kiriminaja-official' ),
             'show'  => true,
             'wrapper_class' => 'form-field-wide',
@@ -328,11 +328,11 @@ class EditOrderController{
         );
         return $shipping_fields;
     }
-    public function kj_add_cod_fee_insurance_fee( $order_id ) {
+    public function kiriof_add_cod_fee_insurance_fee( $order_id ) {
         $order = wc_get_order( $order_id );
         $data  = $order->get_data(); // The Order data
-        $insurance = $order->get_meta('_kj_insurance_fee') ?? 0;
-        $cod = $order->get_meta('_kj_cod_fee') ?? 0;
+        $insurance = $order->get_meta('_kiriof_insurance_fee') ?? 0;
+        $cod = $order->get_meta('_kiriof_cod_fee') ?? 0;
         $cod_style = ( empty($cod) ) ? 'none' : 'show';
         $insurance_style = ( empty($insurance) ) ? 'none' : 'show';
         

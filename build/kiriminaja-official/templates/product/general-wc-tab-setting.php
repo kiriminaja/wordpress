@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         woocommerce_wp_text_input(
             array(
-                'id' => '_kj_weight',
+                'id' => '_kiriof_weight',
                 'placeholder' => 'Weight',
                 // Translators: %s weight unit
                 'label' => sprintf( esc_html__( 'Weight (%s)', 'kiriminaja-official' ), esc_attr( $kiriof_weight_unit ) ),
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         woocommerce_wp_text_input(
             array(
-                'id' => '_kj_length',
+                'id' => '_kiriof_length',
                 'desc_tip' => true,
                 'description'=>__('Length Form', 'kiriminaja-official'),
                 'placeholder' => 'Length',
@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         woocommerce_wp_text_input(
             array(
-                'id' => '_kj_width',
+                'id' => '_kiriof_width',
                 'desc_tip' => true,
                 'description'=>__('Width Form', 'kiriminaja-official'),
                 'placeholder' => 'Width',
@@ -55,7 +55,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         woocommerce_wp_text_input(
             array(
-                'id' => '_kj_height',
+                'id' => '_kiriof_height',
                 'desc_tip' => true,
                 'description'=>__('Height Form', 'kiriminaja-official'),
                 'placeholder' => 'Height',

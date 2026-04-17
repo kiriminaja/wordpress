@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo esc_html( kiriof_helper()->tlThis('Sender Phone',$locale) ); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_phone'] ?? '');?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo esc_html( kiriof_helper()->tlThis('Sender Phone',$locale) ); ?>" type="text" class="input-text regular-input kiriof_int_input" value="<?php echo esc_attr($inputValueArr['origin_phone'] ?? '');?>" >
             </td>
         </tr>
         
@@ -75,7 +75,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo esc_attr(kiriof_helper()->tlThis('Zipcode',$locale)); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_zip_code'] ?? '');?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo esc_attr(kiriof_helper()->tlThis('Zipcode',$locale)); ?>" type="text" class="input-text regular-input kiriof_int_input" value="<?php echo esc_attr($inputValueArr['origin_zip_code'] ?? '');?>" >
             </td>
         </tr>
         <tr valign="top">

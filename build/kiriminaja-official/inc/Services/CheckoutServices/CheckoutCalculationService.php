@@ -74,21 +74,21 @@ class CheckoutCalculationService extends BaseService{
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
-        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kjPricing',[$kjPricing]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
-        if($kjPricing['status'] != 200){
-            return self::error([],@$kjPricing['message'] ?? 'Terjadi Kesalahan!');
+        if($kiriofPricing['status'] != 200){
+            return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');
         }
         
         /** Jika gagal dapat data expedisi*/
-        if(!$kjPricing['data']->status){
-            return self::error([],@$kjPricing['data'] ?? 'Terjadi Kesalahan!');
+        if(!$kiriofPricing['data']->status){
+            return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');
         }
         
         /** jika opsi expedisi tidak ada*/
-        $this->pricingData = @$kjPricing['data'];
+        $this->pricingData = @$kiriofPricing['data'];
         if (count(@$this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }

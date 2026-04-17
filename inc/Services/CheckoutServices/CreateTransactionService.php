@@ -19,9 +19,9 @@ class CreateTransactionService extends BaseService{
     keys :
     order_id
     checkout_post_data
-    kj_destination_area
-    kj_destination_area_name
-    kj_expedition
+    kiriof_destination_area
+    kiriof_destination_area_name
+    kiriof_expedition
     insurance
     payment_method
     wc_cart_contents
@@ -49,16 +49,16 @@ class CreateTransactionService extends BaseService{
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];
             $forceInsurance = @$calcResult['selected_expedition']->force_insurance;
             
-            $insurance_cost = ($this->payload['checkout_post_data']['kj_insurance'] || $forceInsurance) 
+            $insurance_cost = ($this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance) 
                 ? $calcResult['insurance_amt'] 
                 : 0;
             // Cache expedition split to avoid duplicate explode
-            $expeditionParts = $this->payload['kj_expedition'] ? explode('_', $this->payload['kj_expedition'], 2) : ['', ''];
+            $expeditionParts = $this->payload['kiriof_expedition'] ? explode('_', $this->payload['kiriof_expedition'], 2) : ['', ''];
             $payload = [
                 'order_id'                      => (new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId())->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
-                'destination_sub_district_id'   => $this->payload['kj_destination_area'],
-                'destination_sub_district'      => $this->payload['kj_destination_area_name'],
+                'destination_sub_district_id'   => $this->payload['kiriof_destination_area'],
+                'destination_sub_district'      => $this->payload['kiriof_destination_area_name'],
                 'status'                        => 'new',
                 'service'                       => $expeditionParts[0],
                 'service_name'                  => $expeditionParts[1] ?? '',
@@ -100,7 +100,7 @@ class CreateTransactionService extends BaseService{
         }
         $calcResult = $checkoutCalc['data']['calculation_result'];
         $forceInsurance = @$calcResult['selected_expedition']->force_insurance ?? 0;
-        $is_insurance = $this->payload['checkout_post_data']['kj_insurance'] || $forceInsurance;
+        $is_insurance = $this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance;
         $is_cod = $this->payload['is_cod'] ?? 0;
         
         if ($is_cod) {
@@ -157,11 +157,11 @@ class CreateTransactionService extends BaseService{
             return $this->checkoutCalcCache;
         }
         
-        $this->payload['is_insurance'] = !empty($this->payload['checkout_post_data']['kj_insurance']) ? 1 : 0;
+        $this->payload['is_insurance'] = !empty($this->payload['checkout_post_data']['kiriof_insurance']) ? 1 : 0;
         
         $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
-            'destination_area_id'   => $this->payload['kj_destination_area'],
-            'expedition'            => $this->payload['kj_expedition'],
+            'destination_area_id'   => $this->payload['kiriof_destination_area'],
+            'expedition'            => $this->payload['kiriof_expedition'],
             'is_insurance'          => $this->payload['is_insurance'],
             'is_cod'                => $this->payload['is_cod'] ?? 0,
             'wc_cart_contents'      => $this->payload['wc_cart_contents'],

@@ -69,9 +69,9 @@ class KiriminAjaTrackingService extends BaseService{
         if (!$order){
             return self::error([],'Transaksi tidak ditemukan');
         }
-        if( !empty($order->get_meta('_shipping_kj_destination_name')) ){
+        if( !empty($order->get_meta('_shipping_kiriof_destination_name')) ){
             
-            $destionation = explode(',', $order->get_meta('_shipping_kj_destination_name'));
+            $destionation = explode(',', $order->get_meta('_shipping_kiriof_destination_name'));
             $city = $destionation[0].','.$destionation['1'].','.$destionation['2'];
             $province = $destionation['3'];
             
@@ -85,7 +85,7 @@ class KiriminAjaTrackingService extends BaseService{
                 ],
             ];
         }else{
-            $destionation = explode(',', $order->get_meta('_billing_kj_destination_name'));
+            $destionation = explode(',', $order->get_meta('_billing_kiriof_destination_name'));
             $city = $destionation[0].','.$destionation['1'].','.$destionation['2'];
             $province = $destionation['3'];
             

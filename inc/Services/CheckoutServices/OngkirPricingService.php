@@ -47,15 +47,15 @@ class OngkirPricingService extends BaseService{
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
         
-        $kjPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kjPricing',[$kjPricing]);
+        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriofPricing',[$kiriofPricing]);
         
-        if(!$kjPricing['data']->status){
-            return self::error([],@$kjPricing['data'] ?? 'Terjadi Kesalahan!');
+        if(!$kiriofPricing['data']->status){
+            return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');
         }
         
         return self::success([
-            'options' => self::filterOptions($kjPricing['data'])
+            'options' => self::filterOptions($kiriofPricing['data'])
         ]);
     }
     
