@@ -73,8 +73,8 @@ class AdminWoocommerceSettings
                 }
 
             }else{
-                echo 'Non Cod';
-                echo '<br/>Method: '. esc_html( $order->get_payment_method() );
+                echo esc_html( 'Non Cod' );
+                echo wp_kses_post( '<br/>Method: ' . esc_html( $order->get_payment_method() ) );
             }
         }
 
@@ -89,17 +89,17 @@ class AdminWoocommerceSettings
             }
 
             if( !empty($insurance_admin_billing) ){
-                echo $insurance_admin_billing ? 'Yes':'No';
+                echo esc_html( $insurance_admin_billing ? 'Yes':'No' );
                 if($insurance_admin_billing){
                     echo wp_kses_post( '<br/>Cost: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost) ) );
                 }
             }else if(!empty($insurance_admin_shipping)){
-                echo $insurance_admin_shipping ? 'Yes':'No';
+                echo esc_html( $insurance_admin_shipping ? 'Yes':'No' );
                 if($insurance_admin_shipping){
                     echo wp_kses_post( '<br/>Cost: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost) ) );
                 }
             }else{ 
-                echo $insurance_front ? 'Yes':'No';
+                echo esc_html( $insurance_front ? 'Yes':'No' );
                 if($insurance_front){
                     echo wp_kses_post( '<br/>Cost: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost) ) );
                 }

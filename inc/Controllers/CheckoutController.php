@@ -334,7 +334,7 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Date',$locale)).'</th>
-                            <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( esc_html($transaction->created_at) ) ) ).'</th>
+                            <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( $transaction->created_at ) ) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Method',$locale) ).'</th>
@@ -342,19 +342,19 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Sub Total',$locale)).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format( esc_html($transaction->transaction_value) ) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format( $transaction->transaction_value ) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Shipping Fee',$locale) ).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format((esc_html($transaction->shipping_cost) ?? 0) + (esc_html($transaction->insurance_cost) ?? 0) + (esc_html($transaction->cod_fee) ?? 0)) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(($transaction->shipping_cost ?? 0) + ($transaction->insurance_cost ?? 0) + ($transaction->cod_fee ?? 0)) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Total',$locale) ).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(( esc_html( $transaction->transaction_value ) ?? 0) + (esc_html( $transaction->shipping_cost ) ?? 0) + (esc_html( $transaction->insurance_cost ) ?? 0) + (esc_html( $transaction->cod_fee ) ?? 0)) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(($transaction->transaction_value ?? 0) + ($transaction->shipping_cost ?? 0) + ($transaction->insurance_cost ?? 0) + ($transaction->cod_fee ?? 0)) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Tracking',$locale) ).'</th>
-                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.esc_html($transaction->wp_wc_order_stat_order_id) ).'" target="_blank">CLICK</a></th>
+                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.$transaction->wp_wc_order_stat_order_id ).'" target="_blank">CLICK</a></th>
                         </tr>
                     </thead>
                 </table>            
