@@ -16,6 +16,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
 	--exclude=$(BUILD_DIR)/ \
+	--exclude=scripts/ \
 	--exclude=.DS_Store \
 	--exclude=.distignore \
 	--exclude=.editorconfig \
@@ -24,7 +25,10 @@ RSYNC_EXCLUDES := \
 	--exclude=Makefile \
 	--exclude=*.zip
 
-.PHONY: zip clean
+.PHONY: zip clean changelog
+
+changelog:
+	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),)
 
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
