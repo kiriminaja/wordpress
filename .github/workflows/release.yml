@@ -19,18 +19,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
 
       - name: Get current time
         id: date
-        run: echo "::set-output name=date::$(TZ="Asia/Jakarta" date +'%Y-%m-%d %H:%I')"
+        run: echo "date=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %H:%M')" >> "$GITHUB_OUTPUT"
 
-      - name: Archive release
-        uses: thedoctor0/zip-release@0.7.5
-        with:
-          type: 'zip'
-          filename: kiriminaja-${{ github.ref_name }}.zip
-          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+      - name: Read plugin version
+        id: version
+        run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
+
+      - name: Build ZIP
+        run: make zip
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
@@ -41,7 +46,7 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ github.ref_name }}.zip
+          path: kiriminaja-official-${{ steps.version.outputs.version }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: 'publicRead'
 
@@ -50,28 +55,28 @@ jobs:
         uses: devops-actions/json-to-file@v1.0.0
         with:
           filename: woocommerce.json
-          json: "{\"name\":\"KiriminAja Plugin\",\"slug\":\"kiriminaja\",\"author\":\"<a href='https://kiriminaja.com'>KiriminAja</a>\",\"author_profile\":\"https://kiriminaja.com/about\",\"tested\":\"7.0\",\"requires_php\":\"7.0\",\"sections\":{\"description\":\"KiriminAja Plugin Update\",\"installation\":\"Click the activation button.\",\"changelog\":\"Bug fixing and performance improvement\"}}"
+          json: "{\"name\":\"KiriminAja Official\",\"slug\":\"kiriminaja-official\",\"author\":\"<a href='https://kiriminaja.com'>KiriminAja</a>\",\"author_profile\":\"https://kiriminaja.com/about\",\"tested\":\"6.9\",\"requires_php\":\"7.0\",\"sections\":{\"description\":\"KiriminAja Official Plugin for WooCommerce\",\"installation\":\"Click the activation button.\",\"changelog\":\"See readme.txt for full changelog.\"}}"
 
       - name: Update version value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: version
-          value: ${{ github.ref_name }}
+          value: ${{ steps.version.outputs.version }}
 
       - name: Update requires value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: requires
-          value: ${{ github.ref_name }}
+          value: ${{ steps.version.outputs.version }}
 
       - name: Update download url value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: download_url
-          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-${{ github.ref_name }}.zip
+          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-official-${{ steps.version.outputs.version }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1

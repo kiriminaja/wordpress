@@ -2,8 +2,8 @@
 
 PLUGIN_SLUG := kiriminaja-official
 
-VERSION_RAW := $(shell git describe --tags --abbrev=0 2>/dev/null || echo 0.0.0)
-VERSION := $(shell echo $(VERSION_RAW) | awk -F. '{$$NF+=1; OFS="."; print $$1,$$2,$$3}')
+# Read version from kiriminaja.php KIRIOF_VERSION
+VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")
 ZIP_FILE := $(PLUGIN_SLUG)-$(VERSION).zip
 
 BUILD_DIR := build
@@ -25,10 +25,14 @@ RSYNC_EXCLUDES := \
 	--exclude=Makefile \
 	--exclude=*.zip
 
-.PHONY: zip clean changelog
+.PHONY: zip clean changelog release
 
 changelog:
 	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),)
+
+release: changelog
+	@$(MAKE) zip
+	@echo "Release $(VERSION) ready!"
 
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
