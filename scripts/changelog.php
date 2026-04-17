@@ -5,12 +5,14 @@
  *
  * Usage:
  *   php scripts/changelog.php [version] [from-ref]
- *   make changelog V=2.1.3
- *   make changelog V=2.1.3 FROM=abc1234
+ *   make changelog                        # auto-bumps patch version (e.g. 2.1.2 -> 2.1.3)
+ *   make changelog V=2.2.0               # explicit version
+ *   make changelog V=2.2.0 FROM=abc1234  # explicit version + starting ref
  *
  * Reads git log since the last version in readme.txt (or from-ref),
  * filters commits containing "feature/feat" or "fixing/fix" keywords,
  * and prepends the new version entry to the == Changelog == section.
+ * Also updates: Stable tag, KIRIOF_VERSION, Version header, and WC tested up to.
  */
 
 if ( php_sapi_name() !== 'cli' ) {
@@ -29,13 +31,22 @@ if ( ! file_exists( $readme ) ) {
 // --- Determine version ---
 $version = $argv[1] ?? null;
 
+// Read current version from kiriminaja.php
+$current_version = null;
+if ( file_exists( $plugin ) ) {
+    $content = file_get_contents( $plugin );
+    if ( preg_match( "/define\(\s*'KIRIOF_VERSION',\s*'([^']+)'/", $content, $m ) ) {
+        $current_version = $m[1];
+    }
+}
+
 if ( ! $version ) {
-    // Read from kiriminaja.php KIRIOF_VERSION
-    if ( file_exists( $plugin ) ) {
-        $content = file_get_contents( $plugin );
-        if ( preg_match( "/define\(\s*'KIRIOF_VERSION',\s*'([^']+)'/", $content, $m ) ) {
-            $version = $m[1];
-        }
+    // Auto-bump patch version (e.g. 2.1.2 -> 2.1.3)
+    if ( $current_version ) {
+        $parts = explode( '.', $current_version );
+        $parts[ count( $parts ) - 1 ] = (int) end( $parts ) + 1;
+        $version = implode( '.', $parts );
+        echo "Auto-bumped version: {$current_version} -> {$version}\n";
     }
 }
 
