@@ -4,3 +4,5 @@ debug.log
 *.zip
 node_modules
 vendor
+build
+.phpunit.cache
