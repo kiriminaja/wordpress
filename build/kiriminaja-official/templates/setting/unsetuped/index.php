@@ -164,9 +164,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                 
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_store_integration_data",  // the action to fire in the server
+                action: "kiriof_store_integration_data",  // the action to fire in the server
                 data: {
                     setup_key:jQuery('#setup-form [name="setup_key"]').val(),
                     nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"      

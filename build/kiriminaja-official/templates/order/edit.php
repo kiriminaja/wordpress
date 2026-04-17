@@ -8,10 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 ob_start();
 ?>
 jQuery(function ($) {
-    getKiriminAjaTransactionData();
+    kiriofGetTransactionData();
 });
 
-function getKiriminAjaTransactionData() {
+function kiriofGetTransactionData() {
     let orderId = <?php echo wp_json_encode( (string) $orderId ); ?>;
     let trackingUrl = <?php echo wp_json_encode( (string) $trackingUrl ); ?>;
     let kjOrderData = <?php echo wp_json_encode( (string) $kjOrderData ); ?>;

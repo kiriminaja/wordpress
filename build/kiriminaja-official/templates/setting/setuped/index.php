@@ -219,9 +219,9 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
         menuFormLoaderInit('tab-integration',true)
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_disconnect_integration",  // the action to fire in the server
+                action: "kiriof_disconnect_integration",  // the action to fire in the server
                 data: {},         // any JS object
             },
             complete: function (response) {
@@ -269,7 +269,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
                 placeholder: "<?php echo  esc_html( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
                 allowClear: true,
                 ajax: {
-                    url: ajaxRouteGenerator(),
+                    url: kiriofAjaxRoute(),
                     dataType: 'json',
                     type: "POST",
                     delay: 250,
@@ -301,7 +301,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
            placeholder: "<?php echo  esc_html( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
            allowClear: true,
            ajax: {
-               url: ajaxRouteGenerator(),
+               url: kiriofAjaxRoute(),
                dataType: 'json',
                type: "POST",
                delay: 250,
@@ -333,9 +333,9 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
         formAlertToggler('tab-shipping',false)
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_store_origin_data",  // the action to fire in the server
+                action: "kiriof_store_origin_data",  // the action to fire in the server
                 data: {
                     nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>",      
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
@@ -379,9 +379,9 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
 
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_store_call_back_data",  // the action to fire in the server
+                action: "kiriof_store_call_back_data",  // the action to fire in the server
                 data: {
                     callback_url:jQuery('.tab-advanced [name="callback_url"]').val(),
                     nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"      

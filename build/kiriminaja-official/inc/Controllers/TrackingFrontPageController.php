@@ -12,8 +12,8 @@ class TrackingFrontPageController{
         /** Adding New Route*/
         add_shortcode('kiriminaja-tracking-front-page', array($this,'trackingFrontPage'));
         /** Add Tracking Ajax*/
-        add_action('wp_ajax_kj-tracking-ajax', array($this,'trackingAjaxHandler'));
-        add_action('wp_ajax_nopriv_kj-tracking-ajax', array($this,'trackingAjaxHandler'));
+        add_action('wp_ajax_kiriof-tracking-ajax', array($this,'trackingAjaxHandler'));
+        add_action('wp_ajax_nopriv_kiriof-tracking-ajax', array($this,'trackingAjaxHandler'));
     }
     
     public function trackingFrontPage(){
@@ -24,8 +24,8 @@ class TrackingFrontPageController{
     
     public function trackingAjaxHandler(){
         try {
-            // @codingStandardsIgnoreLine
-            $service = (new \KiriminAjaOfficial\Services\KiriminAjaTrackingService())->order_number($_POST['order_number'])->call();
+            $order_number = isset( $_POST['order_number'] ) ? sanitize_text_field( wp_unslash( $_POST['order_number'] ) ) : '';
+            $service = (new \KiriminAjaOfficial\Services\KiriminAjaTrackingService())->order_number($order_number)->call();
             if ($service->status!==200){wp_send_json_success($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){

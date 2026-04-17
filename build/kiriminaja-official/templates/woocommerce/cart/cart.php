@@ -41,8 +41,8 @@ do_action( 'woocommerce_before_cart' ); ?>
                 <?php
                 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop and product variables
                 foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-                    $kiriof_product   = apply_filters( 'woocommerce_cart_item_kiriof_product', $cart_item['data'], $cart_item, $cart_item_key );
-                    $kiriof_product_id = apply_filters( 'kiriof_woocommerce_cart_item_kiriof_product_id', $cart_item['kiriof_product_id'], $cart_item, $cart_item_key );
+                    $kiriof_product   = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+                    $kiriof_product_id = apply_filters( 'woocommerce_cart_item_product_id', $cart_item['product_id'], $cart_item, $cart_item_key );
                     /**
                      * Filter the product name.
                      *
@@ -62,10 +62,10 @@ do_action( 'woocommerce_before_cart' ); ?>
 
                             <td class="product-remove">
                                 <?php
-                                    echo apply_filters( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                    echo wp_kses_post( apply_filters(
                                         'woocommerce_cart_item_remove_link',
                                         sprintf(
-                                            '<a href="%s" class="remove" aria-label="%s" data-kiriof_product_id="%s" data-product_sku="%s">&times;</a>',
+                                            '<a href="%s" class="remove" aria-label="%s" data-product_id="%s" data-product_sku="%s">&times;</a>',
                                             esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
                                             /* translators: %s is the product name */
                                             esc_attr( sprintf( __( 'Remove %s from cart', 'kiriminaja-official' ), wp_strip_all_tags( $product_name ) ) ),
@@ -73,7 +73,7 @@ do_action( 'woocommerce_before_cart' ); ?>
                                             esc_attr( $kiriof_product->get_sku() )
                                         ),
                                         $cart_item_key
-                                    );
+                                    ) );
                                 ?>
                             </td>
 
@@ -83,11 +83,9 @@ do_action( 'woocommerce_before_cart' ); ?>
                             $thumbnail = apply_filters( 'woocommerce_cart_item_thumbnail', $kiriof_product->get_image(), $cart_item, $cart_item_key );
 
                             if ( ! $product_permalink ) {
-                                // PHPCS: XSS ok.
-                                echo $thumbnail; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                echo wp_kses_post( $thumbnail );
                             } else {
-                                // PHPCS: XSS ok.
-                                printf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $thumbnail ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                printf( '<a href="%s">%s</a>', esc_url( $product_permalink ), wp_kses_post( $thumbnail ) );
                             }
                             ?>
                             </td>
@@ -109,7 +107,7 @@ do_action( 'woocommerce_before_cart' ); ?>
 
                             // Meta data.
                             // PHPCS: XSS ok.
-                            echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                            echo wp_kses_post( wc_get_formatted_cart_item_data( $cart_item ) );
 
                             // Backorder notification.
                             if ( $kiriof_product->backorders_require_notification() && $kiriof_product->is_on_backorder( $cart_item['quantity'] ) ) {
@@ -120,14 +118,14 @@ do_action( 'woocommerce_before_cart' ); ?>
 
                             <td class="product-price" data-title="<?php esc_attr_e( 'Price', 'kiriminaja-official' ); ?>">
                                 <?php
-                                    echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $kiriof_product ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                    echo wp_kses_post( apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $kiriof_product ), $cart_item, $cart_item_key ) );
                                     // PHPCS: XSS ok.
                                 ?>
                             </td>
 
                             <td class="product-quantity" data-title="<?php esc_attr_e( 'Quantity', 'kiriminaja-official' ); ?>">
-                            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables for quantity
                             <?php
+                            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables for quantity
                             if ( $kiriof_product->is_sold_individually() ) {
                                 $kiriof_min_quantity = 1;
                                 $kiriof_max_quantity = 1;
@@ -149,14 +147,14 @@ do_action( 'woocommerce_before_cart' ); ?>
                                 false
                             );
 
-                            echo apply_filters( 'woocommerce_cart_item_quantity', $kiriof_product_quantity, $cart_item_key, $cart_item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                            echo wp_kses_post( apply_filters( 'woocommerce_cart_item_quantity', $kiriof_product_quantity, $cart_item_key, $cart_item ) );
                             // PHPCS: XSS ok.
                             ?>
                             </td>
 
                             <td class="product-subtotal" data-title="<?php esc_attr_e( 'Subtotal', 'kiriminaja-official' ); ?>">
                                 <?php
-                                    echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $kiriof_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                    echo wp_kses_post( apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $kiriof_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ) );
                                     // PHPCS: XSS ok.
                                 ?>
                             </td>

@@ -197,7 +197,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         hideStateComponent()
         jQuery('.state-loading').removeClass('kj-hidden')
 
-        wp.ajax.post( "kj-tracking-ajax", {
+        wp.ajax.post( "kiriof-tracking-ajax", {
             order_number:jQuery('[name="order_number"]').val()
         }).done(function(response) {  
                               

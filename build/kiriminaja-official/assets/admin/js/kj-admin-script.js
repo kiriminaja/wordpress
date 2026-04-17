@@ -1,10 +1,10 @@
 
 // Use AJAX URL passed from WordPress via wp_localize_script
-function ajaxRouteGenerator(){
+function kiriofAjaxRoute(){
     return kirioAjax.ajaxurl;
 }
 
-function kjMoneyFormat(angka, prefix){
+function kiriofMoneyFormat(angka, prefix){
     var number_string = angka;
     number_string=number_string.toString();
     var split   		= number_string.split(',');
@@ -22,7 +22,7 @@ function kjMoneyFormat(angka, prefix){
     return prefix == undefined ? rupiah : (rupiah ? 'Rp. ' + rupiah : '');
 }
 
-function printAsString (value, placeholder=''){
+function kiriofPrintAsString (value, placeholder=''){
     if (value==null) return placeholder
     return value
 }
@@ -35,12 +35,12 @@ jQuery(document).on("input", ".kj_int_input", function() {
         duplicateTarget.trigger('change')
     }
     if (jQuery(this).hasClass('currency')){
-        this.value=formatRupiah(this.value)
+        this.value=kiriofFormatRupiah(this.value)
     }
 });
 
 
-function getUrlParameter(sParam) {
+function kiriofGetUrlParameter(sParam) {
     var sPageURL = window.location.search.substring(1),
         sURLVariables = sPageURL.split('&'),
         sParameterName,

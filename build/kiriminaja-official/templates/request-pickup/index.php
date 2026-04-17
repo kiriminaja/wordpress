@@ -110,17 +110,17 @@ class requestPickupIndex {
         $total_pages = ceil($total/$items_per_page);
 
         /** Paginate*/
-        $next_page_link = home_url() . '/wp-admin/admin.php?';
-        $prev_page_link = home_url() . '/wp-admin/admin.php?';
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $next_page_link = admin_url( 'admin.php?' );
+        $prev_page_link = admin_url( 'admin.php?' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Pagination link building from GET params
         foreach ($_GET as $key => $value){
             if ($key !== 'cpage'){
-                $next_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field($value)) . '&';
-                $prev_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field($value)) . '&';
+                $next_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field(wp_unslash($value))) . '&';
+                $prev_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field(wp_unslash($value))) . '&';
             }
         }
-        $next_page_link= $page+1<=$total_pages ? $next_page_link.'cpage='.$page+1 : '';
-        $prev_page_link= $page-1>0 ? $prev_page_link.'cpage='.$page-1 : '';
+        $next_page_link= $page+1<=$total_pages ? esc_url($next_page_link.'cpage='.($page+1)) : '';
+        $prev_page_link= $page-1>0 ? esc_url($prev_page_link.'cpage='.($page-1)) : '';
         
         return [
             'results'=>$results,

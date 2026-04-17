@@ -38,9 +38,9 @@ class ProductController{
 
     public function kj_save_product_custom_fields($post_id){
        
-        // Check for nonce security      
-        if ( isset($_POST['kj_product_nonce_field']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['kj_product_nonce_field'])), KIRIOF_NONCE ) ) {
-            return; // Exit if nonce is not valid
+        // Check for nonce security - fail early if missing or invalid
+        if ( ! isset( $_POST['kj_product_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kj_product_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+            return;
         }
 
         // Sanitize and assign values from $_POST to $_POST['weight'], etc.

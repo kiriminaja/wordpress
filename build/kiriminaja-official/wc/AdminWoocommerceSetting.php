@@ -53,28 +53,28 @@ class AdminWoocommerceSettings
 
 
         if ( 'shipping_method' === $column ) {
-            echo $order->get_shipping_method(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo esc_html( $order->get_shipping_method() );
         }
 
         if ( 'payment_method' === $column ) {
 
             if($order->get_payment_method() == 'cod'){
                 
-                echo $order->get_payment_method(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo esc_html( $order->get_payment_method() );
                 
                 if( $shipping_method_id != $ka_id_shipping ){
                     return false;
                 }
 
-                echo '<br/>Fee: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo wp_kses_post( '<br/>Fee: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->cod_fee) ) );
                 
                 if( $order->get_meta( '_kj_ppn' )){
                     echo '<br/><em>('.esc_html__('include 11% Vat','kiriminaja-official').')</em>';
                 }
 
             }else{
-                echo 'Non Cod';
-                echo '<br/>Method: '. $order->get_payment_method(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo esc_html( 'Non Cod' );
+                echo wp_kses_post( '<br/>Method: ' . esc_html( $order->get_payment_method() ) );
             }
         }
 
@@ -89,19 +89,19 @@ class AdminWoocommerceSettings
             }
 
             if( !empty($insurance_admin_billing) ){
-                echo $insurance_admin_billing ? 'Yes':'No';
+                echo esc_html( $insurance_admin_billing ? 'Yes':'No' );
                 if($insurance_admin_billing){
-                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    echo wp_kses_post( '<br/>Cost: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost) ) );
                 }
             }else if(!empty($insurance_admin_shipping)){
-                echo $insurance_admin_shipping ? 'Yes':'No';
+                echo esc_html( $insurance_admin_shipping ? 'Yes':'No' );
                 if($insurance_admin_shipping){
-                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    echo wp_kses_post( '<br/>Cost: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost) ) );
                 }
             }else{ 
-                echo $insurance_front ? 'Yes':'No';
+                echo esc_html( $insurance_front ? 'Yes':'No' );
                 if($insurance_front){
-                    echo '<br/>Cost: '.  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    echo wp_kses_post( '<br/>Cost: ' .  (!$transactionKiriminaja ? '-': wc_price($transactionKiriminaja->insurance_cost) ) );
                 }
             }
 

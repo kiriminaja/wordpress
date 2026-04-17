@@ -10,25 +10,25 @@ use Throwable;
 class SettingController{
     public function register(){
         /** getIntegrationData*/
-        add_action('wp_ajax_kj_get_integration_data', array($this,'getIntegrationData'));
+        add_action('wp_ajax_kiriof_get_integration_data', array($this,'getIntegrationData'));
         
         /** storeIntegrationData*/
-        add_action('wp_ajax_kj_store_integration_data', array($this,'storeIntegrationData'));
+        add_action('wp_ajax_kiriof_store_integration_data', array($this,'storeIntegrationData'));
         
         /** storeIntegrationData*/
-        add_action('wp_ajax_kj_disconnect_integration', array($this,'disconnectIntegration'));
+        add_action('wp_ajax_kiriof_disconnect_integration', array($this,'disconnectIntegration'));
         
         /** storeIntegrationData*/
-        add_action('wp_ajax_kj_get_origin_data', array($this,'getOriginData'));
+        add_action('wp_ajax_kiriof_get_origin_data', array($this,'getOriginData'));
         
         /** storeIntegrationData*/
-        add_action('wp_ajax_kj_store_origin_data', array($this,'storeOriginData'));
+        add_action('wp_ajax_kiriof_store_origin_data', array($this,'storeOriginData'));
         
         /** storeIntegrationData*/
-        add_action('wp_ajax_kj_get_call_back_data', array($this,'getCallbackData'));
+        add_action('wp_ajax_kiriof_get_call_back_data', array($this,'getCallbackData'));
         
         /** storeCallbackData*/
-        add_action('wp_ajax_kj_store_call_back_data', array($this,'storeCallbackData'));
+        add_action('wp_ajax_kiriof_store_call_back_data', array($this,'storeCallbackData'));
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
     }
@@ -36,6 +36,11 @@ class SettingController{
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
             $service = (new \KiriminAjaOfficial\Services\SettingService())->getIntegrationData();
@@ -71,6 +76,11 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
             $service = (new \KiriminAjaOfficial\Services\SettingService())->disconnectIntegration();
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -83,6 +93,11 @@ class SettingController{
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
             $service = (new \KiriminAjaOfficial\Services\SettingService())->getOriginData();
@@ -122,6 +137,11 @@ class SettingController{
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
             $service = (new \KiriminAjaOfficial\Services\SettingService())->getCallbackData();

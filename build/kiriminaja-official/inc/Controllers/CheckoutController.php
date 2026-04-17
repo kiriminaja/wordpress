@@ -40,8 +40,8 @@ class CheckoutController
                 add_action( 'woocommerce_checkout_order_processed', array($this,'afterCheckoutAfterCreated'),10, 3);
             /** end After Checkout */
             /** Expedition Ajax*/
-            add_action('wp_ajax_kj-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
-            add_action('wp_ajax_nopriv_kj-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
+            add_action('wp_ajax_kiriof-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
+            add_action('wp_ajax_nopriv_kiriof-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
                         
             /** Custom Page Woocommerce Thankyou */
             add_action( 'woocommerce_order_details_after_order_table_items', array($this,'kj_order_details') );
@@ -126,22 +126,21 @@ class CheckoutController
     }
     function kj_checkout_field_validation() {
         try {
-             // Verifikasi Nonce
-            if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) {
-                
-                $field_key = $this->field_destination_key;
-                
-                if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-                    wc_add_notice( esc_html__('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja-official'),'error' );
-                }
-                (new \KiriminAjaOfficial\Services\CheckoutServices\ValidationCodCalculationService([
-                    'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
-                    'payment_method'    => WC()->session->get('chosen_payment_method'),
-                    'cart_total'        => WC()->cart->total
-                ]))->call();
-            
+             // Verify Nonce - fail early if missing or invalid
+            if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+                return;
             }
+                
+            $field_key = $this->field_destination_key;
+            
+            if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
+                wc_add_notice( esc_html__('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja-official'),'error' );
+            }
+            (new \KiriminAjaOfficial\Services\CheckoutServices\ValidationCodCalculationService([
+                'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
+                'payment_method'    => WC()->session->get('chosen_payment_method'),
+                'cart_total'        => WC()->cart->total
+            ]))->call();
         
         }catch (\Throwable $th) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kj_checkout_field_validation',[$th->getMessage()]);   
@@ -272,25 +271,19 @@ class CheckoutController
     }
     
     function getExpeditionOptionAjax(){
-        /**
-        DELAYDEVNOTE
-         * pricing payload
-         */
         try {
-            if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
-            {
+            // Verify nonce - fail early if missing or invalid
+            if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'msg' => 'Security Check Nonce Checkout' ) );
+                wp_die();
+            }
             $service = (new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService([
                 'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'])) :'',
                 'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash($_POST['data']['payment_method'])) : '' ) === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
             ]))->call();
                 
-                wp_send_json_success($service);
-            
-            }else{
-                wp_send_json_error(['msg'=>'Security Check Nonce Checkout']);
-            }
+            wp_send_json_success($service);
         }catch (\Throwable $th){
             wp_send_json_success([
                 'status'    => 400,
@@ -302,26 +295,20 @@ class CheckoutController
     }
     
     function getCheckoutCalculationAjax(){
-        /**
-        DELAYDEVNOTE
-         * pricing payload
-         */
-        
         try {
-            if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-                wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
-            {
-                $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
-                    'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'] )) : '',
-                    'expedition'            => isset($_POST['data']['expedition']) ? sanitize_text_field( wp_unslash( $_POST['data']['expedition'] )) : '',
-                    'is_insurance'          => ( isset($_POST['data']['insurance']) ? sanitize_text_field( wp_unslash( $_POST['data']['insurance'] )) : '' ) === "true",
-                    'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash( $_POST['data']['payment_method'])) : '') === 'cod',
-                    'wc_cart_contents'      => WC()->cart->cart_contents,
-                ]))->call();
-                wp_send_json_success($service);
-            }else{
-                wp_send_json_error(['msg'=>'Security Check Nonce Checkout']);
+            // Verify nonce - fail early if missing or invalid
+            if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'msg' => 'Security Check Nonce Checkout' ) );
+                wp_die();
             }
+            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
+                'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'] )) : '',
+                'expedition'            => isset($_POST['data']['expedition']) ? sanitize_text_field( wp_unslash( $_POST['data']['expedition'] )) : '',
+                'is_insurance'          => ( isset($_POST['data']['insurance']) ? sanitize_text_field( wp_unslash( $_POST['data']['insurance'] )) : '' ) === "true",
+                'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash( $_POST['data']['payment_method'])) : '') === 'cod',
+                'wc_cart_contents'      => WC()->cart->cart_contents,
+            ]))->call();
+            wp_send_json_success($service);
         }catch (\Throwable $th){
             wp_send_json_success([
                 'status'    => 400,
@@ -347,7 +334,7 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Date',$locale)).'</th>
-                            <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( esc_html($transaction->created_at) ) ) ).'</th>
+                            <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( $transaction->created_at ) ) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Method',$locale) ).'</th>
@@ -355,19 +342,19 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Sub Total',$locale)).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format( esc_html($transaction->transaction_value) ) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format( $transaction->transaction_value ) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Shipping Fee',$locale) ).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format((esc_html($transaction->shipping_cost) ?? 0) + (esc_html($transaction->insurance_cost) ?? 0) + (esc_html($transaction->cod_fee) ?? 0)) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(($transaction->shipping_cost ?? 0) + ($transaction->insurance_cost ?? 0) + ($transaction->cod_fee ?? 0)) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Total',$locale) ).'</th>
-                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(( esc_html( $transaction->transaction_value ) ?? 0) + (esc_html( $transaction->shipping_cost ) ?? 0) + (esc_html( $transaction->insurance_cost ) ?? 0) + (esc_html( $transaction->cod_fee ) ?? 0)) ).'</th>
+                            <th class="" style="text-align: right">Rp.'.esc_html( kiriof_money_format(($transaction->transaction_value ?? 0) + ($transaction->shipping_cost ?? 0) + ($transaction->insurance_cost ?? 0) + ($transaction->cod_fee ?? 0)) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Tracking',$locale) ).'</th>
-                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.esc_html($transaction->wp_wc_order_stat_order_id) ).'" target="_blank">CLICK</a></th>
+                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.$transaction->wp_wc_order_stat_order_id ).'" target="_blank">CLICK</a></th>
                         </tr>
                     </thead>
                 </table>            
@@ -383,17 +370,17 @@ class CheckoutController
         }
         $html = '
             <tr>
-				<th scope="row">'.__('Ekspedisi','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total">'.$order->get_shipping_method().'</td>
+				<th scope="row">'.esc_html__('Ekspedisi','kiriminaja-official').':</th>
+				<td class="wc-block-order-confirmation-totals__total">'.esc_html($order->get_shipping_method()).'</td>
 			</tr>
             <tr>
-				<th scope="row">'.__('Tracking','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.home_url().'/tracking?order_id='.$order->get_id().'">'.__('Click','kiriminaja-official').'</a></td>
+				<th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
+				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.esc_url( home_url('/tracking?order_id='.$order->get_id()) ).'">'.esc_html__('Click','kiriminaja-official').'</a></td>
 			</tr>';
         if( $order->get_meta('_'.$this->field_insurance_key) == true || $transactionKiriminaja->insurance_cost > 0 ){
             $html .= '
             <tr>
-				<th scope="row">'.__('Insurance','kiriminaja-official').':</th>
+				<th scope="row">'.esc_html__('Insurance','kiriminaja-official').':</th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->insurance_cost).'</td>
 			</tr>';
         }
@@ -401,7 +388,7 @@ class CheckoutController
             $html .= '
             <tr>
 				<th scope="row">
-                    <label for="kj_cod_fee" style="display:block;margin:0;">'. __('COD Fee:','kiriminaja-official').'</label>		
+                    <label for="kj_cod_fee" style="display:block;margin:0;">'. esc_html__('COD Fee:','kiriminaja-official').'</label>		
                     <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
                 </th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->cod_fee).'</td>
@@ -420,9 +407,11 @@ class CheckoutController
     public function kj_validateOrder($posted){
         $packages = WC()->shipping->get_packages();
         
-        if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
-        {
+        // Verify nonce - fail early if missing or invalid
+        if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+            return;
+        }
+        
             if( isset($_POST['billing_country']) ){
                 
                 if ($_POST['billing_country'] === "ID"){
@@ -469,7 +458,6 @@ class CheckoutController
         
                 }
             }
-        } // security Check
     }
     public function kj_billing_fields($fields){
         $fields_selected = array( 
@@ -553,12 +541,12 @@ class CheckoutController
      * @return string
      */
     public function kj_shipping_chosen_method($method, $available_methods) {
-        if ( isset($_POST['checkout_kiriminaja_nonce_field']) && 
-            wp_verify_nonce(sanitize_text_field( wp_unslash($_POST['checkout_kiriminaja_nonce_field']) ), KIRIOF_NONCE) ) 
-        {
-            if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
-                return sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
-            }
+        // Verify nonce - fail early if missing or invalid
+        if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+            return $method;
+        }
+        if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
+            return sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
         }
         return $method;
     }

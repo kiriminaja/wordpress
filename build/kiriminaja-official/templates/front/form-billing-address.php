@@ -41,11 +41,11 @@ if ( ! defined( 'ABSPATH' ) ) {
             <?php endif; ?>
 
             <?php if(is_checkout()): ?>
-                kj_changeCodPaymentMethod();
-                kj_changeDifferentAdrress();
+                kiriofChangeCodPayment();
+                kiriofChangeDifferentAddress();
 
                 jQuery(document.body).on( 'change', 'input.shipping_method', function() {
-                    AjaxHandleCodInsurance();
+                    kiriofHandleCodInsurance();
                 });
 
             <?php endif; ?>
@@ -78,13 +78,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                     url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
                     type: 'post',
                     data: {
-                        action:'getDestinationArea',
+                        action:'kiriof_get_destination_area',
                         'val':root.val(),
                         'insurance':_insurance,
                         'different_address': different_address,
                         'text':root.find('option:selected').text(),
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':"<?php echo esc_js( wp_create_nonce('kj-destination') ); ?>",
+                        'nonce':"<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
@@ -121,7 +121,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
                             
                                 jQuery(document.body).one('updated_checkout', function() {
-                                    ajaxCodInsurance();                                    
+                                    kiriofCodInsurance();                                    
                                 });
                             
                             
@@ -148,7 +148,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         function getSearchAreaKelurahan(){
             let ajaxurl = "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>";
             let subDistrictSelectElem = jQuery(`[name="<?php echo esc_html( $field_key ); ?>"],[name=kj_shipping_destination_area]`); 
-            let nonce = "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>";
+            let nonce = "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>";
 
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
@@ -206,18 +206,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
             localStorage.removeItem('chosen_shipping_method');
 
-            AjaxHandleCodInsurance();
+            kiriofHandleCodInsurance();
         });
 
 
-        function kj_changeCodPaymentMethod(){
+        function kiriofChangeCodPayment(){
             jQuery(document).on('change','[name="payment_method"]:checked,#kj_insurance,#kj_shipping_insurance',function() {
-                AjaxHandleCodInsurance();
+                kiriofHandleCodInsurance();
             });
 
         }
 
-        function kj_changeDifferentAdrress(){
+        function kiriofChangeDifferentAddress(){
             jQuery('[name="ship_to_different_address"]').on('change',function(e) {
                 if(jQuery(this).is(':checked')){
                     jQuery('#kj_destination_area').val(jQuery('#kj_shipping_destination_area option:selected').val()).trigger("change");
@@ -227,7 +227,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             });
         }
 
-        function AjaxHandleCodInsurance(){
+        function kiriofHandleCodInsurance(){
             
             <?php if( is_checkout()){ ?>
 
@@ -235,7 +235,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 
                 setTimeout(() => {
                     jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
-                        ajaxCodInsurance();
+                        kiriofCodInsurance();
                     });
                 }, 300);
 
@@ -244,7 +244,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         }
 
-        function ajaxCodInsurance(){
+        function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
@@ -270,8 +270,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                         
 
             let data = {
-                action:'kj_get_data_after_update_checkout',
-                nonce:"<?php echo esc_js( wp_create_nonce('kj-update-checkout') ); ?>",
+                action:'kiriof_get_data_after_update_checkout',
+                nonce:"<?php echo esc_js( wp_create_nonce('kiriof-update-checkout') ); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 payment_method,
