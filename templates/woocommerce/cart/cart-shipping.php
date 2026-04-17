@@ -20,9 +20,11 @@
 defined( 'ABSPATH' ) || exit;
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
-$kiriof_formatted_destination    = isset( $kiriof_formatted_destination ) ? $kiriof_formatted_destination : WC()->countries->get_formatted_address( $package['destination'], ', ' );
-$kiriof_has_calculated_shipping  = ! empty( $kiriof_has_calculated_shipping );
-$kiriof_show_shipping_calculator = ! empty( $kiriof_show_shipping_calculator );
+$kiriof_formatted_destination    = isset( $formatted_destination ) ? $formatted_destination : WC()->countries->get_formatted_address( $package['destination'], ', ' );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
+$kiriof_has_calculated_shipping  = ! empty( $has_calculated_shipping );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
+$kiriof_show_shipping_calculator = ! empty( $show_shipping_calculator );
 $kiriof_calculator_text          = '';
 ?>
 <tr class="woocommerce-shipping-totals shipping">

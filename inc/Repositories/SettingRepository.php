@@ -188,27 +188,14 @@ class SettingRepository{
             return [];
         }
 
-        $max_keys = 10;
-        $keys     = array_slice( $keys, 0, $max_keys );
-        $keys     = array_pad( $keys, $max_keys, '' );
-
-        [ $k1, $k2, $k3, $k4, $k5, $k6, $k7, $k8, $k9, $k10 ] = $keys;
+        $placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results(
             $wpdb->prepare(
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table name uses wpdb prefix; identifier placeholders (%i) require WP 6.2+
-                "SELECT * FROM {$this->table} WHERE `key` IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                $k1,
-                $k2,
-                $k3,
-                $k4,
-                $k5,
-                $k6,
-                $k7,
-                $k8,
-                $k9,
-                $k10
+                "SELECT * FROM {$this->table} WHERE `key` IN ({$placeholders})",
+                ...$keys
             )
         );
         

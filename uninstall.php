@@ -1,17 +1,14 @@
 <?php
-// Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
-
-
 /**
- * Trigger this file on Plugin uninstall 
- * 
- * @package Saksenengmu
+ * Trigger this file on Plugin uninstall
+ *
+ * @package KiriminAjaOfficial
  */
 
-if ( ! defined('WP_UNINSTALL_PLUGIN')){ die; }
+// Exit if not called by WordPress uninstaller.
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+    die;
+}
 
 
 /** Clear database storage data 

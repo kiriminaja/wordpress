@@ -76,8 +76,9 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php
 		if ( wc_tax_enabled() && ! WC()->cart->display_prices_including_tax() ) {
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables	$taxable_address = WC()->customer->get_taxable_address();
-	$estimated_text  = '';
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
+			$taxable_address = WC()->customer->get_taxable_address();
+			$estimated_text  = '';
 			if ( WC()->customer->is_customer_outside_base() && ! WC()->customer->has_calculated_shipping() ) {
 				/* translators: %s location. */
 				$estimated_text = sprintf( ' <small>' . esc_html__( '(estimated for %s)', 'kiriminaja-official' ) . '</small>', WC()->countries->estimated_for_prefix( $taxable_address[0] ) . WC()->countries->countries[ $taxable_address[0] ] );
