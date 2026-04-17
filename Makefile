@@ -18,14 +18,22 @@ RSYNC_EXCLUDES := \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=scripts/ \
 	--exclude=.DS_Store \
+	--exclude=composer.json \
+	--exclude=composer.lock \
 	--exclude=.distignore \
 	--exclude=.editorconfig \
 	--exclude=.gitattributes \
 	--exclude=.gitignore \
 	--exclude=Makefile \
-	--exclude=*.zip
+	--exclude=*.zip \
+	--exclude=phpunit.xml \
+	--exclude=tests/ \
+	--exclude=.phpunit.cache/
 
-.PHONY: zip clean changelog release
+.PHONY: zip clean changelog release test
+
+test:
+	phpunit --testdox
 
 changelog:
 	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),)

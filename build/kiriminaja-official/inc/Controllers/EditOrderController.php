@@ -42,6 +42,7 @@ class EditOrderController{
         $order = wc_get_order( $order_id );
         
         $weight = 0; $width = 0; $height = 0; $length = 0;
+        /** @var \WC_Order_Item_Product $item */
         foreach( $order->get_items() as $item ){
             $product = $item->get_product();
             if ( ! $product ) { continue; }
@@ -111,6 +112,7 @@ class EditOrderController{
                     'kiriof_expedition_cost'=>$item_price,
                 ]);
     
+                /** @var \WC_Order_Item_Shipping $item */
                 foreach( $order->get_items('shipping') as $item_id_shipping => $item ) {
                     
                     $item->set_method_title( $items['kiriof_expedition_name'] ); 
@@ -150,6 +152,7 @@ class EditOrderController{
             }
         }
         $weight = 0; $length = 0;$width=0; $height=0;
+        /** @var \WC_Order_Item_Product $item */
         foreach ( $order->get_items() as $item ) {
             $product = $item->get_product();
             if ( ! $product ) { continue; }
