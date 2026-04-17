@@ -31,7 +31,7 @@ RSYNC_EXCLUDES := \
 .PHONY: zip clean changelog release test
 
 test:
-	phpunit --testdox
+	vendor/bin/phpunit --testdox
 
 changelog:
 	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),)
