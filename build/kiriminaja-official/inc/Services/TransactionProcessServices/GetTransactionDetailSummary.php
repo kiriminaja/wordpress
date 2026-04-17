@@ -1,0 +1,40 @@
+<?php
+namespace KiriminAjaOfficial\Services\TransactionProcessServices;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+use KiriminAjaOfficial\Base\BaseService;
+class GetTransactionDetailSummary extends BaseService{
+    
+    private int $wcOrderId = 0;
+    public function wcOrderId($wcOrderId){
+        $this->wcOrderId = $wcOrderId;
+        return $this;
+    }
+    
+    public function call(){
+        $transactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($this->wcOrderId);
+        if (!$transactionRepo){ return self::error([],'Terjadi Kesalahan'); }
+        
+        $cartProductRepo = (new \KiriminAjaOfficial\Repositories\WpWcOrderProductLookup())->getProductsCartDataByOrderId($this->wcOrderId);
+        if (!$cartProductRepo){ return self::error([],'Terjadi Kesalahan'); }
+        $shippingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_zip_code']);
+        $originDataArr = [];
+        foreach ($shippingRepo as $obj){
+            $originDataArr[$obj->key]=$obj->value;
+        }
+        
+        return self::success([
+            'checkout_data'         => json_decode($transactionRepo->shipping_info),
+            'payment'               => intval($transactionRepo->cod_fee) > 0 ? 'COD' : 'Transfer', 
+            'expedition_service'    => strtoupper($transactionRepo->service).' '.strtoupper($transactionRepo->service_name),
+            'cart_data'             => $cartProductRepo,
+            'transaction_data'      => $transactionRepo,
+            'status_label'          => kiriof_helper()->transactionStatusLabel(@$transactionRepo->status),
+            'status_classes'        => kiriof_helper()->transactionStatusClass(@$transactionRepo->status),
+        ]);
+    }
+}
