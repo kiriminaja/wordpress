@@ -55,6 +55,7 @@ class SendRequestPickupTransactionService extends BaseService
             "name"          => $getOriginData['origin_name'] ?? '',
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
             "schedule"      => $this->schedule,
+            "dropoff"        => false,
         ];
         /** 
          * Lion dan Pos Indonesia 
@@ -212,6 +213,7 @@ class SendRequestPickupTransactionService extends BaseService
                     $transaction->cod_fee) : 0,
                 "discount_amount" => $transaction->discount_amount ?? 0,
                 "discount_percentage" => $transaction->discount_percentage ?? 0,
+                "drop" => false
             ];
             
             if (!empty($itemsPayload)) {

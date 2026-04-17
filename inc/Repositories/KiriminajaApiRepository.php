@@ -7,6 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\KiriminAjaApi;
+
+const DEFAULT_PICKUP_OPTION = ['PICKUP'];
+
 class KiriminajaApiRepository extends KiriminAjaApi{
     public function sub_district_search($search)
     {

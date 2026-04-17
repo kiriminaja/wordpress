@@ -99,6 +99,12 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 
 = 2.1.0 =
 * Comply wordpress.org namespace
+= 2.0.16 =
+* Fix AJAX endpoint resolution for WordPress installations running in subdirectories.
+* Ensure Connect Now and other admin flows use the correct `admin-ajax.php` URL.
+* Improve script localization binding so AJAX URL is properly available in plugin JavaScript.
+= 2.0.15 =
+* Fixing critical issues request pickup for JNE.
 = 2.0.13 =
 * Fixing critical issues on plugin update process.
 = 2.0.12 =

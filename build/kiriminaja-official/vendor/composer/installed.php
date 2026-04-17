@@ -3,7 +3,7 @@
         'name' => 'kiriminaja/wordpress',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'b121096199a718f3343d9e4aae86a6a629ba34d3',
+        'reference' => 'd76728ed093fc2b53836bd47ab044c92d8efa3c2',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'kiriminaja/wordpress' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'b121096199a718f3343d9e4aae86a6a629ba34d3',
+            'reference' => 'd76728ed093fc2b53836bd47ab044c92d8efa3c2',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
