@@ -2,15 +2,15 @@ name: Publish
 
 on:
   release:
-    types: ['published']
+    types: ["published"]
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   build:
-    if: '!github.event.release.prerelease'
-    name: 'Build & Push'
+    if: "!github.event.release.prerelease"
+    name: "Build & Push"
     runs-on: ubuntu-latest
 
     defaults:
@@ -24,7 +24,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: "8.1"
 
       - name: Get current time
         id: date
@@ -48,14 +48,14 @@ jobs:
         with:
           path: kiriminaja-official-${{ steps.version.outputs.version }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"
 
       - name: Initiate Json File
         id: rewrite-json
         uses: devops-actions/json-to-file@v1.0.0
         with:
           filename: woocommerce.json
-          json: "{\"name\":\"KiriminAja Official\",\"slug\":\"kiriminaja-official\",\"author\":\"<a href='https://kiriminaja.com'>KiriminAja</a>\",\"author_profile\":\"https://kiriminaja.com/about\",\"tested\":\"6.9\",\"requires_php\":\"7.0\",\"sections\":{\"description\":\"KiriminAja Official Plugin for WooCommerce\",\"installation\":\"Click the activation button.\",\"changelog\":\"See readme.txt for full changelog.\"}}"
+          json: '{"name":"KiriminAja Official","slug":"kiriminaja-official","author":"<a href=''https://kiriminaja.com''>KiriminAja</a>","author_profile":"https://kiriminaja.com/about","tested":"6.9","requires_php":"7.0","sections":{"description":"KiriminAja Official Plugin for WooCommerce","installation":"Click the activation button.","changelog":"See readme.txt for full changelog."}}'
 
       - name: Update version value
         uses: jossef/action-set-json-field@v2.1
@@ -91,4 +91,4 @@ jobs:
         with:
           path: woocommerce.json
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"
