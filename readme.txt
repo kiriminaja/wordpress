@@ -4,7 +4,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.3
+Stable tag: 2.1.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -85,6 +85,9 @@ Yes, you can define rules based on weight, destination, or order total.
 Currently, this plugin only supports domestic shipping within Indonesia.
 
 == Changelog ==
+= 2.1.4 =
+* Address Copilot code review feedback
+
 = 2.1.3 =
 * Fix(ci): correct shipping method ID in WooCommerce integration test
 * Fix(ci): use GitHub releases for WooCommerce downloads
