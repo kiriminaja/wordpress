@@ -76,7 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
                                             <option selected="selected" value="">All Dates</option>
                                             <option value="2024-02">2024 February</option><option value="2024-01">2024 January</option><option value="2023-12">2023 December</option><option value="2023-11">2023 November</option><option value="2023-10">2023 October</option>                                                    </select>
-                                        <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
+                                        <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
                                                     <span><?php esc_html_e('Apply','kiriminaja-official'); ?></span>
@@ -199,7 +199,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
                                             <option selected="selected" value="">All Dates</option>
                                             <option value="2024-02">2024 February</option><option value="2024-01">2024 January</option><option value="2023-12">2023 December</option><option value="2023-11">2023 November</option><option value="2023-10">2023 October</option>                                                    </select>
-                                        <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
+                                        <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
                                                     <span>Apply</span>

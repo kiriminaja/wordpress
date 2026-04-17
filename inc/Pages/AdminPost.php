@@ -6,7 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-use KiriminAjaOfficial\Controllers\ShippingMethodController;
 /**
  * Create Automatically Page Generate
  */

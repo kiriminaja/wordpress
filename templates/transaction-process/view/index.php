@@ -37,13 +37,16 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
-                                    <input type="text" name="page" value="<?php echo esc_attr(sanitize_text_field($_GET['page'] ?? '')); // @codingStandardsIgnoreLine
-                                                                            ?>">
+                                    <?php
+                                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+                                    $kiriof_page_filter = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+                                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                                    $kiriof_key_filter = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+                                    ?>
+                                    <input type="text" name="page" value="<?php echo esc_attr( $kiriof_page_filter ); ?>">
                                     <input type="text" name="cpage" value="1">
-                                    <input type="text" name="key" value="<?php echo esc_attr(sanitize_text_field($_GET['key'] ?? '')); // @codingStandardsIgnoreLine
-                                                                            ?>">
-                                    <input type="text" name="month" value="<?php echo esc_attr(sanitize_text_field($_GET['month'] ?? '')); // @codingStandardsIgnoreLine
-                                                                            ?>">
+                                    <input type="text" name="key" value="<?php echo esc_attr( $kiriof_key_filter ); ?>">
+                                    <input type="text" name="month" value="<?php echo esc_attr( $kiriof_month_filter ); ?>">
                                 </form>
 
 
@@ -83,17 +86,20 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
-                                                        <option selected="selected" value="" <?php echo (!isset($_GET['month']) ? "selected" : ""); // @codingStandardsIgnoreLine
-                                                                                                ?>>All Dates</option>
                                                         <?php
-                                                        if (@$monthOptions && count($monthOptions) > 0) {
+                                                        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+                                                        $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '';
+                                                        ?>
+                                                        <option selected="selected" value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
+                                                        <?php
+                                                        if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
                                                             foreach ($monthOptions as $kiriof_key => $kiriof_value) {
-                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . (isset($_GET['month']) ? esc_html($_GET['month']) === $kiriof_key ? "selected" : "" : "") . '>' . esc_html($kiriof_value) . '</option>'; // @codingStandardsIgnoreLine
+                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
                                                             }
                                                         }
                                                         ?>
                                                     </select>
-                                                    <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_1').value)">
+                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -105,9 +111,11 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                             <div class="col">
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php echo esc_attr($_GET['key'] ?? ''); // @codingStandardsIgnoreLine
-                                                                                                                                                                                                        ?>">
-                                                    <button class="button-wp-secondary" type="button" onclick="applySearch('key',document.getElementsByName('key_search')[0].value)">
+                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php
+                                                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+                                                    echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' );
+                                                    ?>">
+                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Search</span>
@@ -242,17 +250,16 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                 <!--Month Search-->
                                                 <div style="display: flex;width: 100%; gap: 2px">
                                                     <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
-                                                        <option selected="selected" value="" <?php echo (!@$_GET['month'] ? "selected" : ""); // @codingStandardsIgnoreLine
-                                                                                                ?>>All Dates</option>
+                                                        <option selected="selected" value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
                                                         <?php
-                                                        if (@$monthOptions && count($monthOptions) > 0) {
+                                                        if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
                                                             foreach ($monthOptions as $kiriof_key => $kiriof_value) {
-                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . (@$_GET['month'] === $kiriof_key ? "selected" : "") . '>' . esc_html($kiriof_value) . '</option>'; // @codingStandardsIgnoreLine
+                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
                                                             }
                                                         }
                                                         ?>
                                                     </select>
-                                                    <button class="button-wp-secondary" type="button" onclick="applySearch('month',document.getElementById('month_search_2').value)">
+                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -297,7 +304,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
         const $transactionCheckboxes = () => $('[name="transaction_id[]"]');
         
         // Make functions globally accessible
-        window.applySearch = function(key, value) {
+        window.kiriofApplySearch = function(key, value) {
             if ($(`#table-form [name="${key}"]`).length > 0) {
                 $(`#table-form [name="${key}"]`).val(value);
                 $(`#table-form`).trigger('submit');
@@ -341,9 +348,9 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 
         $.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_request_pickup_schedule",
+                action: "kiriof_request_pickup_schedule",
                 data: {
                     order_ids: orderIds,
                     nonce: "<?php echo esc_js($kiriof_nonce); ?>"
@@ -371,17 +378,17 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                 <div>
                     <div class="row">
                         <div class="col">Tagihan Paket COD</div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
                     </div>
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
                         <div class="col">Tagihan Paket Non-COD</div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
                     </div>
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
                         <div class="col">Total Tagihan</div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kjMoneyFormat((sum_cod_fee))}</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((sum_cod_fee))}</div>
                     </div>
                 </div>
                 `);
@@ -423,9 +430,9 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 
         $.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_request_pickup_transaction",
+                action: "kiriof_request_pickup_transaction",
                 data: {
                     schedule: $('[name="schedule-opt"]:checked').val(),
                     order_ids: orderIds,
@@ -473,9 +480,9 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 
         $.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_transaction-detail-summary",
+                action: "kiriof_transaction-detail-summary",
                 data: {
                     wc_order_id: wcOrderId,
                     nonce: "<?php echo esc_js($kiriof_nonce); ?>"
@@ -569,11 +576,11 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                             <tfoot>
                             <tr>
                                 <th colspan="2">Sub Total</th>
-                                <th>Rp.${kjMoneyFormat(transaction_data?.transaction_value ?? 0)}</th>
+                                <th>Rp.${kiriofMoneyFormat(transaction_data?.transaction_value ?? 0)}</th>
                             </tr>
                             <tr>
                                 <th colspan="2">Shipping Fee</th>
-                                <th>Rp.${kjMoneyFormat(transaction_data?.shipping_cost ?? 0)}</th>
+                                <th>Rp.${kiriofMoneyFormat(transaction_data?.shipping_cost ?? 0)}</th>
                             </tr>
                             ` +
                     (
@@ -581,7 +588,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                         `
                             <tr>
                             <th colspan="2">COD Fee</th>
-                            <th>Rp.${kjMoneyFormat(transaction_data?.cod_fee ?? 0)}</th>
+                            <th>Rp.${kiriofMoneyFormat(transaction_data?.cod_fee ?? 0)}</th>
                             </tr>` :
                         '') +
                     (
@@ -589,13 +596,13 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                         `
                             <tr>
                             <th colspan="2">Insurance Fee</th>
-                            <th>Rp.${kjMoneyFormat(transaction_data?.insurance_cost ?? 0)}</th>
+                            <th>Rp.${kiriofMoneyFormat(transaction_data?.insurance_cost ?? 0)}</th>
                             </tr>` :
                         '') +
                     `
                             <tr>
                                 <th colspan="2">Total</th>
-                                <th>Rp.${kjMoneyFormat(
+                                <th>Rp.${kiriofMoneyFormat(
                                 (
                                     parseInt(transaction_data?.transaction_value ?? 0)
                                     +
@@ -623,8 +630,8 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                     $cartTableBody.append(`
                     <tr>
                         <td>${obj?.product_name}</td>
-                        <td>${kjMoneyFormat(obj?.product_qty ?? 0)}</td>
-                        <td>Rp.${kjMoneyFormat(obj?.product_gross_revenue ?? 0)}</td>
+                        <td>${kiriofMoneyFormat(obj?.product_qty ?? 0)}</td>
+                        <td>Rp.${kiriofMoneyFormat(obj?.product_gross_revenue ?? 0)}</td>
                     </tr>
                     `);
                 });

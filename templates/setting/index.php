@@ -21,13 +21,13 @@ class kiriof_settingIndex {
         $arrayParam = [];
         $repo = [];
         $shippingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_latitude','origin_longitude','origin_sub_district_id','origin_sub_district_name','origin_zip_code','origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
-        // @codingStandardsIgnoreLine
-        $activeTab = @$_GET['tab'] ?? 'tab-integration';
-        if (@$activeTab==='tab-integration'){
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation
+        $activeTab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'tab-integration';
+        if ($activeTab==='tab-integration'){
             $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
-        } elseif (@$activeTab==='tab-shipping'){
+        } elseif ($activeTab==='tab-shipping'){
             $repo = $shippingRepo;
-        } elseif (@$activeTab==='tab-advanced'){
+        } elseif ($activeTab==='tab-advanced'){
             $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
         }
         $inputValueArr = [];

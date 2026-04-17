@@ -35,9 +35,8 @@ class EditOrderController{
         if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), $this->nonce ) ) {
             wp_die( esc_html__( 'Security check failed', 'kiriminaja-official' ) );
         }
-        $post = $_POST;
-        $order_id       = (int) $post['order_id'];
-        $destination_id = (int) $post['destination_id'];
+        $order_id       = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
+        $destination_id = isset( $_POST['destination_id'] ) ? (int) $_POST['destination_id'] : 0;
         $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
         
         $order = wc_get_order( $order_id );
@@ -45,6 +44,7 @@ class EditOrderController{
         $weight = 0; $width = 0; $height = 0; $length = 0;
         foreach( $order->get_items() as $item ){
             $product = $item->get_product();
+            if ( ! $product ) { continue; }
             $weight += $product->get_weight() * $item->get_quantity(); 
             $length = max($length, $product->get_length());
             $width = max($width, $product->get_width());
@@ -152,6 +152,7 @@ class EditOrderController{
         $weight = 0; $length = 0;$width=0; $height=0;
         foreach ( $order->get_items() as $item ) {
             $product = $item->get_product();
+            if ( ! $product ) { continue; }
             $weight += $product->get_weight();
             $length += $product->get_length();
             $width  += $product->get_width();

@@ -26,6 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 </section>
 <?php
 // Enqueue the after-checkout script and localize transaction data
-wp_enqueue_script('kiriminaja-after-checkout', KJ_URL . 'assets/js/templates/after-checkout.js', array('jquery'), KJ_VERSION_PLUGIN, true);
+wp_enqueue_script('kiriminaja-after-checkout', KIRIOF_URL . 'assets/js/templates/after-checkout.js', array('jquery'), KIRIOF_VERSION, true);
 wp_localize_script('kiriminaja-after-checkout', 'kjTransactionData', $transaction);
 ?>

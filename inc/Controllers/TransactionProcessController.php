@@ -10,9 +10,9 @@ use KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTran
 class TransactionProcessController{
     public function register(){
         /** getPaymentForm */
-        add_action('wp_ajax_kj_request_pickup_schedule', array($this,'getRequestPickupSchedule'));
-        add_action('wp_ajax_kj_request_pickup_transaction', array($this,'sendRequestPickupTransaction'));
-        add_action('wp_ajax_kj_transaction-detail-summary', array($this,'getTransactionDetailSummary'));
+        add_action('wp_ajax_kiriof_request_pickup_schedule', array($this,'getRequestPickupSchedule'));
+        add_action('wp_ajax_kiriof_request_pickup_transaction', array($this,'sendRequestPickupTransaction'));
+        add_action('wp_ajax_kiriof_transaction-detail-summary', array($this,'getTransactionDetailSummary'));
     }
     
     public function getRequestPickupSchedule(){

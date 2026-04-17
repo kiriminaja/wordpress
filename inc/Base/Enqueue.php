@@ -34,8 +34,8 @@ class Enqueue extends BaseInit{
             array(
                 'ajaxurl' => admin_url( 'admin-ajax.php' ),
                 'nonce'   => wp_create_nonce( KIRIOF_NONCE ),
-                'destination_nonce' => wp_create_nonce( 'kj-destination' ),
-                'update_checkout_nonce' => wp_create_nonce( 'kj-update-checkout' ),
+                'destination_nonce' => wp_create_nonce( 'kiriof-destination' ),
+                'update_checkout_nonce' => wp_create_nonce( 'kiriof-update-checkout' ),
             )
         );
     }
@@ -60,8 +60,8 @@ class Enqueue extends BaseInit{
             array(
                 'ajaxurl' => admin_url( 'admin-ajax.php' ),
                 'nonce'   => wp_create_nonce( KIRIOF_NONCE ),
-                'destination_nonce' => wp_create_nonce( 'kj-destination' ),
-                'update_checkout_nonce' => wp_create_nonce( 'kj-update-checkout' ),
+                'destination_nonce' => wp_create_nonce( 'kiriof-destination' ),
+                'update_checkout_nonce' => wp_create_nonce( 'kiriof-update-checkout' ),
             )
         );
         

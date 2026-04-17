@@ -15,10 +15,10 @@ class ShippingProcessController
     public function register()
     {
         /** getShippingProcessDetail */
-        add_action('wp_ajax_kj_get_shipping_process_detail', array($this, 'getShippingProcessDetail'));
+        add_action('wp_ajax_kiriof_get_shipping_process_detail', array($this, 'getShippingProcessDetail'));
         /** getPaymentForm */
-        add_action('wp_ajax_kj_get_payment_form', array($this, 'getPaymentForm'));
-        add_action('wp_ajax_kj_get_shipping_reschedule_pickup', array($this, 'getShippingReschedulePickup'));
+        add_action('wp_ajax_kiriof_get_payment_form', array($this, 'getPaymentForm'));
+        add_action('wp_ajax_kiriof_get_shipping_reschedule_pickup', array($this, 'getShippingReschedulePickup'));
         /** Resi Print */
         add_action('init', function () {
             add_feed('transaction-resi-print', array($this, 'resiPrint'));

@@ -42,7 +42,7 @@ jQuery(document).ready(function () {
             <strong>
                 <span class="woocommerce-Price-amount amount">
                     <bdi>
-                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kjMoneyFormat(
+                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
                           transaction_value
                         )}
                     </bdi>
@@ -59,7 +59,7 @@ jQuery(document).ready(function () {
             <strong>
                 <span class="woocommerce-Price-amount amount">
                     <bdi>
-                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kjMoneyFormat(
+                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
                           shipping_cost
                         )}
                     </bdi>
@@ -77,7 +77,7 @@ jQuery(document).ready(function () {
                 <strong>
                     <span class="woocommerce-Price-amount amount">
                         <bdi>
-                            <span class="woocommerce-Price-currencySymbol">Rp</span>${kjMoneyFormat(
+                            <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
                               insurance_cost
                             )}
                         </bdi>
@@ -96,7 +96,7 @@ jQuery(document).ready(function () {
                 <strong>
                     <span class="woocommerce-Price-amount amount">
                         <bdi>
-                            <span class="woocommerce-Price-currencySymbol">Rp</span>${kjMoneyFormat(
+                            <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
                               cod_fee
                             )}
                         </bdi>
@@ -114,7 +114,7 @@ jQuery(document).ready(function () {
             <strong>
                 <span class="woocommerce-Price-amount amount">
                     <bdi>
-                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kjMoneyFormat(
+                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
                           total_transaction_amt
                         )}
                     </bdi>
