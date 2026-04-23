@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.5
+Stable tag: 2.1.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,15 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.6 =
+* Apply context-specific sanitization functions across the plugin per the WordPress Sanitizing Data API:
+  - sanitize_textarea_field() for the multi-line origin address.
+  - sanitize_key() for whitelist expedition IDs.
+  - esc_url_raw() for callback URLs.
+  - Numeric coercion (float, non-negative) for product weight/length/width/height before update_post_meta().
+* Replace array_map('sanitize_text_field', $_POST['data']) with kiriof_sanitize_recursive(wp_unslash(...)) in GeneralAjaxController::kiriminajaSubdistrictSearch().
+* Refactor ProductController::kiriof_save_product_custom_fields() to stop mutating $_POST and add an edit_post capability check.
+
 = 2.1.5 =
 * Sanitize all $_POST['data'] arrays in SettingController via kiriof_sanitize_recursive() before passing to services.
 * Sanitize webhook JSON payload and headers in CallbackController before handing off to CallbackHandlerService.
