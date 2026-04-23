@@ -107,7 +107,9 @@ zip: clean
 	else \
 		echo "Legacy build: keeping UpdaterController."; \
 	fi
-	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f composer.lock
+	cp composer.json $(STAGE_DIR)/
+	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
+	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f $(STAGE_DIR)/composer.json $(STAGE_DIR)/composer.lock
 	(cd $(BUILD_DIR) && zip -r ../$(ZIP_FILE) $(PLUGIN_SLUG))
 	@echo "Archive created: $(ZIP_FILE)"
 
