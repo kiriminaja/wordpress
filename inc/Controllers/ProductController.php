@@ -55,9 +55,12 @@ class ProductController{
          * Returns an empty string when the field is missing or not numeric.
          */
         $kiriof_read_numeric = static function ( $field_key ) {
+            // Nonce verified above in kiriof_save_product_custom_fields().
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
             if ( ! isset( $_POST[ $field_key ] ) ) {
                 return '';
             }
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
             $raw = sanitize_text_field( wp_unslash( $_POST[ $field_key ] ) );
             // Allow only digits, dot, comma and optional leading minus before normalising.
             $raw = preg_replace( '/[^0-9.,\-]/', '', $raw );

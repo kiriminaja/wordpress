@@ -190,14 +190,8 @@ class SettingRepository{
 
         $placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $query = $wpdb->get_results(
-            $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table name uses wpdb prefix; identifier placeholders (%i) require WP 6.2+
-                "SELECT * FROM {$this->table} WHERE `key` IN ({$placeholders})",
-                ...$keys
-            )
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        $query = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE `key` IN ({$placeholders})", $keys ) );
         
         if ( strlen( $wpdb->last_error ?? '' ) > 0 ) {
             ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( $wpdb->last_error );

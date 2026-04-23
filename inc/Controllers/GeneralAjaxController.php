@@ -3,7 +3,7 @@
 namespace KiriminAjaOfficial\Controllers;
 
 // Exit if accessed directly
-if (! \defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
@@ -28,7 +28,7 @@ class GeneralAjaxController
                 wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)
             ) {
                 $data = ( isset( $_POST['data'] ) && is_array( $_POST['data'] ) )
-                    ? kiriof_sanitize_recursive( wp_unslash( $_POST['data'] ) )
+                    ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
                     : array();
 
                 if (empty($data['search'])) {

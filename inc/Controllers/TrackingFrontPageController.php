@@ -24,6 +24,8 @@ class TrackingFrontPageController{
     
     public function trackingAjaxHandler(){
         try {
+            // Public tracking lookup endpoint (read-only by order number); no nonce required.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
             $order_number = isset( $_POST['order_number'] ) ? sanitize_text_field( wp_unslash( $_POST['order_number'] ) ) : '';
             $service = (new \KiriminAjaOfficial\Services\KiriminAjaTrackingService())->order_number($order_number)->call();
             if ($service->status!==200){wp_send_json_success($service);}

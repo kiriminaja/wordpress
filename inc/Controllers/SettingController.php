@@ -120,7 +120,7 @@ class SettingController{
                 wp_die();
             }
             $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
-                ? kiriof_sanitize_recursive( wp_unslash( $_POST['data'] ) )
+                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
                 : array();
             if ( ! isset( $data['origin_whitelist_expedition_id'] ) ) {
                 $data['origin_whitelist_expedition_id']   = '';
@@ -167,7 +167,7 @@ class SettingController{
                 wp_die();
             }
             $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
-                ? kiriof_sanitize_recursive( wp_unslash( $_POST['data'] ) )
+                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
                 : array();
             $service = (new \KiriminAjaOfficial\Services\SettingService())->storeCallbackData($data);
             if ($service->status!==200){ wp_send_json_error($service);}
