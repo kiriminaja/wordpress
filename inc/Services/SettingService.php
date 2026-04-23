@@ -101,17 +101,37 @@ class SettingService extends BaseService
                 return self::error([], $validate['msg']);
             }
             /** Storing to DB*/
+            $whitelist_ids = array();
+            if ( ! empty( $payloads['origin_whitelist_expedition_id'] ) && is_array( $payloads['origin_whitelist_expedition_id'] ) ) {
+                foreach ( $payloads['origin_whitelist_expedition_id'] as $expedition_id ) {
+                    $expedition_id = sanitize_key( (string) $expedition_id );
+                    if ( '' !== $expedition_id ) {
+                        $whitelist_ids[] = $expedition_id;
+                    }
+                }
+            }
+
+            $whitelist_names = array();
+            if ( ! empty( $payloads['origin_whitelist_expedition_name'] ) && is_array( $payloads['origin_whitelist_expedition_name'] ) ) {
+                foreach ( $payloads['origin_whitelist_expedition_name'] as $expedition_name ) {
+                    $expedition_name = sanitize_text_field( (string) $expedition_name );
+                    if ( '' !== $expedition_name ) {
+                        $whitelist_names[] = $expedition_name;
+                    }
+                }
+            }
+
             (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeOriginData([
-                'origin_name'               =>  sanitize_text_field($payloads['origin_name']),
-                'origin_phone'              =>  sanitize_text_field($payloads['origin_phone']),
-                'origin_address'            =>  sanitize_text_field($payloads['origin_address']),
-                'origin_latitude'           =>  sanitize_text_field($payloads['origin_latitude']),
-                'origin_longitude'          =>  sanitize_text_field($payloads['origin_longitude']),
-                'origin_sub_district_id'    =>  sanitize_text_field($payloads['origin_sub_district_id']),
-                'origin_sub_district_name'  =>  sanitize_text_field($payloads['origin_sub_district_name']),
-                'origin_zip_code'            =>  sanitize_text_field($payloads['origin_zip_code']),
-                'origin_whitelist_expedition_id'    =>  !empty($payloads['origin_whitelist_expedition_id']) ? implode(',', $payloads['origin_whitelist_expedition_id']) : null,
-                'origin_whitelist_expedition_name'  =>  !empty($payloads['origin_whitelist_expedition_name']) ? implode(',', $payloads['origin_whitelist_expedition_name']) : null,
+                'origin_name'                       => sanitize_text_field( (string) $payloads['origin_name'] ),
+                'origin_phone'                      => sanitize_text_field( (string) $payloads['origin_phone'] ),
+                'origin_address'                    => sanitize_textarea_field( (string) $payloads['origin_address'] ),
+                'origin_latitude'                   => sanitize_text_field( (string) $payloads['origin_latitude'] ),
+                'origin_longitude'                  => sanitize_text_field( (string) $payloads['origin_longitude'] ),
+                'origin_sub_district_id'            => sanitize_text_field( (string) $payloads['origin_sub_district_id'] ),
+                'origin_sub_district_name'          => sanitize_text_field( (string) $payloads['origin_sub_district_name'] ),
+                'origin_zip_code'                   => sanitize_text_field( (string) $payloads['origin_zip_code'] ),
+                'origin_whitelist_expedition_id'    => ! empty( $whitelist_ids ) ? implode( ',', $whitelist_ids ) : null,
+                'origin_whitelist_expedition_name'  => ! empty( $whitelist_names ) ? implode( ',', $whitelist_names ) : null,
             ]);
         } catch (\Throwable $th) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeOriginData errr', $th->getMessage());

@@ -27,14 +27,12 @@ class GeneralAjaxController
                 isset($_POST['nonce']) &&
                 wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)
             ) {
-                // phpcs:ignore-start WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-                $data = (isset($_POST['data']) && !empty($_POST['data']))
-                    ? array_map('sanitize_text_field', $_POST['data']) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-                    : [];
-                // phpcs:ignore-end
+                $data = ( isset( $_POST['data'] ) && is_array( $_POST['data'] ) )
+                    ? kiriof_sanitize_recursive( wp_unslash( $_POST['data'] ) )
+                    : array();
 
                 if (empty($data['search'])) {
-                    $data['search'] = sanitize_text_field($data['term']);
+                    $data['search'] = isset( $data['term'] ) ? sanitize_text_field( (string) $data['term'] ) : '';
                 }
                 $kiriminajaSubDistrictSearch = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->sub_district_search($data['search']);
 
