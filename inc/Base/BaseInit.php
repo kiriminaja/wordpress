@@ -15,7 +15,7 @@ class BaseInit{
         $this->plugin_path = plugin_dir_path( dirname( __FILE__, 2 ) );
         $this->plugin_url  = plugin_dir_url( dirname( __FILE__, 2 ) );
         // Use the main plugin file path directly
-        $this->plugin = plugin_basename( dirname( __FILE__, 2 ) . '/kiriminaja.php' );
+        $this->plugin = plugin_basename( dirname( __FILE__, 3 ) . '/kiriminaja.php' );
     }
     public function logThis($test='log',$loggedItem=[]){
         $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
