@@ -29,20 +29,6 @@ class Kiriof_TransactionProcessIndex
     {
         global $wpdb;
 
-        /** Build query parts and prepare values */
-        $query_parts = [];
-        $prepare_values = [];
-        
-        // Base conditions
-        $query_parts[] = 'wc_order_stats.status = %s';
-        $prepare_values[] = 'wc-processing';
-        
-        $query_parts[] = 'kiriminaja_transactions.status = %s';
-        $prepare_values[] = 'new';
-        
-        $query_parts[] = 'posts.post_status != %s';
-        $prepare_values[] = 'trash';
-
         // Build optional filters as values, but keep SQL placeholders static.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $key = sanitize_text_field( wp_unslash( $_GET['key'] ?? '' ) );
