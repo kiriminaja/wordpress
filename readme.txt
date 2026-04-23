@@ -95,6 +95,14 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.7 =
+* Apply WordPress Escaping Data API across templates and controllers — escape late at the point of output:
+  - Wrap the order thank-you HTML block with wp_kses_post() in CheckoutController::custom_content_thankyou().
+  - Use esc_attr() (instead of esc_html) for HTML attribute values in templates/front/form-billing-address.php.
+  - Use esc_js() for values interpolated into inline JavaScript strings/template literals (form-billing-address.php, setting/setuped/index.php).
+  - Use absint() for numeric output (item count) in templates/request-pickup/view/index.php.
+* Remove unused/debug functions (custom_shipping_content, ts_add_order) from CheckoutController.
+
 = 2.1.6 =
 * Apply context-specific sanitization functions across the plugin per the WordPress Sanitizing Data API:
   - sanitize_textarea_field() for the multi-line origin address.
