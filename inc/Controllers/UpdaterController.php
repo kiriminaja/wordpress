@@ -24,6 +24,10 @@ class UpdaterController
         add_filter('plugins_api', array($this, 'kiriminaja_plugin_info'), 20, 3);
         add_filter('site_transient_update_plugins', array($this, 'push_update'));
         add_action('upgrader_process_complete', array($this, 'purge'), 10, 2);
+
+        // Forced update behavior (driven by remote woocommerce.json)
+        add_action('admin_notices', array($this, 'force_update_notice'));
+        add_filter('auto_update_plugin', array($this, 'maybe_force_auto_update'), 10, 2);
     }
 
     public function request(){
@@ -153,7 +157,87 @@ class UpdaterController
         }
     }
 
-    
+    /**
+     * Show a red admin notice when the remote release is flagged as a forced update
+     * and the installed version is older than the remote one.
+     *
+     * Controlled via two optional fields in woocommerce.json:
+     *   "force_update":  true|false
+     *   "force_message": "Custom HTML/text shown in the notice (optional)"
+     */
+    public function force_update_notice()
+    {
+        if ( ! current_user_can( 'update_plugins' ) ) {
+            return;
+        }
+
+        $remote = $this->request();
+
+        if ( ! $this->is_force_update( $remote ) ) {
+            return;
+        }
+
+        $update_url = wp_nonce_url(
+            self_admin_url( 'update.php?action=upgrade-plugin&plugin=' . rawurlencode( $this->plugin_slug_file ) ),
+            'upgrade-plugin_' . $this->plugin_slug_file
+        );
+
+        $default_message = sprintf(
+            /* translators: 1: plugin name, 2: new version */
+            esc_html__( 'A critical update for %1$s is available (v%2$s). Please update immediately to keep your store running correctly.', 'kiriminaja-official' ),
+            esc_html( $remote->name ?? 'KiriminAja Official' ),
+            esc_html( $remote->version )
+        );
+
+        $message = ! empty( $remote->force_message )
+            ? wp_kses_post( $remote->force_message )
+            : $default_message;
+
+        printf(
+            '<div class="notice notice-error" style="border-left-color:#d63638;"><p><strong>%s</strong></p><p>%s</p><p><a href="%s" class="button button-primary">%s</a></p></div>',
+            esc_html__( 'KiriminAja Official — Required Update', 'kiriminaja-official' ),
+            $message, // already escaped above
+            esc_url( $update_url ),
+            esc_html__( 'Update now', 'kiriminaja-official' )
+        );
+    }
+
+    /**
+     * Force WordPress core auto-updates to install this plugin's update
+     * when the remote release is flagged as forced.
+     */
+    public function maybe_force_auto_update( $update, $item )
+    {
+        $slug = is_object( $item ) ? ( $item->slug ?? '' ) : '';
+
+        if ( $slug !== $this->plugin_slug ) {
+            return $update;
+        }
+
+        $remote = $this->request();
+
+        if ( $this->is_force_update( $remote ) ) {
+            return true;
+        }
+
+        return $update;
+    }
+
+    /**
+     * Determine if the remote payload marks the current release as a forced update
+     * and the installed version is older.
+     */
+    private function is_force_update( $remote )
+    {
+        return (
+            $remote
+            && ! empty( $remote->force_update )
+            && ! empty( $remote->version )
+            && version_compare( KIRIOF_VERSION, $remote->version, '<' )
+        );
+    }
+
+
 }
 // phpcs:enable plugin_updater_detected
 ?>

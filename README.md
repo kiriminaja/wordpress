@@ -63,8 +63,8 @@ The Makefile automates version bumping, changelog generation, zipping, tagging, 
 
 There are two release variants:
 
-| Variant      | Audience                       | Includes `UpdaterController`? | Artifact name                              |
-| ------------ | ------------------------------ | ----------------------------- | ------------------------------------------ |
+| Variant      | Audience                        | Includes `UpdaterController`? | Artifact name                              |
+| ------------ | ------------------------------- | ----------------------------- | ------------------------------------------ |
 | **official** | WordPress.org listing (default) | No (auto-stripped from build) | `kiriminaja-official-{version}.zip`        |
 | **legacy**   | Existing self-hosted customers  | Yes (kept for in-app updates) | `kiriminaja-official-legacy-{version}.zip` |
 
