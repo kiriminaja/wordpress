@@ -33,6 +33,18 @@ RSYNC_EXCLUDES := \
 # BUMP: patch (default), minor, major
 BUMP ?= patch
 
+# Allow positional version: `make release 2.1.9` or `make release v2.1.9`
+# Any extra goals after release/publish/changelog are treated as V=<version>.
+RELEASE_GOALS := $(filter release publish changelog,$(MAKECMDGOALS))
+ifneq ($(RELEASE_GOALS),)
+  EXTRA_GOALS := $(filter-out release publish changelog tag github-release zip clean test,$(MAKECMDGOALS))
+  ifneq ($(EXTRA_GOALS),)
+    V := $(patsubst v%,%,$(firstword $(EXTRA_GOALS)))
+    # Make the extra args no-op targets so Make doesn't error out.
+    $(eval $(EXTRA_GOALS):;@:)
+  endif
+endif
+
 test:
 	vendor/bin/phpunit --testdox
 

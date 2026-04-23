@@ -57,6 +57,32 @@ make zip
 
 Produces a `kiriminaja-official-{version}.zip` ready for distribution.
 
+### Releasing
+
+The Makefile automates version bumping, changelog generation, zipping, tagging, and publishing.
+
+```bash
+# Bump version + regenerate changelog + build zip
+make release                  # auto-bump patch (e.g. 2.1.8 -> 2.1.9)
+make release BUMP=minor       # auto-bump minor (e.g. 2.1.9 -> 2.2.0)
+make release BUMP=major       # auto-bump major (e.g. 2.2.0 -> 3.0.0)
+make release V=2.5.0          # explicit version
+make release 2.5.0            # shorthand (positional)
+make release v2.5.0           # shorthand with leading "v"
+
+# Individual steps
+make changelog                # update readme.txt + KIRIOF_VERSION only
+make zip                      # build distributable zip
+make tag                      # create local git tag v$(VERSION)
+make github-release           # open GitHub "New Release" page pre-filled
+
+# Full publish flow: release + commit + tag + push + open GitHub release
+make publish
+make publish V=2.5.0
+```
+
+`BUMP` rules: `patch` auto-rolls to `minor` at `.99`; `minor` auto-rolls to `major` at `.99`.
+
 ### Branching
 
 - `main` — stable release branch
