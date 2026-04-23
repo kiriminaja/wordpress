@@ -54,7 +54,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
     
     public function getRequestPickupSchedule(){
-        return $this->post('/api/mitra/v2/schedules',);
+        return $this->post('/api/mitra/v2/schedules');
     }
     public function sendPickupRequest($payload){
         return $this->post('/api/mitra/v6.1/request_pickup',$payload);
