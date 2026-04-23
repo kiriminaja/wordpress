@@ -36,8 +36,25 @@ if ( ! file_exists( $readme ) ) {
 }
 
 // --- Determine version ---
-$version   = $argv[1] ?? null;
-$bump_type = $argv[3] ?? 'patch';
+$version   = isset( $argv[1] ) && $argv[1] !== '' ? $argv[1] : null;
+$from_ref  = isset( $argv[2] ) && $argv[2] !== '' ? $argv[2] : null;
+$bump_type = isset( $argv[3] ) && $argv[3] !== '' ? $argv[3] : 'patch';
+
+// Strip leading "v" if present (e.g. v2.1.9 -> 2.1.9)
+if ( $version !== null ) {
+    $version = ltrim( $version, 'vV' );
+}
+
+// Validate version is a semver-ish string; otherwise treat as missing.
+if ( $version !== null && ! preg_match( '/^\d+(\.\d+){0,2}$/', $version ) ) {
+    fwrite( STDERR, "Warning: Ignoring invalid version argument '{$version}'. Falling back to bump.\n" );
+    $version = null;
+}
+
+// Validate bump type.
+if ( ! in_array( $bump_type, [ 'patch', 'minor', 'major' ], true ) ) {
+    $bump_type = 'patch';
+}
 
 // Read current version from kiriminaja.php
 $current_version = null;
@@ -118,7 +135,6 @@ if ( $last_version === $version ) {
 // --- Determine commit range ---
 // Priority: git tag > grep commit by version > optional --from arg
 $since_arg = '';
-$from_ref  = $argv[2] ?? null;
 
 if ( $from_ref ) {
     // Explicit ref passed as second argument
