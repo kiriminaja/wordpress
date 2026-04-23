@@ -106,13 +106,6 @@ class CheckoutController
     function kiriof_add_checkout_nonce_field(){
         wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');
     }
-    function custom_shipping_content() {
-        echo '<tr class="shipping"><th>Custom Shipping</th><td>Nanti Custom Shipping Disini!</td></tr>';
-    }
-    function ts_add_order()
-    {
-        echo ('<h2>Testing! 3</h2>');
-    }
     function add_custom_select_options_field_and_script($checkout)
     {        
         $field_key = $this->field_destination_key;
@@ -323,7 +316,7 @@ class CheckoutController
         $paymentMethod = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdAndMetaKey($order_id,'_payment_method_title');
         $locale = get_locale();
         
-        echo '
+        echo wp_kses_post( '
         <section style="margin: 1rem 0 4rem 0" class="woocommerce-order-details">          
                 <h2 class="woocommerce-order-details__title">Pembayaran</h2>            
                 <table style="width: 100%; font-size: 1rem" class="woocommerce-table woocommerce-table--order-details shop_table order_details">            
@@ -359,7 +352,7 @@ class CheckoutController
                     </thead>
                 </table>            
             </section>
-        ';
+        ' );
         
     }
     public function kiriof_order_details($order){

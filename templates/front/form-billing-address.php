@@ -8,9 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div id="kiriof_destination_area_group">    
     <!--Other invisible Field-->
     <div style="display: none">
-        <input type="hidden" name="kiriof_checkout_token" value="<?php echo esc_html($kiriof_checkout_token); ?>">
-        <input type="hidden" name="kiriof_destination_area_name" value="<?php echo  esc_html($dentination_name); ?>">
-        <input type="hidden" name="kiriof_shipping_destination_area_name" value="<?php echo  esc_html($shipping_dentination_name); ?>">
+        <input type="hidden" name="kiriof_checkout_token" value="<?php echo esc_attr($kiriof_checkout_token); ?>">
+        <input type="hidden" name="kiriof_destination_area_name" value="<?php echo esc_attr($dentination_name); ?>">
+        <input type="hidden" name="kiriof_shipping_destination_area_name" value="<?php echo esc_attr($shipping_dentination_name); ?>">
         <input type="hidden" name="kiriof_force_insurance" value="0">
     </div>
 
@@ -53,7 +53,7 @@ if ( ! defined( 'ABSPATH' ) ) {
           
         function changeDistrict(){
             
-            let kelurahanArea = "select#<?php echo  esc_html($field_key); ?>,select#kiriof_shipping_destination_area";
+            let kelurahanArea = "select#<?php echo esc_js($field_key); ?>,select#kiriof_shipping_destination_area";
             
             jQuery(kelurahanArea).change( function () {
                 let root = jQuery(this);
@@ -147,12 +147,12 @@ if ( ! defined( 'ABSPATH' ) ) {
          */
         function getSearchAreaKelurahan(){
             let ajaxurl = "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>";
-            let subDistrictSelectElem = jQuery(`[name="<?php echo esc_html( $field_key ); ?>"],[name=kiriof_shipping_destination_area]`); 
+            let subDistrictSelectElem = jQuery(`[name="<?php echo esc_js( $field_key ); ?>"],[name=kiriof_shipping_destination_area]`); 
             let nonce = "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>";
 
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo esc_html__('Select Option','kiriminaja-official'); ?>",
+                placeholder: "<?php echo esc_js(__('Select Option','kiriminaja-official')); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,

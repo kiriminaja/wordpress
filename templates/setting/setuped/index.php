@@ -172,7 +172,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     }
     
     function getTabData(){
-        var menu = '<?php echo esc_html($activeTab);?>'
+        var menu = '<?php echo esc_js($activeTab);?>'
         
         jQuery('.nav-tab').removeClass("nav-tab-active")
         jQuery(`.nav-tab.${menu}`).addClass("nav-tab-active");
@@ -266,7 +266,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
        
             areaSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo  esc_html( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
+                placeholder: "<?php echo esc_js( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
                 allowClear: true,
                 ajax: {
                     url: kiriofAjaxRoute(),
@@ -298,7 +298,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
     function searchExpedition(){
        
        jQuery('.tab-shipping [name="origin_whitelist_expedition[]"]').select2({
-           placeholder: "<?php echo  esc_html( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
+           placeholder: "<?php echo esc_js( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
            allowClear: true,
            ajax: {
                url: kiriofAjaxRoute(),

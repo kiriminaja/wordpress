@@ -249,7 +249,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             <div class="col">
                                                 <!--Pagination-->
                                                 <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
-                                                    <span style="font-weight: 700;"><?php echo count($results) ?> items</span>
+                                                    <span style="font-weight: 700;"><?php echo absint( count( $results ) ); ?> items</span>
                                                     <div>
                                                         <button <?php echo @$prev_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
                                                             <?php echo esc_attr($prev_page_link)!='' ? '<a href="'.esc_url($prev_page_link).'" class="inset-absolute"></a>' : ''; ?>
