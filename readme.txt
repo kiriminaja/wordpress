@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.8
+Stable tag: 2.1.9
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,21 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.9 =
+* Enhance asset loading by conditionally enqueuing scripts/styles for WooCommerce pages; improve option retrieval for shipping settings
+* Update release workflow to resolve version from tag and create GitHub release; add WooCommerce requirement to plugin metadata
+* Simplify WordPress integration workflow by removing matrix strategy and hardcoding versions
+* Inject WooCommerce dependency for wp-env in testing workflow
+* Update static tests workflow to use PHP 8.1 and streamline plugin check process
+* Add WordPress Plugin Check job for compliance validation
+* Add direct access restriction to UpdaterController
+* Implement forced update mechanism with admin notice and auto-update support in UpdaterController
+* Add legacy release variant with UpdaterController support and update workflows accordingly
+* Enhance changelog script with version validation and sanitization improvements
+* Enhance Makefile with automated release process and usage instructions in README
+* Feat(AB#25922): enhance data sanitization by replacing recursive sanitization with map_deep for improved security
+* Update version to 2.1.8 and enhance security by hardening inline onclick handlers and re-auditing for compliance
+
 = 2.1.8 =
 * Harden inline onclick handlers in templates/request-pickup/view/index.php: switch from JS template literals (backticks) to single-quoted JS strings so esc_js() fully neutralises the interpolated pickup_number value (esc_js does not escape backticks or `${}` template-literal expressions).
 * Re-audit pass against the WordPress.org Plugin Directory automated reviewer feedback — confirmed compliance for: privacy/terms URLs (use of /privacy-policy and /syarat-ketentuan), composer.json present in the distributed archive, recursive sanitisation of $_POST['data'] arrays in SettingController, recursive sanitisation of decoded webhook JSON and request headers in CallbackController, nonce + capability check on ShippingProcessController::resiPrint(), wp_kses_post() of wc_cart_totals_shipping_method_label() in templates/woocommerce/cart/cart-shipping.php, no remote CDN assets, no session_start() / ini_set() / date_default_timezone_set() in plugin code, and no raw <script>/<style> tags in templates (all inline assets registered via wp_add_inline_script() / wp_add_inline_style()).
