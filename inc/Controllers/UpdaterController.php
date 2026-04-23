@@ -131,7 +131,7 @@ class UpdaterController
             $remote
             && version_compare(KIRIOF_VERSION,$remote->version, '<')
             && version_compare($remote->requires, get_bloginfo('version'), '<=')
-            && version_compare($remote->requires_php, PHP_VERSION, '<')
+            && version_compare($remote->requires_php, PHP_VERSION, '<=')
         ) {
             
             $res = new \stdClass();
