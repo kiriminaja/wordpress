@@ -33,8 +33,8 @@ This plugin connects to KiriminAja API services to provide shipping functionalit
 * Purpose: Process shipping rates, create shipments, track packages, and manage pickup requests
 * Data sent: Shipping addresses, package dimensions and weight, order details, customer information
 * When: Every time shipping rates are calculated, when shipments are created, and when tracking packages
-* Terms of Service: https://kiriminaja.com/terms
-* Privacy Policy: https://kiriminaja.com/privacy
+* Terms of Service: https://kiriminaja.com/syarat-ketentuan
+* Privacy Policy: https://kiriminaja.com/privacy-policy
 
 **KiriminAja Callback (Webhook)**
 * Endpoint (on your site): `/?feed=kiriminaja-callback`
