@@ -146,3 +146,45 @@ jobs:
           wp plugin deactivate kiriminaja-official --path=/tmp/wordpress --allow-root
           wp plugin activate kiriminaja-official --path=/tmp/wordpress --allow-root
           wp eval 'echo "Reactivation OK\n";' --path=/tmp/wordpress --allow-root
+
+  plugin-check:
+    name: "WordPress Plugin Check (WP.org compliance)"
+    runs-on: ubuntu-latest
+    needs: static
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+
+      - name: Build official zip (strips UpdaterController)
+        run: make zip
+
+      - name: Resolve plugin version
+        id: version
+        run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
+
+      - name: Unpack staged build for Plugin Check
+        run: |
+          mkdir -p /tmp/pcp
+          unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
+          ls -la /tmp/pcp/kiriminaja-official
+
+      - name: Run WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: /tmp/pcp/kiriminaja-official
+          # Categories run against the build (not source). Tweak as needed.
+          categories: |
+            general
+            plugin_repo
+            security
+            performance
+            accessibility
+          # Strict mode: fail on warnings as well as errors.
+          ignore-warnings: false
