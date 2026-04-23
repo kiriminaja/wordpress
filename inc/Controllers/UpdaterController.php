@@ -1,6 +1,11 @@
 <?php 
 namespace KiriminAjaOfficial\Controllers;
 
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 // phpcs:disable plugin_updater_detected
 class UpdaterController
 {
