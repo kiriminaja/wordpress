@@ -49,7 +49,8 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'height'                        => $payload['height'],
             'insurance'                     => $payload['insurance'],
             'item_value'                    => $payload['item_value'],
-            'courier'                       => $payload['courier']
+            'courier'                       => $payload['courier'],
+            'pickup_option'                 => isset($payload['pickup_option']) ? $payload['pickup_option'] : DEFAULT_PICKUP_OPTION
         ]);
     }
     
