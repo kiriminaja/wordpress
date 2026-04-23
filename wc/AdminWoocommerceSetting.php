@@ -4,8 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Internal class for WooCommerce integration
-class AdminWoocommerceSettings 
+class Kiriof_AdminWoocommerceSettings 
 {
     function __construct(){
         $this->hook();
@@ -109,4 +108,4 @@ class AdminWoocommerceSettings
     }
 }
 
-new AdminWoocommerceSettings();
+new Kiriof_AdminWoocommerceSettings();

@@ -1,7 +1,7 @@
 
 // Use AJAX URL passed from WordPress via wp_localize_script
 function kiriofAjaxRoute(){
-    return kirioAjax.ajaxurl;
+    return kiriofAjax.ajaxurl;
 }
 
 function kiriofMoneyFormat(angka, prefix){

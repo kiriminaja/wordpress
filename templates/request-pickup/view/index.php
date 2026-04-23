@@ -311,7 +311,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     }    
 <?php
 $kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 ?>
 <!--Request Pickup Detail-->
 <?php ob_start(); ?>
@@ -537,7 +537,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
     }
 <?php
 $kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 ?>
 <!--Payment Detail-->
 <?php ob_start(); ?>
@@ -632,7 +632,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
     });
 <?php
 $kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 ?>
 <!--Request Pickup-->
 <?php ob_start(); ?>
@@ -726,5 +726,5 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
 
 <?php
 $kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 ?>

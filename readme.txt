@@ -102,6 +102,15 @@ Currently, this plugin only supports domestic shipping within Indonesia.
   - Use esc_js() for values interpolated into inline JavaScript strings/template literals (form-billing-address.php, setting/setuped/index.php).
   - Use absint() for numeric output (item count) in templates/request-pickup/view/index.php.
 * Remove unused/debug functions (custom_shipping_content, ts_add_order) from CheckoutController.
+* Move the inline <style> block in templates/front/tracking.php into wp_add_inline_style() per the Plugin Handbook (no inline <script>/<style> tags in output).
+* Prefix all enqueued script/style handles and JavaScript globals with the kiriof- / kiriof prefix:
+  - 'select2', 'kiriminPluginScript', 'kiriminPluginStyle', 'BSGridStyle', 'printCss', 'printJs', 'kj' . 'wc_*' → 'kiriof-script', 'kiriof-style', 'kiriof-select2-script', 'kiriof-select2-style', 'kiriof-grid-style', 'kiriof-print-script', 'kiriof-print-style', 'kiriof-wc-*'.
+  - 'kirioAjax' → 'kiriofAjax', 'kjTransactionData' → 'kiriofTransactionData' (in localized data and in the corresponding JS files).
+* Prefix unprefixed PHP classes that lived in the global namespace:
+  - requestPickupIndex → Kiriof_RequestPickupIndex.
+  - kiriof_settingIndex → Kiriof_SettingIndex.
+  - AdminWoocommerceSettings → Kiriof_AdminWoocommerceSettings.
+* Stop polluting the WP global variable namespace from template index files (request-pickup, transaction-process, setting): drop `global $results / $page / $monthOptions / $approvedSetupKey / $activeTab / $locale / ...` and use ordinary local variables passed into the included view via include scope.
 
 = 2.1.6 =
 * Apply context-specific sanitization functions across the plugin per the WordPress Sanitizing Data API:

@@ -3,15 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class kiriof_settingIndex {
+class Kiriof_SettingIndex {
     function __construct(){
-        global $approvedSetupKey;
-        global $inputValueArr;
-        global $isOriginShippingDataReady;
-        global $activeTab;
-        global $locale;
-
-        /** WP Setting langguage*/
+        /** WP Setting language*/
         $locale = get_locale();
         
         /** Check if  setup key exist*/
@@ -63,7 +57,7 @@ class kiriof_settingIndex {
 }
 
 
-new kiriof_settingIndex();
+new Kiriof_SettingIndex();
 
 
 

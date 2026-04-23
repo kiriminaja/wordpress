@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 </div>
 <?php
 wp_add_inline_script(
-    'kiriminPluginScript',
+    'kiriof-script',
     'jQuery(function($){$("[name=\"kiriminaja_setting[store_destination]\"]").select2();});'
 );
 ?>

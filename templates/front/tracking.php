@@ -3,9 +3,9 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
-?>
 
-<style>
+ob_start();
+?>
     body .is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
         max-width: 1000px;
     }
@@ -109,7 +109,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     gap: .25rem;
 }
     
-</style>
+<?php
+$kiriof_inline_style = ob_get_clean();
+wp_add_inline_style( 'kiriof-style', $kiriof_inline_style );
+?>
 
 <div style="min-height: 40vh" class="woocommerce woocommerce-page">
     <form style="width: 100%" name="checkout" method="post" class="checkout woocommerce-checkout"  enctype="multipart/form-data" novalidate="novalidate">
@@ -282,5 +285,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php
 $kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 ?>

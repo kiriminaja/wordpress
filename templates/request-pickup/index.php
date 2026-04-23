@@ -6,18 +6,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Template class for request pickup functionality
-class requestPickupIndex {
+class Kiriof_RequestPickupIndex {
     function __construct(){
-        global $results;
-        global $page;
-        global $items_per_page;
-        global $total_pages;
-        global $next_page_link;
-        global $prev_page_link;
-        global $monthOptions;
-        global $locale;
-
-        /** WP Setting langguage*/
+        /** WP Setting language*/
         $locale = get_locale();
         
         /** Page Query*/
@@ -149,6 +140,6 @@ class requestPickupIndex {
         return $monthOptions;
     }
 }
-new requestPickupIndex();
+new Kiriof_RequestPickupIndex();
 
 ?>

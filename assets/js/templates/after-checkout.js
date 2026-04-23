@@ -1,7 +1,7 @@
 jQuery(document).ready(function () {
   // After checkout page transaction display functionality
-  if (typeof kjTransactionData !== "undefined" && kjTransactionData) {
-    const transaction = kjTransactionData;
+  if (typeof kiriofTransactionData !== "undefined" && kiriofTransactionData) {
+    const transaction = kiriofTransactionData;
 
     if (!transaction) {
       return;

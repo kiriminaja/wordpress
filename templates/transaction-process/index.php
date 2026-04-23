@@ -9,8 +9,6 @@ class Kiriof_TransactionProcessIndex
 {
     function __construct()
     {
-        global $kiriof_results, $page, $items_per_page, $total_pages, $next_page_link, $prev_page_link, $monthOptions, $locale;
-
         /** WP Setting language */
         $locale = get_locale();
 
