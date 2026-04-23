@@ -28,8 +28,8 @@ if ( ! in_array( $variant, [ 'official', 'legacy' ], true ) ) {
 
 if ( ! $version && file_exists( $plugin ) ) {
     $content = file_get_contents( $plugin );
-    if ( preg_match( "/define\(\s*'KIRIOF_VERSION',\s*'([^']+)'/", $content, $m ) ) {
-        $version = $m[1];
+    if ( preg_match( '/define\s*\(\s*[\'"]KIRIOF_VERSION[\'"]\s*,\s*([\'"])([^\'"]+)\1/', $content, $m ) ) {
+        $version = $m[2];
     }
 }
 
