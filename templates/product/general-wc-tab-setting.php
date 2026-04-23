@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 'description'=>__('Width Form', 'kiriminaja-official'),
                 'placeholder' => 'Width',
                 // Translators: %s width unit
-                'label' => sprintf( __( 'Width (%s)', 'kiriminaja-official' ), esc_attr( $dimension_unit ) ),
+                'label' => sprintf( __( 'Width (%s)', 'kiriminaja-official' ), esc_attr( $kiriof_dimension_unit ) ),
                 'class' => 'input-text wc_input_decimal',
                 'value' => get_post_meta($post->ID,'_width',true) ?? ''
             )
