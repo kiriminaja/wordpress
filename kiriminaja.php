@@ -10,6 +10,7 @@
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
  * Text Domain:     kiriminaja-official
  * Domain Path:     /lang
+ * Requires Plugins: woocommerce
  * WC requires at least: 5.0.0
  * WC tested up to: 7.1
  */

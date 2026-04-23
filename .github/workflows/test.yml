@@ -39,20 +39,6 @@ jobs:
           unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
           ls -la /tmp/pcp/kiriminaja-official
 
-      - name: Inject WooCommerce dependency for wp-env
-        run: |
-          cat > /tmp/pcp/kiriminaja-official/.wp-env.json <<'JSON'
-          {
-            "core": null,
-            "phpVersion": "8.1",
-            "plugins": [
-              ".",
-              "https://downloads.wordpress.org/plugin/woocommerce.zip"
-            ]
-          }
-          JSON
-          cat /tmp/pcp/kiriminaja-official/.wp-env.json
-
       - name: Pre-pull wp-env Docker images
         run: |
           docker pull wordpress:latest &
