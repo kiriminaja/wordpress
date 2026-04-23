@@ -119,12 +119,14 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
-            if( !isset($_POST['data']['origin_whitelist_expedition_id'])){
-                $_POST['data']['origin_whitelist_expedition_id']  = '';
-                $_POST['data']['origin_whitelist_expedition_name'] = '';
+            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
+                ? kiriof_sanitize_recursive( wp_unslash( $_POST['data'] ) )
+                : array();
+            if ( ! isset( $data['origin_whitelist_expedition_id'] ) ) {
+                $data['origin_whitelist_expedition_id']   = '';
+                $data['origin_whitelist_expedition_name'] = '';
             }
-            $data = isset($_POST['data']) ? wp_unslash($_POST['data']) : [];  // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            
+
             $service = (new \KiriminAjaOfficial\Services\SettingService())->storeOriginData($data);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
@@ -164,7 +166,9 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
-            $data = isset($_POST['data']) ? wp_unslash($_POST['data']) : [];  // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
+                ? kiriof_sanitize_recursive( wp_unslash( $_POST['data'] ) )
+                : array();
             $service = (new \KiriminAjaOfficial\Services\SettingService())->storeCallbackData($data);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);

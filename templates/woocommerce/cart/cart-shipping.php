@@ -58,6 +58,7 @@ $kiriof_calculator_text          = '';
 				foreach ( $available_methods as $method ) : ?>
 					<li>
 						<?php
+						$kiriof_method_label_html = wp_kses_post( wc_cart_totals_shipping_method_label( $method ) );
 						if ( 1 < count( $available_methods ) ) {
 							printf( '<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="shipping_method_%1$d_%2$s" value="%3$s" class="shipping_method" %4$s />', absint( $index ), esc_attr( sanitize_title( $method->id ) ), esc_attr( $method->id ), checked( $method->id, $chosen_method, false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 							// WPCS: XSS ok.
@@ -65,8 +66,7 @@ $kiriof_calculator_text          = '';
 							printf( '<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="shipping_method_%1$d_%2$s" value="%3$s" class="shipping_method" %4$s />', absint( $index ), esc_attr( sanitize_title( $method->id ) ), esc_attr( $method->id ), checked( $method->id, $chosen_method, false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 							// WPCS: XSS ok.
 						}
-						printf( '<label for="shipping_method_%1$s_%2$s">%3$s</label>', absint( $index ), esc_attr( sanitize_title( $method->id ) ), wc_cart_totals_shipping_method_label( $method ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-						// WPCS: XSS ok.
+						printf( '<label for="shipping_method_%1$s_%2$s">%3$s</label>', absint( $index ), esc_attr( sanitize_title( $method->id ) ), $kiriof_method_label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above via wp_kses_post.
 						do_action( 'woocommerce_after_shipping_rate', $method, $index );
 						?>
 					</li>

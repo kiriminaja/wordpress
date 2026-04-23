@@ -3,7 +3,7 @@
  * Plugin Name:     KiriminAja Official
  * Plugin URI:      https://kiriminaja.com/solusi/plugin-woocommerce
  * Description:     KiriminAja plugin for Woocommerce simplifies your online store’s shipping management with automation, speed, and efficiency. Display real-time shipping rates from multiple couriers, offer COD options, schedule pickups, print labels, and track deliveries directly from your Woocommerce dashboard. Enjoy discounted shipping, flat-rate promotions, comprehensive reports, and an integrated system that helps your business grow through easier, safer, and more reliable deliveries across Indonesia
- * Version:         2.1.4
+ * Version:         2.1.5
  * Author:          KiriminAja Technology Team
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
@@ -24,7 +24,7 @@ define( 'KIRIOF_URL', plugin_dir_url( __FILE__ ) );
 define( 'KIRIOF_NONCE', 'kiriof-nonce' );
 define( 'KIRIOF_SLUG', plugin_basename( __DIR__ ) );
 define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
-define( 'KIRIOF_VERSION', '2.1.4' );
+define( 'KIRIOF_VERSION', '2.1.5' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
@@ -46,6 +46,41 @@ if ( ! function_exists( 'kiriof_money_format' ) ) {
 if ( ! function_exists( 'kiriof_helper' ) ) {
     function kiriof_helper() {
         return ( new \KiriminAjaOfficial\Base\Helper() );
+    }
+}
+/**
+ * Recursively sanitize a value coming from a request superglobal.
+ *
+ * - Arrays are walked recursively.
+ * - Scalars are passed through sanitize_text_field().
+ * - Anything else is cast to an empty string.
+ */
+if ( ! function_exists( 'kiriof_sanitize_recursive' ) ) {
+    /**
+     * @param mixed $value Raw value from $_POST/$_GET/$_REQUEST (already wp_unslash'd).
+     * @return mixed Sanitized value with the same shape as the input.
+     */
+    function kiriof_sanitize_recursive( $value ) {
+        if ( is_array( $value ) ) {
+            $clean = array();
+            foreach ( $value as $key => $item ) {
+                $clean_key           = is_string( $key ) ? sanitize_key( $key ) : $key;
+                $clean[ $clean_key ] = kiriof_sanitize_recursive( $item );
+            }
+            return $clean;
+        }
+        if ( is_object( $value ) ) {
+            $clean = new \stdClass();
+            foreach ( get_object_vars( $value ) as $key => $item ) {
+                $clean_key           = is_string( $key ) ? sanitize_key( $key ) : $key;
+                $clean->{$clean_key} = kiriof_sanitize_recursive( $item );
+            }
+            return $clean;
+        }
+        if ( is_scalar( $value ) ) {
+            return sanitize_text_field( (string) $value );
+        }
+        return null;
     }
 }
 

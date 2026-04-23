@@ -101,7 +101,12 @@ class ShippingProcessController
                 wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            // Verify nonce to prevent CSRF on this privileged label download endpoint.
+            $kiriof_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+            if ( ! wp_verify_nonce( $kiriof_nonce, 'kiriof_resi_print' ) ) {
+                wp_safe_redirect( home_url( '/404' ) );
+                exit;
+            }
             $orderIdsParam = isset($_GET['oids']) ? sanitize_text_field(wp_unslash($_GET['oids'])) : '';
             $orderIds = array_unique(explode(',', $orderIdsParam) ?? []);
             if (count($orderIds) < 1) {

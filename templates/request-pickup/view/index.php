@@ -111,6 +111,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         if (@$results&&count($results)>0){
                                             foreach($results as $id => $kiriof_row){
                                                 $kiriof_btnGroup='';
+                                                $kiriof_pickup_number_js = esc_js( (string) ( $kiriof_row->pickup_number ?? '' ) );
 
 
                                                 $kiriof_statusContent= '
@@ -121,7 +122,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 if (@$kiriof_row->status!=="paid"){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
-                                                        <button class="button-wp" type="button" onclick="showPaymentForm(`'.@$kiriof_row->pickup_number.'`)">
+                                                        <button class="button-wp" type="button" onclick="showPaymentForm(`'.$kiriof_pickup_number_js.'`)">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -134,7 +135,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         ';                                                        
                                                     }else{
                                                         $kiriof_btnGroup.= '
-                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(`'.@$kiriof_row->pickup_number.'`)">
+                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(`'.$kiriof_pickup_number_js.'`)">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <span>Reschedule</span>
@@ -152,7 +153,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     ';
                                                 }
                                                 $kiriof_btnGroup.='
-                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(`'.@$kiriof_row->pickup_number.'`)">
+                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(`'.$kiriof_pickup_number_js.'`)">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                        <span>Details</span>
@@ -433,7 +434,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
                     }
 
                     const transactionUrl = `<?php echo esc_url( home_url().'/wp-admin/post.php' ) ?>?post=${transaction?.wp_wc_order_stat_order_id}&action=edit`;
-                    const printResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transaction?.order_id}`;
+                    const printResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transaction?.order_id}&_wpnonce=<?php echo esc_js( wp_create_nonce( 'kiriof_resi_print' ) ); ?>`;
                     const formatFeeString = (value) => {
                         if (!value){
                             return 
@@ -522,7 +523,7 @@ wp_add_inline_script( 'kiriminPluginScript', $kiriof_inline_script );
                         </tr>
                     `)
                 })
-                const printAllResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transactionIdList.join(',')}`;
+                const printAllResiUrl = `<?php echo esc_url( home_url().'/transaction-resi-print' ) ?>?oids=${transactionIdList.join(',')}&_wpnonce=<?php echo esc_js( wp_create_nonce( 'kiriof_resi_print' ) ); ?>`;
                 if( transactionIdList.length === 0){
                     jQuery('#request-pickup-detail-modal #print-all-resi-btn').hide();
                 } else {

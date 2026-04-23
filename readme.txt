@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.4
+Stable tag: 2.1.5
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,15 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.5 =
+* Sanitize all $_POST['data'] arrays in SettingController via kiriof_sanitize_recursive() before passing to services.
+* Sanitize webhook JSON payload and headers in CallbackController before handing off to CallbackHandlerService.
+* Validate callback URL in storeCallbackData with esc_url_raw() prior to API call and database storage.
+* Add nonce verification (kiriof_resi_print) to the transaction-resi-print feed endpoint to prevent CSRF; resi print URLs in templates now include _wpnonce.
+* Properly esc_js() pickup_number when interpolated into onclick handlers in request-pickup view template.
+* Wrap wc_cart_totals_shipping_method_label() output with wp_kses_post() in cart-shipping.php template.
+* Keep composer.json in distributed build (Makefile no longer strips it).
+
 = 2.1.4 =
 * Address Copilot code review feedback
 

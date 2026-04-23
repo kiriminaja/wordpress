@@ -76,6 +76,6 @@ zip: clean
 	@echo "Creating zip archive for $(PLUGIN_SLUG) version $(VERSION)..."
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
-	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f composer.json composer.lock
+	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f composer.lock
 	(cd $(BUILD_DIR) && zip -r ../$(ZIP_FILE) $(PLUGIN_SLUG))
 	@echo "Archive created: $(ZIP_FILE)"

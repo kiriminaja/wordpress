@@ -139,21 +139,22 @@ class SettingService extends BaseService
     public function storeCallbackData(array $payloads)
     {
         try {
+            $callback_url = isset( $payloads['callback_url'] ) ? esc_url_raw( $payloads['callback_url'] ) : '';
             $validate = (new \KiriminAjaOfficial\Base\Validator())->validateMultiple([
-                [$payloads['callback_url'], 'Link Callback', ['required']],
+                [$callback_url, 'Link Callback', ['required']],
             ]);
             if (!$validate['status']) {
                 return self::error([], $validate['msg']);
             }
             /** Store to KJ*/
-            $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->setCallback($payloads['callback_url']);
+            $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->setCallback($callback_url);
             if (!@$repo['status'] || !@$repo['data']->status) {
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $repo);
                 return self::error([], @$repo['data'] ?? 'Something is wrong');
             }
             /** Storing to DB*/
             (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeCallbackData([
-                'callback_url' => sanitize_text_field($payloads['callback_url']),
+                'callback_url' => $callback_url,
             ]);
         } catch (\Throwable $th) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $th->getMessage());

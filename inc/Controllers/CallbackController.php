@@ -55,6 +55,17 @@ class CallbackController{
                 ]);
                 wp_die();
             }
+
+            // Recursively sanitize all decoded values before passing them downstream.
+            $body = kiriof_sanitize_recursive( $body );
+
+            // Sanitize header values as well; they are forwarded into downstream services.
+            $sanitized_header = array();
+            foreach ( $header as $h_key => $h_val ) {
+                $sanitized_header[ sanitize_text_field( (string) $h_key ) ] = is_scalar( $h_val ) ? sanitize_text_field( (string) $h_val ) : '';
+            }
+            $header = $sanitized_header;
+
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriminAjaCallback',[$body]);
             
             $service = (new \KiriminAjaOfficial\Services\CallbackHandlerService())->header($header)->body($body)->call();
