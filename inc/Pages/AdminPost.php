@@ -85,12 +85,15 @@ class AdminPost
     }
     private function setShippingCodEnabled(){
         $key_woo_cod = 'woocommerce_cod_settings';
-        $arr_cod = get_option($key_woo_cod); //array
-        
+        $arr_cod = get_option($key_woo_cod, []); //array
+        if ( ! is_array( $arr_cod ) ) {
+            $arr_cod = [];
+        }
+
         //set anabled is yes
         $arr_cod['enabled'] = 'yes';
         update_option($key_woo_cod,$arr_cod);
-        
+
     }
     /**
      * @return object

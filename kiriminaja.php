@@ -183,9 +183,13 @@ function kiriof_plugin_update_migration( $upgrader_object, $options ) {
     }
 }
 
-/** Services*/
+/** Services */
 if ( class_exists( 'KiriminAjaOfficial\\Init' ) ) {
-    KiriminAjaOfficial\Init::register_services();
+    // Defer to plugins_loaded so WooCommerce (and its textdomain) are fully
+    // available before any of our controllers hook into WC APIs. Running at
+    // file-load time can trigger WC translations before `init`, which emits
+    // a "_load_textdomain_just_in_time was called incorrectly" notice.
+    add_action( 'plugins_loaded', [ 'KiriminAjaOfficial\\Init', 'register_services' ] );
 }
 
 /**
