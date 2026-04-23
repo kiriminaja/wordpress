@@ -1,6 +1,9 @@
 // Use AJAX URL passed from WordPress via wp_localize_script
 function kiriofAjaxRoute(){
-    return kiriofAjax.ajaxurl;
+    if (typeof kiriofAjax !== 'undefined' && kiriofAjax && kiriofAjax.ajaxurl) {
+        return kiriofAjax.ajaxurl;
+    }
+    return '';
 }
 
 function kiriofMoneyFormat(angka, prefix){
