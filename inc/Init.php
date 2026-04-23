@@ -25,7 +25,8 @@ final class Init {
             Controllers\TransactionProcessController::class,
             Controllers\CheckoutController::class,
             Controllers\TrackingFrontPageController::class,
-            Controllers\EditOrderController::class
+            Controllers\EditOrderController::class,
+            Controllers\UpdaterController::class,
         ];
     }
     /**

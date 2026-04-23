@@ -21,6 +21,10 @@ $plugin   = $root_dir . '/kiriminaja.php';
 
 // --- Determine version ---
 $version = $argv[1] ?? null;
+$variant = isset( $argv[2] ) && $argv[2] !== '' ? strtolower( $argv[2] ) : 'official';
+if ( ! in_array( $variant, [ 'official', 'legacy' ], true ) ) {
+    $variant = 'official';
+}
 
 if ( ! $version && file_exists( $plugin ) ) {
     $content = file_get_contents( $plugin );
@@ -74,10 +78,17 @@ if ( empty( $body ) ) {
 }
 
 // --- Build full release body ---
-$tag   = "v{$version}";
-$title = "v{$version}";
+if ( $variant === 'legacy' ) {
+    $tag   = "v{$version}-legacy";
+    $title = "v{$version} (legacy)";
+    $note  = "\n\n> **Legacy build** — full pack including the self-hosted updater (`UpdaterController`). Use this for customers not installing from WordPress.org.";
+} else {
+    $tag   = "v{$version}";
+    $title = "v{$version}";
+    $note  = '';
+}
 
-$full_body = "## What's Changed\n\n{$body}\n\n**Full Changelog**: https://github.com/{$repo}/compare/v{$version}...{$tag}";
+$full_body = "## What's Changed\n\n{$body}{$note}\n\n**Full Changelog**: https://github.com/{$repo}/compare/v{$version}...{$tag}";
 
 // --- Construct GitHub release URL ---
 $params = http_build_query( [

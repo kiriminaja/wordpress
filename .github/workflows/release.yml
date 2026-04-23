@@ -34,8 +34,8 @@ jobs:
         id: version
         run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
 
-      - name: Build ZIP
-        run: make zip
+      - name: Build ZIP (legacy variant — includes UpdaterController)
+        run: make zip-legacy
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
@@ -46,7 +46,7 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-official-${{ steps.version.outputs.version }}.zip
+          path: kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
           predefinedAcl: "publicRead"
 
@@ -76,7 +76,7 @@ jobs:
         with:
           file: woocommerce.json
           field: download_url
-          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-official-${{ steps.version.outputs.version }}.zip
+          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1

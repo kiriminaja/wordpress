@@ -4,7 +4,16 @@ PLUGIN_SLUG := kiriminaja-official
 
 # Read version from kiriminaja.php KIRIOF_VERSION
 VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")
-ZIP_FILE := $(PLUGIN_SLUG)-$(VERSION).zip
+
+# VARIANT: official (default, WP.org-ready, strips UpdaterController)
+#          legacy   (full pack, keeps UpdaterController for non-WP.org customers)
+VARIANT ?= official
+
+ifeq ($(VARIANT),legacy)
+  ZIP_FILE := $(PLUGIN_SLUG)-legacy-$(VERSION).zip
+else
+  ZIP_FILE := $(PLUGIN_SLUG)-$(VERSION).zip
+endif
 
 BUILD_DIR := build
 STAGE_DIR := $(BUILD_DIR)/$(PLUGIN_SLUG)
@@ -28,7 +37,8 @@ RSYNC_EXCLUDES := \
 	--exclude=tests/ \
 	--exclude=.phpunit.cache/
 
-.PHONY: zip clean changelog release test tag github-release publish
+.PHONY: zip clean changelog release test tag github-release publish \
+        release-legacy github-release-legacy publish-legacy zip-legacy
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -85,9 +95,41 @@ clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
 
 zip: clean
-	@echo "Creating zip archive for $(PLUGIN_SLUG) version $(VERSION)..."
+	@echo "Creating zip archive for $(PLUGIN_SLUG) version $(VERSION) [variant=$(VARIANT)]..."
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
+	@if [ "$(VARIANT)" = "official" ]; then \
+		echo "Stripping UpdaterController for WP.org-friendly build..."; \
+		rm -f $(STAGE_DIR)/inc/Controllers/UpdaterController.php; \
+		perl -i -ne 'print unless /Controllers\\UpdaterController::class\s*,/' $(STAGE_DIR)/inc/Init.php; \
+	else \
+		echo "Legacy build: keeping UpdaterController."; \
+	fi
 	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f composer.lock
 	(cd $(BUILD_DIR) && zip -r ../$(ZIP_FILE) $(PLUGIN_SLUG))
 	@echo "Archive created: $(ZIP_FILE)"
+
+# --- Legacy variants (full pack, keeps UpdaterController) ---
+
+zip-legacy:
+	@$(MAKE) zip VARIANT=legacy
+
+release-legacy: changelog
+	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
+	@$(MAKE) zip VARIANT=legacy
+	@echo ""
+	@echo "Legacy release v$(VERSION) ready (UpdaterController included)!"
+	@echo "  Artifact: $(PLUGIN_SLUG)-legacy-$(VERSION).zip"
+	@echo ""
+
+github-release-legacy:
+	@php scripts/github-release.php $(VERSION) legacy
+
+publish-legacy: release-legacy
+	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
+	git add -A
+	git commit -m "chore: release v$(VERSION) (legacy)" || true
+	@$(MAKE) tag
+	git push
+	git push --tags
+	@$(MAKE) github-release-legacy
