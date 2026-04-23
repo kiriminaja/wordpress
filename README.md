@@ -15,7 +15,7 @@ A WordPress/WooCommerce plugin that integrates [KiriminAja](https://kiriminaja.c
 
 - WordPress 6.0+
 - WooCommerce 8.5+
-- PHP 7.0+
+- PHP 8.1+
 
 ## Installation
 
