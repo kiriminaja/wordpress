@@ -122,7 +122,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 if (@$kiriof_row->status!=="paid"){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
-                                                        <button class="button-wp" type="button" onclick="showPaymentForm(`'.$kiriof_pickup_number_js.'`)">
+                                                        <button class="button-wp" type="button" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -135,7 +135,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         ';                                                        
                                                     }else{
                                                         $kiriof_btnGroup.= '
-                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(`'.$kiriof_pickup_number_js.'`)">
+                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <span>Reschedule</span>
@@ -153,7 +153,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     ';
                                                 }
                                                 $kiriof_btnGroup.='
-                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(`'.$kiriof_pickup_number_js.'`)">
+                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                        <span>Details</span>
