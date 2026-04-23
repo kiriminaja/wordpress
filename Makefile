@@ -98,6 +98,8 @@ zip: clean
 	@echo "Creating zip archive for $(PLUGIN_SLUG) version $(VERSION) [variant=$(VARIANT)]..."
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
+	cp composer.json $(STAGE_DIR)/
+	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
 	@if [ "$(VARIANT)" = "official" ]; then \
 		echo "Stripping UpdaterController for WP.org-friendly build..."; \
 		rm -f $(STAGE_DIR)/inc/Controllers/UpdaterController.php; \
