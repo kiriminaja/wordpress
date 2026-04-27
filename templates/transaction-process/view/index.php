@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Cache frequently used values
 $kiriof_helper = kiriof_helper();
 $kiriof_homeUrl = home_url();
-$kiriof_kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
+$kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 ?>
 <div class="kj-wrapper kj-wrap">
@@ -198,12 +198,12 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                         <span class="kj-badge processing">' . esc_html($kiriof_statusLabel) . '</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>' . esc_html(trim($kiriof_billingFirstName . ' ' . $kiriof_billingLastName . ', ' . $kiriof_billingAddress1 . ', ' . $kiriof_billingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $billingPostcode)) . '</div>
+                                                            <div>' . esc_html(trim($kiriof_billingFirstName . ' ' . $kiriof_billingLastName . ', ' . $kiriof_billingAddress1 . ', ' . $kiriof_billingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $kiriof_billingPostcode)) . '</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via ' . esc_html($kiriof_paymentLabel) . '</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`' . esc_js($kiriof_row->wc_order_id) . '`)">' . esc_html(trim($shippingFirstName . ' ' . $shippingLastName . ', ' . $shippingAddress1 . ', ' . $shippingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $shippingPostcode)) . '</div>
+                                                            <div style="color: #2271b1;cursor: pointer" onclick="showTransactionSummaryModal(`' . esc_js($kiriof_row->wc_order_id) . '`)">' . esc_html(trim($kiriof_shippingFirstName . ' ' . $kiriof_shippingLastName . ', ' . $kiriof_shippingAddress1 . ', ' . $kiriof_shippingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $kiriof_shippingPostcode)) . '</div>
                                                             <div style="position: relative; margin-top: .75rem"></div>
                                                             <div>via ' . esc_html($kiriof_serviceName) . '</div>
                                                             <div style="position: relative; margin-top: .1rem"></div>
