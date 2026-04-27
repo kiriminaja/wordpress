@@ -301,7 +301,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 <!--Table Search-->
-<?php // QR Code Styling library loaded inline to avoid external resource error ?>
+<?php // QR Code Styling library is enqueued in inc/Base/Enqueue.php (handle: kiriof-qr-code-styling) ?>
 <?php ob_start(); ?>
     function kiriofApplySearch (key,value){
         if (jQuery(`#table-form [name="${key}"]`).length > 0){

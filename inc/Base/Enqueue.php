@@ -127,6 +127,22 @@ class Enqueue extends BaseInit{
         /** Select 2 - bundled locally */
         wp_enqueue_style( 'kiriof-select2-style', $this->plugin_url . 'assets/lib/select2/select2.min.css', array(), '4.1.0-rc.0' );
         wp_enqueue_script( 'kiriof-select2-script', $this->plugin_url . 'assets/lib/select2/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
+
+        /**
+         * QR Code Styling - bundled locally to comply with WordPress.org
+         * "no remote assets" rule. Required by the "Scan to Pay" modal on
+         * the Request Pickup page (templates/request-pickup/view/index.php)
+         * which calls `new QRCodeStyling({...})` to render the QRIS image.
+         */
+        if ( 'kiriminaja-request-pickup' === $page ) {
+            wp_enqueue_script(
+                'kiriof-qr-code-styling',
+                $this->plugin_url . 'assets/lib/qr-code-styling/qr-code-styling.min.js',
+                array(),
+                '1.9.2',
+                true
+            );
+        }
    
     }   
 }
