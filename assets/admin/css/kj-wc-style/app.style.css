@@ -325,12 +325,6 @@ body.woocommerce-admin-page
   }
 }
 
-.woocommerce-layout .woocommerce-layout__main {
-  padding-right: 40px;
-  padding-right: var(--large-gap);
-  max-width: 100%;
-}
-
 .woocommerce-admin-page .update-nag {
   display: none;
 }
