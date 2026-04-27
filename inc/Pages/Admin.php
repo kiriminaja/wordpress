@@ -14,21 +14,23 @@ class Admin extends BaseInit{
         /** add pages*/
         
         $plugin_path = $this->plugin_path;
-        
-        $subPages  = [
-            [
-                'parent_slug'=>'kiriminaja-konfigurasi',
-                'page_title'=>'KiriminAja Configuration',
-                'menu_title'=>'KiriminAja',
-                'capability'=>'manage_options',
-                'menu_slug'=>'kiriminaja-konfigurasi',
-                'callback'=> function() use ($plugin_path){
-                    require_once $plugin_path.'templates/setting/index.php';
-                }
-            ]
-        ];
+
+        /**
+         * Sub-pages are only registered when WooCommerce is active. Without
+         * WooCommerce there is nothing meaningful to nest under the parent
+         * "KiriminAja" menu, so we skip them entirely — otherwise WordPress
+         * would auto-render a duplicate "KiriminAja" sub-link beneath the
+         * top-level item (the legacy/"old plugin" UX issue users reported).
+         *
+         * When WooCommerce IS active we deliberately register only the
+         * "Transactions" and "Payments" sub-items. The settings screen is
+         * already reachable via the top-level "KiriminAja" entry, so adding
+         * a third sub-link pointing to the same slug would just duplicate
+         * it in the sidebar.
+         */
+        $subPages = [];
         if( kiriof_check_woocommerce() ){
-            $subPages = array_merge($subPages,[
+            $subPages = [
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Transactions',
@@ -49,7 +51,7 @@ class Admin extends BaseInit{
                         require_once $plugin_path.'templates/request-pickup/index.php';
                     }
                 ]
-            ]);
+            ];
         }
         
         
@@ -84,6 +86,19 @@ class Admin extends BaseInit{
             global $submenu;
             if ( empty( $submenu['kiriminaja-konfigurasi'] ) ) {
                 return;
+            }
+
+            /**
+             * WordPress auto-prepends a sub-item that mirrors the parent
+             * menu (slug "kiriminaja-konfigurasi") whenever any sub-pages
+             * are registered. We don't want a duplicate "KiriminAja"
+             * sub-link — the merchant should only see "Transactions" and
+             * "Payments" — so strip that auto entry here.
+             */
+            foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
+                if ( isset( $menu_item[2] ) && 'kiriminaja-konfigurasi' === $menu_item[2] ) {
+                    unset( $submenu['kiriminaja-konfigurasi'][ $key ] );
+                }
             }
 
             $transaction_count_new = (int) kiriof_helper()->kjCountTransactionProcess();
