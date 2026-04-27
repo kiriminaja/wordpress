@@ -205,6 +205,51 @@ if ( ! defined( 'ABSPATH' ) ) {
         jQuery(`.${menuClass} .kj-form .kj-alert`).removeClass('kj-hidden')
     }
 
+    /**
+     * Defensive parser for our admin-ajax responses. Servers can return a
+     * non-JSON body when PHP fatals or a gateway intercepts the request,
+     * which used to leave the loader spinning forever. Always returns an
+     * object shaped like { status, message } so callers can render it.
+     */
+    window.kiriofParseAjaxResponse = function(response){
+        try {
+            const parsed = JSON.parse(response.responseText);
+            // wp_send_json_{success,error} both wrap payload under .data
+            const payload = (parsed && typeof parsed === 'object' && 'data' in parsed) ? parsed.data : parsed;
+            if (payload && typeof payload === 'object'){
+                return payload;
+            }
+            return { status: 0, message: 'Unexpected server response.' };
+        } catch (err) {
+            return { status: 0, message: 'Server returned an invalid response. Please try again.' };
+        }
+    }
+
+    /**
+     * Re-fetch the saved webhook URL after a successful save so the input
+     * reflects what was actually persisted (server may normalize/strip).
+     * Defined as a no-op fallback when the dedicated endpoint isn't wired
+     * up on this build — preventing the ReferenceError that previously
+     * swallowed the success alert.
+     */
+    window.fetchCallbackData = window.fetchCallbackData || function(){
+        jQuery.ajax({
+            type: 'post',
+            url: kiriofAjaxRoute(),
+            data: {
+                action: 'kiriof_get_call_back_data',
+                data: { nonce: "<?php echo esc_js( wp_create_nonce( KIRIOF_NONCE ) ); ?>" }
+            },
+            complete: function(response){
+                const resp = kiriofParseAjaxResponse(response);
+                if (resp && resp.status === 200 && resp.data && typeof resp.data.callback_url !== 'undefined'){
+                    jQuery('.tab-advanced [name="callback_url"]').val(resp.data.callback_url);
+                }
+            },
+            error: function(){ /* silent — this is just a refresh */ }
+        });
+    };
+
 
 <?php
 $kiriof_inline_script = ob_get_clean();
@@ -216,6 +261,12 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     /** Integration AJAX*/
     /*** Submit DATA*/
     jQuery('body').on('click', '.kj-disconnect', function(e) {
+        // Disconnecting wipes the integration credentials and forces the
+        // merchant back through the setup-key flow, so guard against an
+        // accidental click before firing the request.
+        if (!window.confirm('Disconnect KiriminAja integration? You will need to re-enter your setup key to reconnect.')){
+            return;
+        }
         menuFormLoaderInit('tab-integration',true)
         jQuery.ajax({
             type: "post",
@@ -229,16 +280,19 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     nonce: "<?php echo esc_js( wp_create_nonce( KIRIOF_NONCE ) ); ?>"
                 },         // any JS object
             },
+            error: function(){
+                menuFormLoaderInit('tab-integration',false)
+                formAlertToggler('tab-integration',true,'Error','Network error. Please try again.','')
+            },
             complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
-                if (resp?.status === 200){
+                const resp = kiriofParseAjaxResponse(response);
+                if (resp && resp.status === 200){
                     window.location.reload()
                     return
                 }
                 menuFormLoaderInit('tab-integration',false)
-                menuFormLoaderInit('tab-advanced',false)
-                formAlertToggler('tab-integration',true,'Error',resp.message,'')
-                formAlertToggler('tab-advanced',true,'Error',resp.message,'')
+                const message = (resp && resp.message) ? resp.message : 'Disconnect failed. Please try again.';
+                formAlertToggler('tab-integration',true,'Error',message,'')
             },
         });
     });
@@ -355,19 +409,21 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     origin_whitelist_expedition_name: jQuery('.tab-shipping .origin_whitelist_expedition').select2('data').map(function(elem){ return elem.text }),
                 },         // any JS object
             },
+            error: function(){
+                menuFormLoaderInit('tab-shipping',false)
+                formAlertToggler('tab-shipping',true,'Error','Network error. Please try again.','')
+            },
             complete: function (response) {
-                
-                const resp = JSON.parse(response.responseText).data;
-                
-                if (resp?.status === 200){
+                const resp = kiriofParseAjaxResponse(response);
+
+                if (resp && resp.status === 200){
                     window.location.reload()
                     return
                 }
 
                 menuFormLoaderInit('tab-shipping',false)
-                formAlertToggler('tab-shipping',true,'Error',resp.message,'')
-
-
+                const message = (resp && resp.message) ? resp.message : 'Save failed. Please try again.';
+                formAlertToggler('tab-shipping',true,'Error',message,'')
             },
         });
     })
@@ -392,17 +448,24 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"      
                 },         // any JS object
             },
+            error: function(){
+                menuFormLoaderInit('tab-advanced',false)
+                formAlertToggler('tab-advanced',true,'Error','Network error. Please try again.','')
+            },
             complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
+                const resp = kiriofParseAjaxResponse(response);
 
                 menuFormLoaderInit('tab-advanced',false)
-                if (resp?.status === 200){
-                    formAlertToggler('tab-advanced',true,'Success',resp.message,'success')
-                    fetchCallbackData()
+                if (resp && resp.status === 200){
+                    const successMsg = resp.message || 'Saved.';
+                    formAlertToggler('tab-advanced',true,'Success',successMsg,'success')
+                    if (typeof window.fetchCallbackData === 'function'){
+                        try { window.fetchCallbackData(); } catch (err) { /* non-fatal */ }
+                    }
                     return
                 }
-                formAlertToggler('tab-advanced',true,'Error',resp.message,'')
-
+                const message = (resp && resp.message) ? resp.message : 'Save failed. Please try again.';
+                formAlertToggler('tab-advanced',true,'Error',message,'')
             },
         });
     })
