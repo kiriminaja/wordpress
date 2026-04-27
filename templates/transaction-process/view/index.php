@@ -191,21 +191,43 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                     // Build URLs
                                                     $kiriof_orderEditUrl = $kiriof_adminUrl . '/post.php?post=' . esc_attr($kiriof_row->wc_order_id) . '&action=edit';
                                                     $kiriof_orderDate = gmdate('M d, Y', strtotime($kiriof_row->wc_date_created));
-                                                    $kiriof_statusLabel = $kiriof_helper->transactionStatusLabel($kiriof_row->status);
+
+                                                    /**
+                                                     * Status column should reflect what the merchant actually
+                                                     * sees in WooCommerce, not the internal pickup-state machine.
+                                                     * Only "Processing" orders are eligible for pickup; everything
+                                                     * else (On Hold, Pending Payment, …) shows the WC label and
+                                                     * gets a disabled checkbox so it can't be batched into a
+                                                     * pickup request by mistake.
+                                                     */
+                                                    $kiriof_postStatus = $kiriof_row->post_status ?? 'wc-processing';
+                                                    $kiriof_isProcessable = ( 'wc-processing' === $kiriof_postStatus );
+                                                    if ( $kiriof_isProcessable ) {
+                                                        $kiriof_statusLabel = $kiriof_helper->transactionStatusLabel($kiriof_row->status);
+                                                        $kiriof_statusBadgeClass = 'kj-badge processing';
+                                                    } else {
+                                                        // Strip the "wc-" prefix and prettify (e.g. "On Hold").
+                                                        $kiriof_statusLabel = ucwords( str_replace( '-', ' ', preg_replace( '/^wc-/', '', $kiriof_postStatus ) ) );
+                                                        $kiriof_statusBadgeClass = 'kj-badge warning';
+                                                    }
                                                     $kiriof_serviceName = strtoupper($kiriof_row->service);
                                                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
-                                                    
+
+                                                    $kiriof_checkboxAttrs = $kiriof_isProcessable
+                                                        ? ''
+                                                        : ' disabled title="' . esc_attr( $kiriof_helper->tlThis( 'Order must be in Processing status before it can be picked up.', $locale ) ) . '"';
+
                                                     echo '
-                                                      <tr class="">
+                                                      <tr class="' . ( $kiriof_isProcessable ? '' : 'kj-row-disabled' ) . '"' . ( $kiriof_isProcessable ? '' : ' style="opacity: .65"' ) . '>
                                                         <td class="manage-column column-thumb">
-                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_row->order_id) . '">
+                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_row->order_id) . '"' . $kiriof_checkboxAttrs . '>
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                         <a href="' . esc_url($kiriof_orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($kiriof_row->wc_order_id) . ' ' . esc_html($kiriof_billingFirstName) . ' ' . esc_html($kiriof_billingLastName) . ' </a>
                                                         </td>
                                                         <td class="manage-column column-thumb">' . esc_html($kiriof_orderDate) . '</td>
                                                         <td class="manage-column column-thumb">
-                                                        <span class="kj-badge processing">' . esc_html($kiriof_statusLabel) . '</span>
+                                                        <span class="' . esc_attr( $kiriof_statusBadgeClass ) . '">' . esc_html($kiriof_statusLabel) . '</span>
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                             <div>' . esc_html(trim($kiriof_billingFirstName . ' ' . $kiriof_billingLastName . ', ' . $kiriof_billingAddress1 . ', ' . $kiriof_billingAddress2 . ', ' . $kiriof_destinationSubDistrict . ', ' . $kiriof_billingPostcode)) . '</div>
@@ -325,7 +347,9 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
             const is_checked = $(this).prop('checked');
             $checkAllTop.prop('checked', is_checked);
             $checkAllBottom.prop('checked', is_checked);
-            $transactionCheckboxes().prop('checked', is_checked);
+            // Skip disabled rows (e.g. On Hold / Pending Payment) so they
+            // can never be batched into a pickup request via "select all".
+            $transactionCheckboxes().not(':disabled').prop('checked', is_checked);
         });
 
         window.kjRequestPickupSchedule = function() {
