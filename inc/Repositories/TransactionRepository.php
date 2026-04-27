@@ -252,20 +252,35 @@ class TransactionRepository{
     }
     public function getCountTransactionProcessNew(){
         $prefix = $this->wpdb->prefix;
-        
+
+        /**
+         * Count must match the Transaction Process list query
+         * (templates/transaction-process/index.php) so the badge
+         * cannot diverge from the rendered rows. That query:
+         *   - INNER JOINs wc_order_stats (filter wc-processing)
+         *   - INNER JOINs posts          (post_status != trash)
+         *   - filters kiriminaja_transactions.status = 'new'
+         *   - GROUPs BY wc_order_stats.order_id (one row per order)
+         */
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_var(
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT COUNT(*) 
-                FROM {$this->table} t 
-                INNER JOIN {$prefix}posts p ON p.ID = t.wp_wc_order_stat_order_id
-                WHERE t.status = %s AND p.post_status = %s",
+                "SELECT COUNT(DISTINCT s.order_id)
+                FROM {$prefix}wc_order_stats s
+                INNER JOIN {$this->table} t
+                    ON s.order_id = t.wp_wc_order_stat_order_id
+                INNER JOIN {$prefix}posts p
+                    ON s.order_id = p.ID
+                WHERE s.status = %s
+                    AND t.status = %s
+                    AND p.post_status != %s",
+                'wc-processing',
                 'new',
-                'wc-processing'
-            ) 
+                'trash'
+            )
         );
-        
+
         return $this->hasError() ? false : (int) $query;
     }
     public function updateTransaction($payload){
