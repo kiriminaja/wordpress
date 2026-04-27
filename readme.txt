@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.11
+Stable tag: 2.1.12
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,9 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.12 =
+* Fix(Order): update shipping method prefix handling for consistency in CheckoutController and GeneralAjaxController
+
 = 2.1.11 =
 * Fix(checkout): enhance order handling and session management in afterCheckoutAfterCreated
 
