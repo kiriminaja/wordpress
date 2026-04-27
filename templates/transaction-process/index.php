@@ -44,31 +44,36 @@ class Kiriof_TransactionProcessIndex
             $month_like = '%' . $wpdb->esc_like( $month ) . '%';
         }
 
-        /** Main Query - Single prepare() call for efficiency and compliance */
+        /**
+         * Main Query - source of truth = wp_posts (the WooCommerce shop_order CPT).
+         *
+         * We intentionally do NOT join wp_wc_order_stats here. That table is
+         * the WooCommerce Analytics mirror and is populated asynchronously by
+         * a scheduled action after an order is created, so a brand-new order
+         * would be missing from the list for several minutes while still
+         * being counted by the badge. Joining wp_posts directly keeps the
+         * list consistent with what the merchant just placed.
+         */
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT 
-                    wc_order_stats.order_id as wc_order_id,
-                    wc_order_stats.date_created as wc_date_created,
-                    wc_order_stats.status as wc_status,
+                    posts.ID as wc_order_id,
+                    posts.post_date as wc_date_created,
+                    posts.post_status as wc_status,
                     posts.post_status,
                     kiriminaja_transactions.*
-                FROM {$wpdb->prefix}wc_order_stats as wc_order_stats
+                FROM {$wpdb->prefix}posts as posts
                 INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
-                    ON wc_order_stats.order_id = kiriminaja_transactions.wp_wc_order_stat_order_id
-                INNER JOIN {$wpdb->prefix}posts as posts
-                    ON wc_order_stats.order_id = posts.ID
-                WHERE wc_order_stats.status = %s
+                    ON posts.ID = kiriminaja_transactions.wp_wc_order_stat_order_id
+                WHERE posts.post_status = %s
                     AND kiriminaja_transactions.status = %s
-                    AND posts.post_status != %s
-                    AND ( %s = '' OR wc_order_stats.order_id LIKE %s )
-                    AND ( %s = '' OR wc_order_stats.date_created LIKE %s )
-                GROUP BY wc_order_stats.order_id
-                ORDER BY wc_order_stats.date_created DESC",
+                    AND ( %s = '' OR posts.ID LIKE %s )
+                    AND ( %s = '' OR posts.post_date LIKE %s )
+                GROUP BY posts.ID
+                ORDER BY posts.post_date DESC",
                 'wc-processing',
                 'new',
-                'trash',
                 $key,
                 $key_like,
                 $month,
