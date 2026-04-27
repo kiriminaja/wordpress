@@ -36,10 +36,17 @@ class Enqueue extends BaseInit{
 
         // Tracking shortcode-specific styles. Loaded as a real stylesheet so the
         // rules are present in <head> by the time [kiriminaja-tracking-front-page]
-        // renders inside the_content (wp_add_inline_style from the shortcode
-        // handler runs after wp_head and is silently dropped).
+        // (or its legacy alias [wp-tracking-front-page]) renders inside
+        // the_content. wp_add_inline_style from the shortcode handler runs after
+        // wp_head and would be silently dropped.
         global $post;
-        if ( $post instanceof \WP_Post && has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' ) ) {
+        if (
+            $post instanceof \WP_Post
+            && (
+                has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' )
+                || has_shortcode( (string) $post->post_content, 'wp-tracking-front-page' )
+            )
+        ) {
             wp_enqueue_style(
                 'kiriof-tracking-style',
                 $this->plugin_url . 'assets/wp/css/kj-tracking.css',
@@ -87,8 +94,16 @@ class Enqueue extends BaseInit{
         }
 
         // Tracking shortcode page (used by the public tracking front page).
+        // Accepts the legacy [wp-tracking-front-page] alias for backward
+        // compatibility with pages created by older plugin versions.
         global $post;
-        if ( $post instanceof \WP_Post && has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' ) ) {
+        if (
+            $post instanceof \WP_Post
+            && (
+                has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' )
+                || has_shortcode( (string) $post->post_content, 'wp-tracking-front-page' )
+            )
+        ) {
             return true;
         }
 

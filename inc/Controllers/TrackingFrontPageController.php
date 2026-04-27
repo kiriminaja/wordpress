@@ -11,6 +11,9 @@ class TrackingFrontPageController{
     public function register(){
         /** Adding New Route*/
         add_shortcode('kiriminaja-tracking-front-page', array($this,'trackingFrontPage'));
+        /** Legacy alias kept for backward compatibility with pages created by
+         *  older plugin versions that used [wp-tracking-front-page]. */
+        add_shortcode('wp-tracking-front-page', array($this,'trackingFrontPage'));
         /** Add Tracking Ajax*/
         add_action('wp_ajax_kiriof-tracking-ajax', array($this,'trackingAjaxHandler'));
         add_action('wp_ajax_nopriv_kiriof-tracking-ajax', array($this,'trackingAjaxHandler'));
