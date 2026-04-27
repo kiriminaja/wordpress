@@ -24,7 +24,20 @@ class Kiriof_RequestPickupIndex {
         /** Month Options*/
         $monthOptions = self::getPaymentsDateFilterOptionArray();
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$monthOptions',[$monthOptions]);
-        
+
+        /**
+         * Status filter counts (powers the "All / Waiting for Payment / Paid"
+         * pill row in view/index.php). Always computed against the full table
+         * so the totals stay stable regardless of which pill is currently
+         * selected — same UX as WooCommerce's order list.
+         */
+        $kiriof_paymentRepo = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+        $kiriof_statusCounts = [
+            'all'    => $kiriof_paymentRepo->getCountByStatus( null ),
+            'unpaid' => $kiriof_paymentRepo->getCountByStatus( 'unpaid' ),
+            'paid'   => $kiriof_paymentRepo->getCountByStatus( 'paid' ),
+        ];
+
         /** Return vars and view*/
         include 'view/index.php';
     }

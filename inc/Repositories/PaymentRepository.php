@@ -81,17 +81,35 @@ class PaymentRepository{
      * Payment" tab is selected (kiriminaja_payments.status = 'unpaid').
      */
     public function getCountUnpaid(){
+        return $this->getCountByStatus( 'unpaid' );
+    }
+
+    /**
+     * Distinct pickup count for an arbitrary payment status (e.g. 'unpaid',
+     * 'paid'). Pass null/empty string to count every pickup regardless of
+     * status — useful for the "All" filter pill on the Payments page.
+     *
+     * Always returns an int (0 on error) so callers can format it directly.
+     */
+    public function getCountByStatus( $status ){
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $count = $wpdb->get_var(
-            $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT COUNT(DISTINCT pickup_number) FROM {$this->table} WHERE status = %s",
-                'unpaid'
-            )
-        );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+
+        if ( null === $status || '' === $status || 'all' === $status ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $count = $wpdb->get_var( "SELECT COUNT(DISTINCT pickup_number) FROM {$this->table}" );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $count = $wpdb->get_var(
+                $wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT COUNT(DISTINCT pickup_number) FROM {$this->table} WHERE status = %s",
+                    $status
+                )
+            );
+        }
+
+        if ( strlen( @$wpdb->last_error ?? '' ) > 0 ) {
+            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( @$wpdb->last_error );
             return 0;
         }
         return (int) $count;

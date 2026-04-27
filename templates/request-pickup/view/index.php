@@ -42,9 +42,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
                                             $kiriof_status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
                                             ?>
-                                            <li ><a href="#" onclick="kiriofApplySearch('status','')" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current"' : ''; ?> >All <span class="count"></span></a> |</li>
-                                            <li ><a href="#" onclick="kiriofApplySearch('status','unpaid')" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count"></span></a>  |</li>
-                                            <li ><a href="#" onclick="kiriofApplySearch('status','paid')" <?php echo $kiriof_status_filter === 'paid' ? 'class="current"' : ''; ?> >Paid <span class="count"></span></a>  |</li>
+                                            <li ><a href="#" onclick="kiriofApplySearch('status','')" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current"' : ''; ?> >All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a> |</li>
+                                            <li ><a href="#" onclick="kiriofApplySearch('status','unpaid')" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a>  |</li>
+                                            <li ><a href="#" onclick="kiriofApplySearch('status','paid')" <?php echo $kiriof_status_filter === 'paid' ? 'class="current"' : ''; ?> >Paid <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a>  |</li>
                                         </ul>
                                     </div>
                                     

@@ -47,6 +47,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                     <input type="text" name="cpage" value="1">
                                     <input type="text" name="key" value="<?php echo esc_attr( $kiriof_key_filter ); ?>">
                                     <input type="text" name="month" value="<?php echo esc_attr( $kiriof_month_filter ); ?>">
+                                    <input type="text" name="status" value="<?php echo esc_attr( $kiriof_status_filter ); ?>">
                                 </form>
 
 
@@ -77,6 +78,15 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="row-divider"></div>
+
+                                    <div style="display: inline-block">
+                                        <ul class="subsubsub">
+                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-processing')" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current"' : ''; ?>>Processing <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a> |</li>
+                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-on-hold')" <?php echo $kiriof_status_filter === 'wc-on-hold' ? 'class="current"' : ''; ?>>On Hold <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ) ); ?>)</span></a> |</li>
+                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-pending')" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current"' : ''; ?>>Pending Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        </ul>
                                     </div>
                                     <div class="row-divider"></div>
 

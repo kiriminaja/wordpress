@@ -251,33 +251,53 @@ class TransactionRepository{
         return $this->getTransactionByOrderIds($orderIds);
     }
     public function getCountTransactionProcessNew(){
+        return $this->getCountByPostStatus( 'wc-processing' );
+    }
+
+    /**
+     * Distinct order count for the Transactions list, restricted to rows
+     * with `kiriminaja_transactions.status = 'new'` (i.e. not yet picked
+     * up). Pass null/empty/'all' to count every status — used by the "All"
+     * pill on the Transactions page so the badge stays in sync with the
+     * rendered rows.
+     */
+    public function getCountByPostStatus( $postStatus ){
         $prefix = $this->wpdb->prefix;
 
-        /**
-         * Count must match the Transaction Process list query
-         * (templates/transaction-process/index.php) so the badge
-         * cannot diverge from the rendered rows. That query joins
-         * wp_posts directly (NOT wc_order_stats, which lags behind
-         * order creation by an async analytics sync) and filters:
-         *   - posts.post_status = 'wc-processing'
-         *   - kiriminaja_transactions.status = 'new'
-         */
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-        $query = $this->wpdb->get_var(
-            $this->wpdb->prepare(
-                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT COUNT(DISTINCT p.ID)
-                FROM {$prefix}posts p
-                INNER JOIN {$this->table} t
-                    ON p.ID = t.wp_wc_order_stat_order_id
-                WHERE p.post_status = %s
-                    AND t.status = %s",
-                'wc-processing',
-                'new'
-            )
-        );
+        if ( null === $postStatus || '' === $postStatus || 'all' === $postStatus ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+            $query = $this->wpdb->get_var(
+                $this->wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT COUNT(DISTINCT p.ID)
+                    FROM {$prefix}posts p
+                    INNER JOIN {$this->table} t
+                        ON p.ID = t.wp_wc_order_stat_order_id
+                    WHERE p.post_type = %s
+                        AND p.post_status NOT IN ('trash','auto-draft')
+                        AND t.status = %s",
+                    'shop_order',
+                    'new'
+                )
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+            $query = $this->wpdb->get_var(
+                $this->wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT COUNT(DISTINCT p.ID)
+                    FROM {$prefix}posts p
+                    INNER JOIN {$this->table} t
+                        ON p.ID = t.wp_wc_order_stat_order_id
+                    WHERE p.post_status = %s
+                        AND t.status = %s",
+                    $postStatus,
+                    'new'
+                )
+            );
+        }
 
-        return $this->hasError() ? false : (int) $query;
+        return $this->hasError() ? 0 : (int) $query;
     }
     public function updateTransaction($payload){
         $updateData = [

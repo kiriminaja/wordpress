@@ -21,6 +21,26 @@ class Kiriof_TransactionProcessIndex
         $kiriof_monthOptions = $this->getTransactionsDateFilterOptionArray();
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriof_monthOptions', [$kiriof_monthOptions]);
 
+        /**
+         * Status filter counts (powers the "Processing / On Hold / Pending
+         * Payment" pill row in view/index.php). All four counts are computed
+         * up front so the totals stay stable regardless of which pill is
+         * currently selected — same UX as WooCommerce's order list.
+         */
+        $kiriof_transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $kiriof_statusCounts = [
+            'all'           => $kiriof_transactionRepo->getCountByPostStatus( null ),
+            'wc-processing' => $kiriof_transactionRepo->getCountByPostStatus( 'wc-processing' ),
+            'wc-on-hold'    => $kiriof_transactionRepo->getCountByPostStatus( 'wc-on-hold' ),
+            'wc-pending'    => $kiriof_transactionRepo->getCountByPostStatus( 'wc-pending' ),
+        ];
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+        $kiriof_status_filter = sanitize_text_field( wp_unslash( $_GET['status'] ?? '' ) );
+        if ( ! in_array( $kiriof_status_filter, [ 'wc-processing', 'wc-on-hold', 'wc-pending' ], true ) ) {
+            $kiriof_status_filter = 'wc-processing';
+        }
+
         /** Return vars and view */
         include 'view/index.php';
     }
@@ -34,6 +54,16 @@ class Kiriof_TransactionProcessIndex
         $key = sanitize_text_field( wp_unslash( $_GET['key'] ?? '' ) );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $month = sanitize_text_field( wp_unslash( $_GET['month'] ?? '' ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
+        $status = sanitize_text_field( wp_unslash( $_GET['status'] ?? '' ) );
+
+        // Whitelist of post_status values exposed by the pill row in the view.
+        // Anything outside the whitelist (or empty / 'all') falls back to the
+        // legacy default of 'wc-processing' to preserve existing behavior.
+        $allowedStatuses = [ 'wc-processing', 'wc-on-hold', 'wc-pending' ];
+        if ( ! in_array( $status, $allowedStatuses, true ) ) {
+            $status = 'wc-processing';
+        }
 
         $key_like   = '';
         $month_like = '';
@@ -72,7 +102,7 @@ class Kiriof_TransactionProcessIndex
                     AND ( %s = '' OR posts.post_date LIKE %s )
                 GROUP BY posts.ID
                 ORDER BY posts.post_date DESC",
-                'wc-processing',
+                $status,
                 'new',
                 $key,
                 $key_like,
