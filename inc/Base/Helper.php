@@ -105,6 +105,9 @@ class Helper extends  BaseInit {
     public function kjCountTransactionProcess(){
         return (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getCountTransactionProcessNew();
     }
+    public function kjCountShipmentUnpaid(){
+        return (new \KiriminAjaOfficial\Repositories\PaymentRepository())->getCountUnpaid();
+    }
     public function dateConvertGMT($tgl) {
         $timezone = new \DateTimeZone("Asia/Bangkok");
     

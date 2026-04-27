@@ -16,7 +16,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
             <div class="woocommerce-layout">
                 <div class="woocommerce-layout__header is-scrolled">
                     <div class="woocommerce-layout__header-wrapper">
-                        <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Transaction Process</h1>
+                        <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Transactions</h1>
                         <div style="padding-right: 40px">
                             <button onclick="kjRequestPickupSchedule()" class="button button-wp" type="button">
                                 <div style="display: flex">

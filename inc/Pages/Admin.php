@@ -31,8 +31,8 @@ class Admin extends BaseInit{
             $subPages = array_merge($subPages,[
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'KiriminAja Transaction Process',
-                    'menu_title'=>'Transaction Process',
+                    'page_title'=>'KiriminAja Transactions',
+                    'menu_title'=>'Transactions',
                     'capability'=>'manage_options',
                     'menu_slug'=>'kiriminaja-transaction-process',
                     'callback'=> function() use ($plugin_path){
@@ -41,8 +41,8 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'Shipment Process',
-                    'menu_title'=>'Shipment Process',
+                    'page_title'=>'Payments',
+                    'menu_title'=>'Payments',
                     'capability'=>'manage_options',
                     'menu_slug'=>'kiriminaja-request-pickup',
                     'callback'=> function() use ($plugin_path) {
@@ -82,13 +82,21 @@ class Admin extends BaseInit{
     function kiriof_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {
             global $submenu;
-            $transaction_count_new = kiriof_helper()->kjCountTransactionProcess();
-            if( (int) $transaction_count_new == 0) return;
-            
+            if ( empty( $submenu['kiriminaja-konfigurasi'] ) ) {
+                return;
+            }
+
+            $transaction_count_new = (int) kiriof_helper()->kjCountTransactionProcess();
+            $shipment_unpaid_count = (int) kiriof_helper()->kjCountShipmentUnpaid();
+
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
-                if ( 0 === strpos( $menu_item[0], 'Transaction Process' ) ) {
+                if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], 'Transactions' ) ) {
                     $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
-                    break;
+                    continue;
+                }
+                if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], 'Payments' ) ) {
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
+                    continue;
                 }
             }
         }
