@@ -87,7 +87,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             <td class="forminp forminp-text">
                 <select name="origin_sub_district_id" class="select-2">
                     <?php 
-                    if ( @$inputValueArr['origin_sub_district_id'] && @$inputValueArr['origin_sub_district_name']){
+                    if ( ! empty( $inputValueArr['origin_sub_district_id'] ) && ! empty( $inputValueArr['origin_sub_district_name'] ) ){
                         echo '<option selected value="'.esc_attr($inputValueArr['origin_sub_district_id']).'">'.esc_html($inputValueArr['origin_sub_district_name']).'</option>';
                     }
                     ?>
@@ -103,10 +103,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             <td class="forminp forminp-text">
                 <select name="origin_whitelist_expedition[]" style="width:50%;" class="select-2 origin_whitelist_expedition" multiple="multiple">
                     <?php 
-                    if ( @$inputValueArr['origin_whitelist_expedition_id'] && @$inputValueArr['origin_whitelist_expedition_name']){
-                        $kiriof_expedition_name = explode(',',@$inputValueArr['origin_whitelist_expedition_name'] );
+                    if ( ! empty( $inputValueArr['origin_whitelist_expedition_id'] ) && ! empty( $inputValueArr['origin_whitelist_expedition_name'] ) ){
+                        $kiriof_expedition_name = explode( ',', $inputValueArr['origin_whitelist_expedition_name'] );
                         foreach ( explode(',',$inputValueArr['origin_whitelist_expedition_id']) as $kiriof_key => $kiriof_row) {
-                            echo '<option selected value="'.esc_attr($kiriof_row).'">'.esc_html($kiriof_expedition_name[$kiriof_key]).'</option>';
+                            echo '<option selected value="'.esc_attr($kiriof_row).'">'.esc_html( $kiriof_expedition_name[$kiriof_key] ?? '' ).'</option>';
                         }
                     }
                     ?>

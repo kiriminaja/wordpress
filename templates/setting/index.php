@@ -41,14 +41,14 @@ class Kiriof_SettingIndex {
             ){
                 continue;
             }
-            if (!@$shippingRepo[$i]->value){
+            if ( empty( $shippingRepo[$i]->value ?? null ) ){
                 $isOriginShippingDataReady=false;
                 break;
             }
         }
     
         /** Return vars and view*/
-        if (@$approvedSetupKey->value){
+        if ( ! empty( $approvedSetupKey->value ?? null ) ){
             include 'setuped/index.php';
             return;
         }

@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 
                                 <!--Check jika sudah setting origin data-->
                                 <?php 
-                                if (@$isOriginShippingDataReady || kiriof_helper()->devForceTrue()){
+                                if ( ! empty( $isOriginShippingDataReady ) || kiriof_helper()->devForceTrue() ){
                                     echo '
                                     <div style="padding-left: 5px; background-color: #00a32a">
                                         <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
@@ -126,7 +126,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <nav style="margin-top: 1rem;margin-bottom: 1.5rem" class="nav-tab-wrapper woo-nav-tab-wrapper">
                                     <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo esc_html( kiriof_helper()->tlThis('Integration',$locale) ); ?></a>
                                     <?php
-                                    if (@$approvedSetupKey->value){
+                                    if ( ! empty( $approvedSetupKey->value ?? null ) ){
                                         echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.esc_html( kiriof_helper()->tlThis('Shipping',$locale) ).'</a>';
                                         echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.esc_html( kiriof_helper()->tlThis('Advanced',$locale) ).'</a>';
                                     }
