@@ -222,7 +222,12 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
             url: kiriofAjaxRoute(),
             data: {
                 action: "kiriof_disconnect_integration",  // the action to fire in the server
-                data: {},         // any JS object
+                data: {
+                    // Server validates this against KIRIOF_NONCE in
+                    // SettingController::disconnectIntegration(); without it
+                    // the request always fails with "Security check failed".
+                    nonce: "<?php echo esc_js( wp_create_nonce( KIRIOF_NONCE ) ); ?>"
+                },         // any JS object
             },
             complete: function (response) {
                 const resp = JSON.parse(response.responseText).data;
