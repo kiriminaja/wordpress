@@ -144,22 +144,55 @@ class CheckoutController
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-shipping-address.php');
     }
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
-        /** if kiriof_field value is not exist or null then prevent*/
-        $kiriof_expedition = WC()->session->get( 'kiriof_expedition' );
+        /** Resolve the order object: WC may pass null in some flows */
+        if ( ! $order instanceof \WC_Order ) {
+            $order = wc_get_order( $order_id );
+        }
+
+        /**
+         * Read checkout context from order meta first (set in afterCheckoutBeforeCreated),
+         * then fall back to WC()->session for backwards compatibility.
+         * WC()->session can be reset between create_order and checkout_order_processed,
+         * so meta is the reliable source.
+         */
+        $kiriof_expedition            = $order ? (string) $order->get_meta( '_kiriof_checkout_expedition', true ) : '';
+        $kiriof_destination_area      = $order ? (string) $order->get_meta( '_kiriof_checkout_destination_area', true ) : '';
+        $kiriof_destination_area_name = $order ? (string) $order->get_meta( '_kiriof_checkout_destination_area_name', true ) : '';
+        $kiriof_checkout_token        = $order ? (string) $order->get_meta( '_kiriof_checkout_token', true ) : '';
+        $payment_method               = $order ? (string) $order->get_meta( '_kiriof_checkout_payment_method', true ) : '';
+        $force_insurance              = $order ? $order->get_meta( '_kiriof_checkout_force_insurance', true ) : '';
+        $billing_insurance_meta       = $order ? $order->get_meta( '_kiriof_checkout_billing_insurance', true ) : '';
+
+        if ( '' === $kiriof_expedition ) {
+            $kiriof_expedition = (string) WC()->session->get( 'kiriof_expedition', '' );
+        }
+        if ( '' === $kiriof_destination_area ) {
+            $kiriof_destination_area = (string) WC()->session->get( 'kiriof_destination_area', '' );
+        }
+        if ( '' === $kiriof_destination_area_name ) {
+            $kiriof_destination_area_name = (string) WC()->session->get( 'kiriof_destination_area_name', '' );
+        }
+        if ( '' === $kiriof_checkout_token ) {
+            $kiriof_checkout_token = (string) WC()->session->get( 'kiriof_checkout_token', '' );
+        }
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'payment_method', '' );
+        }
+        if ( '' === $force_insurance ) {
+            $force_insurance = WC()->session->get( 'force_insurance', '' );
+        }
+
+        /** if kiriof_field value is not exist or null then prevent */
         if ( empty( $kiriof_expedition ) ) {
             return;
         }
-        /** Get data from session*/
-        $kiriof_destination_area            = WC()->session->get( 'kiriof_destination_area', '' );
-        $kiriof_destination_area_name       = WC()->session->get( 'kiriof_destination_area_name', '' );
-        $kiriof_checkout_token              = WC()->session->get( 'kiriof_checkout_token', '' );
-        $payment_method                 = WC()->session->get( 'payment_method', '' );
-        $force_insurance                = WC()->session->get( 'force_insurance', '' );
-        
-        if( $force_insurance == 1 ){
+
+        if ( (int) $force_insurance === 1 ) {
             $insurance = 1;
-        }else{
-            $insurance = WC()->session->get( 'billing_insurance', '' );
+        } else {
+            $insurance = '' !== (string) $billing_insurance_meta
+                ? $billing_insurance_meta
+                : WC()->session->get( 'billing_insurance', '' );
         }
         // Clear stored values from WooCommerce session
         WC()->session->set( 'kiriof_destination_area', null );
@@ -184,6 +217,18 @@ class CheckoutController
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
         } catch (\Throwable $th){
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$th->getMessage()]);   
+        }
+
+        /** Clean up transient checkout meta now that the transaction row has been processed. */
+        if ( $order instanceof \WC_Order ) {
+            $order->delete_meta_data( '_kiriof_checkout_destination_area' );
+            $order->delete_meta_data( '_kiriof_checkout_destination_area_name' );
+            $order->delete_meta_data( '_kiriof_checkout_expedition' );
+            $order->delete_meta_data( '_kiriof_checkout_token' );
+            $order->delete_meta_data( '_kiriof_checkout_billing_insurance' );
+            $order->delete_meta_data( '_kiriof_checkout_payment_method' );
+            $order->delete_meta_data( '_kiriof_checkout_force_insurance' );
+            $order->save();
         }
     }
     
@@ -213,15 +258,31 @@ class CheckoutController
             }
             /** Store custom field value in WooCommerce session (not PHP session) */
             $kiriof_filter_methods = substr( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ) ), 11 ); // remove kiriminaja_
-            
+            $kiriof_checkout_token_post = isset( $_POST['kiriof_checkout_token'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_checkout_token'] ) ) : '';
+            $kiriof_payment_method_post = isset( $_POST['payment_method'] ) ? sanitize_text_field( wp_unslash( $_POST['payment_method'] ) ) : '';
+            $kiriof_force_insurance_post = isset( $_POST['kiriof_force_insurance'] ) ? intval( $_POST['kiriof_force_insurance'] ) : 0;
+            $kiriof_billing_insurance_post = ! empty( $insurance_post ) ? 1 : 0;
+
             // Use WooCommerce session instead of PHP session
             WC()->session->set( 'kiriof_destination_area', $destination_area );
             WC()->session->set( 'kiriof_destination_area_name', $destinasi_name );
             WC()->session->set( 'kiriof_expedition', $kiriof_filter_methods );
-            WC()->session->set( 'kiriof_checkout_token', isset( $_POST['kiriof_checkout_token'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_checkout_token'] ) ) : '' );
-            WC()->session->set( 'billing_insurance', isset( $insurance_post ) ? 1 : 0 );
-            WC()->session->set( 'payment_method', isset( $_POST['payment_method'] ) ? sanitize_text_field( wp_unslash( $_POST['payment_method'] ) ) : '' );
-            WC()->session->set( 'force_insurance', isset( $_POST['kiriof_force_insurance'] ) ? intval( $_POST['kiriof_force_insurance'] ) : 0 );
+            WC()->session->set( 'kiriof_checkout_token', $kiriof_checkout_token_post );
+            WC()->session->set( 'billing_insurance', $kiriof_billing_insurance_post );
+            WC()->session->set( 'payment_method', $kiriof_payment_method_post );
+            WC()->session->set( 'force_insurance', $kiriof_force_insurance_post );
+
+            /**
+             * Persist on the order itself so afterCheckoutAfterCreated() can read these
+             * even if WC()->session is reset between hooks during checkout completion.
+             */
+            $order->update_meta_data( '_kiriof_checkout_destination_area', $destination_area );
+            $order->update_meta_data( '_kiriof_checkout_destination_area_name', $destinasi_name );
+            $order->update_meta_data( '_kiriof_checkout_expedition', $kiriof_filter_methods );
+            $order->update_meta_data( '_kiriof_checkout_token', $kiriof_checkout_token_post );
+            $order->update_meta_data( '_kiriof_checkout_billing_insurance', $kiriof_billing_insurance_post );
+            $order->update_meta_data( '_kiriof_checkout_payment_method', $kiriof_payment_method_post );
+            $order->update_meta_data( '_kiriof_checkout_force_insurance', $kiriof_force_insurance_post );
             /** 
              * save to custom order metadata 
              * field kelurahan 
