@@ -308,7 +308,17 @@ if ( ! defined( 'ABSPATH' ) ) {
             jQuery(`#table-form [name="${key}"]`).val(value)
             jQuery(`#table-form`).trigger('submit')
         }
-    }    
+    }
+
+    // Heartbeat nonce auto-refresh (mirrors setuped/index.php)
+    jQuery(document).on('heartbeat-send', function(e, data){
+        data.kiriof_nonce_check = true;
+    });
+    jQuery(document).on('heartbeat-tick', function(e, data){
+        if (data.kiriof_new_nonce){
+            kiriofAjax.nonce = data.kiriof_new_nonce;
+        }
+    });    
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
@@ -345,7 +355,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 data: {
                     schedule : jQuery('[name="schedule-opt"]:checked').val(),
                     order_ids : orderIds,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
+                    nonce : kiriofAjax.nonce
                 },         // any JS object
             },
             complete: function (response) {
@@ -394,7 +404,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 action: "kiriof_get_shipping_process_detail",  // the action to fire in the server
                 data: {
                     payment_id:paymentId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
+                    nonce : kiriofAjax.nonce
                 },         // any JS object
             },
             complete: function (response) {
@@ -563,7 +573,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 action: "kiriof_get_payment_form",  // the action to fire in the server
                 data: {
                     payment_id:paymentId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
+                    nonce : kiriofAjax.nonce
                 },         // any JS object
             },
             complete: function (response) {
@@ -656,7 +666,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 action: "kiriof_get_shipping_reschedule_pickup",  // the action to fire in the server
                 data: {
                     payment_id:paymentId,
-                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
+                    nonce : kiriofAjax.nonce
                 },         // any JS object
             },
             complete: function (response) {

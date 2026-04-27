@@ -8,7 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 $kiriof_helper = kiriof_helper();
 $kiriof_homeUrl = home_url();
 $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
-$kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 ?>
 <div class="kj-wrapper kj-wrap">
     <div class="wrap ">
@@ -328,6 +327,16 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
     (function($) {
         'use strict';
         
+        // Heartbeat nonce auto-refresh
+        $(document).on('heartbeat-send', function(e, data){
+            data.kiriof_nonce_check = true;
+        });
+        $(document).on('heartbeat-tick', function(e, data){
+            if (data.kiriof_new_nonce){
+                kiriofAjax.nonce = data.kiriof_new_nonce;
+            }
+        });
+
         // Cache jQuery selectors
         let orderIds = [];
         let lastwcOrderIdForshowTransactionSummaryModal = 0;
@@ -387,7 +396,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                 action: "kiriof_request_pickup_schedule",
                 data: {
                     order_ids: orderIds,
-                    nonce: "<?php echo esc_js($kiriof_nonce); ?>"
+                    nonce: kiriofAjax.nonce
                 }
             },
             complete: function(response) {
@@ -470,7 +479,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                 data: {
                     schedule: $('[name="schedule-opt"]:checked').val(),
                     order_ids: orderIds,
-                    nonce: "<?php echo esc_js($kiriof_nonce); ?>"
+                    nonce: kiriofAjax.nonce
                 }
             },
             complete: function(response) {
@@ -519,7 +528,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                 action: "kiriof_transaction-detail-summary",
                 data: {
                     wc_order_id: wcOrderId,
-                    nonce: "<?php echo esc_js($kiriof_nonce); ?>"
+                    nonce: kiriofAjax.nonce
                 }
             },
             complete: function(response) {

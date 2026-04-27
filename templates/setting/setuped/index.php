@@ -170,6 +170,22 @@ if ( ! defined( 'ABSPATH' ) ) {
     function toggleThis(elem,menu){
         window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+menu
     }
+
+    /**
+     * Heartbeat nonce auto-refresh.
+     * On every heartbeat tick we ask the server for a fresh KIRIOF_NONCE
+     * and write it back into kiriofAjax.nonce so every subsequent AJAX call
+     * uses the up-to-date value. This keeps the page functional even when
+     * left open longer than the default 24-hour nonce TTL.
+     */
+    jQuery(document).on('heartbeat-send', function(e, data){
+        data.kiriof_nonce_check = true;
+    });
+    jQuery(document).on('heartbeat-tick', function(e, data){
+        if (data.kiriof_new_nonce){
+            kiriofAjax.nonce = data.kiriof_new_nonce;
+        }
+    });
     
     function getTabData(){
         var menu = '<?php echo esc_js($activeTab);?>'
@@ -238,7 +254,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             url: kiriofAjaxRoute(),
             data: {
                 action: 'kiriof_get_call_back_data',
-                data: { nonce: "<?php echo esc_js( wp_create_nonce( KIRIOF_NONCE ) ); ?>" }
+                data: { nonce: kiriofAjax.nonce }
             },
             complete: function(response){
                 const resp = kiriofParseAjaxResponse(response);
@@ -274,10 +290,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
             data: {
                 action: "kiriof_disconnect_integration",  // the action to fire in the server
                 data: {
-                    // Server validates this against KIRIOF_NONCE in
-                    // SettingController::disconnectIntegration(); without it
-                    // the request always fails with "Security check failed".
-                    nonce: "<?php echo esc_js( wp_create_nonce( KIRIOF_NONCE ) ); ?>"
+                    nonce: kiriofAjax.nonce
                 },         // any JS object
             },
             error: function(){
@@ -335,7 +348,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     data: function (search) {
                         return {
                             data:search,
-                            nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>",
+                            nonce : kiriofAjax.nonce,
                             action: 'kiriminaja_subdistrict_search'
                         };
                     },
@@ -368,7 +381,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                    return {
                        data:search,
                        action: 'kiriminaja_search_expedition',
-                       nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"
+                       nonce : kiriofAjax.nonce
                    };
                },
                processResults: function (response) {
@@ -396,7 +409,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
             data: {
                 action: "kiriof_store_origin_data",  // the action to fire in the server
                 data: {
-                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>",      
+                    nonce : kiriofAjax.nonce,      
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
                     origin_phone:jQuery('.tab-shipping [name="origin_phone"]').val(),
                     origin_address:jQuery('.tab-shipping [name="origin_address"]').val(),
@@ -445,7 +458,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 action: "kiriof_store_call_back_data",  // the action to fire in the server
                 data: {
                     callback_url:jQuery('.tab-advanced [name="callback_url"]').val(),
-                    nonce : "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>"      
+                    nonce : kiriofAjax.nonce      
                 },         // any JS object
             },
             error: function(){

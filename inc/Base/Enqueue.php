@@ -127,6 +127,13 @@ class Enqueue extends BaseInit{
         ), true ) ) {
             return;
         }
+
+        // Heartbeat is already loaded by WP admin. We hook into it to push
+        // a fresh nonce back to the client so long-idle pages don't 403.
+        add_filter( 'heartbeat_received', array( $this, 'kiriof_heartbeat_nonce_refresh' ), 10, 2 );
+        // Ensure the heartbeat script is present (it usually is in admin,
+        // but an explicit enqueue is harmless and guarantees availability).
+        wp_enqueue_script( 'heartbeat' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
         wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery' ), KIRIOF_VERSION, true );
@@ -174,5 +181,24 @@ class Enqueue extends BaseInit{
             );
         }
    
-    }   
+    }
+
+    /**
+     * Heartbeat API callback: returns a fresh nonce so long-idle admin pages
+     * can keep making valid AJAX requests without a full page reload.
+     *
+     * The client-side listener (in the first inline script block of each
+     * admin template) writes the returned value back into kiriofAjax.nonce,
+     * which every AJAX call already references.
+     *
+     * @param array $response Heartbeat response data.
+     * @param array $data     Heartbeat request data.
+     * @return array
+     */
+    public function kiriof_heartbeat_nonce_refresh( $response, $data ) {
+        if ( ! empty( $data['kiriof_nonce_check'] ) ) {
+            $response['kiriof_new_nonce'] = wp_create_nonce( KIRIOF_NONCE );
+        }
+        return $response;
+    }
 }
