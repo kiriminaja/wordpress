@@ -92,8 +92,8 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                         ?>
                                                         <option selected="selected" value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
                                                         <?php
-                                                        if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
-                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value) {
+                                                        if ( ! empty( $kiriof_monthOptions ) && count($kiriof_monthOptions) > 0 ) {
+                                                            foreach ($kiriof_monthOptions as $kiriof_key => $kiriof_value) {
                                                                 echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
                                                             }
                                                         }
@@ -146,8 +146,8 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
 
 
                                             <?php
-                                            if (!empty($results)) {
-                                                foreach ($results as $id => $kiriof_row) {
+                                            if (!empty($kiriof_results)) {
+                                                foreach ($kiriof_results as $id => $kiriof_row) {
                                                     $kiriof_shippingData = json_decode($kiriof_row->shipping_info ?? '{}');
                                                     
                                                     // Calculate shipping fee
@@ -252,8 +252,8 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                                     <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
                                                         <option selected="selected" value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
                                                         <?php
-                                                        if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
-                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value) {
+                                                        if ( ! empty( $kiriof_monthOptions ) && count($kiriof_monthOptions) > 0 ) {
+                                                            foreach ($kiriof_monthOptions as $kiriof_key => $kiriof_value) {
                                                                 echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
                                                             }
                                                         }
