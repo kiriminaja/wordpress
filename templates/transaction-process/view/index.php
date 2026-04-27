@@ -305,7 +305,7 @@ $kiriof_nonce = wp_create_nonce(KIRIOF_NONCE);
                                         </div>
                                     </div>
                                     <div class="row-divider"></div>
-                                    <p style="font-weight: 500">KiriminAja Plugin v.<?php echo esc_html(KIRIOF_VERSION); ?></p>
+                                    <?php include __DIR__ . '/../../partials/footer.php'; ?>
                                 </div>
                             </div>
                         </div>

@@ -148,7 +148,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     </div>
                                 </div>
                                 <div class="row-divider"></div>
-                                <p style="font-weight: 500">KiriminAja Plugin v.<?php echo wp_kses_post( KIRIOF_VERSION ); ?></p>
+                                <?php include __DIR__ . '/../../partials/footer.php'; ?>
                             </div>
                         </div>
                     </div>
