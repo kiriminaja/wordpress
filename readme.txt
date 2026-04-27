@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.9
+Stable tag: 2.1.10
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,17 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.10 =
+* Feat(make): update makefile to handle composer lock
+* Add default pickup action assigned inc/Repositories/KiriminajaApiRepository.php
+* Feat(make): update scripts/github-release.php
+* Update dimension unit templates/product/general-wc-tab-setting.php
+* Handler on kiriofAjax assets/wp/js/kj-wp-script.js
+* Enhance release workflow to include official and legacy ZIP builds; update changelog with asset details
+* Fix(prefix): correct variable name for admin URL and billing/shipping address consistency
+* Update variable names for month options consistency
+* Inc/Base/BaseInit.php
+
 = 2.1.9 =
 * Enhance asset loading by conditionally enqueuing scripts/styles for WooCommerce pages; improve option retrieval for shipping settings
 * Update release workflow to resolve version from tag and create GitHub release; add WooCommerce requirement to plugin metadata
