@@ -102,7 +102,7 @@ class GeneralAjaxController
             $insurance = empty($insurance_input) ? 0 : 1;
             $payload = [
                 'destination_area_id'   => $destination_id,
-                'expedition'            => substr($shipping_metode_id, 11),
+                'expedition'            => substr($shipping_metode_id, strlen('kiriminaja-official_')),
                 'is_insurance'          => $insurance,
                 'is_cod'                => $payment_method === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
