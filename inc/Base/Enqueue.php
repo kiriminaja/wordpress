@@ -34,6 +34,21 @@ class Enqueue extends BaseInit{
         wp_enqueue_style( 'kiriof-select2-style', $this->plugin_url . 'assets/lib/select2/select2.min.css', array(), '4.1.0-rc.0' );
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/wp/css/kj-wp-style.css', array(), KIRIOF_VERSION, 'all' );
 
+        // Tracking shortcode-specific styles. Loaded as a real stylesheet so the
+        // rules are present in <head> by the time [kiriminaja-tracking-front-page]
+        // renders inside the_content (wp_add_inline_style from the shortcode
+        // handler runs after wp_head and is silently dropped).
+        global $post;
+        if ( $post instanceof \WP_Post && has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' ) ) {
+            wp_enqueue_style(
+                'kiriof-tracking-style',
+                $this->plugin_url . 'assets/wp/css/kj-tracking.css',
+                array( 'kiriof-style' ),
+                KIRIOF_VERSION,
+                'all'
+            );
+        }
+
         // Option 1: Manually enqueue the wp-util library.
         wp_enqueue_script( 'wp-util' );
         // Option 2: Make wp-util a dependency of your script (usually better).
