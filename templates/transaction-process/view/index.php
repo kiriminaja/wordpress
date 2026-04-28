@@ -211,7 +211,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         $kiriof_statusLabel = ucwords( str_replace( '-', ' ', preg_replace( '/^wc-/', '', $kiriof_postStatus ) ) );
                                                         $kiriof_statusBadgeClass = 'kj-badge warning';
                                                     }
-                                                    $kiriof_serviceName = strtoupper($kiriof_row->service);
+                                                    $kiriof_serviceName = strtoupper(trim($kiriof_row->service . ' ' . ($kiriof_row->service_name ?? '')));
                                                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
 
                                                     $kiriof_checkboxAttrs = $kiriof_isProcessable
