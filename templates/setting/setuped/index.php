@@ -272,91 +272,111 @@ if ( ! defined( 'ABSPATH' ) ) {
      * pans/zooms the map and the hidden lat/long inputs update
      * automatically to the map's centre position.
      */
+    /**
+     * Leaflet map picker — lazy-initialised.
+     * The map lives inside the Shipping tab which starts hidden (kj-hidden).
+     * If we call L.map() while the container has zero dimensions, tiles
+     * render as grey. We therefore wait until the container is actually
+     * visible before initialising.
+     */
     jQuery(function($){
         if (typeof L === 'undefined' || !document.getElementById('kiriof-origin-map')) return;
 
-        var $lat = $('[name="origin_latitude"]');
-        var $lng = $('[name="origin_longitude"]');
-        var $coords = $('#kiriof-map-coords');
-        var $error = $('#kiriof-map-error');
-        var defaultLat = parseFloat($lat.val()) || -6.2088;
-        var defaultLng = parseFloat($lng.val()) || 106.8456;
+        var mapInitialised = false;
 
-        var map = L.map('kiriof-origin-map').setView([defaultLat, defaultLng], 15);
+        function initMap() {
+            if (mapInitialised) return;
+            var $container = $('#kiriof-origin-map');
+            // Container must be visible and have dimensions
+            if (!$container.is(':visible') || $container.width() === 0) return;
+            mapInitialised = true;
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+            var $lat = $('[name="origin_latitude"]');
+            var $lng = $('[name="origin_longitude"]');
+            var $coords = $('#kiriof-map-coords');
+            var $error = $('#kiriof-map-error');
+            var defaultLat = parseFloat($lat.val()) || -6.2088;
+            var defaultLng = parseFloat($lng.val()) || 106.8456;
 
-        function showError(msg) {
-            $error.text(msg).show();
-            setTimeout(function(){ $error.fadeOut(); }, 5000);
-        }
+            var map = L.map('kiriof-origin-map').setView([defaultLat, defaultLng], 15);
 
-        function updateInputs(lat, lng) {
-            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                showError('Invalid coordinates. Please reposition the map.');
-                return;
-            }
-            $lat.val(lat.toFixed(7));
-            $lng.val(lng.toFixed(7));
-            $coords.text(lat.toFixed(7) + ', ' + lng.toFixed(7));
-            $error.hide();
-        }
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
 
-        // Update coordinates whenever the map stops moving
-        map.on('moveend', function() {
-            var center = map.getCenter();
-            updateInputs(center.lat, center.lng);
-        });
+            // Force a re-measure after first paint to clear any residual grey
+            setTimeout(function(){ map.invalidateSize(); }, 200);
 
-        // Show initial coordinates
-        updateInputs(defaultLat, defaultLng);
-
-        // "My Location" button — request browser geolocation
-        $('#kiriof-use-my-location').on('click', function() {
-            var $btn = $(this);
-            $error.hide();
-
-            if (!navigator.geolocation) {
-                showError('Geolocation is not supported by your browser.');
-                return;
+            function showError(msg) {
+                $error.text(msg).show();
+                setTimeout(function(){ $error.fadeOut(); }, 5000);
             }
 
-            $btn.prop('disabled', true).css('opacity', '0.6');
+            function updateInputs(lat, lng) {
+                if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    showError('Invalid coordinates. Please reposition the map.');
+                    return;
+                }
+                $lat.val(lat.toFixed(7));
+                $lng.val(lng.toFixed(7));
+                $coords.text(lat.toFixed(7) + ', ' + lng.toFixed(7));
+                $error.hide();
+            }
 
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    var lat = position.coords.latitude;
-                    var lng = position.coords.longitude;
-                    map.setView([lat, lng], 17);
-                    $btn.prop('disabled', false).css('opacity', '1');
-                },
-                function(err) {
-                    $btn.prop('disabled', false).css('opacity', '1');
-                    switch (err.code) {
-                        case err.PERMISSION_DENIED:
-                            showError('Location permission denied. Please allow location access in your browser settings.');
-                            break;
-                        case err.POSITION_UNAVAILABLE:
-                            showError('Location information is unavailable.');
-                            break;
-                        case err.TIMEOUT:
-                            showError('Location request timed out. Please try again.');
-                            break;
-                        default:
-                            showError('Unable to retrieve your location.');
-                    }
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        });
+            map.on('moveend', function() {
+                var center = map.getCenter();
+                updateInputs(center.lat, center.lng);
+            });
 
-        // Fix map rendering when the tab becomes visible
-        // (Leaflet needs a resize when its container was hidden)
+            updateInputs(defaultLat, defaultLng);
+
+            $('#kiriof-use-my-location').on('click', function() {
+                var $btn = $(this);
+                $error.hide();
+
+                if (!navigator.geolocation) {
+                    showError('Geolocation is not supported by your browser.');
+                    return;
+                }
+
+                $btn.prop('disabled', true).css('opacity', '0.6');
+
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        map.setView([lat, lng], 17);
+                        $btn.prop('disabled', false).css('opacity', '1');
+                    },
+                    function(err) {
+                        $btn.prop('disabled', false).css('opacity', '1');
+                        switch (err.code) {
+                            case err.PERMISSION_DENIED:
+                                showError('Location permission denied. Please allow location access in your browser settings.');
+                                break;
+                            case err.POSITION_UNAVAILABLE:
+                                showError('Location information is unavailable.');
+                                break;
+                            case err.TIMEOUT:
+                                showError('Location request timed out. Please try again.');
+                                break;
+                            default:
+                                showError('Unable to retrieve your location.');
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        // Try immediately (works when Shipping tab is the active tab on page load)
+        initMap();
+
+        // Also try whenever a tab is clicked (page reloads, but this covers
+        // any future switch to client-side tab toggling)
         $(document).on('click', '.nav-tab', function(){
-            setTimeout(function(){ map.invalidateSize(); }, 100);
+            setTimeout(initMap, 150);
         });
     });
 
