@@ -388,7 +388,7 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html(kiriof_helper()->tlThis('Date',$locale)).'</th>
-                            <th class="" style="text-align: right">'.esc_html( gmdate('d F Y H:i',strtotime( $transaction->created_at ) ) ).'</th>
+                            <th class="" style="text-align: right">'.esc_html( wp_date('d F Y H:i',strtotime( $transaction->created_at ) ) ).'</th>
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( kiriof_helper()->tlThis('Payment Method',$locale) ).'</th>

@@ -60,7 +60,7 @@ class KiriminAjaTrackingService extends BaseService{
     
     public function filteringHistories($histories){
         return array_map(function ($obj){
-            $obj->created_at = gmdate('d F Y H:i',strtotime($obj->created_at));
+            $obj->created_at = wp_date('d F Y H:i',strtotime($obj->created_at));
             return $obj;
         },$histories);
     }
