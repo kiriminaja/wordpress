@@ -190,7 +190,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <div style="font-weight: 700">'.esc_html($kiriof_row->pickup_number).'</div>
                                                         <div style="font-size: 12px;">Requested: '.esc_html(wp_date('Y/m/d H:i',strtotime($kiriof_row->created_at))).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html(wp_date('Y/m/d H:i',strtotime($kiriof_row->pickup_schedule))).'</td>
+                                                    <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($kiriof_row->pickup_schedule)) . ' WIB').'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">Rp. '.esc_html(kiriof_money_format($kiriof_row->cost ?? 0)).'</div>
                                                     </td>

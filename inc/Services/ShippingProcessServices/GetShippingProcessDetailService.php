@@ -50,7 +50,7 @@ class GetShippingProcessDetailService extends BaseService{
                 'non_cod_count'   =>  $this->paymentCalcData['non_cod_count'],
                 'non_cod_sum'   =>  $this->paymentCalcData['non_cod_sum'],
                 'payment_amount'   =>  $this->paymentCalcData['payment_amount'],
-                'schedule'      =>  wp_date('Y/m/d H:i', strtotime($this->paymentRepo->pickup_schedule)),
+                'schedule'      =>  gmdate('Y/m/d H:i', strtotime($this->paymentRepo->pickup_schedule)) . ' WIB',
             ],
             'transactions_data'=>self::transactionsMapping($this->transactionRepo),
         ],'');
