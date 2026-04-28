@@ -189,7 +189,9 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     
                                                     // Build URLs
                                                     $kiriof_orderEditUrl = $kiriof_adminUrl . '/post.php?post=' . esc_attr($kiriof_row->wc_order_id) . '&action=edit';
-                                                    $kiriof_orderDate = wp_date('M d, Y H:i', strtotime($kiriof_row->wc_date_created));
+                                                    // post_date is already stored in the site's local timezone,
+                                                    // so pass a UTC DateTimeZone to avoid a double conversion.
+                                                    $kiriof_orderDate = wp_date('M d, Y H:i', strtotime($kiriof_row->wc_date_created), new DateTimeZone('UTC'));
 
                                                     /**
                                                      * Status column should reflect what the merchant actually
