@@ -66,6 +66,16 @@ if ( ! defined( 'ABSPATH' ) ) {
             </td>
         </tr>
 
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label><?php echo esc_html(kiriof_helper()->tlThis('Pin Location',$locale)); ?></label>
+            </th>
+            <td class="forminp forminp-text">
+                <div id="kiriof-origin-map" style="width: 100%; max-width: 25rem; height: 300px; border: 1px solid #ddd; border-radius: 4px; z-index: 0;"></div>
+                <p class="description" style="margin-top: 4px;"><?php echo esc_html(kiriof_helper()->tlThis('Click on the map or drag the marker to set coordinates',$locale)); ?></p>
+            </td>
+        </tr>
+
         <!-- end lat long -->
 
         <tr valign="top">

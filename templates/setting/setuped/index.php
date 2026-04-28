@@ -266,6 +266,63 @@ if ( ! defined( 'ABSPATH' ) ) {
         });
     };
 
+    /**
+     * Leaflet map picker for store origin coordinates.
+     * Syncs the marker position with the lat/long input fields.
+     */
+    jQuery(function($){
+        if (typeof L === 'undefined' || !document.getElementById('kiriof-origin-map')) return;
+
+        var $lat = $('[name="origin_latitude"]');
+        var $lng = $('[name="origin_longitude"]');
+        var defaultLat = parseFloat($lat.val()) || -6.2088;
+        var defaultLng = parseFloat($lng.val()) || 106.8456;
+
+        // Fix Leaflet's default marker icon path for bundled assets
+        L.Icon.Default.prototype.options.imagePath = '<?php echo esc_js( plugin_dir_url( dirname( __DIR__, 2 ) ) . 'assets/lib/leaflet/images/' ); ?>';
+
+        var map = L.map('kiriof-origin-map').setView([defaultLat, defaultLng], 15);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+        function updateInputs(lat, lng) {
+            $lat.val(lat.toFixed(7));
+            $lng.val(lng.toFixed(7));
+        }
+
+        marker.on('dragend', function(e) {
+            var pos = e.target.getLatLng();
+            updateInputs(pos.lat, pos.lng);
+        });
+
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            updateInputs(e.latlng.lat, e.latlng.lng);
+        });
+
+        // When the user manually types a lat/long, move the marker
+        $lat.add($lng).on('change', function() {
+            var lat = parseFloat($lat.val());
+            var lng = parseFloat($lng.val());
+            if (!isNaN(lat) && !isNaN(lng)) {
+                var latlng = L.latLng(lat, lng);
+                marker.setLatLng(latlng);
+                map.setView(latlng);
+            }
+        });
+
+        // Fix map rendering when the tab becomes visible
+        // (Leaflet needs a resize when its container was hidden)
+        $(document).on('click', '.nav-tab', function(){
+            setTimeout(function(){ map.invalidateSize(); }, 100);
+        });
+    });
+
 
 <?php
 $kiriof_inline_script = ob_get_clean();

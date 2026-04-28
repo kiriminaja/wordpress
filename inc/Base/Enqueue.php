@@ -166,6 +166,15 @@ class Enqueue extends BaseInit{
         wp_enqueue_script( 'kiriof-select2-script', $this->plugin_url . 'assets/lib/select2/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
 
         /**
+         * Leaflet - bundled locally for the store-address map picker on
+         * the Settings page. Only loaded on kiriminaja-konfigurasi.
+         */
+        if ( 'kiriminaja-konfigurasi' === $page ) {
+            wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+            wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+        }
+
+        /**
          * QR Code Styling - bundled locally to comply with WordPress.org
          * "no remote assets" rule. Required by the "Scan to Pay" modal on
          * the Request Pickup page (templates/request-pickup/view/index.php)
