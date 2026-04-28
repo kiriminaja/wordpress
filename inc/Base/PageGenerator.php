@@ -33,5 +33,9 @@ class PageGenerator{
         foreach ($this->admin_subpages as $page){
             add_submenu_page($page['parent_slug'],$page['page_title'],$page['menu_title'],$page['capability'],$page['menu_slug'],$page['callback']);
         }
+        // Remove the auto-generated first submenu that duplicates the parent.
+        foreach ($this->admin_pages as $page){
+            remove_submenu_page($page['menu_slug'], $page['menu_slug']);
+        }
     }
 }
