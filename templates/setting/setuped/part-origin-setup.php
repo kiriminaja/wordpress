@@ -43,36 +43,36 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo esc_html(kiriof_helper()->tlThis('Address',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_address'] ?? '');?>" >
             </td>
         </tr>
-        <!-- Lat Long -->
-        <tr valign="top">
-            <th scope="row" class="titledesc">
-                <label>
-                    <?php echo esc_html(kiriof_helper()->tlThis('Latitude',$locale)); ?>
-                </label>
-            </th>
-            <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_latitude" placeholder="<?php echo esc_attr(kiriof_helper()->tlThis('Latitude',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_latitude'] ?? '');?>" >
-            </td>
-        </tr>
-
-        <tr valign="top">
-            <th scope="row" class="titledesc">
-                <label>
-                    <?php echo esc_html(kiriof_helper()->tlThis('Longitude',$locale)); ?>
-                </label>
-            </th>
-            <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_longitude" placeholder="<?php echo esc_html(kiriof_helper()->tlThis('Longitude',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_longitude'] ?? '');?>" >
-            </td>
-        </tr>
+        <!-- Lat Long (hidden inputs — populated by the map picker) -->
+        <input type="hidden" name="origin_latitude" value="<?php echo esc_attr($inputValueArr['origin_latitude'] ?? '');?>" >
+        <input type="hidden" name="origin_longitude" value="<?php echo esc_attr($inputValueArr['origin_longitude'] ?? '');?>" >
 
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label><?php echo esc_html(kiriof_helper()->tlThis('Pin Location',$locale)); ?></label>
             </th>
             <td class="forminp forminp-text">
-                <div id="kiriof-origin-map" style="width: 100%; max-width: 25rem; height: 300px; border: 1px solid #ddd; border-radius: 4px; z-index: 0;"></div>
-                <p class="description" style="margin-top: 4px;"><?php echo esc_html(kiriof_helper()->tlThis('Click on the map or drag the marker to set coordinates',$locale)); ?></p>
+                <div style="position: relative; width: 100%; max-width: 25rem;">
+                    <div id="kiriof-origin-map" style="width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 4px; z-index: 0;"></div>
+                    <!-- Fixed centre pin -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 401; pointer-events: none;">
+                        <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.138 14.094 24.72a1.25 1.25 0 0 0 1.812 0C16.5 39.138 30 25.969 30 15 30 6.716 23.284 0 15 0zm0 22.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" fill="#E74C3C"/>
+                            <circle cx="15" cy="15" r="4" fill="white"/>
+                        </svg>
+                    </div>
+                    <!-- Use current location button -->
+                    <button type="button" id="kiriof-use-my-location" style="position: absolute; bottom: 10px; right: 10px; z-index: 401; background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.15);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" fill="#333"/>
+                        </svg>
+                        <?php echo esc_html(kiriof_helper()->tlThis('My Location',$locale)); ?>
+                    </button>
+                </div>
+                <p class="description" style="margin-top: 4px;">
+                    <span id="kiriof-map-coords" style="font-family: monospace;"></span>
+                </p>
+                <p class="description" id="kiriof-map-error" style="margin-top: 4px; color: #d63638; display: none;"></p>
             </td>
         </tr>
 

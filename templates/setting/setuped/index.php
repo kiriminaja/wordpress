@@ -268,18 +268,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     /**
      * Leaflet map picker for store origin coordinates.
-     * Syncs the marker position with the lat/long input fields.
+     * A fixed crosshair pin stays at the centre of the map; the user
+     * pans/zooms the map and the hidden lat/long inputs update
+     * automatically to the map's centre position.
      */
     jQuery(function($){
         if (typeof L === 'undefined' || !document.getElementById('kiriof-origin-map')) return;
 
         var $lat = $('[name="origin_latitude"]');
         var $lng = $('[name="origin_longitude"]');
+        var $coords = $('#kiriof-map-coords');
+        var $error = $('#kiriof-map-error');
         var defaultLat = parseFloat($lat.val()) || -6.2088;
         var defaultLng = parseFloat($lng.val()) || 106.8456;
-
-        // Fix Leaflet's default marker icon path for bundled assets
-        L.Icon.Default.prototype.options.imagePath = '<?php echo esc_js( plugin_dir_url( dirname( __DIR__, 2 ) ) . 'assets/lib/leaflet/images/' ); ?>';
 
         var map = L.map('kiriof-origin-map').setView([defaultLat, defaultLng], 15);
 
@@ -288,32 +289,68 @@ if ( ! defined( 'ABSPATH' ) ) {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
-        var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
-
-        function updateInputs(lat, lng) {
-            $lat.val(lat.toFixed(7));
-            $lng.val(lng.toFixed(7));
+        function showError(msg) {
+            $error.text(msg).show();
+            setTimeout(function(){ $error.fadeOut(); }, 5000);
         }
 
-        marker.on('dragend', function(e) {
-            var pos = e.target.getLatLng();
-            updateInputs(pos.lat, pos.lng);
-        });
-
-        map.on('click', function(e) {
-            marker.setLatLng(e.latlng);
-            updateInputs(e.latlng.lat, e.latlng.lng);
-        });
-
-        // When the user manually types a lat/long, move the marker
-        $lat.add($lng).on('change', function() {
-            var lat = parseFloat($lat.val());
-            var lng = parseFloat($lng.val());
-            if (!isNaN(lat) && !isNaN(lng)) {
-                var latlng = L.latLng(lat, lng);
-                marker.setLatLng(latlng);
-                map.setView(latlng);
+        function updateInputs(lat, lng) {
+            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                showError('Invalid coordinates. Please reposition the map.');
+                return;
             }
+            $lat.val(lat.toFixed(7));
+            $lng.val(lng.toFixed(7));
+            $coords.text(lat.toFixed(7) + ', ' + lng.toFixed(7));
+            $error.hide();
+        }
+
+        // Update coordinates whenever the map stops moving
+        map.on('moveend', function() {
+            var center = map.getCenter();
+            updateInputs(center.lat, center.lng);
+        });
+
+        // Show initial coordinates
+        updateInputs(defaultLat, defaultLng);
+
+        // "My Location" button — request browser geolocation
+        $('#kiriof-use-my-location').on('click', function() {
+            var $btn = $(this);
+            $error.hide();
+
+            if (!navigator.geolocation) {
+                showError('Geolocation is not supported by your browser.');
+                return;
+            }
+
+            $btn.prop('disabled', true).css('opacity', '0.6');
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    map.setView([lat, lng], 17);
+                    $btn.prop('disabled', false).css('opacity', '1');
+                },
+                function(err) {
+                    $btn.prop('disabled', false).css('opacity', '1');
+                    switch (err.code) {
+                        case err.PERMISSION_DENIED:
+                            showError('Location permission denied. Please allow location access in your browser settings.');
+                            break;
+                        case err.POSITION_UNAVAILABLE:
+                            showError('Location information is unavailable.');
+                            break;
+                        case err.TIMEOUT:
+                            showError('Location request timed out. Please try again.');
+                            break;
+                        default:
+                            showError('Unable to retrieve your location.');
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
         });
 
         // Fix map rendering when the tab becomes visible
