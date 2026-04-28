@@ -370,11 +370,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             });
         }
 
-        // Try immediately (works when Shipping tab is the active tab on page load)
-        initMap();
+        // Defer so initMap() runs after getTabData() has shown the active tab
+        setTimeout(initMap, 300);
 
-        // Also try whenever a tab is clicked (page reloads, but this covers
-        // any future switch to client-side tab toggling)
+        // Also try whenever a tab is clicked (covers client-side tab toggling)
         $(document).on('click', '.nav-tab', function(){
             setTimeout(initMap, 150);
         });
