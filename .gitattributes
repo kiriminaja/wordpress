@@ -7,3 +7,5 @@ tests/ export-ignore
 *.log export-ignore
 node_modules/ export-ignore
 vendor/ export-ignore
+build/ export-ignore
+dist/ export-ignore
