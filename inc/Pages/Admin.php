@@ -91,13 +91,14 @@ class Admin extends BaseInit{
             /**
              * WordPress auto-prepends a sub-item that mirrors the parent
              * menu (slug "kiriminaja-konfigurasi") whenever any sub-pages
-             * are registered. We don't want a duplicate "KiriminAja"
-             * sub-link — the merchant should only see "Transactions" and
-             * "Payments" — so strip that auto entry here.
+             * are registered.  Instead of the duplicate "KiriminAja" label,
+             * rename it to "Settings" so the settings page stays accessible
+             * from the submenu.
              */
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
                 if ( isset( $menu_item[2] ) && 'kiriminaja-konfigurasi' === $menu_item[2] ) {
-                    unset( $submenu['kiriminaja-konfigurasi'][ $key ] );
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] = 'Settings';
+                    break;
                 }
             }
 
