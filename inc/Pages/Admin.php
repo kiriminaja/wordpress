@@ -22,11 +22,9 @@ class Admin extends BaseInit{
          * would auto-render a duplicate "KiriminAja" sub-link beneath the
          * top-level item (the legacy/"old plugin" UX issue users reported).
          *
-         * When WooCommerce IS active we deliberately register only the
-         * "Transactions" and "Payments" sub-items. The settings screen is
-         * already reachable via the top-level "KiriminAja" entry, so adding
-         * a third sub-link pointing to the same slug would just duplicate
-         * it in the sidebar.
+         * The "Settings" entry re-uses the parent slug so that WordPress
+         * replaces the auto-generated first sub-item and places it at the
+         * bottom of the list instead.
          */
         $subPages = [];
         if( kiriof_check_woocommerce() ){
@@ -49,6 +47,16 @@ class Admin extends BaseInit{
                     'menu_slug'=>'kiriminaja-request-pickup',
                     'callback'=> function() use ($plugin_path) {
                         require_once $plugin_path.'templates/request-pickup/index.php';
+                    }
+                ],
+                [
+                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'page_title'=>'KiriminAja Settings',
+                    'menu_title'=>'Settings',
+                    'capability'=>'manage_options',
+                    'menu_slug'=>'kiriminaja-konfigurasi',
+                    'callback'=> function() use ($plugin_path){
+                        require_once $plugin_path.'templates/setting/index.php';
                     }
                 ]
             ];
