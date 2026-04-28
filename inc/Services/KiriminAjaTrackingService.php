@@ -36,7 +36,7 @@ class KiriminAjaTrackingService extends BaseService{
             $histories[] = (object)[
                 "status"=> "Transaksi dikonfirmasi & diproses",
                 "status_code"=> 100,
-                "created_at"=> @$transactionRepo->wc_date_paid,
+                "created_at"=> wp_date('Y-m-d H:i:s', strtotime($transactionRepo->wc_date_paid)),
                 "driver"=> "",
                 "receiver"=> ""
             ];
@@ -45,7 +45,7 @@ class KiriminAjaTrackingService extends BaseService{
         $histories[] = (object)[
             "status"=> "Transaksi berhasil Check Out dengan metode pembayaran ".($transactionRepo->cod_fee>0 ? 'COD' : 'NON COD'),
             "status_code"=> 100,
-            "created_at"=> $transactionRepo->created_at,
+            "created_at"=> wp_date('Y-m-d H:i:s', strtotime($transactionRepo->created_at)),
             "driver"=> "",
             "receiver"=> ""
         ];
@@ -60,7 +60,7 @@ class KiriminAjaTrackingService extends BaseService{
     
     public function filteringHistories($histories){
         return array_map(function ($obj){
-            $obj->created_at = wp_date('d F Y H:i',strtotime($obj->created_at));
+            $obj->created_at = gmdate('d F Y H:i',strtotime($obj->created_at)) . ' WIB';
             return $obj;
         },$histories);
     }
