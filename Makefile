@@ -35,6 +35,7 @@ RSYNC_EXCLUDES := \
 	--exclude=*.zip \
 	--exclude=phpunit.xml \
 	--exclude=tests/ \
+	--exclude=build/ \
 	--exclude=.phpunit.cache/
 
 .PHONY: zip clean changelog release test tag github-release publish \
