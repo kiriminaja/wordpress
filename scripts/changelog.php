@@ -173,7 +173,7 @@ if ( $from_ref ) {
 }
 
 $log_cmd = sprintf(
-    'cd %s && git log %s --format="%%s" --no-merges',
+    'cd %s && git log %s --format="%%s" --no-merges -- kiriminaja.php inc/ wc/ templates/ assets/ lang/ frontend/ uninstall.php',
     escapeshellarg( $root_dir ),
     $since_arg
 );
