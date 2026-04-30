@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.12
+Stable tag: 2.1.13
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,38 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.13 =
+* Feat(release.yml): add deployment step to WordPress.org SVN for plugin distribution
+* Feat(gitattributes): add build and dist directories to export-ignore list
+* Feat(Map): update location button styling for improved visibility and user experience
+* Feat(Map): defer map initialization for improved tab switching experience and enhance location button styling
+* Feat(Map): implement lazy initialization for Leaflet map picker to enhance performance and user experience
+* Feat(Map): enhance map picker with fixed center pin and geolocation button for improved user experience
+* Rename duplicate submenu item to "Settings" for better accessibility
+* Update date formatting to include time for order creation and transaction histories
+* Replace wp_date with gmdate for consistent timezone formatting in shipping and pickup schedules
+* Feat(Makefile): add build directory to rsync excludes for cleaner packaging
+* Feat(gmdate): replace gmdate with wp_date for consistent date formatting across services and templates
+* Add new icon files for WordPress.org
+* Feat(Heartbeat): implement nonce auto-refresh for AJAX requests to maintain session validity
+* Feat(Validation): improve data validation by replacing error suppression with empty checks for shipping and setup key values
+* Feat(AJAX Handling): enhance error handling and response parsing for integration and callback data
+* Feat(Webhooks): update button functionality to save callback URL instead of disconnecting integration
+* Style(container): implement feature X to enhance user experience and optimize performance
+* Feat(Templates): refactor footer display by creating a shared footer partial for consistent versioning
+* Feat(Transaction Process): update order status handling to reflect WooCommerce visibility and prevent pickup of non-processable orders
+* Feat(Admin): update sub-page registration logic for WooCommerce compatibility and prevent duplicate menu entries
+* Feat(PaymentRepository, TransactionRepository): add methods for counting payments and transactions by status feat(RequestPickupIndex, TransactionProcessIndex): implement status filter counts for improved UX in views
+* Feat(Enqueue, TrackingFrontPageController): add legacy shortcode alias for backward compatibility
+* Feat(Enqueue, Tracking): add dedicated stylesheet for tracking shortcode to ensure proper styling
+* Feat(PaymentRepository, Admin, Helper): add shipment unpaid count and update labels for consistency
+* Fix(PageGenerator.php): ensure removal of auto-generated submenu duplicates for better menu management
+* Fix(Admin.php): update sub-page registration logic to prevent duplicate entries and ensure proper settings access
+* Fix(index.php): trim service name to ensure consistent formatting
+* Fix(index.php): adjust order date handling to prevent double timezone conversion
+* Fix(TransactionRepository, TransactionProcessIndex): update queries to use wp_posts for accurate transaction counts
+* Fix(TransactionRepository): improve transaction count query for accuracy and consistency
+
 = 2.1.12 =
 * Fix(Order): update shipping method prefix handling for consistency in CheckoutController and GeneralAjaxController
 
