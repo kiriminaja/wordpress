@@ -56,43 +56,68 @@ By using this plugin, you acknowledge that your store will communicate with Kiri
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/kiriminaja-official` directory, or install the plugin through the WordPress plugins screen directly.
-2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Navigate to `KiriminAja > Integration` to configure your integration and shipping options.
-4. Navigate to `KiriminAja > Shipping` to configure your shipping preferences.
-5. Set up your shipping whitelist and preferences.
+1. Make sure WooCommerce is installed and activated.
+2. Upload the plugin files to the `/wp-content/plugins/kiriminaja-official` directory, or install the plugin through the WordPress plugins screen directly.
+3. Activate the plugin through the 'Plugins' screen in WordPress.
+4. Go to [app.kiriminaja.com/settings/api-request](https://app.kiriminaja.com/settings/api-request), request integration with WordPress, and copy your Setup Key.
+5. Navigate to `KiriminAja > Integration` and enter your Setup Key.
+6. Navigate to `KiriminAja > Shipping`, fill in your store address, pin your location on the map, select your area, and save.
+7. Optionally, configure your courier whitelist under the Shipping tab to limit which couriers appear at checkout.
 
 == Frequently Asked Questions ==
 
-= What expeditions does KiriminAja support? =
-KiriminAja is a package delivery management platform with COD and non-COD delivery methods on various expeditions. You are a platform user who accesses KiriminAja services, whether registered as an account owner or not.
+= How do I set up the plugin? =
+1. Install and activate WooCommerce (required).
+2. Go to **KiriminAja > Integration** and enter your Setup Key from your KiriminAja dashboard.
+3. Go to **KiriminAja > Shipping** and fill in your store address, pin your location on the map, choose your area, and save.
+4. Optionally whitelist specific couriers under the Shipping tab.
 
-= Can COD be done without a marketplace? =
-Yes, you can use J&T Express COD service to send goods without having to go through online buying and selling platforms such as marketplaces.
+= Where do I get a Setup Key? =
+Register or log in at [kiriminaja.com](https://kiriminaja.com), then go to [app.kiriminaja.com/settings/api-request](https://app.kiriminaja.com/settings/api-request) and request integration with WordPress. Once approved, copy the Setup Key and paste it into the Integration tab inside the plugin.
 
-= Does this plugin support Indonesia Domestic shipping? =
-Yes, the plugin allows you to set up shipping options for Indonesia domestic.
+= Which couriers are supported? =
+KiriminAja connects to a wide range of Indonesian couriers — the available options depend on your KiriminAja account. Rates are fetched in real time during checkout, so customers always see up-to-date pricing.
 
-= Is it compatible with all WooCommerce themes? =
-Yes, it works with any WooCommerce-compatible theme.
+= Can I limit which couriers appear at checkout? =
+Yes. In **KiriminAja > Shipping**, use the **Whitelist Expedition** selector to choose only the couriers you want to offer.
 
-= Does it support live shipping rates? =
-Yes, you can integrate with carriers that provide API access for live rates.
+= Does the plugin support COD (Cash on Delivery)? =
+Yes. When a customer selects COD at checkout, only couriers that support COD are shown. COD orders have a minimum of Rp10,000 and a maximum of Rp3,000,000.
 
-= Can I add custom shipping rules? =
-Yes, you can define rules based on weight, destination, or order total.
+= How do I request a package pickup? =
+Go to **KiriminAja > Request Pickup** in your WordPress admin. Select the orders you want picked up, choose a pickup schedule, and confirm. The courier will collect the packages from your store address.
+
+= Can I print shipping labels (resi)? =
+Yes. After a pickup is scheduled and an AWB is assigned, you can print shipping labels directly from the Shipping Process page in the plugin.
+
+= How does package tracking work? =
+Customers can track their orders through a tracking link that appears on the order confirmation page. KiriminAja also sends status updates back to your store via webhook, automatically updating order statuses.
 
 = Does this plugin support international shipping? =
-Currently, this plugin only supports domestic shipping within Indonesia.
+No. Currently the plugin only supports domestic shipping within Indonesia.
+
+= Is it compatible with WooCommerce HPOS (High-Performance Order Storage)? =
+Yes. The plugin fully supports WooCommerce HPOS / Custom Order Tables.
+
+= My shipping rates are not showing at checkout. What should I do? =
+Make sure you have completed the Shipping setup (store address and area). Also verify that your products have weight and dimensions set — both are required for rate calculation.
+
+= The plugin says "WooCommerce is not yet installed or activated". =
+This plugin requires WooCommerce. Install and activate WooCommerce first, then activate KiriminAja Official.
 
 == Screenshots ==
 
-1. KiriminAja integration settings on the dashboard
-2. Setup key configuration for connecting your store
-3. Plugin successfully installed on WordPress
-4. Store address and shipping configuration
-5. WooCommerce payment method settings
-6. Product shipping data setup
+1. Manage all your transactions in one place — view order details, statuses, and shipping info at a glance
+2. Handle shipments effortlessly — monitor delivery progress and track every package
+3. Schedule and manage pickups — request courier pickups with just a few clicks
+4. AWB generated automatically — no manual input, shipping labels ready to print instantly
+5. Simple configuration — connect your store, set your address, and start shipping in minutes
+
+== Links ==
+
+* [View Details](https://kiriminaja.com/solusi/plugin-woocommerce)
+* [Support](https://kiriminaja.com/kontak-kami)
+* [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
 = 2.1.15 =
