@@ -6,7 +6,7 @@ on:
 
 jobs:
   upload-gcs-prd:
-    name: 'Build & Push'
+    name: "Build & Push"
     runs-on: ubuntu-latest
 
     defaults:
@@ -24,9 +24,9 @@ jobs:
       - name: Archive release
         uses: thedoctor0/zip-release@0.7.5
         with:
-          type: 'zip'
+          type: "zip"
           filename: kiriminaja-${{ github.ref_name }}.zip
-          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+          exclusions: "*.git* *.github* /*node_modules/* .editorconfig .gitattributes /.gitignore .prettier* .stylelintrc* .vscode* /.wordpress-org/"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
@@ -39,14 +39,15 @@ jobs:
         with:
           path: kiriminaja-${{ github.ref_name }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"
           headers: |
             cache-control: no-store, no-cache, must-revalidate, max-age=0
+
 #  deploy:
 #    runs-on: [self-hosted,kaj-dev-runner]
 #    steps:
 #      - uses: actions/checkout@v2
-#         
+#
 #      - name: Deploy
 #        run: |
 #          cd /home/devstag/kaj-dev-latest-plugin-wp/wp-content/plugins/plugin-wp # navigate into the folder

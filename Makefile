@@ -37,6 +37,7 @@ RSYNC_EXCLUDES := \
 	--exclude=tests/ \
 	--exclude=build/ \
 	--exclude=.phpunit.cache/
+	--exclude=.wordpress-org/
 
 .PHONY: zip clean changelog release test tag github-release publish \
         release-legacy github-release-legacy publish-legacy zip-legacy
