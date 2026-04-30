@@ -10,6 +10,14 @@
     {
       "name": "FaizRA",
       "email": "faizniflehim@gmail.com"
+    },
+    {
+      "name": "KiriminAja Team",
+      "email": "tech@kiriminaja.com"
+    },
+    {
+      "name": "Yanuar Aditia",
+      "email": "yanuaraditia@outlook.com"
     }
   ],
   "config": {
@@ -17,5 +25,8 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5"
+  },
+  "require": {
+    "kiriminaja/kiriminaja-php": "^2.1"
   }
 }
