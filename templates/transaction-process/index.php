@@ -1,6 +1,6 @@
 <?php
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
     exit;
 }
 if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -32,15 +32,16 @@ class Kiriof_TransactionProcessIndex
          */
         $kiriof_transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
         $kiriof_statusCounts = [
-            'all'           => $kiriof_transactionRepo->getCountByPostStatus( null ),
-            'wc-processing' => $kiriof_transactionRepo->getCountByPostStatus( 'wc-processing' ),
-            'wc-on-hold'    => $kiriof_transactionRepo->getCountByPostStatus( 'wc-on-hold' ),
-            'wc-pending'    => $kiriof_transactionRepo->getCountByPostStatus( 'wc-pending' ),
+            'all'           => $kiriof_transactionRepo->getCountByPostStatus(null),
+            'wc-processing' => $kiriof_transactionRepo->getCountByPostStatus('wc-processing'),
+            'wc-on-hold'    => $kiriof_transactionRepo->getCountByPostStatus('wc-on-hold'),
+            'wc-pending'    => $kiriof_transactionRepo->getCountByPostStatus('wc-pending'),
+            'processed'     => $kiriof_transactionRepo->getCountProcessed(),
         ];
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
-        $kiriof_status_filter = sanitize_text_field( wp_unslash( $_GET['status'] ?? '' ) );
-        if ( ! in_array( $kiriof_status_filter, [ 'wc-processing', 'wc-on-hold', 'wc-pending' ], true ) ) {
+        $kiriof_status_filter = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
+        if (! in_array($kiriof_status_filter, ['wc-processing', 'wc-on-hold', 'wc-pending', 'processed'], true)) {
             $kiriof_status_filter = 'wc-processing';
         }
 
@@ -54,27 +55,28 @@ class Kiriof_TransactionProcessIndex
 
         // Build optional filters as values, but keep SQL placeholders static.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
-        $key = sanitize_text_field( wp_unslash( $_GET['key'] ?? '' ) );
+        $key = sanitize_text_field(wp_unslash($_GET['key'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
-        $month = sanitize_text_field( wp_unslash( $_GET['month'] ?? '' ) );
+        $month = sanitize_text_field(wp_unslash($_GET['month'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
-        $status = sanitize_text_field( wp_unslash( $_GET['status'] ?? '' ) );
+        $status = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
 
         // Whitelist of post_status values exposed by the pill row in the view.
         // Anything outside the whitelist (or empty / 'all') falls back to the
         // legacy default of 'wc-processing' to preserve existing behavior.
-        $allowedStatuses = [ 'wc-processing', 'wc-on-hold', 'wc-pending' ];
-        if ( ! in_array( $status, $allowedStatuses, true ) ) {
+        $allowedStatuses = ['wc-processing', 'wc-on-hold', 'wc-pending', 'processed'];
+        $isProcessedFilter = ('processed' === $status);
+        if (! in_array($status, $allowedStatuses, true)) {
             $status = 'wc-processing';
         }
 
         $key_like   = '';
         $month_like = '';
-        if ( '' !== $key ) {
-            $key_like = '%' . $wpdb->esc_like( $key ) . '%';
+        if ('' !== $key) {
+            $key_like = '%' . $wpdb->esc_like($key) . '%';
         }
-        if ( '' !== $month ) {
-            $month_like = '%' . $wpdb->esc_like( $month ) . '%';
+        if ('' !== $month) {
+            $month_like = '%' . $wpdb->esc_like($month) . '%';
         }
 
         /**
@@ -86,11 +88,42 @@ class Kiriof_TransactionProcessIndex
          * would be missing from the list for several minutes while still
          * being counted by the badge. Joining wp_posts directly keeps the
          * list consistent with what the merchant just placed.
+         *
+         * When the "Processed" filter is active we show transactions whose
+         * kiriminaja status is NOT 'new' (i.e. already picked up / shipped)
+         * regardless of WooCommerce post_status.
          */
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT 
+        if ($isProcessedFilter) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT 
+                        posts.ID as wc_order_id,
+                        posts.post_date as wc_date_created,
+                        posts.post_status as wc_status,
+                        posts.post_status,
+                        kiriminaja_transactions.*
+                    FROM {$wpdb->prefix}posts as posts
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON posts.ID = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE kiriminaja_transactions.status != %s
+                        AND posts.post_status NOT IN ('trash','auto-draft')
+                        AND ( %s = '' OR posts.ID LIKE %s )
+                        AND ( %s = '' OR posts.post_date LIKE %s )
+                    GROUP BY posts.ID
+                    ORDER BY posts.post_date DESC",
+                    'new',
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like
+                )
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT 
                     posts.ID as wc_order_id,
                     posts.post_date as wc_date_created,
                     posts.post_status as wc_status,
@@ -105,14 +138,15 @@ class Kiriof_TransactionProcessIndex
                     AND ( %s = '' OR posts.post_date LIKE %s )
                 GROUP BY posts.ID
                 ORDER BY posts.post_date DESC",
-                $status,
-                'new',
-                $key,
-                $key_like,
-                $month,
-                $month_like
-            )
-        );
+                    $status,
+                    'new',
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like
+                )
+            );
+        }
 
         if (!empty($wpdb->last_error)) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error', $wpdb->last_error);

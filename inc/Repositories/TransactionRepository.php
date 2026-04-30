@@ -299,6 +299,31 @@ class TransactionRepository{
 
         return $this->hasError() ? 0 : (int) $query;
     }
+
+    /**
+     * Count distinct orders that have already been processed (kiriminaja
+     * status is anything other than 'new').
+     */
+    public function getCountProcessed() {
+        $prefix = $this->wpdb->prefix;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $query = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "SELECT COUNT(DISTINCT p.ID)
+                FROM {$prefix}posts p
+                INNER JOIN {$this->table} t
+                    ON p.ID = t.wp_wc_order_stat_order_id
+                WHERE p.post_status NOT IN ('trash','auto-draft')
+                    AND t.status != %s",
+                'new'
+            )
+        );
+
+        return $this->hasError() ? 0 : (int) $query;
+    }
+
     public function updateTransaction($payload){
         $updateData = [
             'destination_sub_district_id' => $payload['destination_sub_district_id'],
