@@ -71,6 +71,26 @@ jobs:
             echo "__EOF__"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Extract contributors from commits
+        id: contributors
+        run: |
+          # Get the previous tag to scope the range
+          PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          # Collect unique GitHub usernames from commits
+          CONTRIBUTORS=$(git log "$RANGE" --format="%aN" --no-merges | sort -u | while read -r name; do
+            echo "- @${name}"
+          done)
+          {
+            echo "list<<__EOF__"
+            echo "$CONTRIBUTORS"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -80,6 +100,10 @@ jobs:
             ## What's Changed
 
             ${{ steps.changelog.outputs.body }}
+
+            ### Contributors
+
+            ${{ steps.contributors.outputs.list }}
 
             ### Assets
 
