@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class WpWcOrderProductLookup{
-
     public $table;
     public function __construct(){
         global $wpdb;
@@ -34,10 +37,9 @@ class WpWcOrderProductLookup{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
     }
-    
 }

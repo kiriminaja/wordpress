@@ -1,18 +1,27 @@
-<script>
-    jQuery(document).ready(function (){
-        getKiriminAjaTransactionData()
-    })
-    function getKiriminAjaTransactionData(){
-        let orderId = `<?php echo esc_html($orderId); ?>`;
-        let trackingUrl = `<?php echo esc_url($trackingUrl); ?>`;
-        let kjOrderData = `<?php echo wp_kses_data($kjOrderData); ?>`;
-        
-        let kjOrderDataParsed = JSON.parse(kjOrderData);
-        
-        let label_ppn = '11%';
-        let tBodycontent = '';
-        
-        jQuery('#side-sortables').append(`
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
+<?php
+ob_start();
+?>
+jQuery(function ($) {
+    kiriofGetTransactionData();
+});
+
+function kiriofGetTransactionData() {
+    let orderId = <?php echo wp_json_encode( (string) $orderId ); ?>;
+    let trackingUrl = <?php echo wp_json_encode( (string) $trackingUrl ); ?>;
+    let kiriofOrderData = <?php echo wp_json_encode( (string) $kiriofOrderData ); ?>;
+
+    let kiriofOrderDataParsed = JSON.parse(kiriofOrderData);
+
+    let label_ppn = '11%';
+    let tBodycontent = '';
+
+    jQuery('#side-sortables').append(`
 <div id="woocommerce-customer-history" class="postbox ">
    <div class="postbox-header">
       <h2 class="hndle ui-sortable-handle">Shipping</h2>
@@ -25,37 +34,37 @@
         <tbody>
             <tr>
                 <th>Order ID <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.order_id}</td>
+                <td>${kiriofOrderDataParsed?.order_id}</td>
             </tr>
             <tr>
                 <th>Pickup ID <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.pickup_id}</td>
+                <td>${kiriofOrderDataParsed?.pickup_id}</td>
             </tr>
             <tr>
                 <th>Payment <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.payment_type}</td>
+                <td>${kiriofOrderDataParsed?.payment_type}</td>
             </tr>
             <tr>
                 <th>Service <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.service}</td>
+                <td>${kiriofOrderDataParsed?.service}</td>
             </tr>
             <tr>
                 <th>AWB <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.awb}</td>
+                <td>${kiriofOrderDataParsed?.awb}</td>
             </tr>
             <tr>
                 <th>Status <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.status}</td>
+                <td>${kiriofOrderDataParsed?.status}</td>
             </tr>
             <tr>
                 <th>Shipping Cost <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.shipping_cost}</td>
+                <td>${kiriofOrderDataParsed?.shipping_cost}</td>
             </tr>
             `
             +
             /** COD ROW */
             (
-            kjOrderDataParsed?.cod_fee !=='-'
+            kiriofOrderDataParsed?.cod_fee !=='-'
             ?    
              `
             <tr>
@@ -64,7 +73,7 @@
                     <br/>
                     <em style="font-weight: 500;font-size:12px;">(Include `+label_ppn+` Vat)</em>
                 </th>
-                <td>${kjOrderDataParsed?.cod_fee}</td>
+                <td>${kiriofOrderDataParsed?.cod_fee}</td>
             </tr>
             `   
              :
@@ -73,12 +82,12 @@
             +
             /** Insurance ROW */
             (
-            kjOrderDataParsed?.insurance_fee !=='-'
+            kiriofOrderDataParsed?.insurance_fee !=='-'
                 ?
                 `
             <tr>
                 <th>Insurance Fee <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.insurance_fee}</td>
+                <td>${kiriofOrderDataParsed?.insurance_fee}</td>
             </tr>
             `
                 :
@@ -88,11 +97,11 @@
             `
             <tr>
                 <th>Order Total<span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.transaction_value}</td>
+                <td>${kiriofOrderDataParsed?.transaction_value}</td>
             </tr>
             <tr>
                 <th>Total <span style="margin-left: auto">:</span></th>
-                <td>${kjOrderDataParsed?.total}</td>
+                <td>${kiriofOrderDataParsed?.total}</td>
             </tr>
         </tbody>
     </table>
@@ -107,6 +116,10 @@
     </div>
 </div>
         `)
-        
-    }
-</script>
+
+}
+<?php
+$kiriof_inline_script = ob_get_clean();
+
+wp_add_inline_script( 'jquery', $kiriof_inline_script );
+?>

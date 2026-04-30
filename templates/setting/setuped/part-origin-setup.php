@@ -1,6 +1,13 @@
-<span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kjHelper()->tlThis('Store Address',$locale) ); ?></span>
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
+
+<span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kiriof_helper()->tlThis('Store Address',$locale) ); ?></span>
 <div class="row-divider" style="margin-top: .5rem"></div>
-<span><?php echo esc_html( kjHelper()->tlThis('This is where your business is located. Tax rates and shipping rates will use this address.', $locale) ); ?></span>
+<span><?php echo esc_html( kiriof_helper()->tlThis('This is where your business is located. Tax rates and shipping rates will use this address.', $locale) ); ?></span>
 
 <div class="kj-form">
     <table class="form-table">
@@ -8,54 +15,64 @@
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
-                    <?php echo esc_html( kjHelper()->tlThis('Sender Name',$locale) ); ?>
+                    <?php echo esc_html( kiriof_helper()->tlThis('Sender Name',$locale) ); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_name" placeholder="<?php echo esc_html( kjHelper()->tlThis('Sender Name',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_name'] ?? '');?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_name" placeholder="<?php echo esc_html( kiriof_helper()->tlThis('Sender Name',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_name'] ?? '');?>" >
             </td>
         </tr>
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
-                    <?php echo esc_html(kjHelper()->tlThis('Sender Phone',$locale)); ?>
+                    <?php echo esc_html(kiriof_helper()->tlThis('Sender Phone',$locale)); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo esc_html( kjHelper()->tlThis('Sender Phone',$locale) ); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_phone'] ?? '');?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_phone" placeholder="<?php echo esc_html( kiriof_helper()->tlThis('Sender Phone',$locale) ); ?>" type="text" class="input-text regular-input kiriof_int_input" value="<?php echo esc_attr($inputValueArr['origin_phone'] ?? '');?>" >
             </td>
         </tr>
         
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
-                    <?php echo esc_html(kjHelper()->tlThis('Address',$locale)); ?>
+                    <?php echo esc_html(kiriof_helper()->tlThis('Address',$locale)); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo esc_html(kjHelper()->tlThis('Address',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_address'] ?? '');?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_address" placeholder="<?php echo esc_html(kiriof_helper()->tlThis('Address',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_address'] ?? '');?>" >
             </td>
         </tr>
-        <!-- Lat Long -->
-        <tr valign="top">
-            <th scope="row" class="titledesc">
-                <label>
-                    <?php echo esc_html(kjHelper()->tlThis('Latitude',$locale)); ?>
-                </label>
-            </th>
-            <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_latitude" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Latitude',$locale)); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_latitude'] ?? '');?>" >
-            </td>
-        </tr>
+        <!-- Lat Long (hidden inputs — populated by the map picker) -->
+        <input type="hidden" name="origin_latitude" value="<?php echo esc_attr($inputValueArr['origin_latitude'] ?? '');?>" >
+        <input type="hidden" name="origin_longitude" value="<?php echo esc_attr($inputValueArr['origin_longitude'] ?? '');?>" >
 
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label>
-                    <?php echo esc_html(kjHelper()->tlThis('Longitude',$locale)); ?>
-                </label>
+                <label><?php echo esc_html(kiriof_helper()->tlThis('Pin Location',$locale)); ?></label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_longitude" placeholder="<?php echo esc_html(kjHelper()->tlThis('Longitude',$locale) ); ?>" type="text" class="input-text regular-input" value="<?php echo esc_attr($inputValueArr['origin_longitude'] ?? '');?>" >
+                <div style="position: relative; width: 100%; max-width: 25rem;">
+                    <div id="kiriof-origin-map" style="width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 4px; z-index: 0;"></div>
+                    <!-- Fixed centre pin -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 401; pointer-events: none;">
+                        <svg width="30" height="40" viewBox="0 0 30 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 0C6.716 0 0 6.716 0 15c0 10.969 13.5 24.138 14.094 24.72a1.25 1.25 0 0 0 1.812 0C16.5 39.138 30 25.969 30 15 30 6.716 23.284 0 15 0zm0 22.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" fill="#E74C3C"/>
+                            <circle cx="15" cy="15" r="4" fill="white"/>
+                        </svg>
+                    </div>
+                    <!-- Use current location button -->
+                    <button type="button" id="kiriof-use-my-location" style="position: absolute; top: 10px; right: 10px; z-index: 401; background: #fff; border: 1px solid #8c8f94; border-radius: 4px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #1d2327; box-shadow: 0 1px 4px rgba(0,0,0,.2);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" fill="#1d2327"/>
+                        </svg>
+                        <?php echo esc_html(kiriof_helper()->tlThis('My Location',$locale)); ?>
+                    </button>
+                </div>
+                <p class="description" style="margin-top: 4px;">
+                    <span id="kiriof-map-coords" style="font-family: monospace;"></span>
+                </p>
+                <p class="description" id="kiriof-map-error" style="margin-top: 4px; color: #d63638; display: none;"></p>
             </td>
         </tr>
 
@@ -64,23 +81,23 @@
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
-                    <?php echo esc_html( kjHelper()->tlThis('Zipcode',$locale) ); ?>
+                    <?php echo esc_html( kiriof_helper()->tlThis('Zipcode',$locale) ); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
-                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Zipcode',$locale)); ?>" type="text" class="input-text regular-input kj_int_input" value="<?php echo esc_attr($inputValueArr['origin_zip_code'] ?? '');?>" >
+                <input style="width: 100%; max-width: 25rem" name="origin_zip_code" placeholder="<?php echo esc_attr(kiriof_helper()->tlThis('Zipcode',$locale)); ?>" type="text" class="input-text regular-input kiriof_int_input" value="<?php echo esc_attr($inputValueArr['origin_zip_code'] ?? '');?>" >
             </td>
         </tr>
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
-                    <?php echo esc_html( kjHelper()->tlThis('Area',$locale) ); ?>
+                    <?php echo esc_html( kiriof_helper()->tlThis('Area',$locale) ); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
                 <select name="origin_sub_district_id" class="select-2">
                     <?php 
-                    if ( @$inputValueArr['origin_sub_district_id'] && @$inputValueArr['origin_sub_district_name']){
+                    if ( ! empty( $inputValueArr['origin_sub_district_id'] ) && ! empty( $inputValueArr['origin_sub_district_name'] ) ){
                         echo '<option selected value="'.esc_attr($inputValueArr['origin_sub_district_id']).'">'.esc_html($inputValueArr['origin_sub_district_name']).'</option>';
                     }
                     ?>
@@ -90,16 +107,16 @@
         <tr valign="top">
             <th scope="row" class="titledesc">
                 <label>
-                    <?php echo esc_html(kjHelper()->tlThis('Whitelist Expedition',$locale)); ?>
+                    <?php echo esc_html(kiriof_helper()->tlThis('Whitelist Expedition',$locale)); ?>
                 </label>
             </th>
             <td class="forminp forminp-text">
                 <select name="origin_whitelist_expedition[]" style="width:50%;" class="select-2 origin_whitelist_expedition" multiple="multiple">
                     <?php 
-                    if ( @$inputValueArr['origin_whitelist_expedition_id'] && @$inputValueArr['origin_whitelist_expedition_name']){
-                        $expedition_name = explode(',',@$inputValueArr['origin_whitelist_expedition_name'] );
-                        foreach ( explode(',',$inputValueArr['origin_whitelist_expedition_id']) as $key => $row) {
-                            echo '<option selected value="'.esc_attr($row).'">'.esc_html($expedition_name[$key]).'</option>';
+                    if ( ! empty( $inputValueArr['origin_whitelist_expedition_id'] ) && ! empty( $inputValueArr['origin_whitelist_expedition_name'] ) ){
+                        $kiriof_expedition_name = explode( ',', $inputValueArr['origin_whitelist_expedition_name'] );
+                        foreach ( explode(',',$inputValueArr['origin_whitelist_expedition_id']) as $kiriof_key => $kiriof_row) {
+                            echo '<option selected value="'.esc_attr($kiriof_row).'">'.esc_html( $kiriof_expedition_name[$kiriof_key] ?? '' ).'</option>';
                         }
                     }
                     ?>
@@ -133,7 +150,7 @@
             <button class="button-wp woocommerce-save-button kj-submit-btn" type="button">
                 <div style="display: flex">
                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                        <span><?php echo esc_html(kjHelper()->tlThis('Save Changes',$locale)); ?></span>
+                        <span><?php echo esc_html(kiriof_helper()->tlThis('Save Changes',$locale)); ?></span>
                     </div>
                 </div>
             </button>

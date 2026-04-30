@@ -1,16 +1,20 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\KiriminAjaApi;
+use KiriminAjaOfficial\Base\KiriminAjaApi;
+
 const DEFAULT_PICKUP_OPTION = ['PICKUP'];
-class KiriminajaApiRepository extends KiriminAjaApi{
 
+class KiriminajaApiRepository extends KiriminAjaApi{
     public function sub_district_search($search)
     {
         return $this->get('/api/mitra/kelurahan_by_name?search='.$search);
     }
-
     public function setCallback($callbackUrl)
     {
         return $this->post('/api/mitra/set_callback',[
@@ -18,14 +22,12 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'status' => '1'
         ]);
     }
-
     public function processSetupKey($payload){
         return $this->post('/api/service/api-request/integrate',[
             'setup_key'     => $payload['setup_key'],
             'callback_url'  => $payload['callback_url']
         ]);
     }
-
     public function getPayment($payload){
         return $this->post('/api/mitra/v2/get_payment',[
             'payment_id'     => $payload['payment_id']
@@ -38,7 +40,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
     
     public function getPricing($payload){
-        $requesTpayload = [
+        return $this->post('/api/mitra/v6.1/shipping_price',[
             'subdistrict_origin'            => $payload['subdistrict_origin'],
             'subdistrict_destination'       => $payload['subdistrict_destination'],
             'weight'                        => $payload['weight'],
@@ -48,23 +50,19 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'insurance'                     => $payload['insurance'],
             'item_value'                    => $payload['item_value'],
             'courier'                       => $payload['courier'],
-            'pickup_option'                => DEFAULT_PICKUP_OPTION,
-        ];
-        return $this->post('/api/mitra/v6.1/shipping_price',$requesTpayload);
+            'pickup_option'                 => isset($payload['pickup_option']) ? $payload['pickup_option'] : DEFAULT_PICKUP_OPTION
+        ]);
     }
     
     public function getRequestPickupSchedule(){
-        return $this->post('/api/mitra/v2/schedules',);
+        return $this->post('/api/mitra/v2/schedules');
     }
-
     public function sendPickupRequest($payload){
         return $this->post('/api/mitra/v6.1/request_pickup',$payload);
     }
-
     public function get_couriers(){
         return $this->post('/api/mitra/couriers');
     }
-
     public function getPrintAwb($awb){
         return $this->post('/api/mitra/v6.1/awb/print',[
             'awb' => $awb,

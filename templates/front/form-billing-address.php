@@ -1,17 +1,23 @@
-<div id="kj_destination_area_group">
-    
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
+
+<div id="kiriof_destination_area_group">    
     <!--Other invisible Field-->
     <div style="display: none">
-        <input type="hidden" name="kj_checkout_token" value="<?php echo esc_html($kj_checkout_token); ?>">
-        <input type="hidden" name="kj_destination_area_name" value="<?php echo  esc_html($dentination_name); ?>">
-        <input type="hidden" name="kj_shipping_destination_area_name" value="<?php echo  esc_html($shipping_dentination_name); ?>">
-        <input type="hidden" name="kj_force_insurance" value="0">
+        <input type="hidden" name="kiriof_checkout_token" value="<?php echo esc_attr($kiriof_checkout_token); ?>">
+        <input type="hidden" name="kiriof_destination_area_name" value="<?php echo esc_attr($dentination_name); ?>">
+        <input type="hidden" name="kiriof_shipping_destination_area_name" value="<?php echo esc_attr($shipping_dentination_name); ?>">
+        <input type="hidden" name="kiriof_force_insurance" value="0">
     </div>
 
 </div>
 
 <?php if( is_checkout() || is_cart() ) { ?>
-    <script>
+    <?php ob_start(); ?>
 
         jQuery(document).ready(function($) {    
             getSearchAreaKelurahan();
@@ -35,11 +41,11 @@
             <?php endif; ?>
 
             <?php if(is_checkout()): ?>
-                kj_changeCodPaymentMethod();
-                kj_changeDifferentAdrress();
+                kiriofChangeCodPayment();
+                kiriofChangeDifferentAddress();
 
                 jQuery(document.body).on( 'change', 'input.shipping_method', function() {
-                    AjaxHandleCodInsurance();
+                    kiriofHandleCodInsurance();
                 });
 
             <?php endif; ?>
@@ -47,7 +53,7 @@
           
         function changeDistrict(){
             
-            let kelurahanArea = "select#<?php echo  esc_html($field_key); ?>,select#kj_shipping_destination_area";
+            let kelurahanArea = "select#<?php echo esc_js($field_key); ?>,select#kiriof_shipping_destination_area";
             
             jQuery(kelurahanArea).change( function () {
                 let root = jQuery(this);
@@ -57,11 +63,11 @@
 
                 <?php if(is_checkout()): ?>
                     if( different_address > 0 ){
-                        _insurance = jQuery('#kj_insurance:checked').length;
-                        jQuery('[name="kj_shipping_destination_area_name"]').val(root.find('option:selected').text());
+                        _insurance = jQuery('#kiriof_insurance:checked').length;
+                        jQuery('[name="kiriof_shipping_destination_area_name"]').val(root.find('option:selected').text());
                     }else{
-                        _insurance = jQuery('#kj_shipping_insurance:checked').length;
-                        jQuery('[name="kj_shipping_destination_area_name"]').val('');
+                        _insurance = jQuery('#kiriof_shipping_insurance:checked').length;
+                        jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
                     }
                 <?php else: ?>
                     _insurance = 0;
@@ -72,13 +78,13 @@
                     url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
                     type: 'post',
                     data: {
-                        action:'getDestinationArea',
+                        action:'kiriof_get_destination_area',
                         'val':root.val(),
                         'insurance':_insurance,
                         'different_address': different_address,
                         'text':root.find('option:selected').text(),
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':"<?php echo esc_js( wp_create_nonce('kj-destination') ); ?>",
+                        'nonce':"<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
@@ -105,7 +111,7 @@
                         }
 
                         /** add Destination Name */
-                        jQuery('[name="kj_destination_area_name"]').val(jQuery(`[name="kj_destination_area"] option:selected`).text())
+                        jQuery('[name="kiriof_destination_area_name"]').val(jQuery(`[name="kiriof_destination_area"] option:selected`).text())
 
                         <?php if( is_cart() ): ?>
                             jQuery('button[name="calc_shipping"]').trigger('click');
@@ -115,7 +121,7 @@
                             jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
                             
                                 jQuery(document.body).one('updated_checkout', function() {
-                                    ajaxCodInsurance();                                    
+                                    kiriofCodInsurance();                                    
                                 });
                             
                             
@@ -132,7 +138,7 @@
 
             /** Flag if calculation is done or not*/
             function toggleCalculationValidation(isCompleted=false){
-                jQuery('[name="kj_checkout_token"]').val(isCompleted ? '1' : '');
+                jQuery('[name="kiriof_checkout_token"]').val(isCompleted ? '1' : '');
             }
         }
         
@@ -141,12 +147,12 @@
          */
         function getSearchAreaKelurahan(){
             let ajaxurl = "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>";
-            let subDistrictSelectElem = jQuery(`[name="<?php echo esc_html( $field_key ); ?>"],[name=kj_shipping_destination_area]`); 
-            let nonce = "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>";
+            let subDistrictSelectElem = jQuery(`[name="<?php echo esc_js( $field_key ); ?>"],[name=kiriof_shipping_destination_area]`); 
+            let nonce = "<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>";
 
             subDistrictSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo esc_html__('Select Option','kiriminaja'); ?>",
+                placeholder: "<?php echo esc_js(__('Select Option','kiriminaja-official')); ?>",
                 allowClear: true,
                 ajax: {
                     url: ajaxurl,
@@ -178,7 +184,7 @@
         jQuery(document.body).on('updated_checkout', function() {
             let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
-            let destination_id = (different_address == 0) ? jQuery('#kj_destination_area option:selected').val() : jQuery('#kj_shipping_destination_area option:selected').val(); 
+            let destination_id = (different_address == 0) ? jQuery('#kiriof_destination_area option:selected').val() : jQuery('#kiriof_shipping_destination_area option:selected').val(); 
             
             if( destination_id != 'undefined' ) return false;
         
@@ -200,28 +206,28 @@
 
             localStorage.removeItem('chosen_shipping_method');
 
-            AjaxHandleCodInsurance();
+            kiriofHandleCodInsurance();
         });
 
 
-        function kj_changeCodPaymentMethod(){
-            jQuery(document).on('change','[name="payment_method"]:checked,#kj_insurance,#kj_shipping_insurance',function() {
-                AjaxHandleCodInsurance();
+        function kiriofChangeCodPayment(){
+            jQuery(document).on('change','[name="payment_method"]:checked,#kiriof_insurance,#kiriof_shipping_insurance',function() {
+                kiriofHandleCodInsurance();
             });
 
         }
 
-        function kj_changeDifferentAdrress(){
+        function kiriofChangeDifferentAddress(){
             jQuery('[name="ship_to_different_address"]').on('change',function(e) {
                 if(jQuery(this).is(':checked')){
-                    jQuery('#kj_destination_area').val(jQuery('#kj_shipping_destination_area option:selected').val()).trigger("change");
+                    jQuery('#kiriof_destination_area').val(jQuery('#kiriof_shipping_destination_area option:selected').val()).trigger("change");
                 }else{
-                    jQuery('#kj_destination_area').val(jQuery('#kj_destination_area option:selected').val()).trigger("change");
+                    jQuery('#kiriof_destination_area').val(jQuery('#kiriof_destination_area option:selected').val()).trigger("change");
                 }
             });
         }
 
-        function AjaxHandleCodInsurance(){
+        function kiriofHandleCodInsurance(){
             
             <?php if( is_checkout()){ ?>
 
@@ -229,7 +235,7 @@
                 
                 setTimeout(() => {
                     jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
-                        ajaxCodInsurance();
+                        kiriofCodInsurance();
                     });
                 }, 300);
 
@@ -238,7 +244,7 @@
 
         }
 
-        function ajaxCodInsurance(){
+        function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
@@ -247,25 +253,25 @@
             let destination_id = ( 
                 different_address == '0' 
                 ? 
-                jQuery('#kj_destination_area option:selected').val() 
+                jQuery('#kiriof_destination_area option:selected').val() 
                 : 
-                jQuery('#kj_shipping_destination_area option:selected').val() 
+                jQuery('#kiriof_shipping_destination_area option:selected').val() 
             ); 
 
             let insurance = ( 
                 different_address == '0' 
                 ? 
-                jQuery('#kj_insurance:checked').val() 
+                jQuery('#kiriof_insurance:checked').val() 
                 : 
-                jQuery('#kj_shipping_insurance:checked').val()
+                jQuery('#kiriof_shipping_insurance:checked').val()
             );
 
             let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
                         
 
             let data = {
-                action:'kj_get_data_after_update_checkout',
-                nonce:"<?php echo esc_js( wp_create_nonce('kj-update-checkout') ); ?>",
+                action:'kiriof_get_data_after_update_checkout',
+                nonce:"<?php echo esc_js( wp_create_nonce('kiriof-update-checkout') ); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 payment_method,
@@ -287,18 +293,18 @@
                             let cod_fee_res = response?.data?.cod_fee ?? 0;
                                     
                             if( response?.data?.is_insurance == 0 ){
-                                jQuery('.kj_cart_item_insurane').hide();
+                                jQuery('.kiriof_cart_item_insurane').hide();
                             }else{
-                                jQuery('.kj_cart_item_insurane').show();
+                                jQuery('.kiriof_cart_item_insurane').show();
                             }
                             
                             if( response?.data?.is_cod_amt  == 0 ){
-                                jQuery('.kj_cart_item_cod_fee').hide();
+                                jQuery('.kiriof_cart_item_cod_fee').hide();
                             }else{
-                                jQuery('.kj_cart_item_cod_fee').show();
+                                jQuery('.kiriof_cart_item_cod_fee').show();
                             }
 
-                            jQuery('[name=kj_force_insurance]').val(response?.data?.force_insurance); 
+                            jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance); 
 
                             jQuery('#order_review').find('.order-total td').html(response?.data?.price_total);  
                             
@@ -318,6 +324,9 @@
             });
         }
 
-    </script>
+    <?php
+    $kiriof_inline_script = ob_get_clean();
+    wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+    ?>
 
 <?php } ?>

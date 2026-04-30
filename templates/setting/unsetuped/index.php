@@ -1,9 +1,16 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="wrap kj-wrap">
+
     <div id="root">
         <div class="woocommerce-layout">
             <div class="woocommerce-layout__header is-scrolled">
                 <div class="woocommerce-layout__header-wrapper">
-                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html(kjHelper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
+                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html(kiriof_helper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
                 </div>
             </div>
             <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
@@ -55,18 +62,18 @@
                                                             </div>
                                                         </div>
                                                         <div style="margin-top: .5rem"></div>
-                                                        <div style="font-weight: 700"><?php echo esc_html(kjHelper()->tlThis('Connect Wordpress to KiriminAja',$locale)); ?></div>
+                                                        <div style="font-weight: 700"><?php echo esc_html(kiriof_helper()->tlThis('Connect Wordpress to KiriminAja',$locale)); ?></div>
                                                     </div>
                                                     <div class="row-divider"></div>
                                                     <div>
-                                                        <div><?php echo esc_html(kjHelper()->tlThis('Connect to KiriminAja Application by Input the setup key',$locale)); ?></div>
+                                                        <div><?php echo esc_html(kiriof_helper()->tlThis('Connect to KiriminAja Application by Input the setup key',$locale)); ?></div>
                                                         <div style="margin-top: .5rem"></div>
-                                                        <div style="font-weight: 700"><?php echo esc_html(kjHelper()->tlThis('Plugin Features',$locale)); ?></div>
+                                                        <div style="font-weight: 700"><?php echo esc_html(kiriof_helper()->tlThis('Plugin Features',$locale)); ?></div>
                                                         <div style="margin-top: .5rem"></div>
                                                         <ul class="default">
-                                                            <li><?php echo esc_html(kjHelper()->tlThis('Indonesian 3PL Integrations',$locale)); ?></li>
-                                                            <li><?php echo esc_html(kjHelper()->tlThis('Cash on Delivery Support',$locale)); ?></li>
-                                                            <li><?php echo esc_html(kjHelper()->tlThis('Realtime Tracking',$locale)); ?></li>
+                                                            <li><?php echo esc_html(kiriof_helper()->tlThis('Indonesian 3PL Integrations',$locale)); ?></li>
+                                                            <li><?php echo esc_html(kiriof_helper()->tlThis('Cash on Delivery Support',$locale)); ?></li>
+                                                            <li><?php echo esc_html(kiriof_helper()->tlThis('Realtime Tracking',$locale)); ?></li>
                                                         </ul>
                                                     </div>
 
@@ -77,7 +84,7 @@
                                                             <div>Setup Key (Secret)</div>
                                                             <div style="margin-top: .5rem"></div>
                                                             <div>
-                                                                <input style="width: 100%; max-width: 25rem" name="setup_key" type="text" class="input-text regular-input" placeholder="<?php echo esc_attr(kjHelper()->tlThis('Put your setup key here',$locale)); ?>..." value="">
+                                                                <input style="width: 100%; max-width: 25rem" name="setup_key" type="text" class="input-text regular-input" placeholder="<?php echo esc_attr(kiriof_helper()->tlThis('Put your setup key here',$locale)); ?>..." value="">
                                                             </div>
                                                         </div>
                                                         
@@ -110,14 +117,14 @@
                                                                                     <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                                                         <path d="M14.4423 2.708C15.0879 3.35592 15.4504 4.23332 15.4504 5.148C15.4504 6.06268 15.0879 6.94008 14.4423 7.588L13.2183 8.804C12.3223 9.7 11.0583 9.98 9.90625 9.676L12.0023 7.588L12.6103 6.972L13.2183 6.364C13.8903 5.692 13.8903 4.604 13.2183 3.932C13.0596 3.77042 12.8704 3.64207 12.6616 3.55446C12.4528 3.46684 12.2287 3.42172 12.0023 3.42172C11.7758 3.42172 11.5517 3.46684 11.3429 3.55446C11.1341 3.64207 10.9449 3.77042 10.7863 3.932L10.1703 4.54L7.46625 7.244C7.17025 6.092 7.45025 4.828 8.34625 3.932L9.56225 2.708C10.2102 2.06237 11.0876 1.69984 12.0023 1.69984C12.9169 1.69984 13.7943 2.06237 14.4423 2.708V2.708ZM7.12225 11.244L11.3943 6.972C11.7303 6.636 11.7303 6.092 11.3943 5.756C11.0423 5.412 10.4903 5.444 10.1703 5.756L5.90625 10.028C5.57025 10.364 5.57025 10.908 5.90625 11.244C6.25825 11.588 6.81025 11.556 7.12225 11.244ZM6.51425 13.076L9.82625 9.756C10.1303 10.908 9.85025 12.172 8.95425 13.068L7.73825 14.292C7.09033 14.9376 6.21293 15.3002 5.29825 15.3002C4.38357 15.3002 3.50617 14.9376 2.85825 14.292C2.21262 13.6441 1.8501 12.7667 1.8501 11.852C1.8501 10.9373 2.21262 10.0599 2.85825 9.412L4.08225 8.196C4.97825 7.3 6.24225 7.02 7.39425 7.316L4.08225 10.636C3.40225 11.308 3.40225 12.396 4.08225 13.076C4.75425 13.748 5.84225 13.748 6.51425 13.076Z" fill="white"/>
                                                                                     </svg>
-                                                                                    <span style="margin-left: 6px"><?php echo esc_html(kjHelper()->tlThis('Connect Now',$locale)); ?></span>
+                                                                                    <span style="margin-left: 6px"><?php echo esc_html(kiriof_helper()->tlThis('Connect Now',$locale)); ?></span>
                                                                                 </div>
                                                                             </div>
                                                                         </button>
                                                                     </div>
                                                                     <div class="col pe-md-0 ps-md-1 px-xs-0">
                                                                         <div style="position: relative">
-                                                                            <button class="button-secondary btn-lg woocommerce-save-button" type="button"><?php echo esc_html( kjHelper()->tlThis('How to Connect',$locale) ); ?></button>
+                                                                            <button class="button-secondary btn-lg woocommerce-save-button" type="button"><?php echo esc_html( kiriof_helper()->tlThis('How to Connect',$locale) ); ?></button>
                                                                             <a class="kj-absolute-center" href="https://help.kiriminaja.com/article/setup-wordpress" target="_blank"></a>
                                                                         </div>
                                                                     </div>
@@ -146,7 +153,7 @@
 </div>
 
 <!--Integration-->
-<script type="text/javascript">
+<?php ob_start(); ?>
 
     /** Integration AJAX*/
     /*** Submit DATA*/
@@ -157,12 +164,12 @@
                 
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_store_integration_data",  // the action to fire in the server
+                action: "kiriof_store_integration_data",  // the action to fire in the server
                 data: {
                     setup_key:jQuery('#setup-form [name="setup_key"]').val(),
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"      
+                    nonce : kiriofAjax.nonce      
                 },         // any JS object
             },
             complete: function (response) {
@@ -181,4 +188,7 @@
         });
     });
 
-</script>
+<?php
+$kiriof_inline_script = ob_get_clean();
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+?>

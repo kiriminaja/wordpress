@@ -1,18 +1,14 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 
-class requestPickupIndex {
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Template class for request pickup functionality
+class Kiriof_RequestPickupIndex {
     function __construct(){
-        global $results;
-        global $page;
-        global $items_per_page;
-        global $total_pages;
-        global $next_page_link;
-        global $prev_page_link;
-        global $monthOptions;
-        global $locale;
-
-        /** WP Setting langguage*/
+        /** WP Setting language*/
         $locale = get_locale();
         
         /** Page Query*/
@@ -27,8 +23,21 @@ class requestPickupIndex {
 
         /** Month Options*/
         $monthOptions = self::getPaymentsDateFilterOptionArray();
-        (new \Inc\Base\BaseInit())->logThis('$monthOptions',[$monthOptions]);
-        
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$monthOptions',[$monthOptions]);
+
+        /**
+         * Status filter counts (powers the "All / Waiting for Payment / Paid"
+         * pill row in view/index.php). Always computed against the full table
+         * so the totals stay stable regardless of which pill is currently
+         * selected — same UX as WooCommerce's order list.
+         */
+        $kiriof_paymentRepo = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+        $kiriof_statusCounts = [
+            'all'    => $kiriof_paymentRepo->getCountByStatus( null ),
+            'unpaid' => $kiriof_paymentRepo->getCountByStatus( 'unpaid' ),
+            'paid'   => $kiriof_paymentRepo->getCountByStatus( 'paid' ),
+        ];
+
         /** Return vars and view*/
         include 'view/index.php';
     }
@@ -65,9 +74,11 @@ class requestPickupIndex {
             $whereConditions[] = $wpdb->prepare("kiriminaja_payments.status = %s", $status);
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Each condition is individually prepared above
         $whereCondition = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
 
         /** Main Query*/
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use prefix, whereCondition pre-prepared above
         $baseQuery = "SELECT 
             kiriminaja_payments.*, 
             SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
@@ -79,17 +90,17 @@ class requestPickupIndex {
             ORDER BY kiriminaja_payments.created_at DESC
             LIMIT %d, %d";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $results = $wpdb->get_results( 
             $wpdb->prepare($baseQuery, $offset, $items_per_page) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
         }
 
         /** Pagination Query*/
-        $countQuery = "SELECT 
+        $count_sql = "SELECT 
             kiriminaja_payments.id, kiriminaja_payments.pickup_number
             FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
             INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
@@ -97,23 +108,23 @@ class requestPickupIndex {
             " . $whereCondition . "
             GROUP BY kiriminaja_payments.pickup_number";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-        $totalQuery = $wpdb->get_results($countQuery); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query safe: whereCondition contains pre-prepared statements, no additional params needed
+        $totalQuery = $wpdb->get_results($count_sql);
         $total = count($totalQuery);
         $total_pages = ceil($total/$items_per_page);
 
         /** Paginate*/
-        $next_page_link = home_url() . '/wp-admin/admin.php?';
-        $prev_page_link = home_url() . '/wp-admin/admin.php?';
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $next_page_link = admin_url( 'admin.php?' );
+        $prev_page_link = admin_url( 'admin.php?' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Pagination link building from GET params
         foreach ($_GET as $key => $value){
             if ($key !== 'cpage'){
-                $next_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field($value)) . '&';
-                $prev_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field($value)) . '&';
+                $next_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field(wp_unslash($value))) . '&';
+                $prev_page_link .= sanitize_key($key) . '=' . urlencode(sanitize_text_field(wp_unslash($value))) . '&';
             }
         }
-        $next_page_link= $page+1<=$total_pages ? $next_page_link.'cpage='.$page+1 : '';
-        $prev_page_link= $page-1>0 ? $prev_page_link.'cpage='.$page-1 : '';
+        $next_page_link= $page+1<=$total_pages ? esc_url($next_page_link.'cpage='.($page+1)) : '';
+        $prev_page_link= $page-1>0 ? esc_url($prev_page_link.'cpage='.($page-1)) : '';
         
         return [
             'results'=>$results,
@@ -127,7 +138,7 @@ class requestPickupIndex {
     }
     
     private function getPaymentsDateFilterOptionArray(){
-        $oldestPaymentDateQuery = (new \Inc\Repositories\PaymentRepository())->getPaymentByOldestDate();
+        $oldestPaymentDateQuery = (new \KiriminAjaOfficial\Repositories\PaymentRepository())->getPaymentByOldestDate();
         $oldestMonth= gmdate('Y-m-d',strtotime($oldestPaymentDateQuery->created_at ?? "now"));
         $currentMonth = gmdate('Y-m-d',strtotime("now"));
         $d1=new DateTime($oldestMonth);
@@ -142,6 +153,6 @@ class requestPickupIndex {
         return $monthOptions;
     }
 }
-new requestPickupIndex();
+new Kiriof_RequestPickupIndex();
 
 ?>

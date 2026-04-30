@@ -23,20 +23,20 @@ if ( ! wc_coupons_enabled() ) { // @codingStandardsIgnoreLine.
 
 ?>
 <div class="woocommerce-form-coupon-toggle">
-	<?php wc_print_notice( apply_filters( 'woocommerce_checkout_coupon_message', esc_html__( 'Have a coupon?', 'kiriminaja' ) . ' <a href="#" class="showcoupon">' . esc_html__( 'Click here to enter your code', 'kiriminaja' ) . '</a>' ), 'notice' ); ?>
+	<?php wc_print_notice( apply_filters( 'woocommerce_checkout_coupon_message', esc_html__( 'Have a coupon?', 'kiriminaja-official' ) . ' <a href="#" class="showcoupon">' . esc_html__( 'Click here to enter your code', 'kiriminaja-official' ) . '</a>' ), 'notice' ); ?>
 </div>
 
 <form class="checkout_coupon woocommerce-form-coupon" method="post" style="display:none">
 
-	<p><?php esc_html_e( 'If you have a coupon code, please apply it below.', 'kiriminaja' ); ?></p>
+	<p><?php esc_html_e( 'If you have a coupon code, please apply it below.', 'kiriminaja-official' ); ?></p>
 
 	<p class="form-row form-row-first">
-		<label for="coupon_code" class="screen-reader-text"><?php esc_html_e( 'Coupon:', 'kiriminaja' ); ?></label>
-		<input type="text" name="coupon_code" class="input-text" placeholder="<?php esc_attr_e( 'Coupon code', 'kiriminaja' ); ?>" id="coupon_code" value="" />
+		<label for="coupon_code" class="screen-reader-text"><?php esc_html_e( 'Coupon:', 'kiriminaja-official' ); ?></label>
+		<input type="text" name="coupon_code" class="input-text" placeholder="<?php esc_attr_e( 'Coupon code', 'kiriminaja-official' ); ?>" id="coupon_code" value="" />
 	</p>
 
 	<p class="form-row form-row-last">
-		<button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'kiriminaja' ); ?>"><?php esc_html_e( 'Apply coupon', 'kiriminaja' ); ?></button>
+		<button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'kiriminaja-official' ); ?>"><?php esc_html_e( 'Apply coupon', 'kiriminaja-official' ); ?></button>
 	</p>
 
 	<div class="clear"></div>

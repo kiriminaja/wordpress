@@ -1,9 +1,13 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- All queries use wpdb::prepare() correctly, table names must be interpolated
 class TransactionRepository{
-
     public $table;
     private $wpdb;
     
@@ -19,7 +23,7 @@ class TransactionRepository{
      */
     private function hasError(){
         if (!empty($this->wpdb->last_error)) {
-            (new \Inc\Base\BaseInit())->logThis($this->wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($this->wpdb->last_error);
             return true;
         }
         return false;
@@ -32,21 +36,19 @@ class TransactionRepository{
         
         $count = count($orderIds);
         $placeholders = implode(',', array_fill(0, $count, '%s'));
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+                // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT * FROM {$this->table} WHERE order_id IN ({$placeholders})",
                 ...$orderIds
             )
         );
-
         return $this->hasError() ? false : $query;
     }
     
     public function getTransactionByOrderId($orderId){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row( 
             $this->wpdb->prepare(
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -59,7 +61,7 @@ class TransactionRepository{
     }
     
     public function getTransactionByWCOrderNumber($wp_wc_order_stat_order_id){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row(
             $this->wpdb->prepare(
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -72,24 +74,25 @@ class TransactionRepository{
     }
     
     public function getTransactionByWCOrderNumberForTracking($wp_wc_order_stat_order_id){
-        $prefix = $this->wpdb->prefix;
-        $transactionTable = $this->table;
-        $wcTransactionTable = $prefix . 'wc_order_stats';
-        $postTable = $prefix . 'posts';
-        
-        (new \Inc\Base\BaseInit())->logThis('$wp_wc_order_stat_order_id', [$wp_wc_order_stat_order_id]);
+        $wp_wc_order_stat_order_id = absint( $wp_wc_order_stat_order_id );
+        if ( 0 === $wp_wc_order_stat_order_id ) {
+            return false;
+        }
+
+        $transactions_table = esc_sql( $this->table );
+        $wc_stats_table     = esc_sql( $this->wpdb->prefix . 'wc_order_stats' );
+        $posts_table        = esc_sql( $this->wpdb->posts );
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $this->wpdb->get_row(
             $this->wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT 
                     t.*, 
                     w.date_paid as wc_date_paid,
                     p.post_status as wc_post_status
-                FROM {$transactionTable} t
-                INNER JOIN {$wcTransactionTable} w ON t.wp_wc_order_stat_order_id = w.order_id
-                INNER JOIN {$postTable} p ON w.order_id = p.ID
+                FROM {$transactions_table} t
+                INNER JOIN {$wc_stats_table} w ON t.wp_wc_order_stat_order_id = w.order_id
+                INNER JOIN {$posts_table} p ON w.order_id = p.ID
                 WHERE t.wp_wc_order_stat_order_id = %d AND p.post_status != %s
                 GROUP BY t.wp_wc_order_stat_order_id",
                 $wp_wc_order_stat_order_id,
@@ -99,9 +102,8 @@ class TransactionRepository{
         
         return $this->hasError() ? false : $query;
     }
-
     public function getTransactionByAWBforTracking($awb){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $get_wc_orderid = $this->wpdb->get_row( 
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -110,16 +112,14 @@ class TransactionRepository{
                 '%' . $this->wpdb->esc_like($awb) . '%'
             )
         );
-
         if ($this->hasError() || !$get_wc_orderid) {
             return false;
         }
-
         return $this->getTransactionByWCOrderNumberForTracking($get_wc_orderid->wp_wc_order_stat_order_id);
     }
     
     public function getTransactionByPickupNumber($pickupNumber){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_results( 
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -145,9 +145,8 @@ class TransactionRepository{
     public function getTransactionDataByPickupNumber($pickupNumber){
         return $this->getTransactionByPickupNumber($pickupNumber);
     }
-
     public function getTransactionByWCOrderId($WCOrderId){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row( 
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -160,7 +159,7 @@ class TransactionRepository{
     }
     
     public function createTransaction($payload){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $this->wpdb->query(
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -208,10 +207,8 @@ class TransactionRepository{
                 $payload['discount_percentage'] ?? null
             )
         );
-
         return !$this->hasError();
     }
-
     public function getTransactionByOldestDate(){
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $this->wpdb->get_row(
@@ -220,7 +217,6 @@ class TransactionRepository{
         
         return $this->hasError() ? false : $query;
     }
-
     public function getTransactionByOrderIdsForResiPrint($orderIds){
         if (empty($orderIds)) {
             return [];
@@ -229,11 +225,10 @@ class TransactionRepository{
         $prefix = $this->wpdb->prefix;
         $count = count($orderIds);
         $placeholders = implode(', ', array_fill(0, $count, '%d'));
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_results( 
             $this->wpdb->prepare(
-                //phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+                //phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "SELECT 
                     t.*,
                     p.post_excerpt as checkout_note,
@@ -249,33 +244,61 @@ class TransactionRepository{
          
         return $this->hasError() ? false : $query;
     }
-
     /**
      * @deprecated Typo in method name, use getTransactionByOrderIds instead
      */
     public function getTransctionByOrderIds($orderIds){
         return $this->getTransactionByOrderIds($orderIds);
     }
-
     public function getCountTransactionProcessNew(){
-        $prefix = $this->wpdb->prefix;
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $query = $this->wpdb->get_var(
-            $this->wpdb->prepare(
-                //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT COUNT(*) 
-                FROM {$this->table} t 
-                INNER JOIN {$prefix}posts p ON p.ID = t.wp_wc_order_stat_order_id
-                WHERE t.status = %s AND p.post_status = %s",
-                'new',
-                'wc-processing'
-            ) 
-        );
-        
-        return $this->hasError() ? false : (int) $query;
+        return $this->getCountByPostStatus( 'wc-processing' );
     }
 
+    /**
+     * Distinct order count for the Transactions list, restricted to rows
+     * with `kiriminaja_transactions.status = 'new'` (i.e. not yet picked
+     * up). Pass null/empty/'all' to count every status — used by the "All"
+     * pill on the Transactions page so the badge stays in sync with the
+     * rendered rows.
+     */
+    public function getCountByPostStatus( $postStatus ){
+        $prefix = $this->wpdb->prefix;
+
+        if ( null === $postStatus || '' === $postStatus || 'all' === $postStatus ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+            $query = $this->wpdb->get_var(
+                $this->wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT COUNT(DISTINCT p.ID)
+                    FROM {$prefix}posts p
+                    INNER JOIN {$this->table} t
+                        ON p.ID = t.wp_wc_order_stat_order_id
+                    WHERE p.post_type = %s
+                        AND p.post_status NOT IN ('trash','auto-draft')
+                        AND t.status = %s",
+                    'shop_order',
+                    'new'
+                )
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+            $query = $this->wpdb->get_var(
+                $this->wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT COUNT(DISTINCT p.ID)
+                    FROM {$prefix}posts p
+                    INNER JOIN {$this->table} t
+                        ON p.ID = t.wp_wc_order_stat_order_id
+                    WHERE p.post_status = %s
+                        AND t.status = %s",
+                    $postStatus,
+                    'new'
+                )
+            );
+        }
+
+        return $this->hasError() ? 0 : (int) $query;
+    }
     public function updateTransaction($payload){
         $updateData = [
             'destination_sub_district_id' => $payload['destination_sub_district_id'],
@@ -299,7 +322,6 @@ class TransactionRepository{
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $this->wpdb->update($this->table, $updateData, $where);
-
         return !$this->hasError();
     }
 }

@@ -1,30 +1,35 @@
 <?php
-namespace Inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
 
-use Inc\Services\TransactionProcessServices\SendRequestPickupTransactionService;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
+use KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService;
 class TransactionProcessController{
-
     public function register(){
         /** getPaymentForm */
-        add_action('wp_ajax_kj_request_pickup_schedule', array($this,'getRequestPickupSchedule'));
-        add_action('wp_ajax_kj_request_pickup_transaction', array($this,'sendRequestPickupTransaction'));
-        add_action('wp_ajax_kj_transaction-detail-summary', array($this,'getTransactionDetailSummary'));
+        add_action('wp_ajax_kiriof_request_pickup_schedule', array($this,'getRequestPickupSchedule'));
+        add_action('wp_ajax_kiriof_request_pickup_transaction', array($this,'sendRequestPickupTransaction'));
+        add_action('wp_ajax_kiriof_transaction-detail-summary', array($this,'getTransactionDetailSummary'));
     }
     
     public function getRequestPickupSchedule(){
-        // Check for nonce security      
-        if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
-            wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
             wp_die();
         }
-
+        // Check for nonce security - fail early
+        if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+            wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+            wp_die();
+        }
         $order_ids = ( isset($_POST['data']['order_ids']) && !empty($_POST['data']['order_ids']) 
             ? array_map('sanitize_text_field', wp_unslash($_POST['data']['order_ids']) ) 
             : [] 
         );
-
-        $service = (new \Inc\Services\TransactionProcessServices\GetRequestPickupScheduleService())
+        $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService())
             ->orderIds($order_ids)
             ->call();
         wp_send_json_success($service);
@@ -32,28 +37,27 @@ class TransactionProcessController{
     
     public function sendRequestPickupTransaction(){
         try {
-
-            // Check for nonce security      
-            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
-                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
-
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
             $order_ids = ( isset($_POST['data']['order_ids']) && !empty($_POST['data']['order_ids']) 
                 ? array_map('sanitize_text_field', wp_unslash($_POST['data']['order_ids']) ) 
                 : [] 
             );
-
             $schedule = ( isset($_POST['data']['schedule']) && !empty($_POST['data']['schedule']) 
                 ? sanitize_text_field( wp_unslash( $_POST['data']['schedule'] ))  
                 : '' 
             );
-
-            $service = (new \Inc\Services\TransactionProcessServices\SendRequestPickupTransactionService())
+            $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService())
                 ->orderIds( $order_ids )
                 ->schedule( $schedule )
                 ->call();
-
             wp_send_json_success($service);
         }catch (\Throwable $th){
             wp_send_json_success([
@@ -67,18 +71,20 @@ class TransactionProcessController{
     
     public function getTransactionDetailSummary(){
         try {
-            // Check for nonce security      
-            if ( isset($_POST['data']['nonce']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['data']['nonce'])), KJ_NONCE ) ) {
-                wp_send_json_error(['status'=>400,'message'=>wc_add_notice('Security Check Kiriminaja', "error")]);
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            // Check for nonce security - fail early
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
             
             $wc_order_id = isset($_POST['data']['wc_order_id']) ? sanitize_text_field( wp_unslash($_POST['data']['wc_order_id']) ) : '';
-
-            $service = (new \Inc\Services\TransactionProcessServices\GetTransactionDetailSummary())
+            $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\GetTransactionDetailSummary())
                 ->wcOrderId($wc_order_id)
                 ->call();
-
             wp_send_json_success($service);
             
         }catch (\Throwable $th){
@@ -87,6 +93,5 @@ class TransactionProcessController{
                 'message'   => $th->getMessage(),
             ]);
         }
-    }
-    
+    }   
 }

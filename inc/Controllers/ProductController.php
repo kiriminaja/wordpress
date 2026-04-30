@@ -1,5 +1,10 @@
 <?php 
-namespace inc\Controllers;
+namespace KiriminAjaOfficial\Controllers;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class ProductController{
     
@@ -11,99 +16,96 @@ class ProductController{
         /**
          * General product Tab Custom Field
          */
-        add_action( 'woocommerce_product_options_general_product_data', [$this,'kj_custom_field_shipping_product'] ); 
+        add_action( 'woocommerce_product_options_general_product_data', [$this,'kiriof_custom_field_shipping_product'] ); 
         
         /**
          * save product custom field
          */ 
-        add_action( 'woocommerce_process_product_meta', [$this,'kj_save_product_custom_fields'] );
+        add_action( 'woocommerce_process_product_meta', [$this,'kiriof_save_product_custom_fields'] );
         
-        add_action('woocommerce_product_options_general_product_data', array($this,'kj_editproduct_nonce') );
+        add_action('woocommerce_product_options_general_product_data', array($this,'kiriof_editproduct_nonce') );
 
     }
 
-    public function kj_custom_field_shipping_product(){
+    public function kiriof_custom_field_shipping_product(){
         global $post;
-        include_once KJ_DIR .'templates/product/general-wc-tab-setting.php'; 
+        include_once KIRIOF_DIR .'templates/product/general-wc-tab-setting.php'; 
     }
 
-    public function kj_editproduct_nonce() {
-        wp_nonce_field(KJ_NONCE, 'kj_product_nonce_field');
+    public function kiriof_editproduct_nonce() {
+        wp_nonce_field( KIRIOF_NONCE, 'kiriof_product_nonce_field' );
     }
 
-    public function kj_save_product_custom_fields($post_id){
-       
-        // Check for nonce security      
-        if ( isset($_POST['kj_product_nonce_field']) && ! wp_verify_nonce(  sanitize_text_field( wp_unslash($_POST['kj_product_nonce_field'])), KJ_NONCE ) ) {
-            return; // Exit if nonce is not valid
+    public function kiriof_save_product_custom_fields($post_id){
+
+        // Check for nonce security - fail early if missing or invalid.
+        if ( ! isset( $_POST['kiriof_product_nonce_field'] )
+            || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kiriof_product_nonce_field'] ) ), KIRIOF_NONCE )
+        ) {
+            return;
         }
 
-        // Sanitize and assign values from $_POST to $_POST['weight'], etc.
-        if (empty($_POST['_weight'])) {
-            $_POST['_weight'] = isset($_POST['_kj_weight']) ? sanitize_text_field( wp_unslash($_POST['_kj_weight'] )) : '';
+        // Capability check — only users who can edit this product may save its meta.
+        if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+            return;
         }
-
-        if (empty($_POST['_length'])) {
-            $_POST['_length'] = isset($_POST['_kj_length']) ? sanitize_text_field(wp_unslash( $_POST['_kj_length'])) : '';
-        }
-
-        if (empty($_POST['_width'])) {
-            $_POST['_width'] = isset($_POST['_kj_width']) ? sanitize_text_field(wp_unslash($_POST['_kj_width'])) : '';
-        }
-
-        if (empty($_POST['_height'])) {
-            $_POST['_height'] = isset($_POST['_kj_height']) ? sanitize_text_field(wp_unslash($_POST['_kj_height'])) : '';
-        }
-
 
         /**
-         * value is exist value
-         * _weight
-         * _length
-         * _width
-         * _height
+         * Read a numeric dimension/weight value from $_POST as a non-negative float string.
+         * Returns an empty string when the field is missing or not numeric.
          */
-        // Sanitize and unslash inputs before saving
-        if (isset($_POST['_kj_weight'])) {
-            $_POST['_kj_weight'] = wp_unslash($_POST['_kj_weight']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $_POST['_weight'] = sanitize_text_field($_POST['_kj_weight']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $kiriof_read_numeric = static function ( $field_key ) {
+            // Nonce verified above in kiriof_save_product_custom_fields().
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            if ( ! isset( $_POST[ $field_key ] ) ) {
+                return '';
+            }
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $raw = sanitize_text_field( wp_unslash( $_POST[ $field_key ] ) );
+            // Allow only digits, dot, comma and optional leading minus before normalising.
+            $raw = preg_replace( '/[^0-9.,\-]/', '', $raw );
+            if ( '' === $raw || ! is_numeric( str_replace( ',', '.', $raw ) ) ) {
+                return '';
+            }
+            $value = (float) str_replace( ',', '.', $raw );
+            if ( $value < 0 ) {
+                return '';
+            }
+            return (string) $value;
+        };
 
+        $kiriof_weight = $kiriof_read_numeric( '_kiriof_weight' );
+        $kiriof_length = $kiriof_read_numeric( '_kiriof_length' );
+        $kiriof_width  = $kiriof_read_numeric( '_kiriof_width' );
+        $kiriof_height = $kiriof_read_numeric( '_kiriof_height' );
+
+        // Fall back to WooCommerce's own _weight/_length/_width/_height fields when the
+        // KiriminAja-specific fields were not submitted.
+        if ( '' === $kiriof_weight ) {
+            $kiriof_weight = $kiriof_read_numeric( '_weight' );
+        }
+        if ( '' === $kiriof_length ) {
+            $kiriof_length = $kiriof_read_numeric( '_length' );
+        }
+        if ( '' === $kiriof_width ) {
+            $kiriof_width = $kiriof_read_numeric( '_width' );
+        }
+        if ( '' === $kiriof_height ) {
+            $kiriof_height = $kiriof_read_numeric( '_height' );
         }
 
-        if (isset($_POST['_kj_length'])) {
-            $_POST['_kj_length'] = wp_unslash($_POST['_kj_length']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $_POST['_length'] = sanitize_text_field($_POST['_kj_length']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-
+        if ( '' !== $kiriof_weight ) {
+            update_post_meta( $post_id, '_weight', $kiriof_weight );
         }
-
-        if (isset($_POST['_kj_width'])) {
-            $_POST['_kj_width'] = wp_unslash($_POST['_kj_width']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $_POST['_width'] = sanitize_text_field($_POST['_kj_width']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-
+        if ( '' !== $kiriof_length ) {
+            update_post_meta( $post_id, '_length', $kiriof_length );
         }
-
-        if (isset($_POST['_kj_height'])) {
-            $_POST['_kj_height'] = wp_unslash($_POST['_kj_height']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $_POST['_height'] = sanitize_text_field($_POST['_kj_height']); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-
+        if ( '' !== $kiriof_width ) {
+            update_post_meta( $post_id, '_width', $kiriof_width );
         }
-
-        // Update Post Meta if the values are not empty
-        if (!empty($_POST['_weight'])) {
-            update_post_meta($post_id, '_weight', sanitize_text_field( wp_unslash( $_POST['_weight'] )) );
+        if ( '' !== $kiriof_height ) {
+            update_post_meta( $post_id, '_height', $kiriof_height );
         }
-
-        if (!empty($_POST['_length'])) {
-            update_post_meta($post_id, '_length', sanitize_text_field( wp_unslash( $_POST['_length'])) );
-        }
-
-        if (!empty($_POST['_width'])) {
-            update_post_meta($post_id, '_width', sanitize_text_field( wp_unslash( $_POST['_width'])) );
-        }
-
-        if (!empty($_POST['_height'])) {
-            update_post_meta($post_id, '_height', sanitize_text_field( wp_unslash( $_POST['_height'])) );
-        }
-    }   
+    }
 
 }

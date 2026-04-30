@@ -1,9 +1,16 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="wrap kj-wrap">
+
     <div id="root">
         <div class="woocommerce-layout">
             <div class="woocommerce-layout__header is-scrolled">
                 <div class="woocommerce-layout__header-wrapper">
-                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html( kjHelper()->tlThis('KiriminAja Configuration',$locale) ); ?></h1>
+                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html( kiriof_helper()->tlThis('KiriminAja Configuration',$locale) ); ?></h1>
                 </div>
             </div>
             <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
@@ -16,7 +23,7 @@
                             <div>
                                 <!-- check jika sudah install woocommerce-->
                                 <?php
-                                if (!KJ_CHECK_WOOCOMMERCE() || kjHelper()->devForceTrue()){
+                                if (!kiriof_check_woocommerce() || kiriof_helper()->devForceTrue()){
                                     echo '
                                     <div style="padding-left: 5px; background-color: #7d3eb9; margin-bottom: .5rem">
                                     <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
@@ -28,11 +35,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    '.esc_html( kjHelper()->tlThis('WooCommerce is not yet installed or activated',$locale)).'                                       
+                                                    '.esc_html( kiriof_helper()->tlThis('WooCommerce is not yet installed or activated',$locale)).'                                       
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    '.esc_html( kjHelper()->tlThis('This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features',$locale)).'
+                                                    '.esc_html( kiriof_helper()->tlThis('This plugin only support WooCommerce features. Please install and activate Woocommerce to fully use this plugin features',$locale)).'
                                                 </div>
                                             </div>
                                         </div>
@@ -44,7 +51,7 @@
                                 
                                 <!--Check jika sudah setting origin data-->
                                 <?php 
-                                if (@$isOriginShippingDataReady || kjHelper()->devForceTrue()){
+                                if ( ! empty( $isOriginShippingDataReady ) || kiriof_helper()->devForceTrue() ){
                                     echo '
                                     <div style="padding-left: 5px; background-color: #00a32a">
                                         <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
@@ -56,11 +63,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    '.esc_html( kjHelper()->tlThis('All Setup',$locale) ).'!
+                                                    '.esc_html( kiriof_helper()->tlThis('All Setup',$locale) ).'!
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    '.esc_html( kjHelper()->tlThis('Now you’re connected with KiriminAja',$locale) ).'
+                                                    '.esc_html( kiriof_helper()->tlThis('Now you’re connected with KiriminAja',$locale) ).'
                                                 </div>
                                             </div>
                                         </div>
@@ -79,11 +86,11 @@
                                             </div>
                                             <div style="margin-left: 8px">
                                                 <div style="font-weight: 600; font-size: 16px;">
-                                                    '.esc_html( kjHelper()->tlThis('Fill The Shipment Address',$locale) ).'
+                                                    '.esc_html( kiriof_helper()->tlThis('Fill The Shipment Address',$locale) ).'
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div style="font-weight: 500;">
-                                                    '.esc_html( kjHelper()->tlThis('Complete shipping information to enable pricing API',$locale) ).'
+                                                    '.esc_html( kiriof_helper()->tlThis('Complete shipping information to enable pricing API',$locale) ).'
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div>
@@ -101,7 +108,7 @@
                                                                     </defs>
                                                                 </svg>
 
-                                                                <span style="margin-left: 6px">'.esc_html( kjHelper()->tlThis('Set Address',$locale) ).'</span>
+                                                                <span style="margin-left: 6px">'.esc_html( kiriof_helper()->tlThis('Set Address',$locale) ).'</span>
                                                             </div>
                                                         </div>
                                                     </button>
@@ -117,11 +124,11 @@
                                 <div class="row-divider"></div>
                                 <!--NAVBAR-->
                                 <nav style="margin-top: 1rem;margin-bottom: 1.5rem" class="nav-tab-wrapper woo-nav-tab-wrapper">
-                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo esc_html( kjHelper()->tlThis('Integration',$locale) ); ?></a>
+                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo esc_html( kiriof_helper()->tlThis('Integration',$locale) ); ?></a>
                                     <?php
-                                    if (@$approvedSetupKey->value){
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.esc_html( kjHelper()->tlThis('Shipping',$locale) ).'</a>';
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.esc_html( kjHelper()->tlThis('Advanced',$locale) ).'</a>';
+                                    if ( ! empty( $approvedSetupKey->value ?? null ) ){
+                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.esc_html( kiriof_helper()->tlThis('Shipping',$locale) ).'</a>';
+                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.esc_html( kiriof_helper()->tlThis('Advanced',$locale) ).'</a>';
                                     }
                                     ?>
                                 </nav>
@@ -141,7 +148,7 @@
                                     </div>
                                 </div>
                                 <div class="row-divider"></div>
-                                <p style="font-weight: 500">KiriminAja Plugin v.<?php echo wp_kses_post( KJ_VERSION_PLUGIN ); ?></p>
+                                <?php include __DIR__ . '/../../partials/footer.php'; ?>
                             </div>
                         </div>
                     </div>
@@ -156,35 +163,32 @@
     
 
 
-<script type="text/javascript">
-    var map;
-    var ajaxRequest;
-    var plotlist;
-    var plotlayers=[];
-
-    // Init Open Street Maps
-    function initmap() {
-        
-        // set up the map
-        map = new L.Map('map');
-        var osmUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        var osmAttrib='Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors';
-        var osm = new L.TileLayer(osmUrl, {minZoom: 2, maxZoom: 19, attribution: osmAttrib});
-        map.setView(new L.LatLng(48.420296, 9.964151),15);
-        map.addLayer(osm);
-
-        var marker = L.marker([48.420296, 9.964151]).addTo(map);
-        marker.bindPopup("<b>Botanischer Garten</b><br>is here").openPopup();
-    }
+<?php ob_start(); ?>
 
 
     /** Page Content Util*/
     function toggleThis(elem,menu){
         window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+menu
     }
+
+    /**
+     * Heartbeat nonce auto-refresh.
+     * On every heartbeat tick we ask the server for a fresh KIRIOF_NONCE
+     * and write it back into kiriofAjax.nonce so every subsequent AJAX call
+     * uses the up-to-date value. This keeps the page functional even when
+     * left open longer than the default 24-hour nonce TTL.
+     */
+    jQuery(document).on('heartbeat-send', function(e, data){
+        data.kiriof_nonce_check = true;
+    });
+    jQuery(document).on('heartbeat-tick', function(e, data){
+        if (data.kiriof_new_nonce){
+            kiriofAjax.nonce = data.kiriof_new_nonce;
+        }
+    });
     
     function getTabData(){
-        var menu = '<?php echo esc_html($activeTab);?>'
+        var menu = '<?php echo esc_js($activeTab);?>'
         
         jQuery('.nav-tab').removeClass("nav-tab-active")
         jQuery(`.nav-tab.${menu}`).addClass("nav-tab-active");
@@ -217,39 +221,214 @@
         jQuery(`.${menuClass} .kj-form .kj-alert`).removeClass('kj-hidden')
     }
 
+    /**
+     * Defensive parser for our admin-ajax responses. Servers can return a
+     * non-JSON body when PHP fatals or a gateway intercepts the request,
+     * which used to leave the loader spinning forever. Always returns an
+     * object shaped like { status, message } so callers can render it.
+     */
+    window.kiriofParseAjaxResponse = function(response){
+        try {
+            const parsed = JSON.parse(response.responseText);
+            // wp_send_json_{success,error} both wrap payload under .data
+            const payload = (parsed && typeof parsed === 'object' && 'data' in parsed) ? parsed.data : parsed;
+            if (payload && typeof payload === 'object'){
+                return payload;
+            }
+            return { status: 0, message: 'Unexpected server response.' };
+        } catch (err) {
+            return { status: 0, message: 'Server returned an invalid response. Please try again.' };
+        }
+    }
 
-</script>
+    /**
+     * Re-fetch the saved webhook URL after a successful save so the input
+     * reflects what was actually persisted (server may normalize/strip).
+     * Defined as a no-op fallback when the dedicated endpoint isn't wired
+     * up on this build — preventing the ReferenceError that previously
+     * swallowed the success alert.
+     */
+    window.fetchCallbackData = window.fetchCallbackData || function(){
+        jQuery.ajax({
+            type: 'post',
+            url: kiriofAjaxRoute(),
+            data: {
+                action: 'kiriof_get_call_back_data',
+                data: { nonce: kiriofAjax.nonce }
+            },
+            complete: function(response){
+                const resp = kiriofParseAjaxResponse(response);
+                if (resp && resp.status === 200 && resp.data && typeof resp.data.callback_url !== 'undefined'){
+                    jQuery('.tab-advanced [name="callback_url"]').val(resp.data.callback_url);
+                }
+            },
+            error: function(){ /* silent — this is just a refresh */ }
+        });
+    };
+
+    /**
+     * Leaflet map picker for store origin coordinates.
+     * A fixed crosshair pin stays at the centre of the map; the user
+     * pans/zooms the map and the hidden lat/long inputs update
+     * automatically to the map's centre position.
+     */
+    /**
+     * Leaflet map picker — lazy-initialised.
+     * The map lives inside the Shipping tab which starts hidden (kj-hidden).
+     * If we call L.map() while the container has zero dimensions, tiles
+     * render as grey. We therefore wait until the container is actually
+     * visible before initialising.
+     */
+    jQuery(function($){
+        if (typeof L === 'undefined' || !document.getElementById('kiriof-origin-map')) return;
+
+        var mapInitialised = false;
+
+        function initMap() {
+            if (mapInitialised) return;
+            var $container = $('#kiriof-origin-map');
+            // Container must be visible and have dimensions
+            if (!$container.is(':visible') || $container.width() === 0) return;
+            mapInitialised = true;
+
+            var $lat = $('[name="origin_latitude"]');
+            var $lng = $('[name="origin_longitude"]');
+            var $coords = $('#kiriof-map-coords');
+            var $error = $('#kiriof-map-error');
+            var defaultLat = parseFloat($lat.val()) || -6.2088;
+            var defaultLng = parseFloat($lng.val()) || 106.8456;
+
+            var map = L.map('kiriof-origin-map').setView([defaultLat, defaultLng], 15);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            // Force a re-measure after first paint to clear any residual grey
+            setTimeout(function(){ map.invalidateSize(); }, 200);
+
+            function showError(msg) {
+                $error.text(msg).show();
+                setTimeout(function(){ $error.fadeOut(); }, 5000);
+            }
+
+            function updateInputs(lat, lng) {
+                if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    showError('Invalid coordinates. Please reposition the map.');
+                    return;
+                }
+                $lat.val(lat.toFixed(7));
+                $lng.val(lng.toFixed(7));
+                $coords.text(lat.toFixed(7) + ', ' + lng.toFixed(7));
+                $error.hide();
+            }
+
+            map.on('moveend', function() {
+                var center = map.getCenter();
+                updateInputs(center.lat, center.lng);
+            });
+
+            updateInputs(defaultLat, defaultLng);
+
+            $('#kiriof-use-my-location').on('click', function() {
+                var $btn = $(this);
+                $error.hide();
+
+                if (!navigator.geolocation) {
+                    showError('Geolocation is not supported by your browser.');
+                    return;
+                }
+
+                $btn.prop('disabled', true).css('opacity', '0.6');
+
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        map.setView([lat, lng], 17);
+                        $btn.prop('disabled', false).css('opacity', '1');
+                    },
+                    function(err) {
+                        $btn.prop('disabled', false).css('opacity', '1');
+                        switch (err.code) {
+                            case err.PERMISSION_DENIED:
+                                showError('Location permission denied. Please allow location access in your browser settings.');
+                                break;
+                            case err.POSITION_UNAVAILABLE:
+                                showError('Location information is unavailable.');
+                                break;
+                            case err.TIMEOUT:
+                                showError('Location request timed out. Please try again.');
+                                break;
+                            default:
+                                showError('Unable to retrieve your location.');
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        // Defer so initMap() runs after getTabData() has shown the active tab
+        setTimeout(initMap, 300);
+
+        // Also try whenever a tab is clicked (covers client-side tab toggling)
+        $(document).on('click', '.nav-tab', function(){
+            setTimeout(initMap, 150);
+        });
+    });
+
+
+<?php
+$kiriof_inline_script = ob_get_clean();
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+?>
 <!--Integration-->
-<script type="text/javascript">
+<?php ob_start(); ?>
 
     /** Integration AJAX*/
     /*** Submit DATA*/
     jQuery('body').on('click', '.kj-disconnect', function(e) {
+        // Disconnecting wipes the integration credentials and forces the
+        // merchant back through the setup-key flow, so guard against an
+        // accidental click before firing the request.
+        if (!window.confirm('Disconnect KiriminAja integration? You will need to re-enter your setup key to reconnect.')){
+            return;
+        }
         menuFormLoaderInit('tab-integration',true)
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_disconnect_integration",  // the action to fire in the server
-                data: {},         // any JS object
+                action: "kiriof_disconnect_integration",  // the action to fire in the server
+                data: {
+                    nonce: kiriofAjax.nonce
+                },         // any JS object
+            },
+            error: function(){
+                menuFormLoaderInit('tab-integration',false)
+                formAlertToggler('tab-integration',true,'Error','Network error. Please try again.','')
             },
             complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
-                if (resp?.status === 200){
+                const resp = kiriofParseAjaxResponse(response);
+                if (resp && resp.status === 200){
                     window.location.reload()
                     return
                 }
                 menuFormLoaderInit('tab-integration',false)
-                menuFormLoaderInit('tab-advanced',false)
-                formAlertToggler('tab-integration',true,'Error',resp.message,'')
-                formAlertToggler('tab-advanced',true,'Error',resp.message,'')
+                const message = (resp && resp.message) ? resp.message : 'Disconnect failed. Please try again.';
+                formAlertToggler('tab-integration',true,'Error',message,'')
             },
         });
     });
 
-</script>
+<?php
+$kiriof_inline_script = ob_get_clean();
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+?>
 <!--Origin Setup-->
-<script type="text/javascript">
+<?php ob_start(); ?>
     /** Origin AJAX*/
     /*** Origin Ajax*/
     const areaSelectName = 'origin_sub_district_id';
@@ -272,17 +451,17 @@
        
             areaSelectElem.select2({
                 minimumInputLength: 3,
-                placeholder: "<?php echo  esc_html( kjHelper()->tlThis('Select Option',$locale) ); ?>",
+                placeholder: "<?php echo esc_js( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
                 allowClear: true,
                 ajax: {
-                    url: ajaxRouteGenerator(),
+                    url: kiriofAjaxRoute(),
                     dataType: 'json',
                     type: "POST",
                     delay: 250,
                     data: function (search) {
                         return {
                             data:search,
-                            nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>",
+                            nonce : kiriofAjax.nonce,
                             action: 'kiriminaja_subdistrict_search'
                         };
                     },
@@ -304,10 +483,10 @@
     function searchExpedition(){
        
        jQuery('.tab-shipping [name="origin_whitelist_expedition[]"]').select2({
-           placeholder: "<?php echo  esc_html( kjHelper()->tlThis('Select Option',$locale) ); ?>",
+           placeholder: "<?php echo esc_js( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
            allowClear: true,
            ajax: {
-               url: ajaxRouteGenerator(),
+               url: kiriofAjaxRoute(),
                dataType: 'json',
                type: "POST",
                delay: 250,
@@ -315,7 +494,7 @@
                    return {
                        data:search,
                        action: 'kiriminaja_search_expedition',
-                       nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"
+                       nonce : kiriofAjax.nonce
                    };
                },
                processResults: function (response) {
@@ -339,11 +518,11 @@
         formAlertToggler('tab-shipping',false)
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_store_origin_data",  // the action to fire in the server
+                action: "kiriof_store_origin_data",  // the action to fire in the server
                 data: {
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>",      
+                    nonce : kiriofAjax.nonce,      
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
                     origin_phone:jQuery('.tab-shipping [name="origin_phone"]').val(),
                     origin_address:jQuery('.tab-shipping [name="origin_address"]').val(),
@@ -356,52 +535,67 @@
                     origin_whitelist_expedition_name: jQuery('.tab-shipping .origin_whitelist_expedition').select2('data').map(function(elem){ return elem.text }),
                 },         // any JS object
             },
+            error: function(){
+                menuFormLoaderInit('tab-shipping',false)
+                formAlertToggler('tab-shipping',true,'Error','Network error. Please try again.','')
+            },
             complete: function (response) {
-                
-                const resp = JSON.parse(response.responseText).data;
-                
-                if (resp?.status === 200){
+                const resp = kiriofParseAjaxResponse(response);
+
+                if (resp && resp.status === 200){
                     window.location.reload()
                     return
                 }
 
                 menuFormLoaderInit('tab-shipping',false)
-                formAlertToggler('tab-shipping',true,'Error',resp.message,'')
-
-
+                const message = (resp && resp.message) ? resp.message : 'Save failed. Please try again.';
+                formAlertToggler('tab-shipping',true,'Error',message,'')
             },
         });
     })
 
-</script>
+<?php
+$kiriof_inline_script = ob_get_clean();
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+?>
 <!--Callback Setup-->
-<script type="text/javascript">
+<?php ob_start(); ?>
     /*** Submit DATA*/
     jQuery('body').on('click', '.tab-advanced .kj-submit-btn', function(e) {
         menuFormLoaderInit('tab-advanced', true)
 
         jQuery.ajax({
             type: "post",
-            url: ajaxRouteGenerator(),
+            url: kiriofAjaxRoute(),
             data: {
-                action: "kj_store_call_back_data",  // the action to fire in the server
+                action: "kiriof_store_call_back_data",  // the action to fire in the server
                 data: {
                     callback_url:jQuery('.tab-advanced [name="callback_url"]').val(),
-                    nonce : "<?php echo esc_js(wp_create_nonce(KJ_NONCE)); ?>"      
+                    nonce : kiriofAjax.nonce      
                 },         // any JS object
             },
+            error: function(){
+                menuFormLoaderInit('tab-advanced',false)
+                formAlertToggler('tab-advanced',true,'Error','Network error. Please try again.','')
+            },
             complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
+                const resp = kiriofParseAjaxResponse(response);
 
                 menuFormLoaderInit('tab-advanced',false)
-                if (resp?.status === 200){
-                    formAlertToggler('tab-advanced',true,'Success',resp.message,'success')
-                    fetchCallbackData()
+                if (resp && resp.status === 200){
+                    const successMsg = resp.message || 'Saved.';
+                    formAlertToggler('tab-advanced',true,'Success',successMsg,'success')
+                    if (typeof window.fetchCallbackData === 'function'){
+                        try { window.fetchCallbackData(); } catch (err) { /* non-fatal */ }
+                    }
                     return
                 }
-                formAlertToggler('tab-advanced',true,'Error',resp.message,'')
-
+                const message = (resp && resp.message) ? resp.message : 'Save failed. Please try again.';
+                formAlertToggler('tab-advanced',true,'Error',message,'')
             },
         });
     })
-</script>
+<?php
+$kiriof_inline_script = ob_get_clean();
+wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+?>

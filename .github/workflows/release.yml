@@ -1,16 +1,16 @@
 name: Publish
 
 on:
-  release:
-    types: ['published']
   push:
     tags:
-      - '*'
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    if: '!github.event.release.prerelease'
-    name: 'Build & Push'
+    name: "Build & Push"
     runs-on: ubuntu-latest
 
     defaults:
@@ -19,18 +19,33 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
 
       - name: Get current time
         id: date
-        run: echo "::set-output name=date::$(TZ="Asia/Jakarta" date +'%Y-%m-%d %H:%I')"
+        run: echo "date=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %H:%M')" >> "$GITHUB_OUTPUT"
 
-      - name: Archive release
-        uses: thedoctor0/zip-release@0.7.5
-        with:
-          type: 'zip'
-          filename: kiriminaja-${{ github.ref_name }}.zip
-          exclusions: '*.git* *.github* /*node_modules/* .editorconfig .gitattributes'
+      - name: Resolve version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          VERSION="${VERSION%-legacy}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build ZIP (legacy variant — includes UpdaterController)
+        run: make zip-legacy
+
+      - name: Build ZIP (official variant — WP.org-ready, strips UpdaterController)
+        run: make zip
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
@@ -41,37 +56,45 @@ jobs:
         id: upload-zip
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: kiriminaja-${{ github.ref_name }}.zip
+          path: kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"
+
+      - name: Uploading ZIP (official)
+        id: upload-zip-official
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: kiriminaja-official-${{ steps.version.outputs.version }}.zip
+          destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
+          predefinedAcl: "publicRead"
 
       - name: Initiate Json File
         id: rewrite-json
         uses: devops-actions/json-to-file@v1.0.0
         with:
           filename: woocommerce.json
-          json: "{\"name\":\"KiriminAja Plugin\",\"slug\":\"kiriminaja\",\"author\":\"<a href='https://kiriminaja.com'>KiriminAja</a>\",\"author_profile\":\"https://kiriminaja.com/about\",\"tested\":\"7.0\",\"requires_php\":\"7.0\",\"sections\":{\"description\":\"KiriminAja Plugin Update\",\"installation\":\"Click the activation button.\",\"changelog\":\"Bug fixing and performance improvement\"}}"
+          json: '{"name":"KiriminAja Official","slug":"kiriminaja-official","author":"<a href=''https://kiriminaja.com''>KiriminAja</a>","author_profile":"https://kiriminaja.com/about","tested":"6.9","requires_php":"7.0","force_update":false,"force_message":"","sections":{"description":"KiriminAja Official Plugin for WooCommerce","installation":"Click the activation button.","changelog":"See readme.txt for full changelog."}}'
 
       - name: Update version value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: version
-          value: ${{ github.ref_name }}
+          value: ${{ steps.version.outputs.version }}
 
       - name: Update requires value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: requires
-          value: ${{ github.ref_name }}
+          value: "6.0"
 
       - name: Update download url value
         uses: jossef/action-set-json-field@v2.1
         with:
           file: woocommerce.json
           field: download_url
-          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-${{ github.ref_name }}.zip
+          value: https://kaj-prd-core-web-assets.kiriminaja.com/wp/kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip
 
       - name: Update last update value
         uses: jossef/action-set-json-field@v2.1
@@ -80,10 +103,78 @@ jobs:
           field: last_updated
           value: ${{ steps.date.outputs.date }}
 
+      - name: Update force_update flag
+        uses: jossef/action-set-json-field@v2.1
+        with:
+          file: woocommerce.json
+          field: force_update
+          # Write a real JSON boolean (true/false), not the string "false".
+          # Otherwise PHP's `! empty('false')` evaluates to true and forces updates for everyone.
+          value: ${{ vars.FORCE_UPDATE == 'true' && 'true' || 'false' }}
+          parse_json: true
+
+      - name: Update force_message
+        uses: jossef/action-set-json-field@v2.1
+        with:
+          file: woocommerce.json
+          field: force_message
+          value: ${{ vars.FORCE_MESSAGE || '' }}
+
       - name: Upload WooCommerce.json file
         id: upload-json
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: woocommerce.json
           destination: ${{ secrets.GCS_KA_PRD_WEB }}/wp
-          predefinedAcl: 'publicRead'
+          predefinedAcl: "publicRead"
+
+      - name: Extract changelog from readme.txt
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          {
+            echo "body<<__EOF__"
+            php -r '
+              $version = $argv[1];
+              $readme = file_get_contents("readme.txt");
+              if (preg_match("/^= " . preg_quote($version, "/") . " =\s*\n(.*?)(?=^= |\z)/ms", $readme, $m)) {
+                  $lines = array_filter(array_map("trim", explode("\n", trim($m[1]))));
+                  foreach ($lines as $line) {
+                      echo str_starts_with($line, "* ") ? "- " . substr($line, 2) . "\n" : $line . "\n";
+                  }
+              }
+            ' "$VERSION"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.body }}
+
+            ### Assets
+
+            - `kiriminaja-official-${{ steps.version.outputs.version }}.zip` — WP.org-ready build (no self-hosted updater).
+            - `kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip` — Full pack with `UpdaterController` for existing self-hosted customers.
+          generate_release_notes: true
+          files: |
+            kiriminaja-official-${{ steps.version.outputs.version }}.zip
+            kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip
+          make_latest: "true"
+
+      - name: Deploy to WordPress.org SVN
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: false
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: kiriminaja-official
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_DIR: build/kiriminaja-official
+          ASSETS_DIR: .wordpress-org

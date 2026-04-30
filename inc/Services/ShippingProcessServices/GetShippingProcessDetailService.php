@@ -1,11 +1,14 @@
 <?php
+namespace KiriminAjaOfficial\Services\ShippingProcessServices;
 
-namespace Inc\Services\ShippingProcessServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-use Inc\Repositories\PaymentRepository;
-use Inc\Repositories\TransactionRepository;
-
+use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\PaymentRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 class GetShippingProcessDetailService extends BaseService{
     
     public $paymentId = 0;
@@ -47,7 +50,7 @@ class GetShippingProcessDetailService extends BaseService{
                 'non_cod_count'   =>  $this->paymentCalcData['non_cod_count'],
                 'non_cod_sum'   =>  $this->paymentCalcData['non_cod_sum'],
                 'payment_amount'   =>  $this->paymentCalcData['payment_amount'],
-                'schedule'      =>  date('Y/m/d H:i', strtotime($this->paymentRepo->pickup_schedule)),
+                'schedule'      =>  gmdate('Y/m/d H:i', strtotime($this->paymentRepo->pickup_schedule)) . ' WIB',
             ],
             'transactions_data'=>self::transactionsMapping($this->transactionRepo),
         ],'');
@@ -69,10 +72,9 @@ class GetShippingProcessDetailService extends BaseService{
     
     private function transactionsMapping($transactions){
         return array_map(function ($transaction){
-            $transaction->status            = kjHelper()->transactionStatusLabel($transaction->status);
-            $transaction->status_classes    = kjHelper()->transactionStatusClass($transaction->status);
+            $transaction->status            = kiriof_helper()->transactionStatusLabel($transaction->status);
+            $transaction->status_classes    = kiriof_helper()->transactionStatusClass($transaction->status);
             return $transaction;
         },$transactions);
     }
-    
 }

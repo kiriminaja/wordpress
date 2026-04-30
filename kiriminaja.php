@@ -3,84 +3,90 @@
  * Plugin Name:     KiriminAja Official
  * Plugin URI:      https://kiriminaja.com/solusi/plugin-woocommerce
  * Description:     KiriminAja plugin for Woocommerce simplifies your online store’s shipping management with automation, speed, and efficiency. Display real-time shipping rates from multiple couriers, offer COD options, schedule pickups, print labels, and track deliveries directly from your Woocommerce dashboard. Enjoy discounted shipping, flat-rate promotions, comprehensive reports, and an integrated system that helps your business grow through easier, safer, and more reliable deliveries across Indonesia
- * Version:         2.0.16
+ * Version:         2.1.13
  * Author:          KiriminAja Technology Team
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
- * Text Domain:     kiriminaja
+ * Text Domain:     kiriminaja-official
  * Domain Path:     /lang
+ * Requires Plugins: woocommerce
  * WC requires at least: 5.0.0
  * WC tested up to: 7.1
  */
 
-/** prevent unauthorized access othe than wordpress */
-if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) || wp_doing_ajax() ) {
-    @ini_set( 'display_errors', 1 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-}
-
-// Atur timezone ke GMT+7
-date_default_timezone_set('Asia/Jakarta'); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
-
-define( 'KJ_PLUGIN_VERSION', rand(0,999)); // phpcs:ignore WordPress.WP.AlternativeFunctions.rand_rand
-define( 'KJ_DIR', plugin_dir_path( __FILE__ ));
-define( 'KJ_URL', plugin_dir_url( __FILE__ ));
-define( 'KJ_NONCE', 'kj-nonce');
-define('KJ_SLUG' ,plugin_basename(__DIR__));
-define('KJ_SLUG_FILE',plugin_basename(__FILE__) );
-define('KJ_VERSION_PLUGIN', sanitize_text_field('2.0.15') );
-
-/** opt 1 */
-if ( ! defined( 'ABSPATH' ) ) { die; }
-
-/** opt 2 */
-defined('ABSPATH') or die('die !!!');
-
-/** opt 3 */
-if (!function_exists('add_action')){
-    echo 'die !!!';
-    exit;
-}
-
-if ( file_exists(dirname(__FILE__) . '/vendor/autoload.php')){
-    require_once dirname(__FILE__) . '/vendor/autoload.php';
-}
-
-/** Define constants*/
-if ( ! defined( 'KJ_PLUGIN_BASENAME' ) ) {
-    define ('KJ_PLUGIN_BASENAME', plugin_basename(__FILE__));
-}
+/** prevent unauthorized access other than wordpress */
 if ( ! defined( 'ABSPATH' ) ) {
-    define( 'ABSPATH', dirname( __FILE__ ) . '/' );
+    exit; // Exit if accessed directly
 }
 
+define( 'KIRIOF_DIR', plugin_dir_path( __FILE__ ) );
+define( 'KIRIOF_URL', plugin_dir_url( __FILE__ ) );
+define( 'KIRIOF_NONCE', 'kiriof-nonce' );
+define( 'KIRIOF_SLUG', plugin_basename( __DIR__ ) );
+define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
+define( 'KIRIOF_VERSION', '2.1.13' );
+define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
-/** Helper*/
-if (!function_exists('KJ_GENERATE_BARCODE')) {
-    function KJ_GENERATE_BARCODE() {
-        return new \Picqer\Barcode\BarcodeGeneratorPNG();
-    }
-}
-if (!function_exists('KJ_CHECK_WOOCOMMERCE')) {
-    function KJ_CHECK_WOOCOMMERCE() {
-        return in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) );
-    }
-}
-if (! function_exists('localMoneyFormat')) {
-    function localMoneyFormat($val)
-    {
-        return number_format($val, 0,',','.');
-    }
-}
-if (! function_exists('kjHelper')) {
-    function kjHelper()
-    {
-        return (new \Inc\Base\Helper());
-    }
+if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
+    require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 }
 
-add_action( 'admin_notices', 'kj_shipping_plugin_woocommerce_notice' );
-function kj_shipping_plugin_woocommerce_notice() {
+/** Helper functions */
+if ( ! function_exists( 'kiriof_check_woocommerce' ) ) {
+    function kiriof_check_woocommerce() {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress hook
+        return in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ), true );
+    }
+}
+if ( ! function_exists( 'kiriof_money_format' ) ) {
+    function kiriof_money_format( $val ) {
+        return number_format( $val, 0, ',', '.' );
+    }
+}
+if ( ! function_exists( 'kiriof_helper' ) ) {
+    function kiriof_helper() {
+        return ( new \KiriminAjaOfficial\Base\Helper() );
+    }
+}
+/**
+ * Recursively sanitize a value coming from a request superglobal.
+ *
+ * - Arrays are walked recursively.
+ * - Scalars are passed through sanitize_text_field().
+ * - Anything else is cast to an empty string.
+ */
+if ( ! function_exists( 'kiriof_sanitize_recursive' ) ) {
+    /**
+     * @param mixed $value Raw value from $_POST/$_GET/$_REQUEST (already wp_unslash'd).
+     * @return mixed Sanitized value with the same shape as the input.
+     */
+    function kiriof_sanitize_recursive( $value ) {
+        if ( is_array( $value ) ) {
+            $clean = array();
+            foreach ( $value as $key => $item ) {
+                $clean_key           = is_string( $key ) ? sanitize_key( $key ) : $key;
+                $clean[ $clean_key ] = kiriof_sanitize_recursive( $item );
+            }
+            return $clean;
+        }
+        if ( is_object( $value ) ) {
+            $clean = new \stdClass();
+            foreach ( get_object_vars( $value ) as $key => $item ) {
+                $clean_key           = is_string( $key ) ? sanitize_key( $key ) : $key;
+                $clean->{$clean_key} = kiriof_sanitize_recursive( $item );
+            }
+            return $clean;
+        }
+        if ( is_scalar( $value ) ) {
+            return sanitize_text_field( (string) $value );
+        }
+        return null;
+    }
+}
+
+add_action( 'admin_notices', 'kiriof_woocommerce_notice' );
+function kiriof_woocommerce_notice() {
 
     if ( ! function_exists( 'is_plugin_active' ) ) {
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -91,11 +97,11 @@ function kj_shipping_plugin_woocommerce_notice() {
         $message = sprintf(
             wp_kses(
                 /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
-                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'kiriminaja' ),
+                __( '<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin.', 'kiriminaja-official' ),
                 [ 'strong' => [] ]
             ),
-            __( 'Plugin Kiriminaja', 'kiriminaja' ),
-            __( 'WooCommerce', 'kiriminaja' )
+            __( 'Plugin Kiriminaja', 'kiriminaja-official' ),
+            __( 'WooCommerce', 'kiriminaja-official' )
         );
 
         echo '<div class="notice notice-error"><p>' . wp_kses_post($message) . '</p></div>';
@@ -105,7 +111,7 @@ function kj_shipping_plugin_woocommerce_notice() {
 }
 
 /** Activation*/
-function activate_kj_plugin(){
+function kiriof_activate_plugin() {
 
     if ( ! class_exists( 'WooCommerce' ) ) {
         // Deactivate the plugin
@@ -117,7 +123,7 @@ function activate_kj_plugin(){
                 /* translators: %1$s: Plugin name, %2$s: WooCommerce. */
                 __(
                     '%1$s requires %2$s to be installed and activated. Please install and activate WooCommerce before activating this plugin.',
-                    'kiriminaja'
+                    'kiriminaja-official'
                 ),
                 [] // No HTML allowed in the translatable string
             ),
@@ -125,37 +131,38 @@ function activate_kj_plugin(){
             '<strong>WooCommerce</strong>'
         );
 
-        $message .= '<p><a href="' . esc_url(admin_url('plugins.php')) . '">&laquo; ' . esc_html__('Return to Plugins', 'kiriminaja') . '</a></p>';
+        $message .= '<p><a href="' . esc_url(admin_url('plugins.php')) . '">&laquo; ' . esc_html__('Return to Plugins', 'kiriminaja-official') . '</a></p>';
 
         // Output the error message
         wp_die(
             wp_kses_post('<p>' . $message . '</p>'),
-            esc_html__('Plugin Activation Error', 'kiriminaja')
+            esc_html__('Plugin Activation Error', 'kiriminaja-official')
         );
 
     }
 
-    (new \Inc\Migration\SetupMigration())->register();
-    (new \Inc\Base\Activate())->activate();
-    (new \Inc\Pages\AdminPost())->register();
-    deleteShippingZone();
+    (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+    (new \KiriminAjaOfficial\Base\Activate())->activate();
+    (new \KiriminAjaOfficial\Pages\AdminPost())->register();
+    kiriof_delete_shipping_zone();
 
 }
 /** Deactivation*/
-function deactivate_kj_plugin(){
-    
-    (new \Inc\Base\Deactivate())->deactivate();
+/** Deactivation */
+function kiriof_deactivate_plugin() {
+    ( new \KiriminAjaOfficial\Base\Deactivate() )->deactivate();
 }
+
 /** activation*/
-register_activation_hook(__FILE__, 'activate_kj_plugin');
+register_activation_hook( __FILE__, 'kiriof_activate_plugin' );
 /** deactivation*/
-register_deactivation_hook(__FILE__, 'deactivate_kj_plugin');
+register_deactivation_hook( __FILE__, 'kiriof_deactivate_plugin' );
 
 /** Run migration on plugin update */
-add_action('upgrader_process_complete', 'kj_plugin_update_migration', 10, 2);
-function kj_plugin_update_migration($upgrader_object, $options) {
+add_action( 'upgrader_process_complete', 'kiriof_plugin_update_migration', 10, 2 );
+function kiriof_plugin_update_migration( $upgrader_object, $options ) {
     // Check if this is a plugin update
-    if ($options['action'] == 'update' && $options['type'] == 'plugin') {
+    if ( 'update' === $options['action'] && 'plugin' === $options['type'] ) {
         // Check if our plugin is being updated
         if (isset($options['plugins'])) {
             foreach ($options['plugins'] as $plugin) {
@@ -166,8 +173,8 @@ function kj_plugin_update_migration($upgrader_object, $options) {
                     }
                     
                     // Run migration only if class exists
-                    if (class_exists('\Inc\Migration\SetupMigration')) {
-                        (new \Inc\Migration\SetupMigration())->register();
+                    if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
+                        (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
                     }
                     break;
                 }
@@ -176,44 +183,51 @@ function kj_plugin_update_migration($upgrader_object, $options) {
     }
 }
 
-/** Services*/
-if (class_exists('Inc\\Init')){
-    Inc\Init::register_services();
+/** Services */
+if ( class_exists( 'KiriminAjaOfficial\\Init' ) ) {
+    // Defer to plugins_loaded so WooCommerce (and its textdomain) are fully
+    // available before any of our controllers hook into WC APIs. Running at
+    // file-load time can trigger WC translations before `init`, which emits
+    // a "_load_textdomain_just_in_time was called incorrectly" notice.
+    add_action( 'plugins_loaded', [ 'KiriminAjaOfficial\\Init', 'register_services' ] );
 }
 
 /**
  * load 
  * function hook folder wc
  */
-$woo_files = [
+$kiriof_woo_files = [
     'KiriminajaShippingMethod',
     'OverwriteWoocommercePlugin',
-    'AdminWoocommerceSetting'
+    'AdminWoocommerceSetting',
 ];
-foreach($woo_files as $namefile){
-    include_once KJ_DIR .'/wc/'.$namefile.'.php';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Internal loop variable
+foreach ( $kiriof_woo_files as $namefile ) {
+    include_once KIRIOF_DIR . '/wc/' . $namefile . '.php';
 }
 
 /** 
  * WooCommerce Init
  * compatibility HPOS version
 */
-add_action('before_woocommerce_init', 'kj_before_woocommerce_init');
-function kj_before_woocommerce_init(){
+add_action( 'before_woocommerce_init', 'kiriof_before_woocommerce_init' );
+function kiriof_before_woocommerce_init() {
     if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
     }
 }
 
-function deleteShippingZone(){
+/**
+ * Delete shipping zone utility
+ */
+function kiriof_delete_shipping_zone() {
     $data_store = WC_Data_Store::load( 'shipping-zone' );
-    $raw_zones = $data_store->get_zones();
+    $raw_zones  = $data_store->get_zones();
     
-    $instance_id = [];
     foreach ( $raw_zones as $raw_zone ) {
-        $data_methods = empty( $data_store->get_methods($raw_zone->zone_id,false) ) ? $data_store->get_methods($raw_zone->zone_id,true) : $data_store->get_methods($raw_zone->zone_id,false) ;
-        foreach( $data_methods as $methode ){
-            $data_store->delete_method((int) $methode->instance_id);
+        $data_methods = empty( $data_store->get_methods( $raw_zone->zone_id, false ) ) ? $data_store->get_methods( $raw_zone->zone_id, true ) : $data_store->get_methods( $raw_zone->zone_id, false );
+        foreach ( $data_methods as $methode ) {
+            $data_store->delete_method( (int) $methode->instance_id );
         }
     }
 }
@@ -222,9 +236,9 @@ function deleteShippingZone(){
  * Add filter to disable sslverify
  * set true to enable sslverify
  * set false to disable sslverify
- * */
-add_filter('http_request_args', 'setSSLVerifyWordpress',10, 2);
-function setSSLVerifyWordpress($args, $url) {
+ */
+add_filter( 'http_request_args', 'kiriof_set_ssl_verify', 10, 2 );
+function kiriof_set_ssl_verify( $args, $url ) {
     $args['sslverify'] = true; 
     return $args;
 }

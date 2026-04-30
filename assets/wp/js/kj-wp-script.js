@@ -1,17 +1,12 @@
-function ajaxRouteGenerator(){
-    if (typeof window.myjs === 'object' && window.myjs && window.myjs.ajaxurl) {
-        return window.myjs.ajaxurl;
+// Use AJAX URL passed from WordPress via wp_localize_script
+function kiriofAjaxRoute(){
+    if (typeof kiriofAjax !== 'undefined' && kiriofAjax && kiriofAjax.ajaxurl) {
+        return kiriofAjax.ajaxurl;
     }
-
-    let url = `${window.location.origin}/wp-admin/admin-ajax.php`;
-    const pathMatch = window.location.pathname.match(/^(.*)\/wp-admin\//);
-    if (pathMatch && pathMatch[1] !== '') {
-        url = `${window.location.origin}${pathMatch[1]}/wp-admin/admin-ajax.php`;
-    }
-    return url
+    return '';
 }
 
-function kjMoneyFormat(angka, prefix){
+function kiriofMoneyFormat(angka, prefix){
     var number_string = angka;
     number_string=number_string.toString();
     var split   		= number_string.split(',');
@@ -29,12 +24,12 @@ function kjMoneyFormat(angka, prefix){
     return prefix == undefined ? rupiah : (rupiah ? 'Rp. ' + rupiah : '');
 }
 
-function printAsString (value, placeholder=''){
+function kiriofPrintAsString (value, placeholder=''){
     if (value==null) return placeholder
     return value
 }
 
-jQuery(document).on("input", ".kj_int_input", function() {
+jQuery(document).on("input", ".kiriof_int_input", function() {
     this.value = this.value.replace(/\D/g,'');
     if (jQuery(this).hasClass('duplicate_into')){
         var duplicateTarget=jQuery('input[name="'+$(this).data('duplicate_into')+'"]')
@@ -42,6 +37,6 @@ jQuery(document).on("input", ".kj_int_input", function() {
         duplicateTarget.trigger('change')
     }
     if (jQuery(this).hasClass('currency')){
-        this.value=formatRupiah(this.value)
+        this.value=kiriofFormatRupiah(this.value)
     }
 });

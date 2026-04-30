@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Services;
 
-namespace Inc\Services;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use \Inc\Base\BaseService;
-
+use \KiriminAjaOfficial\Base\BaseService;
 class KiriminAjaTrackingService extends BaseService{
     
     public $order_number = '';
@@ -15,29 +18,25 @@ class KiriminAjaTrackingService extends BaseService{
     
     public function call(){
  
-        $transactionRepo = (new \Inc\Repositories\TransactionRepository())->getTransactionByAWBforTracking($this->order_number);
-
+        $transactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByAWBforTracking($this->order_number);
         if (!$transactionRepo){
             return self::error([],'Transaksi tidak ditemukan');
         }
-
-        $repo = (new \Inc\Repositories\KiriminajaApiRepository())->getTracking([
+        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getTracking([
             'order_id' => $transactionRepo->order_id
         ]);
-
-        (new \Inc\Base\BaseInit())->logThis('pload',[
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('pload',[
             '$transactionRepo' => $transactionRepo
         ]);
-        (new \Inc\Base\BaseInit())->logThis('$repo',[$repo]);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
         
         $details = (array) ($repo['data']->details ?? $this->getDetailWcOrder($this->order_number) );
         $histories = (array) (@$repo['data']->histories ?? []);
-
         if (@$transactionRepo->wc_date_paid && $transactionRepo->cod_fee == 0){
             $histories[] = (object)[
                 "status"=> "Transaksi dikonfirmasi & diproses",
                 "status_code"=> 100,
-                "created_at"=> @$transactionRepo->wc_date_paid,
+                "created_at"=> wp_date('Y-m-d H:i:s', strtotime($transactionRepo->wc_date_paid)),
                 "driver"=> "",
                 "receiver"=> ""
             ];
@@ -46,7 +45,7 @@ class KiriminAjaTrackingService extends BaseService{
         $histories[] = (object)[
             "status"=> "Transaksi berhasil Check Out dengan metode pembayaran ".($transactionRepo->cod_fee>0 ? 'COD' : 'NON COD'),
             "status_code"=> 100,
-            "created_at"=> $transactionRepo->created_at,
+            "created_at"=> wp_date('Y-m-d H:i:s', strtotime($transactionRepo->created_at)),
             "driver"=> "",
             "receiver"=> ""
         ];
@@ -56,28 +55,23 @@ class KiriminAjaTrackingService extends BaseService{
             'details' => $details,
             'histories'=>self::filteringHistories($histories)
         ];
-
         return self::success($response);
     }
     
     public function filteringHistories($histories){
         return array_map(function ($obj){
-            $obj->created_at = gmdate('d F Y H:i',strtotime($obj->created_at));
+            $obj->created_at = gmdate('d F Y H:i',strtotime($obj->created_at)) . ' WIB';
             return $obj;
         },$histories);
     }
-
     public function getDetailWcOrder($order_number){
         $order = wc_get_order($order_number);
-
         if (!$order){
             return self::error([],'Transaksi tidak ditemukan');
         }
-
-
-        if( !empty($order->get_meta('_shipping_kj_destination_name')) ){
+        if( !empty($order->get_meta('_shipping_kiriof_destination_name')) ){
             
-            $destionation = explode(',', $order->get_meta('_shipping_kj_destination_name'));
+            $destionation = explode(',', $order->get_meta('_shipping_kiriof_destination_name'));
             $city = $destionation[0].','.$destionation['1'].','.$destionation['2'];
             $province = $destionation['3'];
             
@@ -91,7 +85,7 @@ class KiriminAjaTrackingService extends BaseService{
                 ],
             ];
         }else{
-            $destionation = explode(',', $order->get_meta('_billing_kj_destination_name'));
+            $destionation = explode(',', $order->get_meta('_billing_kiriof_destination_name'));
             $city = $destionation[0].','.$destionation['1'].','.$destionation['2'];
             $province = $destionation['3'];
             
@@ -105,9 +99,6 @@ class KiriminAjaTrackingService extends BaseService{
                 ],
             ];
         }
-
         return $response;
-
     }
-    
 }

@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Utils;
 
-namespace Inc\Utils;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class ServiceResponse{
-
     /**
      * Setter of response service
      *
@@ -18,22 +21,17 @@ class ServiceResponse{
         $this->data         = $data;
         $this->customCode   = $customCode;
     }
-
     public function status(): int {
         return $this->status;
     }
-
     public function message(): string {
         return $this->message;
     }
-
     public function data() {
         return $this->data;
     }
-
     public function customCode(): string
     {
         return $this->customCode;
     }
-    
 }

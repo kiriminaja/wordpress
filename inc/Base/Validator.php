@@ -1,6 +1,10 @@
 <?php
+namespace KiriminAjaOfficial\Base;
 
-namespace Inc\Base;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class Validator{
     
@@ -27,7 +31,7 @@ class Validator{
             }
             if (str_contains($validateString,'max:')){
                 $max_chars = explode(':',$validateString)[1] ?? 0;
-                (new \Inc\Base\BaseInit())->logThis('$max_chars',[$max_chars]);
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$max_chars',[$max_chars]);
                 if (strlen($value) > $max_chars){
                     $status = false;
                     $msg = $label.' max char is '.$max_chars;
@@ -48,13 +52,11 @@ class Validator{
             $validate = $this->validateSingle($validationParam[0],$validationParam[1],$validationParam[2]);
             if (!$validate['status']){
                 return $validate;
-                break;
             }
         }
         return [
             'status'=>true,
             'msg'=>''
         ];
-    }
-    
+    }   
 }

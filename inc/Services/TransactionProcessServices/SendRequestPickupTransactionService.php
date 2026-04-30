@@ -1,22 +1,23 @@
 <?php
+namespace KiriminAjaOfficial\Services\TransactionProcessServices;
 
-namespace Inc\Services\TransactionProcessServices;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
     public string $schedule = '';
     private $originDataCache = null;
     private $helperCache = null;
-
     public function orderIds($orderIds)
     {
         $this->orderIds = $orderIds;
         return $this;
     }
-
     public function schedule($schedule)
     {
         $this->schedule = $schedule;
@@ -26,11 +27,10 @@ class SendRequestPickupTransactionService extends BaseService
     private function helper()
     {
         if ($this->helperCache === null) {
-            $this->helperCache = kjHelper();
+            $this->helperCache = kiriof_helper();
         }
         return $this->helperCache;
     }
-
     public function call()
     {
         if (empty($this->orderIds)) {
@@ -57,7 +57,6 @@ class SendRequestPickupTransactionService extends BaseService
             "schedule"      => $this->schedule,
             "dropoff"        => false,
         ];
-
         /** 
          * Lion dan Pos Indonesia 
          * Set Lat dan Long
@@ -67,19 +66,17 @@ class SendRequestPickupTransactionService extends BaseService
             $payload['latitude'] = $getOriginData['origin_latitude'] ?? '';
             $payload['longitude'] = $getOriginData['origin_longitude'] ?? '';
         }
-
-        $pickupRequest = (new \Inc\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
-        (new \Inc\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
+        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
         
         if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
             return self::error([], $pickupRequest['data']->text ?? $pickupRequest['data'] ?? 'Something is wrong');
         }
-
         $pickupNumber = $pickupRequest['data']->pickup_number ?? '';
         $currentTime = gmdate('Y-m-d H:i:s');
         
         /** Update Package Status to Request Pickup*/
-        $transactionRepo = new \Inc\Repositories\TransactionRepository();
+        $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
         foreach ($this->orderIds as $orderId) {
             $payload = [
                 'changes' => [
@@ -93,9 +90,8 @@ class SendRequestPickupTransactionService extends BaseService
             ];
             $transactionRepo->updateTransactionByCallback($payload);
         }
-
         /** Create Payment*/
-        (new \Inc\Repositories\PaymentRepository())->createPayment([
+        (new \KiriminAjaOfficial\Repositories\PaymentRepository())->createPayment([
             'pickup_number'     => $pickupNumber,
             'status'            => ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid',
             'method'            => '',
@@ -103,19 +99,17 @@ class SendRequestPickupTransactionService extends BaseService
             'pickup_schedule'   => $this->schedule,
             'created_at'        => $currentTime,
         ]);
-
         return self::success([
             'pickup_number' => $pickupNumber,
         ], 'success');
     }
-
     private function getOriginData()
     {
         if ($this->originDataCache !== null) {
             return $this->originDataCache;
         }
         
-        $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray([
+        $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray([
             'origin_name',
             'origin_phone',
             'origin_address',
@@ -124,7 +118,6 @@ class SendRequestPickupTransactionService extends BaseService
             'origin_latitude',
             'origin_longitude'
         ]);
-
         $array = [];
         foreach ($repo as $setting) {
             $array[$setting->key] = $setting->value;
@@ -133,16 +126,15 @@ class SendRequestPickupTransactionService extends BaseService
         $this->originDataCache = $array;
         return $array;
     }
-
     private function getPackagesData(){
-        $repo = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+        $repo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
         
         if (empty($repo)) {
             return [];
         }
         
         $helper = $this->helper();
-        $weightConverter = new \Inc\Utils\WeightConverter();
+        $weightConverter = new \KiriminAjaOfficial\Utils\WeightConverter();
         $homeUrl = get_home_url();
         
         return array_map(function ($transaction) use ($helper, $weightConverter, $homeUrl) {
@@ -174,7 +166,6 @@ class SendRequestPickupTransactionService extends BaseService
                     ];
                 }
             }
-
             // Optimize item name generation
             $combinedItemNames = implode(", ", $itemNames);
             if (strlen($combinedItemNames) > 255) {

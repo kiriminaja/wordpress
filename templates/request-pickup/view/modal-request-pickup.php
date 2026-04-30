@@ -1,3 +1,10 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
+
 <div id="request-pickup-modal" class="kj-hidden">
     <div class="modal-container">
         <div style="width: 100%; max-width: 400px;background-color: #f0f0f1" tabindex="0" class="media-modal" role="dialog">
@@ -41,7 +48,7 @@
                         <div>
                             <div id="schedule-opt-list" style="overflow: auto; max-height: 30vh; font-weight: 600">
                                 <?php
-                                for ($i=0;$i<=10;$i++){
+                                for ($kiriof_i=0;$kiriof_i<=10;$kiriof_i++){
                                     echo '<div style="margin-bottom: .75rem">
                                         <div style="display: flex">
                                             <input style="margin: 0" value="15" type="radio" name="schedule-opt">

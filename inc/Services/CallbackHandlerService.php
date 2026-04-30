@@ -1,9 +1,12 @@
 <?php
+namespace KiriminAjaOfficial\Services;
 
-namespace Inc\Services;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-use Inc\Base\BaseService;
-
+use KiriminAjaOfficial\Base\BaseService;
 class CallbackHandlerService extends BaseService{
     
     public $header;
@@ -29,7 +32,6 @@ class CallbackHandlerService extends BaseService{
         if (!$this->headerValidation()){
             return self::error([],'Authorization failed');
         }
-
         if (isset($this->body->data) && !empty($this->body->data)) {
             $this->packages = $this->body->data;
         }
@@ -38,7 +40,7 @@ class CallbackHandlerService extends BaseService{
             return self::error([],'No Order ID Found');
         }
         /** check if transaction exists */
-        $this->transactions = (new \Inc\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
+        $this->transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
         if(count($this->transactions)<1){
             return self::error([],'No Transaction Found');
         }
@@ -70,7 +72,6 @@ class CallbackHandlerService extends BaseService{
                 $this->processing = $this->canceledPackages();
                 break;
         }
-
         if (!$this->processing['status']){
             return self::error([],$this->processing['message']);
         }
@@ -82,7 +83,7 @@ class CallbackHandlerService extends BaseService{
         $authorization = @$this->header['Authorization'] ?? '';
         $authorizationExploded = explode(' ',$authorization);
         $authorizationToken = @$authorizationExploded[1] ?? '$authorizationToken';
-        $token = (new \Inc\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? 'noToken';
+        $token = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? 'noToken';
         return $authorizationToken === $token;
     }
     
@@ -97,14 +98,13 @@ class CallbackHandlerService extends BaseService{
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'return_finished_at'    => kjHelper()->dateConvertGMT($package->date),
+                        'return_finished_at'    => kiriof_helper()->dateConvertGMT($package->date),
                         'status'                => 'returned',
                     ];
                     $payload['condition']=[
                         'order_id'  =>  $package->order_id
                     ];
-                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
-
+                    (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
                     /** Update in wc order table*/        
                     $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
                     $order->update_status( 'wc-cancelled' );
@@ -116,20 +116,17 @@ class CallbackHandlerService extends BaseService{
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
-
     }
     
     public function processedPackages(){
         try {
             
             // save log
-            update_option('processedPackages',$this->packages);
-
+            update_option( 'kiriof_processed_packages', $this->packages );
             /** Update AWB*/
-            foreach ($this->packages as $package){
-
+            foreach ( $this->packages as $package ) {
                 // save log item packages
-                update_option('itemProcessedPackages',$package);
+                update_option( 'kiriof_item_processed_packages', $package );
                 
                 $payload = [];
                 $payload['changes']=[
@@ -138,11 +135,10 @@ class CallbackHandlerService extends BaseService{
                 $payload['condition']=[
                     'order_id'  =>  $package->order_id
                 ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
-
             /** Update Payment Status*/
-            (new \Inc\Repositories\PaymentRepository())->updatePaymentByCallback([
+            (new \KiriminAjaOfficial\Repositories\PaymentRepository())->updatePaymentByCallback([
                 'changes'=>[
                     'status'=>'paid'
                 ],
@@ -162,13 +158,13 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'shipped_at'    =>  kjHelper()->dateConvertGMT($package->shipped_at),
+                    'shipped_at'    =>  kiriof_helper()->dateConvertGMT($package->shipped_at),
                     'status'        =>  'shipped'
                 ];
                 $payload['condition']=[
                     'order_id'=>$package->order_id
                 ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
@@ -182,27 +178,24 @@ class CallbackHandlerService extends BaseService{
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
                 $theTransaction = @$this->transactions[$transactionArrKey];
-
-                (new \Inc\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
                 
                 if ($theTransaction){
                     /** Update KJ Table*/
                     $payload = [];
                     $payload['changes']=[
-                        'finished_at'   =>  kjHelper()->dateConvertGMT($package->finished_at),
+                        'finished_at'   =>  kiriof_helper()->dateConvertGMT($package->finished_at),
                         'status'        =>  'finished'
                     ];
                     $payload['condition']=[
                         'order_id'=>$package->order_id
                     ];
-                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
-
+                    (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
                     /** Update in wc order table*/
                     $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
                     $order->update_status( 'completed' );
                 }
                 
-
                 
             }
             return ['status'=>true, 'message'=>'',];
@@ -216,14 +209,14 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'returned_at'   =>  kjHelper()->dateConvertGMT($package->returned_at),
+                    'returned_at'   =>  kiriof_helper()->dateConvertGMT($package->returned_at),
                     'status'        =>  'return'
                     
                 ];
                 $payload['condition']=[
                     'order_id'=>$package->order_id
                 ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
@@ -241,7 +234,7 @@ class CallbackHandlerService extends BaseService{
                 $payload['condition']=[
                     'order_id'=>$package->order_id
                 ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
@@ -254,7 +247,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 $payload = [];
                 $payload['changes']=[
-                    'rejected_at'       =>  kjHelper()->dateConvertGMT($package->rejected_at),
+                    'rejected_at'       =>  kiriof_helper()->dateConvertGMT($package->rejected_at),
                     'rejected_reason'   =>  $package->reason,
                     'status'            =>  'rejected'
                     
@@ -262,46 +255,40 @@ class CallbackHandlerService extends BaseService{
                 $payload['condition']=[
                     'order_id'=>$package->order_id
                 ];
-                (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
+                (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
     }
-
     /** Cancel Packages Callback */
     public function canceledPackages(){
         try {
-
             foreach ($this->packages as $package){
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
                 $theTransaction = @$this->transactions[$transactionArrKey];
-
-                (new \Inc\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
                 
                 if ($theTransaction){
                     /** Update KJ Table*/
                     $payload = [];
                     
                     $canceledAt = $package->canceled_at ?? gmdate('Y-m-d H:i:s');
-
                     $payload['changes']=[
-                        'canceled_at'   =>  kjHelper()->dateConvertGMT( $canceledAt ),
+                        'canceled_at'   =>  kiriof_helper()->dateConvertGMT( $canceledAt ),
                         'status'        =>  'canceled'
                     ];
                     $payload['condition']=[
                         'order_id'=>$package->order_id
                     ];
-                    (new \Inc\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
-
+                    (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
                     /** Update in wc order table*/
                     $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
                     $order->update_status( 'cancelled' );
                 }
                 
-
                 
             }
             return ['status'=>true, 'message'=>'',];
@@ -309,5 +296,4 @@ class CallbackHandlerService extends BaseService{
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
     }
-    
 }

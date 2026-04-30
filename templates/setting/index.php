@@ -1,30 +1,28 @@
 <?php
-class settingIndex {
-    function __construct(){
-        global $approvedSetupKey;
-        global $inputValueArr;
-        global $isOriginShippingDataReady;
-        global $activeTab;
-        global $locale;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-        /** WP Setting langguage*/
+class Kiriof_SettingIndex {
+    function __construct(){
+        /** WP Setting language*/
         $locale = get_locale();
         
         /** Check if  setup key exist*/
-        $approvedSetupKey = (new Inc\Repositories\SettingRepository())->getSettingByKey('setup_key');
+        $approvedSetupKey = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('setup_key');
 
         /** data value query*/
         $arrayParam = [];
         $repo = [];
-        $shippingRepo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_latitude','origin_longitude','origin_sub_district_id','origin_sub_district_name','origin_zip_code','origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
-        // @codingStandardsIgnoreLine
-        $activeTab = @$_GET['tab'] ?? 'tab-integration';
-        if (@$activeTab==='tab-integration'){
-            $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
-        } elseif (@$activeTab==='tab-shipping'){
+        $shippingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_name','origin_phone','origin_address','origin_latitude','origin_longitude','origin_sub_district_id','origin_sub_district_name','origin_zip_code','origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation
+        $activeTab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'tab-integration';
+        if ($activeTab==='tab-integration'){
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['oid_prefix']);
+        } elseif ($activeTab==='tab-shipping'){
             $repo = $shippingRepo;
-        } elseif (@$activeTab==='tab-advanced'){
-            $repo = (new \Inc\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
+        } elseif ($activeTab==='tab-advanced'){
+            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['callback_url']);
         }
         $inputValueArr = [];
         foreach ($repo as $obj){
@@ -43,14 +41,14 @@ class settingIndex {
             ){
                 continue;
             }
-            if (!@$shippingRepo[$i]->value){
+            if ( empty( $shippingRepo[$i]->value ?? null ) ){
                 $isOriginShippingDataReady=false;
                 break;
             }
         }
     
         /** Return vars and view*/
-        if (@$approvedSetupKey->value){
+        if ( ! empty( $approvedSetupKey->value ?? null ) ){
             include 'setuped/index.php';
             return;
         }
@@ -59,7 +57,7 @@ class settingIndex {
 }
 
 
-new settingIndex();
+new Kiriof_SettingIndex();
 
 
 

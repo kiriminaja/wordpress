@@ -1,4 +1,11 @@
+<?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="wrap">
+
     <h1>KiriminAja</h1>
 
 
@@ -21,15 +28,16 @@
 <!--    <table class="form-table">-->
 <!--        <tbody>-->
 <!--        <tr valign="top">-->
-<!--            <th scope="row" class="titledesc">--><?php //esc_html_e('Store Origin', 'kiriminaja'); ?><!--</th>-->
+<!--            <th scope="row" class="titledesc">--><?php //esc_html_e('Store Origin', 'kiriminaja-official'); ?><!--</th>-->
 <!--            <td class="forminp forminp-single_select_page_with_search">-->
 <!--            </td>-->
 <!--        </tr>-->
 <!--        </tbody>-->
 <!--    </table>-->
 </div>
-<script type="text/javascript">
-    jQuery(document).ready(function($) {
-        jQuery('[name="kiriminaja_setting[store_destination]"]').select2();
-    });
-</script>
+<?php
+wp_add_inline_script(
+    'kiriof-script',
+    'jQuery(function($){$("[name=\"kiriminaja_setting[store_destination]\"]").select2();});'
+);
+?>

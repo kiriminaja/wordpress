@@ -1,4 +1,9 @@
 <?php
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 /**
  * Override default WooCommerce templates and template parts from plugin.
  * 
@@ -10,9 +15,9 @@
  * You can change it as per your requirement.
  */
 // Override Template Part's.
-add_filter( 'wc_get_template_part', 'kj_override_woocommerce_template_part', 10, 3 );
+add_filter( 'wc_get_template_part', 'kiriof_override_woocommerce_template_part', 10, 3 );
 // Override Template's.
-add_filter( 'woocommerce_locate_template', 'kj_override_woocommerce_template', 10, 3 );
+add_filter( 'woocommerce_locate_template', 'kiriof_override_woocommerce_template', 10, 3 );
 /**
  * Template Part's
  *
@@ -21,7 +26,8 @@ add_filter( 'woocommerce_locate_template', 'kj_override_woocommerce_template', 1
  * @param  string $name     Template file name.
  * @return string           Return the template part from plugin.
  */
-function kj_override_woocommerce_template_part( $template, $slug, $name ) {
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
+function kiriof_override_woocommerce_template_part( $template, $slug, $name ) {
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/templates/woocommerce/
     $template_directory = str_replace('\\','/',untrailingslashit( str_replace( 'wc/','',plugin_dir_path( __FILE__ ) ) ) . '/templates/woocommerce/');
@@ -40,7 +46,8 @@ function kj_override_woocommerce_template_part( $template, $slug, $name ) {
  * @param  string $template_path Template file directory file path.
  * @return string                Return the template file from plugin.
  */
-function kj_override_woocommerce_template( $template, $template_name, $template_path ) {
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
+function kiriof_override_woocommerce_template( $template, $template_name, $template_path ) {
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/woocommerce/
     $template_directory = str_replace('\\','/',untrailingslashit( str_replace( 'wc/','',plugin_dir_path( __FILE__ ) ) ) . '/templates/woocommerce/');

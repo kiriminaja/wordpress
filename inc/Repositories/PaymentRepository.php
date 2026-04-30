@@ -1,16 +1,17 @@
 <?php
+namespace KiriminAjaOfficial\Repositories;
 
-namespace Inc\Repositories;
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class PaymentRepository{
-
     public $table;
     public function __construct(){
         global $wpdb;
         $this->table = $wpdb->prefix . 'kiriminaja_payments';
     }
-
-
     public function getPaymentById($id){
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -21,9 +22,8 @@ class PaymentRepository{
                 $id
             ) 
         );
-
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
@@ -31,7 +31,6 @@ class PaymentRepository{
     
     public function getPaymentByPaymentId($paymentId){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -41,7 +40,7 @@ class PaymentRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
@@ -49,7 +48,6 @@ class PaymentRepository{
     
     public function getPaymentByOldestDate(){
         global $wpdb;
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -58,23 +56,64 @@ class PaymentRepository{
             )
         );
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return $query;
     }
-
     public function updatePaymentByCallback($payloads){
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return true;
     }
 
+    /**
+     * Count of "Waiting for Payment" rows shown on the Shipment Process page.
+     *
+     * Mirrors the list query in templates/request-pickup/index.php which
+     * groups by pickup_number, so we use COUNT(DISTINCT pickup_number) to
+     * match what the merchant sees in the table when the "Waiting for
+     * Payment" tab is selected (kiriminaja_payments.status = 'unpaid').
+     */
+    public function getCountUnpaid(){
+        return $this->getCountByStatus( 'unpaid' );
+    }
+
+    /**
+     * Distinct pickup count for an arbitrary payment status (e.g. 'unpaid',
+     * 'paid'). Pass null/empty string to count every pickup regardless of
+     * status — useful for the "All" filter pill on the Payments page.
+     *
+     * Always returns an int (0 on error) so callers can format it directly.
+     */
+    public function getCountByStatus( $status ){
+        global $wpdb;
+
+        if ( null === $status || '' === $status || 'all' === $status ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $count = $wpdb->get_var( "SELECT COUNT(DISTINCT pickup_number) FROM {$this->table}" );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $count = $wpdb->get_var(
+                $wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT COUNT(DISTINCT pickup_number) FROM {$this->table} WHERE status = %s",
+                    $status
+                )
+            );
+        }
+
+        if ( strlen( @$wpdb->last_error ?? '' ) > 0 ) {
+            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( @$wpdb->last_error );
+            return 0;
+        }
+        return (int) $count;
+    }
     public function createPayment($payload){
         global $wpdb;
         
@@ -100,10 +139,9 @@ class PaymentRepository{
         );
         
         if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \Inc\Base\BaseInit())->logThis(@$wpdb->last_error);
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
         return true;
     }
-    
 }
