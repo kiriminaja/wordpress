@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.17
+Stable tag: 2.1.18
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,13 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.18 =
+- Update transaction queries to include payments for processed order count
+- Add processed order count and filter to transaction process view
+- Add KiriminAja Shipping metabox to WooCommerce order edit screen
+- Update permission checks to require only manage_woocommerce capability across controllers and templates
+- Update permission checks to require both manage_options and manage_woocommerce capabilities across controllers and templates
+
 = 2.1.17 =
 - Update plugin row meta links and modify plugin URI in header
 - Add meta links for View Details, Support, and Developer in plugin row
