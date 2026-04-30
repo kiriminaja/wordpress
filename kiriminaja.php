@@ -189,7 +189,10 @@ if ( class_exists( 'KiriminAjaOfficial\\Init' ) ) {
     // available before any of our controllers hook into WC APIs. Running at
     // file-load time can trigger WC translations before `init`, which emits
     // a "_load_textdomain_just_in_time was called incorrectly" notice.
-    add_action( 'plugins_loaded', [ 'KiriminAjaOfficial\\Init', 'register_services' ] );
+    add_action( 'plugins_loaded', function () {
+        \KiriminAjaOfficial\Base\KiriminAjaSdkBootstrap::init();
+        \KiriminAjaOfficial\Init::register_services();
+    } );
 }
 
 /**

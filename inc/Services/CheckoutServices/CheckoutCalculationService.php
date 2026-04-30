@@ -78,18 +78,14 @@ class CheckoutCalculationService extends BaseService{
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
-        if($kiriofPricing['status'] != 200){
-            return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');
-        }
-        
         /** Jika gagal dapat data expedisi*/
         if(!$kiriofPricing['data']->status){
-            return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');
+            return self::error([], $kiriofPricing['data']->text ?? 'Terjadi Kesalahan!');
         }
         
         /** jika opsi expedisi tidak ada*/
-        $this->pricingData = @$kiriofPricing['data'];
-        if (count(@$this->pricingData->results ?? [])<1){
+        $this->pricingData = $kiriofPricing['data'];
+        if (count($this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }
         /** jika expedisi terpilih  tidak ada*/
@@ -142,7 +138,7 @@ class CheckoutCalculationService extends BaseService{
     private function getCartTotal(){
         $cartTotal = 0;
         foreach ($this->carts as $cart){
-            $cartTotal += @$cart['line_total'] ?? 0;
+            $cartTotal += $cart['line_total'] ?? 0;
         }
         return $cartTotal;
     }

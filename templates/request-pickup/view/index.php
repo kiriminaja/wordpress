@@ -98,17 +98,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <thead>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',@$locale)); ?></span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',$locale ?? '')); ?></span></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
                                         <?php
-                                        if (@$results&&count($results)>0){
+                                        if (!empty($results) && count($results)>0){
                                             foreach($results as $id => $kiriof_row){
                                                 $kiriof_btnGroup='';
                                                 $kiriof_pickup_number_js = esc_js( (string) ( $kiriof_row->pickup_number ?? '' ) );
@@ -119,8 +119,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <span>Paid</span>
                                                     </div>
                                                 ';
-                                                if (@$kiriof_row->status!=="paid"){
-                                                    if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
+                                                if (($kiriof_row->status ?? '') !== "paid"){
+                                                    if (strtotime($kiriof_row->pickup_schedule ?? '')>strtotime("now")){
                                                         $kiriof_btnGroup.='
                                                         <button class="button-wp" type="button" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
@@ -203,19 +203,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 ';
                                                 }
                                             } else {
-                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kiriof_helper()->tlThis('Not Found',@$locale)).'</td></tr>';
+                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kiriof_helper()->tlThis('Not Found',$locale ?? '')).'</td></tr>';
                                         }
                                         ?>
                                         </tbody>
                                         <tfoot>
                                         <tr>
                                             <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',@$locale)); ?></span></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',$locale ?? '')); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',$locale ?? '')); ?></span></th>
                                         </tr>
                                         </tfoot>
                                     </table>
@@ -251,7 +251,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
                                                     <span style="font-weight: 700;"><?php echo absint( count( $results ) ); ?> items</span>
                                                     <div>
-                                                        <button <?php echo @$prev_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
+                                                        <button <?php echo ($prev_page_link ?? '')!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
                                                             <?php echo esc_attr($prev_page_link)!='' ? '<a href="'.esc_url($prev_page_link).'" class="inset-absolute"></a>' : ''; ?>
                                                             <div style="display: flex">
                                                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -264,7 +264,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     </div>
                                                     <span style="font-weight: 700;"> <?php echo esc_html($page); ?> of <?php echo esc_html($total_pages); ?> </span>
                                                     <div>
-                                                        <button <?php echo @$next_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
+                                                        <button <?php echo ($next_page_link ?? '')!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
                                                             <?php echo esc_attr($next_page_link)!='' ? '<a href="'.esc_url($next_page_link).'" class="inset-absolute"></a>' : ''; ?>
 
                                                             <div style="display: flex">

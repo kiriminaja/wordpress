@@ -13,20 +13,22 @@ class KiriminajaApiService extends BaseService{
     {
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sub_district_search($search);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
-        if (!@$repo['status'] || !@$repo['data']->status){
-            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        if (empty($repo['status'])){
+            $errorMsg = isset($repo['data']) && is_object($repo['data']) ? ($repo['data']->text ?? '') : ($repo['data'] ?? '');
+            return self::error([], $errorMsg ?: 'Something is wrong');
         }
-        return self::success($repo['data']->result);
+        return self::success($repo['data']);
     }
     public function getPayment($payment_id)
     {
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPayment([
             'payment_id'=>$payment_id
         ]);
-        if (!@$repo['status'] || !@$repo['data']->status){
-            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        if (empty($repo['status'])){
+            $errorMsg = isset($repo['data']) && is_object($repo['data']) ? ($repo['data']->text ?? '') : ($repo['data'] ?? '');
+            return self::error([], $errorMsg ?: 'Something is wrong');
         }
-        return self::success($repo['data']->data);
+        return self::success($repo['data']);
     }
     public function getTracking($order_id)
     {
@@ -35,16 +37,18 @@ class KiriminajaApiService extends BaseService{
         ]);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
                 
-        if (!@$repo['status'] || !@$repo['data']->status){
-            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        if (empty($repo['status'])){
+            $errorMsg = isset($repo['data']) && is_object($repo['data']) ? ($repo['data']->text ?? '') : ($repo['data'] ?? '');
+            return self::error([], $errorMsg ?: 'Something is wrong');
         }
         return self::success($repo['data']);
     }
     public function get_couriers(){
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->get_couriers();
-        if (!@$repo['status'] || !@$repo['data']->status){
-            return self::error([],@$repo['data']->text ?? 'Something is wrong');
+        if (empty($repo['status'])){
+            $errorMsg = isset($repo['data']) && is_object($repo['data']) ? ($repo['data']->text ?? '') : ($repo['data'] ?? '');
+            return self::error([], $errorMsg ?: 'Something is wrong');
         }
-        return self::success($repo['data']->datas);
+        return self::success($repo['data']);
     }
 }

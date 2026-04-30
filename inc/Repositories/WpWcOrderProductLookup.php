@@ -36,8 +36,8 @@ class WpWcOrderProductLookup{
                 $orderId // Placeholder untuk order_id
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;

@@ -21,27 +21,27 @@ class ShippingInfoServices extends BaseService{
         if (!$repo) { return self::error([],'Not Found');}
         
         return self::success([
-            'order_id'          =>  @$repo->order_id ? $repo->order_id : '-', 
-            'pickup_id'         =>  @$repo->pickup_number ? $repo->pickup_number : '-', 
-            'payment_type'      =>  @$repo->cod_fee && $repo->cod_fee > 0 ? 'COD' : 'Non COD', 
-            'service'           =>  @$repo->service ? ((strtoupper($repo->service)).' '.(strtoupper($repo->service_name))) : '-', 
-            'awb'               =>  @$repo->awb ? $repo->awb : '-' , 
-            'status'            =>  kiriof_helper()->transactionStatusLabel(@$repo->status), 
-            'shipping_cost'     =>  @$repo->shipping_cost && $repo->shipping_cost > 0 ? ('Rp.'.kiriof_money_format($repo->shipping_cost - $repo->discount_amount)) : '-', 
-            'insurance_fee'     =>  @$repo->insurance_cost&& $repo->insurance_cost > 0 ? ('Rp.'.kiriof_money_format($repo->insurance_cost)) : '-', 
-            'cod_fee'           =>  @$repo->cod_fee && $repo->cod_fee > 0 ? ('Rp.'.kiriof_money_format($repo->cod_fee)) : '-', 
-            'transaction_value' =>  @$repo->transaction_value && $repo->transaction_value > 0 ? ('Rp.'.kiriof_money_format($repo->transaction_value)) : '-', 
+            'order_id'          =>  !empty($repo->order_id) ? $repo->order_id : '-', 
+            'pickup_id'         =>  !empty($repo->pickup_number) ? $repo->pickup_number : '-', 
+            'payment_type'      =>  !empty($repo->cod_fee) && $repo->cod_fee > 0 ? 'COD' : 'Non COD', 
+            'service'           =>  !empty($repo->service) ? ((strtoupper($repo->service)).' '.(strtoupper($repo->service_name))) : '-', 
+            'awb'               =>  !empty($repo->awb) ? $repo->awb : '-' , 
+            'status'            =>  kiriof_helper()->transactionStatusLabel($repo->status ?? ''), 
+            'shipping_cost'     =>  !empty($repo->shipping_cost) && $repo->shipping_cost > 0 ? ('Rp.'.kiriof_money_format($repo->shipping_cost - $repo->discount_amount)) : '-', 
+            'insurance_fee'     =>  !empty($repo->insurance_cost) && $repo->insurance_cost > 0 ? ('Rp.'.kiriof_money_format($repo->insurance_cost)) : '-', 
+            'cod_fee'           =>  !empty($repo->cod_fee) && $repo->cod_fee > 0 ? ('Rp.'.kiriof_money_format($repo->cod_fee)) : '-', 
+            'transaction_value' =>  !empty($repo->transaction_value) && $repo->transaction_value > 0 ? ('Rp.'.kiriof_money_format($repo->transaction_value)) : '-', 
             'total'             =>  'Rp.'.kiriof_money_format(self::calculateTotal($repo)), 
-            'discount_amount'  =>  @$repo->discount_amount && $repo->discount_amount > 0 ? ('Rp.'.kiriof_money_format($repo->discount_amount)) : '-',
+            'discount_amount'  =>  !empty($repo->discount_amount) && $repo->discount_amount > 0 ? ('Rp.'.kiriof_money_format($repo->discount_amount)) : '-',
         ],'success');
     }
     
     private function calculateTotal($repo){
         return 
-            (@$repo->shipping_cost ?? 0) +
-            (@$repo->insurance_cost ?? 0) +
-            (@$repo->cod_fee ?? 0) +
-            (@$repo->transaction_value ?? 0)-
-            (@$repo->discount_amount ?? 0);
+            ($repo->shipping_cost ?? 0) +
+            ($repo->insurance_cost ?? 0) +
+            ($repo->cod_fee ?? 0) +
+            ($repo->transaction_value ?? 0)-
+            ($repo->discount_amount ?? 0);
     }
 }

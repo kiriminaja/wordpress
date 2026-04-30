@@ -14,9 +14,9 @@ class OngkirPricingService extends BaseService{
     private array $wc_cart_contents = [];
     public function __construct($payload)
     {
-        $this->is_cod               = @$payload['is_cod'];
-        $this->destination_area_id  = @$payload['destination_area_id'];
-        $this->wc_cart_contents     = @$payload['wc_cart_contents'];
+        $this->is_cod               = $payload['is_cod'] ?? false;
+        $this->destination_area_id  = $payload['destination_area_id'] ?? 0;
+        $this->wc_cart_contents     = $payload['wc_cart_contents'] ?? [];
         return $this;
     }
     public function call(){
@@ -51,7 +51,7 @@ class OngkirPricingService extends BaseService{
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriofPricing',[$kiriofPricing]);
         
         if(!$kiriofPricing['data']->status){
-            return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');
+            return self::error([], $kiriofPricing['data']->text ?? 'Terjadi Kesalahan!');
         }
         
         return self::success([
@@ -60,7 +60,7 @@ class OngkirPricingService extends BaseService{
     }
     
     private function filterOptions($pricingData){
-        $options = @$pricingData->results ?? [];
+        $options = $pricingData->results ?? [];
         $filteredOptions = [];
         foreach ($options as $option){
             if (!$this->is_cod || $this->is_cod && $option->cod){

@@ -95,8 +95,8 @@ class Kiriof_RequestPickupIndex {
             $wpdb->prepare($baseQuery, $offset, $items_per_page) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         );
         
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error',$wpdb->last_error);
         }
 
         /** Pagination Query*/

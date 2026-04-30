@@ -35,12 +35,12 @@ class SettingService extends BaseService
             //custom url validation when local set to dev kj only development test
             $setupPayload = [
                 'setup_key' => $setupKey,
-                'callback_url' => @home_url() . '/kiriminaja-callback'
+                'callback_url' => home_url() . '/kiriminaja-callback'
             ];
             $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
             $arrayRepo = (array) $repo;
-            $arrayRepoData = (array) $arrayRepo['data'];
-            if (!@$arrayRepo['status'] || !@$arrayRepoData['status']) {
+            $arrayRepoData = (array) ($arrayRepo['data'] ?? []);
+            if (empty($arrayRepo['status']) || empty($arrayRepoData['status'])) {
                 return self::error([], 'Invalid Setup Key');
             }
             /** Storing result to DB*/
@@ -168,9 +168,9 @@ class SettingService extends BaseService
             }
             /** Store to KJ*/
             $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->setCallback($callback_url);
-            if (!@$repo['status'] || !@$repo['data']->status) {
+            if (empty($repo['status'])) {
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $repo);
-                return self::error([], @$repo['data'] ?? 'Something is wrong');
+                return self::error([], $repo['data'] ?? 'Something is wrong');
             }
             /** Storing to DB*/
             (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeCallbackData([

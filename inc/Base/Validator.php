@@ -19,7 +19,7 @@ class Validator{
         }
         
         for ($i=0; $i<count($validateObjective); $i++){
-            $validateString = @$validateObjective[$i] ?? '';
+            $validateString = $validateObjective[$i] ?? '';
             
             /** Validation Subject*/
             

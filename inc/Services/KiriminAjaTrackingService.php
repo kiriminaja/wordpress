@@ -31,8 +31,8 @@ class KiriminAjaTrackingService extends BaseService{
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
         
         $details = (array) ($repo['data']->details ?? $this->getDetailWcOrder($this->order_number) );
-        $histories = (array) (@$repo['data']->histories ?? []);
-        if (@$transactionRepo->wc_date_paid && $transactionRepo->cod_fee == 0){
+        $histories = (array) ($repo['data']->histories ?? []);
+        if (!empty($transactionRepo->wc_date_paid) && $transactionRepo->cod_fee == 0){
             $histories[] = (object)[
                 "status"=> "Transaksi dikonfirmasi & diproses",
                 "status_code"=> 100,

@@ -219,10 +219,10 @@ class EditOrderController{
     public function kiriof_admin_calculateCOD($total_order,$data_pricing){
         $selected_expedition = $data_pricing;
         $cartTotal = $total_order;
-        $ongkirFee = intval(@$selected_expedition->cost ?? 0);
+        $ongkirFee = intval($selected_expedition->cost ?? 0);
         $insuranceFee = $this->kiriof_admin_calculateInsuranceFee($total_order,$data_pricing);
-        $codRate = floatval(@$selected_expedition->setting->cod_fee ?? 0.0);
-        $CODMinCost = intval(@$selected_expedition->setting->minimum_cod_fee ?? 0);
+        $codRate = floatval($selected_expedition->setting->cod_fee ?? 0.0);
+        $CODMinCost = intval($selected_expedition->setting->minimum_cod_fee ?? 0);
         
         $codFee=($cartTotal+$ongkirFee+$insuranceFee)*$codRate;
         $codFee = $codFee < $CODMinCost ? $CODMinCost : $codFee;
@@ -233,10 +233,10 @@ class EditOrderController{
     public function kiriof_admin_calculateInsuranceFee($total_order,$data_pricing){
         $cartTotal = $total_order;
         $selected_expedition = $data_pricing;
-        $insuranceRate = floatval(@$selected_expedition->setting->insurance_fee ?? 0.0);
-        $insuranceAddCost = intval(@$selected_expedition->setting->insurance_add_cost ?? 0);
-        $insuranceMinCost = intval(@$selected_expedition->setting->insurance_minimum_cost ?? 0);
-        $ongkirFee = intval(@$selected_expedition->cost ?? 0);
+        $insuranceRate = floatval($selected_expedition->setting->insurance_fee ?? 0.0);
+        $insuranceAddCost = intval($selected_expedition->setting->insurance_add_cost ?? 0);
+        $insuranceMinCost = intval($selected_expedition->setting->insurance_minimum_cost ?? 0);
+        $ongkirFee = intval($selected_expedition->cost ?? 0);
         
         $insuranceFee = (($cartTotal+$ongkirFee)*$insuranceRate)+$insuranceAddCost;
         $insuranceFee = $insuranceFee < $insuranceMinCost ? $insuranceMinCost : $insuranceFee;
@@ -251,7 +251,7 @@ class EditOrderController{
         $selected_expedition = $data_pricing;
         $insurance_amt = $this->kiriof_admin_calculateInsuranceFee($total_order,$data_pricing);
         $cod_amt = $this->kiriof_admin_calculateCOD($total_order,$data_pricing);
-        $ongkirFee = intval(intval(@$selected_expedition->cost ?? 0) - intval(@$selected_expedition->discount_amount ?? 0));
+        $ongkirFee = intval(intval($selected_expedition->cost ?? 0) - intval($selected_expedition->discount_amount ?? 0));
         $total_amt = $ongkirFee+$cod_amt+$insurance_amt+$cartTotal;
         return [
             'cart_total_amt' => $cartTotal,

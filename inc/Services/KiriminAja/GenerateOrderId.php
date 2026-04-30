@@ -13,7 +13,7 @@ class GenerateOrderId extends BaseService{
     
     public function call(){
         $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('oid_prefix');
-        $this->prefix = @$repo->value ?? '';
+        $this->prefix = $repo->value ?? '';
         return $this->getOrderId();
     }
     

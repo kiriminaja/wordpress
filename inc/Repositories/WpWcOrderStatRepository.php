@@ -17,8 +17,8 @@ class WpWcOrderStatRepository{
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return true;

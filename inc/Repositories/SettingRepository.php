@@ -25,8 +25,8 @@ class SettingRepository{
                 'setup_key'
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false; 
         }
         return $query;
@@ -42,10 +42,10 @@ class SettingRepository{
         global $wpdb;
         if (!$payload['api_key'] || !$payload['oid_prefix'] || !$payload['setup_key']){throw new \Exception('payload err');}
         
-        $wpdb->update($this->table, array('value' => @$payload['api_key']), array('key' => 'api_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['oid_prefix']), array('key' => 'oid_prefix')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['setup_key']), array('key' => 'setup_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['api_key']), array('key' => 'api_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['oid_prefix']), array('key' => 'oid_prefix')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['setup_key']), array('key' => 'setup_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     
         return true;
     }
@@ -64,8 +64,8 @@ class SettingRepository{
         $table = $wpdb->prefix . 'kiriminaja_settings';
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('origin_name','origin_phone','origin_address','origin_sub_district_id','origin_sub_district_name','origin_latitude','origin_longitude','origin_zip_code')" );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -98,14 +98,14 @@ class SettingRepository{
             || 
             !$payload['origin_sub_district_name']
         ){throw new \Exception('payload err');}
-        $wpdb->update($this->table, array('value' => @$payload['origin_name']), array('key' => 'origin_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_phone']), array('key' => 'origin_phone')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_address']), array('key' => 'origin_address')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_sub_district_id']), array('key' => 'origin_sub_district_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_sub_district_name']), array('key' => 'origin_sub_district_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_latitude']), array('key' => 'origin_latitude')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_longitude']), array('key' => 'origin_longitude')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_zip_code']), array('key' => 'origin_zip_code')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_name']), array('key' => 'origin_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_phone']), array('key' => 'origin_phone')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_address']), array('key' => 'origin_address')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_sub_district_id']), array('key' => 'origin_sub_district_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_sub_district_name']), array('key' => 'origin_sub_district_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_latitude']), array('key' => 'origin_latitude')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_longitude']), array('key' => 'origin_longitude')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_zip_code']), array('key' => 'origin_zip_code')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if( empty($wpdb->get_row("SELECT * FROM $this->table WHERE `key`='origin_whitelist_expedition_id'") ) ){
@@ -113,7 +113,7 @@ class SettingRepository{
                 $this->table, 
                 array(
                     'key' => 'origin_whitelist_expedition_id',
-                    'value' => @$payload['origin_whitelist_expedition_id']
+                    'value' => $payload['origin_whitelist_expedition_id']
                 ),
                 array(
                     '%s',
@@ -125,7 +125,7 @@ class SettingRepository{
                 $this->table, 
                 array(
                     'key' => 'origin_whitelist_expedition_name',
-                    'value' => @$payload['origin_whitelist_expedition_name']
+                    'value' => $payload['origin_whitelist_expedition_name']
                 ),
                 array(
                     '%s',
@@ -133,8 +133,8 @@ class SettingRepository{
                 ) 
             );
         }
-        $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_id']), array('key' => 'origin_whitelist_expedition_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_name']), array('key' => 'origin_whitelist_expedition_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_whitelist_expedition_id']), array('key' => 'origin_whitelist_expedition_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['origin_whitelist_expedition_name']), array('key' => 'origin_whitelist_expedition_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         
         return true;
     }
@@ -142,8 +142,8 @@ class SettingRepository{
         global $wpdb;
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_results( "SELECT * FROM {$this->table} WHERE `key` IN ('callback_url')" );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -157,7 +157,7 @@ class SettingRepository{
     public function storeCallbackData($payload){
         global $wpdb;
         if (!$payload['callback_url']){throw new \Exception('payload err');}
-        $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update($this->table, array('value' => $payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return true;
     }
     public function getSettingByKey($key){
@@ -170,8 +170,8 @@ class SettingRepository{
                 $key
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -210,8 +210,8 @@ class SettingRepository{
             ) 
         );
         
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         $datas = [];

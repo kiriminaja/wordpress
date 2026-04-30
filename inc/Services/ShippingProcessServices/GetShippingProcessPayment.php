@@ -28,18 +28,20 @@ class GetShippingProcessPayment extends BaseService{
         $getKiriofPayment = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPayment([
             'payment_id'=>$this->payment_id
         ]);
-        if (!$getKiriofPayment['status']){ return  self::error([],@$getKiriofPayment['data'] ?? 'Terjadi Kesalahan');}
+        if (!$getKiriofPayment['status']){ return  self::error([],$getKiriofPayment['data'] ?? 'Terjadi Kesalahan');}
         
+        $paymentData = $getKiriofPayment['data'] ?? null;
+        $payTime = $paymentData->pay_time ?? '';
         $getPayment = (new \KiriminAjaOfficial\Repositories\PaymentRepository())->getPaymentByPaymentId($this->payment_id);
         self::transactionsSummaryProccess();
         return self::success([
-            'payment_data'          =>  @$getKiriofPayment['data']->data,
-            'payment_in_wc_data'    =>  @$getPayment,
-            'count_cod'             =>  @$this->transactionsSummary['count_cod'],
-            'sum_fee_cod'           =>  @$this->transactionsSummary['sum_fee_cod'],
-            'sum_fee_non_cod'       =>  @$this->transactionsSummary['sum_fee_non_cod'],
-            'created_at'            =>  gmdate('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getKiriofPayment['data']->data->pay_time))),
-            'expired_at'            =>  gmdate('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone(@$getKiriofPayment['data']->data->pay_time).'+5minutes')),
+            'payment_data'          =>  $paymentData,
+            'payment_in_wc_data'    =>  $getPayment ?? null,
+            'count_cod'             =>  $this->transactionsSummary['count_cod'] ?? 0,
+            'sum_fee_cod'           =>  $this->transactionsSummary['sum_fee_cod'] ?? 0,
+            'sum_fee_non_cod'       =>  $this->transactionsSummary['sum_fee_non_cod'] ?? 0,
+            'created_at'            =>  gmdate('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone($payTime))),
+            'expired_at'            =>  gmdate('Y-m-d H:i:s',strtotime(self::convertTimeToSettingTimezone($payTime).'+5minutes')),
         ],'');
     }
     

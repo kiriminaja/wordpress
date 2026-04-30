@@ -47,7 +47,7 @@ class CreateTransactionService extends BaseService{
             /** Generating Payload*/
             $calcResult = $checkoutCalc['data']['calculation_result'];
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];
-            $forceInsurance = @$calcResult['selected_expedition']->force_insurance;
+            $forceInsurance = $calcResult['selected_expedition']->force_insurance ?? 0;
             
             $insurance_cost = ($this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance) 
                 ? $calcResult['insurance_amt'] 
@@ -99,7 +99,7 @@ class CreateTransactionService extends BaseService{
             return;
         }
         $calcResult = $checkoutCalc['data']['calculation_result'];
-        $forceInsurance = @$calcResult['selected_expedition']->force_insurance ?? 0;
+        $forceInsurance = $calcResult['selected_expedition']->force_insurance ?? 0;
         $is_insurance = $this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance;
         $is_cod = $this->payload['is_cod'] ?? 0;
         

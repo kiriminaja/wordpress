@@ -51,13 +51,13 @@ class GetWCCartAttributeService extends BaseService{
         /** FIll Product Data*/
         foreach ($wpPostMetaRepo as $product){
             if ($product->meta_key === '_weight'){
-                $cartProducts[$product->post_id]['weight']  = @$product->meta_value ?? 0;
+                $cartProducts[$product->post_id]['weight']  = $product->meta_value ?? 0;
             }else if ($product->meta_key === '_length'){
-                $cartProducts[$product->post_id]['length']  = @$product->meta_value ?? 0;
+                $cartProducts[$product->post_id]['length']  = $product->meta_value ?? 0;
             }else if ($product->meta_key === '_width'){
-                $cartProducts[$product->post_id]['width']   = @$product->meta_value ?? 0;
+                $cartProducts[$product->post_id]['width']   = $product->meta_value ?? 0;
             }else if ($product->meta_key === '_height'){
-                $cartProducts[$product->post_id]['height']  = @$product->meta_value ?? 0;
+                $cartProducts[$product->post_id]['height']  = $product->meta_value ?? 0;
             }
         }
         

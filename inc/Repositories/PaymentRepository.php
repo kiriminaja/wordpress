@@ -22,8 +22,8 @@ class PaymentRepository{
                 $id
             ) 
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -39,8 +39,8 @@ class PaymentRepository{
                 $paymentId
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -55,8 +55,8 @@ class PaymentRepository{
                 "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL ORDER BY created_at ASC"
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -65,8 +65,8 @@ class PaymentRepository{
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return true;
@@ -108,8 +108,8 @@ class PaymentRepository{
             );
         }
 
-        if ( strlen( @$wpdb->last_error ?? '' ) > 0 ) {
-            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( @$wpdb->last_error );
+        if ( strlen( $wpdb->last_error ?? '' ) > 0 ) {
+            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( $wpdb->last_error );
             return 0;
         }
         return (int) $count;
@@ -138,8 +138,8 @@ class PaymentRepository{
             )
         );
         
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return true;

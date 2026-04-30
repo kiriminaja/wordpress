@@ -24,8 +24,8 @@ class WpPostMetaRepository{
                 $post_id
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -49,8 +49,8 @@ class WpPostMetaRepository{
                 ...$meta_keys // Masukkan nilai meta_keys
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;
@@ -67,8 +67,8 @@ class WpPostMetaRepository{
                 $meta_key
             )
         );
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
+        if (strlen($wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis($wpdb->last_error);
             return false;
         }
         return $query;

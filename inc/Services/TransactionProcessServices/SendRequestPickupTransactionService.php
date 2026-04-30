@@ -69,7 +69,7 @@ class SendRequestPickupTransactionService extends BaseService
         $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
         
-        if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
+        if (empty($pickupRequest['status'])) {
             return self::error([], $pickupRequest['data']->text ?? $pickupRequest['data'] ?? 'Something is wrong');
         }
         $pickupNumber = $pickupRequest['data']->pickup_number ?? '';

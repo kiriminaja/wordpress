@@ -205,12 +205,12 @@ class CheckoutController
         /** Store Transaction*/
         try {
             $createTransaction = (new \KiriminAjaOfficial\Services\CheckoutServices\CreateTransactionService([
-                'order_id'                  => @$order_id,
-                'checkout_post_data'        => @$posted_data,
-                'kiriof_destination_area'       => @$kiriof_destination_area,
-                'kiriof_destination_area_name'  => @$kiriof_destination_area_name,
-                'kiriof_expedition'             => @$kiriof_expedition,
-                'is_insurance'              => @$insurance,
+                'order_id'                  => $order_id,
+                'checkout_post_data'        => $posted_data,
+                'kiriof_destination_area'       => $kiriof_destination_area ?? '',
+                'kiriof_destination_area_name'  => $kiriof_destination_area_name ?? '',
+                'kiriof_expedition'             => $kiriof_expedition ?? '',
+                'is_insurance'              => $insurance ?? false,
                 'is_cod'                    => $payment_method === 'cod',
                 'wc_cart_contents'          => WC()->cart->cart_contents,
             ]))->call();

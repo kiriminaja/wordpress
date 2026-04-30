@@ -33,8 +33,8 @@ class GetTransactionDetailSummary extends BaseService{
             'expedition_service'    => strtoupper($transactionRepo->service).' '.strtoupper($transactionRepo->service_name),
             'cart_data'             => $cartProductRepo,
             'transaction_data'      => $transactionRepo,
-            'status_label'          => kiriof_helper()->transactionStatusLabel(@$transactionRepo->status),
-            'status_classes'        => kiriof_helper()->transactionStatusClass(@$transactionRepo->status),
+            'status_label'          => kiriof_helper()->transactionStatusLabel($transactionRepo->status ?? ''),
+            'status_classes'        => kiriof_helper()->transactionStatusClass($transactionRepo->status ?? ''),
         ]);
     }
 }

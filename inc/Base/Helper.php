@@ -86,7 +86,7 @@ class Helper extends  BaseInit {
                 break;
         }
         $langLib = (array) json_decode($string);
-        return @$langLib[$text] ?? $text;
+        return $langLib[$text] ?? $text;
     }
     
     public function devForceTrue() {

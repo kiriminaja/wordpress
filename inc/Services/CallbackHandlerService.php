@@ -46,7 +46,7 @@ class CallbackHandlerService extends BaseService{
         }
         /** Set Pickup Number*/
         $this->transactionPickupNumber = $this->transactions[0]->pickup_number;
-        switch (@$this->body->method) {
+        switch ($this->body->method ?? '') {
             case "return_finished_packages":
                 $this->processing = $this->returnFinishedPackages();
                 break;
@@ -80,9 +80,9 @@ class CallbackHandlerService extends BaseService{
     }
     
     private function headerValidation(){
-        $authorization = @$this->header['Authorization'] ?? '';
+        $authorization = $this->header['Authorization'] ?? '';
         $authorizationExploded = explode(' ',$authorization);
-        $authorizationToken = @$authorizationExploded[1] ?? '$authorizationToken';
+        $authorizationToken = $authorizationExploded[1] ?? '$authorizationToken';
         $token = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? 'noToken';
         return $authorizationToken === $token;
     }
@@ -92,7 +92,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
-                $theTransaction = @$this->transactions[$transactionArrKey];
+                $theTransaction = $this->transactions[$transactionArrKey] ?? null;
                 
                 if ($theTransaction){
                     /** Update KJ Table*/
@@ -177,7 +177,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
-                $theTransaction = @$this->transactions[$transactionArrKey];
+                $theTransaction = $this->transactions[$transactionArrKey] ?? null;
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
                 
                 if ($theTransaction){
@@ -268,7 +268,7 @@ class CallbackHandlerService extends BaseService{
             foreach ($this->packages as $package){
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
-                $theTransaction = @$this->transactions[$transactionArrKey];
+                $theTransaction = $this->transactions[$transactionArrKey] ?? null;
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
                 
                 if ($theTransaction){

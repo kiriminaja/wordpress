@@ -42,8 +42,8 @@ class GetShippingProcessDetailService extends BaseService{
         
         return self::success([
             'payment_data'=>[
-                'pickup_number' =>  @$this->paymentRepo->pickup_number,
-                'status'        =>  @$this->paymentRepo->status,
+                'pickup_number' =>  $this->paymentRepo->pickup_number ?? '',
+                'status'        =>  $this->paymentRepo->status ?? '',
                 'package_count'   =>  $this->paymentCalcData['cod_count']+$this->paymentCalcData['non_cod_count'],
                 'cod_count'   =>  $this->paymentCalcData['cod_count'],
                 'cod_sum'   =>  $this->paymentCalcData['cod_sum'],
@@ -59,9 +59,9 @@ class GetShippingProcessDetailService extends BaseService{
     private function paymentSum(){
         if (count($this->transactionRepo)<=0){ return 0; }
         foreach ($this->transactionRepo as $transaction){
-            if (intval(@$transaction->cod_fee) == 0){
-                $this->paymentCalcData['non_cod_sum'] +=  intval(@$transaction->shipping_cost);
-                $this->paymentCalcData['non_cod_sum'] +=  intval(@$transaction->insurance_cost);
+            if (intval($transaction->cod_fee ?? 0) == 0){
+                $this->paymentCalcData['non_cod_sum'] +=  intval($transaction->shipping_cost ?? 0);
+                $this->paymentCalcData['non_cod_sum'] +=  intval($transaction->insurance_cost ?? 0);
                 $this->paymentCalcData['non_cod_count'] += 1;
             }else{
                 $this->paymentCalcData['cod_count'] += 1;

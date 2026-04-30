@@ -18,14 +18,15 @@ class GetRequestPickupScheduleService extends BaseService {
     
     public function call(){
         $scheduleRepo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getRequestPickupSchedule();
-        if (!@$scheduleRepo['status'] || !@$scheduleRepo['data']->status){
-            return self::error([],@$scheduleRepo['data']->text ?? 'Something is wrong');
+        if (empty($scheduleRepo['status'])){
+            $errorMsg = isset($scheduleRepo['data']) && is_object($scheduleRepo['data']) ? ($scheduleRepo['data']->text ?? '') : ($scheduleRepo['data'] ?? '');
+            return self::error([], $errorMsg ?: 'Something is wrong');
         }
         
         $transactionSummaryData = self::transactionSummaryData();
         
         return self::success([
-            'schedules'                 => self::scheduleOptionFormatter(@$scheduleRepo['data']->schedules ?? []),
+            'schedules'                 => self::scheduleOptionFormatter($scheduleRepo['data']->schedules ?? []),
             'transaction_summary'       => $transactionSummaryData
         ],'success');
     }
