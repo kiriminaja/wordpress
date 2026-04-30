@@ -214,13 +214,13 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_serviceName = strtoupper(trim($kiriof_row->service . ' ' . ($kiriof_row->service_name ?? '')));
                                                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
 
-                                                    $kiriof_checkboxDisabled = $kiriof_isProcessable ? '' : ' disabled';
-                                                    $kiriof_checkboxTitle  = $kiriof_isProcessable ? '' : ' title="' . esc_attr( $kiriof_helper->tlThis( 'Order must be in Processing status before it can be picked up.', $locale ) ) . '"';
+                                                    $kiriof_checkboxDisabled = ! $kiriof_isProcessable;
+                                                    $kiriof_checkboxTitle   = $kiriof_isProcessable ? '' : $kiriof_helper->tlThis( 'Order must be in Processing status before it can be picked up.', $locale );
 
                                                     echo '
                                                       <tr class="' . ( $kiriof_isProcessable ? '' : 'kj-row-disabled' ) . '"' . ( $kiriof_isProcessable ? '' : ' style="opacity: .65"' ) . '>
                                                         <td class="manage-column column-thumb">
-                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_row->order_id) . '"' . esc_attr( $kiriof_checkboxDisabled ) . $kiriof_checkboxTitle . '>
+                                                            <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_row->order_id) . '"' . ( $kiriof_checkboxDisabled ? ' disabled' : '' ) . ( $kiriof_checkboxTitle ? ' title="' . esc_attr( $kiriof_checkboxTitle ) . '"' : '' ) . '>
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                         <a href="' . esc_url($kiriof_orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($kiriof_row->wc_order_id) . ' ' . esc_html($kiriof_billingFirstName) . ' ' . esc_html($kiriof_billingLastName) . ' </a>
