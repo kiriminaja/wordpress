@@ -166,3 +166,15 @@ jobs:
             kiriminaja-official-${{ steps.version.outputs.version }}.zip
             kiriminaja-official-legacy-${{ steps.version.outputs.version }}.zip
           make_latest: "true"
+
+      - name: Deploy to WordPress.org SVN
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: false
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: kiriminaja-official
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_DIR: build/kiriminaja-official
+          ASSETS_DIR: .wordpress-org
