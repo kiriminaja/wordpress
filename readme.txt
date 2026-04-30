@@ -115,7 +115,6 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 
 == Links ==
 
-* [View Details](https://wordpress.org/plugins/kiriminaja-official/)
 * [Support](https://kiriminaja.com/kontak-kami)
 * [Developer](https://developer.kiriminaja.com)
 

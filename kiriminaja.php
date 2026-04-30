@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:     KiriminAja Official
- * Plugin URI:      https://kiriminaja.com/solusi/plugin-woocommerce
- * Description:     KiriminAja plugin for Woocommerce simplifies your online store’s shipping management with automation, speed, and efficiency. Display real-time shipping rates from multiple couriers, offer COD options, schedule pickups, print labels, and track deliveries directly from your Woocommerce dashboard. Enjoy discounted shipping, flat-rate promotions, comprehensive reports, and an integrated system that helps your business grow through easier, safer, and more reliable deliveries across Indonesia
+ * Plugin URI:      https://wordpress.org/plugins/kiriminaja-official/
+ * Description:     Ship smarter with KiriminAja — real-time rates from multiple couriers, COD support, one-click pickup scheduling, label printing, and package tracking, all from your WooCommerce dashboard. Built for online sellers across Indonesia.
  * Version:         2.1.16
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com

@@ -88,9 +88,7 @@ class Admin extends BaseInit{
             return $links;
         });
 
-        /** Add meta links (View Details, Support, Developer) in plugin row */
         add_filter('plugin_row_meta', [$this, 'kiriof_plugin_row_meta'], 10, 2);
-
         add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
     }
     function kiriof_add_transaction_status_count(){
@@ -131,14 +129,14 @@ class Admin extends BaseInit{
     }
 
     /**
-     * Add View Details, Support, and Developer links to the plugin row meta.
+     * Add custom links to the plugin's row meta in the plugins list table.
      */
     public function kiriof_plugin_row_meta( $links, $file ) {
         if ( KIRIOF_PLUGIN_BASENAME !== $file ) {
             return $links;
         }
 
-        $links[] = '<a href="' . esc_url( 'https://wordpress.org/plugins/kiriminaja-official/' ) . '">' . esc_html__( 'View Details', 'kiriminaja-official' ) . '</a>';
+        $links[] = '<a href="' . esc_url( 'https://kiriminaja.com/solusi/plugin-woocommerce' ) . '">' . esc_html__( 'Plugin Page', 'kiriminaja-official' ) . '</a>';
         $links[] = '<a href="' . esc_url( 'https://kiriminaja.com/kontak-kami' ) . '">' . esc_html__( 'Support', 'kiriminaja-official' ) . '</a>';
         $links[] = '<a href="' . esc_url( 'https://developer.kiriminaja.com' ) . '">' . esc_html__( 'Developer', 'kiriminaja-official' ) . '</a>';
 
