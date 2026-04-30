@@ -16,11 +16,11 @@ Easily integrate with multiple couriers across Indonesia
 KiriminAja is a platform that makes it easy to send packages and find expeditions according to people's needs, with COD and Non-COD delivery methods developed by PT Selalu Siap Solusi.
 
 **Key Features:**
-* Ease of sending packages with various expedition options.
-* COD (Cash On Delivery) delivery service with daily fund disbursement and package pickup system at home by the expedition.
-* Non-COD package delivery service with package pickup system at home by the expedition.
-* Platform that can help online business people control and manage their business better.
-* With the services and innovations offered, KiriminAja is committed to contributing to the Indonesian economy, by providing solutions and convenience for online business people so that their business continues to grow.
+- Ease of sending packages with various expedition options.
+- COD (Cash On Delivery) delivery service with daily fund disbursement and package pickup system at home by the expedition.
+- Non-COD package delivery service with package pickup system at home by the expedition.
+- Platform that can help online business people control and manage their business better.
+- With the services and innovations offered, KiriminAja is committed to contributing to the Indonesian economy, by providing solutions and convenience for online business people so that their business continues to grow.
 
 This plugin is perfect for eCommerce store owners looking for a hassle-free shipping solution.
 
@@ -29,28 +29,28 @@ This plugin is perfect for eCommerce store owners looking for a hassle-free ship
 This plugin connects to KiriminAja API services to provide shipping functionality for your WooCommerce store.
 
 **KiriminAja API**
-* Service: https://client.kiriminaja.com
-* Purpose: Process shipping rates, create shipments, track packages, and manage pickup requests
-* Data sent: Shipping addresses, package dimensions and weight, order details, customer information
-* When: Every time shipping rates are calculated, when shipments are created, and when tracking packages
-* Terms of Service: https://kiriminaja.com/syarat-ketentuan
-* Privacy Policy: https://kiriminaja.com/privacy-policy
+- Service: https://client.kiriminaja.com
+- Purpose: Process shipping rates, create shipments, track packages, and manage pickup requests
+- Data sent: Shipping addresses, package dimensions and weight, order details, customer information
+- When: Every time shipping rates are calculated, when shipments are created, and when tracking packages
+- Terms of Service: https://kiriminaja.com/syarat-ketentuan
+- Privacy Policy: https://kiriminaja.com/privacy-policy
 
 **KiriminAja Callback (Webhook)**
-* Endpoint (on your site): `/?feed=kiriminaja-callback`
-* Purpose: Receive shipment/pickup status updates from KiriminAja
-* Data received: Package status events including order IDs, AWB, and timestamps
-* Authentication: Requires an `Authorization` header; the token is validated against the API key configured in the plugin
+- Endpoint (on your site): `/?feed=kiriminaja-callback`
+- Purpose: Receive shipment/pickup status updates from KiriminAja
+- Data received: Package status events including order IDs, AWB, and timestamps
+- Authentication: Requires an `Authorization` header; the token is validated against the API key configured in the plugin
 
 **Print.js Library**
-* This plugin includes Print.js (https://github.com/crabbly/Print.js) for printing shipping labels
-* Source code: https://github.com/crabbly/Print.js
-* License: MIT
+- This plugin includes Print.js (https://github.com/crabbly/Print.js) for printing shipping labels
+- Source code: https://github.com/crabbly/Print.js
+- License: MIT
 
 **Select2 Library**
-* This plugin includes Select2 (https://github.com/select2/select2) for searchable select fields
-* Source code: https://github.com/select2/select2
-* License: MIT
+- This plugin includes Select2 (https://github.com/select2/select2) for searchable select fields
+- Source code: https://github.com/select2/select2
+- License: MIT
 
 By using this plugin, you acknowledge that your store will communicate with KiriminAja's servers to provide shipping services. Please review KiriminAja's terms of service and privacy policy before using this plugin.
 
@@ -115,29 +115,29 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 
 == Links ==
 
-* [Support](https://kiriminaja.com/kontak-kami)
-* [Developer](https://developer.kiriminaja.com)
+- [Support](https://kiriminaja.com/kontak-kami)
+- [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
 = 2.1.17 =
-* Update plugin row meta links and modify plugin URI in header
-* Add meta links for View Details, Support, and Developer in plugin row
-* Takeout legacy plugins but with backward plugin update compatibility
+- Update plugin row meta links and modify plugin URI in header
+- Add meta links for View Details, Support, and Developer in plugin row
+- Takeout legacy plugins but with backward plugin update compatibility
 
 = 2.1.16 =
-* Feat(readme): Update readme and content
+- Feat(readme): Update readme and content
 
 = 2.1.15 =
-* First official release on WordPress.org
-* Interactive map picker with geolocation for store address setup
-* Nonce auto-refresh to keep long-open admin pages working
-* Status filter counts for request pickup and transaction views
-* Unpaid shipment count badge in admin menu
-* Legacy shortcode alias and dedicated tracking stylesheet
-* Improved order status handling to prevent pickup of non-processable orders
-* Improved date formatting with time display for orders and transactions
-* Full security audit and WordPress.org Plugin Directory compliance
-* Bundled Select2 library locally (no CDN dependency)
+- First official release on WordPress.org
+- Interactive map picker with geolocation for store address setup
+- Nonce auto-refresh to keep long-open admin pages working
+- Status filter counts for request pickup and transaction views
+- Unpaid shipment count badge in admin menu
+- Legacy shortcode alias and dedicated tracking stylesheet
+- Improved order status handling to prevent pickup of non-processable orders
+- Improved date formatting with time display for orders and transactions
+- Full security audit and WordPress.org Plugin Directory compliance
+- Bundled Select2 library locally (no CDN dependency)
 
 == Upgrade Notice ==
 

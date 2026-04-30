@@ -227,10 +227,10 @@ if ( empty( $features ) && empty( $fixes ) ) {
 $entry = "= {$version} =\n";
 
 foreach ( $features as $f ) {
-    $entry .= "* {$f}\n";
+    $entry .= "- {$f}\n";
 }
 foreach ( $fixes as $f ) {
-    $entry .= "* {$f}\n";
+    $entry .= "- {$f}\n";
 }
 
 echo "Found " . count( $features ) . " feature(s) and " . count( $fixes ) . " fix(es).\n";
