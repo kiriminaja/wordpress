@@ -9,8 +9,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EditOrderController{
     private $nonce = KIRIOF_NONCE ;
     public function register(){
-        add_action( 'woocommerce_admin_order_totals_after_total', array($this,'addKiriofOrderDetail'));
         add_filter( 'wc_order_is_editable', array($this,'kiriof_custom_order_status_editable'), 9999, 2 );
+        add_action( 'add_meta_boxes', array( $this, 'registerShippingMetaBox' ) );
+    }
+    /**
+     * Register the KiriminAja Shipping metabox on the order edit screen.
+     * Supports both legacy (shop_order) and HPOS (woocommerce_page_wc-orders) screens.
+     */
+    public function registerShippingMetaBox() {
+        $screens = array( 'shop_order' );
+        if ( class_exists( \Automattic\WooCommerce\Utilities\OrderUtil::class )
+            && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled()
+        ) {
+            $screens[] = 'woocommerce_page_wc-orders';
+        }
+        foreach ( $screens as $screen ) {
+            add_meta_box(
+                'kiriminaja-shipping-info',
+                __( 'KiriminAja Shipping', 'kiriminaja-official' ),
+                array( $this, 'renderShippingMetaBox' ),
+                $screen,
+                'side',
+                'high'
+            );
+        }
+    }
+    /**
+     * Render the KiriminAja Shipping metabox content.
+     *
+     * @param \WP_Post|\WC_Order $post_or_order Post object (legacy) or WC_Order (HPOS).
+     */
+    public function renderShippingMetaBox( $post_or_order ) {
+        if ( $post_or_order instanceof \WC_Order ) {
+            $order_id = $post_or_order->get_id();
+        } else {
+            $order_id = $post_or_order->ID;
+        }
+
+        $service = ( new \KiriminAjaOfficial\Services\OrderEditPageServices\ShippingInfoServices() )
+            ->wcOrderId( $order_id )
+            ->call();
+
+        if ( $service->status !== 200 ) {
+            echo '<p>' . esc_html__( 'No shipping data available for this order.', 'kiriminaja-official' ) . '</p>';
+            return;
+        }
+
+        $data        = $service->data;
+        $tracking_url = home_url( '/tracking?order_id=' . $order_id );
+        $detail_url  = admin_url( 'admin.php?page=kiriminaja-transaction-process' );
+
+        include KIRIOF_DIR . '/templates/order/metabox-shipping.php';
     }
     public function addKiriofOrderDetail($order){        
         $service = (new \KiriminAjaOfficial\Services\OrderEditPageServices\ShippingInfoServices())->wcOrderId($order)->call();
