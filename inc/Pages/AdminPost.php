@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminPost
 {
     public function register(){
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
         if( kiriof_check_woocommerce() ){

@@ -34,7 +34,7 @@ class SettingController{
     }
     function getIntegrationData() {
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -52,7 +52,7 @@ class SettingController{
     }
     function storeIntegrationData() {
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -72,7 +72,7 @@ class SettingController{
     
     function disconnectIntegration(){
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -91,7 +91,7 @@ class SettingController{
     
     function getOriginData(){
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -110,7 +110,7 @@ class SettingController{
     
     function storeOriginData(){
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -137,7 +137,7 @@ class SettingController{
     
     function getCallbackData(){
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -157,7 +157,7 @@ class SettingController{
     
     function storeCallbackData(){
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -178,7 +178,7 @@ class SettingController{
     }
     function storeWhitelistExpedition(){
         try {
-            if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
                 wp_die();
             }

@@ -33,7 +33,7 @@ class Admin extends BaseInit{
                     'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Transactions',
                     'menu_title'=>'Transactions',
-                    'capability'=>'manage_options',
+                    'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-transaction-process',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/transaction-process/index.php';
@@ -43,7 +43,7 @@ class Admin extends BaseInit{
                     'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'Payments',
                     'menu_title'=>'Payments',
-                    'capability'=>'manage_options',
+                    'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-request-pickup',
                     'callback'=> function() use ($plugin_path) {
                         require_once $plugin_path.'templates/request-pickup/index.php';
@@ -53,7 +53,7 @@ class Admin extends BaseInit{
                     'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Settings',
                     'menu_title'=>'Settings',
-                    'capability'=>'manage_options',
+                    'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/setting/index.php';
@@ -68,7 +68,7 @@ class Admin extends BaseInit{
                 [
                     'page_title'=>'KiriminAja',
                     'menu_title'=>'KiriminAja',
-                    'capability'=>'manage_options',
+                    'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/setting/index.php';
