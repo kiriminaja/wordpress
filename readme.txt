@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.16
+Stable tag: 2.1.17
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,11 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 * [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.17 =
+* Update plugin row meta links and modify plugin URI in header
+* Add meta links for View Details, Support, and Developer in plugin row
+* Takeout legacy plugins but with backward plugin update compatibility
+
 = 2.1.16 =
 * Feat(readme): Update readme and content
 
