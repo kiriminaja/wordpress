@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.13
+Stable tag: 2.1.14
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,10 @@ Currently, this plugin only supports domestic shipping within Indonesia.
 6. Product shipping data setup
 
 == Changelog ==
+= 2.1.14 =
+* Fix(development.yml): standardize quotes and update exclusions for ZIP archive fix(Makefile): add exclusion for .wordpress-org directory in RSYNC
+* Fix(index.php): simplify checkbox attributes for order processing status
+
 = 2.1.13 =
 * Feat(release.yml): add deployment step to WordPress.org SVN for plugin distribution
 * Feat(gitattributes): add build and dist directories to export-ignore list
