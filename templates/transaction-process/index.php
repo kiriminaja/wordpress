@@ -106,13 +106,13 @@ class Kiriof_TransactionProcessIndex
                     FROM {$wpdb->prefix}posts as posts
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                         ON posts.ID = kiriminaja_transactions.wp_wc_order_stat_order_id
-                    WHERE kiriminaja_transactions.status != %s
-                        AND posts.post_status NOT IN ('trash','auto-draft')
+                    INNER JOIN {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
+                        ON kiriminaja_transactions.pickup_number = kiriminaja_payments.pickup_number
+                    WHERE posts.post_status NOT IN ('trash','auto-draft')
                         AND ( %s = '' OR posts.ID LIKE %s )
                         AND ( %s = '' OR posts.post_date LIKE %s )
                     GROUP BY posts.ID
                     ORDER BY posts.post_date DESC",
-                    'new',
                     $key,
                     $key_like,
                     $month,

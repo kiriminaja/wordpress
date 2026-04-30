@@ -301,24 +301,23 @@ class TransactionRepository{
     }
 
     /**
-     * Count distinct orders that have already been processed (kiriminaja
-     * status is anything other than 'new').
+     * Count distinct orders that have already been processed — i.e. have
+     * a matching record in kiriminaja_payments (synced with the Payments
+     * / Request Pickup page).
      */
     public function getCountProcessed() {
         $prefix = $this->wpdb->prefix;
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_var(
-            $this->wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT COUNT(DISTINCT p.ID)
-                FROM {$prefix}posts p
-                INNER JOIN {$this->table} t
-                    ON p.ID = t.wp_wc_order_stat_order_id
-                WHERE p.post_status NOT IN ('trash','auto-draft')
-                    AND t.status != %s",
-                'new'
-            )
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            "SELECT COUNT(DISTINCT p.ID)
+            FROM {$prefix}posts p
+            INNER JOIN {$this->table} t
+                ON p.ID = t.wp_wc_order_stat_order_id
+            INNER JOIN {$prefix}kiriminaja_payments pay
+                ON t.pickup_number = pay.pickup_number
+            WHERE p.post_status NOT IN ('trash','auto-draft')"
         );
 
         return $this->hasError() ? 0 : (int) $query;
