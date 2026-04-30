@@ -1,5 +1,11 @@
 # KiriminAja Official — WooCommerce Plugin
 
+[![WordPress Plugin Version](https://img.shields.io/wordpress/plugin/v/kiriminaja-official)](https://wordpress.org/plugins/kiriminaja-official/)
+[![WordPress Plugin Rating](https://img.shields.io/wordpress/plugin/stars/kiriminaja-official)](https://wordpress.org/plugins/kiriminaja-official/)
+[![WordPress Plugin Downloads](https://img.shields.io/wordpress/plugin/dt/kiriminaja-official)](https://wordpress.org/plugins/kiriminaja-official/)
+[![Tested up to](https://img.shields.io/wordpress/plugin/tested/kiriminaja-official)](https://wordpress.org/plugins/kiriminaja-official/)
+[![License](https://img.shields.io/wordpress/plugin/license/kiriminaja-official)](https://www.gnu.org/licenses/gpl-2.0.html)
+
 A WordPress/WooCommerce plugin that integrates [KiriminAja](https://kiriminaja.com) shipping services into your online store. Supports COD and non-COD delivery across multiple couriers in Indonesia.
 
 ## Features
@@ -68,8 +74,7 @@ make release BUMP=major       # auto-bump major
 make release V=2.5.0          # explicit version
 make release 2.5.0            # shorthand (positional)
 make release v2.5.0           # shorthand with leading "v"
-make github-release           # open GitHub "New Release" page pre-filled
-make publish                  # full flow: build + commit + tag + push + GitHub release
+make publish                  # full flow: build + commit + tag + push
 
 # --- Individual steps ---
 make changelog                # update readme.txt + KIRIOF_VERSION only

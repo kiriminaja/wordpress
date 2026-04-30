@@ -31,7 +31,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.phpunit.cache/
 	--exclude=.wordpress-org/
 
-.PHONY: zip clean changelog release test tag github-release publish
+.PHONY: zip clean changelog release test tag publish
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -40,7 +40,7 @@ BUMP ?= patch
 # Any extra goals after release/publish/changelog are treated as V=<version>.
 RELEASE_GOALS := $(filter release publish changelog,$(MAKECMDGOALS))
 ifneq ($(RELEASE_GOALS),)
-  EXTRA_GOALS := $(filter-out release publish changelog tag github-release zip clean test,$(MAKECMDGOALS))
+  EXTRA_GOALS := $(filter-out release publish changelog tag zip clean test,$(MAKECMDGOALS))
   ifneq ($(EXTRA_GOALS),)
     V := $(patsubst v%,%,$(firstword $(EXTRA_GOALS)))
     # Make the extra args no-op targets so Make doesn't error out.
@@ -59,9 +59,6 @@ tag:
 	git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
 	@echo "Tag v$(VERSION) created."
 
-github-release:
-	@php scripts/github-release.php $(VERSION)
-
 release: changelog
 	@# Re-read version after changelog bumped it
 	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
@@ -71,18 +68,16 @@ release: changelog
 	@echo "  1. Commit: git add -A && git commit -m 'chore: release v$(VERSION)'"
 	@echo "  2. Tag:    make tag"
 	@echo "  3. Push:   git push && git push --tags"
-	@echo "  4. GitHub: make github-release"
 	@echo ""
 
 publish: release
-	@# Full flow: build, commit, tag, push, open GitHub release
+	@# Full flow: build, commit, tag, push
 	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
 	git add -A
 	git commit -m "chore: release v$(VERSION)"
 	@$(MAKE) tag
 	git push
 	git push --tags
-	@$(MAKE) github-release
 
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
