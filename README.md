@@ -61,17 +61,7 @@ Produces a `kiriminaja-official-{version}.zip` ready for distribution.
 
 The Makefile automates version bumping, changelog generation, zipping, tagging, and publishing.
 
-There are two release variants:
-
-| Variant      | Audience                        | Includes `UpdaterController`? | Artifact name                              |
-| ------------ | ------------------------------- | ----------------------------- | ------------------------------------------ |
-| **official** | WordPress.org listing (default) | No (auto-stripped from build) | `kiriminaja-official-{version}.zip`        |
-| **legacy**   | Existing self-hosted customers  | Yes (kept for in-app updates) | `kiriminaja-official-legacy-{version}.zip` |
-
-Source files are never modified — `UpdaterController` is only stripped from the staged build directory for the `official` variant.
-
 ```bash
-# --- Official (WP.org) flow ---
 make release                  # auto-bump patch (e.g. 2.1.8 -> 2.1.9)
 make release BUMP=minor       # auto-bump minor
 make release BUMP=major       # auto-bump major
@@ -81,15 +71,9 @@ make release v2.5.0           # shorthand with leading "v"
 make github-release           # open GitHub "New Release" page pre-filled
 make publish                  # full flow: build + commit + tag + push + GitHub release
 
-# --- Legacy (self-hosted, full pack with UpdaterController) ---
-make release-legacy           # bump + build legacy zip
-make zip-legacy               # build legacy zip only (no version bump)
-make github-release-legacy    # open GitHub release page tagged v{version}-legacy
-make publish-legacy           # full legacy flow
-
 # --- Individual steps ---
 make changelog                # update readme.txt + KIRIOF_VERSION only
-make zip                      # build official distributable zip
+make zip                      # build distributable zip
 make tag                      # create local git tag v$(VERSION)
 ```
 
