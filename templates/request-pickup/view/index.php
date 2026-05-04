@@ -301,7 +301,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 <!--Table Search-->
-<?php // QR Code Styling library is enqueued in inc/Base/Enqueue.php (handle: kiriof-qr-code-styling) ?>
 <?php ob_start(); ?>
     function kiriofApplySearch (key,value){
         if (jQuery(`#table-form [name="${key}"]`).length > 0){
@@ -602,24 +601,11 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 jQuery('#payment-modal #trx-expired-at').text(responseData?.expired_at)
                 jQuery('#payment-modal .trx-pay-amount').text(kiriofMoneyFormat(responseData?.sum_fee_non_cod,'Rp'))
 
-                var qrcode = new QRCodeStyling({
-                    data: responseData?.payment_data?.qr_content,
+                jQuery('#paymentQR').empty().qrcode({
+                    text: responseData?.payment_data?.qr_content,
                     width: 256,
-                    height: 256,
-                    dotsOptions: {
-                        color: "#000000",
-                        type: "rounded"
-                    },
-                    backgroundOptions: {
-                        color: "transparent",
-                    },
-                    imageOptions: {
-                        crossOrigin: "anonymous",
-                        margin: 20
-                    }
+                    height: 256
                 });
-
-                qrcode.append(document.getElementById("paymentQR"));
             },
             error: function (xhr, status, error) {
                 modalElemLoader.addClass('kj-hidden')
