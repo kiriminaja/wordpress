@@ -183,7 +183,12 @@ class SettingController{
                 wp_die();
             }
             // Check for nonce security - fail early
-            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+            // Select2 AJAX sends nonce as a top-level POST field, not nested inside data[].
+            $nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+            if ( empty( $nonce ) && isset( $_POST['data']['nonce'] ) ) {
+                $nonce = sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) );
+            }
+            if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
