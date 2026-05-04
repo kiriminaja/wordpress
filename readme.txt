@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.1.18
+Stable tag: 2.1.19
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,10 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.19 =
+- Button styling on 6.9.4
+- Unable to search whitelist expeditions
+
 = 2.1.18 =
 - Update transaction queries to include payments for processed order count
 - Add processed order count and filter to transaction process view
