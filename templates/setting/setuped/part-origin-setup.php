@@ -147,7 +147,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="submit-container">
         <div class="row-divider"></div>
         <div class="kj-btn-container">
-            <button class="button-wp woocommerce-save-button kj-submit-btn" type="button">
+            <button class="button button-primary woocommerce-save-button kj-submit-btn" type="button">
                 <div style="display: flex">
                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                         <span><?php echo esc_html(kiriof_helper()->tlThis('Save Changes',$locale)); ?></span>

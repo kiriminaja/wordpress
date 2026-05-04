@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
              * templates/setting/setuped/index.php.
              */
             ?>
-            <button class="button-wp woocommerce-save-button kj-submit-btn" type="button">
+            <button class="button action woocommerce-save-button kj-submit-btn" type="button">
                 <div style="display: flex">
                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                         <span><?php echo esc_html( kiriof_helper()->tlThis( 'Save', $locale ) ); ?></span>

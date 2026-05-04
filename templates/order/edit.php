@@ -110,7 +110,7 @@ function kiriofGetTransactionData() {
 
     <div class="add_note" style="padding: 10px">
         <div style="display: relative">
-            <button type="button" style="width: 100%" class="button save_order button-primary" name="save" value="Update">Shipment Tracker</button>        
+            <button type="button" style="width: 100%" class="button save_order button button-primary" name="save" value="Update">Shipment Tracker</button>        
             <a href="${trackingUrl}" target="_blank" style="position: absolute; top: 0;left: 0;bottom: 0;right: 0"></a>
         </div>
     </div>

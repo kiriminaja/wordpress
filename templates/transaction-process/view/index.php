@@ -17,7 +17,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     <div class="woocommerce-layout__header-wrapper">
                         <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Transactions</h1>
                         <div style="padding-right: 40px">
-                            <button onclick="kjRequestPickupSchedule()" class="button button-wp" type="button">
+                            <button onclick="kjRequestPickupSchedule()" class="button button button-primary" type="button">
                                 <div style="display: flex">
                                     <div style="margin: auto">
                                         <span>Request Pickup</span>
@@ -81,7 +81,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         }
                                                         ?>
                                                     </select>
-                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)">
+                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -97,7 +97,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
                                                     echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' );
                                                     ?>">
-                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
+                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Search</span>
@@ -267,7 +267,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         }
                                                         ?>
                                                     </select>
-                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
+                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>

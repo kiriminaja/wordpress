@@ -62,7 +62,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div style="margin-top: .75rem; font-weight: 600;color: red" class="err_msg kj-hidden"></div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
-                            <button onclick="kjRequestPickupProcess()" class="button-wp btn-lg" type="button">
+                            <button onclick="kjRequestPickupProcess()" class="button button-primary btn-lg" type="button">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                     <span style="margin: auto">Pick Schedule</span>
                                 </div>
@@ -72,7 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
                         <p style="margin-bottom: 1.5rem">Terjadi Kesalahan !</p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
                     </div>
 
                 </div>

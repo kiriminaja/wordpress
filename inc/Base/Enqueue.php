@@ -136,7 +136,7 @@ class Enqueue extends BaseInit{
         wp_enqueue_script( 'heartbeat' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
-        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery' ), KIRIOF_VERSION, true );
+        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery', 'kiriof-select2-script' ), KIRIOF_VERSION, true );
         
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -164,6 +164,13 @@ class Enqueue extends BaseInit{
         /** Select 2 - bundled locally */
         wp_enqueue_style( 'kiriof-select2-style', $this->plugin_url . 'assets/lib/select2/select2.min.css', array(), '4.1.0-rc.0' );
         wp_enqueue_script( 'kiriof-select2-script', $this->plugin_url . 'assets/lib/select2/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
+
+        // Override WP admin CSS rules that break Select2 rendering.
+        wp_add_inline_style( 'kiriof-select2-style', '
+            .select2-container .select2-selection--multiple .select2-selection__rendered > li { margin-bottom: 0; }
+            .select2-container .select2-selection--multiple .select2-selection__choice__remove { min-height: auto; line-height: 1; }
+            .select2-container .select2-search--inline .select2-search__field { border: none; box-shadow: none; background-color: transparent; }
+        ' );
 
         /**
          * Leaflet - bundled locally for the store-address map picker on

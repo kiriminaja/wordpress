@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div style="margin-top: .75rem; font-weight: 600;color: red" class="err_msg kj-hidden"></div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
-                            <button onclick="kjRequestPickupProcess()" class="button-wp btn-lg" type="button">
+                            <button onclick="kjRequestPickupProcess()" class="button button-primary btn-lg" type="button">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                     <span style="margin: auto">Pick Schedule</span>
                                 </div>

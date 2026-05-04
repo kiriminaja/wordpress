@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <div class="content-header" style="background-color: white; display: flex; justify-content: space-between; align-items: center;">
                     <h1 id="request-pickup-detail-modal-title"><?php esc_html_e('Request Pickup Detail','kiriminaja-official'); ?></h1>
                     <div style="margin-right: 3rem;">
-                        <button class="button-wp p-relative" type="button" style="border-radius: 4px; display: none;" id="print-all-resi-btn">
+                        <button class="button button-primary p-relative" type="button" style="border-radius: 4px; display: none;" id="print-all-resi-btn">
                             <a href="#" target="_blank" class="inset-absolute" id="print-all-resi"></a>
                             <div style="display: flex">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -76,7 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
                                             <option selected="selected" value="">All Dates</option>
                                             <option value="2024-02">2024 February</option><option value="2024-01">2024 January</option><option value="2023-12">2023 December</option><option value="2023-11">2023 November</option><option value="2023-10">2023 October</option>                                                    </select>
-                                        <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
+                                        <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
                                                     <span><?php esc_html_e('Apply','kiriminaja-official'); ?></span>
@@ -90,7 +90,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
                                         <span style="font-weight: 700;">3 items</span>
                                         <div>
-                                            <button disabled="" style="position: relative" class="button-wp-blank" type="button">
+                                            <button disabled="" style="position: relative" class="button button-primary-blank" type="button">
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -102,7 +102,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         </div>
                                         <span style="font-weight: 700;"> 1 of 2 </span>
                                         <div>
-                                            <button style="position: relative" class="button-wp-blank" type="button">
+                                            <button style="position: relative" class="button button-primary-blank" type="button">
                                                 <a href="#" class="inset-absolute"></a>
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -162,7 +162,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     </td>
                                     <td class="manage-column column-thumb">
                                         <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">
-                                            <button class="button-wp" type="button" onclick="showPaymentForm(`XID-0000000002`)">
+                                            <button class="button button-primary" type="button" onclick="showPaymentForm(`XID-0000000002`)">
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                         <div style="position: relative; top: 1px">
@@ -175,7 +175,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     </div>
                                                 </div>
                                             </button>
-                                            <button class="button-wp-secondary" type="button" onclick="showDetail(`XID-0000000004`)">
+                                            <button class="button button-primary-secondary" type="button" onclick="showDetail(`XID-0000000004`)">
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                         <span>Detail</span>
@@ -199,7 +199,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <select style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
                                             <option selected="selected" value="">All Dates</option>
                                             <option value="2024-02">2024 February</option><option value="2024-01">2024 January</option><option value="2023-12">2023 December</option><option value="2023-11">2023 November</option><option value="2023-10">2023 October</option>                                                    </select>
-                                        <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
+                                        <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                             <div style="display: flex">
                                                 <div style="margin: auto">
                                                     <span>Apply</span>
@@ -213,7 +213,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
                                         <span style="font-weight: 700;">3 items</span>
                                         <div>
-                                            <button disabled="" style="position: relative" class="button-wp-blank" type="button">
+                                            <button disabled="" style="position: relative" class="button button-primary-blank" type="button">
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -225,7 +225,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         </div>
                                         <span style="font-weight: 700;"> 1 of 2 </span>
                                         <div>
-                                            <button style="position: relative" class="button-wp-blank" type="button">
+                                            <button style="position: relative" class="button button-primary-blank" type="button">
                                                 <a href="#" class="inset-absolute"></a>
                                                 <div style="display: flex">
                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -244,7 +244,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
                         <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','kiriminaja-official'); ?></p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
                     </div>
 
                 </div>

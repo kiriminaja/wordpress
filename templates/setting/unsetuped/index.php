@@ -111,7 +111,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                             <div class="container">
                                                                 <div class="row">
                                                                     <div class="col ps-md-0 pe-md-1 px-xs-0">
-                                                                        <button class="button-primary btn-lg woocommerce-save-button kj-submit" type="button">
+                                                                        <button class="button button-primary btn-lg woocommerce-save-button kj-submit" type="button">
                                                                             <div style="display: flex">
                                                                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                                     <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">

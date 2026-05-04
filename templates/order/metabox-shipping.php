@@ -114,7 +114,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 </table>
 
 <div class="kiriof-btn-group">
-    <a href="<?php echo esc_url( $detail_url ); ?>" class="button button-primary">
+    <a href="<?php echo esc_url( $detail_url ); ?>" class="button button button-primary">
         <?php esc_html_e( 'View in KiriminAja', 'kiriminaja-official' ); ?>
     </a>
     <a href="<?php echo esc_url( $tracking_url ); ?>" class="button" target="_blank">

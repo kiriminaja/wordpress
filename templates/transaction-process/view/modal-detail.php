@@ -121,7 +121,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
                         <p style="margin-bottom: 1.5rem"><?php esc_html_e('Terjadi Kesalahan !','kiriminaja-official'); ?></p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="showTransactionSummaryModalRefresh()"><?php esc_html_e('Refresh','kiriminaja-official'); ?></button>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="showTransactionSummaryModalRefresh()"><?php esc_html_e('Refresh','kiriminaja-official'); ?></button>
                     </div>
 
                 </div>

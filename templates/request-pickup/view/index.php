@@ -68,7 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         }
                                                         ?>
                                                     </select>
-                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)">
+                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -81,7 +81,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 <!--Key Search-->
                                                 <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
                                                     <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>">
-                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
+                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Search</span>
@@ -122,7 +122,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 if (@$kiriof_row->status!=="paid"){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
-                                                        <button class="button-wp" type="button" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
+                                                        <button class="button button-primary" type="button" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -135,7 +135,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         ';                                                        
                                                     }else{
                                                         $kiriof_btnGroup.= '
-                                                        <button class="button-wp" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')">
+                                                        <button class="button button-primary" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <span>Reschedule</span>
@@ -153,7 +153,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     ';
                                                 }
                                                 $kiriof_btnGroup.='
-                                                            <button class="button-wp-secondary" type="button" onclick="showDetail(\''.$kiriof_pickup_number_js.'\')">
+                                                            <button class="button button-primary-secondary" type="button" onclick="showDetail(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                        <span>Details</span>
@@ -237,7 +237,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         }
                                                         ?>
                                                     </select>
-                                                    <button class="button-wp-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
+                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
                                                         <div style="display: flex">
                                                             <div style="margin: auto">
                                                                 <span>Apply</span>
@@ -251,7 +251,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
                                                     <span style="font-weight: 700;"><?php echo absint( count( $results ) ); ?> items</span>
                                                     <div>
-                                                        <button <?php echo @$prev_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
+                                                        <button <?php echo @$prev_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button button-primary-blank" type="button">
                                                             <?php echo esc_attr($prev_page_link)!='' ? '<a href="'.esc_url($prev_page_link).'" class="inset-absolute"></a>' : ''; ?>
                                                             <div style="display: flex">
                                                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -264,7 +264,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     </div>
                                                     <span style="font-weight: 700;"> <?php echo esc_html($page); ?> of <?php echo esc_html($total_pages); ?> </span>
                                                     <div>
-                                                        <button <?php echo @$next_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button-wp-blank" type="button">
+                                                        <button <?php echo @$next_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button button-primary-blank" type="button">
                                                             <?php echo esc_attr($next_page_link)!='' ? '<a href="'.esc_url($next_page_link).'" class="inset-absolute"></a>' : ''; ?>
 
                                                             <div style="display: flex">
@@ -467,7 +467,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     let kiriof_btnGroup = ``;
                     if (transaction?.awb){
                         transactionIdList.push(transaction?.order_id);
-                        kiriof_btnGroup += `<button class="button-wp p-relative" type="button">
+                        kiriof_btnGroup += `<button class="button button-primary p-relative" type="button">
                                         <a href="${printResiUrl}" target="_blank" class="inset-absolute"></a>
                                         <div style="display: flex">
                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
@@ -483,7 +483,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                                     </button>`;
 
                     }
-                    kiriof_btnGroup += `<button class="button-wp-secondary p-relative" type="button">
+                    kiriof_btnGroup += `<button class="button button-primary-secondary p-relative" type="button">
                                         <a href="${transactionUrl}" target="_blank" class="inset-absolute"></a>
                                         <div style="display: flex">
                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">

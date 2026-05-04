@@ -83,7 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div class="row-divider"></div>
                         
                         <div>
-                            <button class="button-wp btn-lg" type="button" onclick="refreshShowPaymentForm()">
+                            <button class="button button-primary btn-lg" type="button" onclick="refreshShowPaymentForm()">
                                 <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                     <span style="margin: auto">
                                         <?php esc_html_e('Refresh','kiriminaja-official'); ?>
@@ -98,7 +98,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <p style="margin-bottom: 1.5rem">
                             <?php esc_html_e('Terjadi Kesalahan !','kiriminaja-official');?>
                         </p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button-primary woocommerce-save-button" type="button" onclick="refreshShowPaymentForm()"><?php esc_html_e('Refresh','kiriminaja-official'); ?></button>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="refreshShowPaymentForm()"><?php esc_html_e('Refresh','kiriminaja-official'); ?></button>
                     </div>
 
                 </div>
