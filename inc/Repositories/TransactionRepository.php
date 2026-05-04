@@ -18,6 +18,43 @@ class TransactionRepository{
     }
     
     /**
+     * Whether WooCommerce HPOS (custom orders table) is the active storage.
+     */
+    private function isHPOS() {
+        return class_exists( \Automattic\WooCommerce\Utilities\OrderUtil::class )
+            && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+    }
+
+    /**
+     * Return the orders table name and column aliases depending on storage.
+     * HPOS  → {prefix}wc_orders  (id, date_created_gmt, status)
+     * Legacy → {prefix}posts      (ID, post_date, post_status, post_type)
+     */
+    public function getOrdersTable() {
+        $prefix = $this->wpdb->prefix;
+        if ( $this->isHPOS() ) {
+            return [
+                'table'       => "{$prefix}wc_orders",
+                'id'          => 'id',
+                'date'        => 'date_created_gmt',
+                'status'      => 'status',
+                'type_col'    => 'type',
+                'type_value'  => 'shop_order',
+                'trash_field' => 'status',
+            ];
+        }
+        return [
+            'table'       => "{$prefix}posts",
+            'id'          => 'ID',
+            'date'        => 'post_date',
+            'status'      => 'post_status',
+            'type_col'    => 'post_type',
+            'type_value'  => 'shop_order',
+            'trash_field' => 'post_status',
+        ];
+    }
+
+    /**
      * Check for database errors and log them
      * @return bool
      */
@@ -262,21 +299,21 @@ class TransactionRepository{
      * rendered rows.
      */
     public function getCountByPostStatus( $postStatus ){
-        $prefix = $this->wpdb->prefix;
+        $o = $this->getOrdersTable();
 
         if ( null === $postStatus || '' === $postStatus || 'all' === $postStatus ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
             $query = $this->wpdb->get_var(
                 $this->wpdb->prepare(
                     // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                    "SELECT COUNT(DISTINCT p.ID)
-                    FROM {$prefix}posts p
+                    "SELECT COUNT(DISTINCT p.{$o['id']})
+                    FROM {$o['table']} p
                     INNER JOIN {$this->table} t
-                        ON p.ID = t.wp_wc_order_stat_order_id
-                    WHERE p.post_type = %s
-                        AND p.post_status NOT IN ('trash','auto-draft')
+                        ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+                    WHERE p.{$o['type_col']} = %s
+                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         AND t.status = %s",
-                    'shop_order',
+                    $o['type_value'],
                     'new'
                 )
             );
@@ -285,11 +322,11 @@ class TransactionRepository{
             $query = $this->wpdb->get_var(
                 $this->wpdb->prepare(
                     // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                    "SELECT COUNT(DISTINCT p.ID)
-                    FROM {$prefix}posts p
+                    "SELECT COUNT(DISTINCT p.{$o['id']})
+                    FROM {$o['table']} p
                     INNER JOIN {$this->table} t
-                        ON p.ID = t.wp_wc_order_stat_order_id
-                    WHERE p.post_status = %s
+                        ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+                    WHERE p.{$o['status']} = %s
                         AND t.status = %s",
                     $postStatus,
                     'new'
@@ -306,18 +343,18 @@ class TransactionRepository{
      * / Request Pickup page).
      */
     public function getCountProcessed() {
-        $prefix = $this->wpdb->prefix;
+        $o = $this->getOrdersTable();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_var(
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            "SELECT COUNT(DISTINCT p.ID)
-            FROM {$prefix}posts p
+            "SELECT COUNT(DISTINCT p.{$o['id']})
+            FROM {$o['table']} p
             INNER JOIN {$this->table} t
-                ON p.ID = t.wp_wc_order_stat_order_id
-            INNER JOIN {$prefix}kiriminaja_payments pay
+                ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+            INNER JOIN {$this->wpdb->prefix}kiriminaja_payments pay
                 ON t.pickup_number = pay.pickup_number
-            WHERE p.post_status NOT IN ('trash','auto-draft')"
+            WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')"
         );
 
         return $this->hasError() ? 0 : (int) $query;
