@@ -62,9 +62,9 @@ class Enqueue extends BaseInit{
         wp_enqueue_script(
             'kiriof-script',
             $this->plugin_url . 'assets/wp/js/kj-wp-script.js',
-            array( 'wp-util', 'jquery' ),
+            array( 'wp-util', 'jquery', 'kiriof-select2-script' ),
             KIRIOF_VERSION,
-            array( 'in_footer' => true, 'strategy' => 'defer' )
+            array( 'in_footer' => true )
         );
 
         // Localize script to pass ajax URL and nonce

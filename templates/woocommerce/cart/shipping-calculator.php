@@ -87,13 +87,19 @@ do_action( 'woocommerce_before_shipping_calculator' ); ?>
 			</p>
 		<?php endif; ?>
 
-        <?php 
+        <?php
+                $kiriof_dest_id   = WC()->session->get('destination_id');
+                $kiriof_dest_name = WC()->session->get('destination_name');
+                $kiriof_options   = array( '' => esc_html__( 'Select Option', 'kiriminaja-official' ) );
+                if ( ! empty( $kiriof_dest_id ) ) {
+                    $kiriof_options[ $kiriof_dest_id ] = $kiriof_dest_name;
+                }
                 woocommerce_form_field( 'kiriof_destination_area', array(
                     'type'        => 'select',
                     'label'       => esc_html__('District', 'kiriminaja-official'),
                     'required'    => true,
-                    'options'     => array(WC()->session->get('destination_id') => WC()->session->get('destination_name'))
-                ));        
+                    'options'     => $kiriof_options,
+                ));
         ?>
 
 		<p><button type="submit" style="display:none;" name="calc_shipping" value="1" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php esc_html_e( 'Update', 'kiriminaja-official' ); ?></button></p>
