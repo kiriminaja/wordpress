@@ -319,6 +319,10 @@ class EditOrderController{
         $data  = $order->get_data(); // The Order data
         $destination_area_id = $order->get_meta('_billing_kiriof_destination_area',true);
         $destination_area_name = $order->get_meta('_billing_kiriof_destination_name',true);
+        $billing_options = array( '' => __( 'Select Option', 'kiriminaja-official' ) );
+        if ( ! empty( $destination_area_id ) ) {
+            $billing_options[ $destination_area_id ] = $destination_area_name;
+        }
         
         $billing_fields['kiriof_destination_area'] = array(
             'label' => __( 'Subdistrict', 'kiriminaja-official' ),
@@ -326,7 +330,7 @@ class EditOrderController{
             'wrapper_class' => 'form-field-wide',
             'style' => '',
             'type' => 'select',
-            'options' => array($destination_area_id=>$destination_area_name)
+            'options' => $billing_options,
         );
         $billing_fields['kiriof_destination_name'] = array(
             'label' => '',
@@ -355,6 +359,10 @@ class EditOrderController{
         $data  = $order->get_data(); // The Order data
         $destination_area_id = $order->get_meta('_shipping_kiriof_destination_area',true);
         $destination_area_name = $order->get_meta('_shipping_kiriof_destination_name',true);
+        $shipping_options = array( '' => __( 'Select Option', 'kiriminaja-official' ) );
+        if ( ! empty( $destination_area_id ) ) {
+            $shipping_options[ $destination_area_id ] = $destination_area_name;
+        }
     
         $shipping_fields['kiriof_destination_area'] = array(
             'label' => __( 'Subdistrict', 'kiriminaja-official' ),
@@ -362,7 +370,7 @@ class EditOrderController{
             'wrapper_class' => 'form-field-wide',
             'style' => '',
             'type' => 'select',
-            'options' => array($destination_area_id=>$destination_area_name)
+            'options' => $shipping_options,
         );
         $shipping_fields['kiriof_destination_name'] = array(
             'label' => '',

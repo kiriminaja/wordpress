@@ -541,6 +541,10 @@ class CheckoutController
         //billing session
         $destination_id     = WC()->session->get('destination_id') ?? '';
         $destination_name   = WC()->session->get('destination_name') ?? '';
+        $options = array( '' => esc_html__( 'Select Option', 'kiriminaja-official' ) );
+        if ( ! empty( $destination_id ) ) {
+            $options[ $destination_id ] = $destination_name;
+        }
         //add field billing District
         $fields['billing'][$field_key] = array(
             'label'     => esc_html__('District', 'kiriminaja-official'),
@@ -549,7 +553,7 @@ class CheckoutController
             'clear'     => true,
             'type'      => 'select',
             'priority'  => 61,
-            'options'   => array($destination_id => $destination_name)
+            'options'   => $options,
         );
         //add field shipping District
         $fields['shipping'][$this->field_shipping_destination_key] = array(
@@ -559,7 +563,7 @@ class CheckoutController
             'clear'     => true,
             'type'      => 'select',
             'priority'  => 61,
-            'options'   => array($destination_id => $destination_name)
+            'options'   => $options,
         );
         return $fields;
     }

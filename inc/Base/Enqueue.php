@@ -62,9 +62,9 @@ class Enqueue extends BaseInit{
         wp_enqueue_script(
             'kiriof-script',
             $this->plugin_url . 'assets/wp/js/kj-wp-script.js',
-            array( 'wp-util', 'jquery' ),
+            array( 'wp-util', 'jquery', 'kiriof-select2-script' ),
             KIRIOF_VERSION,
-            array( 'in_footer' => true, 'strategy' => 'defer' )
+            array( 'in_footer' => true )
         );
 
         // Localize script to pass ajax URL and nonce
@@ -182,19 +182,11 @@ class Enqueue extends BaseInit{
         }
 
         /**
-         * QR Code Styling - bundled locally to comply with WordPress.org
-         * "no remote assets" rule. Required by the "Scan to Pay" modal on
-         * the Request Pickup page (templates/request-pickup/view/index.php)
-         * which calls `new QRCodeStyling({...})` to render the QRIS image.
+         * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
+         * for the "Scan to Pay" modal on the Request Pickup page.
          */
         if ( 'kiriminaja-request-pickup' === $page ) {
-            wp_enqueue_script(
-                'kiriof-qr-code-styling',
-                $this->plugin_url . 'assets/lib/qr-code-styling/qr-code-styling.min.js',
-                array(),
-                '1.9.2',
-                true
-            );
+            wp_enqueue_script( 'wc-qrcode' );
         }
    
     }

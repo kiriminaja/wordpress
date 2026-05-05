@@ -80,39 +80,34 @@ class Kiriof_TransactionProcessIndex
         }
 
         /**
-         * Main Query - source of truth = wp_posts (the WooCommerce shop_order CPT).
+         * Main Query - uses the active WooCommerce orders storage.
          *
-         * We intentionally do NOT join wp_wc_order_stats here. That table is
-         * the WooCommerce Analytics mirror and is populated asynchronously by
-         * a scheduled action after an order is created, so a brand-new order
-         * would be missing from the list for several minutes while still
-         * being counted by the badge. Joining wp_posts directly keeps the
-         * list consistent with what the merchant just placed.
-         *
-         * When the "Processed" filter is active we show transactions whose
-         * kiriminaja status is NOT 'new' (i.e. already picked up / shipped)
-         * regardless of WooCommerce post_status.
+         * Supports both legacy (wp_posts / shop_order CPT) and HPOS
+         * (wp_wc_orders custom table). The helper on TransactionRepository
+         * returns the correct table name and column aliases.
          */
+        $o = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getOrdersTable();
+
         if ($isProcessedFilter) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $results = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT 
-                        posts.ID as wc_order_id,
-                        posts.post_date as wc_date_created,
-                        posts.post_status as wc_status,
-                        posts.post_status,
+                        orders_tbl.{$o['id']} as wc_order_id,
+                        orders_tbl.{$o['date']} as wc_date_created,
+                        orders_tbl.{$o['status']} as wc_status,
+                        orders_tbl.{$o['status']} as post_status,
                         kiriminaja_transactions.*
-                    FROM {$wpdb->prefix}posts as posts
+                    FROM {$o['table']} as orders_tbl
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
-                        ON posts.ID = kiriminaja_transactions.wp_wc_order_stat_order_id
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     INNER JOIN {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
                         ON kiriminaja_transactions.pickup_number = kiriminaja_payments.pickup_number
-                    WHERE posts.post_status NOT IN ('trash','auto-draft')
-                        AND ( %s = '' OR posts.ID LIKE %s )
-                        AND ( %s = '' OR posts.post_date LIKE %s )
-                    GROUP BY posts.ID
-                    ORDER BY posts.post_date DESC",
+                    WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                    GROUP BY orders_tbl.{$o['id']}
+                    ORDER BY orders_tbl.{$o['date']} DESC",
                     $key,
                     $key_like,
                     $month,
@@ -124,20 +119,20 @@ class Kiriof_TransactionProcessIndex
             $results = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT 
-                    posts.ID as wc_order_id,
-                    posts.post_date as wc_date_created,
-                    posts.post_status as wc_status,
-                    posts.post_status,
+                    orders_tbl.{$o['id']} as wc_order_id,
+                    orders_tbl.{$o['date']} as wc_date_created,
+                    orders_tbl.{$o['status']} as wc_status,
+                    orders_tbl.{$o['status']} as post_status,
                     kiriminaja_transactions.*
-                FROM {$wpdb->prefix}posts as posts
+                FROM {$o['table']} as orders_tbl
                 INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
-                    ON posts.ID = kiriminaja_transactions.wp_wc_order_stat_order_id
-                WHERE posts.post_status = %s
+                    ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                WHERE orders_tbl.{$o['status']} = %s
                     AND kiriminaja_transactions.status = %s
-                    AND ( %s = '' OR posts.ID LIKE %s )
-                    AND ( %s = '' OR posts.post_date LIKE %s )
-                GROUP BY posts.ID
-                ORDER BY posts.post_date DESC",
+                    AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                    AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                GROUP BY orders_tbl.{$o['id']}
+                ORDER BY orders_tbl.{$o['date']} DESC",
                     $status,
                     'new',
                     $key,
