@@ -90,10 +90,36 @@ jobs:
           else
             RANGE="HEAD"
           fi
-          # Collect unique GitHub usernames from commits
-          CONTRIBUTORS=$(git log "$RANGE" --format="%aN" --no-merges | sort -u | while read -r name; do
-            echo "- @${name}"
-          done)
+          # Resolve GitHub usernames from commit author emails via ungh.cc
+          CONTRIBUTORS=$(git log "$RANGE" --format="%aE" --no-merges | sort -u | while read -r email; do
+            [ -z "$email" ] && continue
+            ENCODED_EMAIL=$(php -r 'echo rawurlencode($argv[1]);' "$email")
+            USERNAME=$(php -r '
+              $url = $argv[1];
+              $json = @file_get_contents($url);
+              if ($json === false) {
+                  exit(0);
+              }
+              $data = json_decode($json, true);
+              if (!is_array($data)) {
+                  exit(0);
+              }
+              $candidate = $data["user"]["username"] ?? $data["user"]["login"] ?? $data["username"] ?? $data["login"] ?? "";
+              if (is_string($candidate) && $candidate !== "") {
+                  echo $candidate;
+              }
+            ' "https://ungh.cc/users/find/${ENCODED_EMAIL}")
+
+            if [ -n "$USERNAME" ]; then
+              echo "- @${USERNAME}"
+            else
+              echo "- ${email}"
+            fi
+          done | sort -u)
+
+          if [ -z "$CONTRIBUTORS" ]; then
+            CONTRIBUTORS="- No contributors detected"
+          fi
           {
             echo "list<<__EOF__"
             echo "$CONTRIBUTORS"
