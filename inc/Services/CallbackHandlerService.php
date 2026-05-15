@@ -284,9 +284,13 @@ class CallbackHandlerService extends BaseService{
                         'order_id'=>$package->order_id
                     ];
                     (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
-                    /** Update in wc order table*/
+                    /** Update in wc order table — unhook our listener to prevent a loop back to the Mitra API */
                     $order = wc_get_order( $theTransaction->wp_wc_order_stat_order_id );
-                    $order->update_status( 'cancelled' );
+                    if ( $order && $order->get_status() !== 'cancelled' ) {
+                        remove_action( 'woocommerce_order_status_cancelled', [ 'KiriminAjaOfficial\\Controllers\\TransactionProcessController', 'handleWcOrderCancelled' ] );
+                        $order->update_status( 'cancelled' );
+                        add_action( 'woocommerce_order_status_cancelled', [ 'KiriminAjaOfficial\\Controllers\\TransactionProcessController', 'handleWcOrderCancelled' ] );
+                    }
                 }
                 
                 

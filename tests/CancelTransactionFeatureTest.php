@@ -359,7 +359,7 @@ final class CancelTransactionFeatureTest extends TestCase
     }
 
     #[Test]
-    public function handle_wc_order_cancelled_skips_already_canceled(): void
+    public function handle_wc_order_cancelled_skips_terminal_statuses(): void
     {
         $content = file_get_contents(
             PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
@@ -370,9 +370,67 @@ final class CancelTransactionFeatureTest extends TestCase
 
         $methodBody = substr($content, (int) $_[0][1], 2500);
         $this->assertStringContainsString(
-            "'canceled'",
+            'terminalStatuses',
             $methodBody,
-            'handleWcOrderCancelled() must check if transaction is already canceled'
+            'handleWcOrderCancelled() must check for terminal statuses to prevent race conditions'
+        );
+    }
+
+    #[Test]
+    public function handle_wc_order_cancelled_skips_when_no_awb(): void
+    {
+        $content = file_get_contents(
+            PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
+        );
+
+        preg_match('/function\s+handleWcOrderCancelled\s*\(/s', $content, $_, PREG_OFFSET_CAPTURE);
+        $this->assertNotEmpty($_, 'handleWcOrderCancelled() method not found');
+
+        $methodBody = substr($content, (int) $_[0][1], 2500);
+        $this->assertStringContainsString(
+            'empty( $transaction->awb )',
+            $methodBody,
+            'handleWcOrderCancelled() must skip when no AWB exists'
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Webhook callback race condition guard
+    // ------------------------------------------------------------------
+
+    #[Test]
+    public function webhook_canceled_packages_unhooks_wc_listener(): void
+    {
+        $content = file_get_contents(
+            PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php'
+        );
+
+        preg_match('/function\s+canceledPackages\s*\(/s', $content, $_, PREG_OFFSET_CAPTURE);
+        $this->assertNotEmpty($_, 'canceledPackages() method not found');
+
+        $methodBody = substr($content, (int) $_[0][1], 3000);
+        $this->assertStringContainsString(
+            'remove_action',
+            $methodBody,
+            'canceledPackages() must remove the WC order status hook to prevent a loop back to the Mitra API'
+        );
+    }
+
+    #[Test]
+    public function webhook_canceled_packages_checks_order_status_before_update(): void
+    {
+        $content = file_get_contents(
+            PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php'
+        );
+
+        preg_match('/function\s+canceledPackages\s*\(/s', $content, $_, PREG_OFFSET_CAPTURE);
+        $this->assertNotEmpty($_, 'canceledPackages() method not found');
+
+        $methodBody = substr($content, (int) $_[0][1], 3000);
+        $this->assertStringContainsString(
+            "get_status() !== 'cancelled'",
+            $methodBody,
+            'canceledPackages() must check WC order status before updating to avoid redundant writes'
         );
     }
 

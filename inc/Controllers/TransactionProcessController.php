@@ -134,11 +134,21 @@ class TransactionProcessController{
             $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
             $transaction     = $transactionRepo->getTransactionByWCOrderId( $order_id );
 
-            if ( ! $transaction || $transaction->status === 'canceled' ) {
+            if ( ! $transaction ) {
                 return;
             }
 
-            // Use a default reason for WC-initiated cancellations
+            // Skip if already canceled or in a terminal status (e.g. webhook already handled it)
+            $terminalStatuses = [ 'shipped', 'finished', 'returned', 'return', 'canceled' ];
+            if ( in_array( $transaction->status, $terminalStatuses, true ) ) {
+                return;
+            }
+
+            // Skip if no AWB — nothing to cancel on Mitra side
+            if ( empty( $transaction->awb ) ) {
+                return;
+            }
+
             $reason = __( 'Pesanan dibatalkan dari WooCommerce', 'kiriminaja-official' );
 
             ( new CancelTransactionService() )
