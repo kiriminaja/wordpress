@@ -122,6 +122,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Billing', $locale)); ?></th>
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Ship To', $locale)); ?></th>
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Total', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Actions', $locale)); ?></th>
                                             </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -227,11 +228,16 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         <td class="manage-column column-thumb">
                                                             <p style="font-weight: 600">(' . esc_html($kiriof_paymentLabel) . ') Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</p>
                                                         </td>
+                                                        <td class="manage-column column-thumb">' .
+                                                            ( ! empty( $kiriof_row->awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
+                                                                ? '<button class="button" style="color: #d63638; border-color: #d63638" onclick="kjShowCancelModal(\'' . esc_js($kiriof_row->order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Cancel Shipment', $locale)) . '</button>'
+                                                                : '' ) . '
+                                                        </td>
                                                     </tr>
                                                     ';
                                                 }
                                             } else {
-                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html($kiriof_helper->tlThis('Not Found', $locale)) . '</td></tr>';
+                                                echo '<tr><td colspan="8" style="text-align: center" class="manage-column column-thumb">' . esc_html($kiriof_helper->tlThis('Not Found', $locale)) . '</td></tr>';
                                             }
                                             ?>
 
@@ -247,6 +253,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Billing', $locale)); ?></th>
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Ship To', $locale)); ?></th>
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Total', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html($kiriof_helper->tlThis('Actions', $locale)); ?></th>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -296,6 +303,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
     <?php include 'modal-request-pickup.php' ?>
     <?php include 'modal-detail.php' ?>
+    <?php include 'modal-cancel.php' ?>
 
 </div>
 
@@ -659,6 +667,70 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                 /** Show Modal*/
                 $modalLoader.addClass('kj-hidden');
                 $modalContent.removeClass('kj-hidden');
+            }
+        });
+    };
+
+    window.kjShowCancelModal = function(orderId) {
+        const $modal = $('#cancel-transaction-modal');
+        $('#cancel-order-id').val(orderId);
+        $('#cancel-reason').val('');
+        $('#cancel-reason-count').text('0');
+        $modal.find('.err_msg').html('').addClass('kj-hidden');
+        $modal.find('.kj-modal-loader').addClass('kj-hidden');
+        $modal.find('.kj-modal-content').removeClass('kj-hidden');
+        $modal.removeClass('kj-hidden');
+    };
+
+    window.kjCancelTransactionProcess = function() {
+        const $modal = $('#cancel-transaction-modal');
+        const $errMsg = $modal.find('.err_msg');
+        const $modalContent = $modal.find('.kj-modal-content');
+        const $modalLoader = $modal.find('.kj-modal-loader');
+
+        const orderId = $('#cancel-order-id').val();
+        const reason = $('#cancel-reason').val().trim();
+
+        if (reason.length < 5) {
+            $errMsg.text('*Alasan minimal 5 karakter').removeClass('kj-hidden');
+            return;
+        }
+        if (reason.length > 200) {
+            $errMsg.text('*Alasan maksimal 200 karakter').removeClass('kj-hidden');
+            return;
+        }
+
+        if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini?')) {
+            return;
+        }
+
+        $errMsg.addClass('kj-hidden');
+        $modalLoader.removeClass('kj-hidden');
+        $modalContent.addClass('kj-hidden');
+
+        $.ajax({
+            type: "post",
+            url: kiriofAjaxRoute(),
+            data: {
+                action: "kiriof_cancel_transaction",
+                data: {
+                    order_id: orderId,
+                    reason: reason,
+                    nonce: kiriofAjax.nonce
+                }
+            },
+            complete: function(response) {
+                const resp = JSON.parse(response.responseText).data;
+
+                if (resp?.status !== 200) {
+                    $modalLoader.addClass('kj-hidden');
+                    $modalContent.removeClass('kj-hidden');
+                    $errMsg.text('*' + (resp?.message ?? 'Terjadi kesalahan')).removeClass('kj-hidden');
+                    return;
+                }
+
+                alert(resp?.message ?? 'Transaksi berhasil dibatalkan');
+                window.location.reload();
             }
         });
     };

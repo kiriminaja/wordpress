@@ -57,7 +57,7 @@ class EditOrderController{
 
         $data        = $service->data;
         $tracking_url = home_url( '/tracking?order_id=' . $order_id );
-        $detail_url  = admin_url( 'admin.php?page=kiriminaja-transaction-process' );
+        $detail_url  = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
 
         include KIRIOF_DIR . '/templates/order/metabox-shipping.php';
     }
