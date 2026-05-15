@@ -68,4 +68,10 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'awb' => $awb,
         ]);
     }
+    public function cancelShipment($awb, $reason){
+        return $this->post('/api/mitra/v3/cancel_shipment',[
+            'awb'    => $awb,
+            'reason' => $reason,
+        ]);
+    }
 }
