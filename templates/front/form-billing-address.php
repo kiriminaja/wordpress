@@ -178,6 +178,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                     },
                     cache: true
                 }
+            });
+
+            // Restore Select2 display for pre-selected values (e.g. from session on cart page)
+            subDistrictSelectElem.each(function() {
+                var $el = jQuery(this);
+                var selectedVal = $el.val();
+                var selectedText = $el.find('option:selected').text();
+                if (selectedVal && selectedText && selectedText !== '<?php echo esc_js(__('Select Option','kiriminaja-official')); ?>') {
+                    $el.trigger('change.select2');
+                }
             }); 
         }
 
