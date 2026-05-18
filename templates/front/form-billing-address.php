@@ -6,7 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <div id="kiriof_destination_area_group">    
-    <!--Other invisible Field-->
     <div style="display: none">
         <input type="hidden" name="kiriof_checkout_token" value="<?php echo esc_attr($kiriof_checkout_token); ?>">
         <input type="hidden" name="kiriof_destination_area_name" value="<?php echo esc_attr($dentination_name); ?>">
