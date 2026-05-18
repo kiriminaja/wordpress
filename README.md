@@ -55,6 +55,8 @@ make test
 
 This runs 125+ PHPUnit tests covering security, escaping, prefix compliance, template structure, and build integrity.
 
+> **Note:** Your workspace/IDE must be opened at the WordPress root directory so the plugin is located at `wp-content/plugins/kiriminaja-official`. Tests depend on WordPress core paths (`ABSPATH`) and will not work if you open the plugin folder in isolation.
+
 ### Building
 
 ```bash

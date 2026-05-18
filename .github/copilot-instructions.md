@@ -164,6 +164,7 @@ tests/              → PHPUnit tests
 - Test files: `tests/` directory
 - Run: `vendor/bin/phpunit` or `make test`
 - Tests cover: access control, cancel transaction flow, i18n, plugin structure, prefix validation, security validation, syntax validation.
+- **Important:** The workspace must be opened at the WordPress installation root so that this plugin resides at `wp-content/plugins/kiriminaja-official`. Tests rely on WordPress core file paths (e.g. `ABSPATH`) resolving correctly. If you open only the plugin folder in isolation, tests will fail.
 
 ---
 
