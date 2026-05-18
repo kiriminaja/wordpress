@@ -99,7 +99,7 @@ do_action( 'woocommerce_before_shipping_calculator' ); ?>
                     'label'       => esc_html__('District', 'kiriminaja-official'),
                     'required'    => true,
                     'options'     => $kiriof_options,
-                ));
+                ), ! empty( $kiriof_dest_id ) ? $kiriof_dest_id : '' );
         ?>
 
 		<p><button type="submit" style="display:none;" name="calc_shipping" value="1" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php esc_html_e( 'Update', 'kiriminaja-official' ); ?></button></p>

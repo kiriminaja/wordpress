@@ -142,6 +142,11 @@ function kiriof_shipping_method(){
                         ];    
                     }
                 }
+
+                // Sort by cost ascending to maintain consistent ordering across re-renders
+                usort($filteredOptions, function($a, $b) {
+                    return $a['cost'] <=> $b['cost'];
+                });
                 
                 return $filteredOptions;
             }
