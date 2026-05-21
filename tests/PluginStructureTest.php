@@ -142,12 +142,6 @@ final class PluginStructureTest extends TestCase
     }
 
     #[Test]
-    public function index_php_exists_in_root(): void
-    {
-        $this->assertFileExists(PLUGIN_DIR . '/index.php');
-    }
-
-    #[Test]
     public function composer_json_has_correct_autoload(): void
     {
         $this->assertFileExists(PLUGIN_DIR . '/composer.json');

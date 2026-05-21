@@ -44,6 +44,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
                                     <div style="display: inline-block">
                                         <ul class="subsubsub">
+                                            <li><a href="#" onclick="kiriofApplySearch('status','all')" <?php echo $kiriof_status_filter === 'all' ? 'class="current"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a> |</li>
                                             <li><a href="#" onclick="kiriofApplySearch('status','wc-processing')" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current"' : ''; ?>>Processing <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a> |</li>
                                             <li><a href="#" onclick="kiriofApplySearch('status','wc-on-hold')" <?php echo $kiriof_status_filter === 'wc-on-hold' ? 'class="current"' : ''; ?>>On Hold <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ) ); ?>)</span></a> |</li>
                                             <li><a href="#" onclick="kiriofApplySearch('status','wc-pending')" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current"' : ''; ?>>Pending Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a> |</li>
@@ -219,6 +220,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             <p style="font-weight: 600">(' . esc_html($kiriof_paymentLabel) . ') Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</p>
                                                         </td>
                                                         <td class="manage-column column-thumb">' .
+                                                            '<button class="button" onclick="showTransactionSummaryModal(\'' . esc_js($kiriof_row->wc_order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Detail', $locale)) . '</button> ' .
                                                             ( ! empty( $kiriof_row->awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
                                                                 ? '<button class="button" style="color: #d63638; border-color: #d63638" onclick="kjShowCancelModal(\'' . esc_js($kiriof_row->order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Cancel Shipment', $locale)) . '</button>'
                                                                 : '' ) . '
