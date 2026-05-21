@@ -23,8 +23,43 @@ class ShippingProcessController
         add_action('init', function () {
             add_feed('transaction-resi-print', array($this, 'resiPrint'));
         });
-        add_action('admin_post_kiriof_resi_print', array($this, 'resiPrint'));
+        add_action('admin_post_kiriof_resi_print', array($this, 'handleResiPrintAdminPost'));
     }
+
+    private function sanitizeResiPrintOrderIds( $raw_oids )
+    {
+        if ( ! is_array( $raw_oids ) ) {
+            $raw_oids = array( $raw_oids );
+        }
+
+        $order_ids = array_map(
+            static function ( $order_id ) {
+                return absint( sanitize_text_field( wp_unslash( $order_id ) ) );
+            },
+            $raw_oids
+        );
+
+        $order_ids = array_filter(
+            $order_ids,
+            static function ( $order_id ) {
+                return ! empty( $order_id );
+            }
+        );
+
+        return array_values( $order_ids );
+    }
+
+    public function handleResiPrintAdminPost()
+    {
+        if ( isset( $_REQUEST['oids'] ) ) {
+            $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( $_REQUEST['oids'] );
+        } else {
+            $_REQUEST['oids'] = array();
+        }
+
+        $this->resiPrint();
+    }
+
     function getShippingReschedulePickup()
     {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
