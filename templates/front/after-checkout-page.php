@@ -3,6 +3,10 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var mixed $transaction
+ */
 ?>
 
 <section class="woocommerce-order-details">

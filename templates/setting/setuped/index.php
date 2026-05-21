@@ -3,6 +3,14 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $locale
+ * @var bool $isOriginShippingDataReady
+ * @var object|null $approvedSetupKey
+ * @var string $kiriof_back_url
+ * @var string $activeTab
+ */
 ?>
 <div class="wrap kj-wrap">
 
