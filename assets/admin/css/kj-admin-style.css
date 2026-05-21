@@ -147,10 +147,7 @@ body {
   padding: 30px;
 }
 .kj-wrap .media-modal {
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
+  position: static;
   background-color: #fff;
   overflow-y: auto;
   max-height: 90vh;
