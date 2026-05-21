@@ -425,12 +425,11 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 
 
     jQuery(document).ready(function($) {
-        // initmap();
+        // Show the active tab first so Select2 can calculate widths correctly.
+        getTabData()
 
         getSearchAreaKelurahan();
         searchExpedition();
-
-        getTabData()
     });
     
     let subdistrictAjaxTimeout = null
@@ -438,6 +437,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     function getSearchAreaKelurahan(){
        
             areaSelectElem.select2({
+                width: '100%',
                 minimumInputLength: 3,
                 placeholder: "<?php echo esc_js( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
                 allowClear: true,
@@ -471,6 +471,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     function searchExpedition(){
        
        jQuery('.tab-shipping [name="origin_whitelist_expedition[]"]').select2({
+           width: '100%',
            placeholder: "<?php echo esc_js( kiriof_helper()->tlThis('Select Option',$locale) ); ?>",
            allowClear: true,
            ajax: {
