@@ -109,12 +109,12 @@ class CheckoutController
     function add_custom_select_options_field_and_script($checkout)
     {        
         $field_key = $this->field_destination_key;
-        $dentination_id = WC()->session->get($this->key_destination_id);
-        $dentination_name = WC()->session->get($this->key_destination_name);
-        $shipping_dentination_id = WC()->session->get($this->key_shipping_destination_id);
-        $shipping_dentination_name = WC()->session->get($this->key_shipping_destination_name);
+        $destination_id = WC()->session->get($this->key_destination_id);
+        $destination_name = WC()->session->get($this->key_destination_name);
+        $shipping_destination_id = WC()->session->get($this->key_shipping_destination_id);
+        $shipping_destination_name = WC()->session->get($this->key_shipping_destination_name);
         
-        $kiriof_checkout_token = empty($dentination_id) ? false : true;
+        $kiriof_checkout_token = empty($destination_id) ? false : true;
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-billing-address.php');
     }
     function kiriof_checkout_field_validation() {
