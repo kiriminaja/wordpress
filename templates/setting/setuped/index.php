@@ -102,7 +102,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div>
-                                                    <button onclick="toggleThis(this,`tab-shipping`)" style="width: auto !important;padding: 6px 12px !important;" class="button button-primary woocommerce-save-button" type="button">
+                                                    <a href="' . esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&tab=tab-shipping' ) ) . '" style="width: auto !important;padding: 6px 12px !important;text-decoration: none;" class="button button-primary woocommerce-save-button">
                                                         <div style="display: flex">
                                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                 <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -119,7 +119,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                                 <span style="margin-left: 6px">'.esc_html( kiriof_helper()->tlThis('Set Address',$locale) ).'</span>
                                                             </div>
                                                         </div>
-                                                    </button>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -131,15 +131,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                 <div class="row-divider"></div>
                                 <!--NAVBAR-->
-                                <nav style="margin-top: 1rem;margin-bottom: 1.5rem" class="nav-tab-wrapper woo-nav-tab-wrapper">
-                                    <a href="#" onclick="toggleThis(this,'tab-integration')" class="nav-tab tab-integration nav-tab-active"><?php echo esc_html( kiriof_helper()->tlThis('Integration',$locale) ); ?></a>
-                                    <?php
-                                    if ( ! empty( $approvedSetupKey->value ?? null ) ){
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-shipping`)" class="nav-tab tab-shipping">'.esc_html( kiriof_helper()->tlThis('Shipping',$locale) ).'</a>';
-                                        echo '<a href="#" onclick="toggleThis(this,`tab-advanced`)" class="nav-tab tab-advanced">'.esc_html( kiriof_helper()->tlThis('Advanced',$locale) ).'</a>';
-                                    }
-                                    ?>
-                                </nav>
+                                <?php
+                                $kiriof_settings_base = admin_url( 'admin.php?page=kiriminaja-konfigurasi&tab=' );
+                                ?>
+                                <div class="wp-filter" style="margin-top: 1rem;margin-bottom: 1.5rem">
+                                    <ul class="filter-links">
+                                        <li><a href="<?php echo esc_url( $kiriof_settings_base . 'tab-integration' ); ?>" class="<?php echo 'tab-integration' === $activeTab ? 'current' : ''; ?>"><?php echo esc_html( kiriof_helper()->tlThis('Integration',$locale) ); ?></a></li>
+                                        <?php if ( ! empty( $approvedSetupKey->value ?? null ) ) : ?>
+                                        <li><a href="<?php echo esc_url( $kiriof_settings_base . 'tab-shipping' ); ?>" class="<?php echo 'tab-shipping' === $activeTab ? 'current' : ''; ?>"><?php echo esc_html( kiriof_helper()->tlThis('Shipping',$locale) ); ?></a></li>
+                                        <li><a href="<?php echo esc_url( $kiriof_settings_base . 'tab-advanced' ); ?>" class="<?php echo 'tab-advanced' === $activeTab ? 'current' : ''; ?>"><?php echo esc_html( kiriof_helper()->tlThis('Advanced',$locale) ); ?></a></li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </div>
                                 
                                 <!--SWITCHABLE CONTENT-->
                                 <div>
@@ -176,7 +179,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     /** Page Content Util*/
     function toggleThis(elem,menu){
-        window.location.href = '<?php echo esc_url(home_url()).'/wp-admin/admin.php?page=kiriminaja-konfigurasi&tab='?>'+menu
+        window.location.href = '<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&tab=' ) ); ?>'+menu
     }
 
     /**
@@ -198,8 +201,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     function getTabData(){
         var menu = '<?php echo esc_js($activeTab);?>'
         
-        jQuery('.nav-tab').removeClass("nav-tab-active")
-        jQuery(`.nav-tab.${menu}`).addClass("nav-tab-active");
         jQuery('.kj-menu-content').addClass('kj-hidden')
         jQuery(`.${menu}`).removeClass('kj-hidden')
         formAlertToggler(menu,false)        
@@ -382,7 +383,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         setTimeout(initMap, 300);
 
         // Also try whenever a tab is clicked (covers client-side tab toggling)
-        $(document).on('click', '.nav-tab', function(){
+        $(document).on('click', '.filter-links a', function(){
             setTimeout(initMap, 150);
         });
     });
