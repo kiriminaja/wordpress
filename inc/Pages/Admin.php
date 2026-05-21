@@ -110,6 +110,23 @@ class Admin extends BaseInit{
             }
             return $submenu_file;
         });
+
+        // Replace the default admin footer text on KiriminAja pages.
+        add_filter( 'admin_footer_text', function ( $text ) {
+            $screen = get_current_screen();
+            if ( $screen && false !== strpos( $screen->id, 'kiriminaja' ) ) {
+                return esc_html__( 'Thank you for choosing KiriminAja', 'kiriminaja-official' );
+            }
+            return $text;
+        });
+
+        add_filter( 'update_footer', function ( $text ) {
+            $screen = get_current_screen();
+            if ( $screen && false !== strpos( $screen->id, 'kiriminaja' ) ) {
+                return 'v' . esc_html( KIRIOF_VERSION );
+            }
+            return $text;
+        }, 11 );
     }
     function kiriof_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {

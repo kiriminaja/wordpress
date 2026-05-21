@@ -195,6 +195,4 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     </tbody>
                                 </table>
 
-                                <div class="row-divider" style="margin-top: .75rem"></div>
-                                <?php include dirname( __DIR__ ) . '/../partials/footer.php'; ?>
 </div>

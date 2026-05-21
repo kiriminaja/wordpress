@@ -147,8 +147,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <?php include 'part-callback-setup.php' ?>
                                     </div>
                                 </div>
-                                <div class="row-divider"></div>
-                                <?php include __DIR__ . '/../../partials/footer.php'; ?>
                             </div>
 </div>
     

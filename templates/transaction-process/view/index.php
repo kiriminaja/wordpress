@@ -277,8 +277,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row-divider"></div>
-                                    <?php include __DIR__ . '/../../partials/footer.php'; ?>
 
     <?php include 'modal-request-pickup.php' ?>
     <?php include 'modal-detail.php' ?>

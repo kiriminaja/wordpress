@@ -286,8 +286,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row-divider"></div>
-                                    <?php include __DIR__ . '/../../partials/footer.php'; ?>
 
     <?php include 'modal-payment.php' ?>
     <?php include 'modal-request-pickup.php' ?>
