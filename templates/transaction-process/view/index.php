@@ -219,6 +219,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             <p style="font-weight: 600">(' . esc_html($kiriof_paymentLabel) . ') Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</p>
                                                         </td>
                                                         <td class="manage-column column-thumb">' .
+                                                            '<button class="button" onclick="showTransactionSummaryModal(\'' . esc_js($kiriof_row->wc_order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Detail', $locale)) . '</button> ' .
                                                             ( ! empty( $kiriof_row->awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
                                                                 ? '<button class="button" style="color: #d63638; border-color: #d63638" onclick="kjShowCancelModal(\'' . esc_js($kiriof_row->order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Cancel Shipment', $locale)) . '</button>'
                                                                 : '' ) . '
