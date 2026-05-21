@@ -92,7 +92,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div>
-                                                    <a href="' . $kiriof_shipping_tab_url . '" style="width: auto !important;padding: 6px 12px !important;text-decoration: none;" class="button button-primary woocommerce-save-button">
+                                                    <a href="' . esc_url( $kiriof_shipping_tab_url ) . '" style="width: auto !important;padding: 6px 12px !important;text-decoration: none;" class="button button-primary woocommerce-save-button">
                                                         <div style="display: flex">
                                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                 <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

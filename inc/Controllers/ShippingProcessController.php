@@ -51,8 +51,15 @@ class ShippingProcessController
 
     public function handleResiPrintAdminPost()
     {
+        // Verify nonce before accessing request data.
+        if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'kiriof_resi_print' ) ) {
+            wp_safe_redirect( home_url( '/404' ) );
+            exit;
+        }
+
         if ( isset( $_REQUEST['oids'] ) ) {
-            $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( $_REQUEST['oids'] );
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized inside sanitizeResiPrintOrderIds()
+            $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( wp_unslash( $_REQUEST['oids'] ) );
         } else {
             $_REQUEST['oids'] = array();
         }
