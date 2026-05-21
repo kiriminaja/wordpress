@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="modal-container">
         <div style="width: 100%; max-width: 400px;background-color: #f0f0f1" tabindex="0" class="media-modal" role="dialog">
             <div class="media-modal-container">
-                <div class="closebtn-container" onclick="document.getElementById('request-pickup-modal').classList.add('kj-hidden');">
+                <div class="closebtn-container">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M16.0659 8.99481C16.3588 8.70191 16.3588 8.22704 16.0659 7.93415C15.773 7.64125 15.2981 7.64125 15.0052 7.93415L12 10.9393L8.99482 7.93415C8.70192 7.64125 8.22705 7.64125 7.93416 7.93415C7.64126 8.22704 7.64126 8.70191 7.93416 8.99481L10.9394 12L7.93415 15.0052C7.64125 15.2981 7.64125 15.773 7.93415 16.0659C8.22704 16.3588 8.70191 16.3588 8.99481 16.0659L12 13.0607L15.0052 16.0659C15.2981 16.3588 15.773 16.3588 16.0659 16.0659C16.3588 15.773 16.3588 15.2981 16.0659 15.0052L13.0607 12L16.0659 8.99481Z" fill="black"/>
                     </svg>
@@ -62,10 +62,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div style="margin-top: .75rem; font-weight: 600;color: red" class="err_msg kj-hidden"></div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
-                            <button onclick="kjRequestPickupProcess()" class="button button-primary btn-lg" type="button">
-                                <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                    <span style="margin: auto">Pick Schedule</span>
-                                </div>
+                            <button onclick="kjRequestPickupProcess()" class="button button-primary" type="button">
+                                <span>Pick Schedule</span>
                             </button>
                         </div>
                     </div>

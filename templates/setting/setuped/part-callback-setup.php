@@ -3,6 +3,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $locale
+ * @var array $inputValueArr
+ */
 ?>
 <span style="font-size: 18px; font-weight: 600">Webhooks</span>
 <div class="row-divider" style="margin-top: .5rem"></div>

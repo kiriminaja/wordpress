@@ -23,7 +23,50 @@ class ShippingProcessController
         add_action('init', function () {
             add_feed('transaction-resi-print', array($this, 'resiPrint'));
         });
+        add_action('admin_post_kiriof_resi_print', array($this, 'handleResiPrintAdminPost'));
     }
+
+    private function sanitizeResiPrintOrderIds( $raw_oids )
+    {
+        if ( ! is_array( $raw_oids ) ) {
+            $raw_oids = array( $raw_oids );
+        }
+
+        $order_ids = array_map(
+            static function ( $order_id ) {
+                return absint( sanitize_text_field( wp_unslash( $order_id ) ) );
+            },
+            $raw_oids
+        );
+
+        $order_ids = array_filter(
+            $order_ids,
+            static function ( $order_id ) {
+                return ! empty( $order_id );
+            }
+        );
+
+        return array_values( $order_ids );
+    }
+
+    public function handleResiPrintAdminPost()
+    {
+        // Verify nonce before accessing request data.
+        if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'kiriof_resi_print' ) ) {
+            wp_safe_redirect( home_url( '/404' ) );
+            exit;
+        }
+
+        if ( isset( $_REQUEST['oids'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized inside sanitizeResiPrintOrderIds()
+            $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( wp_unslash( $_REQUEST['oids'] ) );
+        } else {
+            $_REQUEST['oids'] = array();
+        }
+
+        $this->resiPrint();
+    }
+
     function getShippingReschedulePickup()
     {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -108,7 +151,7 @@ class ShippingProcessController
                 exit;
             }
             $orderIdsParam = isset($_GET['oids']) ? sanitize_text_field(wp_unslash($_GET['oids'])) : '';
-            $orderIds = array_unique(explode(',', $orderIdsParam) ?? []);
+            $orderIds = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', $orderIdsParam ) ) ) ) );
             if (count($orderIds) < 1) {
                 wp_safe_redirect(home_url('/404'));
                 exit;
@@ -155,7 +198,7 @@ class ShippingProcessController
             }
             
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="print-resi-' . $filename . '.pdf"');
+            header('Content-Disposition: attachment; filename="print-resi-' . sanitize_file_name( $filename ) . '.pdf"');
             header('Content-Length: ' . strlen($pdfContent));
             echo $pdfContent; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             exit;

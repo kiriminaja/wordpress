@@ -3,6 +3,12 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $orderId
+ * @var string $trackingUrl
+ * @var string $kiriofOrderData
+ */
 ?>
 <?php
 ob_start();

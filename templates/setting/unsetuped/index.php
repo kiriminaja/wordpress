@@ -3,32 +3,23 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $locale
+ * @var array $inputValueArr
+ */
 ?>
 <div class="wrap kj-wrap">
 
-    <div id="root">
-        <div class="woocommerce-layout">
-            <div class="woocommerce-layout__header is-scrolled">
-                <div class="woocommerce-layout__header-wrapper">
-                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html(kiriof_helper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
-                </div>
-            </div>
-            <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
-                <div id="woocommerce-layout__notice-list" class="woocommerce-layout__notice-list"></div>
-                <div class="woocommerce-layout__main">
-                    
-                    <div class="woocommerce-homescreen">
-                        <div class="woocommerce-homescreen-column" style="position: static;max-width: 437px; width: 100%">
+    <h1 class="wp-heading-inline"><?php echo esc_html(kiriof_helper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
+    <hr class="wp-header-end">
+
+                        <div style="max-width: 437px; width: 100%">
 
                             
                             <!--CARD START-->
                             <div style="margin-top: 5vh"></div>
-                            <div style="margin-bottom: 0px" class="woocommerce-task-dashboard__container woocommerce-task-list__setup setup-task-list">
-                                <div data-wp-c16t="true" data-wp-component="Card" class="components-surface components-card woocommerce-task-card woocommerce-homescreen-card css-1pd4mph e19lxcc00">
-                                    <div class="css-10klw3m e19lxcc00">
-                                        <div class="wooocommerce-task-card__header-container">
-                                            <div class="wooocommerce-task-card__header">
-                                                <div class="woocommerce-task-header__contents-container">
+                            <div class="kj-card">
                                                     <!--CARD CONTENT-->
                                                     <div style="text-align: center">
                                                         <!--Logos-->
@@ -134,22 +125,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <div class="kj-loader kj-hidden" style="margin: auto"></div>
                                                     </div>
 
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             <!--CARD END-->
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="woocommerce-layout__footer">
-                    <div class="components-snackbar-list woocommerce-transient-notices components-notices__snackbar"></div>
-                </div>
-        </div>
-    </div>
-</div>
 </div>
 
 <!--Integration-->

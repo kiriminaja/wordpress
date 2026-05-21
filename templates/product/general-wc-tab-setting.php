@@ -3,6 +3,10 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var mixed $post
+ */
 ?>
 
 <div class="kj-wc-general-shipping">

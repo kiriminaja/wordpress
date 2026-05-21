@@ -3,6 +3,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $locale
+ * @var array $inputValueArr
+ */
 ?>
 
 <span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kiriof_helper()->tlThis('Integration',$locale) ); ?></span>

@@ -28,7 +28,7 @@ RSYNC_EXCLUDES := \
 	--exclude=phpunit.xml \
 	--exclude=tests/ \
 	--exclude=build/ \
-	--exclude=.phpunit.cache/
+	--exclude=.phpunit.cache/ \
 	--exclude=.wordpress-org/
 
 .PHONY: zip clean changelog release test tag publish
