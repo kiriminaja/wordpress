@@ -72,6 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     </div>
                                     ';
                                 }else{
+                                    $kiriof_shipping_tab_url = esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&tab=tab-shipping' ) );
                                     echo '
                                     <div style="padding-left: 5px; background-color: #7d3eb9">
                                     <div style="padding: 12px; border: 1px solid #c3c4c7; background-color: white">
@@ -91,7 +92,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 </div>
                                                 <div class="row-divider" style="margin-top: .5rem"></div>
                                                 <div>
-                                                    <a href="' . esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&tab=tab-shipping' ) ) . '" style="width: auto !important;padding: 6px 12px !important;text-decoration: none;" class="button button-primary woocommerce-save-button">
+                                                    <a href="' . $kiriof_shipping_tab_url . '" style="width: auto !important;padding: 6px 12px !important;text-decoration: none;" class="button button-primary woocommerce-save-button">
                                                         <div style="display: flex">
                                                             <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                 <svg style="position: relative; top: 2px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
