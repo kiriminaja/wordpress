@@ -165,8 +165,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <td class="manage-column column-thumb">
                                             <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">
                                                 <?php if ( ! empty( $kiriof_txn->awb ) ) : ?>
-                                                <button class="button button-primary p-relative" type="button">
-                                                    <a href="<?php echo esc_url( $kiriof_print_resi_url ); ?>" target="_blank" class="inset-absolute"></a>
+                                                <a href="<?php echo esc_url( $kiriof_print_resi_url ); ?>" target="_blank" class="button button-primary" style="border-radius: 4px;">
                                                     <div style="display: flex">
                                                         <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                             <div style="position: relative; top: 1px">
@@ -177,16 +176,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                             <span style="margin-left: 6px">Print</span>
                                                         </div>
                                                     </div>
-                                                </button>
+                                                </a>
                                                 <?php endif; ?>
-                                                <button class="button button-primary-secondary p-relative" type="button">
-                                                    <a href="<?php echo esc_url( $kiriof_order_edit_url ); ?>" target="_blank" class="inset-absolute"></a>
+                                                <a href="<?php echo esc_url( $kiriof_order_edit_url ); ?>" target="_blank" class="button button-primary-secondary" style="border-radius: 4px;">
                                                     <div style="display: flex">
                                                         <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                             <span>Detail</span>
                                                         </div>
                                                     </div>
-                                                </button>
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
