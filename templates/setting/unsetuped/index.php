@@ -19,12 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             
                             <!--CARD START-->
                             <div style="margin-top: 5vh"></div>
-                            <div style="margin-bottom: 0px" class="woocommerce-task-dashboard__container woocommerce-task-list__setup setup-task-list">
-                                <div data-wp-c16t="true" data-wp-component="Card" class="components-surface components-card woocommerce-task-card woocommerce-homescreen-card css-1pd4mph e19lxcc00">
-                                    <div class="css-10klw3m e19lxcc00">
-                                        <div class="wooocommerce-task-card__header-container">
-                                            <div class="wooocommerce-task-card__header">
-                                                <div class="woocommerce-task-header__contents-container">
+                            <div class="kj-card">
                                                     <!--CARD CONTENT-->
                                                     <div style="text-align: center">
                                                         <!--Logos-->
@@ -130,11 +125,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <div class="kj-loader kj-hidden" style="margin: auto"></div>
                                                     </div>
 
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             <!--CARD END-->
                             </div>
                         </div>

@@ -152,11 +152,6 @@ class Enqueue extends BaseInit{
         );
         
         wp_enqueue_style( 'kiriof-grid-style', $this->plugin_url . 'assets/admin/css/bootstrap-grid.css', array(), KIRIOF_VERSION );
-        wp_enqueue_style( 'kiriof-wc-app', $this->plugin_url . 'assets/admin/css/kj-wc-style/app.style.css', array(), KIRIOF_VERSION );
-        wp_enqueue_style( 'kiriof-wc-app-custom', $this->plugin_url . 'assets/admin/css/kj-wc-style/app-custom.style.css', array(), KIRIOF_VERSION );
-        wp_enqueue_style( 'kiriof-wc-3538', $this->plugin_url . 'assets/admin/css/kj-wc-style/3538.style.css', array(), KIRIOF_VERSION );
-        wp_enqueue_style( 'kiriof-wc-5502', $this->plugin_url . 'assets/admin/css/kj-wc-style/5502.style.css', array(), KIRIOF_VERSION );
-        wp_enqueue_style( 'kiriof-wc-8597', $this->plugin_url . 'assets/admin/css/kj-wc-style/8597.style.css', array(), KIRIOF_VERSION );
 
         /** print */
         wp_enqueue_style( 'kiriof-print-style', $this->plugin_url . 'assets/admin/css/print.min.css', array(), KIRIOF_VERSION );

@@ -393,3 +393,12 @@ button.select2-selection__clear {
     margin-left: 20px;
   }
 }
+
+.kj-card {
+  background-color: #fff;
+  color: #1e1e1e;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  border-radius: 1px;
+  padding: 16px 24px;
+}
