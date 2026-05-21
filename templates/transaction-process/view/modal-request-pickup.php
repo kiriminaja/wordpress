@@ -84,14 +84,3 @@ if ( ! defined( 'ABSPATH' ) ) {
     </div>
     <div class="media-modal-backdrop"></div>
 </div>
-
-<?php ob_start(); ?>
-    jQuery(document).on('click','.closebtn-container',function(){
-        jQuery('#request-pickup-modal').addClass('kj-hidden');
-        jQuery('.err_msg').html('').addClass('kj-hidden');
-    });
-
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>

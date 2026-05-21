@@ -57,12 +57,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php ob_start(); ?>
     jQuery(document).ready(function($) {
-        // Close modal
-        $('#cancel-transaction-modal .closebtn-container').on('click', function(){
-            $('#cancel-transaction-modal').addClass('kj-hidden');
-            $('#cancel-transaction-modal .err_msg').html('').addClass('kj-hidden');
-        });
-
         // Character count
         $('#cancel-reason').on('input', function(){
             $('#cancel-reason-count').text($(this).val().length);
