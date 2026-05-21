@@ -51,6 +51,17 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
+                    'page_title'=>'Request Pickup Detail',
+                    'menu_title'=>'Request Pickup Detail',
+                    'capability'=>'manage_woocommerce',
+                    'menu_slug'=>'kiriminaja-request-pickup-detail',
+                    'callback'=> function() use ($plugin_path) {
+                        require_once $plugin_path.'templates/request-pickup-detail/index.php';
+                    },
+                    'hidden'=>true,
+                ],
+                [
+                    'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>'KiriminAja Settings',
                     'menu_title'=>'Settings',
                     'capability'=>'manage_woocommerce',
@@ -90,6 +101,15 @@ class Admin extends BaseInit{
 
         add_filter('plugin_row_meta', [$this, 'kiriof_plugin_row_meta'], 10, 2);
         add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
+
+        // Highlight "Payments" in the sidebar when viewing the detail page.
+        add_filter( 'submenu_file', function ( $submenu_file ) {
+            $screen = get_current_screen();
+            if ( $screen && 'kiriminaja_page_kiriminaja-request-pickup-detail' === $screen->id ) {
+                return 'kiriminaja-request-pickup';
+            }
+            return $submenu_file;
+        });
     }
     function kiriof_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {

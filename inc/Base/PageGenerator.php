@@ -37,5 +37,11 @@ class PageGenerator{
         foreach ($this->admin_pages as $page){
             remove_submenu_page($page['menu_slug'], $page['menu_slug']);
         }
+        // Remove hidden sub-pages from the visible menu.
+        foreach ($this->admin_subpages as $page){
+            if ( ! empty( $page['hidden'] ) ) {
+                remove_submenu_page($page['parent_slug'], $page['menu_slug']);
+            }
+        }
     }
 }

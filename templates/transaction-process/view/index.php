@@ -480,7 +480,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     return;
                 }
 
-                window.location.href = `<?php echo esc_url($kiriof_adminUrl); ?>/admin.php?page=kiriminaja-request-pickup&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url($kiriof_adminUrl); ?>/admin.php?page=kiriminaja-request-pickup-detail&pickup_number=${resp?.data?.pickup_number}`;
             }
         });
     };

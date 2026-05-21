@@ -29,6 +29,7 @@ final class AccessControlTest extends TestCase
         'templates/setting/index.php',
         'templates/transaction-process/index.php',
         'templates/request-pickup/index.php',
+        'templates/request-pickup-detail/index.php',
         'templates/admin.php',
     ];
 

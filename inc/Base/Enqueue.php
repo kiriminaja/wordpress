@@ -124,6 +124,7 @@ class Enqueue extends BaseInit{
             'kiriminaja-konfigurasi',
             'kiriminaja-transaction-process',
             'kiriminaja-request-pickup',
+            'kiriminaja-request-pickup-detail',
         ), true ) ) {
             return;
         }
@@ -185,7 +186,7 @@ class Enqueue extends BaseInit{
          * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
          * for the "Scan to Pay" modal on the Request Pickup page.
          */
-        if ( 'kiriminaja-request-pickup' === $page ) {
+        if ( 'kiriminaja-request-pickup' === $page || 'kiriminaja-request-pickup-detail' === $page ) {
             wp_enqueue_script( 'wc-qrcode' );
         }
    
