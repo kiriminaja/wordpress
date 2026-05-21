@@ -23,6 +23,7 @@ class ShippingProcessController
         add_action('init', function () {
             add_feed('transaction-resi-print', array($this, 'resiPrint'));
         });
+        add_action('admin_post_kiriof_resi_print', array($this, 'resiPrint'));
     }
     function getShippingReschedulePickup()
     {

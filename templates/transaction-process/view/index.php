@@ -8,6 +8,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 $kiriof_helper = kiriof_helper();
 $kiriof_homeUrl = home_url();
 $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
+
+/**
+ * @var string $locale
+ * @var array $kiriof_results
+ * @var array $kiriof_statusCounts
+ * @var array $kiriof_monthOptions
+ * @var string $kiriof_status_filter
+ * @var string $kiriof_month_filter
+ */
 ?>
 <div class="kj-wrapper kj-wrap">
     <div class="wrap ">

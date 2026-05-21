@@ -3,6 +3,12 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var array $kiriof_payment_data
+ * @var array $kiriof_transactions_data
+ * @var string $kiriof_back_url
+ */
 ?>
 <div class="kj-wrapper kj-wrap">
 
@@ -36,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         }
                                     }
                                     if ( ! empty( $kiriof_print_all_ids ) ) :
-                                        $kiriof_print_all_url = home_url( '/transaction-resi-print' ) . '?oids=' . implode( ',', array_map( 'urlencode', $kiriof_print_all_ids ) ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' );
+                                        $kiriof_print_all_url = admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . implode( ',', array_map( 'urlencode', $kiriof_print_all_ids ) ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) );
                                     ?>
                                     <a href="<?php echo esc_url( $kiriof_print_all_url ); ?>" target="_blank" class="button button-primary" style="border-radius: 4px;">
                                         <div style="display: flex">
@@ -123,7 +129,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             // Build action buttons
                                             $kiriof_order_edit_url = admin_url( 'post.php?post=' . absint( $kiriof_txn->wp_wc_order_stat_order_id ) . '&action=edit' );
                                             $kiriof_resi_nonce     = wp_create_nonce( 'kiriof_resi_print' );
-                                            $kiriof_print_resi_url = home_url( '/transaction-resi-print' ) . '?oids=' . urlencode( $kiriof_txn->order_id ) . '&_wpnonce=' . $kiriof_resi_nonce;
+                                            $kiriof_print_resi_url = admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . urlencode( $kiriof_txn->order_id ) . '&_wpnonce=' . $kiriof_resi_nonce );
 
                                             $kiriof_allowed_fees_html = [
                                                 'div' => [ 'style' => [] ],

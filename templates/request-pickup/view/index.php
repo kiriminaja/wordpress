@@ -3,6 +3,19 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $locale
+ * @var array $results
+ * @var string $kiriof_status_filter
+ * @var string $kiriof_month_filter
+ * @var array $monthOptions
+ * @var string|null $prev_page_link
+ * @var string|null $next_page_link
+ * @var int $page
+ * @var int $total_pages
+ * @var int $items_per_page
+ */
 ?>
 <div class="kj-wrapper kj-wrap">
 

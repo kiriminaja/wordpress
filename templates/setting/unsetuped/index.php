@@ -3,6 +3,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * @var string $locale
+ * @var array $inputValueArr
+ */
 ?>
 <div class="wrap kj-wrap">
 

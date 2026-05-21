@@ -15,6 +15,20 @@
  * @see https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
  * @version 8.8.0
+ * 
+ * @var string $kiriof_formatted_destination
+ * @var bool $kiriof_has_calculated_shipping
+ * @var bool $kiriof_show_shipping_calculator
+ * @var string $kiriof_calculator_text
+ * @var string $package_name
+ * @var string $package_details
+ * @var array $available_methods
+ * @var string $chosen_method
+ * @var int $index
+ * @var bool $show_package_details
+ * @var mixed $formatted_destination
+ * @var mixed $has_calculated_shipping
+ * @var mixed $package
  */
 
 defined( 'ABSPATH' ) || exit;
