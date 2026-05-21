@@ -153,6 +153,27 @@ class Enqueue extends BaseInit{
         
         /** Select 2 - use WooCommerce's bundled copy */
         wp_enqueue_script( 'select2' );
+
+        // WooCommerce only registers the 'select2' style handle on the
+        // frontend (WC_Frontend_Scripts). On admin pages it is missing,
+        // so register it ourselves from WC's bundled CSS file.
+        if ( ! wp_style_is( 'select2', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
+            // Always check for WC_VERSION in the global namespace
+            $wc_version = defined('WC_VERSION') ? \WC_VERSION : null;
+            if ( ! $wc_version && function_exists('get_plugin_data') ) {
+                $plugin_data = get_plugin_data( WC_PLUGIN_FILE );
+                $wc_version = isset($plugin_data['Version']) ? $plugin_data['Version'] : ( defined('KIRIOF_VERSION') ? KIRIOF_VERSION : '1.0.0' );
+            }
+            if ( ! $wc_version ) {
+                $wc_version = defined('KIRIOF_VERSION') ? KIRIOF_VERSION : '1.0.0';
+            }
+            wp_register_style(
+                'select2',
+                plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/css/select2.css',
+                array(),
+                $wc_version
+            );
+        }
         wp_enqueue_style( 'select2' );
 
         // Override WP admin CSS rules that break Select2 rendering.
