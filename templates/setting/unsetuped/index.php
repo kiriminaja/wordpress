@@ -11,19 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="wrap kj-wrap">
 
-    <div id="root">
-        <div class="woocommerce-layout">
-            <div class="woocommerce-layout__header is-scrolled">
-                <div class="woocommerce-layout__header-wrapper">
-                    <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00"><?php echo esc_html(kiriof_helper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
-                </div>
-            </div>
-            <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
-                <div id="woocommerce-layout__notice-list" class="woocommerce-layout__notice-list"></div>
-                <div class="woocommerce-layout__main">
-                    
-                    <div class="woocommerce-homescreen">
-                        <div class="woocommerce-homescreen-column" style="position: static;max-width: 437px; width: 100%">
+    <h1 class="wp-heading-inline"><?php echo esc_html(kiriof_helper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
+    <hr class="wp-header-end">
+
+                        <div style="max-width: 437px; width: 100%">
 
                             
                             <!--CARD START-->
@@ -147,14 +138,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                             <!--CARD END-->
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="woocommerce-layout__footer">
-                    <div class="components-snackbar-list woocommerce-transient-notices components-notices__snackbar"></div>
-                </div>
-        </div>
-    </div>
-</div>
 </div>
 
 <!--Integration-->

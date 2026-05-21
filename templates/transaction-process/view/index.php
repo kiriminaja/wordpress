@@ -18,30 +18,11 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
  * @var string $kiriof_month_filter
  */
 ?>
-<div class="kj-wrapper kj-wrap">
-    <div class="wrap ">
-        <div id="root">
-            <div class="woocommerce-layout">
-                <div class="woocommerce-layout__header is-scrolled">
-                    <div class="woocommerce-layout__header-wrapper">
-                        <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Transactions</h1>
-                        <div style="padding-right: 40px">
-                            <button onclick="kjRequestPickupSchedule()" class="button button button-primary" type="button">
-                                <div style="display: flex">
-                                    <div style="margin: auto">
-                                        <span>Request Pickup</span>
-                                    </div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
-                    <div id="woocommerce-layout__notice-list" class="woocommerce-layout__notice-list"></div>
-                    <div class="woocommerce-layout__main">
+<div class="wrap kj-wrap">
 
-                        <div class="woocommerce-homescreen">
-                            <div class="woocommerce-homescreen-column" style="position: static;width: 100%">
+    <h1 class="wp-heading-inline"><?php esc_html_e('Transactions','kiriminaja-official'); ?></h1>
+    <button onclick="kjRequestPickupSchedule()" class="page-title-action" type="button"><?php esc_html_e('Request Pickup','kiriminaja-official'); ?></button>
+    <hr class="wp-header-end">
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
@@ -298,17 +279,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                     </div>
                                     <div class="row-divider"></div>
                                     <?php include __DIR__ . '/../../partials/footer.php'; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="woocommerce-layout__footer">
-                        <div class="components-snackbar-list woocommerce-transient-notices components-notices__snackbar"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <?php include 'modal-request-pickup.php' ?>
     <?php include 'modal-detail.php' ?>

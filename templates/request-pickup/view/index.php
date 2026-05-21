@@ -17,22 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var int $items_per_page
  */
 ?>
-<div class="kj-wrapper kj-wrap">
+<div class="wrap kj-wrap">
 
-    <div class="wrap ">
-        <div id="root">
-            <div class="woocommerce-layout">
-                <div class="woocommerce-layout__header is-scrolled">
-                    <div class="woocommerce-layout__header-wrapper">
-                        <h1 data-wp-c16t="true" data-wp-component="Text" class="components-truncate components-text woocommerce-layout__header-heading css-wv5nn e19lxcc00">Payments</h1>
-                    </div>
-                </div>
-                <div class="woocommerce-layout__primary" id="woocommerce-layout__primary">
-                    <div id="woocommerce-layout__notice-list" class="woocommerce-layout__notice-list"></div>
-                    <div class="woocommerce-layout__main">
-
-                        <div class="woocommerce-homescreen">
-                            <div class="woocommerce-homescreen-column" style="position: static;width: 100%">
+    <h1 class="wp-heading-inline"><?php esc_html_e('Payments','kiriminaja-official'); ?></h1>
+    <hr class="wp-header-end">
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
@@ -300,17 +288,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     </div>
                                     <div class="row-divider"></div>
                                     <?php include __DIR__ . '/../../partials/footer.php'; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="woocommerce-layout__footer">
-                        <div class="components-snackbar-list woocommerce-transient-notices components-notices__snackbar"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <?php include 'modal-payment.php' ?>
     <?php include 'modal-request-pickup.php' ?>
