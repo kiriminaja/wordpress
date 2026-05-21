@@ -15,7 +15,7 @@
  * @see https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
  * @version 8.8.0
- * 
+ *
  * @var string $kiriof_formatted_destination
  * @var bool $kiriof_has_calculated_shipping
  * @var bool $kiriof_show_shipping_calculator

@@ -151,7 +151,7 @@ class ShippingProcessController
                 exit;
             }
             $orderIdsParam = isset($_GET['oids']) ? sanitize_text_field(wp_unslash($_GET['oids'])) : '';
-            $orderIds = array_unique(explode(',', $orderIdsParam) ?? []);
+            $orderIds = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', $orderIdsParam ) ) ) ) );
             if (count($orderIds) < 1) {
                 wp_safe_redirect(home_url('/404'));
                 exit;
@@ -198,7 +198,7 @@ class ShippingProcessController
             }
             
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="print-resi-' . $filename . '.pdf"');
+            header('Content-Disposition: attachment; filename="print-resi-' . sanitize_file_name( $filename ) . '.pdf"');
             header('Content-Length: ' . strlen($pdfContent));
             echo $pdfContent; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             exit;
