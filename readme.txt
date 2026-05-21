@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.23
+Stable tag: 2.1.24
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,22 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.24 =
+- Feat(modal): overlay and experience improvement
+- Update footer content
+- Native look admin plugins design
+- Improve handling on 404 when printing awb
+- Move request pickup detail to another page to prevent glitchy dialog pop-up
+- Comply testing compliance
+- Media modal issues
+- Resolve PR review comments for URL construction
+- Possibility direct callable via admin-post.php
+- Html escape on print label name
+- Dialog modal design glitch
+- Single print button issues
+- Admin permission access denied
+- Typo on variable name
+
 = 2.1.23 =
 - Retrigger code
 
