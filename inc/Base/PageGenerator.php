@@ -14,6 +14,7 @@ class PageGenerator{
     public function register(){
         if ( ! empty($this->admin_pages)){
             add_action('admin_menu',array($this,'addAdminMenu'));
+            add_action('admin_head',array($this,'hideHiddenSubPages'));
         }
     }
     
@@ -37,7 +38,14 @@ class PageGenerator{
         foreach ($this->admin_pages as $page){
             remove_submenu_page($page['menu_slug'], $page['menu_slug']);
         }
-        // Remove hidden sub-pages from the visible menu.
+    }
+    /**
+     * Remove hidden sub-pages from the visible menu.
+     *
+     * Runs on admin_head (after WordPress validates page access)
+     * so the page remains accessible but is not shown in the sidebar.
+     */
+    public function hideHiddenSubPages(){
         foreach ($this->admin_subpages as $page){
             if ( ! empty( $page['hidden'] ) ) {
                 remove_submenu_page($page['parent_slug'], $page['menu_slug']);
