@@ -3,6 +3,15 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+/**
+ * Variables provided by CheckoutController::add_custom_select_options_field_and_script().
+ *
+ * @var string $field_key
+ * @var bool   $kiriof_checkout_token
+ * @var string $destination_name
+ * @var string $shipping_destination_name
+ */
 ?>
 
 <div id="kiriof_destination_area_group">    
