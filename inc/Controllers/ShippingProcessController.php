@@ -29,12 +29,12 @@ class ShippingProcessController
     private function sanitizeResiPrintOrderIds( $raw_oids )
     {
         if ( ! is_array( $raw_oids ) ) {
-            $raw_oids = array( $raw_oids );
+            $raw_oids = explode( ',', (string) $raw_oids );
         }
 
         $order_ids = array_map(
             static function ( $order_id ) {
-                return absint( sanitize_text_field( wp_unslash( $order_id ) ) );
+                return sanitize_text_field( trim( (string) $order_id ) );
             },
             $raw_oids
         );
@@ -42,7 +42,7 @@ class ShippingProcessController
         $order_ids = array_filter(
             $order_ids,
             static function ( $order_id ) {
-                return ! empty( $order_id );
+                return '' !== $order_id;
             }
         );
 
@@ -145,13 +145,13 @@ class ShippingProcessController
                 exit;
             }
             // Verify nonce to prevent CSRF on this privileged label download endpoint.
-            $kiriof_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+            $kiriof_nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
             if ( ! wp_verify_nonce( $kiriof_nonce, 'kiriof_resi_print' ) ) {
                 wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
-            $orderIdsParam = isset($_GET['oids']) ? sanitize_text_field(wp_unslash($_GET['oids'])) : '';
-            $orderIds = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', $orderIdsParam ) ) ) ) );
+            $rawOrderIds = isset( $_REQUEST['oids'] ) ? wp_unslash( $_REQUEST['oids'] ) : array();
+            $orderIds = $this->sanitizeResiPrintOrderIds( $rawOrderIds );
             if (count($orderIds) < 1) {
                 wp_safe_redirect(home_url('/404'));
                 exit;
