@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.25
+Stable tag: 2.1.26
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,9 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.26 =
+- Handling on print resi still wont load
+
 = 2.1.25 =
 - Persistent district from /cart and /checkout
 - Add options to filter the transactions by "All"
