@@ -58,8 +58,7 @@ class ShippingProcessController
         }
 
         if ( isset( $_REQUEST['oids'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized inside sanitizeResiPrintOrderIds()
-            $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( wp_unslash( $_REQUEST['oids'] ) );
+            $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( sanitize_text_field( wp_unslash( $_REQUEST['oids'] ) ) );
         } else {
             $_REQUEST['oids'] = array();
         }
