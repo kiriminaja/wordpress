@@ -36,12 +36,12 @@ if ( $kiriof_is_connected ) {
 $kiriof_wl = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
 $kiriof_wl_ids   = '';
 $kiriof_wl_names  = '';
-foreach ( $kiriof_wl as $kiriof_row ) {
-    if ( 'origin_whitelist_expedition_id' === $kiriof_row->key ) {
-        $kiriof_wl_ids = $kiriof_row->value;
+foreach ( $kiriof_wl as $kiriof_wl_row ) {
+    if ( 'origin_whitelist_expedition_id' === $kiriof_wl_row->key ) {
+        $kiriof_wl_ids = $kiriof_wl_row->value;
     }
-    if ( 'origin_whitelist_expedition_name' === $kiriof_row->key ) {
-        $kiriof_wl_names = $kiriof_row->value;
+    if ( 'origin_whitelist_expedition_name' === $kiriof_wl_row->key ) {
+        $kiriof_wl_names = $kiriof_wl_row->value;
     }
 }
 $kiriof_wl_id_arr   = $kiriof_wl_ids ? array_map( 'trim', explode( ',', $kiriof_wl_ids ) ) : array();
@@ -53,9 +53,9 @@ if ( ! empty( $kiriof_wl_id_arr ) ) {
     try {
         $kiriof_couriers_svc = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers();
         if ( 200 === $kiriof_couriers_svc->status && ! empty( $kiriof_couriers_svc->data ) ) {
-            foreach ( $kiriof_couriers_svc->data as $kiriof_c ) {
-                if ( in_array( $kiriof_c->code, $kiriof_wl_id_arr, true ) && empty( $kiriof_wl_map[ $kiriof_c->code ] ) ) {
-                    $kiriof_wl_map[ $kiriof_c->code ] = $kiriof_c->name;
+            foreach ( $kiriof_couriers_svc->data as $kiriof_courier ) {
+                if ( in_array( $kiriof_courier->code, $kiriof_wl_id_arr, true ) && empty( $kiriof_wl_map[ $kiriof_courier->code ] ) ) {
+                    $kiriof_wl_map[ $kiriof_courier->code ] = $kiriof_courier->name;
                 }
             }
         }
@@ -102,7 +102,7 @@ $kiriof_courier_colors = array(
                     $kiriof_fg = (($kiriof_r*0.299 + $kiriof_g*0.587 + $kiriof_b*0.114) > 150) ? '#1d2327' : '#fff';
                 ?>
                 <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:<?php echo esc_attr($kiriof_bg); ?>;color:<?php echo esc_attr($kiriof_fg); ?>;border-radius:8px;font-size:12px;font-weight:500;white-space:nowrap;">
-                    <span style="opacity:0.9"><?php echo esc_html( mb_strtoupper( mb_substr( $kiriof_cid, 0, 3 ) ) ); ?>
+                    <span style="opacity:0.9"><?php echo esc_html( mb_strtoupper( mb_substr( $kiriof_cid, 0, 3 ) ) ); ?></span>
                     <span style="font-size:11px;opacity:0.7;"><?php echo esc_html( $kiriof_cname ); ?></span>
                 </div>
                 <?php endforeach; ?>
