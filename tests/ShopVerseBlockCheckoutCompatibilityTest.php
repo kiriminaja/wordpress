@@ -10,7 +10,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function shopverse_uses_woocommerce_checkout_blocks(): void
     {
-        $content = file_get_contents('/tmp/wordpress-local/wp-content/themes/shopverse/patterns/template-checkout.php');
+        $content = file_get_contents(PLUGIN_DIR . '/tests/fixtures/shopverse-template-checkout.php');
 
         $this->assertStringContainsString(
             'wp:woocommerce/checkout',
