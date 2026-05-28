@@ -260,7 +260,8 @@ class Admin extends BaseInit{
         <div class="notice notice-info">
             <p>
                 <strong><?php echo esc_html__( 'KiriminAja Setup Guide', 'kiriminaja-official' ); ?></strong>
-                &mdash; <?php echo esc_html( sprintf( __( '%d of %d steps completed.', 'kiriminaja-official' ), $done_count, count( $steps ) ) ); ?>
+                <?php /* translators: %1$d: completed count, %2$d: total steps */ ?>
+                &mdash; <?php echo esc_html( sprintf( __( '%1$d of %2$d steps completed.', 'kiriminaja-official' ), $done_count, count( $steps ) ) ); ?>
             </p>
             <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0;">
                 <?php foreach ( $steps as $step ) : ?>

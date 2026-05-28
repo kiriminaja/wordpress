@@ -52,6 +52,7 @@ class SetupMigration {
                     (%s, %s),
                     (%s, %s),
                     (%s, %s),
+                    (%s, %s),
                     (%s, %s)",
                     'api_key', null,
                     'setup_key', null,
