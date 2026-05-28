@@ -63,6 +63,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofHandleCodInsurance();
                 });
 
+                // Block checkout: listen for shipping method changes
+                jQuery(document.body).on( 'change', '.wc-block-components-radio-control__input', function() {
+                    kiriofHandleCodInsurance();
+                });
+
             <?php endif; ?>
         }); 
           
@@ -273,16 +278,42 @@ if ( ! defined( 'ABSPATH' ) ) {
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
-            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
+            // Read shipping method: traditional, block radio, or block data store
+            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val()
+                || jQuery('.wc-block-components-radio-control__input:checked').val();
+            // Fallback: block checkout data store
+            if (!shipping_metode_id && typeof wp !== 'undefined' && wp.data && wp.data.select) {
+                try {
+                    var rates = wp.data.select('wc/store/cart').getShippingRates();
+                    if (rates && rates.length) {
+                        for (var i = 0; i < rates.length; i++) {
+                            var pkg = rates[i];
+                            if (pkg && pkg.shipping_rates) {
+                                for (var j = 0; j < pkg.shipping_rates.length; j++) {
+                                    if (pkg.shipping_rates[j].selected) {
+                                        shipping_metode_id = pkg.shipping_rates[j].rate_id;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+            shipping_metode_id = shipping_metode_id || '';
             
             let destination_id = ( 
                 different_address == '0' 
                 ? 
-                jQuery('#kiriof_destination_area option:selected').val() 
+                (jQuery('#kiriof_destination_area option:selected').val() || jQuery('[name="kiriof_destination_area"]').val())
                 : 
-                jQuery('#kiriof_shipping_destination_area option:selected').val() 
+                (jQuery('#kiriof_shipping_destination_area option:selected').val() || jQuery('[name="kiriof_shipping_destination_area"]').val())
             ); 
 
+            // Global insurance forced = always true
+            <?php if ( $kiriof_global_insurance ) : ?>
+            let insurance = 1;
+            <?php else : ?>
             let insurance = ( 
                 different_address == '0' 
                 ? 
@@ -290,6 +321,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 : 
                 jQuery('#kiriof_shipping_insurance:checked').val()
             );
+            <?php endif; ?>
 
             let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
                         
@@ -348,6 +380,72 @@ if ( ! defined( 'ABSPATH' ) ) {
                          }
             });
         }
+
+        <?php if ( is_checkout() ) : ?>
+        // Theme / Block checkout compatibility: inject insurance and COD fee rows
+        // if the theme's checkout template doesn't include the standard hooks.
+        jQuery(function($) {
+            var isBlockCheckout = !!document.querySelector('.wc-block-checkout');
+            var rowsInjected = false;
+
+            function injectKiriofRows() {
+                if (rowsInjected) return;
+
+                if (isBlockCheckout) {
+                    // Block checkout: div-based (wc-block-components)
+                    var $blockTotals = jQuery('.wc-block-components-totals-wrapper');
+                    if (!$blockTotals.length || jQuery('.kiriof-block-row').length) return;
+                    var $totalItem = $blockTotals.find('.wc-block-components-totals-item:last-child');
+                    if (!$totalItem.length) return;
+
+                    rowsInjected = true;
+                    var insHtml = '<div class="kiriof-block-row wc-block-components-totals-item kiriof_cart_item_insurane"' + <?php echo $kiriof_global_insurance ? '""' : '" style=\\"display:none\\""'; ?> + '>' +
+                        '<span class="wc-block-components-totals-item__label"><?php echo esc_js( __('Insurance','kiriminaja-official') ); ?></span>' +
+                        '<span class="wc-block-components-totals-item__value kj-cost-insurance"></span>' +
+                        '</div>';
+                    var codHtml = '<div class="kiriof-block-row wc-block-components-totals-item kiriof_cart_item_cod_fee" style="display:none">' +
+                        '<span class="wc-block-components-totals-item__label"><?php echo esc_js( __('COD Fee','kiriminaja-official') ); ?></span>' +
+                        '<span class="wc-block-components-totals-item__value kj-cost-codfee"></span>' +
+                        '</div>';
+                    $totalItem.before(codHtml).before(insHtml);
+
+                    // Trigger initial calculation on block checkout
+                    setTimeout(function() {
+                        kiriofCodInsurance();
+                    }, 800);
+                } else {
+                    // Traditional checkout: table-based
+                    var $review = jQuery('#order_review .shop_table tfoot');
+                    if (!$review.length || jQuery('.kiriof_cart_item_insurane').length) return;
+
+                    rowsInjected = true;
+                    $review.find('tr.order-total').before(
+                        '<tr class="kiriof_cart_item_insurane"' + <?php echo $kiriof_global_insurance ? '""' : '" style=\\"display:none\\""'; ?> + '>' +
+                        '<th><?php echo esc_js( __('Insurance','kiriminaja-official') ); ?></th>' +
+                        '<td class="kj-cost-insurance"></td></tr>' +
+                        '<tr class="kiriof_cart_item_cod_fee" style="display:none">' +
+                        '<th><?php echo esc_js( __('COD Fee','kiriminaja-official') ); ?></th>' +
+                        '<td class="kj-cost-codfee"></td></tr>'
+                    );
+                }
+
+                // Ensure District Select2 initializes
+                var $district = jQuery('[name="kiriof_destination_area"]').not('.select2-hidden-accessible');
+                if ($district.length) getSearchAreaKelurahan();
+            }
+
+            // Try after DOM ready
+            setTimeout(injectKiriofRows, 600);
+
+            // Block checkout: watch for React rendering
+            if (isBlockCheckout) {
+                var observer = new MutationObserver(function() {
+                    if (!rowsInjected) injectKiriofRows();
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        });
+        <?php endif; ?>
 
     <?php
     $kiriof_inline_script = ob_get_clean();

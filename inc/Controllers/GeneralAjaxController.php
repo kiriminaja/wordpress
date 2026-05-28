@@ -97,6 +97,10 @@ class GeneralAjaxController
         $insurance_input = isset($_POST['insurance']) ? (int) $_POST['insurance'] : 0;
 
         $ex_shipping = explode('_', $shipping_metode_id);
+        // Block checkout may use colon separator
+        if (count($ex_shipping) === 1 && str_contains($shipping_metode_id, ':')) {
+            $ex_shipping = explode(':', $shipping_metode_id);
+        }
         $datas = [];
         if (!empty($shipping_metode_id) && $ex_shipping[0] == 'kiriminaja-official') {
             $insurance = empty($insurance_input) ? 0 : 1;
