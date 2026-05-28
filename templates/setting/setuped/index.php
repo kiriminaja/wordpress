@@ -41,12 +41,6 @@ $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_se
     </div>
     <?php endif; ?>
 
-    <?php if ( ! empty( $isOriginShippingDataReady ) || kiriof_helper()->devForceTrue() ): ?>
-    <div class="kj-notice kj-notice-success">
-        <div><?php echo esc_html( kiriof_helper()->tlThis('All Setup! Now you\'re connected with KiriminAja.',$locale) ); ?></div>
-    </div>
-    <?php endif; ?>
-
     <div class="kj-settings">
 
         <!-- Configuration -->
