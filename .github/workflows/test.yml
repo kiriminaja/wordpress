@@ -57,14 +57,23 @@ jobs:
           unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
           ls -la /tmp/pcp/kiriminaja-official
 
-      - name: Pull wp-env images
+      - name: Create wp-env config in plugin dir
         run: |
-          docker pull wordpress:latest
-          docker pull mariadb:lts
-        continue-on-error: true
+          echo '{}' > /tmp/pcp/kiriminaja-official/.wp-env.json
+
+      - name: Verify Docker & install wp-env
+        run: |
+          docker info
+          npm install -g @wordpress/env --legacy-peer-deps
+
+      - name: Start wp-env
+        timeout-minutes: 10
+        run: |
+          cd /tmp/pcp/kiriminaja-official
+          npx wp-env start --update
 
       - name: WordPress Plugin Check (WP.org compliance)
-        timeout-minutes: 15
+        timeout-minutes: 10
         uses: wordpress/plugin-check-action@v1
         with:
           build-dir: /tmp/pcp/kiriminaja-official
