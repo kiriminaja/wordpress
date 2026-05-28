@@ -1012,6 +1012,7 @@ class CheckoutController
 
         if ( $destination_id > 0 ) {
             WC()->session->set( 'destination_id', $destination_id );
+            WC()->session->set( 'shipping_destination_id', $destination_id );
         }
 
         if ( '' !== $payment_method ) {

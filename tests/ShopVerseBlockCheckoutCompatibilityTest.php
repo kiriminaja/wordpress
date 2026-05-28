@@ -175,6 +175,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'input[id*="kiriof-destination-area"]',
+            $content,
+            'Woo Blocks renders additional address fields with slash-to-dash IDs such as billing-kiriminaja-official-kiriof-destination-area, so lookup cannot rely only on underscore names'
+        );
+
+        $this->assertStringContainsString(
             '.wc-block-components-text-input',
             $content,
             'District select should be inserted at the Woo Blocks field wrapper, not only after the input node'
@@ -184,6 +190,75 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'MutationObserver',
             $content,
             'React checkout can render District after the AJAX response; a DOM observer must re-apply the select when the field appears'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_change_updates_checkout_additional_fields_store(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/checkout')",
+            $content,
+            'District selection must update the checkout store, because additional checkout fields are stored in wc/store/checkout rather than cart billing/shipping addresses'
+        );
+
+        $this->assertStringContainsString(
+            'setAdditionalFields',
+            $content,
+            'Block checkout District value must be written through setAdditionalFields so Store API checkout receives kiriminaja-official/kiriof_destination_area'
+        );
+
+        $this->assertStringContainsString(
+            'getAdditionalFields',
+            $content,
+            'District updater should merge with existing checkout additional fields instead of overwriting unrelated extension fields'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_selection_persists_destination_session_before_shipping_rate_refetch(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'change.kiriofBlockDistrict');
+        $this->assertNotFalse($start, 'Block District change handler must exist');
+        $handlerBody = substr($content, $start, 2200);
+
+        $this->assertStringContainsString(
+            'kiriofPersistDestinationArea',
+            $handlerBody,
+            'Selecting a District in block checkout must persist destination_id to WC session before rates are recalculated'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetDestinationAreaAjaxData',
+            $content,
+            'The block and classic District handlers should share the same destination/session payload builder'
+        );
+    }
+
+    #[Test]
+    public function shipping_method_supports_block_checkout_destination_and_payment_session_fallbacks(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+
+        $this->assertStringContainsString(
+            'shipping_destination_id',
+            $content,
+            'Block checkout may set the destination as shipping_destination_id before calculate_shipping runs'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_payment_method',
+            $content,
+            'Block checkout Store API callback stores the payment method as kiriof_payment_method; shipping option filtering must read that fallback'
+        );
+
+        $this->assertStringContainsString(
+            'wc()->is_store_api_request()',
+            $content,
+            'Shipping option filtering cannot depend only on is_checkout() because block checkout rate requests run through Store API'
         );
     }
 

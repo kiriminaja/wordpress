@@ -74,6 +74,9 @@ class GeneralAjaxController
         if ($different_address) {
             WC()->session->set('shipping_destination_id', $destination_id);
             WC()->session->set('shipping_destination_name', $text);
+        } else {
+            WC()->session->set('shipping_destination_id', $destination_id);
+            WC()->session->set('shipping_destination_name', $text);
         }
         // Set the data (the value can be also an indexed array)
         WC()->session->set('destination_id', $destination_id);

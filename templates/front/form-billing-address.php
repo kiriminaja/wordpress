@@ -125,7 +125,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                             'input[name*="kiriof_destination_area"]',
                             'textarea[name*="kiriof_destination_area"]',
                             'input[id*="kiriof_destination_area"]',
-                            'textarea[id*="kiriof_destination_area"]'
+                            'textarea[id*="kiriof_destination_area"]',
+                            'input[id*="kiriof-destination-area"]',
+                            'textarea[id*="kiriof-destination-area"]'
                         ].join(',');
 
                         var $field = jQuery(selectors).filter(function() {
@@ -133,6 +135,60 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }).first();
 
                         return $field;
+                    }
+
+                    function kiriofUpdateCheckoutAdditionalFields(val) {
+                        if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
+                            return;
+                        }
+
+                        try {
+                            var checkoutStore = wp.data.select('wc/store/checkout');
+                            var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
+                            if (!checkoutDispatch || typeof checkoutDispatch.setAdditionalFields !== 'function') {
+                                return;
+                            }
+
+                            var additionalFields = checkoutStore && typeof checkoutStore.getAdditionalFields === 'function'
+                                ? (checkoutStore.getAdditionalFields() || {})
+                                : {};
+
+                            additionalFields[kiriofFieldId] = val;
+                            checkoutDispatch.setAdditionalFields(additionalFields);
+                        } catch(e) {}
+                    }
+
+                    function kiriofGetDestinationAreaAjaxData(val, label, different_address) {
+                        return {
+                            action: 'kiriof_get_destination_area',
+                            val: val,
+                            insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
+                            different_address: different_address,
+                            text: label || '',
+                            payment_method: jQuery('input[name="payment_method"]:checked').val() || jQuery('[name="payment_method"]').val() || '',
+                            nonce: "<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
+                            country: jQuery('#billing_country').find(':selected').val() || 'ID'
+                        };
+                    }
+
+                    function kiriofPersistDestinationArea(val, label, different_address, done) {
+                        if (!val) {
+                            if (typeof done === 'function') done(false);
+                            return;
+                        }
+                        jQuery.ajax({
+                            url: "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
+                            type: 'post',
+                            data: kiriofGetDestinationAreaAjaxData(val, label, different_address),
+                            dataType: 'JSON',
+                            complete: function(response) {
+                                var ok = false;
+                                try {
+                                    ok = !!(response && response.responseJSON && response.responseJSON.success);
+                                } catch(e) {}
+                                if (typeof done === 'function') done(ok);
+                            }
+                        });
                     }
 
                     var kiriofLastDistrictResults = [];
@@ -219,23 +275,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                         .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
                             var val = jQuery(this).val();
                             var label = jQuery(this).find('option:selected').text();
-                            kiriofGetBlockDistrictField().val(val);
+                            var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
+                            var $sourceField = kiriofGetBlockDistrictField();
+
+                            $sourceField.val(val).trigger('input').trigger('change');
                             jQuery('[name="kiriof_destination_area_name"]').val(label || '');
-                            try {
-                                var cartStore = wp.data.select('wc/store/cart');
-                                var cartDispatch = wp.data.dispatch('wc/store/cart');
-                                var billing = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
-                                var shipping = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
-                                billing[kiriofFieldId] = val;
-                                shipping[kiriofFieldId] = val;
-                                if (cartDispatch.setBillingAddress) {
-                                    cartDispatch.setBillingAddress(billing);
-                                }
-                                if (cartDispatch.setShippingAddress) {
-                                    cartDispatch.setShippingAddress(shipping);
-                                }
-                            } catch(e) {}
-                            kiriofCodInsurance();
+                            if (differentAddress > 0) {
+                                jQuery('[name="kiriof_shipping_destination_area_name"]').val(label || '');
+                            }
+
+                            kiriofUpdateCheckoutAdditionalFields(val);
+                            kiriofPersistDestinationArea(val, label, differentAddress, function() {
+                                kiriofCodInsurance();
+                            });
                         });
 
                     // Watch for postcode changes via direct DOM events too. Some Woo
