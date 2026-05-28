@@ -66,16 +66,16 @@ $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_se
         <!-- Online Store -->
         <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Online Store',$locale) ); ?></div>
 
-        <div class="kj-setting-row" style="opacity:0.5;">
+        <a href="<?php echo esc_url( $kiriof_base_url . '&section=tracking' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#50575e" stroke-width="1.5"/><path d="M3 9h18M9 21V9" stroke="#50575e" stroke-width="1.5"/></svg>
                 <div class="kj-setting-row-text">
                     <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Tracking Page',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('TODO — Coming soon.',$locale) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Configure the order tracking page for your customers.',$locale) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-        </div>
+        </a>
 
         <!-- Shipping -->
         <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Shipping',$locale) ); ?></div>
