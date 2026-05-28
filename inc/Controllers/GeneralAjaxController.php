@@ -133,6 +133,12 @@ class GeneralAjaxController
                 }
                 $datas['force_insurance'] = $service->data['calculation_result']['selected_expedition']->force_insurance == false ? 0 : 1;
                 $datas['services'] = $service->data;
+
+                // Cache fees in session so woocommerce_cart_calculate_fees can add them
+                // as WC cart fees (works on both traditional and block checkout).
+                WC()->session->set( 'kiriof_cached_insurance_amt', $datas['is_insurance'] );
+                WC()->session->set( 'kiriof_cached_cod_amt', $datas['is_cod_amt'] );
+
                 WC()->cart->calculate_totals();
 
                 wp_send_json_success($datas);

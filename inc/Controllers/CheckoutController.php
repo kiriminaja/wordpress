@@ -77,6 +77,116 @@ class CheckoutController
         } else {
             WC()->session->set( 'chosen_shipping_methods', null );
         }
+
+        // Add insurance + COD as WC cart fees (works on traditional AND block checkout)
+        $this->kiriof_add_checkout_fees();
+    }
+
+    private function kiriof_add_checkout_fees() {
+        // Only add WC cart fees on block checkout (REST API requests).
+        // Traditional checkout uses kiriof_reviewOrderBeforeTotalOrder HTML rows
+        // + kiriofCodInsurance() JS.
+        if ( ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+            return;
+        }
+
+        // DIAGNOSTIC: add a minimal fee to verify the hook fires on block checkout.
+        // Remove this once confirmed working.
+        WC()->cart->add_fee( __( 'Test Fee', 'kiriminaja-official' ), 1, false );
+
+        $chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
+        if ( empty( $chosen_methods ) || ! is_array( $chosen_methods ) ) {
+            return;
+        }
+
+        // Check if a KiriminAja shipping method is selected
+        $is_kiriminaja = false;
+        foreach ( $chosen_methods as $method ) {
+            if ( strpos( $method, 'kiriminaja-official' ) === 0 ) {
+                $is_kiriminaja = true;
+                break;
+            }
+        }
+        if ( ! $is_kiriminaja ) {
+            return;
+        }
+
+        // Read cached fees from session (populated by kiriof_getDataAfterUpdateCheckout AJAX)
+        $insurance_amt = (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 );
+        $cod_amt       = (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 );
+
+        // Fallback: if session cache is empty (e.g., first load on block checkout
+        // where the AJAX hasn't fired yet), calculate fees directly.
+        if ( $insurance_amt <= 0 && $cod_amt <= 0 ) {
+            // Find the exact KiriminAja method + courier
+            $kiriof_method = '';
+            foreach ( $chosen_methods as $method ) {
+                if ( strpos( $method, 'kiriminaja-official' ) === 0 ) {
+                    $kiriof_method = $method;
+                    break;
+                }
+            }
+            if ( '' === $kiriof_method ) {
+                return;
+            }
+
+            $destination_id = (int) WC()->session->get( 'destination_id', 0 );
+            if ( ! $destination_id ) {
+                // Try to get from customer shipping address (works on block checkout too)
+                $customer = WC()->customer;
+                if ( $customer ) {
+                    $destination_id = (int) WC()->session->get( 'shipping_destination_id',
+                        (int) WC()->session->get( 'destination_id', 0 )
+                    );
+                }
+            }
+            if ( ! $destination_id ) {
+                return;
+            }
+
+            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+            $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
+            $chosen_payment    = WC()->session->get( 'chosen_payment_method', '' );
+
+            try {
+                $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
+                    'destination_area_id' => $destination_id,
+                    'expedition'          => $kiriof_method,
+                    'is_insurance'        => $force_insurance,
+                    'is_cod'              => ( 'cod' === $chosen_payment ),
+                    'wc_cart_contents'    => WC()->cart->get_cart(),
+                )))->call();
+
+                if ( 200 === $service->status && ! empty( $service->data['calculation_result'] ) ) {
+                    $result        = $service->data['calculation_result'];
+                    $insurance_amt = (float) ( $result['insurance_amt'] ?? 0 );
+                    $cod_amt       = (float) ( $result['cod_amt'] ?? 0 );
+
+                    // Cache for subsequent calls
+                    WC()->session->set( 'kiriof_cached_insurance_amt', $insurance_amt );
+                    WC()->session->set( 'kiriof_cached_cod_amt', $cod_amt );
+                }
+            } catch ( \Throwable $th ) {
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriof_add_checkout_fees_fallback', array( $th->getMessage() ) );
+                return;
+            }
+        }
+
+        if ( $insurance_amt > 0 ) {
+            WC()->cart->add_fee(
+                __( 'Insurance', 'kiriminaja-official' ),
+                $insurance_amt,
+                false
+            );
+        }
+
+        if ( $cod_amt > 0 ) {
+            WC()->cart->add_fee(
+                __( 'COD Fee', 'kiriminaja-official' ),
+                $cod_amt,
+                false
+            );
+        }
     }
     function kiriof_filter_cart_needs_shipping( $needs_shipping ) {
         if ( is_cart() ) {
@@ -91,23 +201,26 @@ class CheckoutController
             return false;
         }
 
+        // Traditional checkout: inject insurance + COD fee rows into order review.
+        // These are populated by kiriofCodInsurance() JS on traditional checkout.
+        // Block checkout uses WC cart fees (added via woocommerce_cart_calculate_fees).
         $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
         $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
-        
+
         $insurance_style = $force_insurance ? '' : 'style="display:none;"';
         $table = '<tr class="kiriof_cart_item_insurane" '.$insurance_style.'>
-			<td class="kj-cart-insurance">
-				<label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>											
+            <td class="kj-cart-insurance">
+                <label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>
             </td>
-			<td class="kj-cart-insurance kj-cost-insurance"></td>
-		</tr>
+            <td class="kj-cart-insurance kj-cost-insurance"></td>
+        </tr>
         <tr class="kiriof_cart_item_cod_fee" style="display:none;">
-			<td class="kj-cod-fee">
-				<label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>		
-                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
+            <td class="kj-cod-fee">
+                <label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>
+                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>
             </td>
-			<td class="kj-cod-fee kj-cost-codfee"></td>
-		</tr>';
+            <td class="kj-cod-fee kj-cost-codfee"></td>
+        </tr>';
         echo wp_kses_post( $table );
     }
     function kiriof_add_checkout_nonce_field(){
