@@ -71,6 +71,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_keeps_live_fee_placeholder_rows(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'kiriof_cart_item_cod_fee',
+            $content,
+            'Classic checkout needs the COD Fee placeholder row so AJAX can show it after courier/payment changes'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_cart_item_insurane',
+            $content,
+            'Classic checkout needs the Insurance placeholder row so AJAX can show it after courier/insurance changes'
+        );
+    }
+
+    #[Test]
+    public function cod_fee_calculation_matches_main_branch_amount_field(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CheckoutCalculationService.php');
+        $start = strpos($content, 'private function getCalculateCODFee');
+        $this->assertNotFalse($start, 'COD fee calculation method must exist');
+        $methodBody = substr($content, $start, 900);
+
+        $this->assertStringContainsString(
+            'cod_fee_amount',
+            $methodBody,
+            'COD Fee must use API-provided cod_fee_amount like main branch'
+        );
+
+        $this->assertStringNotContainsString(
+            'codRate',
+            $methodBody,
+            'COD Fee must not drift by recalculating locally from a rate'
+        );
+    }
+
+    #[Test]
     public function php_registers_store_api_update_callback_for_block_checkout_fees(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');

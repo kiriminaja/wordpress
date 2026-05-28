@@ -197,9 +197,29 @@ class CheckoutController
         return $needs_shipping;
     }
     function kiriof_reviewOrderBeforeTotalOrder(){
-        // Insurance + COD fees are now added as WC cart fees via
-        // kiriof_add_checkout_fees(), which renders natively on
-        // traditional AND block checkout. No HTML injection needed.
+        if( !is_checkout() ){
+            return false;
+        }
+
+        // Keep the traditional checkout placeholder rows from main branch.
+        // The AJAX flow updates these rows immediately after the buyer changes
+        // courier/payment/insurance. WC cart fees are also added separately for
+        // block checkout compatibility, but classic themes still rely on these
+        // rows for the live COD Fee/Insurance display before order submission.
+        $table = '<tr class="kiriof_cart_item_insurane" style="display:none;">
+			<td class="kj-cart-insurance">
+				<label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>											
+            </td>
+			<td class="kj-cart-insurance kj-cost-insurance"></td>
+		</tr>
+        <tr class="kiriof_cart_item_cod_fee" style="display:none;">
+			<td class="kj-cod-fee">
+				<label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>		
+                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
+            </td>
+			<td class="kj-cod-fee kj-cost-codfee"></td>
+		</tr>';
+        echo wp_kses_post( $table );
     }
     function kiriof_add_checkout_nonce_field(){
         wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');

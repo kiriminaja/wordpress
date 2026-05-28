@@ -182,16 +182,15 @@ class CheckoutCalculationService extends BaseService{
         if (!$this->isCOD()) { 
             return 0;
         }
+
+        // Match main branch behavior: API pricing already returns the COD fee amount
+        // for the selected service in cod_fee_amount. Recalculating it locally from
+        // cod_fee as a rate can drift from production/main and makes checkout totals
+        // miss compared to the current stable branch.
+        $codFeeAmount = (float) ($this->selectedExpedition->setting->cod_fee_amount ?? 0);
+        $codMinCost = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
         
-        $cartTotal     = $this->getCartTotal();
-        $ongkirFee     = (int) ($this->selectedExpedition->cost ?? 0);
-        $insuranceFee  = $this->getCalculateInsuranceFee();
-        $codRate       = (float) ($this->selectedExpedition->setting->cod_fee ?? 0.0);
-        $codMinCost    = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
-        
-        $codFee = ($cartTotal + $ongkirFee + $insuranceFee) * $codRate;
-        $codFee = $codFee < $codMinCost ? $codMinCost : $codFee;
-        
+        $codFee = max($codFeeAmount, $codMinCost);
         return (int) ceil($codFee);
     }   
 }
