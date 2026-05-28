@@ -292,11 +292,9 @@ class TransactionRepository{
     }
 
     /**
-     * Distinct order count for the Transactions list, restricted to rows
-     * with `kiriminaja_transactions.status = 'new'` (i.e. not yet picked
-     * up). Pass null/empty/'all' to count every status — used by the "All"
-     * pill on the Transactions page so the badge stays in sync with the
-     * rendered rows.
+     * Distinct order count for the Transactions list.
+     * Pass null/empty/'all' to count every status — used by the "All"
+     * pill on the Transactions page so the badge matches the rendered rows.
      */
     public function getCountByPostStatus( $postStatus ){
         $o = $this->getOrdersTable();
@@ -310,10 +308,8 @@ class TransactionRepository{
                     INNER JOIN {$this->table} t
                         ON p.{$o['id']} = t.wp_wc_order_stat_order_id
                     WHERE p.{$o['type_col']} = %s
-                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                        AND t.status = %s",
-                    $o['type_value'],
-                    'new'
+                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')",
+                    $o['type_value']
                 )
             );
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter

@@ -68,7 +68,7 @@ class CheckoutCalculationService extends BaseService{
             "width"                     => $cartAttributes->data['width'],
             "height"                    => $cartAttributes->data['height'],
             'insurance'                 => empty( $this->is_insurance ) ? 0 : 1,
-            'item_value'                => $cartAttributes->data['item_value'],
+            'item_value'                => (int) $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
         
@@ -170,7 +170,8 @@ class CheckoutCalculationService extends BaseService{
     }
     
     private function getCalculateInsuranceFee(){
-        if ($this->isInsurance() || ($this->selectedExpedition->force_insurance ?? false)) { 
+        $global_enabled = ((new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance'))->value ?? 'yes';
+        if ($this->isInsurance() || ($this->selectedExpedition->force_insurance ?? false) || 'yes' === $global_enabled) { 
             return (float) ($this->selectedExpedition->insurance ?? 0);
         }
         
@@ -181,7 +182,11 @@ class CheckoutCalculationService extends BaseService{
         if (!$this->isCOD()) { 
             return 0;
         }
-        
+
+        // Match main branch behavior: API pricing already returns the COD fee amount
+        // for the selected service in cod_fee_amount. Recalculating it locally from
+        // cod_fee as a rate can drift from production/main and makes checkout totals
+        // miss compared to the current stable branch.
         $codFeeAmount = (float) ($this->selectedExpedition->setting->cod_fee_amount ?? 0);
         $codMinCost = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
         

@@ -98,8 +98,8 @@ class GetWCCartAttributeService extends BaseService{
             
             'weight_sum'        => array_sum($weightArr),
             'weight_collection' => $weightArr,  
-            
-            'transaction_value' => $transactionValue,
+             
+            'transaction_value' => (int) $transactionValue,
         ];
     }
     

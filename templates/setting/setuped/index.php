@@ -29,6 +29,8 @@ if ( '' !== $kiriof_section ) {
 // Load COD state for the list page switch
 $kiriof_cod_settings = get_option( 'woocommerce_cod_settings', array() );
 $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_settings['enabled'] : 'yes';
+$kiriof_insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+$kiriof_insurance_enabled = ( $kiriof_insurance_setting && 'yes' === $kiriof_insurance_setting->value ) ? 'yes' : 'no';
 ?>
 <div class="wrap kj-wrap">
 
@@ -38,12 +40,6 @@ $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_se
     <?php if (!kiriof_check_woocommerce() || kiriof_helper()->devForceTrue()): ?>
     <div class="kj-notice kj-notice-warning">
         <div><?php echo esc_html( kiriof_helper()->tlThis('WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features.',$locale) ); ?></div>
-    </div>
-    <?php endif; ?>
-
-    <?php if ( ! empty( $isOriginShippingDataReady ) || kiriof_helper()->devForceTrue() ): ?>
-    <div class="kj-notice kj-notice-success">
-        <div><?php echo esc_html( kiriof_helper()->tlThis('All Setup! Now you\'re connected with KiriminAja.',$locale) ); ?></div>
     </div>
     <?php endif; ?>
 
@@ -91,15 +87,15 @@ $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_se
             </div>
         </a>
 
-        <div class="kj-setting-row" style="opacity:0.5;">
+        <div class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <div class="kj-setting-row-text">
                     <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Shipping Insurance',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('This feature is not available yet, coming soon.',$locale) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Require shipping insurance on all orders.',$locale) ); ?></span>
                 </div>
                 <label class="kj-ios-toggle">
-                    <input type="checkbox" disabled>
+                    <input type="checkbox" id="kiriof_insurance_toggle" value="yes" <?php checked( 'yes', $kiriof_insurance_enabled ); ?>>
                     <span class="kj-ios-toggle-track"><span class="kj-ios-toggle-thumb"></span></span>
                 </label>
             </div>
@@ -160,7 +156,15 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 
 <!-- COD Toggle (list page only) -->
 <?php ob_start(); ?>
-    jQuery(document).ready(function($){var $t=$('#kiriof_cod_toggle');$t.on('change',function(){var e=$(this).is(':checked')?'yes':'no';$(this).prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_config_data',data:{enable_cod:e,nonce:kiriofAjax.nonce}},error:function(){$t.prop('disabled',false).prop('checked',e==='no')},complete:function(r){$t.prop('disabled',false);var p=kiriofParseAjaxResponse(r);if(!(p&&p.status===200))$t.prop('checked',e==='no')}})})});
+    jQuery(document).ready(function($){
+        var $cod=$('#kiriof_cod_toggle'), $ins=$('#kiriof_insurance_toggle');
+        function saveToggle(action, val, $el){
+            $el.prop('disabled',true);
+            jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:action,data:$.extend({nonce:kiriofAjax.nonce},val)},error:function(){$el.prop('disabled',false).prop('checked',!$el.is(':checked'))},complete:function(r){$el.prop('disabled',false);var p=kiriofParseAjaxResponse(r);if(!(p&&p.status===200))$el.prop('checked',!$el.is(':checked'))}});
+        }
+        $cod.on('change',function(){saveToggle('kiriof_store_config_data',{enable_cod:$(this).is(':checked')?'yes':'no'},$(this))});
+        $ins.on('change',function(){saveToggle('kiriof_store_insurance_data',{enable_insurance:$(this).is(':checked')?'yes':'no'},$(this))});
+    });
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );

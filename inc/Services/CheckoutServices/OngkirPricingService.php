@@ -41,7 +41,7 @@ class OngkirPricingService extends BaseService{
             "width"                     => $cartAttributes->data['width'],
             "height"                    => $cartAttributes->data['height'],
             'insurance'                 => 1,
-            'item_value'                => $cartAttributes->data['item_value'],
+            'item_value'                => (int) $cartAttributes->data['item_value'],
             'courier'                   => null
         ];
         

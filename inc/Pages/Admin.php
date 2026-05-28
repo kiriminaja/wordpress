@@ -102,6 +102,9 @@ class Admin extends BaseInit{
         add_filter('plugin_row_meta', [$this, 'kiriof_plugin_row_meta'], 10, 2);
         add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
 
+        // Setup checklist notice on all admin pages
+        add_action( 'admin_notices', [$this, 'kiriof_setup_checklist_notice'] );
+
         // Highlight "Payments" in the sidebar when viewing the detail page.
         add_filter( 'submenu_file', function ( $submenu_file ) {
             $screen = get_current_screen();
@@ -178,5 +181,107 @@ class Admin extends BaseInit{
         $links[] = '<a href="' . esc_url( 'https://developer.kiriminaja.com' ) . '">' . esc_html__( 'Developer', 'kiriminaja-official' ) . '</a>';
 
         return $links;
+    }
+
+    /**
+     * Setup checklist notice shown on all admin pages.
+     */
+    public function kiriof_setup_checklist_notice() {
+        if ( ! kiriof_check_woocommerce() ) {
+            return;
+        }
+
+        $repo = new \KiriminAjaOfficial\Repositories\SettingRepository();
+
+        // 1. Account Connection
+        $setup_key_row = $repo->getSettingByKey('setup_key');
+        $is_connected  = ! empty( $setup_key_row->value ?? null );
+
+        // 2. Product LWH & Weight — check if any WC product has weight
+        $has_product_weight = false;
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $product_count = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+             WHERE p.post_type IN ('product','product_variation')
+               AND p.post_status = 'publish'
+               AND pm.meta_key = '_weight'
+               AND pm.meta_value > 0"
+        );
+        $has_product_weight = ( $product_count > 0 );
+
+        // 3. Origin Setup
+        $origin_fields = $repo->getSettingByArray(array(
+            'origin_name','origin_phone','origin_address',
+            'origin_latitude','origin_longitude','origin_sub_district_id',
+            'origin_sub_district_name','origin_zip_code'
+        ));
+        $origin_ready = true;
+        foreach ( $origin_fields as $f ) {
+            if ( empty( $f->value ?? null ) ) { $origin_ready = false; break; }
+        }
+
+        // 4. Courier Setup
+        $wl_row = $repo->getSettingByKey('origin_whitelist_expedition_id');
+        $courier_ready = ! empty( $wl_row->value ?? null );
+
+        // 5. Tracking Page
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $tracking_pages = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->posts}
+             WHERE post_type = 'page'
+               AND post_status = 'publish'
+               AND post_content LIKE '%[kiriminaja-tracking-front-page%'"
+        );
+        $tracking_ready = ( $tracking_pages > 0 );
+
+        $steps = array(
+            array( 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true ),
+            array( 'label' => __( 'Product Weight & Dimensions', 'kiriminaja-official' ), 'done' => $has_product_weight, 'required' => true ),
+            array( 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true ),
+            array( 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true ),
+            array( 'label' => __( 'Tracking Page', 'kiriminaja-official' ), 'done' => $tracking_ready, 'required' => false ),
+        );
+
+        $done_count = count( array_filter( $steps, function( $s ) { return $s['done']; } ) );
+        $all_required_done = true;
+        foreach ( $steps as $s ) {
+            if ( $s['required'] && ! $s['done'] ) { $all_required_done = false; break; }
+        }
+
+        // Hide if all required steps completed
+        if ( $all_required_done ) {
+            return;
+        }
+
+        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
+        ?>
+        <div class="notice notice-info">
+            <p>
+                <strong><?php echo esc_html__( 'KiriminAja Setup Guide', 'kiriminaja-official' ); ?></strong>
+                <?php /* translators: %1$d: completed count, %2$d: total steps */ ?>
+                &mdash; <?php echo esc_html( sprintf( __( '%1$d of %2$d steps completed.', 'kiriminaja-official' ), $done_count, count( $steps ) ) ); ?>
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0;">
+                <?php foreach ( $steps as $step ) : ?>
+                <div style="display:flex;align-items:center;gap:6px;font-size:13px;<?php echo $step['done'] ? 'color:#787c82;' : 'color:#1d2327;'; ?>">
+                    <?php if ( $step['done'] ) : ?>
+                    <span style="color:#00a32a;font-size:14px;">&#10003;</span>
+                    <?php else : ?>
+                    <span style="color:<?php echo $step['required'] ? '#d63638' : '#c3c4c7'; ?>;font-size:14px;">&#9679;</span>
+                    <?php endif; ?>
+                    <span style="<?php echo $step['done'] ? 'text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></span>
+                    <?php if ( ! $step['required'] ) : ?>
+                    <span style="font-size:10px;color:#8c8f94;"><?php echo esc_html__( '(Optional)', 'kiriminaja-official' ); ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <p>
+                <a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary" style="background:#7d3eb9;border-color:#7d3eb9;"><?php echo esc_html__( 'Complete Setup', 'kiriminaja-official' ); ?></a>
+            </p>
+        </div>
+        <?php
     }
 }

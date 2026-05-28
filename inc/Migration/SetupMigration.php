@@ -52,6 +52,7 @@ class SetupMigration {
                     (%s, %s),
                     (%s, %s),
                     (%s, %s),
+                    (%s, %s),
                     (%s, %s)",
                     'api_key', null,
                     'setup_key', null,
@@ -65,7 +66,8 @@ class SetupMigration {
                     'origin_longitude', null,
                     'callback_url', null,
                     'origin_zip_code', null,
-                    'enable_cod', 'yes'
+                    'enable_cod', 'yes',
+                    'enable_insurance', 'yes'
                 )
             );
         }

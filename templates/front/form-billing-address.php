@@ -11,9 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var bool   $kiriof_checkout_token
  * @var string $destination_name
  * @var string $shipping_destination_name
+ * @var bool   $kiriof_global_insurance
  */
 ?>
-
 <div id="kiriof_destination_area_group">    
     <div style="display: none">
         <input type="hidden" name="kiriof_checkout_token" value="<?php echo esc_attr($kiriof_checkout_token); ?>">
@@ -28,6 +28,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     <?php ob_start(); ?>
 
         jQuery(document).ready(function($) {    
+            <?php if ( $kiriof_global_insurance ) : ?>
+            // Global insurance forced — check and disable the checkbox
+            var $ins = jQuery('#kiriof_insurance, #kiriof_shipping_insurance');
+            $ins.prop('checked', true).prop('disabled', true);
+            $ins.closest('.form-row').css('opacity', '0.6');
+            <?php endif; ?>
+
             getSearchAreaKelurahan();
             changeDistrict();
 
@@ -54,6 +61,173 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                 jQuery(document.body).on( 'change', 'input.shipping_method', function() {
                     kiriofHandleCodInsurance();
+                });
+
+                // Block checkout: listen for shipping method changes via WC data store.
+                // React blocks don't use jQuery change events reliably.
+                if (typeof wp !== 'undefined' && wp.data && wp.data.subscribe) {
+                    var kiriofLastShippingMethod = '';
+                    wp.data.subscribe(function() {
+                        try {
+                            var store = wp.data.select('wc/store/cart');
+                            if (!store || typeof store.getShippingRates !== 'function') return;
+                            var allRates = store.getShippingRates();
+                            if (!allRates || !allRates.length) return;
+                            var currentMethod = '';
+                            for (var i = 0; i < allRates.length; i++) {
+                                var pkg = allRates[i];
+                                if (pkg && pkg.shipping_rates) {
+                                    for (var j = 0; j < pkg.shipping_rates.length; j++) {
+                                        if (pkg.shipping_rates[j].selected) {
+                                            currentMethod = pkg.shipping_rates[j].rate_id;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
+                                kiriofLastShippingMethod = currentMethod;
+                                // Delay to let the Store API update the cart first
+                                setTimeout(function() { kiriofCodInsurance(); }, 400);
+                            }
+                        } catch(e) {}
+                    });
+
+                    // Dynamic District options from postcode
+                    var kiriofLastPostcode = '';
+                    var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
+                    var kiriofBlockPostcodeSelectors = [
+                        'input#billing-postcode',
+                        'input#shipping-postcode',
+                        'input[name="billing_postcode"]',
+                        'input[name="shipping_postcode"]',
+                        'input[name="billing-postcode"]',
+                        'input[name="shipping-postcode"]',
+                        'input[id$="-postcode"]',
+                        'input[name$="[postcode]"]'
+                    ].join(',');
+
+                    function kiriofGetCheckoutPostcodeFromDom() {
+                        var postcode = '';
+                        jQuery(kiriofBlockPostcodeSelectors).each(function() {
+                            var val = jQuery(this).val();
+                            if (val && String(val).length >= 3) {
+                                postcode = String(val);
+                                return false;
+                            }
+                        });
+                        return postcode;
+                    }
+
+                    function kiriofFetchDistricts(postcode) {
+                        if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
+                        kiriofLastPostcode = postcode;
+
+                        var kiriofAjaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                            ? kiriofAjax.ajaxurl
+                            : '<?php echo esc_url( admin_url('admin-ajax.php') ); ?>';
+                        var kiriofAjaxNonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
+                            ? kiriofAjax.nonce
+                            : '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>';
+
+                        jQuery.ajax({
+                            type: 'post',
+                            url: kiriofAjaxUrl,
+                            data: {
+                                action: 'kiriminaja_subdistrict_search',
+                                data: { term: postcode },
+                                nonce: kiriofAjaxNonce
+                            },
+                            success: function(response) {
+                                if (!response || !response.data || !response.data.length) return;
+                                var $field = jQuery('[name="' + kiriofFieldId + '"]');
+                                if (!$field.length) return;
+
+                                // Woo Blocks renders the registered additional field as a
+                                // React-controlled text input. Do not replace that node: React
+                                // can re-render the free-text input and discard our select. Keep
+                                // the original input hidden as the Store API source of truth, then
+                                // render a separate visible select for the AJAX District results.
+                                $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
+
+                                var $select = jQuery('.kiriof-block-district-select');
+                                if (!$select.length) {
+                                    $select = jQuery('<select class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;"></select>');
+                                    $field.after($select);
+                                }
+
+                                var currentValue = $field.val() || $select.val() || '';
+                                var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
+                                var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                                response.data.forEach(function(d) {
+                                    var selected = String(d.id) === String(currentValue) ? ' selected' : '';
+                                    html += '<option value="' + d.id + '"' + selected + '>' + d.text + '</option>';
+                                    if (String(d.id) === String(currentValue)) {
+                                        currentName = d.text;
+                                    }
+                                });
+
+                                $select.html(html).val(currentValue);
+
+                                if (currentValue && currentName) {
+                                    jQuery('[name="kiriof_destination_area_name"]').val(currentName);
+                                }
+                            }
+                        });
+                    }
+
+                    jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select')
+                        .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
+                            var val = jQuery(this).val();
+                            var label = jQuery(this).find('option:selected').text();
+                            jQuery('[name="' + kiriofFieldId + '"]').val(val);
+                            jQuery('[name="kiriof_destination_area_name"]').val(label || '');
+                            try {
+                                var cartStore = wp.data.select('wc/store/cart');
+                                var cartDispatch = wp.data.dispatch('wc/store/cart');
+                                var billing = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
+                                var shipping = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
+                                billing[kiriofFieldId] = val;
+                                shipping[kiriofFieldId] = val;
+                                if (cartDispatch.setBillingAddress) {
+                                    cartDispatch.setBillingAddress(billing);
+                                }
+                                if (cartDispatch.setShippingAddress) {
+                                    cartDispatch.setShippingAddress(shipping);
+                                }
+                            } catch(e) {}
+                            kiriofCodInsurance();
+                        });
+
+                    // Watch for postcode changes via direct DOM events too. Some Woo
+                    // checkout blocks debounce address writes through /wc/store/v1/batch,
+                    // so the cart data store can lag behind the visible postcode input.
+                    jQuery(document).off('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors)
+                        .on('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors, function() {
+                            kiriofFetchDistricts(jQuery(this).val());
+                        });
+                    setTimeout(function() {
+                        kiriofFetchDistricts(kiriofGetCheckoutPostcodeFromDom());
+                    }, 300);
+
+                    // Watch for postcode changes via data store
+                    wp.data.subscribe(function() {
+                        try {
+                            var store = wp.data.select('wc/store/cart');
+                            if (!store) return;
+                            var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
+                            var billing = store.getBillingAddress ? store.getBillingAddress() : {};
+                            var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
+                            kiriofFetchDistricts(postcode);
+                        } catch(e) {}
+                    });
+                }
+
+                // Re-run after AJAX fragment refresh (theme compatibility)
+                jQuery(document.body).on( 'updated_checkout', function() {
+                    kiriofChangeCodPayment();
+                    kiriofChangeDifferentAddress();
+                    setTimeout(function() { kiriofCodInsurance(); }, 300);
                 });
 
             <?php endif; ?>
@@ -262,20 +436,83 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         }
 
+        function kiriofBlockExtensionCartUpdate(data) {
+            if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                return;
+            }
+
+            try {
+                var cartDispatch = wp.data.dispatch('wc/store/cart');
+                if (cartDispatch && typeof cartDispatch.extensionCartUpdate === 'function') {
+                    cartDispatch.extensionCartUpdate({
+                        namespace: 'kiriminaja-official',
+                        data: {
+                            shipping_metode_id: data.shipping_metode_id,
+                            destination_id: data.destination_id,
+                            payment_method: data.payment_method,
+                            insurance: data.insurance
+                        }
+                    });
+                    return;
+                }
+
+                if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                    cartDispatch.invalidateResolutionForStore();
+                }
+            } catch(e) {}
+        }
+
+        function kiriofGetDestinationId(different_address) {
+            let blockDestinationId = jQuery('.kiriof-block-district-select').val()
+                || jQuery('[name="kiriminaja-official/kiriof_destination_area"]').val();
+
+            if (blockDestinationId) {
+                return blockDestinationId;
+            }
+
+            return (
+                different_address == '0'
+                ?
+                (jQuery('#kiriof_destination_area option:selected').val() || jQuery('[name="kiriof_destination_area"]').val())
+                :
+                (jQuery('#kiriof_shipping_destination_area option:selected').val() || jQuery('[name="kiriof_shipping_destination_area"]').val())
+            );
+        }
+
         function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
-            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
+            // Read shipping method: traditional, block radio, or block data store
+            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val()
+                || jQuery('.wc-block-components-radio-control__input:checked').val();
+            // Fallback: block checkout data store
+            if (!shipping_metode_id && typeof wp !== 'undefined' && wp.data && wp.data.select) {
+                try {
+                    var rates = wp.data.select('wc/store/cart').getShippingRates();
+                    if (rates && rates.length) {
+                        for (var i = 0; i < rates.length; i++) {
+                            var pkg = rates[i];
+                            if (pkg && pkg.shipping_rates) {
+                                for (var j = 0; j < pkg.shipping_rates.length; j++) {
+                                    if (pkg.shipping_rates[j].selected) {
+                                        shipping_metode_id = pkg.shipping_rates[j].rate_id;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+            shipping_metode_id = shipping_metode_id || '';
             
-            let destination_id = ( 
-                different_address == '0' 
-                ? 
-                jQuery('#kiriof_destination_area option:selected').val() 
-                : 
-                jQuery('#kiriof_shipping_destination_area option:selected').val() 
-            ); 
+            let destination_id = kiriofGetDestinationId(different_address);
 
+            // Global insurance forced = always true
+            <?php if ( $kiriof_global_insurance ) : ?>
+            let insurance = 1;
+            <?php else : ?>
             let insurance = ( 
                 different_address == '0' 
                 ? 
@@ -283,6 +520,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 : 
                 jQuery('#kiriof_shipping_insurance:checked').val()
             );
+            <?php endif; ?>
 
             let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
                         
@@ -334,6 +572,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                              */
                             jQuery('.kj-cost-insurance').html(insurance_res);
                             jQuery('.kj-cost-codfee').html(cod_fee_res);
+
+                            // Block checkout (ShopVerse/React) does not re-render totals from
+                            // classic update_checkout fragments. Use Store API cart/extensions
+                            // so WooCommerce recalculates and returns native fee rows.
+                            kiriofBlockExtensionCartUpdate(data);
         
                         },
                         error:function(xhr){
