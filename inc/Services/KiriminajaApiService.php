@@ -47,4 +47,11 @@ class KiriminajaApiService extends BaseService{
         }
         return self::success($repo['data']->datas);
     }
+    public function getProfile(){
+        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProfile();
+        if (!@$repo['status'] || !@$repo['data']->status){
+            return self::error([],@$repo['data']->text ?? 'Failed to load profile');
+        }
+        return self::success($repo['data']->results);
+    }
 }

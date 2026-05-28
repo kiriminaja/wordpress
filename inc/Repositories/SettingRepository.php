@@ -260,4 +260,41 @@ class SettingRepository{
         return $datas;
         
     }
+
+    /**
+     * Store courier whitelist without touching other origin fields.
+     *
+     * @param array $payload
+     * $payload['origin_whitelist_expedition_id']   - comma-separated courier codes
+     * $payload['origin_whitelist_expedition_name'] - comma-separated courier names
+     * @return true
+     */
+    public function storeCourierWhitelist($payload){
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $existing = $wpdb->get_row("SELECT * FROM {$this->table} WHERE `key`='origin_whitelist_expedition_id'");
+
+        if (empty($existing)){
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->insert(
+                $this->table,
+                array('key' => 'origin_whitelist_expedition_id', 'value' => sanitize_text_field($payload['origin_whitelist_expedition_id'])),
+                array('%s', '%s')
+            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->insert(
+                $this->table,
+                array('key' => 'origin_whitelist_expedition_name', 'value' => sanitize_text_field($payload['origin_whitelist_expedition_name'])),
+                array('%s', '%s')
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update($this->table, array('value' => sanitize_text_field($payload['origin_whitelist_expedition_id'])), array('key' => 'origin_whitelist_expedition_id'));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update($this->table, array('value' => sanitize_text_field($payload['origin_whitelist_expedition_name'])), array('key' => 'origin_whitelist_expedition_name'));
+        }
+
+        return true;
+    }
 }
