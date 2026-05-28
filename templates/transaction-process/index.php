@@ -130,12 +130,10 @@ class Kiriof_TransactionProcessIndex
                 INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                     ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                 WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                    AND kiriminaja_transactions.status = %s
                     AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC",
-                    'new',
                     $key,
                     $key_like,
                     $month,
