@@ -121,7 +121,9 @@ class CheckoutController
         $shipping_destination_id = WC()->session->get($this->key_shipping_destination_id);
         $shipping_destination_name = WC()->session->get($this->key_shipping_destination_name);
         
-        $kiriof_checkout_token = empty($destination_id) ? false : true;
+        $insurance_setting        = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $kiriof_global_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
+        $kiriof_checkout_token     = empty($destination_id) ? false : true;
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-billing-address.php');
     }
     function kiriof_checkout_field_validation() {
@@ -592,6 +594,10 @@ class CheckoutController
         return $fields;
     }
     private function kiriof_add_field_insurance( $fields ){
+        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
+        $default_val       = $force_insurance ? '1' : '0';
+
         $field_key = $this->field_insurance_key;
         $fields['billing'][$field_key] = array(
             'label'     => esc_html__('Insurance Shipping', 'kiriminaja-official'),
@@ -600,6 +606,8 @@ class CheckoutController
             'clear'     => true,
             'type'      => 'checkbox',
             'priority'  => 62,
+            'default'   => $default_val,
+            'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
         );
         $fields['shipping'][$this->field_shipping_insurance_key] = array(
             'label'     => esc_html__('Insurance Shipping', 'kiriminaja-official'),
@@ -608,6 +616,8 @@ class CheckoutController
             'clear'     => true,
             'type'      => 'checkbox',
             'priority'  => 62,
+            'default'   => $default_val,
+            'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
         );
         return $fields;
     }

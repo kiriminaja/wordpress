@@ -11,9 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var bool   $kiriof_checkout_token
  * @var string $destination_name
  * @var string $shipping_destination_name
+ * @var bool   $kiriof_global_insurance
  */
 ?>
-
 <div id="kiriof_destination_area_group">    
     <div style="display: none">
         <input type="hidden" name="kiriof_checkout_token" value="<?php echo esc_attr($kiriof_checkout_token); ?>">
@@ -28,6 +28,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     <?php ob_start(); ?>
 
         jQuery(document).ready(function($) {    
+            <?php if ( $kiriof_global_insurance ) : ?>
+            // Global insurance forced — check and disable the checkbox
+            var $ins = jQuery('#kiriof_insurance, #kiriof_shipping_insurance');
+            $ins.prop('checked', true).prop('disabled', true);
+            $ins.closest('.form-row').css('opacity', '0.6');
+            <?php endif; ?>
+
             getSearchAreaKelurahan();
             changeDistrict();
 
