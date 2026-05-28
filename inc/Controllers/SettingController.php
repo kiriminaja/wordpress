@@ -37,6 +37,15 @@ class SettingController{
 
         /** storeConfigData*/
         add_action('wp_ajax_kiriof_store_config_data', array($this,'storeConfigData'));
+
+        /** getProfileData*/
+        add_action('wp_ajax_kiriof_get_profile_data', array($this,'getProfileData'));
+
+        /** getCourierWhitelist*/
+        add_action('wp_ajax_kiriof_get_courier_whitelist', array($this,'getCourierWhitelist'));
+
+        /** storeCourierWhitelist*/
+        add_action('wp_ajax_kiriof_store_courier_whitelist', array($this,'storeCourierWhitelist'));
     }
     function getIntegrationData() {
         try {
@@ -260,6 +269,90 @@ class SettingController{
             $service = (new \KiriminAjaOfficial\Services\SettingService())->storeConfigData($data);
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
+        }catch (Throwable $e){
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
+        }
+    }
+    function getProfileData() {
+        try {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            $service = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            if ($service->status!==200){ wp_send_json_error($service);}
+            wp_send_json_success($service);
+        }catch (Throwable $e){
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
+        }
+    }
+    function getCourierWhitelist() {
+        try {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+
+            // Fetch all couriers from API
+            $couriers_service = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers();
+            if ($couriers_service->status !== 200) {
+                wp_send_json_error($couriers_service);
+            }
+
+            // Fetch current whitelist from DB
+            $wl_repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray([
+                'origin_whitelist_expedition_id',
+            ]);
+
+            $whitelist_ids = array();
+            foreach ($wl_repo as $row) {
+                if ('origin_whitelist_expedition_id' === $row->key && ! empty( $row->value ) ) {
+                    $whitelist_ids = array_map( 'trim', explode( ',', $row->value ) );
+                }
+            }
+
+            wp_send_json_success(array(
+                'status'  => 200,
+                'data'    => array(
+                    'couriers'       => $couriers_service->data,
+                    'whitelist_ids'  => $whitelist_ids,
+                ),
+            ));
+        }catch (Throwable $e){
+            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
+        }
+    }
+    function storeCourierWhitelist() {
+        try {
+            if ( ! current_user_can( 'manage_woocommerce' ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
+                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
+                : array();
+
+            $whitelist_ids   = isset( $data['whitelist_ids'] ) ? sanitize_text_field( (string) $data['whitelist_ids'] ) : '';
+            $whitelist_names = isset( $data['whitelist_names'] ) ? sanitize_text_field( (string) $data['whitelist_names'] ) : '';
+
+            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeCourierWhitelist(array(
+                'origin_whitelist_expedition_id'  => $whitelist_ids,
+                'origin_whitelist_expedition_name'=> $whitelist_names,
+            ));
+
+            wp_send_json_success(['status' => 200, 'message' => 'Saved']);
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }

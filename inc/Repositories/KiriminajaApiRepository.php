@@ -74,4 +74,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'reason' => $reason,
         ]);
     }
+    public function getProfile(){
+        return $this->get('/api/mitra/v6.2/profile');
+    }
 }
