@@ -63,7 +63,10 @@ jobs:
 
       - name: WordPress Plugin Check (WP.org compliance)
         timeout-minutes: 15
-        uses: wordpress/plugin-check-action@v1
+        # Pin v1.1.4 until wordpress/plugin-check-action@v1 reliably runs
+        # wp-env on GitHub's Node 24 runner. v1.1.5+ can report
+        # "Environment not initialized" immediately after wp-env start.
+        uses: wordpress/plugin-check-action@v1.1.4
         continue-on-error: true
         with:
           build-dir: /tmp/pcp/kiriminaja-official
