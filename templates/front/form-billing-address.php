@@ -96,18 +96,47 @@ if ( ! defined( 'ABSPATH' ) ) {
                     // Dynamic District options from postcode
                     var kiriofLastPostcode = '';
                     var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
+                    var kiriofBlockPostcodeSelectors = [
+                        'input#billing-postcode',
+                        'input#shipping-postcode',
+                        'input[name="billing_postcode"]',
+                        'input[name="shipping_postcode"]',
+                        'input[name="billing-postcode"]',
+                        'input[name="shipping-postcode"]',
+                        'input[id$="-postcode"]',
+                        'input[name$="[postcode]"]'
+                    ].join(',');
+
+                    function kiriofGetCheckoutPostcodeFromDom() {
+                        var postcode = '';
+                        jQuery(kiriofBlockPostcodeSelectors).each(function() {
+                            var val = jQuery(this).val();
+                            if (val && String(val).length >= 3) {
+                                postcode = String(val);
+                                return false;
+                            }
+                        });
+                        return postcode;
+                    }
 
                     function kiriofFetchDistricts(postcode) {
                         if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
                         kiriofLastPostcode = postcode;
 
+                        var kiriofAjaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                            ? kiriofAjax.ajaxurl
+                            : '<?php echo esc_url( admin_url('admin-ajax.php') ); ?>';
+                        var kiriofAjaxNonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
+                            ? kiriofAjax.nonce
+                            : '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>';
+
                         jQuery.ajax({
                             type: 'post',
-                            url: ajaxurl,
+                            url: kiriofAjaxUrl,
                             data: {
                                 action: 'kiriminaja_subdistrict_search',
                                 data: { term: postcode },
-                                nonce: '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>'
+                                nonce: kiriofAjaxNonce
                             },
                             success: function(response) {
                                 if (!response || !response.data || !response.data.length) return;
@@ -164,6 +193,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                             kiriofCodInsurance();
                         });
 
+                    // Watch for postcode changes via direct DOM events too. Some Woo
+                    // checkout blocks debounce address writes through /wc/store/v1/batch,
+                    // so the cart data store can lag behind the visible postcode input.
+                    jQuery(document).off('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors)
+                        .on('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors, function() {
+                            kiriofFetchDistricts(jQuery(this).val());
+                        });
+                    setTimeout(function() {
+                        kiriofFetchDistricts(kiriofGetCheckoutPostcodeFromDom());
+                    }, 300);
+
                     // Watch for postcode changes via data store
                     wp.data.subscribe(function() {
                         try {
@@ -171,7 +211,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             if (!store) return;
                             var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
                             var billing = store.getBillingAddress ? store.getBillingAddress() : {};
-                            var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || '';
+                            var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
                             kiriofFetchDistricts(postcode);
                         } catch(e) {}
                     });

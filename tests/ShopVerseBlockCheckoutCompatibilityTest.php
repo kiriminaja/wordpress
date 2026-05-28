@@ -71,6 +71,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_district_postcode_lookup_uses_localized_ajax_url(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofFetchDistricts(postcode)');
+        $this->assertNotFalse($start, 'Block checkout district postcode lookup function must exist');
+        $functionBody = substr($content, $start, 1900);
+
+        $this->assertStringContainsString(
+            'kiriofAjax.ajaxurl',
+            $functionBody,
+            'Block checkout runs on the frontend where the wp-admin ajaxurl global is not guaranteed; district lookup must use localized kiriofAjax.ajaxurl'
+        );
+
+        $this->assertStringNotContainsString(
+            'url: ajaxurl',
+            $functionBody,
+            'Using the undefined frontend ajaxurl global makes the postcode watcher fail before kiriminaja_subdistrict_search is sent'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_lookup_also_watches_postcode_dom_inputs(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'input.kiriofBlockPostcode',
+            $content,
+            'Block checkout must listen to postcode input/change events directly because Woo blocks may only trigger wc/store/v1/batch and not update wc/store/cart synchronously'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetCheckoutPostcodeFromDom',
+            $content,
+            'Block checkout needs a DOM postcode fallback when cart data store postcode is not populated yet'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_keeps_live_fee_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
