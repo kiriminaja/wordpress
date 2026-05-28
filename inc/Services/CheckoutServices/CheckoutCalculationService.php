@@ -68,7 +68,7 @@ class CheckoutCalculationService extends BaseService{
             "width"                     => $cartAttributes->data['width'],
             "height"                    => $cartAttributes->data['height'],
             'insurance'                 => empty( $this->is_insurance ) ? 0 : 1,
-            'item_value'                => $cartAttributes->data['item_value'],
+            'item_value'                => (int) $cartAttributes->data['item_value'],
             'courier'                   => [$courier]
         ];
         
@@ -183,10 +183,15 @@ class CheckoutCalculationService extends BaseService{
             return 0;
         }
         
-        $codFeeAmount = (float) ($this->selectedExpedition->setting->cod_fee_amount ?? 0);
-        $codMinCost = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
+        $cartTotal     = $this->getCartTotal();
+        $ongkirFee     = (int) ($this->selectedExpedition->cost ?? 0);
+        $insuranceFee  = $this->getCalculateInsuranceFee();
+        $codRate       = (float) ($this->selectedExpedition->setting->cod_fee ?? 0.0);
+        $codMinCost    = (int) ($this->selectedExpedition->setting->minimum_cod_fee ?? 0);
         
-        $codFee = max($codFeeAmount, $codMinCost);
+        $codFee = ($cartTotal + $ongkirFee + $insuranceFee) * $codRate;
+        $codFee = $codFee < $codMinCost ? $codMinCost : $codFee;
+        
         return (int) ceil($codFee);
     }   
 }
