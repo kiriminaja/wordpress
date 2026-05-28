@@ -35,9 +35,6 @@ class CheckoutController
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_block_checkout_fields'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_store_api_update_callback'));
 
-            // All checkout types: add District to address fields via locale
-            add_filter( 'woocommerce_default_address_fields', array( $this, 'kiriof_add_district_to_address_fields' ) );
-            
             /** Validation Custom field Sub District */
             add_action( 'woocommerce_checkout_process', array($this,'kiriof_checkout_field_validation') );
             
@@ -854,30 +851,6 @@ class CheckoutController
         }
 
         return $gateways;
-    }
-
-    /**
-     * Add District to address fields via woocommerce_default_address_fields.
-     * This works on traditional AND block checkout (ShopVerse etc.).
-     */
-    public function kiriof_add_district_to_address_fields( $fields ) {
-        $destination_id     = WC()->session ? WC()->session->get('destination_id', '') : '';
-        $destination_name   = WC()->session ? WC()->session->get('destination_name', '') : '';
-        $options = array( '' => __( 'Select Option', 'kiriminaja-official' ) );
-        if ( ! empty( $destination_id ) ) {
-            $options[ $destination_id ] = $destination_name;
-        }
-
-        $fields[ $this->field_destination_key ] = array(
-            'label'    => __( 'District', 'kiriminaja-official' ),
-            'required' => true,
-            'type'     => 'select',
-            'class'    => array( 'form-row-wide', 'address-field' ),
-            'priority' => 45,
-            'options'  => $options,
-        );
-
-        return $fields;
     }
 
     /**

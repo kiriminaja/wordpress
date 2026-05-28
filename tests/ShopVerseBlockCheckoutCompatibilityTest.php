@@ -89,6 +89,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_does_not_register_district_twice_through_default_address_fields(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringNotContainsString(
+            "add_filter( 'woocommerce_default_address_fields'",
+            $content,
+            'Classic checkout already injects District via woocommerce_checkout_fields; adding it again through default address fields renders a duplicate prefixed billing_kiriof_destination_area field'
+        );
+
+        $this->assertStringContainsString(
+            "add_filter('woocommerce_checkout_fields'",
+            $content,
+            'Classic checkout must keep the original checkout_fields injection path for District and Insurance'
+        );
+    }
+
+    #[Test]
     public function cod_fee_calculation_matches_main_branch_amount_field(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CheckoutCalculationService.php');
