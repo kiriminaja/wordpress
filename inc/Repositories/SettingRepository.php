@@ -212,6 +212,7 @@ class SettingRepository{
         $existing = $wpdb->get_row("SELECT * FROM {$this->table} WHERE `key`='enable_cod'");
 
         if (empty($existing)){
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->insert(
                 $this->table,
                 array(

@@ -9,9 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var array $inputValueArr
  */
 
-$cod_settings        = get_option( 'woocommerce_cod_settings', array() );
-$cod_enabled         = isset( $cod_settings['enabled'] ) ? $cod_settings['enabled'] : 'yes';
-$enable_cod_checked  = 'yes' === $cod_enabled ? 'checked' : '';
+$kiriof_cod_settings        = get_option( 'woocommerce_cod_settings', array() );
+$kiriof_cod_enabled         = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_settings['enabled'] : 'yes';
+$kiriof_enable_cod_checked  = 'yes' === $kiriof_cod_enabled ? 'checked' : '';
 ?>
 
 <span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kiriof_helper()->tlThis('Shipping Configurations',$locale) ); ?></span>
@@ -142,7 +142,7 @@ $enable_cod_checked  = 'yes' === $cod_enabled ? 'checked' : '';
                 <fieldset>
                     <legend class="screen-reader-text"><span><?php echo esc_html( kiriof_helper()->tlThis('Cash on Delivery',$locale) ); ?></span></legend>
                     <label for="kiriof_enable_cod">
-                        <input name="enable_cod" type="checkbox" id="kiriof_enable_cod" value="yes" <?php echo esc_attr( $enable_cod_checked ); ?>>
+                        <input name="enable_cod" type="checkbox" id="kiriof_enable_cod" value="yes" <?php echo esc_attr( $kiriof_enable_cod_checked ); ?>>
                         <?php echo esc_html( kiriof_helper()->tlThis('Enable cash on delivery payments for any KiriminAja shipping method.',$locale) ); ?>
                     </label>
                 </fieldset>
