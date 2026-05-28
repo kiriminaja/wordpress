@@ -111,31 +111,31 @@ if ( ! defined( 'ABSPATH' ) ) {
                             },
                             success: function(response) {
                                 if (!response || !response.data || !response.data.length) return;
-                                var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                                var $field = jQuery('[name="' + kiriofFieldId + '"]');
+                                if (!$field.length || $field.is('select')) return;
+
+                                // Replace text input with select
+                                var html = '<select name="' + kiriofFieldId + '" id="' + kiriofFieldId + '" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;">';
+                                html += '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
                                 response.data.forEach(function(d) {
                                     html += '<option value="' + d.id + '">' + d.text + '</option>';
                                 });
-                                jQuery('[name="' + kiriofFieldId + '"]').html(html);
+                                html += '</select>';
+                                $field.replaceWith(html);
 
-                                // When user selects a district, save to WC data store
-                                // so it gets included in Store API requests
+                                // Save selection to WC data store
                                 jQuery(document).off('change.kiriof', '[name="' + kiriofFieldId + '"]')
                                     .on('change.kiriof', '[name="' + kiriofFieldId + '"]', function() {
                                         var val = jQuery(this).val();
                                         if (!val) return;
                                         try {
-                                            var addr = wp.data.select('wc/store/cart').getBillingAddress();
-                                            if (addr) {
-                                                addr[kiriofFieldId] = val;
-                                                wp.data.dispatch('wc/store/cart').setBillingAddress(addr);
-                                            }
-                                            var saddr = wp.data.select('wc/store/cart').getShippingAddress();
-                                            if (saddr) {
-                                                saddr[kiriofFieldId] = val;
-                                                wp.data.dispatch('wc/store/cart').setShippingAddress(saddr);
-                                            }
+                                            var store = wp.data.select('wc/store/cart');
+                                            var addr = store.getBillingAddress() || {};
+                                            addr[kiriofFieldId] = val;
+                                            wp.data.dispatch('wc/store/cart').setBillingAddress(addr);
                                         } catch(e) {}
                                     });
+                            }
                             }
                         });
                     }

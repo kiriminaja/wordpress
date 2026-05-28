@@ -892,17 +892,12 @@ class CheckoutController
         }
 
         if ( $is_v2 ) {
-            // Register as select with placeholder. Options update dynamically
-            // via JS when postcode is entered.
             $register_fn( array(
                 'id'           => 'kiriminaja-official/' . $this->field_destination_key,
                 'label'        => __( 'District', 'kiriminaja-official' ),
                 'location'     => 'address',
-                'type'         => 'select',
+                'type'         => 'text',
                 'required'     => true,
-                'options'      => array(
-                    array( 'value' => '', 'label' => __( 'Enter postcode first', 'kiriminaja-official' ) ),
-                ),
                 'attributes'   => array( 'before' => 'address_2' ),
                 'address_type' => array( 'billing', 'shipping' ),
             ));
@@ -912,11 +907,8 @@ class CheckoutController
                     'id'         => 'kiriminaja-official/' . $this->field_destination_key,
                     'label'      => __( 'District', 'kiriminaja-official' ),
                     'location'   => 'address',
-                    'type'       => 'select',
+                    'type'       => 'text',
                     'required'   => true,
-                    'options'    => array(
-                        array( 'value' => '', 'label' => __( 'Enter postcode first', 'kiriminaja-official' ) ),
-                    ),
                     'attributes' => array( 'before' => 'address_2' ),
                 ),
                 array( 'address_type' => array( 'billing', 'shipping' ) )
