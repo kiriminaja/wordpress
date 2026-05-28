@@ -107,6 +107,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_uses_placeholder_rows_without_native_wc_fee_duplicates(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'kiriof_cart_item_cod_fee',
+            $content,
+            'Classic checkout still needs AJAX-updated COD Fee placeholder rows'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_cart_item_insurane',
+            $content,
+            'Classic checkout still needs AJAX-updated Insurance placeholder rows'
+        );
+
+        $this->assertStringContainsString(
+            'private function kiriof_is_block_checkout_request()',
+            $content,
+            'Native WooCommerce fees must be limited to block checkout requests so classic checkout does not render COD Fee/Insurance twice'
+        );
+
+        $this->assertStringContainsString(
+            'if ( ! $this->kiriof_is_block_checkout_request() )',
+            $content,
+            'kiriof_add_checkout_fees must bail on classic checkout and only add native fees for block checkout'
+        );
+    }
+
+    #[Test]
     public function cod_fee_calculation_matches_main_branch_amount_field(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CheckoutCalculationService.php');

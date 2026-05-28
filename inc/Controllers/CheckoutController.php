@@ -88,8 +88,13 @@ class CheckoutController
     }
 
     private function kiriof_add_checkout_fees() {
-        // Add Insurance + COD as WC cart fees. These render natively
-        // on ALL checkout types — traditional table AND block checkout.
+        // Classic checkout already renders AJAX-updated placeholder rows from
+        // kiriof_reviewOrderBeforeTotalOrder(). Adding native WC fees there makes
+        // Insurance/COD Fee appear twice. Native cart fees are only needed for
+        // React/block checkout, which does not use classic order-review fragments.
+        if ( ! $this->kiriof_is_block_checkout_request() ) {
+            return;
+        }
 
         $chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
         if ( empty( $chosen_methods ) || ! is_array( $chosen_methods ) ) {
@@ -185,6 +190,28 @@ class CheckoutController
             );
         }
     }
+    private function kiriof_is_block_checkout_request() {
+        if ( ! function_exists( 'has_block' ) ) {
+            return false;
+        }
+
+        if ( is_checkout() ) {
+            $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
+            if ( $checkout_page_id > 0 && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
+                return true;
+            }
+        }
+
+        if ( is_cart() ) {
+            $cart_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'cart' ) : 0;
+            if ( $cart_page_id > 0 && has_block( 'woocommerce/cart', $cart_page_id ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function kiriof_filter_cart_needs_shipping( $needs_shipping ) {
         if ( is_cart() ) {
             if( $needs_shipping && get_option( 'woocommerce_enable_shipping_calc' ) === 'no' ){
