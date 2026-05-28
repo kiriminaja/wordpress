@@ -481,4 +481,65 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Store API callback must persist selected shipping method before WC recalculates fees'
         );
     }
+
+    #[Test]
+    public function block_checkout_order_creation_reads_store_api_checkout_context(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'chosen_shipping_methods'",
+            $content,
+            'Block checkout order creation must fall back to the Store API chosen shipping method because $_POST[shipping_method] is not present'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_payment_method'",
+            $content,
+            'Block checkout order creation must fall back to the payment method persisted by the Store API extension callback'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_insurance'",
+            $content,
+            'Block checkout order creation must fall back to the insurance flag persisted by the Store API extension callback'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_extract_expedition_from_method',
+            $content,
+            'Block checkout order creation must strip kiriminaja-official prefixes from Store API rate IDs before transaction creation'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_order_fees_are_not_added_or_rendered_twice_after_checkout(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $service = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+
+        $this->assertStringContainsString(
+            'kiriof_order_has_fee_item',
+            $controller,
+            'Order received page should detect native Woo fee items before rendering custom COD/Insurance fallback rows'
+        );
+
+        $this->assertStringContainsString(
+            '! $this->kiriof_order_has_fee_item',
+            $controller,
+            'Custom order-details COD/Insurance rows should be skipped when Woo already rendered native fee rows'
+        );
+
+        $this->assertStringContainsString(
+            'orderHasFeeItem',
+            $service,
+            'CreateTransactionService should detect existing native Store API fee items before adding legacy fee items'
+        );
+
+        $this->assertStringContainsString(
+            '! $this->orderHasFeeItem',
+            $service,
+            'CreateTransactionService must not add duplicate COD Fee/Insurance order items when block checkout already created them'
+        );
+    }
 }

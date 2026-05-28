@@ -106,7 +106,7 @@ class CreateTransactionService extends BaseService{
         $is_insurance = $this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance;
         $is_cod = $this->payload['is_cod'] ?? 0;
         
-        if ($is_cod) {
+        if ($is_cod && ! $this->orderHasFeeItem($order, 'COD Fee')) {
             $cod_amt = $calcResult['cod_amt'];
             $cod_fee = new WC_Order_Item_Fee();
             $cod_fee->set_name('COD Fee');
@@ -114,7 +114,7 @@ class CreateTransactionService extends BaseService{
             $cod_fee->set_total($cod_amt);
             $order->add_item($cod_fee); 
         }
-        if ($is_insurance) {
+        if ($is_insurance && ! $this->orderHasFeeItem($order, 'Insurance')) {
             $insurance_amt = $calcResult['insurance_amt'];
             $insurance_fee = new WC_Order_Item_Fee();
             $insurance_fee->set_name('Insurance');
@@ -125,6 +125,15 @@ class CreateTransactionService extends BaseService{
         
         $order->calculate_totals();
         $order->save();
+    }
+
+    private function orderHasFeeItem($order, $feeName){
+        foreach ($order->get_items('fee') as $feeItem) {
+            if ($feeItem->get_name() === $feeName) {
+                return true;
+            }
+        }
+        return false;
     }
     
     private function getRequiredPostMeta(){
