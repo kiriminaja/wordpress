@@ -842,34 +842,34 @@ class CheckoutController
         $options = array(
             array( 'value' => '', 'label' => __( 'Select Option', 'kiriminaja-official' ) ),
         );
-        $destination_id   = WC()->session->get( 'destination_id', '' );
-        $destination_name = WC()->session->get( 'destination_name', '' );
-        if ( ! empty( $destination_id ) && ! empty( $destination_name ) ) {
-            $options[] = array( 'value' => $destination_id, 'label' => $destination_name );
+        if ( WC()->session ) {
+            $destination_id   = WC()->session->get( 'destination_id', '' );
+            $destination_name = WC()->session->get( 'destination_name', '' );
+            if ( ! empty( $destination_id ) && ! empty( $destination_name ) ) {
+                $options[] = array( 'value' => $destination_id, 'label' => $destination_name );
+            }
         }
 
         if ( $is_v2 ) {
-            // WC 9.0+ API: options are part of the field array
+            // WC 9.0+ API: register as text field (select+Select2 doesn't work in React blocks)
             $register_fn( array(
                 'id'           => 'kiriminaja-official/' . $this->field_destination_key,
                 'label'        => __( 'District', 'kiriminaja-official' ),
                 'location'     => 'address',
-                'type'         => 'select',
+                'type'         => 'text',
                 'required'     => true,
-                'options'      => $options,
                 'attributes'   => array( 'before' => 'address_2' ),
                 'address_type' => array( 'billing', 'shipping' ),
             ));
         } else {
-            // WC 8.3+ API: options structure is different
+            // WC 8.3+ API
             $register_fn(
                 array(
                     'id'         => 'kiriminaja-official/' . $this->field_destination_key,
                     'label'      => __( 'District', 'kiriminaja-official' ),
                     'location'   => 'address',
-                    'type'       => 'select',
+                    'type'       => 'text',
                     'required'   => true,
-                    'options'    => $options,
                     'attributes' => array( 'before' => 'address_2' ),
                 ),
                 array( 'address_type' => array( 'billing', 'shipping' ) )
