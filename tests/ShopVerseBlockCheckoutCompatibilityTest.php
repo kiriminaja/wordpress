@@ -287,6 +287,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_district_select_matches_woocommerce_blocks_select_markup(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofRenderBlockDistrictSelect');
+        $this->assertNotFalse($start, 'Block District select renderer must exist');
+        $functionBody = substr($content, $start, 3200);
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__container',
+            $functionBody,
+            'Block District selector should use the same container class as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__label',
+            $functionBody,
+            'Block District selector should use the same floating label class as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__select',
+            $functionBody,
+            'Block District selector should use the same select class as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__expand',
+            $functionBody,
+            'Block District selector should include the WooCommerce blocks select expand icon'
+        );
+
+        $this->assertStringNotContainsString(
+            'style="width:100%;padding:8px',
+            $functionBody,
+            'Block District selector should not use ad-hoc inline styling that differs from WooCommerce block selects'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_keeps_live_fee_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');

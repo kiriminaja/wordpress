@@ -224,16 +224,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                         var $select = jQuery('.kiriof-block-district-select');
                         if (!$select.length) {
-                            $select = jQuery('<select class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;margin-top:6px;"></select>');
-                            $wrapper.after($select);
+                            var $container = jQuery('<div class="wc-blocks-components-select__container kiriof-block-district-select-container"></div>');
+                            var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label"><?php echo esc_js(__('District','kiriminaja-official')); ?></label>');
+                            $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping address-level3"></select>');
+                            var $expand = jQuery('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="wc-blocks-components-select__expand" aria-hidden="true" focusable="false"><path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z"></path></svg>');
+                            $container.append($label, $select, $expand);
+                            $wrapper.after($container);
                         }
 
                         var currentValue = $field.val() || $select.val() || '';
                         var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
-                        var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                        var placeholderSelected = currentValue ? '' : ' selected';
+                        var html = '<option value="" data-alternate-values="[<?php echo esc_js(__('Select District','kiriminaja-official')); ?>]" disabled' + placeholderSelected + '><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
                         results.forEach(function(d) {
                             var selected = String(d.id) === String(currentValue) ? ' selected' : '';
-                            html += '<option value="' + d.id + '"' + selected + '>' + d.text + '</option>';
+                            html += '<option value="' + d.id + '" data-alternate-values="[' + d.text + ']"' + selected + '>' + d.text + '</option>';
                             if (String(d.id) === String(currentValue)) {
                                 currentName = d.text;
                             }
