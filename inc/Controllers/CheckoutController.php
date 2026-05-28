@@ -30,8 +30,10 @@ class CheckoutController
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'), 9999);
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
 
-            // Block checkout: register District as additional field (moved to init for reliability)
+            // Block checkout: register District as additional field and expose a Store API
+            // update callback so React/block themes (ShopVerse etc.) can refresh fees.
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_block_checkout_fields'));
+            add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_store_api_update_callback'));
 
             // All checkout types: add District to address fields via locale
             add_filter( 'woocommerce_default_address_fields', array( $this, 'kiriof_add_district_to_address_fields' ) );
@@ -896,23 +898,75 @@ class CheckoutController
                 'id'           => 'kiriminaja-official/' . $this->field_destination_key,
                 'label'        => __( 'District', 'kiriminaja-official' ),
                 'location'     => 'address',
-                'type'         => 'text',
+                'type'         => 'select',
                 'required'     => true,
-                'attributes'   => array( 'before' => 'address_2' ),
+                'options'      => $options,
                 'address_type' => array( 'billing', 'shipping' ),
             ));
         } else {
             $register_fn(
                 array(
-                    'id'         => 'kiriminaja-official/' . $this->field_destination_key,
-                    'label'      => __( 'District', 'kiriminaja-official' ),
-                    'location'   => 'address',
-                    'type'       => 'text',
-                    'required'   => true,
-                    'attributes' => array( 'before' => 'address_2' ),
+                    'id'       => 'kiriminaja-official/' . $this->field_destination_key,
+                    'label'    => __( 'District', 'kiriminaja-official' ),
+                    'location' => 'address',
+                    'type'     => 'select',
+                    'required' => true,
+                    'options'  => $options,
                 ),
                 array( 'address_type' => array( 'billing', 'shipping' ) )
             );
         }
+    }
+
+    /**
+     * Register a Store API cart/extensions callback for block checkout.
+     *
+     * React/block checkout does not use classic update_checkout fragments.
+     * Calling extensionCartUpdate hits this callback, stores the selected
+     * destination/payment/insurance choices in the WC session, and WooCommerce
+     * recalculates the cart so Insurance and COD Fee render as native fees.
+     */
+    public function kiriof_register_store_api_update_callback() {
+        if ( ! function_exists( 'woocommerce_store_api_register_update_callback' ) ) {
+            return;
+        }
+
+        woocommerce_store_api_register_update_callback( array(
+            'namespace' => 'kiriminaja-official',
+            'callback'  => array( $this, 'kiriof_store_api_update_checkout' ),
+        ) );
+    }
+
+    /**
+     * Store API callback for block checkout fee updates.
+     *
+     * @param array $data Data passed from extensionCartUpdate.
+     */
+    public function kiriof_store_api_update_checkout( $data ) {
+        if ( ! is_array( $data ) ) {
+            return;
+        }
+
+        $shipping_method = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( wp_unslash( $data['shipping_metode_id'] ) ) : '';
+        $destination_id  = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
+        $payment_method  = isset( $data['payment_method'] ) ? sanitize_text_field( wp_unslash( $data['payment_method'] ) ) : '';
+        $insurance       = ! empty( $data['insurance'] ) ? 1 : 0;
+
+        if ( '' !== $shipping_method ) {
+            WC()->session->set( 'chosen_shipping_methods', array( $shipping_method ) );
+        }
+
+        if ( $destination_id > 0 ) {
+            WC()->session->set( 'destination_id', $destination_id );
+        }
+
+        if ( '' !== $payment_method ) {
+            WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'kiriof_payment_method', $payment_method );
+        }
+
+        WC()->session->set( 'kiriof_insurance', $insurance );
+        WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
+        WC()->session->set( 'kiriof_cached_cod_amt', 0 );
     }
 }

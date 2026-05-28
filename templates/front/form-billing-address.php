@@ -371,6 +371,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         }
 
+        function kiriofBlockExtensionCartUpdate(data) {
+            if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                return;
+            }
+
+            try {
+                var cartDispatch = wp.data.dispatch('wc/store/cart');
+                if (cartDispatch && typeof cartDispatch.extensionCartUpdate === 'function') {
+                    cartDispatch.extensionCartUpdate({
+                        namespace: 'kiriminaja-official',
+                        data: {
+                            shipping_metode_id: data.shipping_metode_id,
+                            destination_id: data.destination_id,
+                            payment_method: data.payment_method,
+                            insurance: data.insurance
+                        }
+                    });
+                    return;
+                }
+
+                if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                    cartDispatch.invalidateResolutionForStore();
+                }
+            } catch(e) {}
+        }
+
         function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
@@ -471,14 +497,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                             jQuery('.kj-cost-insurance').html(insurance_res);
                             jQuery('.kj-cost-codfee').html(cod_fee_res);
 
-                            // Invalidate block checkout cart cache so fees re-render.
-                            // The AJAX added fees to WC()->cart, but block checkout
-                            // caches cart data. This forces a re-fetch.
-                            if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
-                                try {
-                                    wp.data.dispatch('wc/store/cart').invalidateResolutionForStore();
-                                } catch(e) {}
-                            }
+                            // Block checkout (ShopVerse/React) does not re-render totals from
+                            // classic update_checkout fragments. Use Store API cart/extensions
+                            // so WooCommerce recalculates and returns native fee rows.
+                            kiriofBlockExtensionCartUpdate(data);
         
                         },
                         error:function(xhr){
