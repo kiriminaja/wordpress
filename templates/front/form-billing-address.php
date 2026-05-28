@@ -92,6 +92,60 @@ if ( ! defined( 'ABSPATH' ) ) {
                             }
                         } catch(e) {}
                     });
+
+                    // Dynamic District options from postcode
+                    var kiriofLastPostcode = '';
+                    var fieldId = 'kiriminaja-official/kiriof_destination_area';
+
+                    function kiriofFetchDistricts(postcode) {
+                        if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
+                        kiriofLastPostcode = postcode;
+
+                        jQuery.ajax({
+                            type: 'post',
+                            url: ajaxurl,
+                            data: {
+                                action: 'kiriminaja_subdistrict_search',
+                                data: { term: postcode },
+                                nonce: '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>'
+                            },
+                            success: function(response) {
+                                if (!response || !response.data || !response.data.length) return;
+                                var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                                response.data.forEach(function(d) {
+                                    html += '<option value="' + d.id + '">' + d.text + '</option>';
+                                });
+                                jQuery('[name="' + fieldId + '"]').html(html);
+                            }
+                        });
+                    }
+
+                    // Direct DOM listener (most reliable — works even with React)
+                    jQuery(document).on('input change', '[name="billing_postcode"], [name="shipping_postcode"], [id*="postcode"]', function() {
+                        var val = jQuery(this).val();
+                        if (val) kiriofFetchDistricts(val);
+                    });
+
+                    // Also try block data store as fallback
+                    var kiriofStoreTimeout;
+                    wp.data.subscribe(function() {
+                        clearTimeout(kiriofStoreTimeout);
+                        kiriofStoreTimeout = setTimeout(function() {
+                            try {
+                                var store = wp.data.select('wc/store/cart');
+                                if (!store) return;
+                                var billing = store.getBillingAddress();
+                                var shipping = store.getShippingAddress();
+                                var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || '';
+                                kiriofFetchDistricts(postcode);
+                            } catch(e) {}
+                        }, 800);
+                    });
+                                    jQuery('[name="' + fieldId + '"]').html(html);
+                                }
+                            });
+                        } catch(e) {}
+                    });
                 }
 
                 // Re-run after AJAX fragment refresh (theme compatibility)

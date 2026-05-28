@@ -355,6 +355,47 @@ class CheckoutController
                 $destination_area = isset($_POST['kiriof_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area'])) : '';
             }
 
+            // Block checkout: resolve text district name to ID
+            // Search by postcode first (more accurate), then by name
+            if ( ! empty( $destination_area ) && ! is_numeric( $destination_area ) ) {
+                $destinasi_name = $destination_area;
+                $api_service    = new \KiriminAjaOfficial\Services\KiriminajaApiService();
+
+                // Get postcode from order address
+                $order_postcode = $order->get_shipping_postcode();
+                if ( empty( $order_postcode ) ) {
+                    $order_postcode = $order->get_billing_postcode();
+                }
+
+                if ( ! empty( $order_postcode ) ) {
+                    $search_result = $api_service->sub_district_search( $order_postcode );
+                    if ( 200 === $search_result->status && ! empty( $search_result->data ) ) {
+                        $best_match = false;
+                        foreach ( $search_result->data as $match ) {
+                            if ( false !== stripos( $match->text, $destination_area ) ) {
+                                $destination_area = (string) $match->id;
+                                $destinasi_name   = $match->text;
+                                $best_match = true;
+                                break;
+                            }
+                        }
+                        if ( ! $best_match && ! empty( $search_result->data ) ) {
+                            $destination_area = (string) $search_result->data[0]->id;
+                            $destinasi_name   = $search_result->data[0]->text;
+                        }
+                    }
+                }
+
+                // Fallback: search by district name
+                if ( ! is_numeric( $destination_area ) ) {
+                    $search_result = $api_service->sub_district_search( $destination_area );
+                    if ( 200 === $search_result->status && ! empty( $search_result->data ) ) {
+                        $destination_area = (string) $search_result->data[0]->id;
+                        $destinasi_name   = $search_result->data[0]->text;
+                    }
+                }
+            }
+
             // Force insurance when global insurance setting is enabled
             $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
             if ( $insurance_setting && 'yes' === $insurance_setting->value ) {
@@ -851,25 +892,31 @@ class CheckoutController
         }
 
         if ( $is_v2 ) {
-            // WC 9.0+ API: register as text field (select+Select2 doesn't work in React blocks)
+            // Register as select with placeholder. Options update dynamically
+            // via JS when postcode is entered.
             $register_fn( array(
                 'id'           => 'kiriminaja-official/' . $this->field_destination_key,
                 'label'        => __( 'District', 'kiriminaja-official' ),
                 'location'     => 'address',
-                'type'         => 'text',
+                'type'         => 'select',
                 'required'     => true,
+                'options'      => array(
+                    array( 'value' => '', 'label' => __( 'Enter postcode first', 'kiriminaja-official' ) ),
+                ),
                 'attributes'   => array( 'before' => 'address_2' ),
                 'address_type' => array( 'billing', 'shipping' ),
             ));
         } else {
-            // WC 8.3+ API
             $register_fn(
                 array(
                     'id'         => 'kiriminaja-official/' . $this->field_destination_key,
                     'label'      => __( 'District', 'kiriminaja-official' ),
                     'location'   => 'address',
-                    'type'       => 'text',
+                    'type'       => 'select',
                     'required'   => true,
+                    'options'    => array(
+                        array( 'value' => '', 'label' => __( 'Enter postcode first', 'kiriminaja-official' ) ),
+                    ),
                     'attributes' => array( 'before' => 'address_2' ),
                 ),
                 array( 'address_type' => array( 'billing', 'shipping' ) )
