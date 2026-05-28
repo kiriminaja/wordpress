@@ -96,7 +96,7 @@ $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_se
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <div class="kj-setting-row-text">
                     <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Shipping Insurance',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('TODO — Coming soon.',$locale) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('This feature is not available yet, coming soon.',$locale) ); ?></span>
                 </div>
                 <label class="kj-ios-toggle">
                     <input type="checkbox" disabled>
