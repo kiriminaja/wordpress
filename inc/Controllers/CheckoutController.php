@@ -79,8 +79,6 @@ class CheckoutController
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
             $shipping_methods = array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) );
             WC()->session->set( 'chosen_shipping_methods', $shipping_methods );
-        } else {
-            WC()->session->set( 'chosen_shipping_methods', null );
         }
 
         // Add insurance + COD as WC cart fees (works on traditional AND block checkout)
@@ -91,8 +89,8 @@ class CheckoutController
         // Classic checkout already renders AJAX-updated placeholder rows from
         // kiriof_reviewOrderBeforeTotalOrder(). Adding native WC fees there makes
         // Insurance/COD Fee appear twice. Native cart fees are only needed for
-        // React/block checkout, which does not use classic order-review fragments.
-        if ( ! $this->kiriof_is_block_checkout_request() ) {
+        // React/block checkout/Store API requests, which do not use classic order-review fragments.
+        if ( ! $this->kiriof_should_use_native_checkout_fees() ) {
             return;
         }
 
@@ -153,7 +151,7 @@ class CheckoutController
             try {
                 $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
                     'destination_area_id' => $destination_id,
-                    'expedition'          => $kiriof_method,
+                    'expedition'          => $this->kiriof_extract_expedition_from_method( $kiriof_method ),
                     'is_insurance'        => $force_insurance,
                     'is_cod'              => ( 'cod' === $chosen_payment ),
                     'wc_cart_contents'    => WC()->cart->get_cart(),
@@ -190,6 +188,38 @@ class CheckoutController
             );
         }
     }
+    private function kiriof_extract_expedition_from_method( $shipping_method ) {
+        $shipping_method = (string) $shipping_method;
+        if ( 0 === strpos( $shipping_method, 'kiriminaja-official_' ) ) {
+            return substr( $shipping_method, strlen( 'kiriminaja-official_' ) );
+        }
+        if ( 0 === strpos( $shipping_method, 'kiriminaja-official:' ) ) {
+            return substr( $shipping_method, strlen( 'kiriminaja-official:' ) );
+        }
+        return $shipping_method;
+    }
+
+    private function kiriof_should_use_native_checkout_fees() {
+        return $this->kiriof_is_block_checkout_request() || $this->kiriof_is_store_api_request();
+    }
+
+    private function kiriof_is_store_api_request() {
+        if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
+            return false;
+        }
+
+        $route = '';
+        if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+            $route = (string) $GLOBALS['wp']->query_vars['rest_route'];
+        }
+        if ( '' === $route && isset( $_SERVER['REQUEST_URI'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only used for route detection
+            $route = (string) wp_unslash( $_SERVER['REQUEST_URI'] );
+        }
+
+        return false !== strpos( $route, '/wc/store/' );
+    }
+
     private function kiriof_is_block_checkout_request() {
         if ( ! function_exists( 'has_block' ) ) {
             return false;

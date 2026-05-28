@@ -247,9 +247,55 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'if ( ! $this->kiriof_is_block_checkout_request() )',
+            'kiriof_should_use_native_checkout_fees',
             $content,
-            'kiriof_add_checkout_fees must bail on classic checkout and only add native fees for block checkout'
+            'kiriof_add_checkout_fees must bail on classic checkout and only add native fees for block checkout/Store API requests'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_native_fee_detection_includes_store_api_requests(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'private function kiriof_is_store_api_request()',
+            $content,
+            'Block checkout cart totals are calculated inside /wc/store/ REST requests where is_checkout() is false'
+        );
+
+        $this->assertStringContainsString(
+            'strpos( $route, \'/wc/store/\' )',
+            $content,
+            'Native fee path must detect WooCommerce Store API recalculation requests'
+        );
+
+        $start = strpos($content, 'function kiriof_shipping_method_update()');
+        $this->assertNotFalse($start, 'Shipping method update hook must exist');
+        $methodBody = substr($content, $start, 800);
+
+        $this->assertStringNotContainsString(
+            "WC()->session->set( 'chosen_shipping_methods', null );",
+            $methodBody,
+            'Store API recalculations without classic POST shipping_method must not clear the selected KiriminAja method saved by extensionCartUpdate'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_fee_fallback_strips_shipping_method_prefix_before_calculation(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'kiriof_extract_expedition_from_method',
+            $content,
+            'Fallback fee calculation must pass only courier_service to CheckoutCalculationService, not the full shipping method ID'
+        );
+
+        $this->assertStringContainsString(
+            "strlen( 'kiriminaja-official:' )",
+            $content,
+            'Block checkout may send colon-form rate IDs and those prefixes must be stripped too'
         );
     }
 

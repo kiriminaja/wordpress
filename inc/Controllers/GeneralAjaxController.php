@@ -104,9 +104,16 @@ class GeneralAjaxController
         $datas = [];
         if (!empty($shipping_metode_id) && $ex_shipping[0] == 'kiriminaja-official') {
             $insurance = empty($insurance_input) ? 0 : 1;
+            $expedition = $shipping_metode_id;
+            if (str_starts_with($shipping_metode_id, 'kiriminaja-official_')) {
+                $expedition = substr($shipping_metode_id, strlen('kiriminaja-official_'));
+            } elseif (str_starts_with($shipping_metode_id, 'kiriminaja-official:')) {
+                $expedition = substr($shipping_metode_id, strlen('kiriminaja-official:'));
+            }
+
             $payload = [
                 'destination_area_id'   => $destination_id,
-                'expedition'            => substr($shipping_metode_id, strlen('kiriminaja-official_')),
+                'expedition'            => $expedition,
                 'is_insurance'          => $insurance,
                 'is_cod'                => $payment_method === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
