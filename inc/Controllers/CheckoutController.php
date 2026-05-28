@@ -894,13 +894,17 @@ class CheckoutController
         }
 
         if ( $is_v2 ) {
+            // WooCommerce's Store API turns select options into a fixed enum.
+            // District values are loaded dynamically after the buyer enters a postcode,
+            // so registering this as a select causes checkout validation errors such as:
+            // "Invalid kiriminaja-official/kiriof_destination_area provided." Register as
+            // text for the schema, then the frontend swaps the input to a dynamic select.
             $register_fn( array(
                 'id'           => 'kiriminaja-official/' . $this->field_destination_key,
                 'label'        => __( 'District', 'kiriminaja-official' ),
                 'location'     => 'address',
-                'type'         => 'select',
+                'type'         => 'text',
                 'required'     => true,
-                'options'      => $options,
                 'address_type' => array( 'billing', 'shipping' ),
             ));
         } else {

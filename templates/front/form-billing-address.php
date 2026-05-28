@@ -112,47 +112,67 @@ if ( ! defined( 'ABSPATH' ) ) {
                             success: function(response) {
                                 if (!response || !response.data || !response.data.length) return;
                                 var $field = jQuery('[name="' + kiriofFieldId + '"]');
-                                if (!$field.length || $field.is('select')) return;
+                                if (!$field.length) return;
 
-                                // Replace text input with select
-                                var html = '<select name="' + kiriofFieldId + '" id="' + kiriofFieldId + '" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;">';
-                                html += '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                                var currentValue = $field.val() || '';
+                                var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
+                                var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
                                 response.data.forEach(function(d) {
-                                    html += '<option value="' + d.id + '">' + d.text + '</option>';
+                                    var selected = String(d.id) === String(currentValue) ? ' selected' : '';
+                                    html += '<option value="' + d.id + '"' + selected + '>' + d.text + '</option>';
+                                    if (String(d.id) === String(currentValue)) {
+                                        currentName = d.text;
+                                    }
                                 });
-                                html += '</select>';
-                                $field.replaceWith(html);
 
-                                // Save selection to WC data store
-                                jQuery(document).off('change.kiriof', '[name="' + kiriofFieldId + '"]')
-                                    .on('change.kiriof', '[name="' + kiriofFieldId + '"]', function() {
-                                        var val = jQuery(this).val();
-                                        if (!val) return;
-                                        try {
-                                            var store = wp.data.select('wc/store/cart');
-                                            var addr = store.getBillingAddress() || {};
-                                            addr[kiriofFieldId] = val;
-                                            wp.data.dispatch('wc/store/cart').setBillingAddress(addr);
-                                        } catch(e) {}
-                                    });
+                                if (!$field.is('select')) {
+                                    // WooCommerce Store API validates this field as text so dynamic
+                                    // postcode results are not restricted to an enum. The visible UI is
+                                    // still a select so the buyer chooses from valid District options.
+                                    var select = '<select name="' + kiriofFieldId + '" id="' + kiriofFieldId + '" class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;">' + html + '</select>';
+                                    $field.replaceWith(select);
+                                } else {
+                                    $field.html(html);
+                                }
+
+                                if (currentValue && currentName) {
+                                    jQuery('[name="kiriof_destination_area_name"]').val(currentName);
+                                }
                             }
                         });
                     }
+
+                    jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"]')
+                        .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"]', function() {
+                            var val = jQuery(this).val();
+                            var label = jQuery(this).find('option:selected').text();
+                            jQuery('[name="kiriof_destination_area_name"]').val(label || '');
+                            try {
+                                var cartStore = wp.data.select('wc/store/cart');
+                                var cartDispatch = wp.data.dispatch('wc/store/cart');
+                                var billing = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
+                                var shipping = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
+                                billing[kiriofFieldId] = val;
+                                shipping[kiriofFieldId] = val;
+                                if (cartDispatch.setBillingAddress) {
+                                    cartDispatch.setBillingAddress(billing);
+                                }
+                                if (cartDispatch.setShippingAddress) {
+                                    cartDispatch.setShippingAddress(shipping);
+                                }
+                            } catch(e) {}
+                            kiriofCodInsurance();
+                        });
 
                     // Watch for postcode changes via data store
                     wp.data.subscribe(function() {
                         try {
                             var store = wp.data.select('wc/store/cart');
                             if (!store) return;
-                            var shipping = store.getShippingAddress();
-                            var billing = store.getBillingAddress();
+                            var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
+                            var billing = store.getBillingAddress ? store.getBillingAddress() : {};
                             var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || '';
                             kiriofFetchDistricts(postcode);
-                        } catch(e) {}
-                    });
-                                    jQuery('[name="' + fieldId + '"]').html(html);
-                                }
-                            });
                         } catch(e) {}
                     });
                 }
