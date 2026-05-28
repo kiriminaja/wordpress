@@ -136,7 +136,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         } catch(e) {}
                                     });
                             }
-                            }
                         });
                     }
 
