@@ -49,7 +49,10 @@ class CreateTransactionService extends BaseService{
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];
             $forceInsurance = @$calcResult['selected_expedition']->force_insurance;
             
-            $insurance_cost = ($this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance) 
+            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+            $global_insurance  = ( $insurance_setting && 'yes' === $insurance_setting->value );
+
+            $insurance_cost = ($this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance || $global_insurance) 
                 ? $calcResult['insurance_amt'] 
                 : 0;
             // Cache expedition split to avoid duplicate explode

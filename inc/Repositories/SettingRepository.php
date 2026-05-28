@@ -228,6 +228,29 @@ class SettingRepository{
         return true;
     }
 
+    /**
+     * Store insurance setting.
+     *
+     * @param string $enable_insurance 'yes' or 'no'
+     * @return true
+     */
+    public function storeInsuranceData($enable_insurance){
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $existing = $wpdb->get_row("SELECT * FROM {$this->table} WHERE `key`='enable_insurance'");
+
+        if (empty($existing)){
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->insert($this->table, array('key' => 'enable_insurance', 'value' => sanitize_text_field($enable_insurance)), array('%s', '%s'));
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update($this->table, array('value' => sanitize_text_field($enable_insurance)), array('key' => 'enable_insurance'));
+        }
+
+        return true;
+    }
+
     public function validateWhiteListExpedition($data){
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

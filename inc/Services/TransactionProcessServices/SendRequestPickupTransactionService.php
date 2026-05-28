@@ -213,7 +213,8 @@ class SendRequestPickupTransactionService extends BaseService
                     $transaction->cod_fee) : 0,
                 "discount_amount" => $transaction->discount_amount ?? 0,
                 "discount_percentage" => $transaction->discount_percentage ?? 0,
-                "drop" => false
+                "drop" => false,
+                "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
             ];
             
             if (!empty($itemsPayload)) {

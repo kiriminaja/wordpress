@@ -231,4 +231,21 @@ class SettingService extends BaseService
         }
         return self::success([]);
     }
+    public function storeInsuranceData(array $payloads)
+    {
+        try {
+            $enable_insurance = isset( $payloads['enable_insurance'] ) ? sanitize_text_field( $payloads['enable_insurance'] ) : 'no';
+            $validate = (new \KiriminAjaOfficial\Base\Validator())->validateMultiple([
+                [$enable_insurance, 'Enable Insurance', ['required', 'in:yes,no']],
+            ]);
+            if (!$validate['status']) {
+                return self::error([], $validate['msg']);
+            }
+            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeInsuranceData($enable_insurance);
+        } catch (\Throwable $th) {
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeInsuranceData errr', $th->getMessage());
+            return self::error([], $th->getMessage());
+        }
+        return self::success([]);
+    }
 }

@@ -170,7 +170,8 @@ class CheckoutCalculationService extends BaseService{
     }
     
     private function getCalculateInsuranceFee(){
-        if ($this->isInsurance() || ($this->selectedExpedition->force_insurance ?? false)) { 
+        $global_enabled = ((new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance'))->value ?? 'yes';
+        if ($this->isInsurance() || ($this->selectedExpedition->force_insurance ?? false) || 'yes' === $global_enabled) { 
             return (float) ($this->selectedExpedition->insurance ?? 0);
         }
         

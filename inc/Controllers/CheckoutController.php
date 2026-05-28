@@ -90,8 +90,12 @@ class CheckoutController
         if( !is_checkout() ){
             return false;
         }
+
+        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
         
-        $table = '<tr class="kiriof_cart_item_insurane" style="display:none;">
+        $insurance_style = $force_insurance ? '' : 'style="display:none;"';
+        $table = '<tr class="kiriof_cart_item_insurane" '.$insurance_style.'>
 			<td class="kj-cart-insurance">
 				<label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>											
             </td>
@@ -258,6 +262,12 @@ class CheckoutController
                 $destinasi_name = isset($_POST['kiriof_shipping_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area_name'])) : '';
                 $insurance_post = isset( $_POST['kiriof_shipping_insurance'] ) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_insurance'])) : '';
                 $destination_area = isset($_POST['kiriof_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area'])) : '';
+            }
+
+            // Force insurance when global insurance setting is enabled
+            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+            if ( $insurance_setting && 'yes' === $insurance_setting->value ) {
+                $insurance_post = '1';
             }
             /** Store custom field value in WooCommerce session (not PHP session) */
             $kiriof_filter_methods = substr( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ) ), strlen( 'kiriminaja-official_' ) ); // remove kiriminaja-official_ prefix
