@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.27
+Stable tag: 2.1.28
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,35 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.28 =
+- Update description for shipping insurance feature
+- Enhance SQL query in SetupMigration and improve variable naming in section-account
+- Change district field type from select to text and update handling in JS
+- Try to resolve district selector
+- Implement insurance and COD fee calculations for checkout process
+- Add insurance configurations options
+- Guided setup information
+- Add guide to setup tracking page
+- Refactor design of settings
+- Add Cash on Delivery configuration and management
+- Keep block district select outside react field
+- Trigger block district lookup from postcode input
+- Avoid duplicate classic checkout fee rows
+- Avoid duplicate district field on classic checkout
+- Restore classic checkout fee display
+- Allow dynamic district values in block checkout
+- Support block checkout district and fees
+- Update district field ID and enhance postcode change handling
+- District wont rendered on custom woocommerce themes
+- Cod fee, insurance, and district wont show on some custom themes
+- Issues on shopverse like theme approach (react)
+- Complete the force insurance configurations
+- Cod fee calculations
+- Miss-calculation on all package tabs
+- Update icon URL for settings page in Admin class
+- Update variable names for Cash on Delivery settings in origin setup
+- Request not sanitized
+
 = 2.1.27 =
 - Improve request handling after the hotfix on print awb
 
