@@ -182,4 +182,53 @@ class SettingService extends BaseService
         }
         return self::success([]);
     }
+    public function storeConfigData(array $payloads)
+    {
+        try {
+            $enable_cod = isset( $payloads['enable_cod'] ) ? sanitize_text_field( $payloads['enable_cod'] ) : 'no';
+            $validate = (new \KiriminAjaOfficial\Base\Validator())->validateMultiple([
+                [$enable_cod, 'Enable COD', ['required', 'in:yes,no']],
+            ]);
+            if (!$validate['status']) {
+                return self::error([], $validate['msg']);
+            }
+
+            // Persist to KiriminAja settings table
+            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeConfigData([
+                'enable_cod' => $enable_cod,
+            ]);
+
+            // Sync WooCommerce COD gateway settings
+            $cod_settings = get_option( 'woocommerce_cod_settings', array() );
+            if ( ! is_array( $cod_settings ) ) {
+                $cod_settings = array();
+            }
+
+            $cod_settings['enabled'] = $enable_cod;
+
+            // Auto-manage enable_for_methods: when COD is enabled, add
+            // kiriminaja-official wildcard so all KiriminAja rates are covered
+            if ( ! isset( $cod_settings['enable_for_methods'] ) || ! is_array( $cod_settings['enable_for_methods'] ) ) {
+                $cod_settings['enable_for_methods'] = array();
+            }
+
+            if ( 'yes' === $enable_cod ) {
+                if ( ! in_array( 'kiriminaja-official', $cod_settings['enable_for_methods'], true ) ) {
+                    $cod_settings['enable_for_methods'][] = 'kiriminaja-official';
+                }
+            } else {
+                $cod_settings['enable_for_methods'] = array_values(
+                    array_filter( $cod_settings['enable_for_methods'], function ( $method ) {
+                        return 'kiriminaja-official' !== $method;
+                    } )
+                );
+            }
+
+            update_option( 'woocommerce_cod_settings', $cod_settings );
+        } catch (\Throwable $th) {
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeConfigData errr', $th->getMessage());
+            return self::error([], $th->getMessage());
+        }
+        return self::success([]);
+    }
 }

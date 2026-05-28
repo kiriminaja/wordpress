@@ -199,6 +199,34 @@ class SettingRepository{
         }
         return $query;
     }
+    /**
+     * @param array $payload
+     * $payload['enable_cod'] - 'yes' or 'no'
+     * @return true
+     */
+    public function storeConfigData($payload){
+        global $wpdb;
+        if (!isset($payload['enable_cod'])){throw new \Exception('payload err');}
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $existing = $wpdb->get_row("SELECT * FROM {$this->table} WHERE `key`='enable_cod'");
+
+        if (empty($existing)){
+            $wpdb->insert(
+                $this->table,
+                array(
+                    'key'   => 'enable_cod',
+                    'value' => sanitize_text_field($payload['enable_cod']),
+                ),
+                array('%s', '%s')
+            );
+        } else {
+            $wpdb->update($this->table, array('value' => sanitize_text_field($payload['enable_cod'])), array('key' => 'enable_cod')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        }
+
+        return true;
+    }
+
     public function validateWhiteListExpedition($data){
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

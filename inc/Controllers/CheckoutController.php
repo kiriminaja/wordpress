@@ -63,6 +63,9 @@ class CheckoutController
             add_action('woocommerce_checkout_before_customer_details', array($this,'kiriof_add_checkout_nonce_field' ) );
             
             add_action( 'woocommerce_cart_calculate_fees', array($this,'kiriof_shipping_method_update') );
+
+            /** Control COD availability based on KiriminAja Config tab */
+            add_filter( 'woocommerce_available_payment_gateways', array($this,'kiriof_filter_cod_availability'), 10, 1 );
         }
     }
     function kiriof_shipping_method_update() {
@@ -618,5 +621,72 @@ class CheckoutController
             return sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
         }
         return $method;
+    }
+
+    /**
+     * Control COD payment gateway availability based on the KiriminAja
+     * Config tab settings: "Enable Cash on Delivery" and "Enable for
+     * KiriminAja methods" (which populates enable_for_methods with
+     * the wildcard kiriminaja-official).
+     *
+     * @param array $gateways WooCommerce available payment gateways.
+     * @return array
+     */
+    public function kiriof_filter_cod_availability($gateways) {
+        // Only affect the checkout page
+        if (!is_checkout()) {
+            return $gateways;
+        }
+
+        $chosen_methods = WC()->session->get('chosen_shipping_methods');
+        if (empty($chosen_methods) || !is_array($chosen_methods)) {
+            return $gateways;
+        }
+
+        $is_kiriminaja_shipping = false;
+        foreach ($chosen_methods as $method) {
+            if (strpos($method, 'kiriminaja-official') === 0) {
+                $is_kiriminaja_shipping = true;
+                break;
+            }
+        }
+
+        // Only manage COD when a KiriminAja shipping method is chosen
+        if (!$is_kiriminaja_shipping) {
+            return $gateways;
+        }
+
+        $enable_cod_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_cod');
+        $enable_cod = $enable_cod_setting ? $enable_cod_setting->value : 'yes';
+
+        // Read WooCommerce COD settings for enable_for_methods
+        $cod_settings = get_option('woocommerce_cod_settings', array());
+        $enable_for_methods = isset($cod_settings['enable_for_methods']) ? $cod_settings['enable_for_methods'] : array();
+        if (!is_array($enable_for_methods)) {
+            $enable_for_methods = array();
+        }
+
+        $cod_gateway_enabled = isset($cod_settings['enabled']) && 'yes' === $cod_settings['enabled'];
+        $has_kiriminaja_wildcard = in_array('kiriminaja-official', $enable_for_methods, true);
+
+        // If KiriminAja config disables COD entirely, remove it
+        if ($enable_cod !== 'yes') {
+            if (isset($gateways['cod'])) {
+                unset($gateways['cod']);
+            }
+            return $gateways;
+        }
+
+        // If WC's COD is enabled AND kiriminaja-official wildcard is in enable_for_methods,
+        // ensure COD is available (WC may have removed it since rate IDs like
+        // kiriminaja-official_jne don't match the wildcard entry exactly)
+        if ($cod_gateway_enabled && $has_kiriminaja_wildcard && !isset($gateways['cod'])) {
+            $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+            if (isset($available_gateways['cod'])) {
+                $gateways['cod'] = $available_gateways['cod'];
+            }
+        }
+
+        return $gateways;
     }
 }

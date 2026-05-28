@@ -230,16 +230,6 @@ body {
   padding: 6px 6px !important;
 }
 
-.kj-wrap button.button-primary {
-  background-color: #7d3eb9 !important;
-  border-color: #7d3eb9 !important;
-  color: white !important;
-}
-.kj-wrap button.button-secondary {
-  background-color: #ffffff !important;
-  border-color: #7d3eb9 !important;
-  color: #7d3eb9 !important;
-}
 .kj-wrap button.button-wp {
   background-color: #2271b1 !important;
   border-color: #2271b1 !important;

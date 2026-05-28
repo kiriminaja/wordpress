@@ -505,13 +505,43 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     jQuery('body').on('click', '.tab-shipping .kj-submit-btn', function(e) {
         menuFormLoaderInit('tab-shipping', true)
         formAlertToggler('tab-shipping',false)
+
+        // Save COD config after origin data succeeds
+        function saveCodConfig() {
+            jQuery.ajax({
+                type: "post",
+                url: kiriofAjaxRoute(),
+                data: {
+                    action: "kiriof_store_config_data",
+                    data: {
+                        enable_cod: jQuery('.tab-shipping [name="enable_cod"]').is(':checked') ? 'yes' : 'no',
+                        nonce: kiriofAjax.nonce
+                    },
+                },
+                error: function() {
+                    menuFormLoaderInit('tab-shipping', false)
+                    formAlertToggler('tab-shipping', true, 'Error', 'COD settings failed to save. Please try again.', '')
+                },
+                complete: function (response) {
+                    const resp = kiriofParseAjaxResponse(response);
+                    if (resp && resp.status === 200) {
+                        window.location.reload()
+                        return
+                    }
+                    menuFormLoaderInit('tab-shipping', false)
+                    const message = (resp && resp.message) ? resp.message : 'COD settings failed to save. Please try again.';
+                    formAlertToggler('tab-shipping', true, 'Error', message, '')
+                },
+            });
+        }
+
         jQuery.ajax({
             type: "post",
             url: kiriofAjaxRoute(),
             data: {
-                action: "kiriof_store_origin_data",  // the action to fire in the server
+                action: "kiriof_store_origin_data",
                 data: {
-                    nonce : kiriofAjax.nonce,      
+                    nonce : kiriofAjax.nonce,
                     origin_name:jQuery('.tab-shipping [name="origin_name"]').val(),
                     origin_phone:jQuery('.tab-shipping [name="origin_phone"]').val(),
                     origin_address:jQuery('.tab-shipping [name="origin_address"]').val(),
@@ -522,7 +552,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     origin_sub_district_name:jQuery('.tab-shipping [name="origin_sub_district_id"] option:selected').text(),
                     origin_whitelist_expedition_id:jQuery('.tab-shipping .origin_whitelist_expedition').val(),
                     origin_whitelist_expedition_name: jQuery('.tab-shipping .origin_whitelist_expedition').select2('data').map(function(elem){ return elem.text }),
-                },         // any JS object
+                },
             },
             error: function(){
                 menuFormLoaderInit('tab-shipping',false)
@@ -532,7 +562,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 const resp = kiriofParseAjaxResponse(response);
 
                 if (resp && resp.status === 200){
-                    window.location.reload()
+                    saveCodConfig()
                     return
                 }
 
