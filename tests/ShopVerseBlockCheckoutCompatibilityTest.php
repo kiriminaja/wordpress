@@ -158,6 +158,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_district_field_lookup_handles_react_rendered_inputs(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'function kiriofGetBlockDistrictField',
+            $content,
+            'Block checkout needs a robust field finder because Woo/React may not expose the additional field by exact name at the moment AJAX returns'
+        );
+
+        $this->assertStringContainsString(
+            'input[name*="kiriof_destination_area"]',
+            $content,
+            'District finder must handle React/Woo sanitized or nested field names that still contain kiriof_destination_area'
+        );
+
+        $this->assertStringContainsString(
+            '.wc-block-components-text-input',
+            $content,
+            'District select should be inserted at the Woo Blocks field wrapper, not only after the input node'
+        );
+
+        $this->assertStringContainsString(
+            'MutationObserver',
+            $content,
+            'React checkout can render District after the AJAX response; a DOM observer must re-apply the select when the field appears'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_keeps_live_fee_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');

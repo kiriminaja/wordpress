@@ -119,6 +119,76 @@ if ( ! defined( 'ABSPATH' ) ) {
                         return postcode;
                     }
 
+                    function kiriofGetBlockDistrictField() {
+                        var selectors = [
+                            '[name="' + kiriofFieldId + '"]',
+                            'input[name*="kiriof_destination_area"]',
+                            'textarea[name*="kiriof_destination_area"]',
+                            'input[id*="kiriof_destination_area"]',
+                            'textarea[id*="kiriof_destination_area"]'
+                        ].join(',');
+
+                        var $field = jQuery(selectors).filter(function() {
+                            return !jQuery(this).is('select') && !jQuery(this).hasClass('kiriof-block-district-select');
+                        }).first();
+
+                        return $field;
+                    }
+
+                    var kiriofLastDistrictResults = [];
+
+                    function kiriofRenderBlockDistrictSelect(results) {
+                        if (!results || !results.length) return false;
+                        kiriofLastDistrictResults = results;
+
+                        var $field = kiriofGetBlockDistrictField();
+                        if (!$field.length) return false;
+
+                        // Woo Blocks renders this as a React-controlled text input.
+                        // Hide the React source field and render our selectable UI at
+                        // the block field wrapper so React re-renders do not remove it.
+                        $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
+
+                        var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input, .wc-block-components-address-form, .wc-block-components-checkout-step__content').first();
+                        if (!$wrapper.length) {
+                            $wrapper = $field.parent();
+                        }
+
+                        var $select = jQuery('.kiriof-block-district-select');
+                        if (!$select.length) {
+                            $select = jQuery('<select class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;margin-top:6px;"></select>');
+                            $wrapper.after($select);
+                        }
+
+                        var currentValue = $field.val() || $select.val() || '';
+                        var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
+                        var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                        results.forEach(function(d) {
+                            var selected = String(d.id) === String(currentValue) ? ' selected' : '';
+                            html += '<option value="' + d.id + '"' + selected + '>' + d.text + '</option>';
+                            if (String(d.id) === String(currentValue)) {
+                                currentName = d.text;
+                            }
+                        });
+
+                        $select.html(html).val(currentValue);
+
+                        if (currentValue && currentName) {
+                            jQuery('[name="kiriof_destination_area_name"]').val(currentName);
+                        }
+
+                        return true;
+                    }
+
+                    if (typeof MutationObserver !== 'undefined') {
+                        var kiriofDistrictObserver = new MutationObserver(function() {
+                            if (kiriofLastDistrictResults.length && !jQuery('.kiriof-block-district-select').length) {
+                                kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
+                            }
+                        });
+                        kiriofDistrictObserver.observe(document.body, { childList: true, subtree: true });
+                    }
+
                     function kiriofFetchDistricts(postcode) {
                         if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
                         kiriofLastPostcode = postcode;
@@ -140,38 +210,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             },
                             success: function(response) {
                                 if (!response || !response.data || !response.data.length) return;
-                                var $field = jQuery('[name="' + kiriofFieldId + '"]');
-                                if (!$field.length) return;
-
-                                // Woo Blocks renders the registered additional field as a
-                                // React-controlled text input. Do not replace that node: React
-                                // can re-render the free-text input and discard our select. Keep
-                                // the original input hidden as the Store API source of truth, then
-                                // render a separate visible select for the AJAX District results.
-                                $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
-
-                                var $select = jQuery('.kiriof-block-district-select');
-                                if (!$select.length) {
-                                    $select = jQuery('<select class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;"></select>');
-                                    $field.after($select);
-                                }
-
-                                var currentValue = $field.val() || $select.val() || '';
-                                var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
-                                var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
-                                response.data.forEach(function(d) {
-                                    var selected = String(d.id) === String(currentValue) ? ' selected' : '';
-                                    html += '<option value="' + d.id + '"' + selected + '>' + d.text + '</option>';
-                                    if (String(d.id) === String(currentValue)) {
-                                        currentName = d.text;
-                                    }
-                                });
-
-                                $select.html(html).val(currentValue);
-
-                                if (currentValue && currentName) {
-                                    jQuery('[name="kiriof_destination_area_name"]').val(currentName);
-                                }
+                                kiriofRenderBlockDistrictSelect(response.data);
                             }
                         });
                     }
@@ -180,7 +219,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
                             var val = jQuery(this).val();
                             var label = jQuery(this).find('option:selected').text();
-                            jQuery('[name="' + kiriofFieldId + '"]').val(val);
+                            kiriofGetBlockDistrictField().val(val);
                             jQuery('[name="kiriof_destination_area_name"]').val(label || '');
                             try {
                                 var cartStore = wp.data.select('wc/store/cart');
@@ -463,8 +502,9 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
 
         function kiriofGetDestinationId(different_address) {
+            let blockDestinationSource = jQuery('[name="kiriminaja-official/kiriof_destination_area"], input[name*="kiriof_destination_area"], textarea[name*="kiriof_destination_area"]').not('select, .kiriof-block-district-select').first();
             let blockDestinationId = jQuery('.kiriof-block-district-select').val()
-                || jQuery('[name="kiriminaja-official/kiriof_destination_area"]').val();
+                || blockDestinationSource.val();
 
             if (blockDestinationId) {
                 return blockDestinationId;
