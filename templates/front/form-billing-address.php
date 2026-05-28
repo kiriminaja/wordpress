@@ -143,7 +143,20 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 var $field = jQuery('[name="' + kiriofFieldId + '"]');
                                 if (!$field.length) return;
 
-                                var currentValue = $field.val() || '';
+                                // Woo Blocks renders the registered additional field as a
+                                // React-controlled text input. Do not replace that node: React
+                                // can re-render the free-text input and discard our select. Keep
+                                // the original input hidden as the Store API source of truth, then
+                                // render a separate visible select for the AJAX District results.
+                                $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
+
+                                var $select = jQuery('.kiriof-block-district-select');
+                                if (!$select.length) {
+                                    $select = jQuery('<select class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;"></select>');
+                                    $field.after($select);
+                                }
+
+                                var currentValue = $field.val() || $select.val() || '';
                                 var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
                                 var html = '<option value=""><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
                                 response.data.forEach(function(d) {
@@ -154,15 +167,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     }
                                 });
 
-                                if (!$field.is('select')) {
-                                    // WooCommerce Store API validates this field as text so dynamic
-                                    // postcode results are not restricted to an enum. The visible UI is
-                                    // still a select so the buyer chooses from valid District options.
-                                    var select = '<select name="' + kiriofFieldId + '" id="' + kiriofFieldId + '" class="kiriof-block-district-select" style="width:100%;padding:8px;border:1px solid #50575e;border-radius:4px;font-size:14px;">' + html + '</select>';
-                                    $field.replaceWith(select);
-                                } else {
-                                    $field.html(html);
-                                }
+                                $select.html(html).val(currentValue);
 
                                 if (currentValue && currentName) {
                                     jQuery('[name="kiriof_destination_area_name"]').val(currentName);
@@ -171,10 +176,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                         });
                     }
 
-                    jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"]')
-                        .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"]', function() {
+                    jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select')
+                        .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
                             var val = jQuery(this).val();
                             var label = jQuery(this).find('option:selected').text();
+                            jQuery('[name="' + kiriofFieldId + '"]').val(val);
                             jQuery('[name="kiriof_destination_area_name"]').val(label || '');
                             try {
                                 var cartStore = wp.data.select('wc/store/cart');
@@ -456,6 +462,23 @@ if ( ! defined( 'ABSPATH' ) ) {
             } catch(e) {}
         }
 
+        function kiriofGetDestinationId(different_address) {
+            let blockDestinationId = jQuery('.kiriof-block-district-select').val()
+                || jQuery('[name="kiriminaja-official/kiriof_destination_area"]').val();
+
+            if (blockDestinationId) {
+                return blockDestinationId;
+            }
+
+            return (
+                different_address == '0'
+                ?
+                (jQuery('#kiriof_destination_area option:selected').val() || jQuery('[name="kiriof_destination_area"]').val())
+                :
+                (jQuery('#kiriof_shipping_destination_area option:selected').val() || jQuery('[name="kiriof_shipping_destination_area"]').val())
+            );
+        }
+
         function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
@@ -484,13 +507,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             }
             shipping_metode_id = shipping_metode_id || '';
             
-            let destination_id = ( 
-                different_address == '0' 
-                ? 
-                (jQuery('#kiriof_destination_area option:selected').val() || jQuery('[name="kiriof_destination_area"]').val())
-                : 
-                (jQuery('#kiriof_shipping_destination_area option:selected').val() || jQuery('[name="kiriof_shipping_destination_area"]').val())
-            ); 
+            let destination_id = kiriofGetDestinationId(different_address);
 
             // Global insurance forced = always true
             <?php if ( $kiriof_global_insurance ) : ?>

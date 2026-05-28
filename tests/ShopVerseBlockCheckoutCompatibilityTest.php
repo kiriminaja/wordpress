@@ -110,6 +110,54 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_district_select_keeps_react_text_field_as_hidden_source_of_truth(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'kiriof-block-district-source',
+            $content,
+            'Block checkout should not replace Woo/React additional-field input; hide it and keep it as the controlled source of truth'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-block-district-select',
+            $content,
+            'Block checkout must render a separate District select from AJAX postcode results'
+        );
+
+        $this->assertStringNotContainsString(
+            '$field.replaceWith(select)',
+            $content,
+            'Replacing the React-controlled text input lets Woo blocks re-render the free-text field and lose the dynamic select'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_cod_insurance_reads_namespaced_district_field(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'function kiriofGetDestinationId',
+            $content,
+            'Shared destination reader must exist so block checkout can pass a selected District ID into Store API fee/rate refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'kiriminaja-official/kiriof_destination_area',
+            $content,
+            'Block checkout uses the Woo additional-field namespace as the field name, not the classic kiriof_destination_area name'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetDestinationId(different_address)',
+            $content,
+            'kiriofCodInsurance must read the selected namespaced block District field instead of only classic selectors'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_keeps_live_fee_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
