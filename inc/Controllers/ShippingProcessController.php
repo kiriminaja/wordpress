@@ -149,7 +149,7 @@ class ShippingProcessController
                 wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
-            $rawOrderIds = isset( $_REQUEST['oids'] ) ? wp_unslash( $_REQUEST['oids'] ) : array();
+            $rawOrderIds = isset( $_REQUEST['oids'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['oids'] ) ) : array();
             $orderIds = $this->sanitizeResiPrintOrderIds( $rawOrderIds );
             if (count($orderIds) < 1) {
                 wp_safe_redirect(home_url('/404'));

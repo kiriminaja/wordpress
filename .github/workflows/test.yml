@@ -69,7 +69,6 @@ jobs:
         with:
           build-dir: /tmp/pcp/kiriminaja-official
           wp-version: "latest"
-          php-version: "8.1"
           categories: |
             general
             plugin_repo

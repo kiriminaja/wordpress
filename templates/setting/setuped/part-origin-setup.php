@@ -8,9 +8,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $locale
  * @var array $inputValueArr
  */
+
+$kiriof_cod_settings        = get_option( 'woocommerce_cod_settings', array() );
+$kiriof_cod_enabled         = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_settings['enabled'] : 'yes';
+$kiriof_enable_cod_checked  = 'yes' === $kiriof_cod_enabled ? 'checked' : '';
 ?>
 
-<span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kiriof_helper()->tlThis('Store Address',$locale) ); ?></span>
+<span style="font-size: 18px; font-weight: 600"><?php echo esc_html( kiriof_helper()->tlThis('Shipping Configurations',$locale) ); ?></span>
 <div class="row-divider" style="margin-top: .5rem"></div>
 <span><?php echo esc_html( kiriof_helper()->tlThis('This is where your business is located. Tax rates and shipping rates will use this address.', $locale) ); ?></span>
 
@@ -126,6 +130,22 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
                     ?>
                 </select>
+            </td>
+        </tr>
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label for="kiriof_enable_cod">
+                    <?php echo esc_html( kiriof_helper()->tlThis('Cash on Delivery',$locale) ); ?>
+                </label>
+            </th>
+            <td class="forminp forminp-checkbox">
+                <fieldset>
+                    <legend class="screen-reader-text"><span><?php echo esc_html( kiriof_helper()->tlThis('Cash on Delivery',$locale) ); ?></span></legend>
+                    <label for="kiriof_enable_cod">
+                        <input name="enable_cod" type="checkbox" id="kiriof_enable_cod" value="yes" <?php echo esc_attr( $kiriof_enable_cod_checked ); ?>>
+                        <?php echo esc_html( kiriof_helper()->tlThis('Enable cash on delivery payments for any KiriminAja shipping method.',$locale) ); ?>
+                    </label>
+                </fieldset>
             </td>
         </tr>
         </tbody>
