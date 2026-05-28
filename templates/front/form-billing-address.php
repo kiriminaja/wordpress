@@ -63,9 +63,42 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofHandleCodInsurance();
                 });
 
-                // Block checkout: listen for shipping method changes
-                jQuery(document.body).on( 'change', '.wc-block-components-radio-control__input', function() {
-                    kiriofHandleCodInsurance();
+                // Block checkout: listen for shipping method changes via WC data store.
+                // React blocks don't use jQuery change events reliably.
+                if (typeof wp !== 'undefined' && wp.data && wp.data.subscribe) {
+                    var kiriofLastShippingMethod = '';
+                    wp.data.subscribe(function() {
+                        try {
+                            var store = wp.data.select('wc/store/cart');
+                            if (!store || typeof store.getShippingRates !== 'function') return;
+                            var allRates = store.getShippingRates();
+                            if (!allRates || !allRates.length) return;
+                            var currentMethod = '';
+                            for (var i = 0; i < allRates.length; i++) {
+                                var pkg = allRates[i];
+                                if (pkg && pkg.shipping_rates) {
+                                    for (var j = 0; j < pkg.shipping_rates.length; j++) {
+                                        if (pkg.shipping_rates[j].selected) {
+                                            currentMethod = pkg.shipping_rates[j].rate_id;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
+                                kiriofLastShippingMethod = currentMethod;
+                                // Delay to let the Store API update the cart first
+                                setTimeout(function() { kiriofCodInsurance(); }, 400);
+                            }
+                        } catch(e) {}
+                    });
+                }
+
+                // Re-run after AJAX fragment refresh (theme compatibility)
+                jQuery(document.body).on( 'updated_checkout', function() {
+                    kiriofChangeCodPayment();
+                    kiriofChangeDifferentAddress();
+                    setTimeout(function() { kiriofCodInsurance(); }, 300);
                 });
 
             <?php endif; ?>
@@ -373,6 +406,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                              */
                             jQuery('.kj-cost-insurance').html(insurance_res);
                             jQuery('.kj-cost-codfee').html(cod_fee_res);
+
+                            // Invalidate block checkout cart cache so fees re-render.
+                            // The AJAX added fees to WC()->cart, but block checkout
+                            // caches cart data. This forces a re-fetch.
+                            if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
+                                try {
+                                    wp.data.dispatch('wc/store/cart').invalidateResolutionForStore();
+                                } catch(e) {}
+                            }
         
                         },
                         error:function(xhr){

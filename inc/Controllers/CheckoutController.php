@@ -25,10 +25,16 @@ class CheckoutController
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
         if (is_plugin_active('woocommerce/woocommerce.php')) {
             //before total order checkout
-            add_action('woocommerce_review_order_before_order_total',array($this,'kiriof_reviewOrderBeforeTotalOrder'));
+            add_action('woocommerce_review_order_before_order_total',array($this,'kiriof_reviewOrderBeforeTotalOrder'), 9999);
             /** Add Custom field Checkout Sub District */
-            add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'));
+            add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'), 9999);
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
+
+            // Block checkout: register District as additional field (moved to init for reliability)
+            add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_block_checkout_fields'));
+
+            // All checkout types: add District to address fields via locale
+            add_filter( 'woocommerce_default_address_fields', array( $this, 'kiriof_add_district_to_address_fields' ) );
             
             /** Validation Custom field Sub District */
             add_action( 'woocommerce_checkout_process', array($this,'kiriof_checkout_field_validation') );
@@ -55,7 +61,7 @@ class CheckoutController
             /**
              * Remove Billing and shipping Fields
              */
-            add_filter('woocommerce_checkout_fields', array($this,'kiriof_billing_fields'), 100);            
+            add_filter('woocommerce_checkout_fields', array($this,'kiriof_billing_fields'), 9999);            
             add_filter('woocommerce_shipping_chosen_method', array($this,'kiriof_shipping_chosen_method'), 10, 2);
             
             add_filter( 'woocommerce_cart_needs_shipping', array($this,'kiriof_filter_cart_needs_shipping'));
@@ -83,16 +89,8 @@ class CheckoutController
     }
 
     private function kiriof_add_checkout_fees() {
-        // Only add WC cart fees on block checkout (REST API requests).
-        // Traditional checkout uses kiriof_reviewOrderBeforeTotalOrder HTML rows
-        // + kiriofCodInsurance() JS.
-        if ( ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
-            return;
-        }
-
-        // DIAGNOSTIC: add a minimal fee to verify the hook fires on block checkout.
-        // Remove this once confirmed working.
-        WC()->cart->add_fee( __( 'Test Fee', 'kiriminaja-official' ), 1, false );
+        // Add Insurance + COD as WC cart fees. These render natively
+        // on ALL checkout types — traditional table AND block checkout.
 
         $chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
         if ( empty( $chosen_methods ) || ! is_array( $chosen_methods ) ) {
@@ -197,31 +195,9 @@ class CheckoutController
         return $needs_shipping;
     }
     function kiriof_reviewOrderBeforeTotalOrder(){
-        if( !is_checkout() ){
-            return false;
-        }
-
-        // Traditional checkout: inject insurance + COD fee rows into order review.
-        // These are populated by kiriofCodInsurance() JS on traditional checkout.
-        // Block checkout uses WC cart fees (added via woocommerce_cart_calculate_fees).
-        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
-        $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
-
-        $insurance_style = $force_insurance ? '' : 'style="display:none;"';
-        $table = '<tr class="kiriof_cart_item_insurane" '.$insurance_style.'>
-            <td class="kj-cart-insurance">
-                <label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>
-            </td>
-            <td class="kj-cart-insurance kj-cost-insurance"></td>
-        </tr>
-        <tr class="kiriof_cart_item_cod_fee" style="display:none;">
-            <td class="kj-cod-fee">
-                <label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>
-                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>
-            </td>
-            <td class="kj-cod-fee kj-cost-codfee"></td>
-        </tr>';
-        echo wp_kses_post( $table );
+        // Insurance + COD fees are now added as WC cart fees via
+        // kiriof_add_checkout_fees(), which renders natively on
+        // traditional AND block checkout. No HTML injection needed.
     }
     function kiriof_add_checkout_nonce_field(){
         wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');
@@ -422,8 +398,8 @@ class CheckoutController
             if( isset($insurance_post) && !empty($insurance_post) ){
                 $order->update_meta_data( '_' . $this->field_insurance_key, sanitize_text_field($insurance_post) );
             }
-            
-            /** 
+
+    /**
              * save to custom order metadata 
              * field kelurahan 
              **/
@@ -784,7 +760,6 @@ class CheckoutController
             }
         }
 
-        // Only manage COD when a KiriminAja shipping method is chosen
         if (!$is_kiriminaja_shipping) {
             return $gateways;
         }
@@ -792,7 +767,6 @@ class CheckoutController
         $enable_cod_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_cod');
         $enable_cod = $enable_cod_setting ? $enable_cod_setting->value : 'yes';
 
-        // Read WooCommerce COD settings for enable_for_methods
         $cod_settings = get_option('woocommerce_cod_settings', array());
         $enable_for_methods = isset($cod_settings['enable_for_methods']) ? $cod_settings['enable_for_methods'] : array();
         if (!is_array($enable_for_methods)) {
@@ -802,7 +776,6 @@ class CheckoutController
         $cod_gateway_enabled = isset($cod_settings['enabled']) && 'yes' === $cod_settings['enabled'];
         $has_kiriminaja_wildcard = in_array('kiriminaja-official', $enable_for_methods, true);
 
-        // If KiriminAja config disables COD entirely, remove it
         if ($enable_cod !== 'yes') {
             if (isset($gateways['cod'])) {
                 unset($gateways['cod']);
@@ -810,9 +783,6 @@ class CheckoutController
             return $gateways;
         }
 
-        // If WC's COD is enabled AND kiriminaja-official wildcard is in enable_for_methods,
-        // ensure COD is available (WC may have removed it since rate IDs like
-        // kiriminaja-official_jne don't match the wildcard entry exactly)
         if ($cod_gateway_enabled && $has_kiriminaja_wildcard && !isset($gateways['cod'])) {
             $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
             if (isset($available_gateways['cod'])) {
@@ -821,5 +791,89 @@ class CheckoutController
         }
 
         return $gateways;
+    }
+
+    /**
+     * Add District to address fields via woocommerce_default_address_fields.
+     * This works on traditional AND block checkout (ShopVerse etc.).
+     */
+    public function kiriof_add_district_to_address_fields( $fields ) {
+        $destination_id     = WC()->session ? WC()->session->get('destination_id', '') : '';
+        $destination_name   = WC()->session ? WC()->session->get('destination_name', '') : '';
+        $options = array( '' => __( 'Select Option', 'kiriminaja-official' ) );
+        if ( ! empty( $destination_id ) ) {
+            $options[ $destination_id ] = $destination_name;
+        }
+
+        $fields[ $this->field_destination_key ] = array(
+            'label'    => __( 'District', 'kiriminaja-official' ),
+            'required' => true,
+            'type'     => 'select',
+            'class'    => array( 'form-row-wide', 'address-field' ),
+            'priority' => 45,
+            'options'  => $options,
+        );
+
+        return $fields;
+    }
+
+    /**
+     * Inject Insurance + COD fee HTML into the block checkout fee block.
+     * Block checkout renders fees via checkout-order-summary-fee-block.
+     * render_block filter fires during server-side rendering of the block.
+     */
+    /**
+     * Register District field for block checkout (ShopVerse etc.).
+     * woocommerce_checkout_fields doesn't work with the checkout block —
+     * fields must be explicitly registered via the Blocks API.
+     */
+    public function kiriof_register_block_checkout_fields() {
+        $register_fn = null;
+        $is_v2 = false;
+        if ( function_exists( 'woocommerce_register_additional_checkout_field' ) ) {
+            $register_fn = 'woocommerce_register_additional_checkout_field';
+            $is_v2 = true;
+        } elseif ( function_exists( 'woocommerce_blocks_register_checkout_field' ) ) {
+            $register_fn = 'woocommerce_blocks_register_checkout_field';
+        } else {
+            return;
+        }
+
+        $options = array(
+            array( 'value' => '', 'label' => __( 'Select Option', 'kiriminaja-official' ) ),
+        );
+        $destination_id   = WC()->session->get( 'destination_id', '' );
+        $destination_name = WC()->session->get( 'destination_name', '' );
+        if ( ! empty( $destination_id ) && ! empty( $destination_name ) ) {
+            $options[] = array( 'value' => $destination_id, 'label' => $destination_name );
+        }
+
+        if ( $is_v2 ) {
+            // WC 9.0+ API: options are part of the field array
+            $register_fn( array(
+                'id'           => 'kiriminaja-official/' . $this->field_destination_key,
+                'label'        => __( 'District', 'kiriminaja-official' ),
+                'location'     => 'address',
+                'type'         => 'select',
+                'required'     => true,
+                'options'      => $options,
+                'attributes'   => array( 'before' => 'address_2' ),
+                'address_type' => array( 'billing', 'shipping' ),
+            ));
+        } else {
+            // WC 8.3+ API: options structure is different
+            $register_fn(
+                array(
+                    'id'         => 'kiriminaja-official/' . $this->field_destination_key,
+                    'label'      => __( 'District', 'kiriminaja-official' ),
+                    'location'   => 'address',
+                    'type'       => 'select',
+                    'required'   => true,
+                    'options'    => $options,
+                    'attributes' => array( 'before' => 'address_2' ),
+                ),
+                array( 'address_type' => array( 'billing', 'shipping' ) )
+            );
+        }
     }
 }
