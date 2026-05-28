@@ -57,11 +57,11 @@ jobs:
           unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
           ls -la /tmp/pcp/kiriminaja-official
 
-      - name: Pre-pull wp-env Docker images
+      - name: Pull wp-env images
         run: |
-          docker pull wordpress:latest &
-          docker pull mariadb:lts &
-          wait
+          docker pull wordpress:latest
+          docker pull mariadb:lts
+        continue-on-error: true
 
       - name: WordPress Plugin Check (WP.org compliance)
         timeout-minutes: 15
@@ -75,7 +75,6 @@ jobs:
             security
             performance
             accessibility
-          # Strict mode: fail on warnings as well as errors.
           ignore-warnings: false
 
   wordpress:
