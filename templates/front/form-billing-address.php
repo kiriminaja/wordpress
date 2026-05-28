@@ -93,6 +93,18 @@ if ( ! defined( 'ABSPATH' ) ) {
                         } catch(e) {}
                     });
 
+                    // Block checkout: listen for payment method changes via WC payment store.
+                    // COD radios in Woo Blocks do not use the classic name=payment_method input.
+                    var kiriofLastPaymentMethod = '';
+                    wp.data.subscribe(function() {
+                        try {
+                            var currentPaymentMethod = kiriofGetPaymentMethod();
+                            if (!currentPaymentMethod || currentPaymentMethod === kiriofLastPaymentMethod) return;
+                            kiriofLastPaymentMethod = currentPaymentMethod;
+                            setTimeout(function() { kiriofCodInsurance(); }, 250);
+                        } catch(e) {}
+                    });
+
                     // Dynamic District options from postcode
                     var kiriofLastPostcode = '';
                     var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
@@ -165,7 +177,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                             different_address: different_address,
                             text: label || '',
-                            payment_method: jQuery('input[name="payment_method"]:checked').val() || jQuery('[name="payment_method"]').val() || '',
+                            payment_method: kiriofGetPaymentMethod(),
                             nonce: "<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
                             country: jQuery('#billing_country').find(':selected').val() || 'ID'
                         };
@@ -571,6 +583,21 @@ if ( ! defined( 'ABSPATH' ) ) {
             );
         }
 
+        function kiriofGetPaymentMethod() {
+            let payment_method = jQuery("[name=payment_method]:checked").val() || jQuery("[name=payment_method]").val() || '';
+
+            if (!payment_method && typeof wp !== 'undefined' && wp.data && wp.data.select) {
+                try {
+                    var paymentStore = wp.data.select('wc/store/payment');
+                    if (paymentStore && typeof paymentStore.getActivePaymentMethod === 'function') {
+                        payment_method = paymentStore.getActivePaymentMethod() || '';
+                    }
+                } catch(e) {}
+            }
+
+            return payment_method || '';
+        }
+
         function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
@@ -614,7 +641,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             );
             <?php endif; ?>
 
-            let payment_method = jQuery("[name=payment_method]:checked").val() ?? jQuery("[name=payment_method]").val() ;
+            let payment_method = kiriofGetPaymentMethod();
                         
 
             let data = {

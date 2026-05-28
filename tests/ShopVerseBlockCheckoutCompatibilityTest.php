@@ -263,6 +263,30 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_cod_fee_reads_and_watches_wc_payment_store(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            "wp.data.select('wc/store/payment')",
+            $content,
+            'Woo Blocks payment radios do not use classic name=payment_method inputs; COD fee code must read wc/store/payment'
+        );
+
+        $this->assertStringContainsString(
+            'getActivePaymentMethod',
+            $content,
+            'Block checkout must use the active Woo payment method store value so selecting COD sends payment_method=cod'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofLastPaymentMethod',
+            $content,
+            'Block checkout must subscribe to payment method changes and recalculate COD fee when the buyer selects COD'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_keeps_live_fee_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
