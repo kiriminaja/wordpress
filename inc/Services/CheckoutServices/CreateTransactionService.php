@@ -49,10 +49,9 @@ class CreateTransactionService extends BaseService{
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];
             $forceInsurance = @$calcResult['selected_expedition']->force_insurance;
             
-            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
-            $global_insurance  = ( $insurance_setting && 'yes' === $insurance_setting->value );
+            $is_insurance = $this->isInsuranceRequested( $forceInsurance );
 
-            $insurance_cost = ($this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance || $global_insurance) 
+            $insurance_cost = $is_insurance
                 ? $calcResult['insurance_amt'] 
                 : 0;
             // Cache expedition split to avoid duplicate explode
@@ -103,7 +102,7 @@ class CreateTransactionService extends BaseService{
         }
         $calcResult = $checkoutCalc['data']['calculation_result'];
         $forceInsurance = @$calcResult['selected_expedition']->force_insurance ?? 0;
-        $is_insurance = $this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance;
+        $is_insurance = $this->isInsuranceRequested( $forceInsurance );
         $is_cod = $this->payload['is_cod'] ?? 0;
         
         if ($is_cod && ! $this->orderHasFeeItem($order, 'COD Fee')) {
@@ -134,6 +133,16 @@ class CreateTransactionService extends BaseService{
             }
         }
         return false;
+    }
+
+    private function isInsuranceRequested($forceInsurance = 0){
+        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $global_insurance  = ( $insurance_setting && 'yes' === $insurance_setting->value );
+
+        return ! empty( $this->payload['checkout_post_data']['kiriof_insurance'] )
+            || ! empty( $this->payload['is_insurance'] )
+            || ! empty( $forceInsurance )
+            || $global_insurance;
     }
     
     private function getRequiredPostMeta(){
@@ -169,7 +178,7 @@ class CreateTransactionService extends BaseService{
             return $this->checkoutCalcCache;
         }
         
-        $this->payload['is_insurance'] = !empty($this->payload['checkout_post_data']['kiriof_insurance']) ? 1 : 0;
+        $this->payload['is_insurance'] = $this->isInsuranceRequested() ? 1 : 0;
         
         $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
             'destination_area_id'   => $this->payload['kiriof_destination_area'],

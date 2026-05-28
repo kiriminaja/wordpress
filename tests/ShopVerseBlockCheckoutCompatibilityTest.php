@@ -542,4 +542,61 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'CreateTransactionService must not add duplicate COD Fee/Insurance order items when block checkout already created them'
         );
     }
+
+    #[Test]
+    public function order_received_fee_fallback_never_renders_zero_or_null_transaction_fees(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_order_details');
+        $this->assertNotFalse($start, 'Order details renderer must exist');
+        $methodBody = substr($content, $start, 2200);
+
+        $this->assertStringContainsString(
+            '$transaction_cod_fee > 0',
+            $methodBody,
+            'COD Fee fallback row should only render when a KiriminAja transaction exists with a positive fee, preventing COD Fee Rp0 rows'
+        );
+
+        $this->assertStringContainsString(
+            '$transaction_insurance_cost > 0',
+            $methodBody,
+            'Insurance fallback row should only render when the transaction has a positive insurance cost'
+        );
+
+        $this->assertStringNotContainsString(
+            '? $transactionKiriminaja->cod_fee : 0',
+            $methodBody,
+            'Missing transactions should not be displayed as a zero COD fee fallback row'
+        );
+    }
+
+    #[Test]
+    public function transaction_creation_honors_block_checkout_insurance_payload_when_post_data_is_empty(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+
+        $this->assertStringContainsString(
+            '! empty( $this->payload[\'is_insurance\'] )',
+            $content,
+            'CreateTransactionService must include block checkout insurance fallback from the controller payload, not only classic checkout_post_data'
+        );
+
+        $this->assertStringContainsString(
+            '$this->isInsuranceRequested() ? 1 : 0',
+            $content,
+            'CheckoutCalculationService must calculate insurance cost with block checkout/global insurance enabled before transaction persistence'
+        );
+
+        $this->assertStringContainsString(
+            '$this->isInsuranceRequested( $forceInsurance )',
+            $content,
+            'Transaction payload and order fee item creation must use the same insurance decision helper so forced/global/block insurance stay consistent'
+        );
+
+        $this->assertStringContainsString(
+            '$global_insurance',
+            $content,
+            'Insurance decision helper must honor globally forced insurance'
+        );
+    }
 }

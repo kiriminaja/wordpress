@@ -670,21 +670,24 @@ class CheckoutController
 				<th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
 				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.esc_url( home_url('/tracking?order_id='.$order->get_id()) ).'">'.esc_html__('Click','kiriminaja-official').'</a></td>
 			</tr>';
-        if( ! $this->kiriof_order_has_fee_item($order, 'Insurance') && ( $order->get_meta('_'.$this->field_insurance_key) == true || ( $transactionKiriminaja && $transactionKiriminaja->insurance_cost > 0 ) ) ){
+        $transaction_insurance_cost = $transactionKiriminaja ? (float) $transactionKiriminaja->insurance_cost : 0;
+        $transaction_cod_fee        = $transactionKiriminaja ? (float) $transactionKiriminaja->cod_fee : 0;
+
+        if( ! $this->kiriof_order_has_fee_item($order, 'Insurance') && $transaction_insurance_cost > 0 ){
             $html .= '
             <tr>
 				<th scope="row">'.esc_html__('Insurance','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->insurance_cost).'</td>
+				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transaction_insurance_cost).'</td>
 			</tr>';
         }
-        if( ! $this->kiriof_order_has_fee_item($order, 'COD Fee') && $order->get_payment_method() == 'cod'){
+        if( ! $this->kiriof_order_has_fee_item($order, 'COD Fee') && $order->get_payment_method() == 'cod' && $transaction_cod_fee > 0 ){
             $html .= '
             <tr>
 				<th scope="row">
                     <label for="kiriof_cod_fee" style="display:block;margin:0;">'. esc_html__('COD Fee:','kiriminaja-official').'</label>		
                     <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
                 </th>
-				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja ? $transactionKiriminaja->cod_fee : 0).'</td>
+				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transaction_cod_fee).'</td>
 			</tr>';
         }
         
