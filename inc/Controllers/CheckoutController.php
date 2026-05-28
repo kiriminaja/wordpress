@@ -264,14 +264,14 @@ class CheckoutController
 			<td class="kj-cart-insurance">
 				<label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>											
             </td>
-			<td class="kj-cart-insurance kj-cost-insurance"></td>
+			<td class="kj-cart-insurance kj-cost-insurance"><span class="kiriof-fee-value"></span><span class="kiriof-fee-skeleton" aria-hidden="true"></span></td>
 		</tr>
         <tr class="kiriof_cart_item_cod_fee" style="display:none;">
 			<td class="kj-cod-fee">
 				<label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>		
                 <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
             </td>
-			<td class="kj-cod-fee kj-cost-codfee"></td>
+			<td class="kj-cod-fee kj-cost-codfee"><span class="kiriof-fee-value"></span><span class="kiriof-fee-skeleton" aria-hidden="true"></span></td>
 		</tr>';
         echo wp_kses_post( $table );
     }

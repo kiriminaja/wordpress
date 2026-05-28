@@ -326,6 +326,37 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function checkout_fee_amounts_show_skeleton_while_recalculating(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'kiriof-fee-skeleton',
+            $controller,
+            'COD Fee and Insurance placeholder rows need a skeleton element that can be shown during checkout recalculation'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofSetFeeSkeletonLoading',
+            $template,
+            'Frontend script needs a shared loading-state helper for the COD Fee and Insurance amount cells'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSetFeeSkeletonLoading(true)',
+            $template,
+            'Fee skeleton should be enabled before the checkout fee AJAX request starts'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSetFeeSkeletonLoading(false)',
+            $template,
+            'Fee skeleton should be disabled after AJAX success/error so final fee amounts are visible'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_keeps_live_fee_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');

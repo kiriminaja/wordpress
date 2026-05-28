@@ -544,6 +544,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         }
 
+        function kiriofSetFeeSkeletonLoading(isLoading) {
+            var $feeRows = jQuery('.kiriof_cart_item_insurane, .kiriof_cart_item_cod_fee');
+            $feeRows.toggleClass('kiriof-fee-loading', !!isLoading);
+            $feeRows.find('.kiriof-fee-skeleton').attr('aria-hidden', isLoading ? 'false' : 'true');
+        }
+
+        if (!jQuery('#kiriof-fee-skeleton-style').length) {
+            jQuery('head').append('<style id="kiriof-fee-skeleton-style">.kiriof-fee-value{display:inline-block}.kiriof-fee-skeleton{display:none;width:82px;height:16px;border-radius:999px;background:linear-gradient(90deg,#eceff3 25%,#f7f8fa 37%,#eceff3 63%);background-size:400% 100%;animation:kiriofFeeSkeletonShimmer 1.2s ease-in-out infinite;vertical-align:middle}.kiriof-fee-loading .kiriof-fee-value{visibility:hidden}.kiriof-fee-loading .kiriof-fee-skeleton{display:inline-block}@keyframes kiriofFeeSkeletonShimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}</style>');
+        }
+
         function kiriofBlockExtensionCartUpdate(data) {
             if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
                 return;
@@ -665,12 +675,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                         dataType:'JSON',
                         beforeSend:function(){
                             jQuery('#order_review').find('.shop_table').block({ message: null });
+                            jQuery('.kiriof_cart_item_insurane, .kiriof_cart_item_cod_fee').show();
+                            kiriofSetFeeSkeletonLoading(true);
                         },
                         success:function(response){                                 
                             jQuery('#order_review').find('.shop_table').unblock();  
                 
                             let insurance_res = response?.data?.insurance_fee ?? 0;
                             let cod_fee_res = response?.data?.cod_fee ?? 0;
+                            kiriofSetFeeSkeletonLoading(false);
                                     
                             if( response?.data?.is_insurance == 0 ){
                                 jQuery('.kiriof_cart_item_insurane').hide();
@@ -694,8 +707,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                              * Display cost insurance information
                              * Display cost codfee information
                              */
-                            jQuery('.kj-cost-insurance').html(insurance_res);
-                            jQuery('.kj-cost-codfee').html(cod_fee_res);
+                            jQuery('.kj-cost-insurance .kiriof-fee-value').html(insurance_res);
+                            jQuery('.kj-cost-codfee .kiriof-fee-value').html(cod_fee_res);
 
                             // Block checkout (ShopVerse/React) does not re-render totals from
                             // classic update_checkout fragments. Use Store API cart/extensions
@@ -704,7 +717,9 @@ if ( ! defined( 'ABSPATH' ) ) {
         
                         },
                         error:function(xhr){
-                            alert("Sorry System Trouble Error Code : "+xhr.status);                                
+                            kiriofSetFeeSkeletonLoading(false);
+                            jQuery('#order_review').find('.shop_table').unblock();
+                            alert("Sorry System Trouble Error Code : "+xhr.status);
                          }
             });
         }
