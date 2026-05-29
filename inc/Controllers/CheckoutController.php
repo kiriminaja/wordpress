@@ -91,58 +91,53 @@ class CheckoutController
             return;
         }
 
-        // Check if a KiriminAja shipping method is selected
-        $is_kiriminaja = false;
+        // Find the exact KiriminAja method + courier.
+        $kiriof_method = '';
         foreach ( $chosen_methods as $method ) {
             if ( strpos( $method, 'kiriminaja-official' ) === 0 ) {
-                $is_kiriminaja = true;
+                $kiriof_method = $method;
                 break;
             }
         }
-        if ( ! $is_kiriminaja ) {
+        if ( '' === $kiriof_method ) {
             return;
         }
 
-        // Read cached fees from session (populated by kiriof_getDataAfterUpdateCheckout AJAX)
-        $insurance_amt = (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 );
-        $cod_amt       = (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 );
-
         $chosen_payment = $this->kiriof_get_checkout_payment_method();
+        $destination_id = (int) WC()->session->get( 'destination_id', 0 );
+        if ( ! $destination_id ) {
+            $destination_id = (int) WC()->session->get( 'shipping_destination_id', 0 );
+        }
+        if ( ! $destination_id ) {
+            return;
+        }
 
-        // Fallback: if session cache is empty (e.g., first load on block checkout
-        // where the AJAX hasn't fired yet), calculate fees directly. Also recalculate
-        // when COD is selected but the cached COD amount is still empty/stale; block
-        // checkout can persist Insurance before the payment callback reports COD.
-        if ( ( $insurance_amt <= 0 && $cod_amt <= 0 ) || ( 'cod' === $chosen_payment && $cod_amt <= 0 ) ) {
-            // Find the exact KiriminAja method + courier
-            $kiriof_method = '';
-            foreach ( $chosen_methods as $method ) {
-                if ( strpos( $method, 'kiriminaja-official' ) === 0 ) {
-                    $kiriof_method = $method;
-                    break;
-                }
-            }
-            if ( '' === $kiriof_method ) {
-                return;
-            }
+        $force_insurance = (bool) WC()->session->get( 'kiriof_insurance', 0 );
+        $cache_context   = array(
+            'shipping_method' => $kiriof_method,
+            'destination_id'  => $destination_id,
+            'payment_method'  => $chosen_payment,
+            'insurance'       => $force_insurance ? 1 : 0,
+        );
+        $cached_context  = WC()->session->get( 'kiriof_cached_fee_context', array() );
 
-            $destination_id = (int) WC()->session->get( 'destination_id', 0 );
-            if ( ! $destination_id ) {
-                // Try to get from customer shipping address (works on block checkout too)
-                $customer = WC()->customer;
-                if ( $customer ) {
-                    $destination_id = (int) WC()->session->get( 'shipping_destination_id',
-                        (int) WC()->session->get( 'destination_id', 0 )
-                    );
-                }
-            }
-            if ( ! $destination_id ) {
-                return;
-            }
+        // Read cached fees from session only if they match the current checkout
+        // context. Courier changes can change force-insurance rules; payment
+        // changes must immediately clear stale COD amounts.
+        $insurance_amt = ( is_array( $cached_context ) && $cached_context === $cache_context )
+            ? (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 )
+            : 0;
+        $cod_amt       = ( is_array( $cached_context ) && $cached_context === $cache_context )
+            ? (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 )
+            : 0;
 
-            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
-            $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
+        if ( 'cod' !== $chosen_payment ) {
+            $cod_amt = 0;
+            WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+        }
 
+        // Fallback: if cache is empty/stale, calculate fees directly.
+        if ( $insurance_amt <= 0 && ( 'cod' !== $chosen_payment || $cod_amt <= 0 ) ) {
             try {
                 $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
                     'destination_area_id' => $destination_id,
@@ -155,11 +150,11 @@ class CheckoutController
                 if ( 200 === $service->status && ! empty( $service->data['calculation_result'] ) ) {
                     $result        = $service->data['calculation_result'];
                     $insurance_amt = (float) ( $result['insurance_amt'] ?? 0 );
-                    $cod_amt       = (float) ( $result['cod_amt'] ?? 0 );
+                    $cod_amt       = ( 'cod' === $chosen_payment ) ? (float) ( $result['cod_amt'] ?? 0 ) : 0;
 
-                    // Cache for subsequent calls
                     WC()->session->set( 'kiriof_cached_insurance_amt', $insurance_amt );
                     WC()->session->set( 'kiriof_cached_cod_amt', $cod_amt );
+                    WC()->session->set( 'kiriof_cached_fee_context', $cache_context );
                 }
             } catch ( \Throwable $th ) {
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriof_add_checkout_fees_fallback', array( $th->getMessage() ) );
@@ -175,7 +170,7 @@ class CheckoutController
             );
         }
 
-        if ( $cod_amt > 0 ) {
+        if ( 'cod' === $chosen_payment && $cod_amt > 0 ) {
             WC()->cart->add_fee(
                 __( 'COD Fee', 'kiriminaja-official' ),
                 $cod_amt,
@@ -1076,5 +1071,6 @@ class CheckoutController
         WC()->session->set( 'billing_insurance', $insurance );
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
         WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+        WC()->session->set( 'kiriof_cached_fee_context', array() );
     }
 }

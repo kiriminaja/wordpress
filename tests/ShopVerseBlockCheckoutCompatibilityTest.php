@@ -417,6 +417,31 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_payment_reader_must_not_fall_back_to_first_payment_input_value(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofGetPaymentMethod()');
+        $this->assertNotFalse($start, 'Payment method reader must exist');
+        $methodBody = substr($content, $start, 3200);
+
+        $this->assertStringNotContainsString(
+            'jQuery("[name=payment_method]").val()',
+            $methodBody,
+            'When Woo Blocks has no checked classic radio, reading the first payment_method input can return cod even while Direct bank transfer is active'
+        );
+
+        $storePosition = strpos($methodBody, "wp.data.select('wc/store/payment')");
+        $codDomPosition = strpos($methodBody, '[name=payment_method][value="cod"]');
+        $this->assertNotFalse($storePosition, 'Block checkout payment reader must inspect the Woo payment store');
+        $this->assertNotFalse($codDomPosition, 'DOM COD fallback can exist for Store API lag cases');
+        $this->assertLessThan(
+            $codDomPosition,
+            $storePosition,
+            'Authoritative Woo payment store must be checked before COD DOM fallbacks so switching to Direct bank transfer clears stale COD'
+        );
+    }
+
+    #[Test]
     public function store_api_update_callback_persists_and_clears_payment_method_explicitly(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
@@ -845,6 +870,46 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             '\'is_cod\'              => ( \'cod\' === $chosen_payment )',
             $methodBody,
             'Direct calculation fallback must request COD fee when any server-side checkout payment key says cod'
+        );
+    }
+
+    #[Test]
+    public function native_checkout_fees_must_clear_stale_cod_cache_when_payment_is_not_cod(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'private function kiriof_add_checkout_fees()');
+        $this->assertNotFalse($start, 'Native checkout fee method must exist');
+        $methodBody = substr($content, $start, 4200);
+
+        $this->assertStringContainsString(
+            'if ( \'cod\' !== $chosen_payment )',
+            $methodBody,
+            'Native fee rendering must zero cached COD amounts as soon as buyer switches to Direct bank transfer or another non-COD gateway'
+        );
+
+        $this->assertStringContainsString(
+            '$cod_amt = 0;',
+            $methodBody,
+            'Stale kiriof_cached_cod_amt must not be added as COD Fee for non-COD payments'
+        );
+    }
+
+    #[Test]
+    public function cached_fee_amounts_are_keyed_by_checkout_context_so_courier_rule_changes_recalculate(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $ajax = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+
+        $this->assertStringContainsString(
+            'kiriof_cached_fee_context',
+            $controller,
+            'Native fee calculation must compare current shipping/payment/destination/insurance context before trusting cached fee amounts'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_cached_fee_context',
+            $ajax,
+            'AJAX fee calculation must store cache context so changing courier can refresh force_insurance and insurance amount rules'
         );
     }
 

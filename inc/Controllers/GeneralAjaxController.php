@@ -151,6 +151,15 @@ class GeneralAjaxController
                 // as WC cart fees (works on both traditional and block checkout).
                 WC()->session->set( 'kiriof_cached_insurance_amt', $datas['is_insurance'] );
                 WC()->session->set( 'kiriof_cached_cod_amt', $datas['is_cod_amt'] );
+                WC()->session->set(
+                    'kiriof_cached_fee_context',
+                    array(
+                        'shipping_method' => $shipping_metode_id,
+                        'destination_id'  => $destination_id,
+                        'payment_method'  => $payment_method,
+                        'insurance'       => $insurance,
+                    )
+                );
 
                 WC()->cart->calculate_totals();
 

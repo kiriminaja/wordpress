@@ -75,11 +75,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 jQuery(document.body).on( 'updated_checkout', function() {
                     kiriofChangeCodPayment();
                     kiriofChangeDifferentAddress();
-                    if (kiriofUpdatingCheckoutLock) {
-                        kiriofUpdatingCheckoutLock = false;
-                        return;
-                    }
-                    setTimeout(function() { kiriofCodInsurance(); }, 300);
                 });
 
             <?php endif; ?>
@@ -555,6 +550,9 @@ if ( ! defined( 'ABSPATH' ) ) {
         function kiriofHandleCodInsurance(){
             kiriofUpdatingCheckoutLock = false;
             <?php if( is_checkout()){ ?>
+                jQuery(document.body).off('updated_checkout.kiriofFeeRefresh').one('updated_checkout.kiriofFeeRefresh', function() {
+                    kiriofCodInsurance();
+                });
                 jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
             <?php } ?>
         }
@@ -633,15 +631,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 jQuery("[name=payment_method]:checked").val() || ''
             );
 
-            if (!payment_method) {
-                var $codInput = jQuery('[name=payment_method][value="cod"]');
-                var $checkedCodInput = $codInput.filter(':checked');
-                var $activeCodWrapper = $codInput.closest('[aria-checked="true"], .is-active, .wc-block-components-radio-control-accordion-option--checked');
-                if ($checkedCodInput.length || $activeCodWrapper.length) {
-                    payment_method = 'cod';
-                }
-            }
-
             if (!payment_method && typeof wp !== 'undefined' && wp.data && wp.data.select) {
                 try {
                     var paymentStore = wp.data.select('wc/store/payment');
@@ -659,7 +648,12 @@ if ( ! defined( 'ABSPATH' ) ) {
             }
 
             if (!payment_method) {
-                payment_method = kiriofNormalizePaymentMethod(jQuery("[name=payment_method]").val() || '');
+                var $codInput = jQuery('[name=payment_method][value="cod"]');
+                var $checkedCodInput = $codInput.filter(':checked');
+                var $activeCodWrapper = $codInput.closest('[aria-checked="true"], .is-active, .wc-block-components-radio-control-accordion-option--checked');
+                if ($checkedCodInput.length || $activeCodWrapper.length) {
+                    payment_method = 'cod';
+                }
             }
 
             return payment_method || '';
