@@ -375,7 +375,8 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 <!--Payment Detail-->
 <?php ob_start(); ?>
     let showPaymentFormPaymentId = null
-    function showPaymentForm(paymentId){
+    function showPaymentForm(paymentId, retryCount){
+        retryCount = retryCount || 0
         showPaymentFormPaymentId = paymentId
         jQuery("#paymentQR").empty()
 
@@ -428,8 +429,15 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 jQuery('#payment-modal #trx-expired-at').text(responseData?.expired_at)
                 jQuery('#payment-modal .trx-pay-amount').text(kiriofMoneyFormat(responseData?.sum_fee_non_cod,'Rp'))
 
-                jQuery('#paymentQR').empty().qrcode({
-                    text: responseData?.payment_data?.qr_content,
+                const qrContent = responseData?.payment_data?.qr_content
+                if (!qrContent && retryCount < 5) {
+                    setTimeout(function() {
+                        showPaymentForm(paymentId, retryCount + 1)
+                    }, 800)
+                    return
+                }
+
+                kiriofRenderQrCode('#paymentQR', qrContent, {
                     width: 256,
                     height: 256
                 });

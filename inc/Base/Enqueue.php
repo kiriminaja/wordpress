@@ -223,7 +223,24 @@ class Enqueue extends BaseInit{
          * for the "Scan to Pay" modal on the Request Pickup page.
          */
         if ( 'kiriminaja-request-pickup' === $page || 'kiriminaja-request-pickup-detail' === $page ) {
+            if ( ! wp_script_is( 'wc-qrcode', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
+                $wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;
+                wp_register_script(
+                    'wc-qrcode',
+                    plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/js/jquery-qrcode/jquery.qrcode.js',
+                    array( 'jquery' ),
+                    $wc_version,
+                    true
+                );
+            }
             wp_enqueue_script( 'wc-qrcode' );
+            wp_enqueue_script(
+                'kiriof-qr-code-styling',
+                $this->plugin_url . 'assets/lib/qr-code-styling/qr-code-styling.min.js',
+                array(),
+                KIRIOF_VERSION,
+                true
+            );
         }
    
     }
