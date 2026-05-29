@@ -172,6 +172,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     'button' => [
                                                         'class' => [],
                                                         'type' => [],
+                                                        'data-pickup-number' => [],
                                                         'onclick' => [],
                                                     ],
                                                     'div' => [
@@ -464,10 +465,15 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
         const shouldOpenPayment = urlParams.get('open_payment');
         if (pickupNumberToLoad && (shouldOpenPayment === '1' || shouldOpenPayment === 'true')) {
             setTimeout(function() {
-                const pickupNumberSelector = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-                    ? CSS.escape(pickupNumberToLoad)
-                    : pickupNumberToLoad.replace(/"/g, '\\"');
-                const paymentButton = document.querySelector('.kiriof-payment-button[data-pickup-number="' + pickupNumberSelector + '"]');
+                urlParams.delete('pickup_number');
+                urlParams.delete('open_payment');
+                const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '') + window.location.hash;
+                window.history.replaceState(null, '', cleanUrl);
+
+                const paymentButton = Array.from(document.querySelectorAll('.kiriof-payment-button')).find(function(button) {
+                    return button.getAttribute('data-pickup-number') === pickupNumberToLoad
+                        || button.getAttribute('onclick') === "showPaymentForm('" + pickupNumberToLoad + "')";
+                });
                 if (paymentButton) {
                     paymentButton.click();
                     return;
