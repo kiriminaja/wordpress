@@ -300,6 +300,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'function kiriofNormalizePaymentMethod(paymentMethod)',
+            $content,
+            'Payment method detection should normalize all supported classic and Woo Blocks shapes in one safe helper'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.paymentMethodSlug',
+            $content,
+            'Some Woo Blocks versions expose getActivePaymentMethod as an object using paymentMethodSlug; COD detection must support that shape too'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.name',
+            $content,
+            'Woo Blocks payment method objects may use name as the gateway slug'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.id',
+            $content,
+            'Woo Blocks or extension wrappers may expose the gateway slug as id'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.value',
+            $content,
+            'Fallback object values should be supported without changing classic checkout behavior'
+        );
+
+        $this->assertStringContainsString(
             'kiriofLastPaymentMethod',
             $content,
             'Block checkout must subscribe to payment method changes and recalculate COD fee when the buyer selects COD'

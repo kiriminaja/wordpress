@@ -603,14 +603,36 @@ if ( ! defined( 'ABSPATH' ) ) {
             );
         }
 
+        function kiriofNormalizePaymentMethod(paymentMethod) {
+            if (!paymentMethod) {
+                return '';
+            }
+            if (typeof paymentMethod === 'string') {
+                return paymentMethod;
+            }
+            if (typeof paymentMethod === 'object') {
+                return paymentMethod.paymentMethodSlug
+                    || paymentMethod.name
+                    || paymentMethod.id
+                    || paymentMethod.value
+                    || '';
+            }
+            return '';
+        }
+
         function kiriofGetPaymentMethod() {
-            let payment_method = jQuery("[name=payment_method]:checked").val() || jQuery("[name=payment_method]").val() || '';
+            let payment_method = kiriofNormalizePaymentMethod(
+                jQuery("[name=payment_method]:checked").val() || jQuery("[name=payment_method]").val() || ''
+            );
 
             if (!payment_method && typeof wp !== 'undefined' && wp.data && wp.data.select) {
                 try {
                     var paymentStore = wp.data.select('wc/store/payment');
                     if (paymentStore && typeof paymentStore.getActivePaymentMethod === 'function') {
-                        payment_method = paymentStore.getActivePaymentMethod() || '';
+                        payment_method = kiriofNormalizePaymentMethod(paymentStore.getActivePaymentMethod());
+                    }
+                    if (!payment_method && paymentStore && paymentStore.getActivePaymentMethod) {
+                        payment_method = kiriofNormalizePaymentMethod(paymentStore.getActivePaymentMethod);
                     }
                 } catch(e) {}
             }
