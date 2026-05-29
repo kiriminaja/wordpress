@@ -50,9 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <tr><th><label><?php echo esc_html( kiriof_helper()->tlThis('Area',$locale) ); ?></label></th><td><select name="origin_sub_district_id" class="select-2"><?php if ( ! empty( $inputValueArr['origin_sub_district_id'] ) && ! empty( $inputValueArr['origin_sub_district_name'] ) ) echo '<option selected value="'.esc_attr($inputValueArr['origin_sub_district_id']).'">'.esc_html($inputValueArr['origin_sub_district_name']).'</option>'; ?></select></td></tr>
                     </tbody>
                 </table>
-                <p class="submit" style="margin-top:1rem">
-                    <button class="button button-primary kj-submit-btn" type="button"><?php echo esc_html(kiriof_helper()->tlThis('Save Changes',$locale)); ?></button>
-                </p>
+                <button class="button button-primary kj-submit-btn" type="button"><?php echo esc_html(kiriof_helper()->tlThis('Save Changes',$locale)); ?></button>
             </div>
         </div>
     </div>

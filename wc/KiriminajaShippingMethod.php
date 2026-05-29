@@ -53,7 +53,7 @@ function kiriof_shipping_method(){
     
             public function calculate_shipping( $package = array() ){
                 $country = $package["destination"]["country"];
-                $destination_id = WC()->session->get( 'destination_id' );
+                $destination_id = WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
                   
                 
@@ -110,10 +110,11 @@ function kiriof_shipping_method(){
 
             public function filterOptions($pricingData,$quantity){
 
-                $chosen_payment_method = WC()->session->get('chosen_payment_method');
+                $chosen_payment_method = WC()->session->get('chosen_payment_method') ?: WC()->session->get('kiriof_payment_method');
 
                 /** Validation Payment Method */
-                if( is_checkout() ){
+                $is_store_api_request = function_exists( 'wc' ) && wc() && method_exists( wc(), 'is_store_api_request' ) && wc()->is_store_api_request();
+                if( is_checkout() || $is_store_api_request ){
                     if(!$chosen_payment_method){
                         return [];
                     }

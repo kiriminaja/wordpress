@@ -28,6 +28,7 @@ class CreateTransactionService extends BaseService{
      */
     public function __construct($payload){
         $this->payload = $payload;
+        $this->payload['wc_cart_contents'] = $this->normalizeCartContents( $payload['wc_cart_contents'] ?? array() );
         return $this;
     }
     
@@ -49,10 +50,9 @@ class CreateTransactionService extends BaseService{
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];
             $forceInsurance = @$calcResult['selected_expedition']->force_insurance;
             
-            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
-            $global_insurance  = ( $insurance_setting && 'yes' === $insurance_setting->value );
+            $is_insurance = $this->isInsuranceRequested( $forceInsurance );
 
-            $insurance_cost = ($this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance || $global_insurance) 
+            $insurance_cost = $is_insurance
                 ? $calcResult['insurance_amt'] 
                 : 0;
             // Cache expedition split to avoid duplicate explode
@@ -96,6 +96,41 @@ class CreateTransactionService extends BaseService{
             return self::error([],'fail creating transaction');
         }
     }
+    private function normalizeCartContents( $cart_contents ){
+        if ( is_array( $cart_contents ) && ! empty( $cart_contents ) ) {
+            return $cart_contents;
+        }
+
+        return $this->getOrderCartContentsFallback();
+    }
+
+    private function getOrderCartContentsFallback(){
+        if ( empty( $this->payload['order_id'] ) || ! function_exists( 'wc_get_order' ) ) {
+            return array();
+        }
+
+        $order = wc_get_order($this->payload['order_id']);
+        if ( ! $order ) {
+            return array();
+        }
+
+        $cart_contents = array();
+        foreach ( $order->get_items( 'line_item' ) as $item_id => $item ) {
+            $product_id = $item->get_variation_id() ?: $item->get_product_id();
+            if ( empty( $product_id ) ) {
+                continue;
+            }
+
+            $cart_contents[ $item_id ] = array(
+                'product_id' => $product_id,
+                'quantity'   => $item->get_quantity(),
+                'line_total' => $item->get_total(),
+            );
+        }
+
+        return $cart_contents;
+    }
+
     private function updateWcTotalOrder($checkoutCalc){
         $order = wc_get_order($this->payload['order_id']);
         if (!$order) {
@@ -103,10 +138,10 @@ class CreateTransactionService extends BaseService{
         }
         $calcResult = $checkoutCalc['data']['calculation_result'];
         $forceInsurance = @$calcResult['selected_expedition']->force_insurance ?? 0;
-        $is_insurance = $this->payload['checkout_post_data']['kiriof_insurance'] || $forceInsurance;
+        $is_insurance = $this->isInsuranceRequested( $forceInsurance );
         $is_cod = $this->payload['is_cod'] ?? 0;
         
-        if ($is_cod) {
+        if ($is_cod && ! $this->orderHasFeeItem($order, 'COD Fee')) {
             $cod_amt = $calcResult['cod_amt'];
             $cod_fee = new WC_Order_Item_Fee();
             $cod_fee->set_name('COD Fee');
@@ -114,7 +149,7 @@ class CreateTransactionService extends BaseService{
             $cod_fee->set_total($cod_amt);
             $order->add_item($cod_fee); 
         }
-        if ($is_insurance) {
+        if ($is_insurance && ! $this->orderHasFeeItem($order, 'Insurance')) {
             $insurance_amt = $calcResult['insurance_amt'];
             $insurance_fee = new WC_Order_Item_Fee();
             $insurance_fee->set_name('Insurance');
@@ -125,6 +160,25 @@ class CreateTransactionService extends BaseService{
         
         $order->calculate_totals();
         $order->save();
+    }
+
+    private function orderHasFeeItem($order, $feeName){
+        foreach ($order->get_items('fee') as $feeItem) {
+            if ($feeItem->get_name() === $feeName) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function isInsuranceRequested($forceInsurance = 0){
+        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $global_insurance  = ( $insurance_setting && 'yes' === $insurance_setting->value );
+
+        return ! empty( $this->payload['checkout_post_data']['kiriof_insurance'] )
+            || ! empty( $this->payload['is_insurance'] )
+            || ! empty( $forceInsurance )
+            || $global_insurance;
     }
     
     private function getRequiredPostMeta(){
@@ -160,7 +214,7 @@ class CreateTransactionService extends BaseService{
             return $this->checkoutCalcCache;
         }
         
-        $this->payload['is_insurance'] = !empty($this->payload['checkout_post_data']['kiriof_insurance']) ? 1 : 0;
+        $this->payload['is_insurance'] = $this->isInsuranceRequested() ? 1 : 0;
         
         $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
             'destination_area_id'   => $this->payload['kiriof_destination_area'],

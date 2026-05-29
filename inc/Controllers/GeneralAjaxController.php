@@ -74,6 +74,9 @@ class GeneralAjaxController
         if ($different_address) {
             WC()->session->set('shipping_destination_id', $destination_id);
             WC()->session->set('shipping_destination_name', $text);
+        } else {
+            WC()->session->set('shipping_destination_id', $destination_id);
+            WC()->session->set('shipping_destination_name', $text);
         }
         // Set the data (the value can be also an indexed array)
         WC()->session->set('destination_id', $destination_id);
@@ -104,9 +107,16 @@ class GeneralAjaxController
         $datas = [];
         if (!empty($shipping_metode_id) && $ex_shipping[0] == 'kiriminaja-official') {
             $insurance = empty($insurance_input) ? 0 : 1;
+            $expedition = $shipping_metode_id;
+            if (str_starts_with($shipping_metode_id, 'kiriminaja-official_')) {
+                $expedition = substr($shipping_metode_id, strlen('kiriminaja-official_'));
+            } elseif (str_starts_with($shipping_metode_id, 'kiriminaja-official:')) {
+                $expedition = substr($shipping_metode_id, strlen('kiriminaja-official:'));
+            }
+
             $payload = [
                 'destination_area_id'   => $destination_id,
-                'expedition'            => substr($shipping_metode_id, strlen('kiriminaja-official_')),
+                'expedition'            => $expedition,
                 'is_insurance'          => $insurance,
                 'is_cod'                => $payment_method === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
@@ -115,9 +125,12 @@ class GeneralAjaxController
 
             if (!empty($service->data)) {
 
-                if (!empty($payment_method)) {
+                if ('cod' === $payment_method) {
                     $datas['cod_fee'] = wc_price($service->data['calculation_result']['cod_amt']) ??  0;
                     $datas['is_cod_amt'] = $service->data['calculation_result']['cod_amt'];
+                } else {
+                    $datas['cod_fee'] = wc_price(0);
+                    $datas['is_cod_amt'] = 0;
                 }
 
                 if (!empty($shipping_metode_id)) {
@@ -138,6 +151,15 @@ class GeneralAjaxController
                 // as WC cart fees (works on both traditional and block checkout).
                 WC()->session->set( 'kiriof_cached_insurance_amt', $datas['is_insurance'] );
                 WC()->session->set( 'kiriof_cached_cod_amt', $datas['is_cod_amt'] );
+                WC()->session->set(
+                    'kiriof_cached_fee_context',
+                    array(
+                        'shipping_method' => $shipping_metode_id,
+                        'destination_id'  => $destination_id,
+                        'payment_method'  => $payment_method,
+                        'insurance'       => $insurance,
+                    )
+                );
 
                 WC()->cart->calculate_totals();
 

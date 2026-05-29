@@ -24,8 +24,6 @@ class CheckoutController
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
         if (is_plugin_active('woocommerce/woocommerce.php')) {
-            //before total order checkout
-            add_action('woocommerce_review_order_before_order_total',array($this,'kiriof_reviewOrderBeforeTotalOrder'), 9999);
             /** Add Custom field Checkout Sub District */
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'), 9999);
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
@@ -43,6 +41,8 @@ class CheckoutController
                 add_action( 'woocommerce_checkout_create_order', array($this,'afterCheckoutBeforeCreated'), 10, 2 );
                 /** After checkout Save custom field value as custom customer metadata */
                 add_action( 'woocommerce_checkout_order_processed', array($this,'afterCheckoutAfterCreated'),10, 3);
+                /** Block checkout Store API does not reliably trigger the classic processed hook. */
+                add_action( 'woocommerce_store_api_checkout_order_processed', array($this,'afterStoreApiCheckoutOrderProcessed'), 10, 1 );
             /** end After Checkout */
             /** Expedition Ajax*/
             add_action('wp_ajax_kiriof-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
@@ -79,8 +79,6 @@ class CheckoutController
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
             $shipping_methods = array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) );
             WC()->session->set( 'chosen_shipping_methods', $shipping_methods );
-        } else {
-            WC()->session->set( 'chosen_shipping_methods', null );
         }
 
         // Add insurance + COD as WC cart fees (works on traditional AND block checkout)
@@ -88,72 +86,62 @@ class CheckoutController
     }
 
     private function kiriof_add_checkout_fees() {
-        // Classic checkout already renders AJAX-updated placeholder rows from
-        // kiriof_reviewOrderBeforeTotalOrder(). Adding native WC fees there makes
-        // Insurance/COD Fee appear twice. Native cart fees are only needed for
-        // React/block checkout, which does not use classic order-review fragments.
-        if ( ! $this->kiriof_is_block_checkout_request() ) {
-            return;
-        }
-
         $chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
         if ( empty( $chosen_methods ) || ! is_array( $chosen_methods ) ) {
             return;
         }
 
-        // Check if a KiriminAja shipping method is selected
-        $is_kiriminaja = false;
+        // Find the exact KiriminAja method + courier.
+        $kiriof_method = '';
         foreach ( $chosen_methods as $method ) {
             if ( strpos( $method, 'kiriminaja-official' ) === 0 ) {
-                $is_kiriminaja = true;
+                $kiriof_method = $method;
                 break;
             }
         }
-        if ( ! $is_kiriminaja ) {
+        if ( '' === $kiriof_method ) {
             return;
         }
 
-        // Read cached fees from session (populated by kiriof_getDataAfterUpdateCheckout AJAX)
-        $insurance_amt = (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 );
-        $cod_amt       = (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 );
+        $chosen_payment = $this->kiriof_get_checkout_payment_method();
+        $destination_id = (int) WC()->session->get( 'destination_id', 0 );
+        if ( ! $destination_id ) {
+            $destination_id = (int) WC()->session->get( 'shipping_destination_id', 0 );
+        }
+        if ( ! $destination_id ) {
+            return;
+        }
 
-        // Fallback: if session cache is empty (e.g., first load on block checkout
-        // where the AJAX hasn't fired yet), calculate fees directly.
-        if ( $insurance_amt <= 0 && $cod_amt <= 0 ) {
-            // Find the exact KiriminAja method + courier
-            $kiriof_method = '';
-            foreach ( $chosen_methods as $method ) {
-                if ( strpos( $method, 'kiriminaja-official' ) === 0 ) {
-                    $kiriof_method = $method;
-                    break;
-                }
-            }
-            if ( '' === $kiriof_method ) {
-                return;
-            }
+        $force_insurance = (bool) WC()->session->get( 'kiriof_insurance', 0 );
+        $cache_context   = array(
+            'shipping_method' => $kiriof_method,
+            'destination_id'  => $destination_id,
+            'payment_method'  => $chosen_payment,
+            'insurance'       => $force_insurance ? 1 : 0,
+        );
+        $cached_context  = WC()->session->get( 'kiriof_cached_fee_context', array() );
 
-            $destination_id = (int) WC()->session->get( 'destination_id', 0 );
-            if ( ! $destination_id ) {
-                // Try to get from customer shipping address (works on block checkout too)
-                $customer = WC()->customer;
-                if ( $customer ) {
-                    $destination_id = (int) WC()->session->get( 'shipping_destination_id',
-                        (int) WC()->session->get( 'destination_id', 0 )
-                    );
-                }
-            }
-            if ( ! $destination_id ) {
-                return;
-            }
+        // Read cached fees from session only if they match the current checkout
+        // context. Courier changes can change force-insurance rules; payment
+        // changes must immediately clear stale COD amounts.
+        $insurance_amt = ( is_array( $cached_context ) && $cached_context === $cache_context )
+            ? (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 )
+            : 0;
+        $cod_amt       = ( is_array( $cached_context ) && $cached_context === $cache_context )
+            ? (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 )
+            : 0;
 
-            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
-            $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
-            $chosen_payment    = WC()->session->get( 'chosen_payment_method', '' );
+        if ( 'cod' !== $chosen_payment ) {
+            $cod_amt = 0;
+            WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+        }
 
+        // Fallback: if cache is empty/stale, calculate fees directly.
+        if ( $insurance_amt <= 0 && ( 'cod' !== $chosen_payment || $cod_amt <= 0 ) ) {
             try {
                 $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
                     'destination_area_id' => $destination_id,
-                    'expedition'          => $kiriof_method,
+                    'expedition'          => $this->kiriof_extract_expedition_from_method( $kiriof_method ),
                     'is_insurance'        => $force_insurance,
                     'is_cod'              => ( 'cod' === $chosen_payment ),
                     'wc_cart_contents'    => WC()->cart->get_cart(),
@@ -162,11 +150,11 @@ class CheckoutController
                 if ( 200 === $service->status && ! empty( $service->data['calculation_result'] ) ) {
                     $result        = $service->data['calculation_result'];
                     $insurance_amt = (float) ( $result['insurance_amt'] ?? 0 );
-                    $cod_amt       = (float) ( $result['cod_amt'] ?? 0 );
+                    $cod_amt       = ( 'cod' === $chosen_payment ) ? (float) ( $result['cod_amt'] ?? 0 ) : 0;
 
-                    // Cache for subsequent calls
                     WC()->session->set( 'kiriof_cached_insurance_amt', $insurance_amt );
                     WC()->session->set( 'kiriof_cached_cod_amt', $cod_amt );
+                    WC()->session->set( 'kiriof_cached_fee_context', $cache_context );
                 }
             } catch ( \Throwable $th ) {
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriof_add_checkout_fees_fallback', array( $th->getMessage() ) );
@@ -182,7 +170,7 @@ class CheckoutController
             );
         }
 
-        if ( $cod_amt > 0 ) {
+        if ( 'cod' === $chosen_payment && $cod_amt > 0 ) {
             WC()->cart->add_fee(
                 __( 'COD Fee', 'kiriminaja-official' ),
                 $cod_amt,
@@ -190,21 +178,84 @@ class CheckoutController
             );
         }
     }
-    private function kiriof_is_block_checkout_request() {
-        if ( ! function_exists( 'has_block' ) ) {
+    private function kiriof_extract_expedition_from_method( $shipping_method ) {
+        $shipping_method = (string) $shipping_method;
+        if ( 0 === strpos( $shipping_method, 'kiriminaja-official_' ) ) {
+            return substr( $shipping_method, strlen( 'kiriminaja-official_' ) );
+        }
+        if ( 0 === strpos( $shipping_method, 'kiriminaja-official:' ) ) {
+            return substr( $shipping_method, strlen( 'kiriminaja-official:' ) );
+        }
+        return $shipping_method;
+    }
+
+    private function kiriof_get_checkout_payment_method( $order = null ) {
+        $payment_method = '';
+
+        if ( $order instanceof \WC_Order ) {
+            $payment_method = (string) $order->get_meta( '_kiriof_checkout_payment_method', true );
+            if ( '' === $payment_method ) {
+                $payment_method = (string) $order->get_payment_method();
+            }
+        }
+
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'chosen_payment_method', '' );
+        }
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'kiriof_payment_method', '' );
+        }
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'payment_method', '' );
+        }
+
+        return $payment_method;
+    }
+
+    private function kiriof_is_store_api_request() {
+        if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
             return false;
         }
 
+        $route = '';
+        if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+            $route = (string) $GLOBALS['wp']->query_vars['rest_route'];
+        }
+        if ( '' === $route && isset( $_SERVER['REQUEST_URI'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only used for route detection
+            $route = (string) wp_unslash( $_SERVER['REQUEST_URI'] );
+        }
+
+        return false !== strpos( $route, '/wc/store/' );
+    }
+
+    private function kiriof_is_block_checkout_request() {
         if ( is_checkout() ) {
             $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
-            if ( $checkout_page_id > 0 && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
+            if ( $checkout_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
+                return true;
+            }
+            if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_checkout_block_default' ) ) {
+                if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_checkout_block_default() ) {
+                    return true;
+                }
+            }
+            if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
                 return true;
             }
         }
 
         if ( is_cart() ) {
             $cart_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'cart' ) : 0;
-            if ( $cart_page_id > 0 && has_block( 'woocommerce/cart', $cart_page_id ) ) {
+            if ( $cart_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/cart', $cart_page_id ) ) {
+                return true;
+            }
+            if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_cart_block_default' ) ) {
+                if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_cart_block_default() ) {
+                    return true;
+                }
+            }
+            if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
                 return true;
             }
         }
@@ -219,31 +270,6 @@ class CheckoutController
             }
         }
         return $needs_shipping;
-    }
-    function kiriof_reviewOrderBeforeTotalOrder(){
-        if( !is_checkout() ){
-            return false;
-        }
-
-        // Keep the traditional checkout placeholder rows from main branch.
-        // The AJAX flow updates these rows immediately after the buyer changes
-        // courier/payment/insurance. WC cart fees are also added separately for
-        // block checkout compatibility, but classic themes still rely on these
-        // rows for the live COD Fee/Insurance display before order submission.
-        $table = '<tr class="kiriof_cart_item_insurane" style="display:none;">
-			<td class="kj-cart-insurance">
-				<label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>											
-            </td>
-			<td class="kj-cart-insurance kj-cost-insurance"></td>
-		</tr>
-        <tr class="kiriof_cart_item_cod_fee" style="display:none;">
-			<td class="kj-cod-fee">
-				<label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>		
-                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
-            </td>
-			<td class="kj-cod-fee kj-cost-codfee"></td>
-		</tr>';
-        echo wp_kses_post( $table );
     }
     function kiriof_add_checkout_nonce_field(){
         wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');
@@ -287,6 +313,20 @@ class CheckoutController
     {
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-shipping-address.php');
     }
+    public function afterStoreApiCheckoutOrderProcessed( $order ){
+        if ( ! $order instanceof \WC_Order ) {
+            return;
+        }
+
+        // Avoid duplicate inserts if Woo also fires the classic processed hook.
+        $existing_transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order->get_id() );
+        if ( $existing_transaction ) {
+            return;
+        }
+
+        $this->afterCheckoutAfterCreated( $order->get_id(), array(), $order );
+    }
+
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
         /** Resolve the order object: WC may pass null in some flows */
         if ( ! $order instanceof \WC_Order ) {
@@ -320,7 +360,7 @@ class CheckoutController
             $kiriof_checkout_token = (string) WC()->session->get( 'kiriof_checkout_token', '' );
         }
         if ( '' === $payment_method ) {
-            $payment_method = (string) WC()->session->get( 'payment_method', '' );
+            $payment_method = $this->kiriof_get_checkout_payment_method( $order );
         }
         if ( '' === $force_insurance ) {
             $force_insurance = WC()->session->get( 'force_insurance', '' );
@@ -377,29 +417,43 @@ class CheckoutController
     }
     
     function afterCheckoutBeforeCreated($order,$data ){
-        /** if kiriof_field value is not exist or null then prevent*/
-        if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+        /**
+         * Classic checkout posts kiriof fields directly. Block checkout submits via
+         * Store API, so those POST fields may be absent; use values persisted by
+         * kiriof_store_api_update_checkout() as the source of truth.
+         */
+        if ( isset( $_POST['shipping_method'][0] ) && ! empty( $_POST['shipping_method'][0] ) ) {
+            $shipping_method = sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ) );
+        } else {
+            $chosen_methods  = WC()->session->get( 'chosen_shipping_methods', array() );
+            $shipping_method = ( is_array( $chosen_methods ) && ! empty( $chosen_methods[0] ) )
+                ? sanitize_text_field( $chosen_methods[0] )
+                : '';
+        }
+
+        if ( empty( $shipping_method ) || 0 !== strpos( $shipping_method, 'kiriminaja-official' ) ) {
             return;
         }
-            if (isset($_POST['shipping_method'][0]) && !empty($_POST['shipping_method'][0])) {
-                $shipping_method = sanitize_text_field(
-                    wp_unslash(
-                        $_POST['shipping_method'][0]
-                    )
-                );
-            } else {
-                return;
-            }
-            
-            if( empty($_POST['ship_to_different_address']) ){
-                $destination_area = isset($_POST['kiriof_destination_area']) ? sanitize_text_field( wp_unslash($_POST['kiriof_destination_area'])) : '';
-                $destinasi_name = isset($_POST['kiriof_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kiriof_destination_area_name'])) : '';
-                $insurance_post = isset($_POST[$this->field_insurance_key]) ? sanitize_text_field(wp_unslash($_POST[$this->field_insurance_key])) : '';
-            }else{
-                $destinasi_name = isset($_POST['kiriof_shipping_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area_name'])) : '';
-                $insurance_post = isset( $_POST['kiriof_shipping_insurance'] ) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_insurance'])) : '';
-                $destination_area = isset($_POST['kiriof_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area'])) : '';
-            }
+
+        if ( empty($_POST['ship_to_different_address']) ){
+            $destination_area = isset($_POST['kiriof_destination_area']) ? sanitize_text_field( wp_unslash($_POST['kiriof_destination_area'])) : '';
+            $destinasi_name = isset($_POST['kiriof_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kiriof_destination_area_name'])) : '';
+            $insurance_post = isset($_POST[$this->field_insurance_key]) ? sanitize_text_field(wp_unslash($_POST[$this->field_insurance_key])) : '';
+        }else{
+            $destinasi_name = isset($_POST['kiriof_shipping_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area_name'])) : '';
+            $insurance_post = isset( $_POST['kiriof_shipping_insurance'] ) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_insurance'])) : '';
+            $destination_area = isset($_POST['kiriof_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area'])) : '';
+        }
+
+        if ( '' === $destination_area ) {
+            $destination_area = (string) WC()->session->get( 'shipping_destination_id', WC()->session->get( 'destination_id', '' ) );
+        }
+        if ( '' === $destinasi_name ) {
+            $destinasi_name = (string) WC()->session->get( 'shipping_destination_name', WC()->session->get( 'destination_name', '' ) );
+        }
+        if ( '' === $insurance_post && (int) WC()->session->get( 'kiriof_insurance', 0 ) === 1 ) {
+            $insurance_post = '1';
+        }
 
             // Block checkout: resolve text district name to ID
             // Search by postcode first (more accurate), then by name
@@ -448,9 +502,11 @@ class CheckoutController
                 $insurance_post = '1';
             }
             /** Store custom field value in WooCommerce session (not PHP session) */
-            $kiriof_filter_methods = substr( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ) ), strlen( 'kiriminaja-official_' ) ); // remove kiriminaja-official_ prefix
-            $kiriof_checkout_token_post = isset( $_POST['kiriof_checkout_token'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_checkout_token'] ) ) : '';
-            $kiriof_payment_method_post = isset( $_POST['payment_method'] ) ? sanitize_text_field( wp_unslash( $_POST['payment_method'] ) ) : '';
+            $kiriof_filter_methods = $this->kiriof_extract_expedition_from_method( $shipping_method );
+            $kiriof_checkout_token_post = isset( $_POST['kiriof_checkout_token'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_checkout_token'] ) ) : '1';
+            $kiriof_payment_method_post = isset( $_POST['payment_method'] )
+                ? sanitize_text_field( wp_unslash( $_POST['payment_method'] ) )
+                : (string) WC()->session->get( 'kiriof_payment_method', WC()->session->get( 'chosen_payment_method', '' ) );
             $kiriof_force_insurance_post = isset( $_POST['kiriof_force_insurance'] ) ? intval( $_POST['kiriof_force_insurance'] ) : 0;
             $kiriof_billing_insurance_post = ! empty( $insurance_post ) ? 1 : 0;
 
@@ -609,7 +665,9 @@ class CheckoutController
     }
     public function kiriof_order_details($order){
         $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
-        $shipping_method_id = array_shift( $order->get_shipping_methods() )['method_id'];
+        $shipping_methods = $order->get_shipping_methods();
+        $shipping_method = array_shift( $shipping_methods );
+        $shipping_method_id = $shipping_method ? $shipping_method['method_id'] : '';
         if( $shipping_method_id != 'kiriminaja-official' ){
             return false;
         }
@@ -622,25 +680,37 @@ class CheckoutController
 				<th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
 				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.esc_url( home_url('/tracking?order_id='.$order->get_id()) ).'">'.esc_html__('Click','kiriminaja-official').'</a></td>
 			</tr>';
-        if( $order->get_meta('_'.$this->field_insurance_key) == true || $transactionKiriminaja->insurance_cost > 0 ){
+        $transaction_insurance_cost = $transactionKiriminaja ? (float) $transactionKiriminaja->insurance_cost : 0;
+        $transaction_cod_fee        = $transactionKiriminaja ? (float) $transactionKiriminaja->cod_fee : 0;
+
+        if( ! $this->kiriof_order_has_fee_item($order, 'Insurance') && $transaction_insurance_cost > 0 ){
             $html .= '
             <tr>
 				<th scope="row">'.esc_html__('Insurance','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->insurance_cost).'</td>
+				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transaction_insurance_cost).'</td>
 			</tr>';
         }
-        if( $order->get_payment_method() == 'cod'){
+        if( ! $this->kiriof_order_has_fee_item($order, 'COD Fee') && $order->get_payment_method() == 'cod' && $transaction_cod_fee > 0 ){
             $html .= '
             <tr>
 				<th scope="row">
                     <label for="kiriof_cod_fee" style="display:block;margin:0;">'. esc_html__('COD Fee:','kiriminaja-official').'</label>		
                     <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>		
                 </th>
-				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transactionKiriminaja->cod_fee).'</td>
+				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transaction_cod_fee).'</td>
 			</tr>';
         }
         
         echo  wp_kses_post( $html );
+    }
+
+    private function kiriof_order_has_fee_item($order, $feeName){
+        foreach ($order->get_items('fee') as $feeItem) {
+            if ($feeItem->get_name() === $feeName) {
+                return true;
+            }
+        }
+        return false;
     }
     public function kiriof_shipping_rate_cache_invalidation( $packages ) {
         foreach ( $packages as &$package ) {
@@ -978,19 +1048,29 @@ class CheckoutController
 
         if ( '' !== $shipping_method ) {
             WC()->session->set( 'chosen_shipping_methods', array( $shipping_method ) );
+            WC()->session->set( 'kiriof_expedition', $this->kiriof_extract_expedition_from_method( $shipping_method ) );
         }
 
         if ( $destination_id > 0 ) {
             WC()->session->set( 'destination_id', $destination_id );
+            WC()->session->set( 'shipping_destination_id', $destination_id );
+            WC()->session->set( 'kiriof_destination_area', $destination_id );
         }
 
-        if ( '' !== $payment_method ) {
+        if ( 'cod' === $payment_method ) {
             WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
             WC()->session->set( 'kiriof_payment_method', $payment_method );
+        } else {
+            WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
+            WC()->session->set( 'kiriof_payment_method', '' );
         }
 
         WC()->session->set( 'kiriof_insurance', $insurance );
+        WC()->session->set( 'billing_insurance', $insurance );
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
         WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+        WC()->session->set( 'kiriof_cached_fee_context', array() );
     }
 }

@@ -19,6 +19,53 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
     }
 
+
+    #[Test]
+    public function block_checkout_script_must_run_on_cart_page_when_shopverse_redirects_empty_checkout_to_cart(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'jQuery(document).ready(function($)');
+        $this->assertNotFalse($start, 'Inline checkout/cart script must exist');
+        $readyBody = substr($content, $start, 19000);
+
+        $this->assertStringContainsString(
+            'kiriofInitBlockCheckoutCompatibility();',
+            $readyBody,
+            'ShopVerse uses Woo Blocks on cart/checkout; block compatibility wiring must be called outside the PHP is_checkout() branch so cart-rendered block flows get District select and COD fee updates too'
+        );
+
+        $callPosition = strpos($readyBody, 'kiriofInitBlockCheckoutCompatibility();');
+        $checkoutBranchPosition = strpos($readyBody, '<?php if(is_checkout()): ?>');
+        $this->assertNotFalse($callPosition, 'Block compatibility initializer must be called');
+        $this->assertNotFalse($checkoutBranchPosition, 'Classic checkout branch still exists');
+        $this->assertLessThan(
+            $checkoutBranchPosition,
+            $callPosition,
+            'Initializer call must happen before/outside the PHP is_checkout() branch; otherwise /cart/ has only fee helper functions and never installs postcode/payment/shipping watchers'
+        );
+    }
+
+    #[Test]
+    public function classic_checkout_template_must_render_real_cart_total_not_hardcoded_zero(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
+        $start = strpos($content, '<tr class="order-total">');
+        $this->assertNotFalse($start, 'Classic checkout review-order template must render an order total row');
+        $row = substr($content, $start, 360);
+
+        $this->assertStringContainsString(
+            'wc_cart_totals_order_total_html();',
+            $row,
+            'Classic/shortcode checkout must use WooCommerce cart total HTML so product subtotal, shipping, Insurance, and COD Fee are reflected'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_money_format( 0 )',
+            $row,
+            'Hardcoding Rp0 in the classic review-order template makes /checkout totals always show zero'
+        );
+    }
+
     #[Test]
     public function block_checkout_field_registration_uses_supported_select_field_without_invalid_before_attribute(): void
     {
@@ -67,6 +114,26 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "namespace: 'kiriminaja-official'",
             $content,
             'Store API cart update must be namespaced to this plugin'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_triggers_store_api_session_persist_before_legacy_ajax_fee_request(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($start, 'Block checkout COD/insurance recalculation function must exist');
+        $functionBody = substr($content, $start, 5200);
+
+        $extensionPosition = strpos($functionBody, 'kiriofBlockExtensionCartUpdate(data);');
+        $ajaxPosition = strpos($functionBody, 'jQuery.ajax({');
+
+        $this->assertNotFalse($extensionPosition, 'Block checkout must persist shipping/destination/payment choices through Store API before order creation');
+        $this->assertNotFalse($ajaxPosition, 'Legacy AJAX fee request should still run for classic checkout compatibility');
+        $this->assertLessThan(
+            $ajaxPosition,
+            $extensionPosition,
+            'Store API session persistence must run before legacy admin-ajax fee calculation because checkout may submit before the AJAX success callback fires'
         );
     }
 
@@ -158,20 +225,369 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_keeps_live_fee_placeholder_rows(): void
+    public function block_checkout_district_field_lookup_handles_react_rendered_inputs(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
 
         $this->assertStringContainsString(
-            'kiriof_cart_item_cod_fee',
+            'function kiriofGetBlockDistrictField',
             $content,
-            'Classic checkout needs the COD Fee placeholder row so AJAX can show it after courier/payment changes'
+            'Block checkout needs a robust field finder because Woo/React may not expose the additional field by exact name at the moment AJAX returns'
         );
 
         $this->assertStringContainsString(
-            'kiriof_cart_item_insurane',
+            'input[name*="kiriof_destination_area"]',
             $content,
-            'Classic checkout needs the Insurance placeholder row so AJAX can show it after courier/insurance changes'
+            'District finder must handle React/Woo sanitized or nested field names that still contain kiriof_destination_area'
+        );
+
+        $this->assertStringContainsString(
+            'input[id*="kiriof-destination-area"]',
+            $content,
+            'Woo Blocks renders additional address fields with slash-to-dash IDs such as billing-kiriminaja-official-kiriof-destination-area, so lookup cannot rely only on underscore names'
+        );
+
+        $this->assertStringContainsString(
+            '.wc-block-components-text-input',
+            $content,
+            'District select should be inserted at the Woo Blocks field wrapper, not only after the input node'
+        );
+
+        $this->assertStringContainsString(
+            'MutationObserver',
+            $content,
+            'React checkout can render District after the AJAX response; a DOM observer must re-apply the select when the field appears'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_change_updates_checkout_additional_fields_store(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/checkout')",
+            $content,
+            'District selection must update the checkout store, because additional checkout fields are stored in wc/store/checkout rather than cart billing/shipping addresses'
+        );
+
+        $this->assertStringContainsString(
+            'setAdditionalFields',
+            $content,
+            'Block checkout District value must be written through setAdditionalFields so Store API checkout receives kiriminaja-official/kiriof_destination_area'
+        );
+
+        $this->assertStringContainsString(
+            'getAdditionalFields',
+            $content,
+            'District updater should merge with existing checkout additional fields instead of overwriting unrelated extension fields'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_selection_persists_destination_session_before_shipping_rate_refetch(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'change.kiriofBlockDistrict');
+        $this->assertNotFalse($start, 'Block District change handler must exist');
+        $handlerBody = substr($content, $start, 2200);
+
+        $this->assertStringContainsString(
+            'kiriofPersistDestinationArea',
+            $handlerBody,
+            'Selecting a District in block checkout must persist destination_id to WC session before rates are recalculated'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetDestinationAreaAjaxData',
+            $content,
+            'The block and classic District handlers should share the same destination/session payload builder'
+        );
+    }
+
+    #[Test]
+    public function shipping_method_supports_block_checkout_destination_and_payment_session_fallbacks(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+
+        $this->assertStringContainsString(
+            'shipping_destination_id',
+            $content,
+            'Block checkout may set the destination as shipping_destination_id before calculate_shipping runs'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_payment_method',
+            $content,
+            'Block checkout Store API callback stores the payment method as kiriof_payment_method; shipping option filtering must read that fallback'
+        );
+
+        $this->assertStringContainsString(
+            'wc()->is_store_api_request()',
+            $content,
+            'Shipping option filtering cannot depend only on is_checkout() because block checkout rate requests run through Store API'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_cod_fee_reads_and_watches_wc_payment_store(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            "wp.data.select('wc/store/payment')",
+            $content,
+            'Woo Blocks payment radios do not use classic name=payment_method inputs; COD fee code must read wc/store/payment'
+        );
+
+        $this->assertStringContainsString(
+            'getActivePaymentMethod',
+            $content,
+            'Block checkout must use the active Woo payment method store value so selecting COD sends payment_method=cod'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofNormalizePaymentMethod(paymentMethod)',
+            $content,
+            'Payment method detection should normalize all supported classic and Woo Blocks shapes in one safe helper'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.paymentMethodSlug',
+            $content,
+            'Some Woo Blocks versions expose getActivePaymentMethod as an object using paymentMethodSlug; COD detection must support that shape too'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.name',
+            $content,
+            'Woo Blocks payment method objects may use name as the gateway slug'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.id',
+            $content,
+            'Woo Blocks or extension wrappers may expose the gateway slug as id'
+        );
+
+        $this->assertStringContainsString(
+            'paymentMethod.value',
+            $content,
+            'Fallback object values should be supported without changing classic checkout behavior'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofLastPaymentMethod',
+            $content,
+            'Block checkout must subscribe to payment method changes and recalculate COD fee when the buyer selects COD'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_cod_fee_keeps_cod_when_store_api_payment_response_lags(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofGetPaymentMethod()');
+        $this->assertNotFalse($start, 'Payment method reader must exist');
+        $methodBody = substr($content, $start, 2600);
+
+        $this->assertStringContainsString(
+            "[name=payment_method][value=\"cod\"]",
+            $methodBody,
+            'Woo Blocks can render a hidden COD input without checked state; COD detection must inspect its checked/aria state instead of falling back to non-COD .val()'
+        );
+
+        $this->assertStringContainsString(
+            'aria-checked',
+            $methodBody,
+            'Woo Blocks payment radio wrappers expose active selection via aria-checked when the Store API payment selector has not updated yet'
+        );
+
+        $this->assertStringContainsString(
+            'getPaymentMethodData',
+            $methodBody,
+            'Payment method detection should also inspect paymentMethodData.payment_method for Store API checkout compatibility'
+        );
+
+        $this->assertStringContainsString(
+            'payment_method: data.payment_method',
+            $content,
+            'Store API extensionCartUpdate must persist the detected payment method so native fee calculation can add COD Fee'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_payment_reader_must_not_fall_back_to_first_payment_input_value(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofGetPaymentMethod()');
+        $this->assertNotFalse($start, 'Payment method reader must exist');
+        $methodBody = substr($content, $start, 3200);
+
+        $this->assertStringNotContainsString(
+            'jQuery("[name=payment_method]").val()',
+            $methodBody,
+            'When Woo Blocks has no checked classic radio, reading the first payment_method input can return cod even while Direct bank transfer is active'
+        );
+
+        $storePosition = strpos($methodBody, "wp.data.select('wc/store/payment')");
+        $codDomPosition = strpos($methodBody, '[name=payment_method][value="cod"]');
+        $this->assertNotFalse($storePosition, 'Block checkout payment reader must inspect the Woo payment store');
+        $this->assertNotFalse($codDomPosition, 'DOM COD fallback can exist for Store API lag cases');
+        $this->assertLessThan(
+            $codDomPosition,
+            $storePosition,
+            'Authoritative Woo payment store must be checked before COD DOM fallbacks so switching to Direct bank transfer clears stale COD'
+        );
+    }
+
+    #[Test]
+    public function store_api_update_callback_persists_and_clears_payment_method_explicitly(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_store_api_update_checkout');
+        $this->assertNotFalse($start, 'Store API update callback must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        $this->assertStringContainsString(
+            'WC()->session->set( \'chosen_payment_method\', $payment_method );',
+            $methodBody,
+            'Store API callback must persist COD when block checkout reports it'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_payment_method', '' );",
+            $methodBody,
+            'Store API callback must explicitly clear stale COD when buyer switches away from COD'
+        );
+    }
+
+    #[Test]
+    public function admin_ajax_cod_fee_only_sets_cod_payload_for_cod_payment(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+        $start = strpos($content, 'public function kiriof_getDataAfterUpdateCheckout()');
+        $this->assertNotFalse($start, 'Admin AJAX checkout recalculation handler must exist');
+        $methodBody = substr($content, $start, 3200);
+
+        $this->assertStringContainsString(
+            '\'is_cod\'                => $payment_method === \'cod\'',
+            $methodBody,
+            'Backend calculation must only request COD fee for the actual COD gateway'
+        );
+
+        $this->assertStringNotContainsString(
+            'if (!empty($payment_method))',
+            $methodBody,
+            'A non-empty non-COD payment method must not be treated as enough evidence to expose COD Fee'
+        );
+
+        $this->assertStringContainsString(
+            'if (\'cod\' === $payment_method)',
+            $methodBody,
+            'AJAX response should expose cod_fee/is_cod_amt only when COD is the selected payment method'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_select_uses_dedicated_wrapper_without_overlapping_source_field(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofRenderBlockDistrictSelect');
+        $this->assertNotFalse($start, 'Block District select renderer must exist');
+        $functionBody = substr($content, $start, 4200);
+
+        $this->assertStringContainsString(
+            'kiriof-block-district-field-wrapper',
+            $functionBody,
+            'Block District select should live in its own Woo Blocks field wrapper instead of being inserted next to the hidden React text input wrapper'
+        );
+
+        $this->assertStringContainsString(
+            '$wrapper.after($fieldWrapper)',
+            $functionBody,
+            'The dedicated District wrapper should be inserted as a sibling after the hidden React source wrapper to avoid ShopVerse label/input overlap'
+        );
+
+        $this->assertStringContainsString(
+            '$wrapper.addClass(\'kiriof-block-district-source-wrapper\')',
+            $functionBody,
+            'The original Woo Blocks text-input wrapper should be marked separately so CSS can fully collapse the hidden source field area'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_district_select_matches_woocommerce_blocks_select_markup(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofRenderBlockDistrictSelect');
+        $this->assertNotFalse($start, 'Block District select renderer must exist');
+        $functionBody = substr($content, $start, 3200);
+
+        $this->assertStringContainsString(
+            'wc-block-components-address-form__state wc-block-components-state-input',
+            $functionBody,
+            'Block District selector should use the same outer address-form wrapper as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select kiriof-block-district-select-wrapper',
+            $functionBody,
+            'Block District selector should include the same inner Woo Blocks select wrapper as Province'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__container',
+            $functionBody,
+            'Block District selector should use the same container class as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__label',
+            $functionBody,
+            'Block District selector should use the same floating label class as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__select',
+            $functionBody,
+            'Block District selector should use the same select class as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select__expand',
+            $functionBody,
+            'Block District selector should include the WooCommerce blocks select expand icon'
+        );
+
+        $this->assertStringNotContainsString(
+            'style="width:100%;padding:8px',
+            $functionBody,
+            'Block District selector should not use ad-hoc inline styling that differs from WooCommerce block selects'
+        );
+    }
+
+    #[Test]
+    public function checkout_fee_amounts_show_skeleton_while_recalculating(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'function kiriofSetFeeSkeletonLoading',
+            $template,
+            'Frontend script keeps a loading-state helper while recalculating native WooCommerce fee totals'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSetFeeSkeletonLoading(true)',
+            $template,
+            'Fee skeleton should be enabled before the checkout fee AJAX request starts'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSetFeeSkeletonLoading(false)',
+            $template,
+            'Fee skeleton should be disabled after AJAX success/error so final fee amounts are visible'
         );
     }
 
@@ -194,32 +610,105 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_uses_placeholder_rows_without_native_wc_fee_duplicates(): void
+    public function classic_checkout_uses_native_wc_fee_rows_instead_of_hidden_placeholder_rows(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $reviewTemplate = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
+
+        $this->assertStringContainsString(
+            'foreach ( WC()->cart->get_fees() as $fee )',
+            $reviewTemplate,
+            'Classic checkout review-order template must render native WooCommerce fee rows'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_should_use_native_checkout_fees',
+            $content,
+            'Classic checkout must not bail out of native WooCommerce fees; otherwise Insurance and COD Fee disappear on classic themes'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_cart_item_cod_fee',
+            $content,
+            'Classic checkout should not rely on hidden AJAX placeholder rows that can be missing/stale after WooCommerce refreshes the order review'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_cart_item_insurane',
+            $content,
+            'Classic checkout should render Insurance through native WooCommerce fee rows, not a typo-prone hidden placeholder row'
+        );
+    }
+
+    #[Test]
+    public function classic_checkout_updated_checkout_handler_must_not_recalculate_fees_recursively(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $handlerStart = strpos($template, "jQuery(document.body).on( 'updated_checkout', function() {");
+        $this->assertNotFalse($handlerStart, 'Classic updated_checkout compatibility handler must exist');
+        $handlerBody = substr($template, $handlerStart, 420);
+
+        $this->assertStringNotContainsString(
+            'kiriofCodInsurance()',
+            $handlerBody,
+            'updated_checkout fires after kiriofCodInsurance refreshes native fee rows; calling kiriofCodInsurance from this handler creates an endless update_checkout/loading loop on classic themes'
+        );
+
+        $feeFunctionStart = strpos($template, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($feeFunctionStart, 'Fee AJAX function must exist');
+        $successStart = strpos($template, 'success:function(response)', $feeFunctionStart);
+        $this->assertNotFalse($successStart, 'Fee AJAX success handler must exist');
+        $successBody = substr($template, $successStart, 900);
+        $this->assertStringContainsString(
+            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
+            $successBody,
+            'After fee cache updates, classic checkout must refresh once so WooCommerce native fee rows render Insurance and COD Fee'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_native_fee_detection_includes_store_api_requests(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
 
         $this->assertStringContainsString(
-            'kiriof_cart_item_cod_fee',
+            'private function kiriof_is_store_api_request()',
             $content,
-            'Classic checkout still needs AJAX-updated COD Fee placeholder rows'
+            'Block checkout cart totals are calculated inside /wc/store/ REST requests where is_checkout() is false'
         );
 
         $this->assertStringContainsString(
-            'kiriof_cart_item_insurane',
+            'strpos( $route, \'/wc/store/\' )',
             $content,
-            'Classic checkout still needs AJAX-updated Insurance placeholder rows'
+            'Native fee path must detect WooCommerce Store API recalculation requests'
+        );
+
+        $start = strpos($content, 'function kiriof_shipping_method_update()');
+        $this->assertNotFalse($start, 'Shipping method update hook must exist');
+        $methodBody = substr($content, $start, 800);
+
+        $this->assertStringNotContainsString(
+            "WC()->session->set( 'chosen_shipping_methods', null );",
+            $methodBody,
+            'Store API recalculations without classic POST shipping_method must not clear the selected KiriminAja method saved by extensionCartUpdate'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_fee_fallback_strips_shipping_method_prefix_before_calculation(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'kiriof_extract_expedition_from_method',
+            $content,
+            'Fallback fee calculation must pass only courier_service to CheckoutCalculationService, not the full shipping method ID'
         );
 
         $this->assertStringContainsString(
-            'private function kiriof_is_block_checkout_request()',
+            "strlen( 'kiriminaja-official:' )",
             $content,
-            'Native WooCommerce fees must be limited to block checkout requests so classic checkout does not render COD Fee/Insurance twice'
-        );
-
-        $this->assertStringContainsString(
-            'if ( ! $this->kiriof_is_block_checkout_request() )',
-            $content,
-            'kiriof_add_checkout_fees must bail on classic checkout and only add native fees for block checkout'
+            'Block checkout may send colon-form rate IDs and those prefixes must be stripped too'
         );
     }
 
@@ -265,6 +754,324 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "WC()->session->set( 'chosen_shipping_methods'",
             $content,
             'Store API callback must persist selected shipping method before WC recalculates fees'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_expedition'",
+            $content,
+            'Store API callback must persist normalized expedition for transaction insertion even if checkout submits before the create_order hook sees POST data'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_destination_area'",
+            $content,
+            'Store API callback must persist transaction destination context, not only shipping-rate destination context'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'billing_insurance'",
+            $content,
+            'Store API callback must persist the insurance flag used by transaction creation'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_order_creation_reads_store_api_checkout_context(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $service = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+
+        $this->assertStringContainsString(
+            "woocommerce_store_api_checkout_order_processed",
+            $content,
+            'Block checkout must create KiriminAja transaction rows from the Store API order-processed hook, not only the classic checkout hook'
+        );
+
+        $this->assertStringContainsString(
+            'afterStoreApiCheckoutOrderProcessed',
+            $content,
+            'Store API checkout hook should delegate to the existing transaction creation flow'
+        );
+
+        $this->assertStringContainsString(
+            'getTransactionByWCOrderId',
+            $content,
+            'Store API checkout hook must guard against duplicate transaction rows if Woo also fires the classic hook'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'chosen_shipping_methods'",
+            $content,
+            'Block checkout order creation must fall back to the Store API chosen shipping method because $_POST[shipping_method] is not present'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_payment_method'",
+            $content,
+            'Block checkout order creation must fall back to the payment method persisted by the Store API extension callback'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_insurance'",
+            $content,
+            'Block checkout order creation must fall back to the insurance flag persisted by the Store API extension callback'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_extract_expedition_from_method',
+            $content,
+            'Block checkout order creation must strip kiriminaja-official prefixes from Store API rate IDs before transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            'getOrderCartContentsFallback',
+            $service,
+            'CreateTransactionService must rebuild cart contents from the persisted order when block checkout clears WC()->cart before the transaction row is inserted'
+        );
+
+        $this->assertStringContainsString(
+            'wc_get_order($this->payload[\'order_id\'])',
+            $service,
+            'Order fallback must load the completed Woo order so COD transactions can still persist after Store API checkout'
+        );
+    }
+
+    #[Test]
+    public function native_block_checkout_cod_fee_fallback_reads_all_store_api_payment_session_keys(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'private function kiriof_add_checkout_fees()');
+        $this->assertNotFalse($start, 'Native block checkout fee method must exist');
+        $methodBody = substr($content, $start, 3800);
+
+        $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
+        $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');
+        $helperBody = substr($content, $helperStart, 1400);
+
+        $this->assertStringContainsString(
+            'kiriof_get_checkout_payment_method',
+            $methodBody,
+            'Native fee fallback must use the shared Store API payment fallback helper'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_payment_method'",
+            $helperBody,
+            'Store API extensionCartUpdate stores COD in kiriof_payment_method; native fee fallback must read it, not only chosen_payment_method'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'payment_method'",
+            $helperBody,
+            'Order creation stores payment_method separately; native fee fallback must read that key too'
+        );
+
+        $this->assertStringContainsString(
+            '\'is_cod\'              => ( \'cod\' === $chosen_payment )',
+            $methodBody,
+            'Direct calculation fallback must request COD fee when any server-side checkout payment key says cod'
+        );
+    }
+
+    #[Test]
+    public function native_checkout_fees_must_clear_stale_cod_cache_when_payment_is_not_cod(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'private function kiriof_add_checkout_fees()');
+        $this->assertNotFalse($start, 'Native checkout fee method must exist');
+        $methodBody = substr($content, $start, 4200);
+
+        $this->assertStringContainsString(
+            'if ( \'cod\' !== $chosen_payment )',
+            $methodBody,
+            'Native fee rendering must zero cached COD amounts as soon as buyer switches to Direct bank transfer or another non-COD gateway'
+        );
+
+        $this->assertStringContainsString(
+            '$cod_amt = 0;',
+            $methodBody,
+            'Stale kiriof_cached_cod_amt must not be added as COD Fee for non-COD payments'
+        );
+    }
+
+    #[Test]
+    public function cached_fee_amounts_are_keyed_by_checkout_context_so_courier_rule_changes_recalculate(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $ajax = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+
+        $this->assertStringContainsString(
+            'kiriof_cached_fee_context',
+            $controller,
+            'Native fee calculation must compare current shipping/payment/destination/insurance context before trusting cached fee amounts'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_cached_fee_context',
+            $ajax,
+            'AJAX fee calculation must store cache context so changing courier can refresh force_insurance and insurance amount rules'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_order_creation_falls_back_to_woo_order_payment_method_for_cod(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'function afterCheckoutAfterCreated');
+        $this->assertNotFalse($start, 'Order processed hook must exist');
+        $methodBody = substr($content, $start, 2600);
+
+        $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
+        $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');
+        $helperBody = substr($content, $helperStart, 1400);
+
+        $this->assertStringContainsString(
+            'kiriof_get_checkout_payment_method( $order )',
+            $methodBody,
+            'Order creation must use the shared Store API/Woo order payment fallback helper'
+        );
+
+        $this->assertStringContainsString(
+            '$order->get_payment_method()',
+            $helperBody,
+            'Store API checkout may set Woo order payment_method=cod even when plugin session/meta payment context is empty'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_payment_method'",
+            $helperBody,
+            'Order creation should also read the Store API callback payment fallback key'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_slot_fill_script_is_enqueued_for_order_summary_fee_breakdown(): void
+    {
+        $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+
+        $this->assertStringContainsString(
+            'kiriof-block-checkout',
+            $enqueue,
+            'Block checkout needs a dedicated frontend script for Woo Blocks Slot/Fills'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-checkout',
+            $enqueue,
+            'Slot/fill script must depend on Woo Blocks checkout APIs'
+        );
+
+        $this->assertStringContainsString(
+            'registerPlugin',
+            $script,
+            'Block checkout order summary integration must register a Woo Blocks plugin'
+        );
+
+        $this->assertStringContainsString(
+            'ExperimentalOrderMeta',
+            $script,
+            'Insurance and COD Fee breakdown should render through the checkout block ExperimentalOrderMeta slot'
+        );
+
+        $this->assertStringContainsString(
+            "fee.key === 'insurance'",
+            $script,
+            'Slot/fill should render the native Insurance cart fee from Store API data'
+        );
+
+        $this->assertStringContainsString(
+            "fee.name === 'COD Fee'",
+            $script,
+            'Slot/fill should render the native COD Fee cart fee from Store API data'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_order_fees_are_not_added_or_rendered_twice_after_checkout(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $service = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+
+        $this->assertStringContainsString(
+            'kiriof_order_has_fee_item',
+            $controller,
+            'Order received page should detect native Woo fee items before rendering custom COD/Insurance fallback rows'
+        );
+
+        $this->assertStringContainsString(
+            '! $this->kiriof_order_has_fee_item',
+            $controller,
+            'Custom order-details COD/Insurance rows should be skipped when Woo already rendered native fee rows'
+        );
+
+        $this->assertStringContainsString(
+            'orderHasFeeItem',
+            $service,
+            'CreateTransactionService should detect existing native Store API fee items before adding legacy fee items'
+        );
+
+        $this->assertStringContainsString(
+            '! $this->orderHasFeeItem',
+            $service,
+            'CreateTransactionService must not add duplicate COD Fee/Insurance order items when block checkout already created them'
+        );
+    }
+
+    #[Test]
+    public function order_received_fee_fallback_never_renders_zero_or_null_transaction_fees(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_order_details');
+        $this->assertNotFalse($start, 'Order details renderer must exist');
+        $methodBody = substr($content, $start, 2200);
+
+        $this->assertStringContainsString(
+            '$transaction_cod_fee > 0',
+            $methodBody,
+            'COD Fee fallback row should only render when a KiriminAja transaction exists with a positive fee, preventing COD Fee Rp0 rows'
+        );
+
+        $this->assertStringContainsString(
+            '$transaction_insurance_cost > 0',
+            $methodBody,
+            'Insurance fallback row should only render when the transaction has a positive insurance cost'
+        );
+
+        $this->assertStringNotContainsString(
+            '? $transactionKiriminaja->cod_fee : 0',
+            $methodBody,
+            'Missing transactions should not be displayed as a zero COD fee fallback row'
+        );
+    }
+
+    #[Test]
+    public function transaction_creation_honors_block_checkout_insurance_payload_when_post_data_is_empty(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+
+        $this->assertStringContainsString(
+            '! empty( $this->payload[\'is_insurance\'] )',
+            $content,
+            'CreateTransactionService must include block checkout insurance fallback from the controller payload, not only classic checkout_post_data'
+        );
+
+        $this->assertStringContainsString(
+            '$this->isInsuranceRequested() ? 1 : 0',
+            $content,
+            'CheckoutCalculationService must calculate insurance cost with block checkout/global insurance enabled before transaction persistence'
+        );
+
+        $this->assertStringContainsString(
+            '$this->isInsuranceRequested( $forceInsurance )',
+            $content,
+            'Transaction payload and order fee item creation must use the same insurance decision helper so forced/global/block insurance stay consistent'
+        );
+
+        $this->assertStringContainsString(
+            '$global_insurance',
+            $content,
+            'Insurance decision helper must honor globally forced insurance'
         );
     }
 }
