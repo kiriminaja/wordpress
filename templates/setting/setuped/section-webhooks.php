@@ -32,9 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <tr><th><label><?php echo esc_html( kiriof_helper()->tlThis('Callback URL',$locale) ); ?></label></th><td><input style="width:100%;max-width:25rem" name="callback_url" type="text" class="input-text regular-input" value="<?php echo esc_url( $inputValueArr['callback_url'] ?? '' );?>"></td></tr>
                     </tbody>
                 </table>
-                <p class="submit" style="margin-top:1rem">
-                    <button class="button button-primary kj-submit-btn" type="button"><?php echo esc_html( kiriof_helper()->tlThis('Save',$locale) ); ?></button>
-                </p>
+                <button class="button button-primary kj-submit-btn" type="button"><?php echo esc_html( kiriof_helper()->tlThis('Save',$locale) ); ?></button>
             </div>
         </div>
     </div>
