@@ -77,6 +77,115 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function checkout_pricing_must_use_variation_dimensions_when_cart_item_is_variable(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php');
+
+        $this->assertStringContainsString(
+            "intval(\$cart['variation_id'] ?? 0)",
+            $content,
+            'Pricing payload must prefer variation_id so variable products use variant-level weight and dimensions'
+        );
+
+        $this->assertStringContainsString(
+            'return $variation_id;',
+            $content,
+            'Cart attribute lookup must return the variation ID when a cart item has one'
+        );
+
+        $this->assertStringContainsString(
+            "intval(\$cart['product_id'] ?? 0)",
+            $content,
+            'Cart attribute lookup must still fall back to parent product_id for simple products'
+        );
+
+        $this->assertStringContainsString(
+            "\$cartProducts[\$product_id]['cart_quantity'] += intval",
+            $content,
+            'Multiple cart rows for product variants must not overwrite each other when quantities are collected'
+        );
+    }
+
+    #[Test]
+    public function checkout_pricing_must_stack_multiple_quantities_using_smallest_volumetric_box(): void
+    {
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php');
+        $volumetricContent = file_get_contents(PLUGIN_DIR . '/inc/Utils/Volumetric.php');
+
+        $this->assertStringContainsString(
+            'use KiriminAjaOfficial\Utils\Volumetric;',
+            $serviceContent,
+            'Cart attribute service must use the shared volumetric utility'
+        );
+
+        $this->assertStringContainsString(
+            'Volumetric::calculateSmallestBox',
+            $serviceContent,
+            'Cart dimensions must be delegated to the shared volumetric utility'
+        );
+
+        $this->assertStringNotContainsString(
+            'function calculateSmallestVolumetricBox',
+            $serviceContent,
+            'Volumetric stacking logic must live in Utils, not inside checkout services'
+        );
+
+        $this->assertStringContainsString(
+            'class Volumetric',
+            $volumetricContent,
+            'Volumetric utility class must exist'
+        );
+
+        $this->assertStringContainsString(
+            'function calculateSmallestBox',
+            $volumetricContent,
+            'Volumetric utility must expose the smallest box calculator'
+        );
+
+        $this->assertStringContainsString(
+            '$hVert += $height * $qty',
+            $volumetricContent,
+            'Volumetric calculation must test stacking quantities along height'
+        );
+
+        $this->assertStringContainsString(
+            '$lHor += $length * $qty',
+            $volumetricContent,
+            'Volumetric calculation must test stacking quantities along length'
+        );
+
+        $this->assertStringContainsString(
+            '$wSide += $width * $qty',
+            $volumetricContent,
+            'Volumetric calculation must test stacking quantities along width'
+        );
+
+        $this->assertStringContainsString(
+            '$volVert = $lVert * $wVert * $hVert',
+            $volumetricContent,
+            'Volumetric calculation must compare vertical stacking volume'
+        );
+
+        $this->assertStringContainsString(
+            '$volHor = $lHor * $wHor * $hHor',
+            $volumetricContent,
+            'Volumetric calculation must compare horizontal stacking volume'
+        );
+
+        $this->assertStringContainsString(
+            '$volSide = $lSide * $wSide * $hSide',
+            $volumetricContent,
+            'Volumetric calculation must compare side-by-side stacking volume'
+        );
+
+        $this->assertStringContainsString(
+            "'qty' => \$quantity",
+            $serviceContent,
+            'Cart attribute collection must preserve cart quantity for volumetric stacking'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_template_must_render_real_cart_total_not_hardcoded_zero(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
