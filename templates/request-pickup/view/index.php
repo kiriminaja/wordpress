@@ -362,7 +362,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     return
                 }
 
-                window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${resp?.data?.pickup_number}&open_payment=1`;
                 
                 
             }
@@ -442,6 +442,14 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     function refreshShowPaymentForm(){
         showPaymentForm(showPaymentFormPaymentId)
     }
+    jQuery(document).ready(function() {
+        const urlParams = new URL(window.location.href).searchParams;
+        const pickupNumberToLoad = urlParams.get('pickup_number');
+        const shouldOpenPayment = urlParams.get('open_payment');
+        if (pickupNumberToLoad && shouldOpenPayment === '1') {
+            showPaymentForm(pickupNumberToLoad);
+        }
+    });
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
