@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.33
+Stable tag: 2.1.34
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,9 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.34 =
+- Fix(request-pickup): auto-open payment modal only with open_payment flag
+
 = 2.1.33 =
 - Fix(request-pickup): disable auto-open payment modal via pickup_number
 - Fix(request-pickup): redirect success flow to pickup list page
