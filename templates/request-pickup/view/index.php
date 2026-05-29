@@ -442,12 +442,14 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     function refreshShowPaymentForm(){
         showPaymentForm(showPaymentFormPaymentId)
     }
-    jQuery(document).ready(function() {
-        const urlParams = new URL(window.location.href).searchParams;
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
         const pickupNumberToLoad = urlParams.get('pickup_number');
         const shouldOpenPayment = urlParams.get('open_payment');
-        if (pickupNumberToLoad && shouldOpenPayment === '1') {
-            showPaymentForm(pickupNumberToLoad);
+        if (pickupNumberToLoad && (shouldOpenPayment === '1' || shouldOpenPayment === 'true')) {
+            setTimeout(function() {
+                showPaymentForm(pickupNumberToLoad);
+            }, 150);
         }
     });
 <?php
