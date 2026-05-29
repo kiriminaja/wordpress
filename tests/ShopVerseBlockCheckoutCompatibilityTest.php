@@ -71,6 +71,26 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_triggers_store_api_session_persist_before_legacy_ajax_fee_request(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($start, 'Block checkout COD/insurance recalculation function must exist');
+        $functionBody = substr($content, $start, 5200);
+
+        $extensionPosition = strpos($functionBody, 'kiriofBlockExtensionCartUpdate(data);');
+        $ajaxPosition = strpos($functionBody, 'jQuery.ajax({');
+
+        $this->assertNotFalse($extensionPosition, 'Block checkout must persist shipping/destination/payment choices through Store API before order creation');
+        $this->assertNotFalse($ajaxPosition, 'Legacy AJAX fee request should still run for classic checkout compatibility');
+        $this->assertLessThan(
+            $ajaxPosition,
+            $extensionPosition,
+            'Store API session persistence must run before legacy admin-ajax fee calculation because checkout may submit before the AJAX success callback fires'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_postcode_lookup_uses_localized_ajax_url(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
@@ -550,6 +570,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $content,
             'Store API callback must persist selected shipping method before WC recalculates fees'
         );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_expedition'",
+            $content,
+            'Store API callback must persist normalized expedition for transaction insertion even if checkout submits before the create_order hook sees POST data'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_destination_area'",
+            $content,
+            'Store API callback must persist transaction destination context, not only shipping-rate destination context'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'billing_insurance'",
+            $content,
+            'Store API callback must persist the insurance flag used by transaction creation'
+        );
     }
 
     #[Test]
@@ -557,6 +595,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $service = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+
+        $this->assertStringContainsString(
+            "woocommerce_store_api_checkout_order_processed",
+            $content,
+            'Block checkout must create KiriminAja transaction rows from the Store API order-processed hook, not only the classic checkout hook'
+        );
+
+        $this->assertStringContainsString(
+            'afterStoreApiCheckoutOrderProcessed',
+            $content,
+            'Store API checkout hook should delegate to the existing transaction creation flow'
+        );
+
+        $this->assertStringContainsString(
+            'getTransactionByWCOrderId',
+            $content,
+            'Store API checkout hook must guard against duplicate transaction rows if Woo also fires the classic hook'
+        );
 
         $this->assertStringContainsString(
             "WC()->session->get( 'chosen_shipping_methods'",

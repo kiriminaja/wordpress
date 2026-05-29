@@ -43,6 +43,8 @@ class CheckoutController
                 add_action( 'woocommerce_checkout_create_order', array($this,'afterCheckoutBeforeCreated'), 10, 2 );
                 /** After checkout Save custom field value as custom customer metadata */
                 add_action( 'woocommerce_checkout_order_processed', array($this,'afterCheckoutAfterCreated'),10, 3);
+                /** Block checkout Store API does not reliably trigger the classic processed hook. */
+                add_action( 'woocommerce_store_api_checkout_order_processed', array($this,'afterStoreApiCheckoutOrderProcessed'), 10, 1 );
             /** end After Checkout */
             /** Expedition Ajax*/
             add_action('wp_ajax_kiriof-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
@@ -317,6 +319,20 @@ class CheckoutController
     {
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-shipping-address.php');
     }
+    public function afterStoreApiCheckoutOrderProcessed( $order ){
+        if ( ! $order instanceof \WC_Order ) {
+            return;
+        }
+
+        // Avoid duplicate inserts if Woo also fires the classic processed hook.
+        $existing_transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order->get_id() );
+        if ( $existing_transaction ) {
+            return;
+        }
+
+        $this->afterCheckoutAfterCreated( $order->get_id(), array(), $order );
+    }
+
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
         /** Resolve the order object: WC may pass null in some flows */
         if ( ! $order instanceof \WC_Order ) {
@@ -1038,19 +1054,23 @@ class CheckoutController
 
         if ( '' !== $shipping_method ) {
             WC()->session->set( 'chosen_shipping_methods', array( $shipping_method ) );
+            WC()->session->set( 'kiriof_expedition', $this->kiriof_extract_expedition_from_method( $shipping_method ) );
         }
 
         if ( $destination_id > 0 ) {
             WC()->session->set( 'destination_id', $destination_id );
             WC()->session->set( 'shipping_destination_id', $destination_id );
+            WC()->session->set( 'kiriof_destination_area', $destination_id );
         }
 
         if ( '' !== $payment_method ) {
             WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
             WC()->session->set( 'kiriof_payment_method', $payment_method );
         }
 
         WC()->session->set( 'kiriof_insurance', $insurance );
+        WC()->session->set( 'billing_insurance', $insurance );
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
         WC()->session->set( 'kiriof_cached_cod_amt', 0 );
     }

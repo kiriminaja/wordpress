@@ -673,6 +673,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                 insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance))
             };
 
+            // Persist the block-checkout selections immediately through Store API.
+            // The legacy admin-ajax fee request below can finish after the buyer
+            // submits the order; if we wait for that success callback, the final
+            // Store API checkout hook may not have kiriminaja session context yet.
+            kiriofBlockExtensionCartUpdate(data);
+
             jQuery.ajax({
                         url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
                         type: 'post',
@@ -715,11 +721,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                             jQuery('.kj-cost-insurance .kiriof-fee-value').html(insurance_res);
                             jQuery('.kj-cost-codfee .kiriof-fee-value').html(cod_fee_res);
 
-                            // Block checkout (ShopVerse/React) does not re-render totals from
-                            // classic update_checkout fragments. Use Store API cart/extensions
-                            // so WooCommerce recalculates and returns native fee rows.
-                            kiriofBlockExtensionCartUpdate(data);
-        
                         },
                         error:function(xhr){
                             kiriofSetFeeSkeletonLoading(false);
