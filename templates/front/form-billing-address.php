@@ -27,9 +27,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php if( is_checkout() || is_cart() ) { ?>
     <?php ob_start(); ?>
 
-        jQuery(document).ready(function($) {    
-            var kiriofUpdatingCheckoutLock = false;
-            var kiriofTriggeredInitialShippingUpdate = false;
+        var kiriofUpdatingCheckoutLock = false;
+        var kiriofTriggeredInitialShippingUpdate = false;
+
+        jQuery(document).ready(function($) {
             <?php if ( $kiriof_global_insurance ) : ?>
             // Global insurance forced — check and disable the checkbox
             var $ins = jQuery('#kiriof_insurance, #kiriof_shipping_insurance');

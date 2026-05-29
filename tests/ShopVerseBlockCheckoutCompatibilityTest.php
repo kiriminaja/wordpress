@@ -46,6 +46,37 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_refresh_flags_must_be_available_to_updated_checkout_handlers(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $readyStart = strpos($content, 'jQuery(document).ready(function($)');
+        $handlerStart = strpos($content, "jQuery(document.body).on('updated_checkout', function()");
+        $this->assertNotFalse($readyStart, 'Inline checkout/cart script must initialize document ready handler');
+        $this->assertNotFalse($handlerStart, 'Classic updated_checkout handler must exist');
+
+        $upstreamScriptScope = substr($content, 0, $readyStart);
+        $readyBody = substr($content, $readyStart, $handlerStart - $readyStart);
+
+        $this->assertStringContainsString(
+            'var kiriofTriggeredInitialShippingUpdate = false;',
+            $upstreamScriptScope,
+            'updated_checkout handler reads kiriofTriggeredInitialShippingUpdate outside document.ready, so it must be declared in the outer inline-script scope'
+        );
+
+        $this->assertStringContainsString(
+            'var kiriofUpdatingCheckoutLock = false;',
+            $upstreamScriptScope,
+            'kiriofCodInsurance reads/writes kiriofUpdatingCheckoutLock outside document.ready, so it must be declared in the outer inline-script scope'
+        );
+
+        $this->assertStringNotContainsString(
+            'var kiriofTriggeredInitialShippingUpdate = false;',
+            $readyBody,
+            'Declaring refresh flags inside document.ready causes ReferenceError when WooCommerce fires updated_checkout'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_template_must_render_real_cart_total_not_hardcoded_zero(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
@@ -105,6 +136,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             '$is_cod = $chosen_payment_method === \'cod\';',
             $methodBody,
             'Only COD filtering should depend on the chosen payment method; non-COD/unknown payment should still show non-COD rates'
+        );
+    }
+
+    #[Test]
+    public function legacy_pricing_ajax_must_use_available_money_formatter(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
+
+        $this->assertStringContainsString(
+            'kiriof_money_format($option->cost-$option->discount_amount)',
+            $content,
+            'Pricing AJAX response must use the plugin money formatter that is loaded by kiriminaja.php'
+        );
+
+        $this->assertStringNotContainsString(
+            'localMoneyFormat(',
+            $content,
+            'Undefined localMoneyFormat() breaks kiriof-get-expedition-ajax and leaves the courier/pricing list empty'
         );
     }
 
