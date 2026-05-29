@@ -409,11 +409,14 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     return
                 }
                 
-                /** cek jika payment sudah dibayar tampilkan detail*/
-                if (resp?.data?.payment_in_wc_data?.status === "paid"){
-                    /** hide modal*/
+                /** cek jika payment sudah dibayar tampilkan detail (if available) */
+                if (
+                    resp?.data?.payment_in_wc_data?.status === "paid" &&
+                    typeof showDetail === "function"
+                ){
                     modalElem.addClass('kj-hidden')
                     showDetail(showPaymentFormPaymentId)
+                    return
                 }
                 
                 modalElemLoader.addClass('kj-hidden')
