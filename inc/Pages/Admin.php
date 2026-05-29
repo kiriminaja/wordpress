@@ -204,12 +204,11 @@ class Admin extends BaseInit{
             LEFT JOIN {$wpdb->posts} child_variation
                 ON child_variation.post_parent = p.ID
                AND child_variation.post_type = 'product_variation'
-               AND child_variation.post_status = 'publish'";
+               AND child_variation.post_status IN ('publish','private')";
         $product_volumetric_where_sql = "
-            WHERE p.post_status = 'publish'
-              AND (
-                  p.post_type = 'product_variation'
-                  OR (p.post_type = 'product' AND child_variation.ID IS NULL)
+            WHERE (
+                  (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
+                  OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
               )";
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
