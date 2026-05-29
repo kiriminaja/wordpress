@@ -742,6 +742,38 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function admin_ajax_fee_refresh_preserves_selected_shipping_method_before_recalculating_totals(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+        $start = strpos($content, 'public function kiriof_getDataAfterUpdateCheckout()');
+        $this->assertNotFalse($start, 'Admin AJAX checkout recalculation handler must exist');
+        $methodBody = substr($content, $start, 5600);
+
+        $kiriofSessionPosition = strpos($methodBody, 'WC()->session->set( \'kiriof_chosen_shipping_methods\', array( $shipping_metode_id ) );');
+        $sessionPosition = strpos($methodBody, 'WC()->session->set( \'chosen_shipping_methods\', array( $shipping_metode_id ) );');
+        $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
+        $this->assertNotFalse(
+            $kiriofSessionPosition,
+            'Fee AJAX must keep plugin-owned selected courier session data under the kiriof_ prefix'
+        );
+        $this->assertNotFalse(
+            $sessionPosition,
+            'Fee AJAX must persist the newly selected courier before WooCommerce recalculates totals'
+        );
+        $this->assertNotFalse($calculatePosition, 'Fee AJAX recalculates WooCommerce totals after caching fee data');
+        $this->assertLessThan(
+            $sessionPosition,
+            $kiriofSessionPosition,
+            'The prefixed plugin session mirror should be written before syncing the WooCommerce core chosen_shipping_methods key'
+        );
+        $this->assertLessThan(
+            $calculatePosition,
+            $sessionPosition,
+            'Persisting chosen_shipping_methods before calculate_totals prevents classic checkout from re-rendering the previous/default courier'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_select_uses_dedicated_wrapper_without_overlapping_source_field(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
@@ -943,6 +975,39 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "WC()->session->set( 'chosen_shipping_methods', null );",
             $methodBody,
             'Store API recalculations without classic POST shipping_method must not clear the selected KiriminAja method saved by extensionCartUpdate'
+        );
+    }
+
+    #[Test]
+    public function shipping_chosen_method_filter_preserves_posted_ajax_selection_and_prefixed_session_mirror(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        $this->assertStringContainsString(
+            '$posted_method = sanitize_text_field',
+            $methodBody,
+            'WooCommerce update_order_review AJAX should be able to keep the newly selected posted courier during fragment rendering'
+        );
+
+        $this->assertStringContainsString(
+            'WC()->session->set( \'kiriof_chosen_shipping_methods\', array( $posted_method ) );',
+            $methodBody,
+            'The plugin-owned selected courier mirror must use the kiriof_ session prefix'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_chosen_shipping_methods'",
+            $methodBody,
+            'If WooCommerce enters the chosen-method filter without POST data, it should fall back to the prefixed plugin mirror before using the old/default method'
+        );
+
+        $this->assertStringNotContainsString(
+            'checkout_kiriminaja_nonce_field',
+            $methodBody,
+            'The chosen-method filter runs during WooCommerce AJAX fragment rendering where the plugin checkout nonce may not be available'
         );
     }
 

@@ -79,6 +79,7 @@ class CheckoutController
         if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
             $shipping_methods = array_map( 'sanitize_text_field', wp_unslash( $_POST['shipping_method'] ) );
+            WC()->session->set( 'kiriof_chosen_shipping_methods', $shipping_methods );
             WC()->session->set( 'chosen_shipping_methods', $shipping_methods );
         }
 
@@ -989,13 +990,22 @@ class CheckoutController
      * @return string
      */
     public function kiriof_shipping_chosen_method($method, $available_methods) {
-        // Verify nonce - fail early if missing or invalid
-        if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
-            return $method;
-        }
         if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
-            return sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
+            $posted_method = sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( $posted_method ) );
+            WC()->session->set( 'chosen_shipping_methods', array( $posted_method ) );
+            return $posted_method;
         }
+
+        $kiriof_chosen_methods = WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
+        if (
+            is_array( $kiriof_chosen_methods )
+            && ! empty( $kiriof_chosen_methods[0] )
+            && array_key_exists( $kiriof_chosen_methods[0], $available_methods )
+        ) {
+            return $kiriof_chosen_methods[0];
+        }
+
         return $method;
     }
 
@@ -1158,6 +1168,7 @@ class CheckoutController
         $insurance       = ! empty( $data['insurance'] ) ? 1 : 0;
 
         if ( '' !== $shipping_method ) {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( $shipping_method ) );
             WC()->session->set( 'chosen_shipping_methods', array( $shipping_method ) );
             WC()->session->set( 'kiriof_expedition', $this->kiriof_extract_expedition_from_method( $shipping_method ) );
         }

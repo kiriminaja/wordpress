@@ -106,6 +106,10 @@ class GeneralAjaxController
         }
         $datas = [];
         if (!empty($shipping_metode_id) && $ex_shipping[0] == 'kiriminaja-official') {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( $shipping_metode_id ) );
+            // WooCommerce reads this core session key when re-rendering the shipping radio list.
+            WC()->session->set( 'chosen_shipping_methods', array( $shipping_metode_id ) );
+
             $insurance = empty($insurance_input) ? 0 : 1;
             $expedition = $shipping_metode_id;
             if (str_starts_with($shipping_metode_id, 'kiriminaja-official_')) {
@@ -113,6 +117,7 @@ class GeneralAjaxController
             } elseif (str_starts_with($shipping_metode_id, 'kiriminaja-official:')) {
                 $expedition = substr($shipping_metode_id, strlen('kiriminaja-official:'));
             }
+            WC()->session->set( 'kiriof_expedition', $expedition );
 
             $payload = [
                 'destination_area_id'   => $destination_id,
