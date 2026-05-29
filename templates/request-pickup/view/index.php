@@ -362,7 +362,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     return
                 }
 
-                window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup-detail' ) ); ?>&pickup_number=${resp?.data?.pickup_number}`;
+                window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${resp?.data?.pickup_number}`;
                 
                 
             }
