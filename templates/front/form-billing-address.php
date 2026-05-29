@@ -217,19 +217,22 @@ if ( ! defined( 'ABSPATH' ) ) {
                         // the block field wrapper so React re-renders do not remove it.
                         $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
 
-                        var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input, .wc-block-components-address-form, .wc-block-components-checkout-step__content').first();
+                        var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
                         if (!$wrapper.length) {
                             $wrapper = $field.parent();
                         }
+                        $wrapper.addClass('kiriof-block-district-source-wrapper').hide();
 
                         var $select = jQuery('.kiriof-block-district-select');
                         if (!$select.length) {
+                            var $fieldWrapper = jQuery('<div class="wc-block-components-text-input kiriof-block-district-field-wrapper"></div>');
                             var $container = jQuery('<div class="wc-blocks-components-select__container kiriof-block-district-select-container"></div>');
                             var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label"><?php echo esc_js(__('District','kiriminaja-official')); ?></label>');
                             $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping address-level3"></select>');
                             var $expand = jQuery('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="wc-blocks-components-select__expand" aria-hidden="true" focusable="false"><path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z"></path></svg>');
                             $container.append($label, $select, $expand);
-                            $wrapper.after($container);
+                            $fieldWrapper.append($container);
+                            $wrapper.after($fieldWrapper);
                         }
 
                         var currentValue = $field.val() || $select.val() || '';

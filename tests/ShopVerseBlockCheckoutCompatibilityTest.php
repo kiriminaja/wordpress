@@ -287,6 +287,33 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_district_select_uses_dedicated_wrapper_without_overlapping_source_field(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofRenderBlockDistrictSelect');
+        $this->assertNotFalse($start, 'Block District select renderer must exist');
+        $functionBody = substr($content, $start, 4200);
+
+        $this->assertStringContainsString(
+            'kiriof-block-district-field-wrapper',
+            $functionBody,
+            'Block District select should live in its own Woo Blocks field wrapper instead of being inserted next to the hidden React text input wrapper'
+        );
+
+        $this->assertStringContainsString(
+            '$wrapper.after($fieldWrapper)',
+            $functionBody,
+            'The dedicated District wrapper should be inserted as a sibling after the hidden React source wrapper to avoid ShopVerse label/input overlap'
+        );
+
+        $this->assertStringContainsString(
+            '$wrapper.addClass(\'kiriof-block-district-source-wrapper\')',
+            $functionBody,
+            'The original Woo Blocks text-input wrapper should be marked separately so CSS can fully collapse the hidden source field area'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_select_matches_woocommerce_blocks_select_markup(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
