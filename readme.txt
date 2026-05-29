@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.28
+Stable tag: 2.1.29
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,41 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.29 =
+- Enhance checkout process with force insurance handling and cache validation
+- Persist chosen shipping methods in session during checkout updates and AJAX requests
+- Update cancel shipment button text for clarity in transaction summary
+- Enhance Store API checkout process with destination area handling and metadata persistence
+- Implement volumetric calculations for cart items and update related services
+- Implement product volumetric configuration tracking and UI updates
+- Add WooCommerce Shipping Locations step to setup checklist and update related UI elements
+- Exclude variable parents from volumetric readiness
+- Make volumetric box calculation packable
+- Update money formatting in OngkirPricingService and adjust script initialization in form-billing-address
+- Set current gateway in custom checkout payment row
+- Show shipping rates before payment selection
+- Refresh block checkout shipping rates
+- Show block checkout transactions correctly
+- Refresh checkout fee context
+- Enhance block checkout compatibility and styling
+- Prevent classic checkout fee refresh loop
+- Use native fees on classic checkout
+- Restore classic checkout order total
+- Support COD fees in block checkout
+- Initialize block checkout compatibility on cart flows
+- Harden block checkout COD fee detection
+- Remove unnecessary paragraph tags around submit buttons in address and webhooks sections
+- Normalize block checkout payment method
+- Persist block checkout transaction context
+- Match block district select markup
+- Persist block checkout transactions after cart reset
+- Isolate ShopVerse district select wrapper
+- Fix block checkout order fee persistence
+- Fix block checkout COD payment detection
+- Fix block checkout district session bridge
+- Add block checkout native fee path
+- Find block district field after react render
+
 = 2.1.28 =
 - Update description for shipping insurance feature
 - Enhance SQL query in SetupMigration and improve variable naming in section-account
