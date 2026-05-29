@@ -220,6 +220,29 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
                     });
                 }
+
+                function kiriofRefreshBlockShippingRates() {
+                    if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                        return;
+                    }
+
+                    try {
+                        var cartDispatch = wp.data.dispatch('wc/store/cart');
+                        if (cartDispatch && typeof cartDispatch.invalidateResolutionForStoreSelector === 'function') {
+                            cartDispatch.invalidateResolutionForStoreSelector('getShippingRates');
+                        }
+                        if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                            cartDispatch.invalidateResolutionForStore();
+                        }
+                    } catch(e) {}
+
+                    try {
+                        var coreDataDispatch = wp.data.dispatch('core/data');
+                        if (coreDataDispatch && typeof coreDataDispatch.invalidateResolution === 'function') {
+                            coreDataDispatch.invalidateResolution('wc/store/cart', 'getShippingRates', []);
+                        }
+                    } catch(e) {}
+                }
             
                 var kiriofLastDistrictResults = [];
             
@@ -326,6 +349,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             
                         kiriofUpdateCheckoutAdditionalFields(val);
                         kiriofPersistDestinationArea(val, label, differentAddress, function() {
+                            kiriofRefreshBlockShippingRates();
                             kiriofCodInsurance();
                         });
                     });

@@ -290,18 +290,64 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
         $start = strpos($content, 'change.kiriofBlockDistrict');
         $this->assertNotFalse($start, 'Block District change handler must exist');
-        $handlerBody = substr($content, $start, 2200);
+        $handlerBody = substr($content, $start, 2600);
 
-        $this->assertStringContainsString(
-            'kiriofPersistDestinationArea',
-            $handlerBody,
+        $persistPosition = strpos($handlerBody, 'kiriofPersistDestinationArea');
+        $refreshPosition = strpos($handlerBody, 'kiriofRefreshBlockShippingRates');
+
+        $this->assertNotFalse(
+            $persistPosition,
             'Selecting a District in block checkout must persist destination_id to WC session before rates are recalculated'
+        );
+
+        $this->assertNotFalse(
+            $refreshPosition,
+            'Block checkout must explicitly refresh Store API shipping rates after District persistence; themes like Blocksy may not refetch rates from an additional custom field change alone'
+        );
+
+        $this->assertLessThan(
+            $refreshPosition,
+            $persistPosition,
+            'Shipping-rate refresh must happen after destination_id is persisted server-side so KiriminAja calculate_shipping receives the fulfilled address'
         );
 
         $this->assertStringContainsString(
             'kiriofGetDestinationAreaAjaxData',
             $content,
             'The block and classic District handlers should share the same destination/session payload builder'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_shipping_rate_refresh_uses_cart_dispatch_invalidation_fallbacks(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofRefreshBlockShippingRates');
+        $this->assertNotFalse($start, 'Block checkout must define an explicit shipping-rate refresh helper');
+        $methodBody = substr($content, $start, 2200);
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/cart')",
+            $methodBody,
+            'Shipping-rate refresh helper must use the Woo cart data store used by checkout blocks'
+        );
+
+        $this->assertStringContainsString(
+            'invalidateResolutionForStoreSelector',
+            $methodBody,
+            'Blocksy/Woo Blocks may cache getShippingRates; invalidating that selector forces a Store API rates refetch'
+        );
+
+        $this->assertStringContainsString(
+            'getShippingRates',
+            $methodBody,
+            'The invalidated selector should be getShippingRates because missing shipping list is a stale rates problem'
+        );
+
+        $this->assertStringContainsString(
+            'invalidateResolutionForStore',
+            $methodBody,
+            'Older Woo Blocks versions need the broader store invalidation fallback'
         );
     }
 
