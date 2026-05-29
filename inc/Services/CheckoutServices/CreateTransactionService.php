@@ -28,6 +28,7 @@ class CreateTransactionService extends BaseService{
      */
     public function __construct($payload){
         $this->payload = $payload;
+        $this->payload['wc_cart_contents'] = $this->normalizeCartContents( $payload['wc_cart_contents'] ?? array() );
         return $this;
     }
     
@@ -95,6 +96,41 @@ class CreateTransactionService extends BaseService{
             return self::error([],'fail creating transaction');
         }
     }
+    private function normalizeCartContents( $cart_contents ){
+        if ( is_array( $cart_contents ) && ! empty( $cart_contents ) ) {
+            return $cart_contents;
+        }
+
+        return $this->getOrderCartContentsFallback();
+    }
+
+    private function getOrderCartContentsFallback(){
+        if ( empty( $this->payload['order_id'] ) || ! function_exists( 'wc_get_order' ) ) {
+            return array();
+        }
+
+        $order = wc_get_order($this->payload['order_id']);
+        if ( ! $order ) {
+            return array();
+        }
+
+        $cart_contents = array();
+        foreach ( $order->get_items( 'line_item' ) as $item_id => $item ) {
+            $product_id = $item->get_variation_id() ?: $item->get_product_id();
+            if ( empty( $product_id ) ) {
+                continue;
+            }
+
+            $cart_contents[ $item_id ] = array(
+                'product_id' => $product_id,
+                'quantity'   => $item->get_quantity(),
+                'line_total' => $item->get_total(),
+            );
+        }
+
+        return $cart_contents;
+    }
+
     private function updateWcTotalOrder($checkoutCalc){
         $order = wc_get_order($this->payload['order_id']);
         if (!$order) {

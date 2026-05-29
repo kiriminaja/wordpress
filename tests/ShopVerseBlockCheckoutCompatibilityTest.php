@@ -544,6 +544,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     public function block_checkout_order_creation_reads_store_api_checkout_context(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $service = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
 
         $this->assertStringContainsString(
             "WC()->session->get( 'chosen_shipping_methods'",
@@ -567,6 +568,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriof_extract_expedition_from_method',
             $content,
             'Block checkout order creation must strip kiriminaja-official prefixes from Store API rate IDs before transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            'getOrderCartContentsFallback',
+            $service,
+            'CreateTransactionService must rebuild cart contents from the persisted order when block checkout clears WC()->cart before the transaction row is inserted'
+        );
+
+        $this->assertStringContainsString(
+            'wc_get_order($this->payload[\'order_id\'])',
+            $service,
+            'Order fallback must load the completed Woo order so COD transactions can still persist after Store API checkout'
         );
     }
 
