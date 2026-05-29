@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.29
+Stable tag: 2.1.30
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,10 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.30 =
+- Remove inline styles from "Complete Setup" button
+- Count private variations in volumetric setup
+
 = 2.1.29 =
 - Enhance checkout process with force insurance handling and cache validation
 - Persist chosen shipping methods in session during checkout updates and AJAX requests
