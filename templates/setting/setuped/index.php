@@ -48,6 +48,41 @@ $kiriof_product_volumetric_where_sql = "
           (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
           OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
       )";
+$kiriof_product_volumetric_ready_sql = "
+    (
+        CAST(
+            CASE
+                WHEN p.post_type = 'product_variation'
+                    THEN COALESCE(NULLIF(weight_meta.meta_value, ''), parent_weight_meta.meta_value, '0')
+                ELSE COALESCE(weight_meta.meta_value, '0')
+            END
+            AS DECIMAL(10,2)
+        ) > 0
+        AND CAST(
+            CASE
+                WHEN p.post_type = 'product_variation'
+                    THEN COALESCE(NULLIF(length_meta.meta_value, ''), parent_length_meta.meta_value, '0')
+                ELSE COALESCE(length_meta.meta_value, '0')
+            END
+            AS DECIMAL(10,2)
+        ) > 0
+        AND CAST(
+            CASE
+                WHEN p.post_type = 'product_variation'
+                    THEN COALESCE(NULLIF(width_meta.meta_value, ''), parent_width_meta.meta_value, '0')
+                ELSE COALESCE(width_meta.meta_value, '0')
+            END
+            AS DECIMAL(10,2)
+        ) > 0
+        AND CAST(
+            CASE
+                WHEN p.post_type = 'product_variation'
+                    THEN COALESCE(NULLIF(height_meta.meta_value, ''), parent_height_meta.meta_value, '0')
+                ELSE COALESCE(height_meta.meta_value, '0')
+            END
+            AS DECIMAL(10,2)
+        ) > 0
+    )";
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $kiriof_product_volumetric_total = (int) $wpdb->get_var(
@@ -59,15 +94,16 @@ $kiriof_product_volumetric_total = (int) $wpdb->get_var(
 $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
     "SELECT COUNT(DISTINCT p.ID)
      {$kiriof_product_volumetric_from_sql}
-     INNER JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
-     INNER JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
-     INNER JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
-     INNER JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
+     LEFT JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
+     LEFT JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
+     LEFT JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
+     LEFT JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
+     LEFT JOIN {$wpdb->postmeta} parent_weight_meta ON parent_weight_meta.post_id = p.post_parent AND parent_weight_meta.meta_key = '_weight'
+     LEFT JOIN {$wpdb->postmeta} parent_length_meta ON parent_length_meta.post_id = p.post_parent AND parent_length_meta.meta_key = '_length'
+     LEFT JOIN {$wpdb->postmeta} parent_width_meta ON parent_width_meta.post_id = p.post_parent AND parent_width_meta.meta_key = '_width'
+     LEFT JOIN {$wpdb->postmeta} parent_height_meta ON parent_height_meta.post_id = p.post_parent AND parent_height_meta.meta_key = '_height'
      {$kiriof_product_volumetric_where_sql}
-       AND CAST(weight_meta.meta_value AS DECIMAL(10,2)) > 0
-       AND CAST(length_meta.meta_value AS DECIMAL(10,2)) > 0
-       AND CAST(width_meta.meta_value AS DECIMAL(10,2)) > 0
-       AND CAST(height_meta.meta_value AS DECIMAL(10,2)) > 0"
+       AND {$kiriof_product_volumetric_ready_sql}"
 );
 $kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_total > 0 && $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
 $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
