@@ -225,13 +225,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                         var $select = jQuery('.kiriof-block-district-select');
                         if (!$select.length) {
-                            var $fieldWrapper = jQuery('<div class="wc-block-components-text-input kiriof-block-district-field-wrapper"></div>');
+                            var $fieldWrapper = jQuery('<div class="wc-block-components-address-form__state wc-block-components-state-input kiriof-block-district-field-wrapper"></div>');
+                            var $selectWrapper = jQuery('<div class="wc-blocks-components-select kiriof-block-district-select-wrapper"></div>');
                             var $container = jQuery('<div class="wc-blocks-components-select__container kiriof-block-district-select-container"></div>');
                             var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label"><?php echo esc_js(__('District','kiriminaja-official')); ?></label>');
-                            $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping address-level3"></select>');
+                            $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping shipping address-level3"></select>');
                             var $expand = jQuery('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="wc-blocks-components-select__expand" aria-hidden="true" focusable="false"><path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z"></path></svg>');
                             $container.append($label, $select, $expand);
-                            $fieldWrapper.append($container);
+                            $selectWrapper.append($container);
+                            $fieldWrapper.append($selectWrapper);
                             $wrapper.after($fieldWrapper);
                         }
 

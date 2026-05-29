@@ -322,6 +322,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $functionBody = substr($content, $start, 3200);
 
         $this->assertStringContainsString(
+            'wc-block-components-address-form__state wc-block-components-state-input',
+            $functionBody,
+            'Block District selector should use the same outer address-form wrapper as WooCommerce block Province selects'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-components-select kiriof-block-district-select-wrapper',
+            $functionBody,
+            'Block District selector should include the same inner Woo Blocks select wrapper as Province'
+        );
+
+        $this->assertStringContainsString(
             'wc-blocks-components-select__container',
             $functionBody,
             'Block District selector should use the same container class as WooCommerce block Province selects'
