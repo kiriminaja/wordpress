@@ -31,6 +31,55 @@ $kiriof_cod_settings = get_option( 'woocommerce_cod_settings', array() );
 $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_settings['enabled'] : 'yes';
 $kiriof_insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
 $kiriof_insurance_enabled = ( $kiriof_insurance_setting && 'yes' === $kiriof_insurance_setting->value ) ? 'yes' : 'no';
+$kiriof_ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
+$kiriof_shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
+$kiriof_shipping_locations_ready = ( 'disabled' !== $kiriof_ship_to_countries && ! empty( $kiriof_shipping_countries ) );
+$kiriof_wc_general_url = admin_url( 'admin.php?page=wc-settings' );
+
+global $wpdb;
+$kiriof_product_volumetric_from_sql = "
+    FROM {$wpdb->posts} p
+    LEFT JOIN {$wpdb->posts} child_variation
+        ON child_variation.post_parent = p.ID
+       AND child_variation.post_type = 'product_variation'
+       AND child_variation.post_status = 'publish'";
+$kiriof_product_volumetric_where_sql = "
+    WHERE p.post_status = 'publish'
+      AND (
+          p.post_type = 'product_variation'
+          OR (p.post_type = 'product' AND child_variation.ID IS NULL)
+      )";
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$kiriof_product_volumetric_total = (int) $wpdb->get_var(
+    "SELECT COUNT(DISTINCT p.ID)
+     {$kiriof_product_volumetric_from_sql}
+     {$kiriof_product_volumetric_where_sql}"
+);
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$kiriof_product_volumetric_configured = (int) $wpdb->get_var(
+    "SELECT COUNT(DISTINCT p.ID)
+     {$kiriof_product_volumetric_from_sql}
+     INNER JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
+     INNER JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
+     INNER JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
+     INNER JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
+     {$kiriof_product_volumetric_where_sql}
+       AND CAST(weight_meta.meta_value AS DECIMAL(10,2)) > 0
+       AND CAST(length_meta.meta_value AS DECIMAL(10,2)) > 0
+       AND CAST(width_meta.meta_value AS DECIMAL(10,2)) > 0
+       AND CAST(height_meta.meta_value AS DECIMAL(10,2)) > 0"
+);
+$kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_total > 0 && $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
+$kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
+    ? kiriof_helper()->tlThis( 'All Product Configured', $locale )
+    : sprintf(
+        /* translators: %1$d: configured products, %2$d: total products */
+        kiriof_helper()->tlThis( '%1$d / %2$d Product Volumetric Configurations', $locale ),
+        $kiriof_product_volumetric_configured,
+        $kiriof_product_volumetric_total
+    );
+$kiriof_products_url = admin_url( 'edit.php?post_type=product' );
 ?>
 <div class="wrap kj-wrap">
 
@@ -75,6 +124,34 @@ $kiriof_insurance_enabled = ( $kiriof_insurance_setting && 'yes' === $kiriof_ins
 
         <!-- Shipping -->
         <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Shipping',$locale) ); ?></div>
+
+        <a href="<?php echo esc_url( $kiriof_products_url ); ?>" class="kj-setting-row">
+            <div class="kj-setting-row-inner">
+                <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6.5v11L12 22l9-4.5v-11L12 2z" stroke="#50575e" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 6.5l9 4.5 9-4.5M12 11v11" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="kj-setting-row-text">
+                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Product Volumetric Configurations',$locale) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Set weight, length, width, and height for every product and variation.',$locale) ); ?></span>
+                </div>
+                <span class="kj-status-pill <?php echo $kiriof_product_volumetric_ready ? 'is-ready' : 'is-warning'; ?>">
+                    <?php echo esc_html( $kiriof_product_volumetric_status ); ?>
+                </span>
+                <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </a>
+
+        <a href="<?php echo esc_url( $kiriof_wc_general_url ); ?>" class="kj-setting-row">
+            <div class="kj-setting-row-inner">
+                <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.12 7-12A7 7 0 1 0 5 9c0 5.88 7 12 7 12z" stroke="#50575e" stroke-width="1.5"/><path d="M9 9.5l2 2 4-4" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="kj-setting-row-text">
+                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('WooCommerce Shipping Locations',$locale) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.',$locale) ); ?></span>
+                </div>
+                <span class="kj-status-pill <?php echo $kiriof_shipping_locations_ready ? 'is-ready' : 'is-warning'; ?>">
+                    <?php echo esc_html( $kiriof_shipping_locations_ready ? kiriof_helper()->tlThis('Ready',$locale) : kiriof_helper()->tlThis('Action needed',$locale) ); ?>
+                </span>
+                <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </a>
 
         <a href="<?php echo esc_url( $kiriof_base_url . '&section=couriers' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">

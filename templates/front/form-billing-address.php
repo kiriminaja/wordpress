@@ -27,9 +27,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php if( is_checkout() || is_cart() ) { ?>
     <?php ob_start(); ?>
 
-        jQuery(document).ready(function($) {    
-            var kiriofUpdatingCheckoutLock = false;
-            var kiriofTriggeredInitialShippingUpdate = false;
+        var kiriofUpdatingCheckoutLock = false;
+        var kiriofTriggeredInitialShippingUpdate = false;
+
+        jQuery(document).ready(function($) {
             <?php if ( $kiriof_global_insurance ) : ?>
             // Global insurance forced — check and disable the checkbox
             var $ins = jQuery('#kiriof_insurance, #kiriof_shipping_insurance');
@@ -220,6 +221,29 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
                     });
                 }
+
+                function kiriofRefreshBlockShippingRates() {
+                    if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                        return;
+                    }
+
+                    try {
+                        var cartDispatch = wp.data.dispatch('wc/store/cart');
+                        if (cartDispatch && typeof cartDispatch.invalidateResolutionForStoreSelector === 'function') {
+                            cartDispatch.invalidateResolutionForStoreSelector('getShippingRates');
+                        }
+                        if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                            cartDispatch.invalidateResolutionForStore();
+                        }
+                    } catch(e) {}
+
+                    try {
+                        var coreDataDispatch = wp.data.dispatch('core/data');
+                        if (coreDataDispatch && typeof coreDataDispatch.invalidateResolution === 'function') {
+                            coreDataDispatch.invalidateResolution('wc/store/cart', 'getShippingRates', []);
+                        }
+                    } catch(e) {}
+                }
             
                 var kiriofLastDistrictResults = [];
             
@@ -326,6 +350,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             
                         kiriofUpdateCheckoutAdditionalFields(val);
                         kiriofPersistDestinationArea(val, label, differentAddress, function() {
+                            kiriofRefreshBlockShippingRates();
                             kiriofCodInsurance();
                         });
                     });
@@ -578,8 +603,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                         data: {
                             shipping_metode_id: data.shipping_metode_id,
                             destination_id: data.destination_id,
+                            destination_name: data.destination_name,
                             payment_method: data.payment_method,
-                            insurance: data.insurance
+                            insurance: data.insurance,
+                            force_insurance: data.force_insurance
                         }
                     });
                     return;
@@ -688,6 +715,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             shipping_metode_id = shipping_metode_id || '';
             
             let destination_id = kiriofGetDestinationId(different_address);
+            let destination_name = jQuery('.kiriof-block-district-select option:selected').text()
+                || jQuery('[name="kiriof_destination_area_name"]').val()
+                || jQuery('[name="kiriof_shipping_destination_area_name"]').val()
+                || '';
 
             // Global insurance forced = always true
             <?php if ( $kiriof_global_insurance ) : ?>
@@ -710,8 +741,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                 nonce:"<?php echo esc_js( wp_create_nonce('kiriof-update-checkout') ); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
+                destination_name,
                 payment_method,
-                insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance))
+                insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance)),
+                force_insurance : parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
             };
 
             // Persist the block-checkout selections immediately through Store API.

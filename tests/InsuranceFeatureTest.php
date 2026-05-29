@@ -342,4 +342,244 @@ final class InsuranceFeatureTest extends TestCase
             'Settings list must not show TODO for insurance — it is now functional'
         );
     }
+
+    #[Test]
+    public function settings_list_checks_woocommerce_shipping_locations(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+
+        $this->assertStringContainsString(
+            'WooCommerce Shipping Locations',
+            $content,
+            'Settings wizard must surface WooCommerce shipping location configuration'
+        );
+
+        $this->assertStringContainsString(
+            "get_option( 'woocommerce_ship_to_countries'",
+            $content,
+            'Settings wizard must inspect WooCommerce Shipping location(s)'
+        );
+
+        $this->assertStringContainsString(
+            'get_shipping_countries()',
+            $content,
+            'Settings wizard must detect empty shipping countries when Ship to specific countries has no selection'
+        );
+
+        $this->assertStringContainsString(
+            'admin.php?page=wc-settings',
+            $content,
+            'Settings wizard row must link merchants to WooCommerce general settings'
+        );
+    }
+
+    #[Test]
+    public function settings_list_checks_product_volumetric_configuration_progress(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+
+        $this->assertStringContainsString(
+            'Product Volumetric Configurations',
+            $content,
+            'Settings wizard must surface product volumetric configuration progress'
+        );
+
+        $this->assertStringContainsString(
+            "child_variation.post_parent = p.ID",
+            $content,
+            'Settings wizard must detect variable products with published variations'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product_variation'",
+            $content,
+            'Settings wizard must count standalone variation rows as volumetric-required items'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product' AND child_variation.ID IS NULL",
+            $content,
+            'Settings wizard must count simple products but exclude variable parents that have variations'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_weight'",
+            $content,
+            'Settings wizard must require product weight'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_length'",
+            $content,
+            'Settings wizard must require product length'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_width'",
+            $content,
+            'Settings wizard must require product width'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_height'",
+            $content,
+            'Settings wizard must require product height'
+        );
+
+        $this->assertStringContainsString(
+            'All Product Configured',
+            $content,
+            'Settings wizard must show the completed state when all products are configured'
+        );
+    }
+
+    #[Test]
+    public function setup_notice_includes_woocommerce_shipping_locations_step(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
+        $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
+        $this->assertNotFalse($methodStart, 'Setup checklist notice method must exist');
+        $methodBody = substr($content, $methodStart, 9000);
+
+        $this->assertStringContainsString(
+            "get_option( 'woocommerce_ship_to_countries'",
+            $methodBody,
+            'Setup notice must inspect WooCommerce Shipping location(s)'
+        );
+
+        $this->assertStringContainsString(
+            'get_shipping_countries()',
+            $methodBody,
+            'Setup notice must detect when WooCommerce has no shipping countries available'
+        );
+
+        $this->assertStringContainsString(
+            'WooCommerce Shipping Locations',
+            $methodBody,
+            'Setup notice must include WooCommerce Shipping Locations in the checklist'
+        );
+
+        $this->assertStringContainsString(
+            "'shipping_locations' => admin_url( 'admin.php?page=wc-settings' )",
+            $methodBody,
+            'WooCommerce Shipping Locations checklist item must link to WooCommerce general settings'
+        );
+
+        $this->assertStringContainsString(
+            '<a href="<?php echo esc_url( $step[\'url\'] ); ?>"',
+            $methodBody,
+            'Setup checklist labels must be clickable so merchants know where to finish each step'
+        );
+    }
+
+    #[Test]
+    public function setup_notice_includes_product_volumetric_progress_step(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
+        $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
+        $this->assertNotFalse($methodStart, 'Setup checklist notice method must exist');
+        $methodBody = substr($content, $methodStart, 9000);
+
+        $this->assertStringContainsString(
+            "child_variation.post_parent = p.ID",
+            $methodBody,
+            'Setup notice must detect variable products with published variations'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product_variation'",
+            $methodBody,
+            'Setup notice must count variation rows as volumetric-required items'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product' AND child_variation.ID IS NULL",
+            $methodBody,
+            'Setup notice must count simple products but exclude variable parents that have variations'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_weight'",
+            $methodBody,
+            'Setup notice must require product weight'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_length'",
+            $methodBody,
+            'Setup notice must require product length'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_width'",
+            $methodBody,
+            'Setup notice must require product width'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_height'",
+            $methodBody,
+            'Setup notice must require product height'
+        );
+
+        $this->assertStringContainsString(
+            'All Product Configured',
+            $methodBody,
+            'Setup notice must show a completed product volumetric state'
+        );
+
+        $this->assertStringContainsString(
+            '%1$d / %2$d Product Volumetric Configurations',
+            $methodBody,
+            'Setup notice must show configured product progress'
+        );
+    }
+
+    #[Test]
+    public function product_list_has_volumetric_configuration_label_column(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ProductController.php');
+
+        $this->assertStringContainsString(
+            'manage_edit-product_columns',
+            $content,
+            'Product list must register a custom volumetric column'
+        );
+
+        $this->assertStringContainsString(
+            'manage_product_posts_custom_column',
+            $content,
+            'Product list must render the volumetric column label'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_volumetric',
+            $content,
+            'Product list must include the KiriminAja volumetric column key'
+        );
+
+        $this->assertStringContainsString(
+            'All Product Configured',
+            $content,
+            'Product list must show a completed volumetric label'
+        );
+
+        $this->assertStringContainsString(
+            '%1$d / %2$d Configured',
+            $content,
+            'Product list must show configured product and variation progress'
+        );
+
+        $this->assertStringContainsString(
+            '$product->get_children()',
+            $content,
+            'Product list must inspect variations when checking variable products'
+        );
+
+        $this->assertStringContainsString(
+            "\$product_ids = array_map( 'intval', \$product->get_children() );",
+            $content,
+            'Variable product readiness must use variation children only, not require parent product dimensions'
+        );
+    }
 }

@@ -197,19 +197,50 @@ class Admin extends BaseInit{
         $setup_key_row = $repo->getSettingByKey('setup_key');
         $is_connected  = ! empty( $setup_key_row->value ?? null );
 
-        // 2. Product LWH & Weight — check if any WC product has weight
-        $has_product_weight = false;
+        // 2. Product LWH & Weight.
         global $wpdb;
+        $product_volumetric_from_sql = "
+            FROM {$wpdb->posts} p
+            LEFT JOIN {$wpdb->posts} child_variation
+                ON child_variation.post_parent = p.ID
+               AND child_variation.post_type = 'product_variation'
+               AND child_variation.post_status = 'publish'";
+        $product_volumetric_where_sql = "
+            WHERE p.post_status = 'publish'
+              AND (
+                  p.post_type = 'product_variation'
+                  OR (p.post_type = 'product' AND child_variation.ID IS NULL)
+              )";
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $product_count = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->postmeta} pm
-             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-             WHERE p.post_type IN ('product','product_variation')
-               AND p.post_status = 'publish'
-               AND pm.meta_key = '_weight'
-               AND pm.meta_value > 0"
+        $product_volumetric_total = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.ID)
+             {$product_volumetric_from_sql}
+             {$product_volumetric_where_sql}"
         );
-        $has_product_weight = ( $product_count > 0 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $product_volumetric_configured = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.ID)
+             {$product_volumetric_from_sql}
+             INNER JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
+             INNER JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
+             INNER JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
+             INNER JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
+             {$product_volumetric_where_sql}
+               AND CAST(weight_meta.meta_value AS DECIMAL(10,2)) > 0
+               AND CAST(length_meta.meta_value AS DECIMAL(10,2)) > 0
+               AND CAST(width_meta.meta_value AS DECIMAL(10,2)) > 0
+               AND CAST(height_meta.meta_value AS DECIMAL(10,2)) > 0"
+        );
+        $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
+        $product_volumetric_label = $product_volumetric_ready
+            ? __( 'All Product Configured', 'kiriminaja-official' )
+            : sprintf(
+                /* translators: %1$d: configured products, %2$d: total products */
+                __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
+                $product_volumetric_configured,
+                $product_volumetric_total
+            );
 
         // 3. Origin Setup
         $origin_fields = $repo->getSettingByArray(array(
@@ -226,7 +257,12 @@ class Admin extends BaseInit{
         $wl_row = $repo->getSettingByKey('origin_whitelist_expedition_id');
         $courier_ready = ! empty( $wl_row->value ?? null );
 
-        // 5. Tracking Page
+        // 5. WooCommerce Shipping Locations
+        $ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
+        $shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
+        $shipping_locations_ready = ( 'disabled' !== $ship_to_countries && ! empty( $shipping_countries ) );
+
+        // 6. Tracking Page
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $tracking_pages = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->posts}
@@ -236,12 +272,22 @@ class Admin extends BaseInit{
         );
         $tracking_ready = ( $tracking_pages > 0 );
 
+        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
+        $step_urls = array(
+            'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+            'products'           => admin_url( 'edit.php?post_type=product' ),
+            'origin'             => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=address' ),
+            'couriers'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=couriers' ),
+            'shipping_locations' => admin_url( 'admin.php?page=wc-settings' ),
+            'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),
+        );
         $steps = array(
-            array( 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true ),
-            array( 'label' => __( 'Product Weight & Dimensions', 'kiriminaja-official' ), 'done' => $has_product_weight, 'required' => true ),
-            array( 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true ),
-            array( 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true ),
-            array( 'label' => __( 'Tracking Page', 'kiriminaja-official' ), 'done' => $tracking_ready, 'required' => false ),
+            array( 'key' => 'account', 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'] ),
+            array( 'key' => 'products', 'label' => $product_volumetric_label, 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'] ),
+            array( 'key' => 'origin', 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'] ),
+            array( 'key' => 'couriers', 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'] ),
+            array( 'key' => 'shipping_locations', 'label' => __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'] ),
+            array( 'key' => 'tracking', 'label' => __( 'Tracking Page', 'kiriminaja-official' ), 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'] ),
         );
 
         $done_count = count( array_filter( $steps, function( $s ) { return $s['done']; } ) );
@@ -254,8 +300,6 @@ class Admin extends BaseInit{
         if ( $all_required_done ) {
             return;
         }
-
-        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
         ?>
         <div class="notice notice-info">
             <p>
@@ -271,7 +315,7 @@ class Admin extends BaseInit{
                     <?php else : ?>
                     <span style="color:<?php echo $step['required'] ? '#d63638' : '#c3c4c7'; ?>;font-size:14px;">&#9679;</span>
                     <?php endif; ?>
-                    <span style="<?php echo $step['done'] ? 'text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></span>
+                    <a href="<?php echo esc_url( $step['url'] ); ?>" style="<?php echo $step['done'] ? 'color:#787c82;text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></a>
                     <?php if ( ! $step['required'] ) : ?>
                     <span style="font-size:10px;color:#8c8f94;"><?php echo esc_html__( '(Optional)', 'kiriminaja-official' ); ?></span>
                     <?php endif; ?>

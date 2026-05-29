@@ -148,7 +148,8 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_shippingAddress2 = $kiriof_shippingData->_shipping_address_2 ?? $kiriof_billingAddress2;
                                                     $kiriof_shippingPostcode = $kiriof_shippingData->_shipping_postcode ?? $kiriof_billingPostcode;
                                                     $kiriof_destinationSubDistrict = $kiriof_row->destination_sub_district ?? '';
-                                                    $kiriof_paymentMethod = $kiriof_shippingData->_payment_method ?? '';
+                                                    $kiriof_wcOrder = function_exists('wc_get_order') ? wc_get_order($kiriof_row->wc_order_id) : false;
+                                                    $kiriof_paymentMethod = $kiriof_wcOrder ? $kiriof_wcOrder->get_payment_method() : ($kiriof_shippingData->_payment_method ?? '');
                                                     $kiriof_isCod = $kiriof_paymentMethod === 'cod';
                                                     $kiriof_paymentLabel = $kiriof_isCod ? 'COD' : 'NON COD';
                                                     
@@ -222,7 +223,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         <td class="manage-column column-thumb">' .
                                                             '<button class="button" onclick="showTransactionSummaryModal(\'' . esc_js($kiriof_row->wc_order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Detail', $locale)) . '</button> ' .
                                                             ( ! empty( $kiriof_row->awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
-                                                                ? '<button class="button" style="color: #d63638; border-color: #d63638" onclick="kjShowCancelModal(\'' . esc_js($kiriof_row->order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Cancel Shipment', $locale)) . '</button>'
+                                                                ? '<button class="button" style="color: #d63638; border-color: #d63638" onclick="kjShowCancelModal(\'' . esc_js($kiriof_row->order_id) . '\')">' . esc_html($kiriof_helper->tlThis('Cancel', $locale)) . '</button>'
                                                                 : '' ) . '
                                                         </td>
                                                     </tr>

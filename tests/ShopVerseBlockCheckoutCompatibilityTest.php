@@ -2,6 +2,28 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+if (! defined('ABSPATH')) {
+    define('ABSPATH', PLUGIN_DIR . '/tests/wordpress/');
+}
+if (! function_exists('sanitize_text_field')) {
+    function sanitize_text_field($value)
+    {
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+}
+if (! function_exists('wp_unslash')) {
+    function wp_unslash($value)
+    {
+        return $value;
+    }
+}
+if (! function_exists('WC')) {
+    function WC()
+    {
+        return $GLOBALS['kiriof_test_wc'] ?? null;
+    }
+}
+
 /**
  * Regression coverage for React/block checkout themes such as ShopVerse.
  */
@@ -46,6 +68,163 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_refresh_flags_must_be_available_to_updated_checkout_handlers(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $readyStart = strpos($content, 'jQuery(document).ready(function($)');
+        $handlerStart = strpos($content, "jQuery(document.body).on('updated_checkout', function()");
+        $this->assertNotFalse($readyStart, 'Inline checkout/cart script must initialize document ready handler');
+        $this->assertNotFalse($handlerStart, 'Classic updated_checkout handler must exist');
+
+        $upstreamScriptScope = substr($content, 0, $readyStart);
+        $readyBody = substr($content, $readyStart, $handlerStart - $readyStart);
+
+        $this->assertStringContainsString(
+            'var kiriofTriggeredInitialShippingUpdate = false;',
+            $upstreamScriptScope,
+            'updated_checkout handler reads kiriofTriggeredInitialShippingUpdate outside document.ready, so it must be declared in the outer inline-script scope'
+        );
+
+        $this->assertStringContainsString(
+            'var kiriofUpdatingCheckoutLock = false;',
+            $upstreamScriptScope,
+            'kiriofCodInsurance reads/writes kiriofUpdatingCheckoutLock outside document.ready, so it must be declared in the outer inline-script scope'
+        );
+
+        $this->assertStringNotContainsString(
+            'var kiriofTriggeredInitialShippingUpdate = false;',
+            $readyBody,
+            'Declaring refresh flags inside document.ready causes ReferenceError when WooCommerce fires updated_checkout'
+        );
+    }
+
+    #[Test]
+    public function checkout_pricing_must_use_variation_dimensions_when_cart_item_is_variable(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php');
+
+        $this->assertStringContainsString(
+            "intval(\$cart['variation_id'] ?? 0)",
+            $content,
+            'Pricing payload must prefer variation_id so variable products use variant-level weight and dimensions'
+        );
+
+        $this->assertStringContainsString(
+            'return $variation_id;',
+            $content,
+            'Cart attribute lookup must return the variation ID when a cart item has one'
+        );
+
+        $this->assertStringContainsString(
+            "intval(\$cart['product_id'] ?? 0)",
+            $content,
+            'Cart attribute lookup must still fall back to parent product_id for simple products'
+        );
+
+        $this->assertStringContainsString(
+            "\$cartProducts[\$product_id]['cart_quantity'] += intval",
+            $content,
+            'Multiple cart rows for product variants must not overwrite each other when quantities are collected'
+        );
+    }
+
+    #[Test]
+    public function checkout_pricing_must_stack_multiple_quantities_using_smallest_volumetric_box(): void
+    {
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php');
+        $volumetricContent = file_get_contents(PLUGIN_DIR . '/inc/Utils/Volumetric.php');
+
+        $this->assertStringContainsString(
+            'use KiriminAjaOfficial\\Utils\\Volumetric;',
+            $serviceContent,
+            'Cart attribute service must use the shared volumetric utility'
+        );
+
+        $this->assertStringContainsString(
+            'Volumetric::calculateSmallestBox',
+            $serviceContent,
+            'Cart dimensions must be delegated to the shared volumetric utility'
+        );
+
+        $this->assertStringNotContainsString(
+            'function calculateSmallestVolumetricBox',
+            $serviceContent,
+            'Volumetric stacking logic must live in Utils, not inside checkout services'
+        );
+
+        $this->assertStringContainsString(
+            'class Volumetric',
+            $volumetricContent,
+            'Volumetric utility class must exist'
+        );
+
+        $this->assertStringContainsString(
+            'function calculateSmallestBox',
+            $volumetricContent,
+            'Volumetric utility must expose the smallest box calculator'
+        );
+
+        $this->assertStringContainsString(
+            "'qty' => \$quantity",
+            $serviceContent,
+            'Cart attribute collection must preserve cart quantity for volumetric stacking'
+        );
+    }
+
+    #[Test]
+    public function volumetric_box_uses_smallest_packable_axis_aligned_stack(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
+
+        $items = array(
+            array('length' => 100, 'width' => 10, 'height' => 2, 'qty' => 1),
+            array('length' => 10, 'width' => 100, 'height' => 2, 'qty' => 2),
+            array('length' => 20, 'width' => 20, 'height' => 20, 'qty' => 1),
+        );
+
+        $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
+
+        $this->assertSame(26.0, $box['length']);
+        $this->assertSame(20.0, $box['width']);
+        $this->assertSame(100.0, $box['height']);
+        $this->assertSame(52000.0, $box['length'] * $box['width'] * $box['height']);
+    }
+
+    #[Test]
+    public function volumetric_box_prefers_rotation_that_reduces_package_volume(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
+
+        $items = array(
+            array('length' => 100, 'width' => 50, 'height' => 10, 'qty' => 1),
+            array('length' => 10, 'width' => 50, 'height' => 100, 'qty' => 1),
+        );
+
+        $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
+
+        $this->assertSame(100.0, $box['length']);
+        $this->assertSame(10.0, $box['width']);
+        $this->assertSame(100.0, $box['height']);
+    }
+
+    #[Test]
+    public function volumetric_box_does_not_fake_conservatism_by_only_expanding_volume(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
+
+        $items = array(
+            array('length' => 100, 'width' => 100, 'height' => 1, 'qty' => 1),
+            array('length' => 1, 'width' => 1, 'height' => 100, 'qty' => 100),
+        );
+
+        $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
+
+        $this->assertSame(200.0, $box['length']);
+        $this->assertSame(1.0, $box['width']);
+        $this->assertSame(100.0, $box['height']);
+    }
+
+    #[Test]
     public function classic_checkout_template_must_render_real_cart_total_not_hardcoded_zero(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
@@ -63,6 +242,66 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriof_money_format( 0 )',
             $row,
             'Hardcoding Rp0 in the classic review-order template makes /checkout totals always show zero'
+        );
+    }
+
+    #[Test]
+    public function classic_checkout_custom_payment_row_sets_current_gateway_before_rendering_radios(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
+        $gatewayLookup = strpos($content, '$available_gateways = WC()->payment_gateways->get_available_payment_gateways();');
+        $renderLoop = strpos($content, 'foreach ( $available_gateways as $gateway )');
+        $this->assertNotFalse($gatewayLookup, 'Classic checkout custom payment row must fetch available gateways');
+        $this->assertNotFalse($renderLoop, 'Classic checkout custom payment row must render payment method radios');
+
+        $setCurrent = strpos($content, 'WC()->payment_gateways()->set_current_gateway( $available_gateways );');
+        $this->assertNotFalse(
+            $setCurrent,
+            'Custom payment row bypasses WooCommerce checkout/payment.php, so it must set the chosen/default gateway itself before rendering payment-method.php'
+        );
+        $this->assertLessThan(
+            $renderLoop,
+            $setCurrent,
+            'Payment gateway chosen state must be set before radios render, otherwise payment boxes can show while no input is actually checked/posted'
+        );
+    }
+
+    #[Test]
+    public function classic_checkout_shipping_method_must_not_require_payment_selection_before_showing_rates(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $start = strpos($content, 'public function filterOptions');
+        $this->assertNotFalse($start, 'KiriminAja shipping rate filtering method must exist');
+        $methodBody = substr($content, $start, 900);
+
+        $this->assertStringNotContainsString(
+            'return [];',
+            $methodBody,
+            'Classic checkout AJAX update_order_review may calculate shipping before any payment radio is checked; requiring a chosen payment method hides all rates even when District/address is fulfilled'
+        );
+
+        $this->assertStringContainsString(
+            '$is_cod = $chosen_payment_method === \'cod\';',
+            $methodBody,
+            'Only COD filtering should depend on the chosen payment method; non-COD/unknown payment should still show non-COD rates'
+        );
+    }
+
+    #[Test]
+    public function legacy_pricing_ajax_must_use_available_money_formatter(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
+
+        $this->assertStringContainsString(
+            'kiriof_money_format($option->cost-$option->discount_amount)',
+            $content,
+            'Pricing AJAX response must use the plugin money formatter that is loaded by kiriminaja.php'
+        );
+
+        $this->assertStringNotContainsString(
+            'localMoneyFormat(',
+            $content,
+            'Undefined localMoneyFormat() breaks kiriof-get-expedition-ajax and leaves the courier/pricing list empty'
         );
     }
 
@@ -114,6 +353,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "namespace: 'kiriminaja-official'",
             $content,
             'Store API cart update must be namespaced to this plugin'
+        );
+
+        $this->assertStringContainsString(
+            'destination_name: data.destination_name',
+            $content,
+            'Store API cart update must persist the selected district label for later transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            'force_insurance: data.force_insurance',
+            $content,
+            'Store API cart update must persist courier-forced insurance so block checkout order creation keeps it'
         );
     }
 
@@ -290,18 +541,64 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
         $start = strpos($content, 'change.kiriofBlockDistrict');
         $this->assertNotFalse($start, 'Block District change handler must exist');
-        $handlerBody = substr($content, $start, 2200);
+        $handlerBody = substr($content, $start, 2600);
 
-        $this->assertStringContainsString(
-            'kiriofPersistDestinationArea',
-            $handlerBody,
+        $persistPosition = strpos($handlerBody, 'kiriofPersistDestinationArea');
+        $refreshPosition = strpos($handlerBody, 'kiriofRefreshBlockShippingRates');
+
+        $this->assertNotFalse(
+            $persistPosition,
             'Selecting a District in block checkout must persist destination_id to WC session before rates are recalculated'
+        );
+
+        $this->assertNotFalse(
+            $refreshPosition,
+            'Block checkout must explicitly refresh Store API shipping rates after District persistence; themes like Blocksy may not refetch rates from an additional custom field change alone'
+        );
+
+        $this->assertLessThan(
+            $refreshPosition,
+            $persistPosition,
+            'Shipping-rate refresh must happen after destination_id is persisted server-side so KiriminAja calculate_shipping receives the fulfilled address'
         );
 
         $this->assertStringContainsString(
             'kiriofGetDestinationAreaAjaxData',
             $content,
             'The block and classic District handlers should share the same destination/session payload builder'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_shipping_rate_refresh_uses_cart_dispatch_invalidation_fallbacks(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofRefreshBlockShippingRates');
+        $this->assertNotFalse($start, 'Block checkout must define an explicit shipping-rate refresh helper');
+        $methodBody = substr($content, $start, 2200);
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/cart')",
+            $methodBody,
+            'Shipping-rate refresh helper must use the Woo cart data store used by checkout blocks'
+        );
+
+        $this->assertStringContainsString(
+            'invalidateResolutionForStoreSelector',
+            $methodBody,
+            'Blocksy/Woo Blocks may cache getShippingRates; invalidating that selector forces a Store API rates refetch'
+        );
+
+        $this->assertStringContainsString(
+            'getShippingRates',
+            $methodBody,
+            'The invalidated selector should be getShippingRates because missing shipping list is a stale rates problem'
+        );
+
+        $this->assertStringContainsString(
+            'invalidateResolutionForStore',
+            $methodBody,
+            'Older Woo Blocks versions need the broader store invalidation fallback'
         );
     }
 
@@ -322,10 +619,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout Store API callback stores the payment method as kiriof_payment_method; shipping option filtering must read that fallback'
         );
 
-        $this->assertStringContainsString(
-            'wc()->is_store_api_request()',
+        $this->assertStringNotContainsString(
+            'is_checkout() || $is_store_api_request',
             $content,
-            'Shipping option filtering cannot depend only on is_checkout() because block checkout rate requests run through Store API'
+            'Shipping option filtering must not hide all rates while payment is still unset; block/classic checkout may calculate rates before payment selection is persisted'
         );
     }
 
@@ -447,7 +744,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 1800);
+        $methodBody = substr($content, $start, 2400);
 
         $this->assertStringContainsString(
             'WC()->session->set( \'chosen_payment_method\', $payment_method );',
@@ -460,6 +757,43 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $methodBody,
             'Store API callback must explicitly clear stale COD when buyer switches away from COD'
         );
+    }
+
+    #[Test]
+    public function store_api_update_callback_persists_force_insurance_in_session(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
+
+        $session = new class {
+            public array $values = array();
+
+            public function set($key, $value): void
+            {
+                $this->values[$key] = $value;
+            }
+
+            public function get($key, $default = null)
+            {
+                return $this->values[$key] ?? $default;
+            }
+        };
+        $GLOBALS['kiriof_test_wc'] = (object) array('session' => $session);
+
+        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $controller->kiriof_store_api_update_checkout(array(
+            'shipping_metode_id' => 'kiriminaja-official_jne_REG23',
+            'destination_id'     => 44064,
+            'destination_name'   => 'Sariharjo',
+            'payment_method'     => 'bacs',
+            'insurance'          => 1,
+            'force_insurance'    => 1,
+        ));
+
+        $this->assertSame(1, $session->get('force_insurance'));
+        $this->assertSame(1, $session->get('kiriof_force_insurance'));
+        $this->assertSame(1, $session->get('kiriof_insurance'));
+        $this->assertSame(array('kiriminaja-official_jne_REG23'), $session->get('kiriof_chosen_shipping_methods'));
+        $this->assertSame('jne_REG23', $session->get('kiriof_expedition'));
     }
 
     #[Test]
@@ -486,6 +820,38 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'if (\'cod\' === $payment_method)',
             $methodBody,
             'AJAX response should expose cod_fee/is_cod_amt only when COD is the selected payment method'
+        );
+    }
+
+    #[Test]
+    public function admin_ajax_fee_refresh_preserves_selected_shipping_method_before_recalculating_totals(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+        $start = strpos($content, 'public function kiriof_getDataAfterUpdateCheckout()');
+        $this->assertNotFalse($start, 'Admin AJAX checkout recalculation handler must exist');
+        $methodBody = substr($content, $start, 5600);
+
+        $kiriofSessionPosition = strpos($methodBody, 'WC()->session->set( \'kiriof_chosen_shipping_methods\', array( $shipping_metode_id ) );');
+        $sessionPosition = strpos($methodBody, 'WC()->session->set( \'chosen_shipping_methods\', array( $shipping_metode_id ) );');
+        $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
+        $this->assertNotFalse(
+            $kiriofSessionPosition,
+            'Fee AJAX must keep plugin-owned selected courier session data under the kiriof_ prefix'
+        );
+        $this->assertNotFalse(
+            $sessionPosition,
+            'Fee AJAX must persist the newly selected courier before WooCommerce recalculates totals'
+        );
+        $this->assertNotFalse($calculatePosition, 'Fee AJAX recalculates WooCommerce totals after caching fee data');
+        $this->assertLessThan(
+            $sessionPosition,
+            $kiriofSessionPosition,
+            'The prefixed plugin session mirror should be written before syncing the WooCommerce core chosen_shipping_methods key'
+        );
+        $this->assertLessThan(
+            $calculatePosition,
+            $sessionPosition,
+            'Persisting chosen_shipping_methods before calculate_totals prevents classic checkout from re-rendering the previous/default courier'
         );
     }
 
@@ -695,6 +1061,68 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function fee_cache_matcher_invalidates_non_cod_insurance_when_checkout_context_changes(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
+
+        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $method = new ReflectionMethod($controller, 'kiriof_fee_cache_matches');
+        $method->setAccessible(true);
+
+        $cachedContext = array(
+            'shipping_method' => 'kiriminaja-official_idx_06',
+            'destination_id'  => 44064,
+            'payment_method'  => 'bacs',
+            'insurance'       => 1,
+        );
+        $changedContext = array(
+            'shipping_method' => 'kiriminaja-official_jne_REG23',
+            'destination_id'  => 44064,
+            'payment_method'  => 'bacs',
+            'insurance'       => 1,
+        );
+
+        $this->assertTrue($method->invoke($controller, $cachedContext, $cachedContext));
+        $this->assertFalse(
+            $method->invoke($controller, $cachedContext, $changedContext),
+            'A non-COD checkout that changes courier must not reuse stale cached insurance amounts'
+        );
+    }
+
+    #[Test]
+    public function shipping_chosen_method_filter_preserves_posted_ajax_selection_and_prefixed_session_mirror(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        $this->assertStringContainsString(
+            '$posted_method = sanitize_text_field',
+            $methodBody,
+            'WooCommerce update_order_review AJAX should be able to keep the newly selected posted courier during fragment rendering'
+        );
+
+        $this->assertStringContainsString(
+            'WC()->session->set( \'kiriof_chosen_shipping_methods\', array( $posted_method ) );',
+            $methodBody,
+            'The plugin-owned selected courier mirror must use the kiriof_ session prefix'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_chosen_shipping_methods'",
+            $methodBody,
+            'If WooCommerce enters the chosen-method filter without POST data, it should fall back to the prefixed plugin mirror before using the old/default method'
+        );
+
+        $this->assertStringNotContainsString(
+            'checkout_kiriminaja_nonce_field',
+            $methodBody,
+            'The chosen-method filter runs during WooCommerce AJAX fragment rendering where the plugin checkout nonce may not be available'
+        );
+    }
+
+    #[Test]
     public function block_checkout_fee_fallback_strips_shipping_method_prefix_before_calculation(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
@@ -773,6 +1201,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $content,
             'Store API callback must persist the insurance flag used by transaction creation'
         );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_force_insurance'",
+            $content,
+            'Store API callback must persist courier-forced insurance using the plugin session prefix'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_destination_area_name'",
+            $content,
+            'Store API callback must persist the selected district label used by transaction creation'
+        );
     }
 
     #[Test]
@@ -785,6 +1225,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "woocommerce_store_api_checkout_order_processed",
             $content,
             'Block checkout must create KiriminAja transaction rows from the Store API order-processed hook, not only the classic checkout hook'
+        );
+
+        $this->assertStringContainsString(
+            "woocommerce_store_api_checkout_update_order_from_request",
+            $content,
+            'Block checkout must persist KiriminAja context onto the order before the Store API checkout session/cart is cleared'
+        );
+
+        $this->assertStringContainsString(
+            'afterStoreApiCheckoutUpdateOrderFromRequest',
+            $content,
+            'Store API checkout update hook should save checkout context before transaction creation'
         );
 
         $this->assertStringContainsString(
@@ -821,6 +1273,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriof_extract_expedition_from_method',
             $content,
             'Block checkout order creation must strip kiriminaja-official prefixes from Store API rate IDs before transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_get_store_api_destination_field',
+            $content,
+            'Block checkout order creation must read the registered additional District field when session context is unavailable'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_resolve_destination_area',
+            $content,
+            'Block checkout order creation must resolve text district values to KiriminAja destination IDs before inserting transactions'
         );
 
         $this->assertStringContainsString(
@@ -937,10 +1401,65 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Store API checkout may set Woo order payment_method=cod even when plugin session/meta payment context is empty'
         );
 
+        $orderPaymentPosition = strpos($helperBody, '$order->get_payment_method()');
+        $pluginMetaPosition = strpos($helperBody, "_kiriof_checkout_payment_method");
+        $this->assertNotFalse($orderPaymentPosition, 'Payment helper must read the final Woo order payment method');
+        $this->assertNotFalse($pluginMetaPosition, 'Payment helper may keep plugin meta as a fallback only');
+        $this->assertLessThan(
+            $pluginMetaPosition,
+            $orderPaymentPosition,
+            'Final Woo order payment method must be authoritative over transient plugin checkout meta so stale block-session COD cannot mark a Direct bank transfer order as COD'
+        );
+
         $this->assertStringContainsString(
             "WC()->session->get( 'kiriof_payment_method'",
             $helperBody,
             'Order creation should also read the Store API callback payment fallback key'
+        );
+    }
+
+    #[Test]
+    public function transaction_process_page_defaults_to_all_and_labels_payment_from_woo_order(): void
+    {
+        $index = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $view = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+
+        $this->assertStringContainsString(
+            '$kiriof_status_filter = \'all\';',
+            $index,
+            'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
+        );
+
+        $this->assertStringContainsString(
+            '$status = \'all\';',
+            $index,
+            'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
+        );
+
+        $normalizePosition = strpos($index, '$status = \'all\';');
+        $isAllPosition = strpos($index, '$isAllFilter = (\'all\' === $status);');
+        $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
+        $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
+        $this->assertLessThan(
+            $isAllPosition,
+            $normalizePosition,
+            'The all-filter flag must be calculated after status normalization so the default transaction page does not query orders.status = all'
+        );
+
+        $this->assertStringContainsString(
+            'wc_get_order($kiriof_row->wc_order_id)',
+            $view,
+            'Transaction list payment label should read the final Woo order payment method, not stale shipping_info meta'
+        );
+
+        $wooPaymentPosition = strpos($view, '$kiriof_wcOrder->get_payment_method()');
+        $shippingInfoPosition = strpos($view, '$kiriof_shippingData->_payment_method');
+        $this->assertNotFalse($wooPaymentPosition, 'Transaction list must read Woo order payment method');
+        $this->assertNotFalse($shippingInfoPosition, 'Transaction list may retain shipping_info payment as fallback');
+        $this->assertLessThan(
+            $shippingInfoPosition,
+            $wooPaymentPosition,
+            'Woo order payment method must be preferred over stored shipping_info so BACS orders do not display as COD from stale checkout metadata'
         );
     }
 

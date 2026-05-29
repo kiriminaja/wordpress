@@ -66,7 +66,7 @@ class OngkirPricingService extends BaseService{
             if (!$this->is_cod || $this->is_cod && $option->cod){
                 $filteredOptions[] = [
                     'key'=>$option->service.'_'.$option->service_type,
-                    'value'=>$option->service_name.' (Rp'.(localMoneyFormat($option->cost-$option->discount_amount)).')'
+                    'value'=>$option->service_name.' (Rp'.(kiriof_money_format($option->cost-$option->discount_amount)).')'
                 ];                
             }
         }

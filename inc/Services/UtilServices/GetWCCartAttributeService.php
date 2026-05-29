@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Utils\Volumetric;
 class GetWCCartAttributeService extends BaseService{
     private array $wc_cart_contents                 = [];
     private array $cartsProductAttributes           = [];
@@ -31,8 +32,14 @@ class GetWCCartAttributeService extends BaseService{
     private function getCartProductAttribute(){
         $ids = [];
         foreach ($this->wc_cart_contents as $cart){
-            $ids[] = $cart['product_id'];
+            $ids[] = self::getCartItemVolumetricProductId($cart);
         }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
+        if (empty($ids)) {
+            return [];
+        }
+
         $wpPostMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdsAndMetaKeys($ids,[
             '_weight',
             '_length',
@@ -44,7 +51,13 @@ class GetWCCartAttributeService extends BaseService{
         /** Make Product ARR*/
         foreach ($ids as $id){
             $cartProducts[$id]=[
-                'id' => $id
+                'id' => $id,
+                'weight' => 0,
+                'length' => 0,
+                'width' => 0,
+                'height' => 0,
+                'cart_quantity' => 0,
+                'cart_total' => 0,
             ];
         }
         
@@ -63,94 +76,66 @@ class GetWCCartAttributeService extends BaseService{
         
         /** Fill Cart Data*/
         foreach ($this->wc_cart_contents as $cart){
-            $cartProducts[$cart['product_id']]['cart_quantity']  = $cart['quantity'];
-            $cartProducts[$cart['product_id']]['cart_total']     = $cart['line_total'];
+            $product_id = self::getCartItemVolumetricProductId($cart);
+
+            if (empty($product_id) || !isset($cartProducts[$product_id])) {
+                continue;
+            }
+
+            $cartProducts[$product_id]['cart_quantity'] += intval($cart['quantity'] ?? 0);
+            $cartProducts[$product_id]['cart_total'] += (float) ($cart['line_total'] ?? 0);
         }
         
         return $cartProducts;
     }
+
+    private function getCartItemVolumetricProductId($cart){
+        $variation_id = intval($cart['variation_id'] ?? 0);
+        if ($variation_id > 0) {
+            return $variation_id;
+        }
+
+        return intval($cart['product_id'] ?? 0);
+    }
     
     private function getCartsProductAttributeCollection(){
-        $heightArr          = [];
-        $lengthArr          = [];
-        $weightArr          = [];
-        $widthArr           = [];
+        $volumetricItems    = [];
+        $weightSum          = 0;
         $transactionValue   = 0;
         foreach ($this->cartsProductAttributes as $p_attr){
-            for ($i=1;$i<=intval($p_attr['cart_quantity']);$i++){
-                $heightArr[]    = intval($p_attr['height']);
-                $lengthArr[]    = intval($p_attr['length']);
-                $weightArr[]    = intval($p_attr['weight']);
-                $widthArr[]     = intval($p_attr['width']);
+            $quantity = intval($p_attr['cart_quantity']);
+            if ($quantity < 1) {
+                $quantity = 1;
             }
+
+            $volumetricItems[] = [
+                'qty' => $quantity,
+                'length' => (float) $p_attr['length'],
+                'width' => (float) $p_attr['width'],
+                'height' => (float) $p_attr['height'],
+            ];
+
+            $weightSum += (float) $p_attr['weight'] * $quantity;
             $transactionValue   += $p_attr['cart_total'];
         }
         return [
-            'height_highest'    => max($heightArr),
-            'height_sum'        => array_sum($heightArr),
-            'height_collection' => $heightArr,
-            'length_highest'    => max($lengthArr),
-            'length_sum'        => array_sum($lengthArr),
-            'length_collection' => $lengthArr,
-            'width_highest'    => max($widthArr),
-            'width_sum'        => array_sum($widthArr),
-            'width_collection' => $widthArr,
-            
-            'weight_sum'        => array_sum($weightArr),
-            'weight_collection' => $weightArr,  
-             
+            'volumetric_items'  => $volumetricItems,
+            'weight_sum'        => $weightSum,
             'transaction_value' => (int) $transactionValue,
         ];
     }
     
     private function getCartsProcessedAttribute(){
         $cartsProductAttributeCollection = $this->cartsProductAttributeCollection;
-        
-        /** Check By Height*/
-        if (
-            $cartsProductAttributeCollection['height_sum'] <= $cartsProductAttributeCollection['length_sum']
-            &&
-            $cartsProductAttributeCollection['height_sum'] <= $cartsProductAttributeCollection['width_sum']
-        ){
-            return [
-                'weight'        => $cartsProductAttributeCollection['weight_sum'],  
-                'height'        => $cartsProductAttributeCollection['height_sum'],  
-                'length'        => $cartsProductAttributeCollection['length_highest'],  
-                'width'         => $cartsProductAttributeCollection['width_highest'],
-                'item_value'    => $cartsProductAttributeCollection['transaction_value'],  
-            ];
-        }
-        
-        /** Check By Length*/
-        if (
-            $cartsProductAttributeCollection['length_sum'] <= $cartsProductAttributeCollection['height_sum']
-            &&
-            $cartsProductAttributeCollection['length_sum'] <= $cartsProductAttributeCollection['width_sum']
-        ){
-            return [
-                'weight'        => $cartsProductAttributeCollection['weight_sum'],  
-                'height'        => $cartsProductAttributeCollection['height_highest'],  
-                'length'        => $cartsProductAttributeCollection['length_sum'],  
-                'width'         => $cartsProductAttributeCollection['width_highest'],
-                'item_value'    => $cartsProductAttributeCollection['transaction_value'],
-            ];
-        }
-        
-        /** Check By Width*/
-        if (
-            $cartsProductAttributeCollection['width_sum'] <= $cartsProductAttributeCollection['height_sum']
-            &&
-            $cartsProductAttributeCollection['width_sum'] <= $cartsProductAttributeCollection['length_sum']
-        ){
-            return [
-              'weight'      => $cartsProductAttributeCollection['weight_sum'],  
-              'height'      => $cartsProductAttributeCollection['height_highest'],  
-              'length'      => $cartsProductAttributeCollection['length_highest'],  
-              'width'       => $cartsProductAttributeCollection['width_sum'],  
-              'item_value'  => $cartsProductAttributeCollection['transaction_value'],  
-            ];
-        }
-        throw new \ErrorException('data is wrong','400',);
+        $volumetricDimensions = Volumetric::calculateSmallestBox($cartsProductAttributeCollection['volumetric_items'] ?? []);
+
+        return [
+            'weight'      => $cartsProductAttributeCollection['weight_sum'],
+            'height'      => $volumetricDimensions['height'],
+            'length'      => $volumetricDimensions['length'],
+            'width'       => $volumetricDimensions['width'],
+            'item_value'  => $cartsProductAttributeCollection['transaction_value'],
+        ];
     }
     
     private function getCartsConvertedAttribute(){

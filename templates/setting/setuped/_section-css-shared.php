@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     .kj-setting-row-text { flex: 1; min-width: 0; }
     .kj-setting-row-label { display: block; font-size: 14px; font-weight: 500; }
     .kj-setting-row-desc { display: block; font-size: 12px; color: #646970; margin-top: 2px; }
+    .kj-status-pill { display: inline-flex; align-items: center; flex-shrink: 0; max-width: 220px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.6; text-align: center; white-space: normal; }
+    .kj-status-pill.is-ready { background: #edfaef; color: #007017; border: 1px solid #b7e5be; }
+    .kj-status-pill.is-warning { background: #fcf0f1; color: #8a2424; border: 1px solid #f4cccc; }
     .kj-group-header {
         padding: 20px 16px 8px; font-size: 11px; font-weight: 600;
         text-transform: uppercase; letter-spacing: 0.5px; color: #646970;
@@ -40,3 +43,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     .kj-courier-item:last-child { border-bottom: none; }
     .kj-courier-item-name { font-weight: 500; }
     .kj-courier-item-type { font-size: 12px; color: #787c82; }
+    @media (max-width: 560px) {
+        .kj-setting-row-inner { align-items: flex-start; flex-wrap: wrap; }
+        .kj-setting-row-text { flex-basis: calc(100% - 36px); }
+        .kj-status-pill { margin-left: 36px; max-width: calc(100% - 36px); }
+        .kj-chevron { margin-left: auto; }
+    }
