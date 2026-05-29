@@ -385,9 +385,21 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "post_type IN ('product','product_variation')",
+            "child_variation.post_parent = p.ID",
             $content,
-            'Settings wizard must count both parent products and product variations'
+            'Settings wizard must detect variable products with published variations'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product_variation'",
+            $content,
+            'Settings wizard must count standalone variation rows as volumetric-required items'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product' AND child_variation.ID IS NULL",
+            $content,
+            'Settings wizard must count simple products but exclude variable parents that have variations'
         );
 
         $this->assertStringContainsString(
@@ -469,9 +481,21 @@ final class InsuranceFeatureTest extends TestCase
         $methodBody = substr($content, $methodStart, 9000);
 
         $this->assertStringContainsString(
-            "post_type IN ('product','product_variation')",
+            "child_variation.post_parent = p.ID",
             $methodBody,
-            'Setup notice must count both parent products and product variations'
+            'Setup notice must detect variable products with published variations'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product_variation'",
+            $methodBody,
+            'Setup notice must count variation rows as volumetric-required items'
+        );
+
+        $this->assertStringContainsString(
+            "p.post_type = 'product' AND child_variation.ID IS NULL",
+            $methodBody,
+            'Setup notice must count simple products but exclude variable parents that have variations'
         );
 
         $this->assertStringContainsString(
@@ -549,7 +573,13 @@ final class InsuranceFeatureTest extends TestCase
         $this->assertStringContainsString(
             '$product->get_children()',
             $content,
-            'Product list must include variations when checking variable products'
+            'Product list must inspect variations when checking variable products'
+        );
+
+        $this->assertStringContainsString(
+            "\$product_ids = array_map( 'intval', \$product->get_children() );",
+            $content,
+            'Variable product readiness must use variation children only, not require parent product dimensions'
         );
     }
 }

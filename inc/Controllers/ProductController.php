@@ -204,7 +204,7 @@ class ProductController{
             $product = wc_get_product( $post_id );
 
             if ( $product && $product->is_type( 'variable' ) ) {
-                $product_ids = array_merge( $product_ids, array_map( 'intval', $product->get_children() ) );
+                $product_ids = array_map( 'intval', $product->get_children() );
             }
         }
 

@@ -37,21 +37,34 @@ $kiriof_shipping_locations_ready = ( 'disabled' !== $kiriof_ship_to_countries &&
 $kiriof_wc_general_url = admin_url( 'admin.php?page=wc-settings' );
 
 global $wpdb;
+$kiriof_product_volumetric_from_sql = "
+    FROM {$wpdb->posts} p
+    LEFT JOIN {$wpdb->posts} child_variation
+        ON child_variation.post_parent = p.ID
+       AND child_variation.post_type = 'product_variation'
+       AND child_variation.post_status = 'publish'";
+$kiriof_product_volumetric_where_sql = "
+    WHERE p.post_status = 'publish'
+      AND (
+          p.post_type = 'product_variation'
+          OR (p.post_type = 'product' AND child_variation.ID IS NULL)
+      )";
+
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $kiriof_product_volumetric_total = (int) $wpdb->get_var(
-    "SELECT COUNT(*) FROM {$wpdb->posts}
-     WHERE post_type IN ('product','product_variation')
-       AND post_status = 'publish'"
+    "SELECT COUNT(DISTINCT p.ID)
+     {$kiriof_product_volumetric_from_sql}
+     {$kiriof_product_volumetric_where_sql}"
 );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
-    "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p
+    "SELECT COUNT(DISTINCT p.ID)
+     {$kiriof_product_volumetric_from_sql}
      INNER JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
      INNER JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
      INNER JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
      INNER JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
-     WHERE p.post_type IN ('product','product_variation')
-       AND p.post_status = 'publish'
+     {$kiriof_product_volumetric_where_sql}
        AND CAST(weight_meta.meta_value AS DECIMAL(10,2)) > 0
        AND CAST(length_meta.meta_value AS DECIMAL(10,2)) > 0
        AND CAST(width_meta.meta_value AS DECIMAL(10,2)) > 0
