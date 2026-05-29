@@ -135,7 +135,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $volumetricContent = file_get_contents(PLUGIN_DIR . '/inc/Utils/Volumetric.php');
 
         $this->assertStringContainsString(
-            'use KiriminAjaOfficial\Utils\Volumetric;',
+            'use KiriminAjaOfficial\\Utils\\Volumetric;',
             $serviceContent,
             'Cart attribute service must use the shared volumetric utility'
         );
@@ -165,42 +165,6 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '$hVert += $height * $qty',
-            $volumetricContent,
-            'Volumetric calculation must test stacking quantities along height'
-        );
-
-        $this->assertStringContainsString(
-            '$lHor += $length * $qty',
-            $volumetricContent,
-            'Volumetric calculation must test stacking quantities along length'
-        );
-
-        $this->assertStringContainsString(
-            '$wSide += $width * $qty',
-            $volumetricContent,
-            'Volumetric calculation must test stacking quantities along width'
-        );
-
-        $this->assertStringContainsString(
-            '$volVert = $lVert * $wVert * $hVert',
-            $volumetricContent,
-            'Volumetric calculation must compare vertical stacking volume'
-        );
-
-        $this->assertStringContainsString(
-            '$volHor = $lHor * $wHor * $hHor',
-            $volumetricContent,
-            'Volumetric calculation must compare horizontal stacking volume'
-        );
-
-        $this->assertStringContainsString(
-            '$volSide = $lSide * $wSide * $hSide',
-            $volumetricContent,
-            'Volumetric calculation must compare side-by-side stacking volume'
-        );
-
-        $this->assertStringContainsString(
             "'qty' => \$quantity",
             $serviceContent,
             'Cart attribute collection must preserve cart quantity for volumetric stacking'
@@ -208,7 +172,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function volumetric_box_is_conservative_for_mixed_shape_multiple_quantity_carts(): void
+    public function volumetric_box_uses_smallest_packable_axis_aligned_stack(): void
     {
         require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
 
@@ -219,17 +183,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
-        $boxVolume = $box['length'] * $box['width'] * $box['height'];
-        $itemVolume = (100 * 10 * 2) + (10 * 100 * 2 * 2) + (20 * 20 * 20);
 
-        $this->assertGreaterThanOrEqual(100, $box['length']);
-        $this->assertGreaterThanOrEqual(100, $box['width']);
-        $this->assertGreaterThanOrEqual(20, $box['height']);
-        $this->assertGreaterThanOrEqual(
-            $itemVolume,
-            $boxVolume,
-            'Volumetric output must never have less volume than the cart contents, otherwise pricing can be underquoted'
+        $this->assertSame(26.0, $box['length']);
+        $this->assertSame(20.0, $box['width']);
+        $this->assertSame(100.0, $box['height']);
+        $this->assertSame(52000.0, $box['length'] * $box['width'] * $box['height']);
+    }
+
+    #[Test]
+    public function volumetric_box_prefers_rotation_that_reduces_package_volume(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
+
+        $items = array(
+            array('length' => 100, 'width' => 50, 'height' => 10, 'qty' => 1),
+            array('length' => 10, 'width' => 50, 'height' => 100, 'qty' => 1),
         );
+
+        $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
+
+        $this->assertSame(100.0, $box['length']);
+        $this->assertSame(10.0, $box['width']);
+        $this->assertSame(100.0, $box['height']);
+    }
+
+    #[Test]
+    public function volumetric_box_does_not_fake_conservatism_by_only_expanding_volume(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
+
+        $items = array(
+            array('length' => 100, 'width' => 100, 'height' => 1, 'qty' => 1),
+            array('length' => 1, 'width' => 1, 'height' => 100, 'qty' => 100),
+        );
+
+        $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
+
+        $this->assertSame(200.0, $box['length']);
+        $this->assertSame(1.0, $box['width']);
+        $this->assertSame(100.0, $box['height']);
     }
 
     #[Test]

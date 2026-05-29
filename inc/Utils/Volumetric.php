@@ -8,16 +8,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Volumetric
 {
+    /**
+     * Calculate a conservative cart box by choosing the smallest volume from a
+     * set of concrete, axis-aligned stacking layouts.
+     *
+     * This intentionally does not claim to solve the general 3D bin-packing
+     * problem. Every returned candidate represents an actually packable layout:
+     * all items are placed in one row/stack along one axis while the two other
+     * axes are the maximum dimensions required by any item in that layout.
+     *
+     * Product dimensions may be rotated per cart line because courier
+     * volumetric dimensions describe the resulting package, not a fixed shelf
+     * orientation.
+     */
     public static function calculateSmallestBox($items)
     {
         if (empty($items)) {
             return ['length' => 0, 'width' => 0, 'height' => 0];
         }
 
-        $lVert = 0; $wVert = 0; $hVert = 0;
-        $lHor = 0; $wHor = 0; $hHor = 0;
-        $lSide = 0; $wSide = 0; $hSide = 0;
-        $totalItemVolume = 0;
+        $normalizedItems = self::normalizeItems($items);
+        if (empty($normalizedItems)) {
+            return ['length' => 0, 'width' => 0, 'height' => 0];
+        }
+
+        $best = null;
+        foreach (['length', 'width', 'height'] as $stackAxis) {
+            $candidate = self::smallestStackAlongAxis($normalizedItems, $stackAxis);
+            if ($candidate === null) {
+                continue;
+            }
+
+            if ($best === null || self::compareBoxes($candidate, $best) < 0) {
+                $best = $candidate;
+            }
+        }
+
+        if ($best === null) {
+            return ['length' => 0, 'width' => 0, 'height' => 0];
+        }
+
+        return $best;
+    }
+
+    private static function normalizeItems($items)
+    {
+        $normalized = [];
 
         foreach ($items as $item) {
             $qty = (int) ($item['qty'] ?? 1);
@@ -25,58 +61,149 @@ class Volumetric
                 $qty = 1;
             }
 
-            $length = max(0, (float) ($item['length'] ?? 0));
-            $width = max(0, (float) ($item['width'] ?? 0));
-            $height = max(0, (float) ($item['height'] ?? 0));
-            $totalItemVolume += $length * $width * $height * $qty;
+            $dimensions = [
+                'length' => max(0, (float) ($item['length'] ?? 0)),
+                'width'  => max(0, (float) ($item['width'] ?? 0)),
+                'height' => max(0, (float) ($item['height'] ?? 0)),
+            ];
 
-            $hVert += $height * $qty;
-            if ($length > $lVert) { $lVert = $length; }
-            if ($width > $wVert) { $wVert = $width; }
+            if ($dimensions['length'] <= 0 || $dimensions['width'] <= 0 || $dimensions['height'] <= 0) {
+                continue;
+            }
 
-            $lHor += $length * $qty;
-            if ($height > $hHor) { $hHor = $height; }
-            if ($width > $wHor) { $wHor = $width; }
-
-            $wSide += $width * $qty;
-            if ($height > $hSide) { $hSide = $height; }
-            if ($length > $lSide) { $lSide = $length; }
+            $normalized[] = [
+                'qty' => $qty,
+                'rotations' => self::itemRotations($dimensions),
+            ];
         }
 
-        $volVert = $lVert * $wVert * $hVert;
-        $volHor = $lHor * $wHor * $hHor;
-        $volSide = $lSide * $wSide * $hSide;
-
-        if ($volVert <= $volHor && $volVert <= $volSide) {
-            return self::conservativeBox(['length' => $lVert, 'width' => $wVert, 'height' => $hVert], $totalItemVolume);
-        }
-
-        if ($volHor <= $volSide) {
-            return self::conservativeBox(['length' => $lHor, 'width' => $wHor, 'height' => $hHor], $totalItemVolume);
-        }
-
-        return self::conservativeBox(['length' => $lSide, 'width' => $wSide, 'height' => $hSide], $totalItemVolume);
+        return $normalized;
     }
 
-    private static function conservativeBox($box, $minimumVolume)
+    private static function smallestStackAlongAxis($items, $stackAxis)
     {
-        $length = max(0, (float) ($box['length'] ?? 0));
-        $width = max(0, (float) ($box['width'] ?? 0));
-        $height = max(0, (float) ($box['height'] ?? 0));
-        $boxVolume = $length * $width * $height;
+        $crossAxes = array_values(array_diff(['length', 'width', 'height'], [$stackAxis]));
+        $thresholds = self::crossAxisThresholds($items, $crossAxes);
+        $best = null;
 
-        if ($minimumVolume <= 0 || $boxVolume >= $minimumVolume) {
-            return ['length' => $length, 'width' => $width, 'height' => $height];
+        foreach ($thresholds[$crossAxes[0]] as $firstLimit) {
+            foreach ($thresholds[$crossAxes[1]] as $secondLimit) {
+                $box = [
+                    'length' => 0,
+                    'width' => 0,
+                    'height' => 0,
+                ];
+                $box[$crossAxes[0]] = $firstLimit;
+                $box[$crossAxes[1]] = $secondLimit;
+
+                foreach ($items as $item) {
+                    $bestRotation = null;
+                    foreach ($item['rotations'] as $rotation) {
+                        if ($rotation[$crossAxes[0]] > $firstLimit || $rotation[$crossAxes[1]] > $secondLimit) {
+                            continue;
+                        }
+
+                        if ($bestRotation === null || $rotation[$stackAxis] < $bestRotation[$stackAxis]) {
+                            $bestRotation = $rotation;
+                        }
+                    }
+
+                    if ($bestRotation === null) {
+                        continue 2;
+                    }
+
+                    $box[$stackAxis] += $bestRotation[$stackAxis] * $item['qty'];
+                }
+
+                if ($box[$stackAxis] <= 0) {
+                    continue;
+                }
+
+                if ($best === null || self::compareBoxes($box, $best) < 0) {
+                    $best = $box;
+                }
+            }
         }
 
-        if ($length >= $width && $length >= $height && $width > 0 && $height > 0) {
-            $length = $minimumVolume / ($width * $height);
-        } elseif ($width >= $height && $length > 0 && $height > 0) {
-            $width = $minimumVolume / ($length * $height);
-        } elseif ($length > 0 && $width > 0) {
-            $height = $minimumVolume / ($length * $width);
+        return $best;
+    }
+
+    private static function crossAxisThresholds($items, $crossAxes)
+    {
+        $thresholds = [
+            $crossAxes[0] => [],
+            $crossAxes[1] => [],
+        ];
+
+        foreach ($items as $item) {
+            foreach ($item['rotations'] as $rotation) {
+                $thresholds[$crossAxes[0]][] = $rotation[$crossAxes[0]];
+                $thresholds[$crossAxes[1]][] = $rotation[$crossAxes[1]];
+            }
         }
 
-        return ['length' => $length, 'width' => $width, 'height' => $height];
+        foreach ($thresholds as $axis => $values) {
+            $values = array_values(array_unique($values, SORT_REGULAR));
+            sort($values, SORT_NUMERIC);
+            $thresholds[$axis] = $values;
+        }
+
+        return $thresholds;
+    }
+
+    private static function itemRotations($dimensions)
+    {
+        $modes = [
+            ['length' => 'length', 'width' => 'width', 'height' => 'height'],
+            ['length' => 'length', 'width' => 'height', 'height' => 'width'],
+            ['length' => 'width', 'width' => 'length', 'height' => 'height'],
+            ['length' => 'width', 'width' => 'height', 'height' => 'length'],
+            ['length' => 'height', 'width' => 'length', 'height' => 'width'],
+            ['length' => 'height', 'width' => 'width', 'height' => 'length'],
+        ];
+
+        $rotations = [];
+        foreach ($modes as $mode) {
+            $key = $dimensions[$mode['length']] . 'x' . $dimensions[$mode['width']] . 'x' . $dimensions[$mode['height']];
+            $rotations[$key] = [
+                'length' => $dimensions[$mode['length']],
+                'width'  => $dimensions[$mode['width']],
+                'height' => $dimensions[$mode['height']],
+            ];
+        }
+
+        return array_values($rotations);
+    }
+
+    private static function compareBoxes($left, $right)
+    {
+        $leftVolume = self::boxVolume($left);
+        $rightVolume = self::boxVolume($right);
+
+        if ($leftVolume < $rightVolume) {
+            return -1;
+        }
+
+        if ($leftVolume > $rightVolume) {
+            return 1;
+        }
+
+        $leftLongest = max($left['length'], $left['width'], $left['height']);
+        $rightLongest = max($right['length'], $right['width'], $right['height']);
+
+        if ($leftLongest < $rightLongest) {
+            return -1;
+        }
+
+        if ($leftLongest > $rightLongest) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static function boxVolume($box)
+    {
+        return $box['length'] * $box['width'] * $box['height'];
     }
 }
