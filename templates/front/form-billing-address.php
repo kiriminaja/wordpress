@@ -66,11 +66,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 
-                // Re-run after AJAX fragment refresh (theme compatibility)
+                // Re-bind handlers after AJAX fragment refresh (theme compatibility).
+                // Do not call kiriofCodInsurance() here: its success callback triggers
+                // update_checkout once so WooCommerce can render native fee rows. Calling
+                // it again from updated_checkout creates an endless loading loop.
                 jQuery(document.body).on( 'updated_checkout', function() {
                     kiriofChangeCodPayment();
                     kiriofChangeDifferentAddress();
-                    setTimeout(function() { kiriofCodInsurance(); }, 300);
                 });
 
             <?php endif; ?>

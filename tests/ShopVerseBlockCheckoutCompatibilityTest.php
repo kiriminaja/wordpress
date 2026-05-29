@@ -616,6 +616,32 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_updated_checkout_handler_must_not_recalculate_fees_recursively(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $handlerStart = strpos($template, "jQuery(document.body).on( 'updated_checkout', function() {");
+        $this->assertNotFalse($handlerStart, 'Classic updated_checkout compatibility handler must exist');
+        $handlerBody = substr($template, $handlerStart, 420);
+
+        $this->assertStringNotContainsString(
+            'kiriofCodInsurance()',
+            $handlerBody,
+            'updated_checkout fires after kiriofCodInsurance refreshes native fee rows; calling kiriofCodInsurance from this handler creates an endless update_checkout/loading loop on classic themes'
+        );
+
+        $feeFunctionStart = strpos($template, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($feeFunctionStart, 'Fee AJAX function must exist');
+        $successStart = strpos($template, 'success:function(response)', $feeFunctionStart);
+        $this->assertNotFalse($successStart, 'Fee AJAX success handler must exist');
+        $successBody = substr($template, $successStart, 900);
+        $this->assertStringContainsString(
+            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
+            $successBody,
+            'After fee cache updates, classic checkout must refresh once so WooCommerce native fee rows render Insurance and COD Fee'
+        );
+    }
+
+    #[Test]
     public function block_checkout_native_fee_detection_includes_store_api_requests(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
