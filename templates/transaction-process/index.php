@@ -42,7 +42,7 @@ class Kiriof_TransactionProcessIndex
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
         $kiriof_status_filter = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
         if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'processed'], true)) {
-            $kiriof_status_filter = 'wc-processing';
+            $kiriof_status_filter = 'all';
         }
 
         /** Return vars and view */
@@ -68,7 +68,7 @@ class Kiriof_TransactionProcessIndex
         $isProcessedFilter = ('processed' === $status);
         $isAllFilter = ('all' === $status);
         if (! in_array($status, $allowedStatuses, true)) {
-            $status = 'wc-processing';
+            $status = 'all';
         }
 
         $key_like   = '';

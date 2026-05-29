@@ -937,10 +937,55 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Store API checkout may set Woo order payment_method=cod even when plugin session/meta payment context is empty'
         );
 
+        $orderPaymentPosition = strpos($helperBody, '$order->get_payment_method()');
+        $pluginMetaPosition = strpos($helperBody, "_kiriof_checkout_payment_method");
+        $this->assertNotFalse($orderPaymentPosition, 'Payment helper must read the final Woo order payment method');
+        $this->assertNotFalse($pluginMetaPosition, 'Payment helper may keep plugin meta as a fallback only');
+        $this->assertLessThan(
+            $pluginMetaPosition,
+            $orderPaymentPosition,
+            'Final Woo order payment method must be authoritative over transient plugin checkout meta so stale block-session COD cannot mark a Direct bank transfer order as COD'
+        );
+
         $this->assertStringContainsString(
             "WC()->session->get( 'kiriof_payment_method'",
             $helperBody,
             'Order creation should also read the Store API callback payment fallback key'
+        );
+    }
+
+    #[Test]
+    public function transaction_process_page_defaults_to_all_and_labels_payment_from_woo_order(): void
+    {
+        $index = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $view = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+
+        $this->assertStringContainsString(
+            '$kiriof_status_filter = \'all\';',
+            $index,
+            'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
+        );
+
+        $this->assertStringContainsString(
+            '$status = \'all\';',
+            $index,
+            'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
+        );
+
+        $this->assertStringContainsString(
+            'wc_get_order($kiriof_row->wc_order_id)',
+            $view,
+            'Transaction list payment label should read the final Woo order payment method, not stale shipping_info meta'
+        );
+
+        $wooPaymentPosition = strpos($view, '$kiriof_wcOrder->get_payment_method()');
+        $shippingInfoPosition = strpos($view, '$kiriof_shippingData->_payment_method');
+        $this->assertNotFalse($wooPaymentPosition, 'Transaction list must read Woo order payment method');
+        $this->assertNotFalse($shippingInfoPosition, 'Transaction list may retain shipping_info payment as fallback');
+        $this->assertLessThan(
+            $shippingInfoPosition,
+            $wooPaymentPosition,
+            'Woo order payment method must be preferred over stored shipping_info so BACS orders do not display as COD from stale checkout metadata'
         );
     }
 

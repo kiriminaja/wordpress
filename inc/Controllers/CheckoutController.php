@@ -193,9 +193,9 @@ class CheckoutController
         $payment_method = '';
 
         if ( $order instanceof \WC_Order ) {
-            $payment_method = (string) $order->get_meta( '_kiriof_checkout_payment_method', true );
+            $payment_method = (string) $order->get_payment_method();
             if ( '' === $payment_method ) {
-                $payment_method = (string) $order->get_payment_method();
+                $payment_method = (string) $order->get_meta( '_kiriof_checkout_payment_method', true );
             }
         }
 
