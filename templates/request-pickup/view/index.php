@@ -442,7 +442,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
     function refreshShowPaymentForm(){
         showPaymentForm(showPaymentFormPaymentId)
     }
-    const urlParams = new URLSearchParams(window.location.href);
+    const urlParams = new URL(window.location.href).searchParams;
     
     jQuery(document).ready(function() {
         const pickupNumberToLoad = urlParams.get('pickup_number');
