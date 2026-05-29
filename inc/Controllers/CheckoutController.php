@@ -235,20 +235,32 @@ class CheckoutController
     }
 
     private function kiriof_is_block_checkout_request() {
-        if ( ! function_exists( 'has_block' ) ) {
-            return false;
-        }
-
         if ( is_checkout() ) {
             $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
-            if ( $checkout_page_id > 0 && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
+            if ( $checkout_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
+                return true;
+            }
+            if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_checkout_block_default' ) ) {
+                if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_checkout_block_default() ) {
+                    return true;
+                }
+            }
+            if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
                 return true;
             }
         }
 
         if ( is_cart() ) {
             $cart_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'cart' ) : 0;
-            if ( $cart_page_id > 0 && has_block( 'woocommerce/cart', $cart_page_id ) ) {
+            if ( $cart_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/cart', $cart_page_id ) ) {
+                return true;
+            }
+            if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_cart_block_default' ) ) {
+                if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_cart_block_default() ) {
+                    return true;
+                }
+            }
+            if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
                 return true;
             }
         }

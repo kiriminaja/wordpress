@@ -28,6 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     <?php ob_start(); ?>
 
         jQuery(document).ready(function($) {    
+            var kiriofUpdatingCheckoutLock = false;
+            var kiriofTriggeredInitialShippingUpdate = false;
             <?php if ( $kiriof_global_insurance ) : ?>
             // Global insurance forced — check and disable the checkbox
             var $ins = jQuery('#kiriof_insurance, #kiriof_shipping_insurance');
@@ -73,6 +75,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                 jQuery(document.body).on( 'updated_checkout', function() {
                     kiriofChangeCodPayment();
                     kiriofChangeDifferentAddress();
+                    if (kiriofUpdatingCheckoutLock) {
+                        kiriofUpdatingCheckoutLock = false;
+                        return;
+                    }
+                    setTimeout(function() { kiriofCodInsurance(); }, 300);
                 });
 
             <?php endif; ?>
@@ -495,17 +502,20 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
 
         jQuery(document.body).on('updated_checkout', function() {
-            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val(); // return kiriminaja_lion_REGPACK
+            if ( kiriofTriggeredInitialShippingUpdate ) {
+                return false;
+            }
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             let destination_id = (different_address == 0) ? jQuery('#kiriof_destination_area option:selected').val() : jQuery('#kiriof_shipping_destination_area option:selected').val(); 
             
-            if( destination_id != 'undefined' ) return false;
-        
+            if ( ! destination_id || destination_id === 'undefined' || destination_id == 0 ) {
+                return false;
+            }
             
-            if(jQuery('#shipping_method .shipping_method:checked').length == 0 && destination_id != 0  ){
+            if ( jQuery('#shipping_method .shipping_method:checked').length == 0 ) {
+                kiriofTriggeredInitialShippingUpdate = true;
                 jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                                        
             }    
-            
         }); 
 
         jQuery(document.body).one('updated_checkout', function() {
@@ -514,12 +524,14 @@ if ( ! defined( 'ABSPATH' ) ) {
              * remove local storage
              */
             if (localStorage.getItem('chosen_shipping_method')) {
-                jQuery('input[name="shipping_method[0]"][value="' + localStorage.getItem('chosen_shipping_method') + '"]').prop('checked', true);                    
+                var $methodInput = jQuery('input[name="shipping_method[0]"][value="' + localStorage.getItem('chosen_shipping_method') + '"]');
+                if ($methodInput.length) {
+                    $methodInput.prop('checked', true);
+                    kiriofHandleCodInsurance();
+                }
             }
 
             localStorage.removeItem('chosen_shipping_method');
-
-            kiriofHandleCodInsurance();
         });
 
 
@@ -541,20 +553,10 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
 
         function kiriofHandleCodInsurance(){
-            
+            kiriofUpdatingCheckoutLock = false;
             <?php if( is_checkout()){ ?>
-
                 jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
-                
-                setTimeout(() => {
-                    jQuery( document ).one( "ajaxComplete", function(event,xhr,settings) {
-                        kiriofCodInsurance();
-                    });
-                }, 300);
-
             <?php } ?>
-
-
         }
 
         function kiriofSetFeeSkeletonLoading(isLoading) {
@@ -740,6 +742,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     
                             jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance);
 
+                            kiriofUpdatingCheckoutLock = true;
                             jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
 
                         },

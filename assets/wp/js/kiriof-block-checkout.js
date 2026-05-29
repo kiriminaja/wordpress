@@ -45,7 +45,7 @@
                         'div',
                         {
                             key: fee.key || fee.name,
-                            className: 'kiriof-block-fee-breakdown__row'
+                            className: 'wc-block-components-totals-item kiriof-block-fee-breakdown__row'
                         },
                         createElement( 'span', null, fee.name ),
                         createElement( 'strong', null, formatFeeTotal( fee ) )
