@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 use \KiriminAjaOfficial\Base\BaseService;
 use KiriminAjaOfficial\Init;
 class KiriminajaApiService extends BaseService{
+    private const KIRIOF_PROFILE_CACHE_KEY = 'kiriof_profile_cache';
+    private const KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY = 'kiriof_profile_last_success_cache';
+    private const KIRIOF_PROFILE_CACHE_TTL = 60;
+
     public function sub_district_search($search)
     {
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sub_district_search($search);
@@ -48,10 +52,26 @@ class KiriminajaApiService extends BaseService{
         return self::success($repo['data']->datas);
     }
     public function getProfile(){
+        $cachedProfile = get_transient(self::KIRIOF_PROFILE_CACHE_KEY);
+        if (false !== $cachedProfile) {
+            return self::success($cachedProfile);
+        }
+
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProfile();
         if (!@$repo['status'] || !@$repo['data']->status){
+            $cachedProfile = get_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY);
+            if (false !== $cachedProfile) {
+                set_transient(self::KIRIOF_PROFILE_CACHE_KEY, $cachedProfile, self::KIRIOF_PROFILE_CACHE_TTL);
+                return self::success($cachedProfile);
+            }
+
             return self::error([],@$repo['data']->text ?? 'Failed to load profile');
         }
-        return self::success($repo['data']->results);
+
+        $profile = $repo['data']->results;
+        set_transient(self::KIRIOF_PROFILE_CACHE_KEY, $profile, self::KIRIOF_PROFILE_CACHE_TTL);
+        set_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY, $profile, DAY_IN_SECONDS);
+
+        return self::success($profile);
     }
 }
