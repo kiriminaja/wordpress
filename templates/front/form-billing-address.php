@@ -37,6 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
             getSearchAreaKelurahan();
             changeDistrict();
+            kiriofInitBlockCheckoutCompatibility();
 
             <?php if(is_cart()): ?>
 
@@ -63,278 +64,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofHandleCodInsurance();
                 });
 
-                // Block checkout: listen for shipping method changes via WC data store.
-                // React blocks don't use jQuery change events reliably.
-                if (typeof wp !== 'undefined' && wp.data && wp.data.subscribe) {
-                    var kiriofLastShippingMethod = '';
-                    wp.data.subscribe(function() {
-                        try {
-                            var store = wp.data.select('wc/store/cart');
-                            if (!store || typeof store.getShippingRates !== 'function') return;
-                            var allRates = store.getShippingRates();
-                            if (!allRates || !allRates.length) return;
-                            var currentMethod = '';
-                            for (var i = 0; i < allRates.length; i++) {
-                                var pkg = allRates[i];
-                                if (pkg && pkg.shipping_rates) {
-                                    for (var j = 0; j < pkg.shipping_rates.length; j++) {
-                                        if (pkg.shipping_rates[j].selected) {
-                                            currentMethod = pkg.shipping_rates[j].rate_id;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
-                                kiriofLastShippingMethod = currentMethod;
-                                // Delay to let the Store API update the cart first
-                                setTimeout(function() { kiriofCodInsurance(); }, 400);
-                            }
-                        } catch(e) {}
-                    });
 
-                    // Block checkout: listen for payment method changes via WC payment store.
-                    // COD radios in Woo Blocks do not use the classic name=payment_method input.
-                    var kiriofLastPaymentMethod = '';
-                    wp.data.subscribe(function() {
-                        try {
-                            var currentPaymentMethod = kiriofGetPaymentMethod();
-                            if (!currentPaymentMethod || currentPaymentMethod === kiriofLastPaymentMethod) return;
-                            kiriofLastPaymentMethod = currentPaymentMethod;
-                            setTimeout(function() { kiriofCodInsurance(); }, 250);
-                        } catch(e) {}
-                    });
-
-                    // Dynamic District options from postcode
-                    var kiriofLastPostcode = '';
-                    var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
-                    var kiriofBlockPostcodeSelectors = [
-                        'input#billing-postcode',
-                        'input#shipping-postcode',
-                        'input[name="billing_postcode"]',
-                        'input[name="shipping_postcode"]',
-                        'input[name="billing-postcode"]',
-                        'input[name="shipping-postcode"]',
-                        'input[id$="-postcode"]',
-                        'input[name$="[postcode]"]'
-                    ].join(',');
-
-                    function kiriofGetCheckoutPostcodeFromDom() {
-                        var postcode = '';
-                        jQuery(kiriofBlockPostcodeSelectors).each(function() {
-                            var val = jQuery(this).val();
-                            if (val && String(val).length >= 3) {
-                                postcode = String(val);
-                                return false;
-                            }
-                        });
-                        return postcode;
-                    }
-
-                    function kiriofGetBlockDistrictField() {
-                        var selectors = [
-                            '[name="' + kiriofFieldId + '"]',
-                            'input[name*="kiriof_destination_area"]',
-                            'textarea[name*="kiriof_destination_area"]',
-                            'input[id*="kiriof_destination_area"]',
-                            'textarea[id*="kiriof_destination_area"]',
-                            'input[id*="kiriof-destination-area"]',
-                            'textarea[id*="kiriof-destination-area"]'
-                        ].join(',');
-
-                        var $field = jQuery(selectors).filter(function() {
-                            return !jQuery(this).is('select') && !jQuery(this).hasClass('kiriof-block-district-select');
-                        }).first();
-
-                        return $field;
-                    }
-
-                    function kiriofUpdateCheckoutAdditionalFields(val) {
-                        if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
-                            return;
-                        }
-
-                        try {
-                            var checkoutStore = wp.data.select('wc/store/checkout');
-                            var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
-                            if (!checkoutDispatch || typeof checkoutDispatch.setAdditionalFields !== 'function') {
-                                return;
-                            }
-
-                            var additionalFields = checkoutStore && typeof checkoutStore.getAdditionalFields === 'function'
-                                ? (checkoutStore.getAdditionalFields() || {})
-                                : {};
-
-                            additionalFields[kiriofFieldId] = val;
-                            checkoutDispatch.setAdditionalFields(additionalFields);
-                        } catch(e) {}
-                    }
-
-                    function kiriofGetDestinationAreaAjaxData(val, label, different_address) {
-                        return {
-                            action: 'kiriof_get_destination_area',
-                            val: val,
-                            insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
-                            different_address: different_address,
-                            text: label || '',
-                            payment_method: kiriofGetPaymentMethod(),
-                            nonce: "<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
-                            country: jQuery('#billing_country').find(':selected').val() || 'ID'
-                        };
-                    }
-
-                    function kiriofPersistDestinationArea(val, label, different_address, done) {
-                        if (!val) {
-                            if (typeof done === 'function') done(false);
-                            return;
-                        }
-                        jQuery.ajax({
-                            url: "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
-                            type: 'post',
-                            data: kiriofGetDestinationAreaAjaxData(val, label, different_address),
-                            dataType: 'JSON',
-                            complete: function(response) {
-                                var ok = false;
-                                try {
-                                    ok = !!(response && response.responseJSON && response.responseJSON.success);
-                                } catch(e) {}
-                                if (typeof done === 'function') done(ok);
-                            }
-                        });
-                    }
-
-                    var kiriofLastDistrictResults = [];
-
-                    function kiriofRenderBlockDistrictSelect(results) {
-                        if (!results || !results.length) return false;
-                        kiriofLastDistrictResults = results;
-
-                        var $field = kiriofGetBlockDistrictField();
-                        if (!$field.length) return false;
-
-                        // Woo Blocks renders this as a React-controlled text input.
-                        // Hide the React source field and render our selectable UI at
-                        // the block field wrapper so React re-renders do not remove it.
-                        $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
-
-                        var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
-                        if (!$wrapper.length) {
-                            $wrapper = $field.parent();
-                        }
-                        $wrapper.addClass('kiriof-block-district-source-wrapper').hide();
-
-                        var $select = jQuery('.kiriof-block-district-select');
-                        if (!$select.length) {
-                            var $fieldWrapper = jQuery('<div class="wc-block-components-address-form__state wc-block-components-state-input kiriof-block-district-field-wrapper"></div>');
-                            var $selectWrapper = jQuery('<div class="wc-blocks-components-select kiriof-block-district-select-wrapper"></div>');
-                            var $container = jQuery('<div class="wc-blocks-components-select__container kiriof-block-district-select-container"></div>');
-                            var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label"><?php echo esc_js(__('District','kiriminaja-official')); ?></label>');
-                            $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping shipping address-level3"></select>');
-                            var $expand = jQuery('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="wc-blocks-components-select__expand" aria-hidden="true" focusable="false"><path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z"></path></svg>');
-                            $container.append($label, $select, $expand);
-                            $selectWrapper.append($container);
-                            $fieldWrapper.append($selectWrapper);
-                            $wrapper.after($fieldWrapper);
-                        }
-
-                        var currentValue = $field.val() || $select.val() || '';
-                        var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
-                        var placeholderSelected = currentValue ? '' : ' selected';
-                        var html = '<option value="" data-alternate-values="[<?php echo esc_js(__('Select District','kiriminaja-official')); ?>]" disabled' + placeholderSelected + '><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
-                        results.forEach(function(d) {
-                            var selected = String(d.id) === String(currentValue) ? ' selected' : '';
-                            html += '<option value="' + d.id + '" data-alternate-values="[' + d.text + ']"' + selected + '>' + d.text + '</option>';
-                            if (String(d.id) === String(currentValue)) {
-                                currentName = d.text;
-                            }
-                        });
-
-                        $select.html(html).val(currentValue);
-
-                        if (currentValue && currentName) {
-                            jQuery('[name="kiriof_destination_area_name"]').val(currentName);
-                        }
-
-                        return true;
-                    }
-
-                    if (typeof MutationObserver !== 'undefined') {
-                        var kiriofDistrictObserver = new MutationObserver(function() {
-                            if (kiriofLastDistrictResults.length && !jQuery('.kiriof-block-district-select').length) {
-                                kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
-                            }
-                        });
-                        kiriofDistrictObserver.observe(document.body, { childList: true, subtree: true });
-                    }
-
-                    function kiriofFetchDistricts(postcode) {
-                        if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
-                        kiriofLastPostcode = postcode;
-
-                        var kiriofAjaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
-                            ? kiriofAjax.ajaxurl
-                            : '<?php echo esc_url( admin_url('admin-ajax.php') ); ?>';
-                        var kiriofAjaxNonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
-                            ? kiriofAjax.nonce
-                            : '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>';
-
-                        jQuery.ajax({
-                            type: 'post',
-                            url: kiriofAjaxUrl,
-                            data: {
-                                action: 'kiriminaja_subdistrict_search',
-                                data: { term: postcode },
-                                nonce: kiriofAjaxNonce
-                            },
-                            success: function(response) {
-                                if (!response || !response.data || !response.data.length) return;
-                                kiriofRenderBlockDistrictSelect(response.data);
-                            }
-                        });
-                    }
-
-                    jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select')
-                        .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
-                            var val = jQuery(this).val();
-                            var label = jQuery(this).find('option:selected').text();
-                            var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
-                            var $sourceField = kiriofGetBlockDistrictField();
-
-                            $sourceField.val(val).trigger('input').trigger('change');
-                            jQuery('[name="kiriof_destination_area_name"]').val(label || '');
-                            if (differentAddress > 0) {
-                                jQuery('[name="kiriof_shipping_destination_area_name"]').val(label || '');
-                            }
-
-                            kiriofUpdateCheckoutAdditionalFields(val);
-                            kiriofPersistDestinationArea(val, label, differentAddress, function() {
-                                kiriofCodInsurance();
-                            });
-                        });
-
-                    // Watch for postcode changes via direct DOM events too. Some Woo
-                    // checkout blocks debounce address writes through /wc/store/v1/batch,
-                    // so the cart data store can lag behind the visible postcode input.
-                    jQuery(document).off('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors)
-                        .on('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors, function() {
-                            kiriofFetchDistricts(jQuery(this).val());
-                        });
-                    setTimeout(function() {
-                        kiriofFetchDistricts(kiriofGetCheckoutPostcodeFromDom());
-                    }, 300);
-
-                    // Watch for postcode changes via data store
-                    wp.data.subscribe(function() {
-                        try {
-                            var store = wp.data.select('wc/store/cart');
-                            if (!store) return;
-                            var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
-                            var billing = store.getBillingAddress ? store.getBillingAddress() : {};
-                            var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
-                            kiriofFetchDistricts(postcode);
-                        } catch(e) {}
-                    });
-                }
 
                 // Re-run after AJAX fragment refresh (theme compatibility)
                 jQuery(document.body).on( 'updated_checkout', function() {
@@ -345,6 +75,282 @@ if ( ! defined( 'ABSPATH' ) ) {
 
             <?php endif; ?>
         }); 
+
+        function kiriofInitBlockCheckoutCompatibility() {
+            // Block checkout: listen for shipping method changes via WC data store.
+            // React blocks don't use jQuery change events reliably.
+            if (typeof wp !== 'undefined' && wp.data && wp.data.subscribe) {
+                var kiriofLastShippingMethod = '';
+                wp.data.subscribe(function() {
+                    try {
+                        var store = wp.data.select('wc/store/cart');
+                        if (!store || typeof store.getShippingRates !== 'function') return;
+                        var allRates = store.getShippingRates();
+                        if (!allRates || !allRates.length) return;
+                        var currentMethod = '';
+                        for (var i = 0; i < allRates.length; i++) {
+                            var pkg = allRates[i];
+                            if (pkg && pkg.shipping_rates) {
+                                for (var j = 0; j < pkg.shipping_rates.length; j++) {
+                                    if (pkg.shipping_rates[j].selected) {
+                                        currentMethod = pkg.shipping_rates[j].rate_id;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
+                            kiriofLastShippingMethod = currentMethod;
+                            // Delay to let the Store API update the cart first
+                            setTimeout(function() { kiriofCodInsurance(); }, 400);
+                        }
+                    } catch(e) {}
+                });
+            
+                // Block checkout: listen for payment method changes via WC payment store.
+                // COD radios in Woo Blocks do not use the classic name=payment_method input.
+                var kiriofLastPaymentMethod = '';
+                wp.data.subscribe(function() {
+                    try {
+                        var currentPaymentMethod = kiriofGetPaymentMethod();
+                        if (!currentPaymentMethod || currentPaymentMethod === kiriofLastPaymentMethod) return;
+                        kiriofLastPaymentMethod = currentPaymentMethod;
+                        setTimeout(function() { kiriofCodInsurance(); }, 250);
+                    } catch(e) {}
+                });
+            
+                // Dynamic District options from postcode
+                var kiriofLastPostcode = '';
+                var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
+                var kiriofBlockPostcodeSelectors = [
+                    'input#billing-postcode',
+                    'input#shipping-postcode',
+                    'input[name="billing_postcode"]',
+                    'input[name="shipping_postcode"]',
+                    'input[name="billing-postcode"]',
+                    'input[name="shipping-postcode"]',
+                    'input[id$="-postcode"]',
+                    'input[name$="[postcode]"]'
+                ].join(',');
+            
+                function kiriofGetCheckoutPostcodeFromDom() {
+                    var postcode = '';
+                    jQuery(kiriofBlockPostcodeSelectors).each(function() {
+                        var val = jQuery(this).val();
+                        if (val && String(val).length >= 3) {
+                            postcode = String(val);
+                            return false;
+                        }
+                    });
+                    return postcode;
+                }
+            
+                function kiriofGetBlockDistrictField() {
+                    var selectors = [
+                        '[name="' + kiriofFieldId + '"]',
+                        'input[name*="kiriof_destination_area"]',
+                        'textarea[name*="kiriof_destination_area"]',
+                        'input[id*="kiriof_destination_area"]',
+                        'textarea[id*="kiriof_destination_area"]',
+                        'input[id*="kiriof-destination-area"]',
+                        'textarea[id*="kiriof-destination-area"]'
+                    ].join(',');
+            
+                    var $field = jQuery(selectors).filter(function() {
+                        return !jQuery(this).is('select') && !jQuery(this).hasClass('kiriof-block-district-select');
+                    }).first();
+            
+                    return $field;
+                }
+            
+                function kiriofUpdateCheckoutAdditionalFields(val) {
+                    if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
+                        return;
+                    }
+            
+                    try {
+                        var checkoutStore = wp.data.select('wc/store/checkout');
+                        var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
+                        if (!checkoutDispatch || typeof checkoutDispatch.setAdditionalFields !== 'function') {
+                            return;
+                        }
+            
+                        var additionalFields = checkoutStore && typeof checkoutStore.getAdditionalFields === 'function'
+                            ? (checkoutStore.getAdditionalFields() || {})
+                            : {};
+            
+                        additionalFields[kiriofFieldId] = val;
+                        checkoutDispatch.setAdditionalFields(additionalFields);
+                    } catch(e) {}
+                }
+            
+                function kiriofGetDestinationAreaAjaxData(val, label, different_address) {
+                    return {
+                        action: 'kiriof_get_destination_area',
+                        val: val,
+                        insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
+                        different_address: different_address,
+                        text: label || '',
+                        payment_method: kiriofGetPaymentMethod(),
+                        nonce: "<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
+                        country: jQuery('#billing_country').find(':selected').val() || 'ID'
+                    };
+                }
+            
+                function kiriofPersistDestinationArea(val, label, different_address, done) {
+                    if (!val) {
+                        if (typeof done === 'function') done(false);
+                        return;
+                    }
+                    jQuery.ajax({
+                        url: "<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
+                        type: 'post',
+                        data: kiriofGetDestinationAreaAjaxData(val, label, different_address),
+                        dataType: 'JSON',
+                        complete: function(response) {
+                            var ok = false;
+                            try {
+                                ok = !!(response && response.responseJSON && response.responseJSON.success);
+                            } catch(e) {}
+                            if (typeof done === 'function') done(ok);
+                        }
+                    });
+                }
+            
+                var kiriofLastDistrictResults = [];
+            
+                function kiriofRenderBlockDistrictSelect(results) {
+                    if (!results || !results.length) return false;
+                    kiriofLastDistrictResults = results;
+            
+                    var $field = kiriofGetBlockDistrictField();
+                    if (!$field.length) return false;
+            
+                    // Woo Blocks renders this as a React-controlled text input.
+                    // Hide the React source field and render our selectable UI at
+                    // the block field wrapper so React re-renders do not remove it.
+                    $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
+            
+                    var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
+                    if (!$wrapper.length) {
+                        $wrapper = $field.parent();
+                    }
+                    $wrapper.addClass('kiriof-block-district-source-wrapper').hide();
+            
+                    var $select = jQuery('.kiriof-block-district-select');
+                    if (!$select.length) {
+                        var $fieldWrapper = jQuery('<div class="wc-block-components-address-form__state wc-block-components-state-input kiriof-block-district-field-wrapper"></div>');
+                        var $selectWrapper = jQuery('<div class="wc-blocks-components-select kiriof-block-district-select-wrapper"></div>');
+                        var $container = jQuery('<div class="wc-blocks-components-select__container kiriof-block-district-select-container"></div>');
+                        var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label"><?php echo esc_js(__('District','kiriminaja-official')); ?></label>');
+                        $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping shipping address-level3"></select>');
+                        var $expand = jQuery('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="wc-blocks-components-select__expand" aria-hidden="true" focusable="false"><path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z"></path></svg>');
+                        $container.append($label, $select, $expand);
+                        $selectWrapper.append($container);
+                        $fieldWrapper.append($selectWrapper);
+                        $wrapper.after($fieldWrapper);
+                    }
+            
+                    var currentValue = $field.val() || $select.val() || '';
+                    var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
+                    var placeholderSelected = currentValue ? '' : ' selected';
+                    var html = '<option value="" data-alternate-values="[<?php echo esc_js(__('Select District','kiriminaja-official')); ?>]" disabled' + placeholderSelected + '><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
+                    results.forEach(function(d) {
+                        var selected = String(d.id) === String(currentValue) ? ' selected' : '';
+                        html += '<option value="' + d.id + '" data-alternate-values="[' + d.text + ']"' + selected + '>' + d.text + '</option>';
+                        if (String(d.id) === String(currentValue)) {
+                            currentName = d.text;
+                        }
+                    });
+            
+                    $select.html(html).val(currentValue);
+            
+                    if (currentValue && currentName) {
+                        jQuery('[name="kiriof_destination_area_name"]').val(currentName);
+                    }
+            
+                    return true;
+                }
+            
+                if (typeof MutationObserver !== 'undefined') {
+                    var kiriofDistrictObserver = new MutationObserver(function() {
+                        if (kiriofLastDistrictResults.length && !jQuery('.kiriof-block-district-select').length) {
+                            kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
+                        }
+                    });
+                    kiriofDistrictObserver.observe(document.body, { childList: true, subtree: true });
+                }
+            
+                function kiriofFetchDistricts(postcode) {
+                    if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
+                    kiriofLastPostcode = postcode;
+            
+                    var kiriofAjaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                        ? kiriofAjax.ajaxurl
+                        : '<?php echo esc_url( admin_url('admin-ajax.php') ); ?>';
+                    var kiriofAjaxNonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
+                        ? kiriofAjax.nonce
+                        : '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>';
+            
+                    jQuery.ajax({
+                        type: 'post',
+                        url: kiriofAjaxUrl,
+                        data: {
+                            action: 'kiriminaja_subdistrict_search',
+                            data: { term: postcode },
+                            nonce: kiriofAjaxNonce
+                        },
+                        success: function(response) {
+                            if (!response || !response.data || !response.data.length) return;
+                            kiriofRenderBlockDistrictSelect(response.data);
+                        }
+                    });
+                }
+            
+                jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select')
+                    .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
+                        var val = jQuery(this).val();
+                        var label = jQuery(this).find('option:selected').text();
+                        var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
+                        var $sourceField = kiriofGetBlockDistrictField();
+            
+                        $sourceField.val(val).trigger('input').trigger('change');
+                        jQuery('[name="kiriof_destination_area_name"]').val(label || '');
+                        if (differentAddress > 0) {
+                            jQuery('[name="kiriof_shipping_destination_area_name"]').val(label || '');
+                        }
+            
+                        kiriofUpdateCheckoutAdditionalFields(val);
+                        kiriofPersistDestinationArea(val, label, differentAddress, function() {
+                            kiriofCodInsurance();
+                        });
+                    });
+            
+                // Watch for postcode changes via direct DOM events too. Some Woo
+                // checkout blocks debounce address writes through /wc/store/v1/batch,
+                // so the cart data store can lag behind the visible postcode input.
+                jQuery(document).off('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors)
+                    .on('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors, function() {
+                        kiriofFetchDistricts(jQuery(this).val());
+                    });
+                setTimeout(function() {
+                    kiriofFetchDistricts(kiriofGetCheckoutPostcodeFromDom());
+                }, 300);
+            
+                // Watch for postcode changes via data store
+                wp.data.subscribe(function() {
+                    try {
+                        var store = wp.data.select('wc/store/cart');
+                        if (!store) return;
+                        var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
+                        var billing = store.getBillingAddress ? store.getBillingAddress() : {};
+                        var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
+                        kiriofFetchDistricts(postcode);
+                    } catch(e) {}
+                });
+            }
+        }
+
           
         function changeDistrict(){
             

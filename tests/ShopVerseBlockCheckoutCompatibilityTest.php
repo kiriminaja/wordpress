@@ -19,6 +19,32 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
     }
 
+
+    #[Test]
+    public function block_checkout_script_must_run_on_cart_page_when_shopverse_redirects_empty_checkout_to_cart(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'jQuery(document).ready(function($)');
+        $this->assertNotFalse($start, 'Inline checkout/cart script must exist');
+        $readyBody = substr($content, $start, 19000);
+
+        $this->assertStringContainsString(
+            'kiriofInitBlockCheckoutCompatibility();',
+            $readyBody,
+            'ShopVerse uses Woo Blocks on cart/checkout; block compatibility wiring must be called outside the PHP is_checkout() branch so cart-rendered block flows get District select and COD fee updates too'
+        );
+
+        $callPosition = strpos($readyBody, 'kiriofInitBlockCheckoutCompatibility();');
+        $checkoutBranchPosition = strpos($readyBody, '<?php if(is_checkout()): ?>');
+        $this->assertNotFalse($callPosition, 'Block compatibility initializer must be called');
+        $this->assertNotFalse($checkoutBranchPosition, 'Classic checkout branch still exists');
+        $this->assertLessThan(
+            $checkoutBranchPosition,
+            $callPosition,
+            'Initializer call must happen before/outside the PHP is_checkout() branch; otherwise /cart/ has only fee helper functions and never installs postcode/payment/shipping watchers'
+        );
+    }
+
     #[Test]
     public function block_checkout_field_registration_uses_supported_select_field_without_invalid_before_attribute(): void
     {
