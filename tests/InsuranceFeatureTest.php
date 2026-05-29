@@ -342,4 +342,73 @@ final class InsuranceFeatureTest extends TestCase
             'Settings list must not show TODO for insurance — it is now functional'
         );
     }
+
+    #[Test]
+    public function settings_list_checks_woocommerce_shipping_locations(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+
+        $this->assertStringContainsString(
+            'WooCommerce Shipping Locations',
+            $content,
+            'Settings wizard must surface WooCommerce shipping location configuration'
+        );
+
+        $this->assertStringContainsString(
+            "get_option( 'woocommerce_ship_to_countries'",
+            $content,
+            'Settings wizard must inspect WooCommerce Shipping location(s)'
+        );
+
+        $this->assertStringContainsString(
+            'get_shipping_countries()',
+            $content,
+            'Settings wizard must detect empty shipping countries when Ship to specific countries has no selection'
+        );
+
+        $this->assertStringContainsString(
+            'admin.php?page=wc-settings',
+            $content,
+            'Settings wizard row must link merchants to WooCommerce general settings'
+        );
+    }
+
+    #[Test]
+    public function setup_notice_includes_woocommerce_shipping_locations_step(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
+        $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
+        $this->assertNotFalse($methodStart, 'Setup checklist notice method must exist');
+        $methodBody = substr($content, $methodStart, 6500);
+
+        $this->assertStringContainsString(
+            "get_option( 'woocommerce_ship_to_countries'",
+            $methodBody,
+            'Setup notice must inspect WooCommerce Shipping location(s)'
+        );
+
+        $this->assertStringContainsString(
+            'get_shipping_countries()',
+            $methodBody,
+            'Setup notice must detect when WooCommerce has no shipping countries available'
+        );
+
+        $this->assertStringContainsString(
+            'WooCommerce Shipping Locations',
+            $methodBody,
+            'Setup notice must include WooCommerce Shipping Locations in the checklist'
+        );
+
+        $this->assertStringContainsString(
+            "'shipping_locations' => admin_url( 'admin.php?page=wc-settings' )",
+            $methodBody,
+            'WooCommerce Shipping Locations checklist item must link to WooCommerce general settings'
+        );
+
+        $this->assertStringContainsString(
+            '<a href="<?php echo esc_url( $step[\'url\'] ); ?>"',
+            $methodBody,
+            'Setup checklist labels must be clickable so merchants know where to finish each step'
+        );
+    }
 }

@@ -226,7 +226,12 @@ class Admin extends BaseInit{
         $wl_row = $repo->getSettingByKey('origin_whitelist_expedition_id');
         $courier_ready = ! empty( $wl_row->value ?? null );
 
-        // 5. Tracking Page
+        // 5. WooCommerce Shipping Locations
+        $ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
+        $shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
+        $shipping_locations_ready = ( 'disabled' !== $ship_to_countries && ! empty( $shipping_countries ) );
+
+        // 6. Tracking Page
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $tracking_pages = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->posts}
@@ -236,12 +241,22 @@ class Admin extends BaseInit{
         );
         $tracking_ready = ( $tracking_pages > 0 );
 
+        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
+        $step_urls = array(
+            'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+            'products'           => admin_url( 'edit.php?post_type=product' ),
+            'origin'             => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=address' ),
+            'couriers'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=couriers' ),
+            'shipping_locations' => admin_url( 'admin.php?page=wc-settings' ),
+            'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),
+        );
         $steps = array(
-            array( 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true ),
-            array( 'label' => __( 'Product Weight & Dimensions', 'kiriminaja-official' ), 'done' => $has_product_weight, 'required' => true ),
-            array( 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true ),
-            array( 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true ),
-            array( 'label' => __( 'Tracking Page', 'kiriminaja-official' ), 'done' => $tracking_ready, 'required' => false ),
+            array( 'key' => 'account', 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'] ),
+            array( 'key' => 'products', 'label' => __( 'Product Weight & Dimensions', 'kiriminaja-official' ), 'done' => $has_product_weight, 'required' => true, 'url' => $step_urls['products'] ),
+            array( 'key' => 'origin', 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'] ),
+            array( 'key' => 'couriers', 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'] ),
+            array( 'key' => 'shipping_locations', 'label' => __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'] ),
+            array( 'key' => 'tracking', 'label' => __( 'Tracking Page', 'kiriminaja-official' ), 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'] ),
         );
 
         $done_count = count( array_filter( $steps, function( $s ) { return $s['done']; } ) );
@@ -254,8 +269,6 @@ class Admin extends BaseInit{
         if ( $all_required_done ) {
             return;
         }
-
-        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
         ?>
         <div class="notice notice-info">
             <p>
@@ -271,7 +284,7 @@ class Admin extends BaseInit{
                     <?php else : ?>
                     <span style="color:<?php echo $step['required'] ? '#d63638' : '#c3c4c7'; ?>;font-size:14px;">&#9679;</span>
                     <?php endif; ?>
-                    <span style="<?php echo $step['done'] ? 'text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></span>
+                    <a href="<?php echo esc_url( $step['url'] ); ?>" style="<?php echo $step['done'] ? 'color:#787c82;text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></a>
                     <?php if ( ! $step['required'] ) : ?>
                     <span style="font-size:10px;color:#8c8f94;"><?php echo esc_html__( '(Optional)', 'kiriminaja-official' ); ?></span>
                     <?php endif; ?>

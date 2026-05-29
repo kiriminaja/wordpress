@@ -31,6 +31,10 @@ $kiriof_cod_settings = get_option( 'woocommerce_cod_settings', array() );
 $kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_settings['enabled'] : 'yes';
 $kiriof_insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
 $kiriof_insurance_enabled = ( $kiriof_insurance_setting && 'yes' === $kiriof_insurance_setting->value ) ? 'yes' : 'no';
+$kiriof_ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
+$kiriof_shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
+$kiriof_shipping_locations_ready = ( 'disabled' !== $kiriof_ship_to_countries && ! empty( $kiriof_shipping_countries ) );
+$kiriof_wc_general_url = admin_url( 'admin.php?page=wc-settings' );
 ?>
 <div class="wrap kj-wrap">
 
@@ -75,6 +79,20 @@ $kiriof_insurance_enabled = ( $kiriof_insurance_setting && 'yes' === $kiriof_ins
 
         <!-- Shipping -->
         <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Shipping',$locale) ); ?></div>
+
+        <a href="<?php echo esc_url( $kiriof_wc_general_url ); ?>" class="kj-setting-row">
+            <div class="kj-setting-row-inner">
+                <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.12 7-12A7 7 0 1 0 5 9c0 5.88 7 12 7 12z" stroke="#50575e" stroke-width="1.5"/><path d="M9 9.5l2 2 4-4" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="kj-setting-row-text">
+                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('WooCommerce Shipping Locations',$locale) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.',$locale) ); ?></span>
+                </div>
+                <span class="kj-status-pill <?php echo $kiriof_shipping_locations_ready ? 'is-ready' : 'is-warning'; ?>">
+                    <?php echo esc_html( $kiriof_shipping_locations_ready ? kiriof_helper()->tlThis('Ready',$locale) : kiriof_helper()->tlThis('Action needed',$locale) ); ?>
+                </span>
+                <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </a>
 
         <a href="<?php echo esc_url( $kiriof_base_url . '&section=couriers' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
