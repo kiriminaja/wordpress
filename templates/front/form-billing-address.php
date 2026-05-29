@@ -556,13 +556,11 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
 
         function kiriofSetFeeSkeletonLoading(isLoading) {
-            var $feeRows = jQuery('.kiriof_cart_item_insurane, .kiriof_cart_item_cod_fee');
-            $feeRows.toggleClass('kiriof-fee-loading', !!isLoading);
-            $feeRows.find('.kiriof-fee-skeleton').attr('aria-hidden', isLoading ? 'false' : 'true');
+            jQuery('#order_review').toggleClass('kiriof-fee-loading', !!isLoading);
         }
 
         if (!jQuery('#kiriof-fee-skeleton-style').length) {
-            jQuery('head').append('<style id="kiriof-fee-skeleton-style">.kiriof-fee-value{display:inline-block}.kiriof-fee-skeleton{display:none;width:82px;height:16px;border-radius:999px;background:linear-gradient(90deg,#eceff3 25%,#f7f8fa 37%,#eceff3 63%);background-size:400% 100%;animation:kiriofFeeSkeletonShimmer 1.2s ease-in-out infinite;vertical-align:middle}.kiriof-fee-loading .kiriof-fee-value{visibility:hidden}.kiriof-fee-loading .kiriof-fee-skeleton{display:inline-block}@keyframes kiriofFeeSkeletonShimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}</style>');
+            jQuery('head').append('<style id="kiriof-fee-skeleton-style">#order_review.kiriof-fee-loading .shop_table{opacity:.65;position:relative}#order_review.kiriof-fee-loading .shop_table:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 100%);animation:kiriofFeeSkeletonShimmer 1.2s ease-in-out infinite}@keyframes kiriofFeeSkeletonShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>');
         }
 
         function kiriofBlockExtensionCartUpdate(data) {
@@ -731,40 +729,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                         dataType:'JSON',
                         beforeSend:function(){
                             jQuery('#order_review').find('.shop_table').block({ message: null });
-                            jQuery('.kiriof_cart_item_insurane, .kiriof_cart_item_cod_fee').show();
                             kiriofSetFeeSkeletonLoading(true);
                         },
                         success:function(response){                                 
                             jQuery('#order_review').find('.shop_table').unblock();  
                 
-                            let insurance_res = response?.data?.insurance_fee ?? 0;
-                            let cod_fee_res = response?.data?.cod_fee ?? 0;
                             kiriofSetFeeSkeletonLoading(false);
                                     
-                            if( response?.data?.is_insurance == 0 ){
-                                jQuery('.kiriof_cart_item_insurane').hide();
-                            }else{
-                                jQuery('.kiriof_cart_item_insurane').show();
-                            }
-                            
-                            if( response?.data?.is_cod_amt  == 0 ){
-                                jQuery('.kiriof_cart_item_cod_fee').hide();
-                            }else{
-                                jQuery('.kiriof_cart_item_cod_fee').show();
-                            }
+                            jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance);
 
-                            jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance); 
-
-                            jQuery('#order_review').find('.order-total td').html(response?.data?.price_total);  
-                            
-
-
-                            /**
-                             * Display cost insurance information
-                             * Display cost codfee information
-                             */
-                            jQuery('.kj-cost-insurance .kiriof-fee-value').html(insurance_res);
-                            jQuery('.kj-cost-codfee .kiriof-fee-value').html(cod_fee_res);
+                            jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
 
                         },
                         error:function(xhr){

@@ -545,19 +545,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function checkout_fee_amounts_show_skeleton_while_recalculating(): void
     {
-        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
-
-        $this->assertStringContainsString(
-            'kiriof-fee-skeleton',
-            $controller,
-            'COD Fee and Insurance placeholder rows need a skeleton element that can be shown during checkout recalculation'
-        );
 
         $this->assertStringContainsString(
             'function kiriofSetFeeSkeletonLoading',
             $template,
-            'Frontend script needs a shared loading-state helper for the COD Fee and Insurance amount cells'
+            'Frontend script keeps a loading-state helper while recalculating native WooCommerce fee totals'
         );
 
         $this->assertStringContainsString(
@@ -570,24 +563,6 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriofSetFeeSkeletonLoading(false)',
             $template,
             'Fee skeleton should be disabled after AJAX success/error so final fee amounts are visible'
-        );
-    }
-
-    #[Test]
-    public function classic_checkout_keeps_live_fee_placeholder_rows(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
-
-        $this->assertStringContainsString(
-            'kiriof_cart_item_cod_fee',
-            $content,
-            'Classic checkout needs the COD Fee placeholder row so AJAX can show it after courier/payment changes'
-        );
-
-        $this->assertStringContainsString(
-            'kiriof_cart_item_insurane',
-            $content,
-            'Classic checkout needs the Insurance placeholder row so AJAX can show it after courier/insurance changes'
         );
     }
 
@@ -610,32 +585,33 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_uses_placeholder_rows_without_native_wc_fee_duplicates(): void
+    public function classic_checkout_uses_native_wc_fee_rows_instead_of_hidden_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $reviewTemplate = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
 
         $this->assertStringContainsString(
-            'kiriof_cart_item_cod_fee',
-            $content,
-            'Classic checkout still needs AJAX-updated COD Fee placeholder rows'
+            'foreach ( WC()->cart->get_fees() as $fee )',
+            $reviewTemplate,
+            'Classic checkout review-order template must render native WooCommerce fee rows'
         );
 
-        $this->assertStringContainsString(
-            'kiriof_cart_item_insurane',
-            $content,
-            'Classic checkout still needs AJAX-updated Insurance placeholder rows'
-        );
-
-        $this->assertStringContainsString(
-            'private function kiriof_is_block_checkout_request()',
-            $content,
-            'Native WooCommerce fees must be limited to block checkout requests so classic checkout does not render COD Fee/Insurance twice'
-        );
-
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'kiriof_should_use_native_checkout_fees',
             $content,
-            'kiriof_add_checkout_fees must bail on classic checkout and only add native fees for block checkout/Store API requests'
+            'Classic checkout must not bail out of native WooCommerce fees; otherwise Insurance and COD Fee disappear on classic themes'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_cart_item_cod_fee',
+            $content,
+            'Classic checkout should not rely on hidden AJAX placeholder rows that can be missing/stale after WooCommerce refreshes the order review'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_cart_item_insurane',
+            $content,
+            'Classic checkout should render Insurance through native WooCommerce fee rows, not a typo-prone hidden placeholder row'
         );
     }
 

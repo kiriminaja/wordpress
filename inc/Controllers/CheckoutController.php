@@ -24,8 +24,6 @@ class CheckoutController
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
         if (is_plugin_active('woocommerce/woocommerce.php')) {
-            //before total order checkout
-            add_action('woocommerce_review_order_before_order_total',array($this,'kiriof_reviewOrderBeforeTotalOrder'), 9999);
             /** Add Custom field Checkout Sub District */
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'), 9999);
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
@@ -88,14 +86,6 @@ class CheckoutController
     }
 
     private function kiriof_add_checkout_fees() {
-        // Classic checkout already renders AJAX-updated placeholder rows from
-        // kiriof_reviewOrderBeforeTotalOrder(). Adding native WC fees there makes
-        // Insurance/COD Fee appear twice. Native cart fees are only needed for
-        // React/block checkout/Store API requests, which do not use classic order-review fragments.
-        if ( ! $this->kiriof_should_use_native_checkout_fees() ) {
-            return;
-        }
-
         $chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
         if ( empty( $chosen_methods ) || ! is_array( $chosen_methods ) ) {
             return;
@@ -227,10 +217,6 @@ class CheckoutController
         return $payment_method;
     }
 
-    private function kiriof_should_use_native_checkout_fees() {
-        return $this->kiriof_is_block_checkout_request() || $this->kiriof_is_store_api_request();
-    }
-
     private function kiriof_is_store_api_request() {
         if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
             return false;
@@ -277,31 +263,6 @@ class CheckoutController
             }
         }
         return $needs_shipping;
-    }
-    function kiriof_reviewOrderBeforeTotalOrder(){
-        if( !is_checkout() ){
-            return false;
-        }
-
-        // Keep the traditional checkout placeholder rows from main branch.
-        // The AJAX flow updates these rows immediately after the buyer changes
-        // courier/payment/insurance. WC cart fees are also added separately for
-        // block checkout compatibility, but classic themes still rely on these
-        // rows for the live COD Fee/Insurance display before order submission.
-        $table = '<tr class="kiriof_cart_item_insurane" style="display:none;">
-			<td class="kj-cart-insurance">
-				<label for="kiriof_cart_insurance">'.__('Insurance','kiriminaja-official').'</label>											
-            </td>
-			<td class="kj-cart-insurance kj-cost-insurance"><span class="kiriof-fee-value"></span><span class="kiriof-fee-skeleton" aria-hidden="true"></span></td>
-		</tr>
-        <tr class="kiriof_cart_item_cod_fee" style="display:none;">
-			<td class="kj-cod-fee">
-				<label for="kiriof_cod_fee" style="display:block;margin:0;">'. __('COD Fee','kiriminaja-official').'</label>		
-                <em style="font-size: 16px;font-weight: 300;">(incl. 11% VAT)</em>									
-            </td>
-			<td class="kj-cod-fee kj-cost-codfee"><span class="kiriof-fee-value"></span><span class="kiriof-fee-skeleton" aria-hidden="true"></span></td>
-		</tr>';
-        echo wp_kses_post( $table );
     }
     function kiriof_add_checkout_nonce_field(){
         wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');
