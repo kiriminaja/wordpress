@@ -391,13 +391,13 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "p.post_type = 'product_variation'",
+            "p.post_type = 'product_variation' AND p.post_status IN ('publish','private')",
             $content,
-            'Settings wizard must count standalone variation rows as volumetric-required items'
+            'Settings wizard must count WooCommerce variation rows, which are commonly stored as private, as volumetric-required items'
         );
 
         $this->assertStringContainsString(
-            "p.post_type = 'product' AND child_variation.ID IS NULL",
+            "p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL",
             $content,
             'Settings wizard must count simple products but exclude variable parents that have variations'
         );
@@ -487,13 +487,13 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "p.post_type = 'product_variation'",
+            "p.post_type = 'product_variation' AND p.post_status IN ('publish','private')",
             $methodBody,
-            'Setup notice must count variation rows as volumetric-required items'
+            'Setup notice must count WooCommerce variation rows, which are commonly stored as private, as volumetric-required items'
         );
 
         $this->assertStringContainsString(
-            "p.post_type = 'product' AND child_variation.ID IS NULL",
+            "p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL",
             $methodBody,
             'Setup notice must count simple products but exclude variable parents that have variations'
         );
