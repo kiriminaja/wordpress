@@ -322,7 +322,7 @@ class Admin extends BaseInit{
                 <?php endforeach; ?>
             </div>
             <p>
-                <a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary" style="background:#7d3eb9;border-color:#7d3eb9;"><?php echo esc_html__( 'Complete Setup', 'kiriminaja-official' ); ?></a>
+                <a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary"><?php echo esc_html__( 'Complete Setup', 'kiriminaja-official' ); ?></a>
             </p>
         </div>
         <?php
