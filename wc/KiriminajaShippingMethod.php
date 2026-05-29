@@ -112,14 +112,13 @@ function kiriof_shipping_method(){
 
                 $chosen_payment_method = WC()->session->get('chosen_payment_method') ?: WC()->session->get('kiriof_payment_method');
 
-                /** Validation Payment Method */
-                $is_store_api_request = function_exists( 'wc' ) && wc() && method_exists( wc(), 'is_store_api_request' ) && wc()->is_store_api_request();
-                if( is_checkout() || $is_store_api_request ){
-                    if(!$chosen_payment_method){
-                        return [];
-                    }
-                }
-
+                /**
+                 * Payment is only needed to decide whether we should restrict
+                 * rates to COD-capable services. Classic checkout can calculate
+                 * shipping during update_order_review before a payment radio is
+                 * checked, so an empty payment method must still show regular
+                 * non-COD shipping rates instead of hiding the whole list.
+                 */
                 $is_cod = $chosen_payment_method === 'cod';
 
                 $options = $pricingData->results ?? [];

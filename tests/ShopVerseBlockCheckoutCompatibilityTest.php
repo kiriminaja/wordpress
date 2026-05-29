@@ -67,6 +67,27 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_shipping_method_must_not_require_payment_selection_before_showing_rates(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $start = strpos($content, 'public function filterOptions');
+        $this->assertNotFalse($start, 'KiriminAja shipping rate filtering method must exist');
+        $methodBody = substr($content, $start, 900);
+
+        $this->assertStringNotContainsString(
+            'return [];',
+            $methodBody,
+            'Classic checkout AJAX update_order_review may calculate shipping before any payment radio is checked; requiring a chosen payment method hides all rates even when District/address is fulfilled'
+        );
+
+        $this->assertStringContainsString(
+            '$is_cod = $chosen_payment_method === \'cod\';',
+            $methodBody,
+            'Only COD filtering should depend on the chosen payment method; non-COD/unknown payment should still show non-COD rates'
+        );
+    }
+
+    #[Test]
     public function block_checkout_field_registration_uses_supported_select_field_without_invalid_before_attribute(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
@@ -368,10 +389,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout Store API callback stores the payment method as kiriof_payment_method; shipping option filtering must read that fallback'
         );
 
-        $this->assertStringContainsString(
-            'wc()->is_store_api_request()',
+        $this->assertStringNotContainsString(
+            'is_checkout() || $is_store_api_request',
             $content,
-            'Shipping option filtering cannot depend only on is_checkout() because block checkout rate requests run through Store API'
+            'Shipping option filtering must not hide all rates while payment is still unset; block/classic checkout may calculate rates before payment selection is persisted'
         );
     }
 
