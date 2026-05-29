@@ -67,6 +67,27 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_custom_payment_row_sets_current_gateway_before_rendering_radios(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
+        $gatewayLookup = strpos($content, '$available_gateways = WC()->payment_gateways->get_available_payment_gateways();');
+        $renderLoop = strpos($content, 'foreach ( $available_gateways as $gateway )');
+        $this->assertNotFalse($gatewayLookup, 'Classic checkout custom payment row must fetch available gateways');
+        $this->assertNotFalse($renderLoop, 'Classic checkout custom payment row must render payment method radios');
+
+        $setCurrent = strpos($content, 'WC()->payment_gateways()->set_current_gateway( $available_gateways );');
+        $this->assertNotFalse(
+            $setCurrent,
+            'Custom payment row bypasses WooCommerce checkout/payment.php, so it must set the chosen/default gateway itself before rendering payment-method.php'
+        );
+        $this->assertLessThan(
+            $renderLoop,
+            $setCurrent,
+            'Payment gateway chosen state must be set before radios render, otherwise payment boxes can show while no input is actually checked/posted'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_shipping_method_must_not_require_payment_selection_before_showing_rates(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');

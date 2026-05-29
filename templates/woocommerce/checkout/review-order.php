@@ -64,7 +64,9 @@ defined( 'ABSPATH' ) || exit;
 				<div id="payment">
 				<?php
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variable
-				$available_gateways = WC()->payment_gateways->get_available_payment_gateways();?>
+				$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+				WC()->payment_gateways()->set_current_gateway( $available_gateways );
+				?>
 				<?php if ( WC()->cart->needs_payment() ) : ?>
 					<ul class="wc_payment_methods payment_methods methods">
 						<?php
