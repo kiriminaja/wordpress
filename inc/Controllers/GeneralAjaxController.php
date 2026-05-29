@@ -125,9 +125,12 @@ class GeneralAjaxController
 
             if (!empty($service->data)) {
 
-                if (!empty($payment_method)) {
+                if ('cod' === $payment_method) {
                     $datas['cod_fee'] = wc_price($service->data['calculation_result']['cod_amt']) ??  0;
                     $datas['is_cod_amt'] = $service->data['calculation_result']['cod_amt'];
+                } else {
+                    $datas['cod_fee'] = wc_price(0);
+                    $datas['is_cod_amt'] = 0;
                 }
 
                 if (!empty($shipping_metode_id)) {

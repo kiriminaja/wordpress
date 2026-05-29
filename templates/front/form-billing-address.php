@@ -622,8 +622,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         function kiriofGetPaymentMethod() {
             let payment_method = kiriofNormalizePaymentMethod(
-                jQuery("[name=payment_method]:checked").val() || jQuery("[name=payment_method]").val() || ''
+                jQuery("[name=payment_method]:checked").val() || ''
             );
+
+            if (!payment_method) {
+                var $codInput = jQuery('[name=payment_method][value="cod"]');
+                var $checkedCodInput = $codInput.filter(':checked');
+                var $activeCodWrapper = $codInput.closest('[aria-checked="true"], .is-active, .wc-block-components-radio-control-accordion-option--checked');
+                if ($checkedCodInput.length || $activeCodWrapper.length) {
+                    payment_method = 'cod';
+                }
+            }
 
             if (!payment_method && typeof wp !== 'undefined' && wp.data && wp.data.select) {
                 try {
@@ -634,7 +643,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                     if (!payment_method && paymentStore && paymentStore.getActivePaymentMethod) {
                         payment_method = kiriofNormalizePaymentMethod(paymentStore.getActivePaymentMethod);
                     }
+                    if (!payment_method && paymentStore && typeof paymentStore.getPaymentMethodData === 'function') {
+                        var paymentData = paymentStore.getPaymentMethodData() || {};
+                        payment_method = kiriofNormalizePaymentMethod(paymentData.payment_method || paymentData.paymentMethod || paymentData.gateway || '');
+                    }
                 } catch(e) {}
+            }
+
+            if (!payment_method) {
+                payment_method = kiriofNormalizePaymentMethod(jQuery("[name=payment_method]").val() || '');
             }
 
             return payment_method || '';

@@ -1063,10 +1063,14 @@ class CheckoutController
             WC()->session->set( 'kiriof_destination_area', $destination_id );
         }
 
-        if ( '' !== $payment_method ) {
+        if ( 'cod' === $payment_method ) {
             WC()->session->set( 'chosen_payment_method', $payment_method );
             WC()->session->set( 'payment_method', $payment_method );
             WC()->session->set( 'kiriof_payment_method', $payment_method );
+        } else {
+            WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
+            WC()->session->set( 'kiriof_payment_method', '' );
         }
 
         WC()->session->set( 'kiriof_insurance', $insurance );

@@ -337,6 +337,87 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_cod_fee_keeps_cod_when_store_api_payment_response_lags(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofGetPaymentMethod()');
+        $this->assertNotFalse($start, 'Payment method reader must exist');
+        $methodBody = substr($content, $start, 2600);
+
+        $this->assertStringContainsString(
+            "[name=payment_method][value=\"cod\"]",
+            $methodBody,
+            'Woo Blocks can render a hidden COD input without checked state; COD detection must inspect its checked/aria state instead of falling back to non-COD .val()'
+        );
+
+        $this->assertStringContainsString(
+            'aria-checked',
+            $methodBody,
+            'Woo Blocks payment radio wrappers expose active selection via aria-checked when the Store API payment selector has not updated yet'
+        );
+
+        $this->assertStringContainsString(
+            'getPaymentMethodData',
+            $methodBody,
+            'Payment method detection should also inspect paymentMethodData.payment_method for Store API checkout compatibility'
+        );
+
+        $this->assertStringContainsString(
+            'payment_method: data.payment_method',
+            $content,
+            'Store API extensionCartUpdate must persist the detected payment method so native fee calculation can add COD Fee'
+        );
+    }
+
+    #[Test]
+    public function store_api_update_callback_persists_and_clears_payment_method_explicitly(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_store_api_update_checkout');
+        $this->assertNotFalse($start, 'Store API update callback must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        $this->assertStringContainsString(
+            'WC()->session->set( \'chosen_payment_method\', $payment_method );',
+            $methodBody,
+            'Store API callback must persist COD when block checkout reports it'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_payment_method', '' );",
+            $methodBody,
+            'Store API callback must explicitly clear stale COD when buyer switches away from COD'
+        );
+    }
+
+    #[Test]
+    public function admin_ajax_cod_fee_only_sets_cod_payload_for_cod_payment(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+        $start = strpos($content, 'public function kiriof_getDataAfterUpdateCheckout()');
+        $this->assertNotFalse($start, 'Admin AJAX checkout recalculation handler must exist');
+        $methodBody = substr($content, $start, 3200);
+
+        $this->assertStringContainsString(
+            '\'is_cod\'                => $payment_method === \'cod\'',
+            $methodBody,
+            'Backend calculation must only request COD fee for the actual COD gateway'
+        );
+
+        $this->assertStringNotContainsString(
+            'if (!empty($payment_method))',
+            $methodBody,
+            'A non-empty non-COD payment method must not be treated as enough evidence to expose COD Fee'
+        );
+
+        $this->assertStringContainsString(
+            'if (\'cod\' === $payment_method)',
+            $methodBody,
+            'AJAX response should expose cod_fee/is_cod_amt only when COD is the selected payment method'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_select_uses_dedicated_wrapper_without_overlapping_source_field(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
