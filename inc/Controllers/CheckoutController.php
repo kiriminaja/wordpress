@@ -122,14 +122,15 @@ class CheckoutController
             'insurance'       => $force_insurance ? 1 : 0,
         );
         $cached_context  = WC()->session->get( 'kiriof_cached_fee_context', array() );
+        $cache_matches   = $this->kiriof_fee_cache_matches( $cached_context, $cache_context );
 
         // Read cached fees from session only if they match the current checkout
         // context. Courier changes can change force-insurance rules; payment
         // changes must immediately clear stale COD amounts.
-        $insurance_amt = ( is_array( $cached_context ) && $cached_context === $cache_context )
+        $insurance_amt = $cache_matches
             ? (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 )
             : 0;
-        $cod_amt       = ( is_array( $cached_context ) && $cached_context === $cache_context )
+        $cod_amt       = $cache_matches
             ? (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 )
             : 0;
 
@@ -138,8 +139,9 @@ class CheckoutController
             WC()->session->set( 'kiriof_cached_cod_amt', 0 );
         }
 
-        // Fallback: if cache is empty/stale, calculate fees directly.
-        if ( $insurance_amt <= 0 && ( 'cod' !== $chosen_payment || $cod_amt <= 0 ) ) {
+        // Fallback: if cache is empty or for a different checkout context,
+        // calculate fees directly. This keeps non-COD insurance fresh too.
+        if ( ! $cache_matches || ( $insurance_amt <= 0 && ( 'cod' !== $chosen_payment || $cod_amt <= 0 ) ) ) {
             try {
                 $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
                     'destination_area_id' => $destination_id,
@@ -179,6 +181,10 @@ class CheckoutController
                 false
             );
         }
+    }
+
+    private function kiriof_fee_cache_matches( $cached_context, $cache_context ) {
+        return is_array( $cached_context ) && $cached_context === $cache_context;
     }
     private function kiriof_extract_expedition_from_method( $shipping_method ) {
         $shipping_method = (string) $shipping_method;
@@ -1166,6 +1172,7 @@ class CheckoutController
         $destination_name = isset( $data['destination_name'] ) ? sanitize_text_field( wp_unslash( $data['destination_name'] ) ) : '';
         $payment_method  = isset( $data['payment_method'] ) ? sanitize_text_field( wp_unslash( $data['payment_method'] ) ) : '';
         $insurance       = ! empty( $data['insurance'] ) ? 1 : 0;
+        $force_insurance = ! empty( $data['force_insurance'] ) ? 1 : 0;
 
         if ( '' !== $shipping_method ) {
             WC()->session->set( 'kiriof_chosen_shipping_methods', array( $shipping_method ) );
@@ -1196,6 +1203,8 @@ class CheckoutController
 
         WC()->session->set( 'kiriof_insurance', $insurance );
         WC()->session->set( 'billing_insurance', $insurance );
+        WC()->session->set( 'force_insurance', $force_insurance );
+        WC()->session->set( 'kiriof_force_insurance', $force_insurance );
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
         WC()->session->set( 'kiriof_cached_cod_amt', 0 );
         WC()->session->set( 'kiriof_cached_fee_context', array() );

@@ -605,7 +605,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                             destination_id: data.destination_id,
                             destination_name: data.destination_name,
                             payment_method: data.payment_method,
-                            insurance: data.insurance
+                            insurance: data.insurance,
+                            force_insurance: data.force_insurance
                         }
                     });
                     return;
@@ -742,7 +743,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 destination_id,
                 destination_name,
                 payment_method,
-                insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance))
+                insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance)),
+                force_insurance : parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
             };
 
             // Persist the block-checkout selections immediately through Store API.

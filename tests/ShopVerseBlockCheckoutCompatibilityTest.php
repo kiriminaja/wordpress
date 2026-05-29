@@ -2,6 +2,28 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+if (! defined('ABSPATH')) {
+    define('ABSPATH', PLUGIN_DIR . '/tests/wordpress/');
+}
+if (! function_exists('sanitize_text_field')) {
+    function sanitize_text_field($value)
+    {
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+}
+if (! function_exists('wp_unslash')) {
+    function wp_unslash($value)
+    {
+        return $value;
+    }
+}
+if (! function_exists('WC')) {
+    function WC()
+    {
+        return $GLOBALS['kiriof_test_wc'] ?? null;
+    }
+}
+
 /**
  * Regression coverage for React/block checkout themes such as ShopVerse.
  */
@@ -186,6 +208,31 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function volumetric_box_is_conservative_for_mixed_shape_multiple_quantity_carts(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Utils/Volumetric.php';
+
+        $items = array(
+            array('length' => 100, 'width' => 10, 'height' => 2, 'qty' => 1),
+            array('length' => 10, 'width' => 100, 'height' => 2, 'qty' => 2),
+            array('length' => 20, 'width' => 20, 'height' => 20, 'qty' => 1),
+        );
+
+        $box = \KiriminAjaOfficial\Utils\Volumetric::calculateSmallestBox($items);
+        $boxVolume = $box['length'] * $box['width'] * $box['height'];
+        $itemVolume = (100 * 10 * 2) + (10 * 100 * 2 * 2) + (20 * 20 * 20);
+
+        $this->assertGreaterThanOrEqual(100, $box['length']);
+        $this->assertGreaterThanOrEqual(100, $box['width']);
+        $this->assertGreaterThanOrEqual(20, $box['height']);
+        $this->assertGreaterThanOrEqual(
+            $itemVolume,
+            $boxVolume,
+            'Volumetric output must never have less volume than the cart contents, otherwise pricing can be underquoted'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_template_must_render_real_cart_total_not_hardcoded_zero(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
@@ -320,6 +367,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'destination_name: data.destination_name',
             $content,
             'Store API cart update must persist the selected district label for later transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            'force_insurance: data.force_insurance',
+            $content,
+            'Store API cart update must persist courier-forced insurance so block checkout order creation keeps it'
         );
     }
 
@@ -715,6 +768,43 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function store_api_update_callback_persists_force_insurance_in_session(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
+
+        $session = new class {
+            public array $values = array();
+
+            public function set($key, $value): void
+            {
+                $this->values[$key] = $value;
+            }
+
+            public function get($key, $default = null)
+            {
+                return $this->values[$key] ?? $default;
+            }
+        };
+        $GLOBALS['kiriof_test_wc'] = (object) array('session' => $session);
+
+        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $controller->kiriof_store_api_update_checkout(array(
+            'shipping_metode_id' => 'kiriminaja-official_jne_REG23',
+            'destination_id'     => 44064,
+            'destination_name'   => 'Sariharjo',
+            'payment_method'     => 'bacs',
+            'insurance'          => 1,
+            'force_insurance'    => 1,
+        ));
+
+        $this->assertSame(1, $session->get('force_insurance'));
+        $this->assertSame(1, $session->get('kiriof_force_insurance'));
+        $this->assertSame(1, $session->get('kiriof_insurance'));
+        $this->assertSame(array('kiriminaja-official_jne_REG23'), $session->get('kiriof_chosen_shipping_methods'));
+        $this->assertSame('jne_REG23', $session->get('kiriof_expedition'));
+    }
+
+    #[Test]
     public function admin_ajax_cod_fee_only_sets_cod_payload_for_cod_payment(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
@@ -979,6 +1069,35 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function fee_cache_matcher_invalidates_non_cod_insurance_when_checkout_context_changes(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
+
+        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $method = new ReflectionMethod($controller, 'kiriof_fee_cache_matches');
+        $method->setAccessible(true);
+
+        $cachedContext = array(
+            'shipping_method' => 'kiriminaja-official_idx_06',
+            'destination_id'  => 44064,
+            'payment_method'  => 'bacs',
+            'insurance'       => 1,
+        );
+        $changedContext = array(
+            'shipping_method' => 'kiriminaja-official_jne_REG23',
+            'destination_id'  => 44064,
+            'payment_method'  => 'bacs',
+            'insurance'       => 1,
+        );
+
+        $this->assertTrue($method->invoke($controller, $cachedContext, $cachedContext));
+        $this->assertFalse(
+            $method->invoke($controller, $cachedContext, $changedContext),
+            'A non-COD checkout that changes courier must not reuse stale cached insurance amounts'
+        );
+    }
+
+    #[Test]
     public function shipping_chosen_method_filter_preserves_posted_ajax_selection_and_prefixed_session_mirror(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
@@ -1089,6 +1208,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "WC()->session->set( 'billing_insurance'",
             $content,
             'Store API callback must persist the insurance flag used by transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_force_insurance'",
+            $content,
+            'Store API callback must persist courier-forced insurance using the plugin session prefix'
         );
 
         $this->assertStringContainsString(
