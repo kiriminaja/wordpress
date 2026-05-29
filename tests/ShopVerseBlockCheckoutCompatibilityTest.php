@@ -315,6 +315,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $content,
             'Store API cart update must be namespaced to this plugin'
         );
+
+        $this->assertStringContainsString(
+            'destination_name: data.destination_name',
+            $content,
+            'Store API cart update must persist the selected district label for later transaction creation'
+        );
     }
 
     #[Test]
@@ -693,7 +699,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 1800);
+        $methodBody = substr($content, $start, 2400);
 
         $this->assertStringContainsString(
             'WC()->session->set( \'chosen_payment_method\', $payment_method );',
@@ -1019,6 +1025,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $content,
             'Store API callback must persist the insurance flag used by transaction creation'
         );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_destination_area_name'",
+            $content,
+            'Store API callback must persist the selected district label used by transaction creation'
+        );
     }
 
     #[Test]
@@ -1031,6 +1043,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "woocommerce_store_api_checkout_order_processed",
             $content,
             'Block checkout must create KiriminAja transaction rows from the Store API order-processed hook, not only the classic checkout hook'
+        );
+
+        $this->assertStringContainsString(
+            "woocommerce_store_api_checkout_update_order_from_request",
+            $content,
+            'Block checkout must persist KiriminAja context onto the order before the Store API checkout session/cart is cleared'
+        );
+
+        $this->assertStringContainsString(
+            'afterStoreApiCheckoutUpdateOrderFromRequest',
+            $content,
+            'Store API checkout update hook should save checkout context before transaction creation'
         );
 
         $this->assertStringContainsString(
@@ -1067,6 +1091,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriof_extract_expedition_from_method',
             $content,
             'Block checkout order creation must strip kiriminaja-official prefixes from Store API rate IDs before transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_get_store_api_destination_field',
+            $content,
+            'Block checkout order creation must read the registered additional District field when session context is unavailable'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_resolve_destination_area',
+            $content,
+            'Block checkout order creation must resolve text district values to KiriminAja destination IDs before inserting transactions'
         );
 
         $this->assertStringContainsString(
@@ -1216,6 +1252,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             '$status = \'all\';',
             $index,
             'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
+        );
+
+        $normalizePosition = strpos($index, '$status = \'all\';');
+        $isAllPosition = strpos($index, '$isAllFilter = (\'all\' === $status);');
+        $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
+        $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
+        $this->assertLessThan(
+            $isAllPosition,
+            $normalizePosition,
+            'The all-filter flag must be calculated after status normalization so the default transaction page does not query orders.status = all'
         );
 
         $this->assertStringContainsString(

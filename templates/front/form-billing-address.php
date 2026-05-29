@@ -603,6 +603,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         data: {
                             shipping_metode_id: data.shipping_metode_id,
                             destination_id: data.destination_id,
+                            destination_name: data.destination_name,
                             payment_method: data.payment_method,
                             insurance: data.insurance
                         }
@@ -713,6 +714,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             shipping_metode_id = shipping_metode_id || '';
             
             let destination_id = kiriofGetDestinationId(different_address);
+            let destination_name = jQuery('.kiriof-block-district-select option:selected').text()
+                || jQuery('[name="kiriof_destination_area_name"]').val()
+                || jQuery('[name="kiriof_shipping_destination_area_name"]').val()
+                || '';
 
             // Global insurance forced = always true
             <?php if ( $kiriof_global_insurance ) : ?>
@@ -735,6 +740,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 nonce:"<?php echo esc_js( wp_create_nonce('kiriof-update-checkout') ); ?>",
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
+                destination_name,
                 payment_method,
                 insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance))
             };

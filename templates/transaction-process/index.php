@@ -62,14 +62,13 @@ class Kiriof_TransactionProcessIndex
         $status = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
 
         // Whitelist of post_status values exposed by the pill row in the view.
-        // Anything outside the whitelist (or empty / 'all') falls back to the
-        // legacy default of 'wc-processing' to preserve existing behavior.
+        // Anything outside the whitelist (including empty) falls back to all.
         $allowedStatuses = ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'processed'];
-        $isProcessedFilter = ('processed' === $status);
-        $isAllFilter = ('all' === $status);
         if (! in_array($status, $allowedStatuses, true)) {
             $status = 'all';
         }
+        $isProcessedFilter = ('processed' === $status);
+        $isAllFilter = ('all' === $status);
 
         $key_like   = '';
         $month_like = '';
