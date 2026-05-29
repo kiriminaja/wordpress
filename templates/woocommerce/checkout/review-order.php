@@ -136,7 +136,7 @@ defined( 'ABSPATH' ) || exit;
 
 		<tr class="order-total">
 			<th><?php esc_html_e( 'Total', 'kiriminaja-official' ); ?></th>
-			<td><?php echo 'Rp' . esc_html( kiriof_money_format( 0 ) ); ?></td>
+			<td><?php wc_cart_totals_order_total_html(); ?></td>
 		</tr>
 		<?php do_action( 'woocommerce_review_order_after_order_total' ); ?>
 

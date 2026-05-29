@@ -46,6 +46,27 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_template_must_render_real_cart_total_not_hardcoded_zero(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
+        $start = strpos($content, '<tr class="order-total">');
+        $this->assertNotFalse($start, 'Classic checkout review-order template must render an order total row');
+        $row = substr($content, $start, 360);
+
+        $this->assertStringContainsString(
+            'wc_cart_totals_order_total_html();',
+            $row,
+            'Classic/shortcode checkout must use WooCommerce cart total HTML so product subtotal, shipping, Insurance, and COD Fee are reflected'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriof_money_format( 0 )',
+            $row,
+            'Hardcoding Rp0 in the classic review-order template makes /checkout totals always show zero'
+        );
+    }
+
+    #[Test]
     public function block_checkout_field_registration_uses_supported_select_field_without_invalid_before_attribute(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
