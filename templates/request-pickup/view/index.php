@@ -123,7 +123,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 if (@$kiriof_row->status!=="paid"){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
-                                                        <button class="button button-primary" type="button" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
+                                                        <button class="button button-primary kiriof-payment-button" type="button" data-pickup-number="'.$kiriof_pickup_number_js.'" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
                                                                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -375,6 +375,8 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 <!--Payment Detail-->
 <?php ob_start(); ?>
     let showPaymentFormPaymentId = null
+    const kiriofPaymentQrMaxRetries = 20
+    const kiriofPaymentQrRetryDelay = 1000
     function showPaymentForm(paymentId, retryCount){
         retryCount = retryCount || 0
         showPaymentFormPaymentId = paymentId
@@ -430,10 +432,13 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 jQuery('#payment-modal .trx-pay-amount').text(kiriofMoneyFormat(responseData?.sum_fee_non_cod,'Rp'))
 
                 const qrContent = responseData?.payment_data?.qr_content
-                if (!qrContent && retryCount < 5) {
+                if (!qrContent && retryCount < kiriofPaymentQrMaxRetries) {
+                    modalElemLoader.removeClass('kj-hidden')
+                    modalElemContent.addClass('kj-hidden')
+                    modalElemErr.addClass('kj-hidden')
                     setTimeout(function() {
                         showPaymentForm(paymentId, retryCount + 1)
-                    }, 800)
+                    }, kiriofPaymentQrRetryDelay)
                     return
                 }
 
@@ -459,6 +464,14 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
         const shouldOpenPayment = urlParams.get('open_payment');
         if (pickupNumberToLoad && (shouldOpenPayment === '1' || shouldOpenPayment === 'true')) {
             setTimeout(function() {
+                const pickupNumberSelector = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+                    ? CSS.escape(pickupNumberToLoad)
+                    : pickupNumberToLoad.replace(/"/g, '\\"');
+                const paymentButton = document.querySelector('.kiriof-payment-button[data-pickup-number="' + pickupNumberSelector + '"]');
+                if (paymentButton) {
+                    paymentButton.click();
+                    return;
+                }
                 showPaymentForm(pickupNumberToLoad);
             }, 150);
         }
