@@ -30,6 +30,83 @@ function kiriofPrintAsString(value, placeholder = "") {
   return value;
 }
 
+function kiriofRenderQrCode(target, text, options) {
+  var $target = jQuery(target);
+  var config = jQuery.extend(
+    {
+      width: 256,
+      height: 256,
+    },
+    options || {}
+  );
+
+  $target.empty();
+
+  if (!text) {
+    $target
+      .append(
+        jQuery("<div />")
+          .css({
+            color: "#a60000",
+            fontWeight: "600",
+            textAlign: "center",
+            maxWidth: config.width + "px",
+          })
+          .text("QR payment tidak tersedia. Silakan refresh pembayaran.")
+      );
+    return false;
+  }
+
+  if (typeof jQuery.fn.qrcode === "function") {
+    try {
+      $target.qrcode({
+        text: text,
+        width: config.width,
+        height: config.height,
+      });
+      return true;
+    } catch (error) {
+      console.error("Error rendering QR with jquery-qrcode:", error);
+    }
+  }
+
+  if (typeof QRCodeStyling === "function") {
+    try {
+      var qrCode = new QRCodeStyling({
+        width: config.width,
+        height: config.height,
+        type: "canvas",
+        data: text,
+        margin: 0,
+        dotsOptions: {
+          color: "#000000",
+          type: "square"
+        },
+        backgroundOptions: {
+          color: "#ffffff"
+        }
+      });
+      qrCode.append($target.get(0));
+      return true;
+    } catch (error) {
+      console.error("Error rendering QR with QRCodeStyling:", error);
+    }
+  }
+
+  $target
+    .append(
+      jQuery("<div />")
+        .css({
+          color: "#a60000",
+          fontWeight: "600",
+          textAlign: "center",
+          maxWidth: config.width + "px",
+        })
+        .text("QR generator tidak tersedia. Silakan refresh halaman.")
+    );
+  return false;
+}
+
 jQuery(document).on("input", ".kiriof_int_input", function () {
   this.value = this.value.replace(/\D/g, "");
   if (jQuery(this).hasClass("duplicate_into")) {
