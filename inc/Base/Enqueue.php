@@ -72,6 +72,25 @@ class Enqueue extends BaseInit{
                 'update_checkout_nonce' => wp_create_nonce( 'kiriof-update-checkout' ),
             )
         );
+
+        if ( $this->isBlockCheckoutPage() ) {
+            wp_enqueue_script(
+                'kiriof-block-checkout',
+                $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
+                array( 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout' ),
+                KIRIOF_VERSION,
+                array( 'in_footer' => true )
+            );
+        }
+    }
+
+    private function isBlockCheckoutPage() {
+        if ( ! function_exists( 'has_block' ) ) {
+            return false;
+        }
+
+        $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
+        return $checkout_page_id > 0 && has_block( 'woocommerce/checkout', $checkout_page_id );
     }
 
     /**

@@ -117,9 +117,13 @@ class CheckoutController
         $insurance_amt = (float) WC()->session->get( 'kiriof_cached_insurance_amt', 0 );
         $cod_amt       = (float) WC()->session->get( 'kiriof_cached_cod_amt', 0 );
 
+        $chosen_payment = $this->kiriof_get_checkout_payment_method();
+
         // Fallback: if session cache is empty (e.g., first load on block checkout
-        // where the AJAX hasn't fired yet), calculate fees directly.
-        if ( $insurance_amt <= 0 && $cod_amt <= 0 ) {
+        // where the AJAX hasn't fired yet), calculate fees directly. Also recalculate
+        // when COD is selected but the cached COD amount is still empty/stale; block
+        // checkout can persist Insurance before the payment callback reports COD.
+        if ( ( $insurance_amt <= 0 && $cod_amt <= 0 ) || ( 'cod' === $chosen_payment && $cod_amt <= 0 ) ) {
             // Find the exact KiriminAja method + courier
             $kiriof_method = '';
             foreach ( $chosen_methods as $method ) {
@@ -148,7 +152,6 @@ class CheckoutController
 
             $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
             $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
-            $chosen_payment    = WC()->session->get( 'chosen_payment_method', '' );
 
             try {
                 $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
@@ -199,6 +202,29 @@ class CheckoutController
             return substr( $shipping_method, strlen( 'kiriminaja-official:' ) );
         }
         return $shipping_method;
+    }
+
+    private function kiriof_get_checkout_payment_method( $order = null ) {
+        $payment_method = '';
+
+        if ( $order instanceof \WC_Order ) {
+            $payment_method = (string) $order->get_meta( '_kiriof_checkout_payment_method', true );
+            if ( '' === $payment_method ) {
+                $payment_method = (string) $order->get_payment_method();
+            }
+        }
+
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'chosen_payment_method', '' );
+        }
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'kiriof_payment_method', '' );
+        }
+        if ( '' === $payment_method ) {
+            $payment_method = (string) WC()->session->get( 'payment_method', '' );
+        }
+
+        return $payment_method;
     }
 
     private function kiriof_should_use_native_checkout_fees() {
@@ -366,7 +392,7 @@ class CheckoutController
             $kiriof_checkout_token = (string) WC()->session->get( 'kiriof_checkout_token', '' );
         }
         if ( '' === $payment_method ) {
-            $payment_method = (string) WC()->session->get( 'payment_method', '' );
+            $payment_method = $this->kiriof_get_checkout_payment_method( $order );
         }
         if ( '' === $force_insurance ) {
             $force_insurance = WC()->session->get( 'force_insurance', '' );

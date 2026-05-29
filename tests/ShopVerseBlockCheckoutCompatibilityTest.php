@@ -789,6 +789,117 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function native_block_checkout_cod_fee_fallback_reads_all_store_api_payment_session_keys(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'private function kiriof_add_checkout_fees()');
+        $this->assertNotFalse($start, 'Native block checkout fee method must exist');
+        $methodBody = substr($content, $start, 3800);
+
+        $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
+        $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');
+        $helperBody = substr($content, $helperStart, 1400);
+
+        $this->assertStringContainsString(
+            'kiriof_get_checkout_payment_method',
+            $methodBody,
+            'Native fee fallback must use the shared Store API payment fallback helper'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_payment_method'",
+            $helperBody,
+            'Store API extensionCartUpdate stores COD in kiriof_payment_method; native fee fallback must read it, not only chosen_payment_method'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'payment_method'",
+            $helperBody,
+            'Order creation stores payment_method separately; native fee fallback must read that key too'
+        );
+
+        $this->assertStringContainsString(
+            '\'is_cod\'              => ( \'cod\' === $chosen_payment )',
+            $methodBody,
+            'Direct calculation fallback must request COD fee when any server-side checkout payment key says cod'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_order_creation_falls_back_to_woo_order_payment_method_for_cod(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'function afterCheckoutAfterCreated');
+        $this->assertNotFalse($start, 'Order processed hook must exist');
+        $methodBody = substr($content, $start, 2600);
+
+        $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
+        $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');
+        $helperBody = substr($content, $helperStart, 1400);
+
+        $this->assertStringContainsString(
+            'kiriof_get_checkout_payment_method( $order )',
+            $methodBody,
+            'Order creation must use the shared Store API/Woo order payment fallback helper'
+        );
+
+        $this->assertStringContainsString(
+            '$order->get_payment_method()',
+            $helperBody,
+            'Store API checkout may set Woo order payment_method=cod even when plugin session/meta payment context is empty'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->get( 'kiriof_payment_method'",
+            $helperBody,
+            'Order creation should also read the Store API callback payment fallback key'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_slot_fill_script_is_enqueued_for_order_summary_fee_breakdown(): void
+    {
+        $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+
+        $this->assertStringContainsString(
+            'kiriof-block-checkout',
+            $enqueue,
+            'Block checkout needs a dedicated frontend script for Woo Blocks Slot/Fills'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks-checkout',
+            $enqueue,
+            'Slot/fill script must depend on Woo Blocks checkout APIs'
+        );
+
+        $this->assertStringContainsString(
+            'registerPlugin',
+            $script,
+            'Block checkout order summary integration must register a Woo Blocks plugin'
+        );
+
+        $this->assertStringContainsString(
+            'ExperimentalOrderMeta',
+            $script,
+            'Insurance and COD Fee breakdown should render through the checkout block ExperimentalOrderMeta slot'
+        );
+
+        $this->assertStringContainsString(
+            "fee.key === 'insurance'",
+            $script,
+            'Slot/fill should render the native Insurance cart fee from Store API data'
+        );
+
+        $this->assertStringContainsString(
+            "fee.name === 'COD Fee'",
+            $script,
+            'Slot/fill should render the native COD Fee cart fee from Store API data'
+        );
+    }
+
+    #[Test]
     public function block_checkout_order_fees_are_not_added_or_rendered_twice_after_checkout(): void
     {
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
