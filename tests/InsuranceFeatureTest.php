@@ -374,12 +374,60 @@ final class InsuranceFeatureTest extends TestCase
     }
 
     #[Test]
+    public function settings_list_checks_product_volumetric_configuration_progress(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+
+        $this->assertStringContainsString(
+            'Product Volumetric Configurations',
+            $content,
+            'Settings wizard must surface product volumetric configuration progress'
+        );
+
+        $this->assertStringContainsString(
+            "post_type IN ('product','product_variation')",
+            $content,
+            'Settings wizard must count both parent products and product variations'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_weight'",
+            $content,
+            'Settings wizard must require product weight'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_length'",
+            $content,
+            'Settings wizard must require product length'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_width'",
+            $content,
+            'Settings wizard must require product width'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_height'",
+            $content,
+            'Settings wizard must require product height'
+        );
+
+        $this->assertStringContainsString(
+            'All Product Configured',
+            $content,
+            'Settings wizard must show the completed state when all products are configured'
+        );
+    }
+
+    #[Test]
     public function setup_notice_includes_woocommerce_shipping_locations_step(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
         $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
         $this->assertNotFalse($methodStart, 'Setup checklist notice method must exist');
-        $methodBody = substr($content, $methodStart, 6500);
+        $methodBody = substr($content, $methodStart, 9000);
 
         $this->assertStringContainsString(
             "get_option( 'woocommerce_ship_to_countries'",
@@ -409,6 +457,99 @@ final class InsuranceFeatureTest extends TestCase
             '<a href="<?php echo esc_url( $step[\'url\'] ); ?>"',
             $methodBody,
             'Setup checklist labels must be clickable so merchants know where to finish each step'
+        );
+    }
+
+    #[Test]
+    public function setup_notice_includes_product_volumetric_progress_step(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
+        $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
+        $this->assertNotFalse($methodStart, 'Setup checklist notice method must exist');
+        $methodBody = substr($content, $methodStart, 9000);
+
+        $this->assertStringContainsString(
+            "post_type IN ('product','product_variation')",
+            $methodBody,
+            'Setup notice must count both parent products and product variations'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_weight'",
+            $methodBody,
+            'Setup notice must require product weight'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_length'",
+            $methodBody,
+            'Setup notice must require product length'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_width'",
+            $methodBody,
+            'Setup notice must require product width'
+        );
+
+        $this->assertStringContainsString(
+            "meta_key = '_height'",
+            $methodBody,
+            'Setup notice must require product height'
+        );
+
+        $this->assertStringContainsString(
+            'All Product Configured',
+            $methodBody,
+            'Setup notice must show a completed product volumetric state'
+        );
+
+        $this->assertStringContainsString(
+            '%1$d / %2$d Product Volumetric Configurations',
+            $methodBody,
+            'Setup notice must show configured product progress'
+        );
+    }
+
+    #[Test]
+    public function product_list_has_volumetric_configuration_label_column(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ProductController.php');
+
+        $this->assertStringContainsString(
+            'manage_edit-product_columns',
+            $content,
+            'Product list must register a custom volumetric column'
+        );
+
+        $this->assertStringContainsString(
+            'manage_product_posts_custom_column',
+            $content,
+            'Product list must render the volumetric column label'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_volumetric',
+            $content,
+            'Product list must include the KiriminAja volumetric column key'
+        );
+
+        $this->assertStringContainsString(
+            'All Product Configured',
+            $content,
+            'Product list must show a completed volumetric label'
+        );
+
+        $this->assertStringContainsString(
+            '%1$d / %2$d Configured',
+            $content,
+            'Product list must show configured product and variation progress'
+        );
+
+        $this->assertStringContainsString(
+            '$product->get_children()',
+            $content,
+            'Product list must include variations when checking variable products'
         );
     }
 }

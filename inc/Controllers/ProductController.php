@@ -25,6 +25,10 @@ class ProductController{
         
         add_action('woocommerce_product_options_general_product_data', array($this,'kiriof_editproduct_nonce') );
 
+        add_filter( 'manage_edit-product_columns', array( $this, 'kiriof_add_product_volumetric_column' ), 20 );
+        add_action( 'manage_product_posts_custom_column', array( $this, 'kiriof_render_product_volumetric_column' ), 10, 2 );
+        add_action( 'admin_head-edit.php', array( $this, 'kiriof_product_volumetric_column_styles' ) );
+
     }
 
     public function kiriof_custom_field_shipping_product(){
@@ -106,6 +110,117 @@ class ProductController{
         if ( '' !== $kiriof_height ) {
             update_post_meta( $post_id, '_height', $kiriof_height );
         }
+    }
+
+    public function kiriof_add_product_volumetric_column( $columns ) {
+        $updated_columns = array();
+
+        foreach ( $columns as $key => $label ) {
+            $updated_columns[ $key ] = $label;
+
+            if ( 'name' === $key ) {
+                $updated_columns['kiriof_volumetric'] = __( 'Volumetric', 'kiriminaja-official' );
+            }
+        }
+
+        if ( ! isset( $updated_columns['kiriof_volumetric'] ) ) {
+            $updated_columns['kiriof_volumetric'] = __( 'Volumetric', 'kiriminaja-official' );
+        }
+
+        return $updated_columns;
+    }
+
+    public function kiriof_render_product_volumetric_column( $column, $post_id ) {
+        if ( 'kiriof_volumetric' !== $column ) {
+            return;
+        }
+
+        $product_ids = $this->kiriof_get_product_volumetric_ids( (int) $post_id );
+        $total       = count( $product_ids );
+        $configured  = 0;
+
+        foreach ( $product_ids as $product_id ) {
+            if ( $this->kiriof_product_has_volumetric_configuration( (int) $product_id ) ) {
+                $configured++;
+            }
+        }
+
+        $is_ready = ( $total > 0 && $configured >= $total );
+        $label    = $is_ready
+            ? __( 'All Product Configured', 'kiriminaja-official' )
+            : sprintf(
+                /* translators: %1$d: configured products, %2$d: total products */
+                __( '%1$d / %2$d Configured', 'kiriminaja-official' ),
+                $configured,
+                $total
+            );
+
+        printf(
+            '<span class="kiriof-volumetric-label %1$s">%2$s</span>',
+            esc_attr( $is_ready ? 'is-ready' : 'is-warning' ),
+            esc_html( $label )
+        );
+    }
+
+    public function kiriof_product_volumetric_column_styles() {
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+        if ( ! $screen || 'edit-product' !== $screen->id ) {
+            return;
+        }
+        ?>
+        <style>
+            .wp-list-table .column-kiriof_volumetric { width: 180px; }
+            .kiriof-volumetric-label {
+                display: inline-flex;
+                align-items: center;
+                max-width: 160px;
+                padding: 2px 8px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 600;
+                line-height: 1.6;
+                text-align: center;
+                white-space: normal;
+            }
+            .kiriof-volumetric-label.is-ready {
+                background: #edfaef;
+                color: #007017;
+                border: 1px solid #b7e5be;
+            }
+            .kiriof-volumetric-label.is-warning {
+                background: #fcf0f1;
+                color: #8a2424;
+                border: 1px solid #f4cccc;
+            }
+        </style>
+        <?php
+    }
+
+    private function kiriof_get_product_volumetric_ids( $post_id ) {
+        $product_ids = array( (int) $post_id );
+
+        if ( function_exists( 'wc_get_product' ) ) {
+            $product = wc_get_product( $post_id );
+
+            if ( $product && $product->is_type( 'variable' ) ) {
+                $product_ids = array_merge( $product_ids, array_map( 'intval', $product->get_children() ) );
+            }
+        }
+
+        return array_values( array_unique( array_filter( $product_ids ) ) );
+    }
+
+    private function kiriof_product_has_volumetric_configuration( $post_id ) {
+        $required_meta = array( '_weight', '_length', '_width', '_height' );
+
+        foreach ( $required_meta as $meta_key ) {
+            if ( (float) get_post_meta( $post_id, $meta_key, true ) <= 0 ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

@@ -197,19 +197,37 @@ class Admin extends BaseInit{
         $setup_key_row = $repo->getSettingByKey('setup_key');
         $is_connected  = ! empty( $setup_key_row->value ?? null );
 
-        // 2. Product LWH & Weight — check if any WC product has weight
-        $has_product_weight = false;
+        // 2. Product LWH & Weight.
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $product_count = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->postmeta} pm
-             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+        $product_volumetric_total = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->posts}
+             WHERE post_type IN ('product','product_variation')
+               AND post_status = 'publish'"
+        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $product_volumetric_configured = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
+             INNER JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
+             INNER JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
+             INNER JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
              WHERE p.post_type IN ('product','product_variation')
                AND p.post_status = 'publish'
-               AND pm.meta_key = '_weight'
-               AND pm.meta_value > 0"
+               AND CAST(weight_meta.meta_value AS DECIMAL(10,2)) > 0
+               AND CAST(length_meta.meta_value AS DECIMAL(10,2)) > 0
+               AND CAST(width_meta.meta_value AS DECIMAL(10,2)) > 0
+               AND CAST(height_meta.meta_value AS DECIMAL(10,2)) > 0"
         );
-        $has_product_weight = ( $product_count > 0 );
+        $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
+        $product_volumetric_label = $product_volumetric_ready
+            ? __( 'All Product Configured', 'kiriminaja-official' )
+            : sprintf(
+                /* translators: %1$d: configured products, %2$d: total products */
+                __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
+                $product_volumetric_configured,
+                $product_volumetric_total
+            );
 
         // 3. Origin Setup
         $origin_fields = $repo->getSettingByArray(array(
@@ -252,7 +270,7 @@ class Admin extends BaseInit{
         );
         $steps = array(
             array( 'key' => 'account', 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'] ),
-            array( 'key' => 'products', 'label' => __( 'Product Weight & Dimensions', 'kiriminaja-official' ), 'done' => $has_product_weight, 'required' => true, 'url' => $step_urls['products'] ),
+            array( 'key' => 'products', 'label' => $product_volumetric_label, 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'] ),
             array( 'key' => 'origin', 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'] ),
             array( 'key' => 'couriers', 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'] ),
             array( 'key' => 'shipping_locations', 'label' => __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'] ),
