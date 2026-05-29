@@ -213,9 +213,15 @@ class ProductController{
 
     private function kiriof_product_has_volumetric_configuration( $post_id ) {
         $required_meta = array( '_weight', '_length', '_width', '_height' );
+        $post_type = get_post_type( $post_id );
+        $parent_id = ( 'product_variation' === $post_type ) ? (int) wp_get_post_parent_id( $post_id ) : 0;
 
         foreach ( $required_meta as $meta_key ) {
-            if ( (float) get_post_meta( $post_id, $meta_key, true ) <= 0 ) {
+            $value = (float) get_post_meta( $post_id, $meta_key, true );
+            if ( $value <= 0 && $parent_id > 0 ) {
+                $value = (float) get_post_meta( $parent_id, $meta_key, true );
+            }
+            if ( $value <= 0 ) {
                 return false;
             }
         }

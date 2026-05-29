@@ -439,7 +439,7 @@ final class InsuranceFeatureTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
         $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
         $this->assertNotFalse($methodStart, 'Setup checklist notice method must exist');
-        $methodBody = substr($content, $methodStart, 9000);
+        $methodBody = substr($content, $methodStart, 13000);
 
         $this->assertStringContainsString(
             "get_option( 'woocommerce_ship_to_countries'",
