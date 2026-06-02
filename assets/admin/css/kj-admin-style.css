@@ -282,7 +282,6 @@ body {
   padding: 4px 8px;
   display: inline-block;
   border-radius: 4px;
-  margin: -0.25em 1em;
   color: #777;
   background: #e5e5e5;
 }
@@ -293,13 +292,48 @@ body {
 }
 
 .kj-badge.success {
-  background: #c8d7e1;
-  color: #2e4453;
+  background: #c6e1c6;
+  color: #5b841b;
 }
 
 .kj-badge.processing {
-  background: #c6e1c6;
-  color: #5b841b;
+  background: #bcd8f0;
+  color: #135e96;
+}
+
+.kj-badge.info {
+  background: #e0e7f5;
+  color: #1d4b8c;
+}
+
+.kj-badge.danger {
+  background: #f4cccc;
+  color: #8a2424;
+}
+
+.kj-badge.primary {
+  background: #e8daf5;
+  color: #5c2d91;
+}
+
+.kj-badge.teal {
+  background: #d1f0ed;
+  color: #0d6b5e;
+}
+
+.kj-badge.orange {
+  background: #fde8d0;
+  color: #8a4d0a;
+}
+
+.kj-badge.slate {
+  background: #e4e8ec;
+  color: #3c5065;
+}
+
+.kj-badge.rose {
+  background: #fce4ec;
+  color: #8a2432;
 }
 
 .inset-absolute {

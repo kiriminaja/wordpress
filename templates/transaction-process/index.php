@@ -36,12 +36,15 @@ class Kiriof_TransactionProcessIndex
             'wc-processing' => $kiriof_transactionRepo->getCountByPostStatus('wc-processing'),
             'wc-on-hold'    => $kiriof_transactionRepo->getCountByPostStatus('wc-on-hold'),
             'wc-pending'    => $kiriof_transactionRepo->getCountByPostStatus('wc-pending'),
+            'wc-cancelled'  => $kiriof_transactionRepo->getCountCancelled(),
             'processed'     => $kiriof_transactionRepo->getCountProcessed(),
         ];
 
+        $kiriof_couriers = $kiriof_transactionRepo->getDistinctCouriers();
+
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
         $kiriof_status_filter = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
-        if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'processed'], true)) {
+        if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed'], true)) {
             $kiriof_status_filter = 'all';
         }
 
@@ -60,15 +63,20 @@ class Kiriof_TransactionProcessIndex
         $month = sanitize_text_field(wp_unslash($_GET['month'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $status = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
+        $cod    = sanitize_text_field(wp_unslash($_GET['cod'] ?? ''));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
+        $courier = sanitize_text_field(wp_unslash($_GET['courier'] ?? ''));
 
         // Whitelist of post_status values exposed by the pill row in the view.
         // Anything outside the whitelist (including empty) falls back to all.
-        $allowedStatuses = ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'processed'];
+        $allowedStatuses = ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed'];
         if (! in_array($status, $allowedStatuses, true)) {
             $status = 'all';
         }
-        $isProcessedFilter = ('processed' === $status);
-        $isAllFilter = ('all' === $status);
+        $isProcessedFilter  = ('processed' === $status);
+        $isCancelledFilter  = ('wc-cancelled' === $status);
+        $isAllFilter        = ('all' === $status);
 
         $key_like   = '';
         $month_like = '';
@@ -77,6 +85,18 @@ class Kiriof_TransactionProcessIndex
         }
         if ('' !== $month) {
             $month_like = '%' . $wpdb->esc_like($month) . '%';
+        }
+
+        $cod_clause = '';
+        if ('1' === $cod) {
+            $cod_clause = 'AND kiriminaja_transactions.cod_fee > 0';
+        } elseif ('0' === $cod) {
+            $cod_clause = 'AND kiriminaja_transactions.cod_fee = 0';
+        }
+
+        $courier_clause = '';
+        if ('' !== $courier) {
+            $courier_clause = "AND kiriminaja_transactions.service = '" . esc_sql($courier) . "'";
         }
 
         /**
@@ -104,6 +124,9 @@ class Kiriof_TransactionProcessIndex
                     INNER JOIN {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
                         ON kiriminaja_transactions.pickup_number = kiriminaja_payments.pickup_number
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        AND kiriminaja_transactions.status != 'canceled'
+                        {$cod_clause}
+                        {$courier_clause}
                         AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
@@ -114,7 +137,35 @@ class Kiriof_TransactionProcessIndex
                     $month_like
                 )
             );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:enable ...
+        } elseif ($isCancelledFilter) {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT 
+                        orders_tbl.{$o['id']} as wc_order_id,
+                        orders_tbl.{$o['date']} as wc_date_created,
+                        orders_tbl.{$o['status']} as wc_status,
+                        orders_tbl.{$o['status']} as post_status,
+                        kiriminaja_transactions.*
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE orders_tbl.{$o['status']} = %s
+                        {$cod_clause}
+                        {$courier_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                    GROUP BY orders_tbl.{$o['id']}
+                    ORDER BY orders_tbl.{$o['date']} DESC",
+                    'wc-cancelled',
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like
+                )
+            );
+            // phpcs:enable ...
         } elseif ($isAllFilter) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $results = $wpdb->get_results(
@@ -129,6 +180,8 @@ class Kiriof_TransactionProcessIndex
                 INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                     ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                 WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                    {$cod_clause}
+                    {$courier_clause}
                     AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
@@ -139,7 +192,7 @@ class Kiriof_TransactionProcessIndex
                     $month_like
                 )
             );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:enable ...
         } else {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $results = $wpdb->get_results(
@@ -155,6 +208,8 @@ class Kiriof_TransactionProcessIndex
                     ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                 WHERE orders_tbl.{$o['status']} = %s
                     AND kiriminaja_transactions.status = %s
+                    {$cod_clause}
+                    {$courier_clause}
                     AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
