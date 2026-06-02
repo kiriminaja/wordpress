@@ -43,21 +43,21 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:0">
-        <?php foreach ( $steps as $step ) : ?>
-        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid #f0f0f1;<?php echo $step['done'] ? 'opacity:.6' : ''; ?>">
+        <?php foreach ( $steps as $kiriof_step ) : ?>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid #f0f0f1;<?php echo $kiriof_step['done'] ? 'opacity:.6' : ''; ?>">
             <div style="flex-shrink:0;margin-top:1px">
-                <?php if ( $step['done'] ) : ?>
+                <?php if ( $kiriof_step['done'] ) : ?>
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" style="color:#00a32a"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10m-5.186-2.419a1 1 0 1 0-1.628-1.162l-4.314 6.04l-2.165-2.166a1 1 0 0 0-1.414 1.414l3 3a1 1 0 0 0 1.52-.126z" clip-rule="evenodd"/></svg>
                 <?php else : ?>
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" style="color:#7d3eb9"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" fill-rule="evenodd" d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11s11-4.925 11-11S18.075 1 12 1m1 6a1 1 0 0 0-2 0v5a1 1 0 0 0 2 0zm-1 8.5a1.25 1.25 0 1 0 0-2.5a1.25 1.25 0 0 0 0 2.5"/></svg>
                 <?php endif; ?>
             </div>
             <div style="min-width:0">
-                <a href="<?php echo esc_url( $step['url'] ); ?>" style="font-size:13px;font-weight:600;color:<?php echo $step['done'] ? '#787c82' : '#7d3eb9'; ?>;text-decoration:<?php echo $step['done'] ? 'line-through' : 'none'; ?>"><?php echo esc_html( $step['title'] ); ?></a>
-                <?php if ( ! $step['required'] ) : ?>
+                <a href="<?php echo esc_url( $kiriof_step['url'] ); ?>" style="font-size:13px;font-weight:600;color:<?php echo $kiriof_step['done'] ? '#787c82' : '#7d3eb9'; ?>;text-decoration:<?php echo $kiriof_step['done'] ? 'line-through' : 'none'; ?>"><?php echo esc_html( $kiriof_step['title'] ); ?></a>
+                <?php if ( ! $kiriof_step['required'] ) : ?>
                 <span style="font-size:10px;color:#8c8f94;margin-left:4px"><?php echo esc_html__( '(Optional)', 'kiriminaja-official' ); ?></span>
                 <?php endif; ?>
-                <div style="font-size:12px;color:#646970;margin-top:2px"><?php echo esc_html( $step['description'] ); ?></div>
+                <div style="font-size:12px;color:#646970;margin-top:2px"><?php echo esc_html( $kiriof_step['description'] ); ?></div>
             </div>
         </div>
         <?php endforeach; ?>

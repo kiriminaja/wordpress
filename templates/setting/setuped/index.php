@@ -84,13 +84,12 @@ $kiriof_product_volumetric_ready_sql = "
         ) > 0
     )";
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query fragments are fully internal/static SQL snippets.
 $kiriof_product_volumetric_total = (int) $wpdb->get_var(
     "SELECT COUNT(DISTINCT p.ID)
      {$kiriof_product_volumetric_from_sql}
      {$kiriof_product_volumetric_where_sql}"
 );
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
     "SELECT COUNT(DISTINCT p.ID)
      {$kiriof_product_volumetric_from_sql}
@@ -105,6 +104,7 @@ $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
      {$kiriof_product_volumetric_where_sql}
        AND {$kiriof_product_volumetric_ready_sql}"
 );
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 $kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_total > 0 && $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
 $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
     ? __( 'All Product Configured', 'kiriminaja-official' )

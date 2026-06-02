@@ -251,13 +251,12 @@ class Admin extends BaseInit{
                 ) > 0
             )";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query fragments are fully internal/static SQL snippets.
         $product_volumetric_total = (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT p.ID)
              {$product_volumetric_from_sql}
              {$product_volumetric_where_sql}"
         );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $product_volumetric_configured = (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT p.ID)
              {$product_volumetric_from_sql}
@@ -272,6 +271,7 @@ class Admin extends BaseInit{
              {$product_volumetric_where_sql}
                AND {$product_volumetric_ready_sql}"
         );
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
         $product_volumetric_label = $product_volumetric_ready
             ? __( 'All Product Configured', 'kiriminaja-official' )

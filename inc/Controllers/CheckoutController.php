@@ -568,6 +568,7 @@ class CheckoutController
         }
     }
     
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce checkout flow verifies nonce before this hook runs.
     function afterCheckoutBeforeCreated($order,$data ){
         /**
          * Classic checkout posts kiriof fields directly. Block checkout submits via
@@ -687,6 +688,7 @@ class CheckoutController
             $order->update_meta_data( '_kiriof_ppn', true );
         // end nonce check security
     }
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
     
     function getExpeditionOptionAjax(){
         try {
@@ -995,6 +997,7 @@ class CheckoutController
      * @param array $available_methods Available shipping methods.
      * @return string
      */
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only checkout method selection during WooCommerce checkout request.
     public function kiriof_shipping_chosen_method($method, $available_methods) {
         if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
             $posted_method = sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
@@ -1014,6 +1017,7 @@ class CheckoutController
 
         return $method;
     }
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
 
     /**
      * Control COD payment gateway availability based on the KiriminAja
