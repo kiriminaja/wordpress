@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
-    <h1 class="wp-heading-inline" style="font-size:14px;font-weight:400;display:flex;align-items:center;gap:6px;">
+    <h1 class="wp-heading-inline" style="display:flex;align-items:center;gap:6px;">
         <a href="<?php echo esc_url( $kiriof_base_url ); ?>" style="color:#2271b1;text-decoration:none;"><?php echo esc_html( kiriof_helper()->tlThis('Settings',$locale) ); ?></a>
         <span style="color:#8c8f94;">›</span>
         <span style="font-weight:500;"><?php echo esc_html( kiriof_helper()->tlThis('Manage Locations',$locale) ); ?></span>
