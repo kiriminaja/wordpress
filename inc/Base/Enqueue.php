@@ -155,6 +155,8 @@ class Enqueue extends BaseInit{
         // Ensure the heartbeat script is present (it usually is in admin,
         // but an explicit enqueue is harmless and guarantees availability).
         wp_enqueue_script( 'heartbeat' );
+
+        wp_enqueue_style( 'list-tables' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
         wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery', 'select2' ), KIRIOF_VERSION, true );

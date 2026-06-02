@@ -16,11 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
-    <h1 class="wp-heading-inline" style="font-size:14px;font-weight:400;display:flex;align-items:center;gap:6px;">
-        <a href="<?php echo esc_url( $kiriof_base_url ); ?>" style="color:#2271b1;text-decoration:none;"><?php echo esc_html( kiriof_helper()->tlThis('Settings',$locale) ); ?></a>
-        <span style="color:#8c8f94;">›</span>
-        <span style="font-weight:500;"><?php echo esc_html( kiriof_helper()->tlThis('Manage Locations',$locale) ); ?></span>
-    </h1>
+    <?php $kiriof_title = kiriof_helper()->tlThis('Manage Locations',$locale); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <div class="kj-detail">
@@ -59,7 +55,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php ob_start(); ?>
     <?php include '_section-js-shared.php'; ?>
     jQuery(document).ready(function($){jQuery('[name="origin_sub_district_id"]').select2({width:'100%',minimumInputLength:3,placeholder:"<?php echo esc_js(kiriof_helper()->tlThis('Select Option',$locale)); ?>",allowClear:true,ajax:{url:kiriofAjaxRoute(),dataType:'json',type:"POST",delay:250,data:function(s){return{data:s,nonce:kiriofAjax.nonce,action:'kiriminaja_subdistrict_search'}},processResults:function(r){return{results:jQuery.map(r.data,function(i){return{text:i.text,id:i.id}})}},cache:true}});});
-    jQuery('body').on('click','.kj-detail .kj-submit-btn',function(e){var $b=jQuery(this);$b.prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_origin_data',data:{nonce:kiriofAjax.nonce,origin_name:jQuery('[name="origin_name"]').val(),origin_phone:jQuery('[name="origin_phone"]').val(),origin_address:jQuery('[name="origin_address"]').val(),origin_latitude:jQuery('[name="origin_latitude"]').val(),origin_longitude:jQuery('[name="origin_longitude"]').val(),origin_zip_code:jQuery('[name="origin_zip_code"]').val(),origin_sub_district_id:jQuery('[name="origin_sub_district_id"] option:selected').val(),origin_sub_district_name:jQuery('[name="origin_sub_district_id"] option:selected').text()}},error:function(){$b.prop('disabled',false);alert('Network error')},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload();return}$b.prop('disabled',false);alert((p&&p.message)?p.message:'Save failed')}});});
+    jQuery('body').on('click','.kj-detail .kj-submit-btn',function(e){var $b=jQuery(this);$b.prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_origin_data',data:{nonce:kiriofAjax.nonce,origin_name:jQuery('[name="origin_name"]').val(),origin_phone:jQuery('[name="origin_phone"]').val(),origin_address:jQuery('[name="origin_address"]').val(),origin_latitude:jQuery('[name="origin_latitude"]').val(),origin_longitude:jQuery('[name="origin_longitude"]').val(),origin_zip_code:jQuery('[name="origin_zip_code"]').val(),origin_sub_district_id:jQuery('[name="origin_sub_district_id"] option:selected').val(),origin_sub_district_name:jQuery('[name="origin_sub_district_id"] option:selected').text()}},error:function(){$b.prop('disabled',false);alert('<?php echo esc_js(__('Network error.', 'kiriminaja-official')); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload();return}$b.prop('disabled',false);alert((p&&p.message)?p.message:'<?php echo esc_js(__('Save failed.', 'kiriminaja-official')); ?>')}});});
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );

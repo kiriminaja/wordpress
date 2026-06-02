@@ -244,6 +244,7 @@ class TransactionRepository{
                 $payload['discount_percentage'] ?? null
             )
         );
+        $this->invalidateCouriersCache();
         return !$this->hasError();
     }
     public function getTransactionByOldestDate(){
@@ -300,7 +301,7 @@ class TransactionRepository{
         $o = $this->getOrdersTable();
 
         if ( null === $postStatus || '' === $postStatus || 'all' === $postStatus ) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $query = $this->wpdb->get_var(
                 $this->wpdb->prepare(
                     "SELECT COUNT(DISTINCT p.{$o['id']})
@@ -314,7 +315,7 @@ class TransactionRepository{
             );
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         } else {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $query = $this->wpdb->get_var(
                 $this->wpdb->prepare(
                     "SELECT COUNT(DISTINCT p.{$o['id']})
@@ -336,12 +337,12 @@ class TransactionRepository{
     /**
      * Count distinct orders that have already been processed — i.e. have
      * a matching record in kiriminaja_payments (synced with the Payments
-     * / Request Pickup page).
+     * / Request Pickup page). Excludes cancelled transactions.
      */
     public function getCountProcessed() {
         $o = $this->getOrdersTable();
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->get_var(
             "SELECT COUNT(DISTINCT p.{$o['id']})
             FROM {$o['table']} p
@@ -349,11 +350,60 @@ class TransactionRepository{
                 ON p.{$o['id']} = t.wp_wc_order_stat_order_id
             INNER JOIN {$this->wpdb->prefix}kiriminaja_payments pay
                 ON t.pickup_number = pay.pickup_number
-            WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')"
+            WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                AND t.status != 'canceled'"
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return $this->hasError() ? 0 : (int) $query;
+    }
+
+    /**
+     * Count distinct orders that are cancelled in WooCommerce and have
+     * a KiriminAja transaction record.
+     */
+    public function getCountCancelled() {
+        $o = $this->getOrdersTable();
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $query = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SELECT COUNT(DISTINCT p.{$o['id']})
+                FROM {$o['table']} p
+                INNER JOIN {$this->table} t
+                    ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+                WHERE p.{$o['status']} = %s",
+                'wc-cancelled'
+            )
+        );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+        return $this->hasError() ? 0 : (int) $query;
+    }
+
+    public function getDistinctCouriers() {
+        $cache_key = 'kiriof_distinct_couriers';
+        $cached    = get_transient($cache_key);
+        if (false !== $cached) {
+            return $cached;
+        }
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results = $this->wpdb->get_results(
+            "SELECT DISTINCT service FROM {$this->table} WHERE service IS NOT NULL AND service != '' ORDER BY service ASC"
+        );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+        if ($this->hasError()) {
+            return [];
+        }
+
+        set_transient($cache_key, $results, HOUR_IN_SECONDS);
+        return $results;
+    }
+
+    public function invalidateCouriersCache() {
+        delete_transient('kiriof_distinct_couriers');
     }
 
     public function updateTransaction($payload){
@@ -379,6 +429,7 @@ class TransactionRepository{
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $this->wpdb->update($this->table, $updateData, $where);
+        $this->invalidateCouriersCache();
         return !$this->hasError();
     }
 }

@@ -16,11 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
-    <h1 class="wp-heading-inline" style="font-size:14px;font-weight:400;display:flex;align-items:center;gap:6px;">
-        <a href="<?php echo esc_url( $kiriof_base_url ); ?>" style="color:#2271b1;text-decoration:none;"><?php echo esc_html( kiriof_helper()->tlThis('Settings',$locale) ); ?></a>
-        <span style="color:#8c8f94;">›</span>
-        <span style="font-weight:500;"><?php echo esc_html( kiriof_helper()->tlThis('Webhooks',$locale) ); ?></span>
-    </h1>
+    <?php $kiriof_title = kiriof_helper()->tlThis('Webhooks',$locale); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <div class="kj-detail">
@@ -40,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php ob_start(); ?>
     <?php include '_section-js-shared.php'; ?>
-    jQuery('body').on('click','.kj-detail .kj-submit-btn',function(e){var $b=jQuery(this);$b.prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_call_back_data',data:{callback_url:jQuery('[name="callback_url"]').val(),nonce:kiriofAjax.nonce}},error:function(){$b.prop('disabled',false);alert('Network error')},complete:function(r){var p=kiriofParseAjaxResponse(r);$b.prop('disabled',false);if(p&&p.status===200){alert('Saved')}else{alert((p&&p.message)?p.message:'Save failed')}}});
+    jQuery('body').on('click','.kj-detail .kj-submit-btn',function(e){var $b=jQuery(this);$b.prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_call_back_data',data:{callback_url:jQuery('[name="callback_url"]').val(),nonce:kiriofAjax.nonce}},error:function(){$b.prop('disabled',false);alert('<?php echo esc_js(__('Network error.', 'kiriminaja-official')); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);$b.prop('disabled',false);if(p&&p.status===200){alert('<?php echo esc_js(__('Saved.', 'kiriminaja-official')); ?>')}else{alert((p&&p.message)?p.message:'<?php echo esc_js(__('Save failed.', 'kiriminaja-official')); ?>')}}});
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );

@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="wrap kj-wrap">
 
-    <h1 class="wp-heading-inline"><?php echo esc_html(kiriof_helper()->tlThis('KiriminAja Configuration',$locale)); ?></h1>
+    <?php $kiriof_title = kiriof_helper()->tlThis('KiriminAja Configuration',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
                         <div style="max-width: 437px; width: 100%">
