@@ -15,6 +15,11 @@ class Admin extends BaseInit{
         
         $plugin_path = $this->plugin_path;
 
+        // Screen Options: items per page for transaction list
+        add_action( 'current_screen', array( $this, 'kiriof_add_transaction_screen_options' ) );
+        add_action( 'in_admin_header', array( $this, 'kiriof_add_transaction_screen_options' ), 5 );
+        add_filter( 'set-screen-option', array( $this, 'kiriof_save_transaction_screen_options' ), 10, 3 );
+
         /**
          * Sub-pages are only registered when WooCommerce is active. Without
          * WooCommerce there is nothing meaningful to nest under the parent
@@ -362,5 +367,30 @@ class Admin extends BaseInit{
             </p>
         </div>
         <?php
+    }
+
+    public function kiriof_add_transaction_screen_options( $screen ) {
+        if ( ! $screen || ! $screen->in_admin() ) {
+            return;
+        }
+
+        $matched = false !== strpos( $screen->id, 'kiriminaja-transaction-process' );
+        if ( ! $matched ) {
+            return;
+        }
+
+        $args = array(
+            'label'   => __( 'Number of items per page:', 'kiriminaja-official' ),
+            'default' => 25,
+            'option'  => 'kiriof_transactions_per_page',
+        );
+        add_screen_option( 'per_page', $args );
+    }
+
+    public function kiriof_save_transaction_screen_options( $status, $option, $value ) {
+        if ( 'kiriof_transactions_per_page' === $option ) {
+            return (int) $value;
+        }
+        return $status;
     }
 }

@@ -15,9 +15,27 @@ class Kiriof_TransactionProcessIndex
         /** WP Setting language */
         $locale = get_locale();
 
+        $user = wp_get_current_user();
+        $kiriof_per_page = (int) get_user_meta( $user->ID, 'kiriof_transactions_per_page', true );
+        if ( $kiriof_per_page < 1 ) {
+            $kiriof_per_page = 25;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $kiriof_per_page_get = isset( $_GET['per_page'] ) ? (int) $_GET['per_page'] : 0;
+        if ( $kiriof_per_page_get > 0 && $kiriof_per_page_get !== $kiriof_per_page ) {
+            $kiriof_per_page = $kiriof_per_page_get;
+            update_user_meta( $user->ID, 'kiriof_transactions_per_page', $kiriof_per_page );
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $kiriof_current_page = isset( $_GET['cpage'] ) ? max( 1, (int) $_GET['cpage'] ) : 1;
+
         /** Page Query */
-        $pageQuery = $this->pageQuery();
+        $pageQuery = $this->pageQuery( $kiriof_per_page, $kiriof_current_page );
         $kiriof_results = $pageQuery['results'];
+        $kiriof_total   = $pageQuery['total'];
+        $kiriof_total_pages = (int) ceil( $kiriof_total / $kiriof_per_page );
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriof_results', [$kiriof_results]);
 
         /** Month Options */
@@ -52,9 +70,11 @@ class Kiriof_TransactionProcessIndex
         include 'view/index.php';
     }
 
-    private function pageQuery()
+    private function pageQuery( $per_page = 25, $current_page = 1 )
     {
         global $wpdb;
+
+        $offset = ( $current_page - 1 ) * $per_page;
 
         // Build optional filters as values, but keep SQL placeholders static.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
@@ -110,6 +130,26 @@ class Kiriof_TransactionProcessIndex
 
         if ($isProcessedFilter) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $total = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    INNER JOIN {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
+                        ON kiriminaja_transactions.pickup_number = kiriminaja_payments.pickup_number
+                    WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        AND kiriminaja_transactions.status != 'canceled'
+                        {$cod_clause}
+                        {$courier_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like
+                )
+            );
             $results = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT 
@@ -130,16 +170,37 @@ class Kiriof_TransactionProcessIndex
                         AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
-                    ORDER BY orders_tbl.{$o['date']} DESC",
+                    ORDER BY orders_tbl.{$o['date']} DESC
+                    LIMIT %d OFFSET %d",
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like,
+                    $per_page,
+                    $offset
+                )
+            );
+            // phpcs:enable ...
+        } elseif ($isCancelledFilter) {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $total = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE orders_tbl.{$o['status']} = %s
+                        {$cod_clause}
+                        {$courier_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                    'wc-cancelled',
                     $key,
                     $key_like,
                     $month,
                     $month_like
                 )
             );
-            // phpcs:enable ...
-        } elseif ($isCancelledFilter) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $results = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT 
@@ -157,17 +218,37 @@ class Kiriof_TransactionProcessIndex
                         AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
-                    ORDER BY orders_tbl.{$o['date']} DESC",
+                    ORDER BY orders_tbl.{$o['date']} DESC
+                    LIMIT %d OFFSET %d",
                     'wc-cancelled',
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like,
+                    $per_page,
+                    $offset
+                )
+            );
+            // phpcs:enable ...
+        } elseif ($isAllFilter) {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $total = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        {$cod_clause}
+                        {$courier_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $key,
                     $key_like,
                     $month,
                     $month_like
                 )
             );
-            // phpcs:enable ...
-        } elseif ($isAllFilter) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $results = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT 
@@ -185,16 +266,39 @@ class Kiriof_TransactionProcessIndex
                     AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
-                ORDER BY orders_tbl.{$o['date']} DESC",
+                ORDER BY orders_tbl.{$o['date']} DESC
+                LIMIT %d OFFSET %d",
+                    $key,
+                    $key_like,
+                    $month,
+                    $month_like,
+                    $per_page,
+                    $offset
+                )
+            );
+        } else {
+            // Status-specific filter (wc-processing, wc-on-hold, wc-pending)
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $total = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE orders_tbl.{$o['status']} = %s
+                        AND kiriminaja_transactions.status = %s
+                        {$cod_clause}
+                        {$courier_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                    $status,
+                    'new',
                     $key,
                     $key_like,
                     $month,
                     $month_like
                 )
             );
-            // phpcs:enable ...
-        } else {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $results = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT 
@@ -213,13 +317,16 @@ class Kiriof_TransactionProcessIndex
                     AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
-                ORDER BY orders_tbl.{$o['date']} DESC",
+                ORDER BY orders_tbl.{$o['date']} DESC
+                LIMIT %d OFFSET %d",
                     $status,
                     'new',
                     $key,
                     $key_like,
                     $month,
-                    $month_like
+                    $month_like,
+                    $per_page,
+                    $offset
                 )
             );
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -229,7 +336,7 @@ class Kiriof_TransactionProcessIndex
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error', $wpdb->last_error);
         }
 
-        return ['results' => $results];
+        return ['results' => $results, 'total' => $total];
     }
 
     private function getTransactionsDateFilterOptionArray()

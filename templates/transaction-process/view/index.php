@@ -16,6 +16,10 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
  * @var array $kiriof_monthOptions
  * @var string $kiriof_status_filter
  * @var string $kiriof_month_filter
+ * @var int $kiriof_current_page
+ * @var int $kiriof_total_pages
+ * @var int $kiriof_total
+ * @var int $kiriof_per_page
  */
 ?>
 <div class="wrap kj-wrap">
@@ -43,82 +47,59 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                     <input type="text" name="status" value="<?php echo esc_attr( $kiriof_status_filter ); ?>">
                                     <input type="text" name="cod" value="<?php echo esc_attr( $kiriof_cod_filter ); ?>">
                                     <input type="text" name="courier" value="<?php echo esc_attr( $kiriof_courier_filter ); ?>">
+                                    <input type="text" name="per_page" value="<?php echo esc_attr( $kiriof_per_page ); ?>">
                                 </form>
 
 
-                                <div>
+                                <div class="wp-filter">
+                                    <ul class="filter-links">
+                                        <li><a href="#" onclick="kiriofApplySearch('status','all');return false" <?php echo $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-processing');return false" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current" aria-current="page"' : ''; ?>>New / Waiting for Shipment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-on-hold');return false" <?php echo $kiriof_status_filter === 'wc-on-hold' ? 'class="current" aria-current="page"' : ''; ?>>On Hold <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-pending');return false" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current" aria-current="page"' : ''; ?>>Pending Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','processed');return false" <?php echo $kiriof_status_filter === 'processed' ? 'class="current" aria-current="page"' : ''; ?>>Processed <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['processed'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-cancelled');return false" <?php echo $kiriof_status_filter === 'wc-cancelled' ? 'class="current" aria-current="page"' : ''; ?>>Cancelled <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-cancelled'] ?? 0 ) ) ); ?>)</span></a></li>
+                                    </ul>
+                                    <form class="search-form search-plugins" onsubmit="return false">
+                                        <label class="screen-reader-text" for="kiriof-search-input"><?php esc_html_e( 'Search Orders', 'kiriminaja-official' ); ?></label>
+                                        <input type="search" id="kiriof-search-input" class="wp-filter-search" placeholder="<?php esc_attr_e( 'Search order…', 'kiriminaja-official' ); ?>" value="<?php
+                                        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+                                        echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' );
+                                        ?>">
+                                    </form>
+                                </div>
 
-                                    <div style="display: inline-block">
-                                        <ul class="subsubsub">
-                                            <li><a href="#" onclick="kiriofApplySearch('status','all')" <?php echo $kiriof_status_filter === 'all' ? 'class="current"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a> |</li>
-                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-processing')" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current"' : ''; ?>>New / Waiting for Shipment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a> |</li>
-                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-on-hold')" <?php echo $kiriof_status_filter === 'wc-on-hold' ? 'class="current"' : ''; ?>>On Hold <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ) ); ?>)</span></a> |</li>
-                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-pending')" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current"' : ''; ?>>Pending Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a> |</li>
-                                            <li><a href="#" onclick="kiriofApplySearch('status','processed')" <?php echo $kiriof_status_filter === 'processed' ? 'class="current"' : ''; ?>>Processed <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['processed'] ?? 0 ) ) ); ?>)</span></a> |</li>
-                                            <li><a href="#" onclick="kiriofApplySearch('status','wc-cancelled')" <?php echo $kiriof_status_filter === 'wc-cancelled' ? 'class="current"' : ''; ?>>Cancelled <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-cancelled'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        </ul>
-                                    </div>
-                                    <div class="row-divider"></div>
-
-                                    <div class="container-fluid p-0">
-                                        <div class="row">
-                                            <div class="col">
-                                                <div style="display: flex; gap: 4px; flex-wrap: wrap">
-                                                    <select style="max-width: 9rem" name="month_search" id="month_search_1">
-                                                        <?php
-                                                        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
-                                                        $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '';
-                                                        ?>
-                                                        <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
-                                                        <?php
-                                                        if ( ! empty( $kiriof_monthOptions ) && count($kiriof_monthOptions) > 0 ) {
-                                                            foreach ($kiriof_monthOptions as $kiriof_key => $kiriof_value) {
-                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
-                                                            }
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <select style="max-width: 9rem" name="cod_search" id="cod_search_1">
-                                                        <option value="" <?php echo empty($kiriof_cod_filter) ? 'selected' : ''; ?>>All Payment</option>
-                                                        <option value="1" <?php echo $kiriof_cod_filter === '1' ? 'selected' : ''; ?>>COD</option>
-                                                        <option value="0" <?php echo $kiriof_cod_filter === '0' ? 'selected' : ''; ?>>Non-COD</option>
-                                                    </select>
-                                                    <select style="max-width: 9rem" name="courier_search" id="courier_search_1">
-                                                        <option value="" <?php echo empty($kiriof_courier_filter) ? 'selected' : ''; ?>>All Couriers</option>
-                                                        <?php
-                                                        if ( ! empty( $kiriof_couriers ) ) {
-                                                            foreach ( $kiriof_couriers as $kiriof_courier ) {
-                                                                $kiriof_courier_code = strtoupper( $kiriof_courier->service );
-                                                                echo '<option value="' . esc_attr( $kiriof_courier->service ) . '" ' . ( $kiriof_courier_filter === $kiriof_courier->service ? 'selected' : '' ) . '>' . esc_html( $kiriof_courier_code ) . '</option>';
-                                                            }
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofSubmitFilters()">
-                                                        <span>Apply</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col">
-                                                <!--Key Search-->
-                                                <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Order Number" value="<?php
-                                                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
-                                                    echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' );
-                                                    ?>">
-                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
-                                                        <div style="display: flex">
-                                                            <div style="margin: auto">
-                                                                <span>Search</span>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
+                                <div class="tablenav top">
+                                        <div class="alignleft actions" style="display:flex;align-items:center;">
+                                            <?php $suffix = '_1'; $show_apply = true; include '_filters.php'; ?>
                                         </div>
+                                        <div class="tablenav-pages">
+                                            <span class="displaying-num"><?php echo esc_html( sprintf( _n( '%s item', '%s items', $kiriof_total, 'kiriminaja-official' ), number_format_i18n( $kiriof_total ) ) ); ?></span>
+                                            <span class="pagination-links">
+                                                <?php if ( $kiriof_current_page <= 1 ) : ?>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
+                                                <?php else : ?>
+                                                <a class="first-page button" href="#" onclick="kiriofGoToPage(1);return false"><span>&laquo;</span></a>
+                                                <a class="prev-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $kiriof_current_page - 1 ); ?>);return false"><span>&lsaquo;</span></a>
+                                                <?php endif; ?>
+                                                <span class="paging-input">
+                                                    <label for="current-page-selector" class="screen-reader-text"><?php esc_html_e( 'Current Page', 'kiriminaja-official' ); ?></label>
+                                                    <input class="current-page" id="current-page-selector" type="text" name="paged" value="<?php echo esc_attr( $kiriof_current_page ); ?>" size="3" aria-describedby="table-paging">
+                                                    <span class="tablenav-paging-text"><?php esc_html_e( 'of', 'kiriminaja-official' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $kiriof_total_pages ) ); ?></span></span>
+                                                </span>
+                                                <?php if ( $kiriof_current_page >= $kiriof_total_pages ) : ?>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&raquo;</span>
+                                                <?php else : ?>
+                                                <a class="next-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $kiriof_current_page + 1 ); ?>);return false"><span>&rsaquo;</span></a>
+                                                <a class="last-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) $kiriof_total_pages; ?>);return false"><span>&raquo;</span></a>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                        <br class="clear">
                                     </div>
 
-                                    <div class="row-divider"></div>
                                     <table class="wp-list-table widefat fixed striped table-view-list posts">
                                         <thead>
                                             <tr>
@@ -172,7 +153,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_isCod = $kiriof_paymentMethod === 'cod';
                                                     $kiriof_paymentLabel = $kiriof_isCod ? 'COD' : 'NON COD';
                                                     
-
                                                     $kiriof_weight       = (float) ($kiriof_row->weight ?? 0);
                                                     $kiriof_dimensions   = sprintf('%s × %s × %s cm',
                                                         number_format_i18n((float) ($kiriof_row->length ?? 0), 1),
@@ -219,12 +199,14 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             <div style="font-size: 12px; color: #8c8f94">' . esc_html($kiriof_orderDate) . '</div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
-                                                            <div>
-                                                                <div style="font-weight: 600">' . esc_html($kiriof_serviceName) . '</div>
-                                                                <div style="font-size: 11px; color: #8c8f94">via ' . esc_html($kiriof_paymentLabel) . '</div>
-                                                            </div>
-                                                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px">
+                                                            <div style="font-weight: 600">' . esc_html($kiriof_serviceName) . '</div>
+                                                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px">
                                                                 <span class="' . esc_attr($kiriof_statusBadgeClass) . '" style="font-size: 11px">' . esc_html($kiriof_statusLabel) . '</span>
+                                                                <span style="font-size: 11px; color: #8c8f94">via ' . esc_html($kiriof_paymentLabel) . '</span>
+                                                            </div>
+                                                            <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px">
+                                                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><g opacity="0.6"><path d="M5.3998 5.40005V1.80005H1.7998V5.40005H5.3998ZM10.1998 5.40005V1.80005H6.5998V5.40005H10.1998ZM5.3998 10.2V6.60005H1.7998V10.2H5.3998ZM10.1998 10.2V6.60005H6.5998V10.2H10.1998Z" fill="black"/></g></svg>
+                                                                <span style="font-size: 12px">' . esc_html($kiriof_statusUpper) . '</span>
                                                             </div>
                                                         </td>
                                                         <td class="manage-column column-thumb">'
@@ -262,7 +244,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <th style="width: 4rem;" scope="col" class="manage-column column-thumb">
+                                                <th style="width: 24px;" scope="col" class="manage-column column-thumb">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
                                                 </th>
                                                 <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Order / Transaction', $locale)); ?></th>
@@ -275,44 +257,37 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         </tfoot>
                                     </table>
 
-                                    <div class="row-divider"></div>
-                                    <div class="container-fluid p-0">
-                                        <div class="row">
-                                            <div class="col">
-                                                <div style="display: flex; gap: 4px; flex-wrap: wrap">
-                                                    <select style="max-width: 9rem" name="month_search_2" id="month_search_2">
-                                                        <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
-                                                        <?php
-                                                        if ( ! empty( $kiriof_monthOptions ) && count($kiriof_monthOptions) > 0 ) {
-                                                            foreach ($kiriof_monthOptions as $kiriof_key => $kiriof_value) {
-                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
-                                                            }
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <select style="max-width: 9rem" name="cod_search_2" id="cod_search_2">
-                                                        <option value="" <?php echo empty($kiriof_cod_filter) ? 'selected' : ''; ?>>All Payment</option>
-                                                        <option value="1" <?php echo $kiriof_cod_filter === '1' ? 'selected' : ''; ?>>COD</option>
-                                                        <option value="0" <?php echo $kiriof_cod_filter === '0' ? 'selected' : ''; ?>>Non-COD</option>
-                                                    </select>
-                                                    <select style="max-width: 9rem" name="courier_search_2" id="courier_search_2">
-                                                        <option value="" <?php echo empty($kiriof_courier_filter) ? 'selected' : ''; ?>>All Couriers</option>
-                                                        <?php
-                                                        if ( ! empty( $kiriof_couriers ) ) {
-                                                            foreach ( $kiriof_couriers as $kiriof_courier ) {
-                                                                $kiriof_courier_code = strtoupper( $kiriof_courier->service );
-                                                                echo '<option value="' . esc_attr( $kiriof_courier->service ) . '" ' . ( $kiriof_courier_filter === $kiriof_courier->service ? 'selected' : '' ) . '>' . esc_html( $kiriof_courier_code ) . '</option>';
-                                                            }
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofSubmitFiltersBottom()">
-                                                        <span>Apply</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col"></div>
+                                    <br class="clear">
+                                    <div class="tablenav bottom">
+                                        <div class="alignleft actions" style="display:flex;align-items:center;">
+                                            <?php $suffix = '_2'; $show_apply = true; include '_filters.php'; ?>
                                         </div>
+
+                                        <div class="tablenav-pages">
+                                            <span class="displaying-num"><?php echo esc_html( sprintf( _n( '%s item', '%s items', $kiriof_total, 'kiriminaja-official' ), number_format_i18n( $kiriof_total ) ) ); ?></span>
+                                            <span class="pagination-links">
+                                                <?php if ( $kiriof_current_page <= 1 ) : ?>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
+                                                <?php else : ?>
+                                                <a class="first-page button" href="#" onclick="kiriofGoToPage(1);return false"><span>&laquo;</span></a>
+                                                <a class="prev-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $kiriof_current_page - 1 ); ?>);return false"><span>&lsaquo;</span></a>
+                                                <?php endif; ?>
+                                                <span class="paging-input">
+                                                    <label for="current-page-selector-bottom" class="screen-reader-text"><?php esc_html_e( 'Current Page', 'kiriminaja-official' ); ?></label>
+                                                    <input class="current-page" id="current-page-selector-bottom" type="text" name="paged" value="<?php echo esc_attr( $kiriof_current_page ); ?>" size="3">
+                                                    <span class="tablenav-paging-text"><?php esc_html_e( 'of', 'kiriminaja-official' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $kiriof_total_pages ) ); ?></span></span>
+                                                </span>
+                                                <?php if ( $kiriof_current_page >= $kiriof_total_pages ) : ?>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&raquo;</span>
+                                                <?php else : ?>
+                                                <a class="next-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $kiriof_current_page + 1 ); ?>);return false"><span>&rsaquo;</span></a>
+                                                <a class="last-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) $kiriof_total_pages; ?>);return false"><span>&raquo;</span></a>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                        <br class="clear">
                                     </div>
 
     <?php include 'modal-request-pickup.php' ?>
@@ -353,6 +328,11 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
             if ($(`#table-form [name="${key}"]`).length > 0) {
                 $(`#table-form [name="${key}"]`).val(value);
             }
+            // Clear search when switching status tabs
+            if (key === 'status' && value) {
+                $(`#table-form [name="key"]`).val('');
+                $('#kiriof-search-input').val('');
+            }
             $(`#table-form [name="cpage"]`).val('1');
             $(`#table-form`).trigger('submit');
         };
@@ -366,10 +346,18 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
         };
 
         window.kiriofSubmitFiltersBottom = function() {
+            document.getElementById('month_search_1').value = document.getElementById('month_search_2').value;
+            document.getElementById('cod_search_1').value = document.getElementById('cod_search_2').value;
+            document.getElementById('courier_search_1').value = document.getElementById('courier_search_2').value;
             $(`#table-form [name="month"]`).val(document.getElementById('month_search_2').value);
             $(`#table-form [name="cod"]`).val(document.getElementById('cod_search_2').value);
             $(`#table-form [name="courier"]`).val(document.getElementById('courier_search_2').value);
             $(`#table-form [name="cpage"]`).val('1');
+            $(`#table-form`).trigger('submit');
+        };
+
+        window.kiriofGoToPage = function(page) {
+            $(`#table-form [name="cpage"]`).val(page);
             $(`#table-form`).trigger('submit');
         };
         
@@ -385,6 +373,27 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
         $(document).on('change', '[name="transaction_id[]"]', function() {
             kjUpdateRequestPickupCount();
+        });
+
+        $(document).on('keypress', '.current-page', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                var $this = $(this);
+                var page = parseInt($this.val(), 10) || 1;
+                var max = parseInt($this.closest('.tablenav-pages').find('.total-pages').text().replace(/,/g, ''), 10);
+                if (page >= 1 && page <= max) {
+                    kiriofGoToPage(page);
+                }
+            }
+        });
+
+        var kiriofSearchTimer;
+        $(document).on('keyup', '#kiriof-search-input', function() {
+            clearTimeout(kiriofSearchTimer);
+            var $input = $(this);
+            kiriofSearchTimer = setTimeout(function() {
+                kiriofApplySearch('key', $input.val());
+            }, 400);
         });
 
         window.kjRequestPickupSchedule = function() {
