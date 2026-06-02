@@ -1318,6 +1318,145 @@ msgid "This order has already been processed."
 msgstr "Pesanan ini sudah diproses."
 
 #: templates/woocommerce/cart/cart.php:31
+
+#: inc/Controllers/ShippingDiscountCouponController.php:26
+msgid "Shipping Discount"
+msgstr "Diskon Ongkir"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:48
+msgid "Allowed Regions"
+msgstr "Wilayah yang Diizinkan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:50
+msgid "Add Region"
+msgstr "Tambah Wilayah"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:51
+msgid "Refresh Region Data"
+msgstr "Segarkan Data Wilayah"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:52
+msgid "Leave empty to allow all shipping destinations."
+msgstr "Kosongkan untuk mengizinkan semua tujuan pengiriman."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:59
+msgid "Selection Mode"
+msgstr "Mode Pemilihan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:61
+msgid "All Province"
+msgstr "Semua Provinsi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:62
+msgid "All City inside Province"
+msgstr "Semua Kota dalam Provinsi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:63
+msgid "Specific City"
+msgstr "Kota Tertentu"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:68
+msgid "Province"
+msgstr "Provinsi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:70
+msgid "Select a province"
+msgstr "Pilih provinsi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:78
+msgid "Cities"
+msgstr "Kota"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:80
+msgid "Choose one or more cities inside the selected province."
+msgstr "Pilih satu atau beberapa kota dalam provinsi yang dipilih."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:84
+msgid "Save Region"
+msgstr "Simpan Wilayah"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:89
+#: inc/Controllers/ShippingDiscountCouponController.php:163
+msgid "Remove region"
+msgstr "Hapus wilayah"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:95
+msgid "Allowed Couriers"
+msgstr "Kurir yang Diizinkan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:101
+msgid "Leave empty to apply the shipping discount to all couriers."
+msgstr "Kosongkan untuk menerapkan diskon ongkir ke semua kurir."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:105
+msgid "Region data is older than 24 hours. It will be refreshed automatically in the background."
+msgstr "Data wilayah lebih lama dari 24 jam. Data akan diperbarui otomatis di latar belakang."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:150
+#: inc/Controllers/ShippingDiscountCouponController.php:243
+msgid "All provinces in Indonesia"
+msgstr "Semua provinsi di Indonesia"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:151
+#: inc/Controllers/ShippingDiscountCouponController.php:247
+#, php-format
+msgid "All cities in %s"
+msgstr "Semua kota di %s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:152
+#: inc/Controllers/ShippingDiscountCouponController.php:250
+#, php-format
+msgid "%1$s, %2$s"
+msgstr "%1$s, %2$s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:153
+msgid "Please choose a province first."
+msgstr "Silakan pilih provinsi terlebih dahulu."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:154
+msgid "Please choose at least one city."
+msgstr "Silakan pilih setidaknya satu kota."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:155
+msgid "Refreshing region data…"
+msgstr "Sedang menyegarkan data wilayah…"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:156
+msgid "Region data refreshed."
+msgstr "Data wilayah berhasil diperbarui."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:157
+msgid "Failed to refresh region data."
+msgstr "Gagal memperbarui data wilayah."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:16
+msgid "Failed to refresh province data."
+msgstr "Gagal memuat data provinsi."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:30
+msgid "Invalid province."
+msgstr "Provinsi tidak valid."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:35
+msgid "Failed to refresh city data."
+msgstr "Gagal memuat data kota."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:27
+msgid "Region cache updated."
+msgstr "Cache wilayah berhasil diperbarui."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:42
+msgid "City cache updated."
+msgstr "Cache kota berhasil diperbarui."
+
+#: inc/Services/KiriminajaApiService.php:58
+msgid "Failed to load provinces."
+msgstr "Gagal memuat daftar provinsi."
+
+#: inc/Services/KiriminajaApiService.php:67
+msgid "Failed to load cities."
+msgstr "Gagal memuat daftar kota."
+
 msgid "Thumbnail image"
 msgstr "Gambar thumbnail"
 

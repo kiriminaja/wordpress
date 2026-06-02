@@ -51,6 +51,24 @@ class KiriminajaApiService extends BaseService{
         }
         return self::success($repo['data']->datas);
     }
+    public function getProvinces(){
+        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProvinces();
+        $rows = $this->extractListRows($repo);
+        if (!@$repo['status'] || empty($rows)){
+            return self::error([], @$repo['data']->text ?? __('Failed to load provinces.', 'kiriminaja-official'));
+        }
+
+        return self::success($rows);
+    }
+    public function getCitiesByProvinceId($provinceId){
+        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getCitiesByProvinceId($provinceId);
+        $rows = $this->extractListRows($repo);
+        if (!@$repo['status'] || (!@$repo['data']->status && empty($rows))){
+            return self::error([], @$repo['data']->text ?? __('Failed to load cities.', 'kiriminaja-official'));
+        }
+
+        return self::success($rows);
+    }
     public function getProfile(){
         $cachedProfile = get_transient(self::KIRIOF_PROFILE_CACHE_KEY);
         if (false !== $cachedProfile) {
@@ -73,5 +91,31 @@ class KiriminajaApiService extends BaseService{
         set_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY, $profile, DAY_IN_SECONDS);
 
         return self::success($profile);
+    }
+
+    private function extractListRows($repo){
+        if (empty($repo['data'])) {
+            return array();
+        }
+
+        $data = $repo['data'];
+        $candidates = array(
+            $data->result ?? null,
+            $data->results ?? null,
+            $data->datas ?? null,
+            $data->data ?? null,
+        );
+
+        foreach ($candidates as $candidate) {
+            if (is_array($candidate)) {
+                return $candidate;
+            }
+
+            if ($candidate instanceof \Traversable) {
+                return iterator_to_array($candidate);
+            }
+        }
+
+        return array();
     }
 }

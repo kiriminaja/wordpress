@@ -1,0 +1,38 @@
+.kiriof-shipping-discount-options {
+  padding-top: 8px;
+}
+
+.kiriof-region-builder {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #dcdcde;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.kiriof-region-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.kiriof-region-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f0f6fc;
+  border: 1px solid #c5d9ed;
+}
+
+.kiriof-remove-chip {
+  border: 0;
+  background: transparent;
+  color: #8a2424;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}

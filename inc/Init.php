@@ -23,6 +23,7 @@ final class Init {
             Controllers\GeneralAjaxController::class,
             Controllers\ShippingProcessController::class,
             Controllers\TransactionProcessController::class,
+            Controllers\ShippingDiscountCouponController::class,
             Controllers\CheckoutController::class,
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,

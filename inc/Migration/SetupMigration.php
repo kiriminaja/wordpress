@@ -14,6 +14,7 @@ class SetupMigration {
         self::settingsTable();
         self::transactionsTable();
         self::paymentsTable();
+        self::regionCacheTables();
     }
     
     private function settingsTable(){
@@ -199,5 +200,35 @@ class SetupMigration {
             dbDelta($sql);
         }
         /** Alters*/
+    }
+
+    private function regionCacheTables(){
+        global $wpdb;
+
+        require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
+
+        $provinces_table = esc_sql( $wpdb->prefix . 'kiriminaja_provinces' );
+        $cities_table    = esc_sql( $wpdb->prefix . 'kiriminaja_cities' );
+
+        $provinces_sql = "CREATE TABLE `" . $provinces_table . "`(
+            `id` bigint(20) NOT NULL,
+            `name` varchar(191) NOT NULL,
+            `updated_at` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `name` (`name`)
+        );";
+
+        $cities_sql = "CREATE TABLE `" . $cities_table . "`(
+            `id` bigint(20) NOT NULL,
+            `province_id` bigint(20) NOT NULL,
+            `name` varchar(191) NOT NULL,
+            `updated_at` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `province_id` (`province_id`),
+            KEY `name` (`name`)
+        );";
+
+        dbDelta($provinces_sql);
+        dbDelta($cities_sql);
     }
 }
