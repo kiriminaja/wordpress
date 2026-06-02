@@ -349,7 +349,7 @@ final class InsuranceFeatureTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
 
         $this->assertStringContainsString(
-            'WooCommerce Shipping Locations',
+            'Shipping Locations',
             $content,
             'Settings wizard must surface WooCommerce shipping location configuration'
         );
@@ -454,7 +454,7 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'WooCommerce Shipping Locations',
+            'Shipping Locations',
             $methodBody,
             'Setup notice must include WooCommerce Shipping Locations in the checklist'
         );

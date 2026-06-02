@@ -322,12 +322,36 @@ class Admin extends BaseInit{
             'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),
         );
         $steps = array(
-            array( 'key' => 'account', 'label' => __( 'Account Connection', 'kiriminaja-official' ), 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'] ),
-            array( 'key' => 'products', 'label' => $product_volumetric_label, 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'] ),
-            array( 'key' => 'origin', 'label' => __( 'Origin Setup', 'kiriminaja-official' ), 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'] ),
-            array( 'key' => 'couriers', 'label' => __( 'Courier Setup', 'kiriminaja-official' ), 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'] ),
-            array( 'key' => 'shipping_locations', 'label' => __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'] ),
-            array( 'key' => 'tracking', 'label' => __( 'Tracking Page', 'kiriminaja-official' ), 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'] ),
+            array(
+                'key' => 'account', 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'],
+                'title'       => __( 'Account Connection', 'kiriminaja-official' ),
+                'description' => __( 'Connect your KiriminAja account to sync orders, shipments, and automate label printing.', 'kiriminaja-official' ),
+            ),
+            array(
+                'key' => 'products', 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'],
+                'title'       => $product_volumetric_label,
+                'description' => __( 'Set weight and dimensions for each product so shipping rates are calculated accurately.', 'kiriminaja-official' ),
+            ),
+            array(
+                'key' => 'origin', 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'],
+                'title'       => __( 'Origin Setup', 'kiriminaja-official' ),
+                'description' => __( 'Configure your pickup address and subdistrict so couriers quote the correct rates.', 'kiriminaja-official' ),
+            ),
+            array(
+                'key' => 'couriers', 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'],
+                'title'       => __( 'Courier Setup', 'kiriminaja-official' ),
+                'description' => __( 'Choose which courier services to offer at checkout. Only enabled couriers appear to buyers.', 'kiriminaja-official' ),
+            ),
+            array(
+                'key' => 'shipping_locations', 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'],
+                'title'       => __( 'Shipping Locations', 'kiriminaja-official' ),
+                'description' => __( 'Enable shipping zones in WooCommerce so customers can select their delivery destination.', 'kiriminaja-official' ),
+            ),
+            array(
+                'key' => 'tracking', 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'],
+                'title'       => __( 'Tracking Page', 'kiriminaja-official' ),
+                'description' => __( 'Create a public tracking page so customers can monitor their shipment status in real time.', 'kiriminaja-official' ),
+            ),
         );
 
         $done_count = count( array_filter( $steps, function( $s ) { return $s['done']; } ) );
@@ -340,39 +364,7 @@ class Admin extends BaseInit{
         if ( $all_required_done ) {
             return;
         }
-        ?>
-        <div class="notice notice-info">
-            <p>
-                <strong><?php echo esc_html__( 'KiriminAja Setup Guide', 'kiriminaja-official' ); ?></strong>
-                <?php /* translators: %1$d: completed count, %2$d: total steps */ ?>
-                &mdash; <?php echo esc_html( sprintf( __( '%1$d of %2$d steps completed.', 'kiriminaja-official' ), $done_count, count( $steps ) ) ); ?>
-            </p>
-            <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0;">
-                <?php foreach ( $steps as $step ) : ?>
-                <div style="display:flex;align-items:center;gap:6px;font-size:13px;<?php echo $step['done'] ? 'color:#787c82;' : 'color:#1d2327;'; ?>">
-                    <?php if ( $step['done'] ) : ?>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" style="color:#00a32a">
-	                    <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="currentColor" fill-rule="evenodd" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10m-5.186-2.419a1 1 0 1 0-1.628-1.162l-4.314 6.04l-2.165-2.166a1 1 0 0 0-1.414 1.414l3 3a1 1 0 0 0 1.52-.126z" clip-rule="evenodd" />
-                    </svg>
-                    <?php else : ?>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" style="color:<?php echo $step['required'] ? '#d63638' : '#c3c4c7'; ?>">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="currentColor" fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10s10-4.477 10-10M12 7a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1m-1 9a1 1 0 0 1 1-1h.008a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1" clip-rule="evenodd" />
-                    </svg>
-                    <?php endif; ?>
-                    <a href="<?php echo esc_url( $step['url'] ); ?>" style="<?php echo $step['done'] ? 'color:#787c82;text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></a>
-                    <?php if ( ! $step['required'] ) : ?>
-                    <span style="font-size:10px;color:#8c8f94;"><?php echo esc_html__( '(Optional)', 'kiriminaja-official' ); ?></span>
-                    <?php endif; ?>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <p>
-                <a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary"><?php echo esc_html__( 'Complete Setup', 'kiriminaja-official' ); ?></a>
-            </p>
-        </div>
-        <?php
+        include KIRIOF_DIR . 'templates/_setup-guide.php';
     }
 
     public function kiriof_add_transaction_screen_options( $screen ) {
