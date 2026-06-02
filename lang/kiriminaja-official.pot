@@ -718,6 +718,7 @@ msgid "All"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:45
+#: templates/request-pickup/view/index.php:147
 msgid "Waiting for Payment"
 msgstr ""
 
@@ -785,10 +786,6 @@ msgstr ""
 
 #: templates/request-pickup/view/index.php:137
 msgid "Reschedule"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:147
-msgid "Waiting For Payment"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:156
@@ -1777,4 +1774,12 @@ msgstr ""
 
 #: templates/setting/setuped/_section-js-shared.php:19
 msgid "Server returned an invalid response."
+msgstr ""
+
+#: templates/request-pickup/view/modal-payment.php:48
+msgid "Code"
+msgstr ""
+
+#: templates/request-pickup/view/modal-payment.php:78
+msgid "QR will expire at"
 msgstr ""

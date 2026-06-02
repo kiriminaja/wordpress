@@ -142,7 +142,7 @@ msgstr "Izinkan pelanggan membayar saat pesanan diterima."
 #: templates/request-pickup/view/index.php:511
 #: templates/transaction-process/view/index.php:461
 msgid "An error occurred."
-msgstr "An error occurred."
+msgstr "Terjadi kesalahan."
 
 #: templates/request-pickup/view/index.php:70
 #: templates/request-pickup/view/index.php:237
@@ -987,7 +987,7 @@ msgstr "Alasan Pembatalan"
 #: templates/request-pickup/view/modal-request-pickup.php:73
 #: templates/transaction-process/view/modal-detail.php:124
 msgid "Refresh"
-msgstr "Refresh"
+msgstr "Muat ulang"
 
 #: inc/Base/Helper.php:59
 msgid "Refunded"
@@ -1056,7 +1056,7 @@ msgstr "Tersimpan."
 
 #: templates/request-pickup/view/modal-payment.php:18
 msgid "Scan to Pay"
-msgstr "Scan untuk Bayar"
+msgstr "Pindai untuk Bayar"
 
 #: templates/request-pickup/view/index.php:98
 #: templates/request-pickup/view/index.php:216
@@ -1424,11 +1424,8 @@ msgstr "Lihat di KiriminAja"
 msgid "Volumetric"
 msgstr "Volumetrik"
 
-#: templates/request-pickup/view/index.php:147
-msgid "Waiting For Payment"
-msgstr "Waiting For Payment"
-
 #: templates/request-pickup/view/index.php:45
+#: templates/request-pickup/view/index.php:147
 msgid "Waiting for Payment"
 msgstr "Menunggu Pembayaran"
 
@@ -1631,7 +1628,7 @@ msgstr "Total Tagihan"
 #: templates/request-pickup/view/modal-request-pickup.php:18
 #: templates/transaction-process/view/modal-request-pickup.php:18
 msgid "Schedule for Pickup"
-msgstr "Jadwal Pickup"
+msgstr "Jadwalkan Pickup"
 
 #: templates/request-pickup/view/modal-request-pickup.php:66
 #: templates/transaction-process/view/modal-request-pickup.php:70
@@ -1777,3 +1774,11 @@ msgstr "Respons tidak terduga."
 #: templates/setting/setuped/_section-js-shared.php:19
 msgid "Server returned an invalid response."
 msgstr "Server mengembalikan respons yang tidak valid."
+
+#: templates/request-pickup/view/modal-payment.php:48
+msgid "Code"
+msgstr "Kode"
+
+#: templates/request-pickup/view/modal-payment.php:78
+msgid "QR will expire at"
+msgstr "QR akan kedaluwarsa pada"
