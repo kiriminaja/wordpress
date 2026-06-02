@@ -118,7 +118,7 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
 ?>
 <div class="wrap kj-wrap">
 
-    <?php $kiriof_title = kiriof_helper()->tlThis('Settings',$locale); include WP_PLUGIN_DIR . '/kiriminaja-official/templates/_header.php'; ?>
+    <?php $kiriof_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <?php if (!kiriof_check_woocommerce() || kiriof_helper()->devForceTrue()): ?>

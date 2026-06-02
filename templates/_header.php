@@ -18,7 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $kiriof_subtitle
  */
 ?>
-<h1 class="wp-heading-inline" style="display:flex;align-items:center;gap:6px;">
+<div style="display:flex;align-items:end;gap:12px;margin-bottom:.5em">
+<h1 class="wp-heading-inline" style="display:flex;align-items:center;gap:6px;margin:0">
     <?php if ( ! empty( $kiriof_parent_url ) ) : ?>
         <a href="<?php echo esc_url( $kiriof_parent_url ); ?>" style="color:#2271b1;text-decoration:none;"><?php echo esc_html( $kiriof_parent_title ?? '' ); ?></a>
         <span style="color:#8c8f94;">›</span>
@@ -28,3 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         <span style="font-weight:400;">— <?php echo esc_html( $kiriof_subtitle ); ?></span>
     <?php endif; ?>
 </h1>
+<?php if ( ! empty( $kiriof_header_extra ) ) : ?>
+    <div style="flex-shrink:0"><?php echo $kiriof_header_extra; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+<?php endif; ?>
+</div>

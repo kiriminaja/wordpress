@@ -78,7 +78,7 @@ $kiriof_courier_colors = array(
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
-    <?php $kiriof_title = kiriof_helper()->tlThis('Account Configuration',$locale); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = kiriof_helper()->tlThis('Settings',$locale); include WP_PLUGIN_DIR . '/kiriminaja-official/templates/_header.php'; ?>
+    <?php $kiriof_title = kiriof_helper()->tlThis('Account Configuration',$locale); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <div class="kj-detail" style="max-width:720px;">
