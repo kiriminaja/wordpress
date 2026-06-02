@@ -1487,6 +1487,41 @@ msgstr "Kupon tidak berlaku"
 msgid "Applied to shipping"
 msgstr "Diterapkan ke ongkir"
 
+#: inc/Controllers/ShippingDiscountCouponController.php:64
+#: inc/Controllers/ShippingDiscountCouponController.php:76
+msgid "Combinations"
+msgstr "Kombinasi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:79
+#, php-format
+msgid "Can combine with %s"
+msgstr "Dapat digabungkan dengan %s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:80
+#, php-format
+msgid "Cannot combine with %s"
+msgstr "Tidak dapat digabungkan dengan %s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:143
+msgid "Allow Combinations"
+msgstr "Izinkan Kombinasi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:151
+msgid "Leave selected to allow this shipping coupon to stack with the checked discount types."
+msgstr "Biarkan terpilih agar kupon ongkir ini bisa digabungkan dengan tipe diskon yang dicentang."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:366
+msgid "Fixed cart discount"
+msgstr "Diskon keranjang tetap"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:370
+msgid "Percentage discount"
+msgstr "Diskon persentase"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:374
+msgid "Fixed product discount"
+msgstr "Diskon produk tetap"
+
 msgid "Thumbnail image"
 msgstr "Gambar thumbnail"
 

@@ -15,11 +15,14 @@ class ShippingDiscountCouponController {
     private const COUPON_TYPE = 'kiriof_shipping_discount';
     private const META_REGIONS = '_kiriof_coupon_regions';
     private const META_COURIERS = '_kiriof_coupon_couriers';
+    private const META_COMBINATIONS = '_kiriof_coupon_combinations';
 
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
         add_filter( 'woocommerce_cart_shipping_method_full_label', array( $this, 'filterShippingMethodLabel' ), 20, 2 );
+        add_filter( 'manage_edit-shop_coupon_columns', array( $this, 'registerCouponListColumns' ) );
+        add_action( 'manage_shop_coupon_posts_custom_column', array( $this, 'renderCouponListColumn' ), 10, 2 );
         add_action( 'woocommerce_coupon_options_usage_restriction', array( $this, 'renderUsageRestrictionFields' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
@@ -61,10 +64,53 @@ class ShippingDiscountCouponController {
         return ( new ShippingDiscountCouponService() )->formatShippingMethodLabel( (string) $label, $method );
     }
 
+    public function registerCouponListColumns( $columns ) {
+        $inserted = array();
+        foreach ( $columns as $key => $label ) {
+            $inserted[ $key ] = $label;
+            if ( 'coupon_amount' === $key ) {
+                $inserted['kiriof_coupon_combinations'] = __( 'Combinations', 'kiriminaja-official' );
+            }
+        }
+
+        if ( ! isset( $inserted['kiriof_coupon_combinations'] ) ) {
+            $inserted['kiriof_coupon_combinations'] = __( 'Combinations', 'kiriminaja-official' );
+        }
+
+        return $inserted;
+    }
+
+    public function renderCouponListColumn( $column, $post_id ) {
+        if ( 'kiriof_coupon_combinations' !== $column ) {
+            return;
+        }
+
+        $coupon = new \WC_Coupon( $post_id );
+        if ( self::COUPON_TYPE !== $coupon->get_discount_type() ) {
+            echo '&mdash;';
+            return;
+        }
+
+        $enabledTypes = $this->getSavedCombinations( $post_id );
+        $types = $this->getCombinationTypes();
+
+        echo '<div class="kiriof-combination-column">';
+        foreach ( $types as $type => $config ) {
+            $isEnabled = in_array( $type, $enabledTypes, true );
+            $title = $isEnabled
+                ? sprintf( __( 'Can combine with %s', 'kiriminaja-official' ), $config['label'] )
+                : sprintf( __( 'Cannot combine with %s', 'kiriminaja-official' ), $config['label'] );
+
+            echo '<span class="kiriof-combination-badge ' . esc_attr( $isEnabled ? 'is-enabled' : 'is-disabled' ) . '" title="' . esc_attr( $title ) . '">' . esc_html( $config['short'] ) . '</span>';
+        }
+        echo '</div>';
+    }
+
     public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
         $coupon_id = absint( $coupon_id );
         $savedRegions = $this->getSavedRegions( $coupon_id );
         $savedCouriers = $this->getSavedCouriers( $coupon_id );
+        $savedCombinations = $this->getSavedCombinations( $coupon_id );
         $regionRepo = new ShippingDiscountRegionRepository();
 
         if ( $regionRepo->getProvinceCount() < 1 ) {
@@ -135,6 +181,19 @@ class ShippingDiscountCouponController {
         echo '<span class="description">' . esc_html__( 'Leave empty to apply the shipping discount to all couriers.', 'kiriminaja-official' ) . '</span>';
         echo '</p>';
 
+        echo '<p class="form-field">';
+        echo '<label>' . esc_html__( 'Allow Combinations', 'kiriminaja-official' ) . '</label>';
+        echo '<span class="wrap kiriof-combination-options">';
+        foreach ( $this->getCombinationTypes() as $type => $config ) {
+            echo '<label class="kiriof-combination-option">';
+            echo '<input type="checkbox" name="' . esc_attr( self::META_COMBINATIONS ) . '[]" value="' . esc_attr( $type ) . '" ' . checked( in_array( $type, $savedCombinations, true ), true, false ) . ' /> ';
+            echo esc_html( $config['label'] );
+            echo '</label>';
+        }
+        echo '</span>';
+        echo '<span class="description">' . esc_html__( 'Leave selected to allow this shipping coupon to stack with the checked discount types.', 'kiriminaja-official' ) . '</span>';
+        echo '</p>';
+
         if ( $isCacheStale ) {
             echo '<p class="form-field"><span class="description">' . esc_html__( 'Region data is older than 24 hours. It will be refreshed automatically in the background.', 'kiriminaja-official' ) . '</span></p>';
         }
@@ -153,9 +212,20 @@ class ShippingDiscountCouponController {
         $couriers = isset( $_POST[ self::META_COURIERS ] )
             ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST[ self::META_COURIERS ] ) )
             : array();
+        $combinations = isset( $_POST[ self::META_COMBINATIONS ] )
+            ? array_map( 'sanitize_key', (array) wp_unslash( $_POST[ self::META_COMBINATIONS ] ) )
+            : array();
+        $discountType = $coupon instanceof \WC_Coupon ? $coupon->get_discount_type() : '';
 
         update_post_meta( $post_id, self::META_REGIONS, wp_json_encode( $this->normalizeRegions( $regions ) ) );
         update_post_meta( $post_id, self::META_COURIERS, array_values( array_unique( array_filter( $couriers ) ) ) );
+
+        if ( self::COUPON_TYPE === $discountType ) {
+            $allowedTypes = array_keys( $this->getCombinationTypes() );
+            update_post_meta( $post_id, self::META_COMBINATIONS, array_values( array_intersect( $allowedTypes, $combinations ) ) );
+        } else {
+            delete_post_meta( $post_id, self::META_COMBINATIONS );
+        }
     }
 
     public function enqueueCouponAdminAssets( $hook ) {
@@ -289,6 +359,25 @@ class ShippingDiscountCouponController {
         return array();
     }
 
+    private function getSavedCombinations( int $couponId ): array {
+        $allowedTypes = array_keys( $this->getCombinationTypes() );
+        $raw = get_post_meta( $couponId, self::META_COMBINATIONS, true );
+
+        if ( empty( $raw ) ) {
+            return $allowedTypes;
+        }
+
+        if ( is_array( $raw ) ) {
+            return array_values( array_intersect( $allowedTypes, array_map( 'sanitize_key', $raw ) ) );
+        }
+
+        if ( is_string( $raw ) ) {
+            return array_values( array_intersect( $allowedTypes, array_map( 'sanitize_key', explode( ',', $raw ) ) ) );
+        }
+
+        return $allowedTypes;
+    }
+
     private function normalizeRegions( $raw ): array {
         $regions = is_string( $raw ) ? json_decode( $raw, true ) : $raw;
         if ( ! is_array( $regions ) ) {
@@ -348,6 +437,27 @@ class ShippingDiscountCouponController {
         }
 
         return $options;
+    }
+
+    private function getCombinationTypes(): array {
+        return array(
+            self::COUPON_TYPE => array(
+                'label' => __( 'Shipping Discount', 'kiriminaja-official' ),
+                'short' => 'SHIP',
+            ),
+            'fixed_cart' => array(
+                'label' => __( 'Fixed cart discount', 'kiriminaja-official' ),
+                'short' => 'CART',
+            ),
+            'percent' => array(
+                'label' => __( 'Percentage discount', 'kiriminaja-official' ),
+                'short' => 'PCT',
+            ),
+            'fixed_product' => array(
+                'label' => __( 'Fixed product discount', 'kiriminaja-official' ),
+                'short' => 'PROD',
+            ),
+        );
     }
 
     private function formatRegionLabel( array $region ): string {

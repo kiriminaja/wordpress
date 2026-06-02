@@ -247,6 +247,41 @@ msgstr ""
 msgid "Applied to shipping"
 msgstr ""
 
+#: inc/Controllers/ShippingDiscountCouponController.php:64
+#: inc/Controllers/ShippingDiscountCouponController.php:76
+msgid "Combinations"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:79
+#, php-format
+msgid "Can combine with %s"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:80
+#, php-format
+msgid "Cannot combine with %s"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:143
+msgid "Allow Combinations"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:151
+msgid "Leave selected to allow this shipping coupon to stack with the checked discount types."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:366
+msgid "Fixed cart discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:370
+msgid "Percentage discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:374
+msgid "Fixed product discount"
+msgstr ""
+
 #: inc/Base/Helper.php:48
 msgid "Processing"
 msgstr ""

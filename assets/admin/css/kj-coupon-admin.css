@@ -36,3 +36,39 @@
   line-height: 1;
   padding: 0;
 }
+
+.kiriof-combination-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.kiriof-combination-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiriof-combination-column {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kiriof-combination-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+  background: #dbeafe;
+}
+
+.kiriof-combination-badge.is-disabled {
+  opacity: 0.5;
+}
