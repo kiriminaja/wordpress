@@ -25,7 +25,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 ?>
 <div class="wrap kj-wrap">
 
-    <h1 class="wp-heading-inline"><?php esc_html_e('Transactions','kiriminaja-official'); ?></h1>
+    <?php $kiriof_title = kiriof_helper()->tlThis('Transactions', $locale); include WP_PLUGIN_DIR . '/kiriminaja-official/templates/_header.php'; ?>
     <button id="kj-request-pickup-btn" onclick="kjRequestPickupSchedule()" class="page-title-action" type="button"><?php esc_html_e('Request Pickup','kiriminaja-official'); ?></button>
     <hr class="wp-header-end">
 

@@ -12,9 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="wrap kj-wrap">
 
-    <h1 class="wp-heading-inline">
-        <?php esc_html_e('Request Pickup Detail','kiriminaja-official'); ?> - <?php echo esc_html( $kiriof_payment_data['pickup_number'] ); ?>
-    </h1>
+    <?php $kiriof_title = __('Request Pickup Detail','kiriminaja-official'); $kiriof_parent_url = $kiriof_back_url; $kiriof_parent_title = __('Payments','kiriminaja-official'); $kiriof_subtitle = $kiriof_payment_data['pickup_number']; include WP_PLUGIN_DIR . '/kiriminaja-official/templates/_header.php'; ?>
     <hr class="wp-header-end">
 
                                 <!--BACK BUTTON-->

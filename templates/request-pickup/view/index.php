@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="wrap kj-wrap">
 
-    <h1 class="wp-heading-inline"><?php esc_html_e('Payments','kiriminaja-official'); ?></h1>
+    <?php $kiriof_title = __('Payments','kiriminaja-official'); include WP_PLUGIN_DIR . '/kiriminaja-official/templates/_header.php'; ?>
     <hr class="wp-header-end">
 
                                 <!--CONTENT-->
