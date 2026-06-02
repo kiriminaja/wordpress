@@ -152,6 +152,7 @@ class ShippingProcessController
             // Keep raw oids as string/array and normalize in one place so
             // admin_post pre-processing (array) and direct requests (string)
             // both resolve correctly.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitizeResiPrintOrderIds
             $rawOrderIds = isset( $_REQUEST['oids'] ) ? wp_unslash( $_REQUEST['oids'] ) : array();
             $orderIds = $this->sanitizeResiPrintOrderIds( $rawOrderIds );
             if (count($orderIds) < 1) {

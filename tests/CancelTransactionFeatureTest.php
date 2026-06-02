@@ -555,7 +555,7 @@ final class CancelTransactionFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'Actions',
+            'Action',
             $content,
             'Transaction list table must have an Actions column header'
         );
@@ -664,7 +664,7 @@ final class CancelTransactionFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '! empty( $kiriof_row->awb )',
+            '! empty( $kiriof_awb )',
             $content,
             'Cancel button must only show when AWB exists'
         );

@@ -125,12 +125,7 @@ class Kiriof_TransactionProcessIndex
         }
         $isProcessedFilter  = ('processed' === $status);
         $isCancelledFilter  = ('wc-cancelled' === $status);
-        $isAllFilter        = ('all' === $status);
-
-        $key_like   = '';
-        if ('' !== $key) {
-            $key_like = '%' . $wpdb->esc_like($key) . '%';
-        }
+        $isAllFilter = ('all' === $status);
 
         $cod_clause = '';
         if ('1' === $cod) {
@@ -154,16 +149,25 @@ class Kiriof_TransactionProcessIndex
         $o = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getOrdersTable();
 
         $key_clause = '';
-        switch ( $search_by ) {
-            case 'ka_order_id':
-                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.order_id LIKE %s )';
-                break;
-            case 'awb':
-                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.awb LIKE %s )';
-                break;
-            default:
-                $key_clause = "AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )";
-                break;
+        if ('' !== $key) {
+            $key_escaped = $wpdb->esc_like($key);
+            $key_like    = '%' . $key_escaped . '%';
+        } else {
+            $key_like = '';
+        }
+
+        if ('' !== $key) {
+            switch ( $search_by ) {
+                case 'ka_order_id':
+                    $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.order_id LIKE %s', $key_like );
+                    break;
+                case 'awb':
+                    $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.awb LIKE %s', $key_like );
+                    break;
+                default:
+                    $key_clause = $wpdb->prepare( "AND orders_tbl.{$o['id']} LIKE %s", $key_like );
+                    break;
+            }
         }
 
         if ($isProcessedFilter) {
@@ -182,8 +186,6 @@ class Kiriof_TransactionProcessIndex
                         {$courier_clause}
                         {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
-                    $key,
-                    $key_like,
                     $month,
                     $month_like
                 )
@@ -210,8 +212,6 @@ class Kiriof_TransactionProcessIndex
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
                     LIMIT %d OFFSET %d",
-                    $key,
-                    $key_like,
                     $month,
                     $month_like,
                     $per_page,
@@ -233,8 +233,6 @@ class Kiriof_TransactionProcessIndex
                         {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     'wc-cancelled',
-                    $key,
-                    $key_like,
                     $month,
                     $month_like
                 )
@@ -259,8 +257,6 @@ class Kiriof_TransactionProcessIndex
                     ORDER BY orders_tbl.{$o['date']} DESC
                     LIMIT %d OFFSET %d",
                     'wc-cancelled',
-                    $key,
-                    $key_like,
                     $month,
                     $month_like,
                     $per_page,
@@ -281,8 +277,6 @@ class Kiriof_TransactionProcessIndex
                         {$courier_clause}
                         {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
-                    $key,
-                    $key_like,
                     $month,
                     $month_like
                 )
@@ -306,8 +300,6 @@ class Kiriof_TransactionProcessIndex
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC
                 LIMIT %d OFFSET %d",
-                    $key,
-                    $key_like,
                     $month,
                     $month_like,
                     $per_page,
@@ -331,8 +323,6 @@ class Kiriof_TransactionProcessIndex
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $status,
                     'new',
-                    $key,
-                    $key_like,
                     $month,
                     $month_like
                 )
@@ -359,8 +349,6 @@ class Kiriof_TransactionProcessIndex
                 LIMIT %d OFFSET %d",
                     $status,
                     'new',
-                    $key,
-                    $key_like,
                     $month,
                     $month_like,
                     $per_page,

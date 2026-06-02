@@ -79,10 +79,12 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
                                 <div class="tablenav top">
                                         <div class="alignleft actions" style="display:flex;align-items:center;">
-                                            <?php $suffix = '_1'; $show_apply = true; include '_filters.php'; ?>
+                                            <?php $kiriof_filter_suffix = '_1'; $kiriof_show_apply = true; include '_filters.php'; ?>
                                         </div>
                                         <div class="tablenav-pages">
-                                            <span class="displaying-num"><?php echo esc_html( sprintf( _n( '%s item', '%s items', $kiriof_total, 'kiriminaja-official' ), number_format_i18n( $kiriof_total ) ) ); ?></span>
+                                            <span class="displaying-num"><?php
+                                            /* translators: %s: total number of items */
+                                            echo esc_html( sprintf( _n( '%s item', '%s items', $kiriof_total, 'kiriminaja-official' ), number_format_i18n( $kiriof_total ) ) ); ?></span>
                                             <span class="pagination-links">
                                                 <?php if ( $kiriof_current_page <= 1 ) : ?>
                                                 <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>
@@ -268,11 +270,13 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                     <br class="clear">
                                     <div class="tablenav bottom">
                                         <div class="alignleft actions" style="display:flex;align-items:center;">
-                                            <?php $suffix = '_2'; $show_apply = true; include '_filters.php'; ?>
+                                            <?php $kiriof_filter_suffix = '_2'; $kiriof_show_apply = true; include '_filters.php'; ?>
                                         </div>
 
                                         <div class="tablenav-pages">
-                                            <span class="displaying-num"><?php echo esc_html( sprintf( _n( '%s item', '%s items', $kiriof_total, 'kiriminaja-official' ), number_format_i18n( $kiriof_total ) ) ); ?></span>
+                                            <span class="displaying-num"><?php
+                                            /* translators: %s: total number of items */
+                                            echo esc_html( sprintf( _n( '%s item', '%s items', $kiriof_total, 'kiriminaja-official' ), number_format_i18n( $kiriof_total ) ) ); ?></span>
                                             <span class="pagination-links">
                                                 <?php if ( $kiriof_current_page <= 1 ) : ?>
                                                 <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>

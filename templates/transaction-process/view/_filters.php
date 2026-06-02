@@ -7,15 +7,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reusable filter selects for transaction list.
  *
- * @param string $suffix  '_1' for top tablenav, '_2' for bottom.
- * @param bool   $show_apply  Whether to render the Apply button.
- * @var array $kiriof_monthOptions
+ * @param string $kiriof_filter_suffix  '_1' for top tablenav, '_2' for bottom.
+ * @param bool   $kiriof_show_apply  Whether to render the Apply button.
+ * @var string $kiriof_month_filter
  * @var string $kiriof_cod_filter
  * @var string $kiriof_courier_filter
- * @var array $kiriof_couriers
+ * @var array  $kiriof_monthOptions
+ * @var array  $kiriof_couriers
  */
-$kiriof_filter_suffix  = $suffix ?? '_1';
-$kiriof_filter_apply   = $show_apply ?? true;
+$kiriof_filter_suffix  = $kiriof_filter_suffix ?? '_1';
+$kiriof_show_apply     = $kiriof_show_apply ?? true;
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
 $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '';
@@ -50,6 +51,6 @@ $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash
     ?>
 </select>
 
-<?php if ( $kiriof_filter_apply ) : ?>
+<?php if ( $kiriof_show_apply ) : ?>
 <button class="button" type="button" onclick="kiriofSubmitFilters<?php echo esc_attr( $kiriof_filter_suffix === '_1' ? '' : 'Bottom' ); ?>()"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
 <?php endif; ?>
