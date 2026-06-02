@@ -351,9 +351,15 @@ class Admin extends BaseInit{
                 <?php foreach ( $steps as $step ) : ?>
                 <div style="display:flex;align-items:center;gap:6px;font-size:13px;<?php echo $step['done'] ? 'color:#787c82;' : 'color:#1d2327;'; ?>">
                     <?php if ( $step['done'] ) : ?>
-                    <span style="color:#00a32a;font-size:14px;">&#10003;</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" style="color:#00a32a">
+	                    <path d="M0 0h24v24H0z" fill="none" />
+                        <path fill="currentColor" fill-rule="evenodd" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10m-5.186-2.419a1 1 0 1 0-1.628-1.162l-4.314 6.04l-2.165-2.166a1 1 0 0 0-1.414 1.414l3 3a1 1 0 0 0 1.52-.126z" clip-rule="evenodd" />
+                    </svg>
                     <?php else : ?>
-                    <span style="color:<?php echo $step['required'] ? '#d63638' : '#c3c4c7'; ?>;font-size:14px;">&#9679;</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" style="color:<?php echo $step['required'] ? '#d63638' : '#c3c4c7'; ?>">
+                        <path d="M0 0h24v24H0z" fill="none" />
+                        <path fill="currentColor" fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10s10-4.477 10-10M12 7a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1m-1 9a1 1 0 0 1 1-1h.008a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1" clip-rule="evenodd" />
+                    </svg>
                     <?php endif; ?>
                     <a href="<?php echo esc_url( $step['url'] ); ?>" style="<?php echo $step['done'] ? 'color:#787c82;text-decoration:line-through;' : 'font-weight:500;'; ?>"><?php echo esc_html( $step['label'] ); ?></a>
                     <?php if ( ! $step['required'] ) : ?>
