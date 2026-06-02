@@ -466,7 +466,7 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '<a href="<?php echo esc_url( $step[\'url\'] ); ?>"',
+            '<a href="<?php echo esc_url( $kiriof_step[\'url\'] ); ?>"',
             file_get_contents(PLUGIN_DIR . '/templates/_setup-guide.php'),
             'Setup checklist labels must be clickable so merchants know where to finish each step'
         );
