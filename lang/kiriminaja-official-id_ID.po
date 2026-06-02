@@ -839,6 +839,9 @@ msgstr "Metode pembayaran:"
 
 #: templates/request-pickup-detail/view/index.php:29
 #: templates/request-pickup/view/index.php:22
+#: inc/Pages/Admin.php:49
+#: inc/Pages/Admin.php:50
+#: inc/Pages/Admin.php:168
 msgid "Payments"
 msgstr "Pembayaran"
 
@@ -1164,6 +1167,8 @@ msgstr "Set your business location for accurate shipping rates."
 #: templates/setting/setuped/section-couriers.php:18
 #: templates/setting/setuped/section-tracking.php:58
 #: templates/setting/setuped/section-webhooks.php:19
+#: inc/Pages/Admin.php:71
+#: inc/Pages/Admin.php:155
 msgid "Settings"
 msgstr "Pengaturan"
 
@@ -1373,6 +1378,8 @@ msgid "Transaction cancelled successfully."
 msgstr "Transaction cancelled successfully."
 
 #: templates/transaction-process/view/index.php:28
+#: inc/Pages/Admin.php:40
+#: inc/Pages/Admin.php:164
 msgid "Transactions"
 msgstr "Transaksi"
 
@@ -1705,3 +1712,16 @@ msgstr "Non-COD"
 #: templates/transaction-process/view/_filters.php:43
 msgid "All Couriers"
 msgstr "Semua Kurir"
+
+#: inc/Pages/Admin.php:70
+msgid "KiriminAja Settings"
+msgstr "Pengaturan KiriminAja"
+
+#: inc/Pages/Admin.php:39
+msgid "KiriminAja Transactions"
+msgstr "Transaksi KiriminAja"
+
+#: inc/Pages/Admin.php:59
+#: inc/Pages/Admin.php:60
+msgid "Request Pickup Detail"
+msgstr "Detail Request Pickup"

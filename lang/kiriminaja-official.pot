@@ -331,6 +331,8 @@ msgstr ""
 #: templates/setting/setuped/section-couriers.php:18
 #: templates/setting/setuped/section-tracking.php:58
 #: templates/setting/setuped/section-webhooks.php:19
+#: inc/Pages/Admin.php:71
+#: inc/Pages/Admin.php:155
 msgid "Settings"
 msgstr ""
 
@@ -629,6 +631,9 @@ msgstr ""
 
 #: templates/request-pickup-detail/view/index.php:29
 #: templates/request-pickup/view/index.php:22
+#: inc/Pages/Admin.php:49
+#: inc/Pages/Admin.php:50
+#: inc/Pages/Admin.php:168
 msgid "Payments"
 msgstr ""
 
@@ -1222,6 +1227,8 @@ msgid "How to Connect"
 msgstr ""
 
 #: templates/transaction-process/view/index.php:28
+#: inc/Pages/Admin.php:40
+#: inc/Pages/Admin.php:164
 msgid "Transactions"
 msgstr ""
 
@@ -1706,4 +1713,16 @@ msgstr ""
 
 #: wc/KiriminajaShippingMethod.php:193
 msgid "Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman"
+msgstr ""
+#: inc/Pages/Admin.php:70
+msgid "KiriminAja Settings"
+msgstr ""
+
+#: inc/Pages/Admin.php:39
+msgid "KiriminAja Transactions"
+msgstr ""
+
+#: inc/Pages/Admin.php:59
+#: inc/Pages/Admin.php:60
+msgid "Request Pickup Detail"
 msgstr ""

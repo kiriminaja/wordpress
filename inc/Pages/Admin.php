@@ -36,8 +36,8 @@ class Admin extends BaseInit{
             $subPages = [
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'KiriminAja Transactions',
-                    'menu_title'=>'Transactions',
+                    'page_title'=>__( 'KiriminAja Transactions', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Transactions', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-transaction-process',
                     'callback'=> function() use ($plugin_path){
@@ -46,8 +46,8 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'Payments',
-                    'menu_title'=>'Payments',
+                    'page_title'=>__( 'Payments', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-request-pickup',
                     'callback'=> function() use ($plugin_path) {
@@ -56,8 +56,8 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'Request Pickup Detail',
-                    'menu_title'=>'Request Pickup Detail',
+                    'page_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-request-pickup-detail',
                     'callback'=> function() use ($plugin_path) {
@@ -67,8 +67,8 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>'KiriminAja Settings',
-                    'menu_title'=>'Settings',
+                    'page_title'=>__( 'KiriminAja Settings', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Settings', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function() use ($plugin_path){
@@ -152,7 +152,7 @@ class Admin extends BaseInit{
              */
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
                 if ( isset( $menu_item[2] ) && 'kiriminaja-konfigurasi' === $menu_item[2] ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] = 'Settings';
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] = __( 'Settings', 'kiriminaja-official' );
                     break;
                 }
             }
@@ -161,11 +161,11 @@ class Admin extends BaseInit{
             $shipment_unpaid_count = (int) kiriof_helper()->kjCountShipmentUnpaid();
 
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
-                if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], 'Transactions' ) ) {
+                if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], __( 'Transactions', 'kiriminaja-official' ) ) ) {
                     $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
-                if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], 'Payments' ) ) {
+                if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], __( 'Payments', 'kiriminaja-official' ) ) ) {
                     $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
