@@ -58,6 +58,31 @@ class CheckoutCalculationService extends BaseService{
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
+
+        if ($this->hasActiveFreeShippingCoupon()) {
+            $this->selectedExpedition = (object) [
+                'cost' => 0,
+                'discount_amount' => 0,
+                'discount_percentage' => 0,
+                'service' => $this->expeditionParts[0] ?? '',
+                'service_type' => $this->expeditionParts[1] ?? '',
+                'setting' => (object) [
+                    'cod_fee_amount' => 0,
+                    'minimum_cod_fee' => 0,
+                ],
+            ];
+
+            $checkoutCalculation = $this->checkoutCalculation();
+
+            return self::success([
+                'cart'                  => $this->carts,
+                'pricing'               => null,
+                'payload'               => $this->payload,
+                'calculation_result'    => $checkoutCalculation,
+                'carts_attribute'       => $cartAttributes->data,
+                'pricing_payload'       => [],
+            ]);
+        }
         
         $courier = $this->expeditionParts[0];
         $pricingPayload = [
@@ -119,15 +144,23 @@ class CheckoutCalculationService extends BaseService{
     }
     
     private function checkoutCalculation(){
-        $cartTotal = $this->getCartTotal();
+        $cartTotals = $this->getCartTotal();
+        $cartTotalAfterDiscount = (float) ($cartTotals['after_discount'] ?? 0);
+        $cartTotalBeforeDiscount = (float) ($cartTotals['before_discount'] ?? 0);
+        $wooDiscountAmount = (float) ($cartTotals['discount_amount'] ?? 0);
+        $wooDiscountDescription = (string) ($cartTotals['discount_description'] ?? '');
         $selected_expedition = $this->selectedExpedition;
         $insurance_amt = $this->getCalculateInsuranceFee();
         $cod_amt = $this->getCalculateCODFee();
         $ongkirFee = (int) ($selected_expedition->cost ?? 0) - (int) ($selected_expedition->discount_amount ?? 0);
-        $total_amt = $ongkirFee + $cod_amt + $insurance_amt + $cartTotal;
+        $total_amt = $ongkirFee + $cod_amt + $insurance_amt + $cartTotalAfterDiscount;
         
         return [
-            'cart_total_amt' => $cartTotal,
+            'cart_total_amt' => $cartTotalAfterDiscount,
+            'cart_total_before_discount' => $cartTotalBeforeDiscount,
+            'cart_total_after_discount' => $cartTotalAfterDiscount,
+            'woo_discount_amount' => $wooDiscountAmount,
+            'woo_discount_description' => $wooDiscountDescription,
             'cod_amt' => $cod_amt,
             'insurance_amt' => $insurance_amt,
             'ongkir_fee_amt' => $ongkirFee,
@@ -140,11 +173,37 @@ class CheckoutCalculationService extends BaseService{
     }
     
     private function getCartTotal(){
-        $cartTotal = 0;
+        $cartTotalBeforeDiscount = 0;
         foreach ($this->carts as $cart){
-            $cartTotal += @$cart['line_total'] ?? 0;
+            $cartTotalBeforeDiscount += (float) (@$cart['line_subtotal'] ?? @$cart['line_total'] ?? 0);
         }
-        return $cartTotal;
+
+        $cartTotalAfterDiscount = 0;
+        if (function_exists('WC') && WC() && isset(WC()->cart) && WC()->cart) {
+            $cartTotalAfterDiscount = (float) WC()->cart->get_total('edit');
+        }
+        if ($cartTotalAfterDiscount <= 0 && $cartTotalBeforeDiscount > 0) {
+            $cartTotalAfterDiscount = 0;
+            foreach ($this->carts as $cart) {
+                $cartTotalAfterDiscount += (float) (@$cart['line_total'] ?? 0);
+            }
+        }
+
+        $discountAmount = max(0, $cartTotalBeforeDiscount - $cartTotalAfterDiscount);
+        $discountDescription = '';
+        if (function_exists('WC') && WC() && isset(WC()->cart) && WC()->cart) {
+            $couponCodes = array_keys((array) WC()->cart->get_coupons());
+            if (is_array($couponCodes) && !empty($couponCodes)) {
+                $discountDescription = implode(', ', array_filter(array_map('sanitize_text_field', $couponCodes)));
+            }
+        }
+
+        return [
+            'before_discount' => (float) $cartTotalBeforeDiscount,
+            'after_discount' => (float) $cartTotalAfterDiscount,
+            'discount_amount' => (float) $discountAmount,
+            'discount_description' => $discountDescription,
+        ];
     }
     
     private function getSelectedExpedition(){
@@ -192,5 +251,23 @@ class CheckoutCalculationService extends BaseService{
         
         $codFee = max($codFeeAmount, $codMinCost);
         return (int) ceil($codFee);
-    }   
+    }
+
+    private function hasActiveFreeShippingCoupon(){
+        if (!function_exists('WC') || !WC() || !isset(WC()->cart) || !WC()->cart) {
+            return false;
+        }
+
+        if ((float) WC()->cart->get_shipping_total() > 0) {
+            return false;
+        }
+
+        foreach (WC()->cart->get_coupons() as $coupon) {
+            if ($coupon && method_exists($coupon, 'get_free_shipping') && $coupon->get_free_shipping()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

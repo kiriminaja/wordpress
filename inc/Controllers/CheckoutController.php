@@ -115,11 +115,15 @@ class CheckoutController
         }
 
         $force_insurance = (bool) WC()->session->get( 'kiriof_insurance', 0 );
+        $discountContext = $this->kiriof_get_cart_discount_context();
         $cache_context   = array(
             'shipping_method' => $kiriof_method,
             'destination_id'  => $destination_id,
             'payment_method'  => $chosen_payment,
             'insurance'       => $force_insurance ? 1 : 0,
+            'coupon_codes'    => $discountContext['coupon_codes'],
+            'discount_total'  => $discountContext['discount_total'],
+            'discount_tax'    => $discountContext['discount_tax'],
         );
         $cached_context  = WC()->session->get( 'kiriof_cached_fee_context', array() );
         $cache_matches   = $this->kiriof_fee_cache_matches( $cached_context, $cache_context );
@@ -220,6 +224,30 @@ class CheckoutController
         return $payment_method;
     }
 
+    private function kiriof_get_cart_discount_context() {
+        $context = array(
+            'coupon_codes'   => '',
+            'discount_total' => 0,
+            'discount_tax'   => 0,
+        );
+
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return $context;
+        }
+
+        $coupon_codes = array_keys((array) WC()->cart->get_coupons());
+        if ( is_array( $coupon_codes ) && ! empty( $coupon_codes ) ) {
+            $coupon_codes = array_filter( array_map( 'sanitize_text_field', $coupon_codes ) );
+            sort( $coupon_codes );
+            $context['coupon_codes'] = implode( ',', $coupon_codes );
+        }
+
+        $context['discount_total'] = (float) WC()->cart->get_discount_total();
+        $context['discount_tax']   = (float) WC()->cart->get_discount_tax();
+
+        return $context;
+    }
+
     private function kiriof_get_store_api_destination_field( $request ) {
         if ( ! $request instanceof \WP_REST_Request ) {
             return '';
@@ -270,18 +298,21 @@ class CheckoutController
             $search_result = $api_service->sub_district_search( $order_postcode );
             if ( 200 === $search_result->status && ! empty( $search_result->data ) ) {
                 foreach ( $search_result->data as $match ) {
-                    if ( false !== stripos( $match->text, $destination_area ) ) {
-                        return array( (string) $match->id, $match->text );
+                    $match = (object) $match;
+                    if ( false !== stripos( (string) ($match->text ?? ''), $destination_area ) ) {
+                        return array( (string) ($match->id ?? ''), (string) ($match->text ?? '') );
                     }
                 }
 
-                return array( (string) $search_result->data[0]->id, $search_result->data[0]->text );
+                $firstMatch = (object) $search_result->data[0];
+                return array( (string) ($firstMatch->id ?? ''), (string) ($firstMatch->text ?? '') );
             }
         }
 
         $search_result = $api_service->sub_district_search( $destination_area );
         if ( 200 === $search_result->status && ! empty( $search_result->data ) ) {
-            return array( (string) $search_result->data[0]->id, $search_result->data[0]->text );
+            $firstMatch = (object) $search_result->data[0];
+            return array( (string) ($firstMatch->id ?? ''), (string) ($firstMatch->text ?? '') );
         }
 
         return array( $destination_area, $destination_name );
@@ -450,6 +481,15 @@ class CheckoutController
         $insurance = ( $insurance_setting && 'yes' === $insurance_setting->value )
             ? 1
             : (int) WC()->session->get( 'billing_insurance', WC()->session->get( 'kiriof_insurance', 0 ) );
+        $woo_discount_amount = 0;
+        $woo_discount_description = '';
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart ) {
+            $woo_discount_amount = (float) WC()->cart->get_discount_total() + (float) WC()->cart->get_discount_tax();
+            $coupon_codes = array_keys((array) WC()->cart->get_coupons());
+            if ( is_array( $coupon_codes ) && ! empty( $coupon_codes ) ) {
+                $woo_discount_description = implode( ', ', array_filter( array_map( 'sanitize_text_field', $coupon_codes ) ) );
+            }
+        }
 
         $order->update_meta_data( '_kiriof_checkout_destination_area', $destination_area );
         $order->update_meta_data( '_kiriof_checkout_destination_area_name', $destination_name );
@@ -458,6 +498,8 @@ class CheckoutController
         $order->update_meta_data( '_kiriof_checkout_billing_insurance', $insurance );
         $order->update_meta_data( '_kiriof_checkout_payment_method', $payment_method );
         $order->update_meta_data( '_kiriof_checkout_force_insurance', WC()->session->get( 'force_insurance', 0 ) );
+        $order->update_meta_data( '_kiriof_checkout_woocommerce_discount_amount', $woo_discount_amount );
+        $order->update_meta_data( '_kiriof_checkout_woocommerce_discount_description', $woo_discount_description );
 
         if ( '' !== $destination_area ) {
             $order->update_meta_data( '_' . $this->field_destination_key, sanitize_text_field( $destination_area ) );
@@ -492,6 +534,8 @@ class CheckoutController
         $payment_method               = $order ? (string) $order->get_meta( '_kiriof_checkout_payment_method', true ) : '';
         $force_insurance              = $order ? $order->get_meta( '_kiriof_checkout_force_insurance', true ) : '';
         $billing_insurance_meta       = $order ? $order->get_meta( '_kiriof_checkout_billing_insurance', true ) : '';
+        $woo_discount_amount          = $order ? $order->get_meta( '_kiriof_checkout_woocommerce_discount_amount', true ) : '';
+        $woo_discount_description     = $order ? $order->get_meta( '_kiriof_checkout_woocommerce_discount_description', true ) : '';
 
         if ( '' === $kiriof_expedition ) {
             $kiriof_expedition = (string) WC()->session->get( 'kiriof_expedition', '' );
@@ -510,6 +554,12 @@ class CheckoutController
         }
         if ( '' === $force_insurance ) {
             $force_insurance = WC()->session->get( 'force_insurance', '' );
+        }
+        if ( '' === (string) $woo_discount_amount ) {
+            $woo_discount_amount = WC()->session->get( 'kiriof_woocommerce_discount_amount', 0 );
+        }
+        if ( '' === (string) $woo_discount_description ) {
+            $woo_discount_description = WC()->session->get( 'kiriof_woocommerce_discount_description', '' );
         }
 
         list( $kiriof_destination_area, $kiriof_destination_area_name ) = $this->kiriof_resolve_destination_area(
@@ -538,6 +588,8 @@ class CheckoutController
         WC()->session->set( 'payment_method', null );
         WC()->session->set( 'force_insurance', null );
         WC()->session->set( 'billing_insurance', null );
+        WC()->session->set( 'kiriof_woocommerce_discount_amount', null );
+        WC()->session->set( 'kiriof_woocommerce_discount_description', null );
         /** Store Transaction*/
         try {
             $createTransaction = (new \KiriminAjaOfficial\Services\CheckoutServices\CreateTransactionService([
@@ -549,6 +601,8 @@ class CheckoutController
                 'is_insurance'              => @$insurance,
                 'is_cod'                    => $payment_method === 'cod',
                 'wc_cart_contents'          => WC()->cart->cart_contents,
+                'woo_discount_amount'       => (float) $woo_discount_amount,
+                'woo_discount_description'  => (string) $woo_discount_description,
             ]))->call();
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
         } catch (\Throwable $th){
@@ -564,6 +618,8 @@ class CheckoutController
             $order->delete_meta_data( '_kiriof_checkout_billing_insurance' );
             $order->delete_meta_data( '_kiriof_checkout_payment_method' );
             $order->delete_meta_data( '_kiriof_checkout_force_insurance' );
+            $order->delete_meta_data( '_kiriof_checkout_woocommerce_discount_amount' );
+            $order->delete_meta_data( '_kiriof_checkout_woocommerce_discount_description' );
             $order->save();
         }
     }
@@ -608,6 +664,16 @@ class CheckoutController
             $insurance_post = '1';
         }
 
+            $woo_discount_amount = 0;
+            $woo_discount_description = '';
+            if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart ) {
+                $woo_discount_amount = (float) WC()->cart->get_discount_total() + (float) WC()->cart->get_discount_tax();
+                $coupon_codes = array_keys((array) WC()->cart->get_coupons());
+                if ( is_array( $coupon_codes ) && ! empty( $coupon_codes ) ) {
+                    $woo_discount_description = implode( ', ', array_filter( array_map( 'sanitize_text_field', $coupon_codes ) ) );
+                }
+            }
+
             list( $destination_area, $destinasi_name ) = $this->kiriof_resolve_destination_area(
                 $destination_area,
                 $destinasi_name,
@@ -636,6 +702,8 @@ class CheckoutController
             WC()->session->set( 'billing_insurance', $kiriof_billing_insurance_post );
             WC()->session->set( 'payment_method', $kiriof_payment_method_post );
             WC()->session->set( 'force_insurance', $kiriof_force_insurance_post );
+            WC()->session->set( 'kiriof_woocommerce_discount_amount', $woo_discount_amount );
+            WC()->session->set( 'kiriof_woocommerce_discount_description', $woo_discount_description );
 
             /**
              * Persist on the order itself so afterCheckoutAfterCreated() can read these
@@ -648,6 +716,8 @@ class CheckoutController
             $order->update_meta_data( '_kiriof_checkout_billing_insurance', $kiriof_billing_insurance_post );
             $order->update_meta_data( '_kiriof_checkout_payment_method', $kiriof_payment_method_post );
             $order->update_meta_data( '_kiriof_checkout_force_insurance', $kiriof_force_insurance_post );
+            $order->update_meta_data( '_kiriof_checkout_woocommerce_discount_amount', $woo_discount_amount );
+            $order->update_meta_data( '_kiriof_checkout_woocommerce_discount_description', $woo_discount_description );
             /** 
              * save to custom order metadata 
              * field kelurahan 

@@ -211,7 +211,10 @@ class SendRequestPickupTransactionService extends BaseService
                     $transaction->discount_amount +
                     $transaction->insurance_cost +
                     $transaction->cod_fee) : 0,
-                "discount_amount" => $transaction->discount_amount ?? 0,
+                "discount_amount" => $transaction->woocommerce_discount_amount ?? 0,
+                "shipping_discount_amount" => $transaction->discount_amount ?? 0,
+                "woocommerce_discount_amount" => $transaction->woocommerce_discount_amount ?? 0,
+                "woocommerce_discount_description" => $transaction->woocommerce_discount_description ?? '',
                 "discount_percentage" => $transaction->discount_percentage ?? 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,

@@ -220,9 +220,13 @@ class TransactionRepository{
                     `created_at`, 
                     `wp_wc_order_stat_order_id`,
                     `discount_amount`,
-                    `discount_percentage`
+                    `discount_percentage`,
+                    `woocommerce_discount_amount`,
+                    `woocommerce_discount_description`,
+                    `is_deficit`,
+                    `cod_minimum`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f)",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -241,7 +245,11 @@ class TransactionRepository{
                 $payload['created_at'],
                 $payload['wp_wc_order_stat_order_id'],
                 $payload['discount_amount'] ?? null,
-                $payload['discount_percentage'] ?? null
+                $payload['discount_percentage'] ?? null,
+                $payload['woocommerce_discount_amount'] ?? 0,
+                $payload['woocommerce_discount_description'] ?? null,
+                $payload['is_deficit'] ?? 0,
+                $payload['cod_minimum'] ?? null
             )
         );
         $this->invalidateCouriersCache();
@@ -423,6 +431,18 @@ class TransactionRepository{
         }
         if (isset($payload['discount_percentage'])) {
             $updateData['discount_percentage'] = $payload['discount_percentage'];
+        }
+        if (isset($payload['woocommerce_discount_amount'])) {
+            $updateData['woocommerce_discount_amount'] = $payload['woocommerce_discount_amount'];
+        }
+        if (isset($payload['woocommerce_discount_description'])) {
+            $updateData['woocommerce_discount_description'] = $payload['woocommerce_discount_description'];
+        }
+        if (isset($payload['is_deficit'])) {
+            $updateData['is_deficit'] = $payload['is_deficit'];
+        }
+        if (isset($payload['cod_minimum'])) {
+            $updateData['cod_minimum'] = $payload['cod_minimum'];
         }
         
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];

@@ -112,6 +112,10 @@ class SetupMigration {
                 `transaction_value` double DEFAULT NULL,
                 `discount_amount` double DEFAULT NULL,
                 `discount_percentage` double DEFAULT NULL,
+                `woocommerce_discount_amount` decimal(15,2) NOT NULL DEFAULT 0,
+                `woocommerce_discount_description` varchar(255) DEFAULT NULL,
+                `is_deficit` tinyint(1) NOT NULL DEFAULT 0,
+                `cod_minimum` decimal(15,2) DEFAULT NULL,
                 `created_at` timestamp NULL DEFAULT NULL,
                 `request_pickup_at` timestamp NULL DEFAULT NULL,
                 `shipped_at` timestamp NULL DEFAULT NULL,
@@ -149,6 +153,22 @@ class SetupMigration {
             if (!in_array('discount_percentage', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE `$table_name` ADD discount_percentage double DEFAULT NULL");
+            }
+            if (!in_array('woocommerce_discount_amount', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD woocommerce_discount_amount decimal(15,2) NOT NULL DEFAULT 0");
+            }
+            if (!in_array('woocommerce_discount_description', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD woocommerce_discount_description varchar(255) DEFAULT NULL");
+            }
+            if (!in_array('is_deficit', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD is_deficit tinyint(1) NOT NULL DEFAULT 0");
+            }
+            if (!in_array('cod_minimum', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD cod_minimum decimal(15,2) DEFAULT NULL");
             }
             
         }

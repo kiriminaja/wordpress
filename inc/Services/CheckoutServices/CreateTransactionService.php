@@ -55,6 +55,20 @@ class CreateTransactionService extends BaseService{
             $insurance_cost = $is_insurance
                 ? $calcResult['insurance_amt'] 
                 : 0;
+            $transactionValue = (float) ($calcResult['cart_total_after_discount'] ?? $calcResult['cart_total_amt'] ?? 0);
+            $shippingCostRaw = (float) ($calcResult['ongkir_fee_raw'] ?? 0);
+            $codFee = (float) ($calcResult['cod_amt'] ?? 0);
+            $codMinimum = $shippingCostRaw + $codFee;
+            $isCod = !empty($this->payload['is_cod']);
+            $isDeficit = ($isCod && $transactionValue < $codMinimum) ? 1 : 0;
+            $wooDiscountAmount = (float) ($calcResult['woo_discount_amount'] ?? 0);
+            if ($wooDiscountAmount <= 0 && !empty($this->payload['woo_discount_amount'])) {
+                $wooDiscountAmount = (float) $this->payload['woo_discount_amount'];
+            }
+            $wooDiscountDescription = (string) ($calcResult['woo_discount_description'] ?? '');
+            if ($wooDiscountDescription === '' && !empty($this->payload['woo_discount_description'])) {
+                $wooDiscountDescription = (string) $this->payload['woo_discount_description'];
+            }
             // Cache expedition split to avoid duplicate explode
             $expeditionParts = $this->payload['kiriof_expedition'] ? explode('_', $this->payload['kiriof_expedition'], 2) : ['', ''];
             $payload = [
@@ -69,14 +83,18 @@ class CreateTransactionService extends BaseService{
                 "length"                        => $cartsAttr['length'],
                 "width"                         => $cartsAttr['width'],
                 "height"                        => $cartsAttr['height'],
-                'shipping_cost'                 => $calcResult['ongkir_fee_raw'],
+                'shipping_cost'                 => $shippingCostRaw,
                 'insurance_cost'                => $insurance_cost,
-                'cod_fee'                       => $calcResult['cod_amt'],
-                'transaction_value'             => $calcResult['cart_total_amt'],
+                'cod_fee'                       => $codFee,
+                'transaction_value'             => $transactionValue,
                 'created_at'                    => gmdate('Y-m-d H:i:s'),
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],
                 'discount_amount'               => $calcResult['discount_amt'] ?? null,
                 'discount_percentage'           => $calcResult['discount_percentage'] ?? null,
+                'woocommerce_discount_amount'   => $wooDiscountAmount,
+                'woocommerce_discount_description' => $wooDiscountDescription,
+                'is_deficit'                    => $isDeficit,
+                'cod_minimum'                   => $isCod ? $codMinimum : null,
             ];
             
             /** Update WC Total Order */

@@ -52,6 +52,10 @@ function kiriof_shipping_method(){
             }
     
             public function calculate_shipping( $package = array() ){
+                if ($this->hasActiveFreeShippingCoupon()) {
+                    return;
+                }
+
                 $country = $package["destination"]["country"];
                 $destination_id = WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
@@ -88,7 +92,7 @@ function kiriof_shipping_method(){
                     'width' =>  $cartAttributes->data['width'],
                     'height' => $cartAttributes->data['height'],
                     'insurance' => (int) $kiriof_insurance,
-                    'item_value' => WC()->cart->cart_contents_total,
+                    'item_value' => (int) ($cartAttributes->data['item_value'] ?? 0),
                     'courier' => "", // 'jne', 'pos', 'tiki', 'jet'
                 ];
 
@@ -149,6 +153,20 @@ function kiriof_shipping_method(){
                 });
                 
                 return $filteredOptions;
+            }
+
+            private function hasActiveFreeShippingCoupon(){
+                if (!function_exists('WC') || !WC() || !isset(WC()->cart) || !WC()->cart) {
+                    return false;
+                }
+
+                foreach (WC()->cart->get_coupons() as $coupon) {
+                    if ($coupon && method_exists($coupon, 'get_free_shipping') && $coupon->get_free_shipping()) {
+                        return true;
+                    }
+                }
+
+                return false;
             }
             
         }

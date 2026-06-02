@@ -108,7 +108,7 @@ class EditOrderController{
             'width'     => $width,
             'height'    => $height,
             'insurance' => 1,
-            'item_value'=> $order->get_subtotal(),
+            'item_value'=> $this->getOrderDiscountedProductTotal($order),
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
         $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
@@ -212,6 +212,7 @@ class EditOrderController{
         }
     
         $courier = explode('_',$payload['kiriof_expedition']);
+        $discountedProductTotal = $this->getOrderDiscountedProductTotal($order);
     
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
@@ -221,7 +222,7 @@ class EditOrderController{
             "width"                     => (int) $width,
             "height"                    => (int) $height,
             'insurance'                 => (int) $insurance,
-            'item_value'                => $order->get_subtotal(),
+            'item_value'                => $discountedProductTotal,
             'courier'                   => [$courier[0]]
         ];
         $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
@@ -238,7 +239,7 @@ class EditOrderController{
             }
     
             $checkoutCalculation = $this->kiriof_checkoutCalculation(
-                $order->get_subtotal(),
+                $discountedProductTotal,
                 $data_shipping_selected,
                 $get_payment_method,
                 $insurance
@@ -350,6 +351,20 @@ class EditOrderController{
      
         return $billing_fields;
     }
+
+    private function getOrderDiscountedProductTotal($order){
+        if (!$order) {
+            return 0;
+        }
+
+        $total = (float) $order->get_total();
+        $shipping = (float) $order->get_shipping_total();
+        $tax = (float) $order->get_total_tax();
+
+        $productTotal = $total - $shipping - $tax;
+        return $productTotal > 0 ? $productTotal : 0;
+    }
+
     public function kiriof_admin_shipping_fields($shipping_fields){
         
         unset($shipping_fields['city']);
