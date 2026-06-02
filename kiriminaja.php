@@ -85,6 +85,15 @@ if ( ! function_exists( 'kiriof_sanitize_recursive' ) ) {
     }
 }
 
+add_action( 'plugins_loaded', 'kiriof_load_textdomain' );
+function kiriof_load_textdomain() {
+    load_plugin_textdomain(
+        'kiriminaja-official',
+        false,
+        dirname( KIRIOF_PLUGIN_BASENAME ) . '/lang'
+    );
+}
+
 add_action( 'admin_notices', 'kiriof_woocommerce_notice' );
 function kiriof_woocommerce_notice() {
 

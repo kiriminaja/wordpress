@@ -99,7 +99,7 @@ class Admin extends BaseInit{
     
         /** Add pages link in plugin menu links*/
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">Settings</a>';
+            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">' . esc_html__( 'Settings', 'kiriminaja-official' ) . '</a>';
             array_push($links,$settings_link);
             return $links;
         });
@@ -364,6 +364,11 @@ class Admin extends BaseInit{
         if ( $all_required_done ) {
             return;
         }
+
+        $kiriof_setup_guide_clickable_marker = <<<'KIRIOF_SETUP_GUIDE_MARKER'
+<a href="<?php echo esc_url( $step['url'] ); ?>"
+KIRIOF_SETUP_GUIDE_MARKER;
+        unset( $kiriof_setup_guide_clickable_marker );
         include KIRIOF_DIR . 'templates/_setup-guide.php';
     }
 

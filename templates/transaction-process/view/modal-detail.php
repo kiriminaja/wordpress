@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     </svg>
                 </div>
                 <div class="content-header" style="background-color: white;position: relative" >
-                    <h1>Order #<span class="wc-order-id"></span></h1>
+                    <h1><?php esc_html_e( 'Order', 'kiriminaja-official' ); ?> #<span class="wc-order-id"></span></h1>
                     <div style="position: absolute;top: 16px;right: 36px;" class="status-container"><span class="kj-badge processing"><?php esc_html_e('New','kiriminaja-official');?></span></div>
                     
                 </div>
@@ -33,12 +33,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <div class="row-divider" style="margin-top: .75rem"></div>
                                 <div class="row gx-2">
                                     <div class="col">
-                                        <div style="font-weight: 700">Billing Details</div>
+                                        <div style="font-weight: 700"><?php esc_html_e( 'Billing Details', 'kiriminaja-official' ); ?></div>
                                         <div class="row-divider" style="margin-top: .25rem"></div>
                                         <div>Bima Daniel, Jalan jalan ke Yogyakarta, Rumah Ungu, Kec. Banguntapan, Kabupaten Bantul, DI Yogyakarta, 55198</div>
                                     </div>
                                     <div class="col">
-                                        <div style="font-weight: 700">Shipping Details</div>
+                                        <div style="font-weight: 700"><?php esc_html_e( 'Shipping Details', 'kiriminaja-official' ); ?></div>
                                         <div class="row-divider" style="margin-top: .25rem"></div>
                                         <div>Bima Daniel, Jalan jalan ke Yogyakarta, Rumah Ungu, Kec. Banguntapan, Kabupaten Bantul, DI Yogyakarta, 55198</div>
                                     </div>
@@ -48,27 +48,27 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <div class="row gx-2">
                                     <div class="col">
                                         <div>
-                                            <div style="font-weight: 700">Email</div>
+                                            <div style="font-weight: 700"><?php esc_html_e( 'Email', 'kiriminaja-official' ); ?></div>
                                             <div class="row-divider" style="margin-top: .25rem"></div>
                                             <div>coba@kiriminaja.com</div>
                                         </div>
 
                                         <div class="row-divider" style="margin-top: .75rem"></div>
                                         <div>
-                                            <div style="font-weight: 700">Phone</div>
+                                            <div style="font-weight: 700"><?php esc_html_e( 'Phone', 'kiriminaja-official' ); ?></div>
                                             <div class="row-divider" style="margin-top: .25rem"></div>
                                             <div>085156722807</div>
                                         </div>
 
                                         <div class="row-divider" style="margin-top: .75rem"></div>
                                         <div>
-                                            <div style="font-weight: 700">Payment via</div>
+                                            <div style="font-weight: 700"><?php esc_html_e( 'Payment via', 'kiriminaja-official' ); ?></div>
                                             <div class="row-divider" style="margin-top: .25rem"></div>
                                             <div>Transfer</div>
                                         </div>
                                     </div>
                                     <div class="col">
-                                        <div style="font-weight: 700">Shipping Method</div>
+                                        <div style="font-weight: 700"><?php esc_html_e( 'Shipping Method', 'kiriminaja-official' ); ?></div>
                                         <div class="row-divider" style="margin-top: .25rem"></div>
                                         <div>ID Express Standard</div>
                                     </div>
@@ -80,37 +80,37 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <table id="cart-table">
                                     <thead>
                                     <tr>
-                                        <th>Product</th>
-                                        <th>Quantity</th>
-                                        <th>Total</th>
+                                        <th><?php esc_html_e( 'Product', 'kiriminaja-official' ); ?></th>
+                                        <th><?php esc_html_e( 'Quantity', 'kiriminaja-official' ); ?></th>
+                                        <th><?php esc_html_e( 'Total', 'kiriminaja-official' ); ?></th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr>
-                                        <td>Product</td>
-                                        <td>Quantity</td>
-                                        <td>Total</td>
+                                        <td><?php esc_html_e( 'Product', 'kiriminaja-official' ); ?></td>
+                                        <td><?php esc_html_e( 'Quantity', 'kiriminaja-official' ); ?></td>
+                                        <td><?php esc_html_e( 'Total', 'kiriminaja-official' ); ?></td>
                                     </tr>
                                     </tbody>
                                     <tfoot>
                                     <tr>
-                                        <th colspan="2">Sub Total</th>
+                                        <th colspan="2"><?php esc_html_e( 'Sub Total', 'kiriminaja-official' ); ?></th>
                                         <th>Rp.10.000</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="2">Shipping Fee</th>
+                                        <th colspan="2"><?php esc_html_e( 'Shipping Fee', 'kiriminaja-official' ); ?></th>
                                         <th>Rp.10.000</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="2">COD Fee</th>
+                                        <th colspan="2"><?php esc_html_e( 'COD Fee', 'kiriminaja-official' ); ?></th>
                                         <th>Rp.10.000</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="2">Insurance Fee</th>
+                                        <th colspan="2"><?php esc_html_e( 'Insurance Fee', 'kiriminaja-official' ); ?></th>
                                         <th>Rp.10.000</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="2">Total</th>
+                                        <th colspan="2"><?php esc_html_e( 'Total', 'kiriminaja-official' ); ?></th>
                                         <th>Rp.10.000</th>
                                     </tr>
                                     </tfoot>

@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <p class="form-row form-row-wide" id="billing_company_field" data-priority="30">
                     <label for="billing_company" class=""><?php esc_html_e('Nomor Resi','kiriminaja-official'); ?> <span style="color:red;">*</span></label>
                     <span class="woocommerce-input-wrapper">
-                        <input type="text" class="input-text" name="order_number" placeholder="Masukan Nomor Resi atau Nomor Order ..." value="" autocomplete="organization">
+                        <input type="text" class="input-text" name="order_number" placeholder="<?php esc_attr_e( 'Masukan Nomor Resi atau Nomor Order ...', 'kiriminaja-official' ); ?>" value="" autocomplete="organization">
                     </span>
                 </p>
 
@@ -53,8 +53,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <table class="tracking-table">
                     <thead>
                         <tr>
-                            <th width="20%">Tanggal</th>
-                            <th>Status</th>
+                            <th width="20%"><?php esc_html_e( 'Tanggal', 'kiriminaja-official' ); ?></th>
+                            <th><?php esc_html_e( 'Status', 'kiriminaja-official' ); ?></th>
                         </tr>                    
                     </thead>
                     <tbody>
@@ -115,8 +115,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     let details = `
                         <div class="tracking-gorup">
                             <div class="tracking-header">
-                               <p>Nomor Order : #${trackingOrderNumber}</p>
-                               <p>Nomor Resi : ${trackingDetails?.awb ?? '-'}</p>
+                               <p><?php echo esc_js( __( 'Nomor Order', 'kiriminaja-official' ) ); ?> : #${trackingOrderNumber}</p>
+                               <p><?php echo esc_js( __( 'Nomor Resi', 'kiriminaja-official' ) ); ?> : ${trackingDetails?.awb ?? '-'} </p>
                             </div> 
 
                             <div class="tracking-address">
@@ -131,7 +131,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <div class="borderdashed"></div>
                                 
                                 <div class="textseccond">
-                                    <p>Kurir</p>
+                                    <p><?php echo esc_js( __( 'Kurir', 'kiriminaja-official' ) ); ?></p>
                                     <p class="fontbold">${trackingDetails?.service ?? '-'}</p>
                                 </div>
                                 

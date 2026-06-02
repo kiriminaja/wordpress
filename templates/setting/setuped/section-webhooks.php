@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
-    <?php $kiriof_title = kiriof_helper()->tlThis('Webhooks',$locale); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
+    <?php $kiriof_title = __( 'Webhooks', 'kiriminaja-official' ); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = __( 'Settings', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <div class="kj-detail">
@@ -25,10 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             <div class="kj-form">
                 <table class="form-table">
                     <tbody>
-                    <tr><th><label><?php echo esc_html( kiriof_helper()->tlThis('Callback URL',$locale) ); ?></label></th><td><input style="width:100%;max-width:25rem" name="callback_url" type="text" class="input-text regular-input" value="<?php echo esc_url( $inputValueArr['callback_url'] ?? '' );?>"></td></tr>
+                    <tr><th><label><?php echo esc_html( __( 'Callback URL', 'kiriminaja-official' ) ); ?></label></th><td><input style="width:100%;max-width:25rem" name="callback_url" type="text" class="input-text regular-input" value="<?php echo esc_url( $inputValueArr['callback_url'] ?? '' );?>"></td></tr>
                     </tbody>
                 </table>
-                <button class="button button-primary kj-submit-btn" type="button"><?php echo esc_html( kiriof_helper()->tlThis('Save',$locale) ); ?></button>
+                <button class="button button-primary kj-submit-btn" type="button"><?php echo esc_html( __( 'Save', 'kiriminaja-official' ) ); ?></button>
             </div>
         </div>
     </div>

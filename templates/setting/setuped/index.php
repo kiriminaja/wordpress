@@ -107,10 +107,10 @@ $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
 );
 $kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_total > 0 && $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
 $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
-    ? kiriof_helper()->tlThis( 'All Product Configured', $locale )
+    ? __( 'All Product Configured', 'kiriminaja-official' )
     : sprintf(
         /* translators: %1$d: configured products, %2$d: total products */
-        kiriof_helper()->tlThis( '%1$d / %2$d Product Volumetric Configurations', $locale ),
+        __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
         $kiriof_product_volumetric_configured,
         $kiriof_product_volumetric_total
     );
@@ -118,54 +118,54 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
 ?>
 <div class="wrap kj-wrap">
 
-    <?php $kiriof_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
+    <?php $kiriof_title = __( 'Settings', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <?php if (!kiriof_check_woocommerce() || kiriof_helper()->devForceTrue()): ?>
     <div class="kj-notice kj-notice-warning">
-        <div><?php echo esc_html( kiriof_helper()->tlThis('WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features.',$locale) ); ?></div>
+        <div><?php echo esc_html( __( 'WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features.', 'kiriminaja-official' ) ); ?></div>
     </div>
     <?php endif; ?>
 
     <div class="kj-settings">
 
         <!-- Configuration -->
-        <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Configuration',$locale) ); ?></div>
+        <div class="kj-group-header"><?php echo esc_html( __( 'Configuration', 'kiriminaja-official' ) ); ?></div>
 
         <a href="<?php echo esc_url( $kiriof_base_url . '&section=account' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#50575e" stroke-width="1.5"/><path d="M5 20c0-4 3.1-7 7-7s7 3 7 7" stroke="#50575e" stroke-width="1.5" stroke-linecap="round"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Account Configuration',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Manage your KiriminAja account connection and profile.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Account Configuration', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Manage your KiriminAja account connection and profile.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
         </a>
 
         <!-- Online Store -->
-        <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Online Store',$locale) ); ?></div>
+        <div class="kj-group-header"><?php echo esc_html( __( 'Online Store', 'kiriminaja-official' ) ); ?></div>
 
         <a href="<?php echo esc_url( $kiriof_base_url . '&section=tracking' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#50575e" stroke-width="1.5"/><path d="M3 9h18M9 21V9" stroke="#50575e" stroke-width="1.5"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Tracking Page',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Configure the order tracking page for your customers.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Tracking Page', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Configure the order tracking page for your customers.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
         </a>
 
         <!-- Shipping -->
-        <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Shipping',$locale) ); ?></div>
+        <div class="kj-group-header"><?php echo esc_html( __( 'Shipping', 'kiriminaja-official' ) ); ?></div>
 
         <a href="<?php echo esc_url( $kiriof_products_url ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6.5v11L12 22l9-4.5v-11L12 2z" stroke="#50575e" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 6.5l9 4.5 9-4.5M12 11v11" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Product Volumetric Configurations',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Set weight, length, width, and height for every product and variation.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Product Volumetric Configurations', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Set weight, length, width, and height for every product and variation.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <span class="kj-status-pill <?php echo $kiriof_product_volumetric_ready ? 'is-ready' : 'is-warning'; ?>">
                     <?php echo esc_html( $kiriof_product_volumetric_status ); ?>
@@ -178,11 +178,11 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.12 7-12A7 7 0 1 0 5 9c0 5.88 7 12 7 12z" stroke="#50575e" stroke-width="1.5"/><path d="M9 9.5l2 2 4-4" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('WooCommerce Shipping Locations',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <span class="kj-status-pill <?php echo $kiriof_shipping_locations_ready ? 'is-ready' : 'is-warning'; ?>">
-                    <?php echo esc_html( $kiriof_shipping_locations_ready ? kiriof_helper()->tlThis('Ready',$locale) : kiriof_helper()->tlThis('Action needed',$locale) ); ?>
+                    <?php echo esc_html( $kiriof_shipping_locations_ready ? __( 'Ready', 'kiriminaja-official' ) : __( 'Action needed', 'kiriminaja-official' ) ); ?>
                 </span>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
@@ -192,8 +192,8 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 7h12l3 4-3 4H4V7zM4 7l-2 3m16 1h4M4 15l-2-3" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="11" r="1.5" fill="#50575e"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Courier List',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Choose which couriers are available at checkout.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Courier List', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
@@ -203,8 +203,8 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#50575e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Shipping Insurance',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Require shipping insurance on all orders.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Shipping Insurance', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <label class="kj-ios-toggle">
                     <input type="checkbox" id="kiriof_insurance_toggle" value="yes" <?php checked( 'yes', $kiriof_insurance_enabled ); ?>>
@@ -217,8 +217,8 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#50575e" stroke-width="1.5"/><path d="M7 10h10M7 14h6" stroke="#50575e" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="#50575e"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Cash on Delivery',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Allow customers to pay when they receive their order.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Cash on Delivery', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Allow customers to pay when they receive their order.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <label class="kj-ios-toggle">
                     <input type="checkbox" id="kiriof_cod_toggle" value="yes" <?php checked( 'yes', $kiriof_cod_enabled ); ?>>
@@ -231,22 +231,22 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" stroke="#50575e" stroke-width="1.5"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Manage Locations',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Set your business location for accurate shipping rates.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Manage Locations', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Set your business location for accurate shipping rates.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
         </a>
 
         <!-- Others -->
-        <div class="kj-group-header"><?php echo esc_html( kiriof_helper()->tlThis('Others',$locale) ); ?></div>
+        <div class="kj-group-header"><?php echo esc_html( __( 'Others', 'kiriminaja-official' ) ); ?></div>
 
         <a href="<?php echo esc_url( $kiriof_base_url . '&section=webhooks' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="#50575e" stroke-width="1.5" stroke-linecap="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71" stroke="#50575e" stroke-width="1.5" stroke-linecap="round"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( kiriof_helper()->tlThis('Webhooks',$locale) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( kiriof_helper()->tlThis('Configure callback URL for shipment status updates.',$locale) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Webhooks', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Configure callback URL for shipment status updates.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>

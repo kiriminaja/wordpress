@@ -41,7 +41,7 @@ class GeneralAjaxController
                 }
                 wp_send_json_success($kiriminajaSubDistrictSearch->data);
             } else {
-                wp_send_json_error(['code' => '401', 'msg' => wc_add_notice('Security Check Kiriminaja', "error")]);
+                wp_send_json_error(['code' => '401', 'msg' => wc_add_notice( __( 'Security Check Kiriminaja', 'kiriminaja-official' ), "error" )]);
             }
             wp_die();
         } catch (\Throwable $e) {
@@ -54,14 +54,14 @@ class GeneralAjaxController
     {
         // Check for nonce security - fail early
         if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'kiriof-destination')) {
-            wp_send_json_error(array('code' => '401', 'msg' => wc_add_notice('Security Check Kiriminaja', 'error')));
+            wp_send_json_error(array('code' => '401', 'msg' => wc_add_notice( __( 'Security Check Kiriminaja', 'kiriminaja-official' ), 'error' )));
             wp_die();
         }
 
         if (is_checkout()) {
             $country = isset($_POST['country']) ? sanitize_text_field(wp_unslash($_POST['country'])) : '';
             if (empty($country) || $country != 'ID') {
-                wp_send_json_success(['code' => '400', 'msg' => wc_add_notice('Please Country/Region Indonesia', "error")]);
+                wp_send_json_success(['code' => '400', 'msg' => wc_add_notice( __( 'Please Country/Region Indonesia', 'kiriminaja-official' ), "error" )]);
                 wp_die();
             }
         }
@@ -84,13 +84,13 @@ class GeneralAjaxController
         WC()->session->set('kiriof_payment_method', $payment);
         WC()->session->set('kiriof_insurance', $insurance);
         WC()->cart->calculate_totals();
-        wp_send_json_success(['code' => '200', 'msg' => 'Success']);
+        wp_send_json_success(['code' => '200', 'msg' => __( 'Success', 'kiriminaja-official' )]);
     }
     public function kiriof_getDataAfterUpdateCheckout()
     {
         // Check for nonce security - fail early
         if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'kiriof-update-checkout')) {
-            wp_send_json_error(array('code' => '401', 'msg' => wc_add_notice('Security Check Kiriminaja', 'error')));
+            wp_send_json_error(array('code' => '401', 'msg' => wc_add_notice( __( 'Security Check Kiriminaja', 'kiriminaja-official' ), 'error' )));
             wp_die();
         }
 

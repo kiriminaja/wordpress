@@ -10,31 +10,31 @@ class Helper extends  BaseInit {
     public function transactionStatusLabel($status = ''){
         switch ($status){
             case "new":
-                return $this->tlThis("New", $this->getLocale());
+                return __( "New", 'kiriminaja-official' );
             break;
             case "request_pickup":
-                return $this->tlThis("Request Pickup", $this->getLocale());
+                return __( "Request Pickup", 'kiriminaja-official' );
             break;
             case "pending":
-                return $this->tlThis("Pending", $this->getLocale());
+                return __( "Pending", 'kiriminaja-official' );
             break;
             case "finished":
-                return $this->tlThis("Delivered", $this->getLocale());
+                return __( "Delivered", 'kiriminaja-official' );
             break;
             case "shipped":
-                return $this->tlThis("In Transit", $this->getLocale());
+                return __( "In Transit", 'kiriminaja-official' );
             break;
             case "return":
-                return $this->tlThis("Returning", $this->getLocale());
+                return __( "Returning", 'kiriminaja-official' );
             break;
             case "returned":
-                return $this->tlThis("Returned", $this->getLocale());
+                return __( "Returned", 'kiriminaja-official' );
             break;
             case "rejected":
-                return $this->tlThis("Rejected", $this->getLocale());
+                return __( "Rejected", 'kiriminaja-official' );
             break;
             case "canceled":
-                return $this->tlThis("Canceled", $this->getLocale());
+                return __( "Canceled", 'kiriminaja-official' );
             break;
             default:
             return "-";
@@ -45,20 +45,20 @@ class Helper extends  BaseInit {
         $postStatus = str_replace('wc-', '', (string) $postStatus);
         switch ($postStatus){
             case "processing":
-                return $this->tlThis("Processing", $this->getLocale());
+                return __( "Processing", 'kiriminaja-official' );
             case "on-hold":
-                return $this->tlThis("On Hold", $this->getLocale());
+                return __( "On Hold", 'kiriminaja-official' );
             case "pending":
-                return $this->tlThis("Pending Payment", $this->getLocale());
+                return __( "Pending Payment", 'kiriminaja-official' );
             case "completed":
-                return $this->tlThis("Completed", $this->getLocale());
+                return __( "Completed", 'kiriminaja-official' );
             case "cancelled":
             case "canceled":
-                return $this->tlThis("Canceled", $this->getLocale());
+                return __( "Canceled", 'kiriminaja-official' );
             case "refunded":
-                return $this->tlThis("Refunded", $this->getLocale());
+                return __( "Refunded", 'kiriminaja-official' );
             case "failed":
-                return $this->tlThis("Failed", $this->getLocale());
+                return __( "Failed", 'kiriminaja-official' );
             default:
                 return ucwords(str_replace('-', ' ', $postStatus));
         }
@@ -119,23 +119,7 @@ class Helper extends  BaseInit {
         }
     }
 
-    private function getLocale() {
-        return function_exists('get_locale') ? get_locale() : 'en_US';
-    }
-    
-    public function tlThis($text='',$lang='en_US'){
-        switch ($lang){
-            case "id_ID":
-                $string = file_get_contents($this->plugin_path."/lang/id_ID.json"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-                break;
-            default :
-                $string = file_get_contents($this->plugin_path."/lang/en_US.json"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-                break;
-        }
-        $langLib = (array) json_decode($string);
-        return @$langLib[$text] ?? $text;
-    }
-    
+
     public function devForceTrue() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if (isset($_GET['devForceTrue'])) {
