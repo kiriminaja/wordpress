@@ -41,9 +41,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
                                         $kiriof_status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
                                         ?>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','');return false" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','unpaid');return false" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current" aria-current="page"' : ''; ?>>Waiting for Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','paid');return false" <?php echo $kiriof_status_filter === 'paid' ? 'class="current" aria-current="page"' : ''; ?>>Paid <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','');return false" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'All', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','unpaid');return false" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Waiting for Payment', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','paid');return false" <?php echo $kiriof_status_filter === 'paid' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Paid', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a></li>
                                     </ul>
                                     <form class="search-form search-plugins" onsubmit="return false">
                                         <label class="screen-reader-text" for="kiriof-payment-search"><?php esc_html_e( 'Search Payments', 'kiriminaja-official' ); ?></label>
@@ -58,7 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
                                             $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '';
                                             ?>
-                                            <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
+                                            <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>><?php esc_html_e( 'All Dates', 'kiriminaja-official' ); ?></option>
                                             <?php
                                             if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
                                                 foreach ($monthOptions as $kiriof_key => $kiriof_value){
@@ -93,13 +93,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     <table class="wp-list-table widefat fixed striped table-view-list posts">
                                         <thead>
                                         <tr>
-                                            <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',@$locale)); ?></span></th>
+                                            <th style="width: 4rem;" scope="col" class="manage-column column-thumb"><?php esc_html_e( 'No', 'kiriminaja-official' ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Pickup Number', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Schedule', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Fees', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Orders', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Payment Status', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( __( 'Action', 'kiriminaja-official' )); ?></span></th>
                                         </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -205,19 +205,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 ';
                                                 }
                                             } else {
-                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( kiriof_helper()->tlThis('Not Found',@$locale)).'</td></tr>';
+                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( __( 'Not Found', 'kiriminaja-official' )).'</td></tr>';
                                         }
                                         ?>
                                         </tbody>
                                         <tfoot>
                                         <tr>
-                                            <th style="width: 4rem;" scope="col" class="manage-column column-thumb">No</th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Pickup Number',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Schedule',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Fees',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Orders',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( kiriof_helper()->tlThis('Payment Status',@$locale)); ?></th>
-                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( kiriof_helper()->tlThis('Action',@$locale)); ?></span></th>
+                                            <th style="width: 4rem;" scope="col" class="manage-column column-thumb"><?php esc_html_e( 'No', 'kiriminaja-official' ); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Pickup Number', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Schedule', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Fees', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Orders', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Payment Status', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( __( 'Action', 'kiriminaja-official' )); ?></span></th>
                                         </tr>
                                         </tfoot>
                                     </table>
@@ -225,7 +225,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     <div class="tablenav bottom">
                                         <div class="alignleft actions" style="display:flex;align-items:center">
                                             <select id="month_search_2" onchange="document.getElementById('month_search_1').value=this.value;kiriofApplySearch('month',this.value)">
-                                                <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
+                                                <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>><?php esc_html_e( 'All Dates', 'kiriminaja-official' ); ?></option>
                                                 <?php
                                                 if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
                                                     foreach ($monthOptions as $kiriof_key => $kiriof_value){

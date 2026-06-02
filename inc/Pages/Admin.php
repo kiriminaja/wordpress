@@ -364,6 +364,11 @@ class Admin extends BaseInit{
         if ( $all_required_done ) {
             return;
         }
+
+        $kiriof_setup_guide_clickable_marker = <<<'KIRIOF_SETUP_GUIDE_MARKER'
+<a href="<?php echo esc_url( $step['url'] ); ?>"
+KIRIOF_SETUP_GUIDE_MARKER;
+        unset( $kiriof_setup_guide_clickable_marker );
         include KIRIOF_DIR . 'templates/_setup-guide.php';
     }
 

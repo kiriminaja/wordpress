@@ -25,7 +25,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 ?>
 <div class="wrap kj-wrap">
 
-    <?php $kiriof_title = kiriof_helper()->tlThis('Transactions', $locale); $kiriof_header_extra = '<button id="kj-request-pickup-btn" onclick="kjRequestPickupSchedule()" class="page-title-action" type="button">' . esc_html__('Request Pickup','kiriminaja-official') . '</button>'; include KIRIOF_DIR . 'templates/_header.php'; ?>
+    <?php $kiriof_title = __( 'Transactions', 'kiriminaja-official' ); $kiriof_header_extra = '<button id="kj-request-pickup-btn" onclick="kjRequestPickupSchedule()" class="page-title-action" type="button">' . esc_html__('Request Pickup','kiriminaja-official') . '</button>'; include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
                                 <!--CONTENT-->
@@ -54,12 +54,12 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
                                 <div class="wp-filter" style="display: flex;justify-content: space-between;">
                                     <ul class="filter-links">
-                                        <li><a href="#" onclick="kiriofApplySearch('status','all');return false" <?php echo $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-processing');return false" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current" aria-current="page"' : ''; ?>>New / Waiting for Shipment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-on-hold');return false" <?php echo $kiriof_status_filter === 'wc-on-hold' ? 'class="current" aria-current="page"' : ''; ?>>On Hold <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-pending');return false" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current" aria-current="page"' : ''; ?>>Pending Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','processed');return false" <?php echo $kiriof_status_filter === 'processed' ? 'class="current" aria-current="page"' : ''; ?>>Processed <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['processed'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-cancelled');return false" <?php echo $kiriof_status_filter === 'wc-cancelled' ? 'class="current" aria-current="page"' : ''; ?>>Cancelled <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-cancelled'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','all');return false" <?php echo $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'All', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-processing');return false" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'New / Waiting for Shipment', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-on-hold');return false" <?php echo $kiriof_status_filter === 'wc-on-hold' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'On Hold', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-pending');return false" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Pending Payment', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','processed');return false" <?php echo $kiriof_status_filter === 'processed' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Processed', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['processed'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','wc-cancelled');return false" <?php echo $kiriof_status_filter === 'wc-cancelled' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Cancelled', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-cancelled'] ?? 0 ) ) ); ?>)</span></a></li>
                                     </ul>
                                     <form class="search-form search-plugins" onsubmit="return false">
                                         <label class="screen-reader-text" for="kiriof-search-input"><?php esc_html_e( 'Search Orders', 'kiriminaja-official' ); ?></label>
@@ -115,12 +115,12 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                 <th style="width: 24px;" scope="col" class="manage-column column-thumb">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
                                                 </th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Order / Transaction', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Expedition & Service', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Airwaybill / Order ID', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Ship To', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Packages & Fee', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb" style="width:7rem"><?php echo esc_html(kiriof_helper()->tlThis('Action', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Order / Transaction', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Expedition & Service', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Airwaybill / Order ID', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Ship To', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Packages & Fee', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb" style="width:7rem"><?php echo esc_html(__( 'Action', 'kiriminaja-official' )); ?></th>
                                             </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -195,8 +195,8 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_isProcessedFilter = ( 'processed' === $kiriof_status_filter );
                                                     $kiriof_checkboxDisabled = ! $kiriof_isProcessable || $kiriof_isProcessedFilter;
                                                     $kiriof_checkboxTitle   = $kiriof_isProcessedFilter
-                                                        ? $kiriof_helper->tlThis( 'This order has already been processed.', $locale )
-                                                        : ( $kiriof_isProcessable ? '' : $kiriof_helper->tlThis( 'Order must be in Processing status before it can be picked up.', $locale ) );
+                                                        ? __( 'This order has already been processed.', 'kiriminaja-official' )
+                                                        : ( $kiriof_isProcessable ? '' : __( 'Order must be in Processing status before it can be picked up.', 'kiriminaja-official' ) );
 
                                                     echo '
                                                       <tr>
@@ -239,19 +239,19 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             . '<div style="font-weight: 600; margin-top: 2px; border-top: 1px solid #e3e3e3; padding-top: 2px">Total: Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</div>
                                                         </td>
                                                         <td class="manage-column column-thumb" style="white-space:nowrap">' .
-                                                            '<button class="button" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="showTransactionSummaryModal(\'' . esc_js($kiriof_row->wc_order_id) . '\')" title="' . esc_attr($kiriof_helper->tlThis('Detail', $locale)) . '" aria-label="' . esc_attr($kiriof_helper->tlThis('Detail', $locale)) . '"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M15.188 14.688Q16.5 13.375 16.5 11.5t-1.312-3.187T12 7T8.813 8.313T7.5 11.5t1.313 3.188T12 16t3.188-1.312m-5.1-1.276Q9.3 12.625 9.3 11.5t.788-1.912T12 8.8t1.913.788t.787 1.912t-.787 1.913T12 14.2t-1.912-.787m-4.738 3.55Q2.35 14.925 1 11.5q1.35-3.425 4.35-5.462T12 4t6.65 2.038T23 11.5q-1.35 3.425-4.35 5.463T12 19t-6.65-2.037"/></svg></button>' .
+                                                            '<button class="button" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="showTransactionSummaryModal(\'' . esc_js($kiriof_row->wc_order_id) . '\')" title="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M15.188 14.688Q16.5 13.375 16.5 11.5t-1.312-3.187T12 7T8.813 8.313T7.5 11.5t1.313 3.188T12 16t3.188-1.312m-5.1-1.276Q9.3 12.625 9.3 11.5t.788-1.912T12 8.8t1.913.788t.787 1.912t-.787 1.913T12 14.2t-1.912-.787m-4.738 3.55Q2.35 14.925 1 11.5q1.35-3.425 4.35-5.462T12 4t6.65 2.038T23 11.5q-1.35 3.425-4.35 5.463T12 19t-6.65-2.037"/></svg></button>' .
                                                             ( ! empty( $kiriof_awb ) && 'request_pickup' === $kiriof_row->status
-                                                                ? ' <a href="' . esc_url( $kiriof_print_base_url . '&oids=' . urlencode( $kiriof_orderIdKA ) . '&_wpnonce=' . $kiriof_print_nonce ) . '" target="_blank" class="button" title="' . esc_attr($kiriof_helper->tlThis('Print', $locale)) . '" aria-label="' . esc_attr($kiriof_helper->tlThis('Print', $locale)) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M18 7H6V3h12zm0 5.5q.425 0 .713-.288T19 11.5t-.288-.712T18 10.5t-.712.288T17 11.5t.288.713t.712.287M16 19v-4H8v4zm2 2H6v-4H2v-6q0-1.275.875-2.137T5 8h14q1.275 0 2.138.863T22 11v6h-4z"/></svg></a>'
+                                                                ? ' <a href="' . esc_url( $kiriof_print_base_url . '&oids=' . urlencode( $kiriof_orderIdKA ) . '&_wpnonce=' . $kiriof_print_nonce ) . '" target="_blank" class="button" title="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M18 7H6V3h12zm0 5.5q.425 0 .713-.288T19 11.5t-.288-.712T18 10.5t-.712.288T17 11.5t.288.713t.712.287M16 19v-4H8v4zm2 2H6v-4H2v-6q0-1.275.875-2.137T5 8h14q1.275 0 2.138.863T22 11v6h-4z"/></svg></a>'
                                                                 : '' ) .
                                                             ( ! empty( $kiriof_awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
-                                                                ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr($kiriof_helper->tlThis('Cancel', $locale)) . '" aria-label="' . esc_attr($kiriof_helper->tlThis('Cancel', $locale)) . '"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="m12 13.4l-4.9 4.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7l4.9-4.9l-4.9-4.9q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.9 4.9l4.9-4.9q.275-.275.7-.275t.7.275t.275.7t-.275.7L13.4 12l4.9 4.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275z"/></svg></button>'
+                                                                ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="m12 13.4l-4.9 4.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7l4.9-4.9l-4.9-4.9q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.9 4.9l4.9-4.9q.275-.275.7-.275t.7.275t.275.7t-.275.7L13.4 12l4.9 4.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275z"/></svg></button>'
                                                                 : '' ) . '
                                                         </td>
                                                     </tr>
                                                     ';
                                                 }
                                             } else {
-                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html($kiriof_helper->tlThis('Not Found', $locale)) . '</td></tr>';
+                                                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html(__( 'Not Found', 'kiriminaja-official' )) . '</td></tr>';
                                             }
                                             ?>
 
@@ -261,12 +261,12 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                 <th style="width: 24px;" scope="col" class="manage-column column-thumb">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
                                                 </th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Order / Transaction', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Expedition & Service', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Airwaybill / Order ID', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Ship To', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(kiriof_helper()->tlThis('Packages & Fee', $locale)); ?></th>
-                                                <th scope="col" class="manage-column column-thumb" style="width:7rem"><?php echo esc_html(kiriof_helper()->tlThis('Action', $locale)); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Order / Transaction', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Expedition & Service', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Airwaybill / Order ID', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Ship To', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Packages & Fee', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb" style="width:7rem"><?php echo esc_html(__( 'Action', 'kiriminaja-official' )); ?></th>
                                             </tr>
                                         </tfoot>
                                     </table>

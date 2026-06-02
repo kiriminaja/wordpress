@@ -78,7 +78,7 @@ $kiriof_courier_colors = array(
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
-    <?php $kiriof_title = kiriof_helper()->tlThis('Account Configuration',$locale); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = kiriof_helper()->tlThis('Settings',$locale); include KIRIOF_DIR . 'templates/_header.php'; ?>
+    <?php $kiriof_title = __( 'Account Configuration', 'kiriminaja-official' ); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = __( 'Settings', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
     <div class="kj-detail" style="max-width:720px;">
@@ -86,7 +86,7 @@ $kiriof_courier_colors = array(
         <!-- Enabled Couriers -->
         <?php if ( ! empty( $kiriof_wl_id_arr ) ) : ?>
         <div class="kj-account-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:14px;font-weight:600;color:#1d2327;margin-bottom:16px;"><?php echo esc_html( kiriof_helper()->tlThis('Enabled Couriers',$locale) ); ?></div>
+            <div style="font-size:14px;font-weight:600;color:#1d2327;margin-bottom:16px;"><?php echo esc_html( __( 'Enabled Couriers', 'kiriminaja-official' ) ); ?></div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;">
                 <?php foreach ( $kiriof_wl_id_arr as $kiriof_cid ) :
                     $kiriof_cname  = $kiriof_wl_map[ $kiriof_cid ] ?? strtoupper( $kiriof_cid );
@@ -108,7 +108,7 @@ $kiriof_courier_colors = array(
 
         <!-- Connection -->
         <div class="kj-account-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:14px;font-weight:600;color:#1d2327;margin-bottom:16px;"><?php echo esc_html( kiriof_helper()->tlThis('Connection',$locale) ); ?></div>
+            <div style="font-size:14px;font-weight:600;color:#1d2327;margin-bottom:16px;"><?php echo esc_html( __( 'Connection', 'kiriminaja-official' ) ); ?></div>
 
             <?php if ( $kiriof_is_connected && $kiriof_profile ) : ?>
                 <!-- Connected state: profile card -->
@@ -135,13 +135,13 @@ $kiriof_courier_colors = array(
                             <?php echo esc_html( $kiriof_profile->status ); ?>
                         </span>
                         <?php endif; ?>
-                        <button type="button" class="button kj-disconnect" style="color:#b32d2e;border-color:#b32d2e;"><?php echo esc_html( kiriof_helper()->tlThis('Disconnect',$locale) ); ?></button>
+                        <button type="button" class="button kj-disconnect" style="color:#b32d2e;border-color:#b32d2e;"><?php echo esc_html( __( 'Disconnect', 'kiriminaja-official' ) ); ?></button>
                     </div>
                 </div>
             <?php elseif ( $kiriof_is_connected && $kiriof_profile_err ) : ?>
-                <div style="color:#d63638;"><?php echo esc_html( kiriof_helper()->tlThis('Unable to load account information. Your integration may be incomplete.',$locale) ); ?></div>
+                <div style="color:#d63638;"><?php echo esc_html( __( 'Unable to load account information. Your integration may be incomplete.', 'kiriminaja-official' ) ); ?></div>
                 <div style="margin-top:12px;text-align:right;">
-                    <button type="button" class="button kj-disconnect" style="color:#b32d2e;border-color:#b32d2e;"><?php echo esc_html( kiriof_helper()->tlThis('Disconnect',$locale) ); ?></button>
+                    <button type="button" class="button kj-disconnect" style="color:#b32d2e;border-color:#b32d2e;"><?php echo esc_html( __( 'Disconnect', 'kiriminaja-official' ) ); ?></button>
                 </div>
             <?php else : ?>
                 <!-- Not connected: setup key form -->
@@ -149,35 +149,35 @@ $kiriof_courier_colors = array(
                     <!-- Left: setup key input -->
                     <div style="flex:1;min-width:280px;">
                         <div style="margin-bottom:8px;">
-                            <label style="font-size:13px;font-weight:500;color:#1d2327;"><?php echo esc_html( kiriof_helper()->tlThis('Setup Key',$locale) ); ?> <span style="color:#d63638;">*</span></label>
+                            <label style="font-size:13px;font-weight:500;color:#1d2327;"><?php echo esc_html( __( 'Setup Key', 'kiriminaja-official' ) ); ?> <span style="color:#d63638;">*</span></label>
                         </div>
                         <div style="display:flex;gap:8px;align-items:center;">
-                            <input id="kiriof-setup-key-input" type="text" class="input-text regular-input" style="flex:1;max-width:340px;padding:8px 12px;border-radius:8px;border-color:#8c8f94;" placeholder="<?php echo esc_attr( kiriof_helper()->tlThis('Input your setup key for KiriminAja',$locale) ); ?>">
+                            <input id="kiriof-setup-key-input" type="text" class="input-text regular-input" style="flex:1;max-width:340px;padding:8px 12px;border-radius:8px;border-color:#8c8f94;" placeholder="<?php echo esc_attr( __( 'Input your setup key for KiriminAja', 'kiriminaja-official' ) ); ?>">
                             <button id="kiriof-setup-key-connect" type="button" class="button" style="background:#7d3eb9;color:#fff;border-color:#7d3eb9;border-radius:8px;padding:6px 16px;font-weight:500;display:flex;align-items:center;gap:6px;">
-                                <?php echo esc_html( kiriof_helper()->tlThis('Connect',$locale) ); ?>
+                                <?php echo esc_html( __( 'Connect', 'kiriminaja-official' ) ); ?>
                             </button>
                         </div>
                         <div style="margin-top:8px;font-size:12px;color:#50575e;line-height:1.5;">
-                            <?php echo esc_html( kiriof_helper()->tlThis('By clicking Connect, you agree to accept KiriminAja\'s',$locale) ); ?>
-                            <a href="https://kiriminaja.com/syarat-ketentuan" target="_blank" style="color:#7d3eb9;"><?php echo esc_html( kiriof_helper()->tlThis('terms and conditions',$locale) ); ?></a>
-                            <?php echo esc_html( kiriof_helper()->tlThis('and its',$locale) ); ?>
-                            <a href="https://kiriminaja.com/privacy-policy" target="_blank" style="color:#7d3eb9;"><?php echo esc_html( kiriof_helper()->tlThis('privacy policy',$locale) ); ?></a>.
+                            <?php echo esc_html( __( 'By clicking Connect, you agree to accept KiriminAja\'s', 'kiriminaja-official' ) ); ?>
+                            <a href="https://kiriminaja.com/syarat-ketentuan" target="_blank" style="color:#7d3eb9;"><?php echo esc_html( __( 'terms and conditions', 'kiriminaja-official' ) ); ?></a>
+                            <?php echo esc_html( __( 'and its', 'kiriminaja-official' ) ); ?>
+                            <a href="https://kiriminaja.com/privacy-policy" target="_blank" style="color:#7d3eb9;"><?php echo esc_html( __( 'privacy policy', 'kiriminaja-official' ) ); ?></a>.
                         </div>
                         <div id="kiriof-connect-msg" style="margin-top:8px;font-size:13px;display:none;"></div>
                     </div>
 
                     <!-- Right: how-to box -->
                     <div style="flex:0 0 320px;background:#f9f9f9;border:1px solid #e3e3e3;border-radius:10px;padding:16px;font-size:13px;color:#50575e;line-height:1.6;">
-                        <div style="font-weight:600;color:#1d2327;margin-bottom:8px;"><?php echo esc_html( kiriof_helper()->tlThis('How to Obtain Your Kiriminaja Credentials:',$locale) ); ?></div>
+                        <div style="font-weight:600;color:#1d2327;margin-bottom:8px;"><?php echo esc_html( __( 'How to Obtain Your Kiriminaja Credentials:', 'kiriminaja-official' ) ); ?></div>
                         <ol style="margin:0;padding-left:18px;">
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Log in to your Kiriminaja dashboard.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Go to the Settings menu and select App Integrations.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Click Add Integration and choose WooCommerce.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Enter your store domain.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Please allow up to 2 business days for API generation.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Setup Key will appear on the App Integrations page.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Copy and paste the Setup Key above.',$locale) ); ?></li>
-                            <li><?php echo esc_html( kiriof_helper()->tlThis('Start using Kiriminaja in your store.',$locale) ); ?></li>
+                            <li><?php echo esc_html( __( 'Log in to your Kiriminaja dashboard.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Go to the Settings menu and select App Integrations.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Click Add Integration and choose WooCommerce.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Enter your store domain.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Please allow up to 2 business days for API generation.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Setup Key will appear on the App Integrations page.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Copy and paste the Setup Key above.', 'kiriminaja-official' ) ); ?></li>
+                            <li><?php echo esc_html( __( 'Start using Kiriminaja in your store.', 'kiriminaja-official' ) ); ?></li>
                         </ol>
                     </div>
                 </div>
@@ -186,7 +186,7 @@ $kiriof_courier_colors = array(
 
         <!-- Footer -->
         <div style="text-align:center;padding:16px 0;color:#8c8f94;font-size:12px;">
-            <?php echo esc_html( kiriof_helper()->tlThis('© 2025 PT Selalu Siap Solusi. All rights reserved.',$locale) ); ?>
+            <?php echo esc_html( __( '© 2025 PT Selalu Siap Solusi. All rights reserved.', 'kiriminaja-official' ) ); ?>
         </div>
 
     </div>
@@ -200,16 +200,16 @@ $kiriof_courier_colors = array(
         var $btn = jQuery(this);
         var key  = jQuery('#kiriof-setup-key-input').val().trim();
         var $msg = jQuery('#kiriof-connect-msg');
-        if (!key) { $msg.show().css('color','#d63638').text('<?php echo esc_js(kiriof_helper()->tlThis('Please enter a setup key.',$locale)); ?>'); return; }
-        $btn.prop('disabled',true).text('<?php echo esc_js(kiriof_helper()->tlThis('Connecting…',$locale)); ?>');
+        if (!key) { $msg.show().css('color','#d63638').text('<?php echo esc_js(__( 'Please enter a setup key.', 'kiriminaja-official' )); ?>'); return; }
+        $btn.prop('disabled',true).text('<?php echo esc_js(__( 'Connecting…', 'kiriminaja-official' )); ?>');
         $msg.hide();
-        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_integration_data',data:{setup_key:key,nonce:kiriofAjax.nonce}},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload()}else{$btn.prop('disabled',false).text('<?php echo esc_js(kiriof_helper()->tlThis('Connect',$locale)); ?>');$msg.show().css('color','#d63638').text((p&&p.message)?p.message:'<?php echo esc_js(kiriof_helper()->tlThis('Connection failed. Please check your setup key.',$locale)); ?>')}}});
+        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_integration_data',data:{setup_key:key,nonce:kiriofAjax.nonce}},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload()}else{$btn.prop('disabled',false).text('<?php echo esc_js(__( 'Connect', 'kiriminaja-official' )); ?>');$msg.show().css('color','#d63638').text((p&&p.message)?p.message:'<?php echo esc_js(__( 'Connection failed. Please check your setup key.', 'kiriminaja-official' )); ?>')}}});
     });
 
     // Disconnect handler
     jQuery('body').on('click','.kj-disconnect',function(e){
-        if(!confirm('<?php echo esc_js(kiriof_helper()->tlThis('Disconnect KiriminAja integration?',$locale)); ?>')) return;
-        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_disconnect_integration',data:{nonce:kiriofAjax.nonce}},error:function(){alert('<?php echo esc_js(kiriof_helper()->tlThis('Network error.',$locale)); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload();return}alert((p&&p.message)?p.message:'<?php echo esc_js(kiriof_helper()->tlThis('Disconnect failed.',$locale)); ?>')}});
+        if(!confirm('<?php echo esc_js(__( 'Disconnect KiriminAja integration?', 'kiriminaja-official' )); ?>')) return;
+        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_disconnect_integration',data:{nonce:kiriofAjax.nonce}},error:function(){alert('<?php echo esc_js(__( 'Network error.', 'kiriminaja-official' )); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload();return}alert((p&&p.message)?p.message:'<?php echo esc_js(__( 'Disconnect failed.', 'kiriminaja-official' )); ?>')}});
     });
 <?php
 $kiriof_inline_script = ob_get_clean();
