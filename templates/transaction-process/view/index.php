@@ -20,6 +20,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
  * @var int $kiriof_total_pages
  * @var int $kiriof_total
  * @var int $kiriof_per_page
+ * @var string $kiriof_search_by
  */
 ?>
 <div class="wrap kj-wrap">
@@ -48,10 +49,11 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                     <input type="text" name="cod" value="<?php echo esc_attr( $kiriof_cod_filter ); ?>">
                                     <input type="text" name="courier" value="<?php echo esc_attr( $kiriof_courier_filter ); ?>">
                                     <input type="text" name="per_page" value="<?php echo esc_attr( $kiriof_per_page ); ?>">
+                                    <input type="text" name="search_by" value="<?php echo esc_attr( $kiriof_search_by ); ?>">
                                 </form>
 
 
-                                <div class="wp-filter">
+                                <div class="wp-filter" style="display: flex;justify-content: space-between;">
                                     <ul class="filter-links">
                                         <li><a href="#" onclick="kiriofApplySearch('status','all');return false" <?php echo $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
                                         <li><a href="#" onclick="kiriofApplySearch('status','wc-processing');return false" <?php echo $kiriof_status_filter === 'wc-processing' ? 'class="current" aria-current="page"' : ''; ?>>New / Waiting for Shipment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ) ); ?>)</span></a></li>
@@ -66,6 +68,12 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
                                         echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' );
                                         ?>">
+                                        <label class="screen-reader-text" for="kiriof-search-by"><?php esc_html_e( 'Search by:', 'kiriminaja-official' ); ?></label>
+                                        <select id="kiriof-search-by" onchange="kiriofApplySearch('search_by',this.value)">
+                                            <option value="wc_order_id" <?php selected( $kiriof_search_by, 'wc_order_id' ); ?>>Order Number</option>
+                                            <option value="ka_order_id" <?php selected( $kiriof_search_by, 'ka_order_id' ); ?>>KA Order ID</option>
+                                            <option value="awb" <?php selected( $kiriof_search_by, 'awb' ); ?>>AWB</option>
+                                        </select>
                                     </form>
                                 </div>
 

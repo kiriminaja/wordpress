@@ -61,6 +61,12 @@ class Kiriof_TransactionProcessIndex
         $kiriof_couriers = $kiriof_transactionRepo->getDistinctCouriers();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+        $kiriof_search_by = isset( $_GET['search_by'] ) ? sanitize_text_field( wp_unslash( $_GET['search_by'] ) ) : 'wc_order_id';
+        if ( ! in_array( $kiriof_search_by, array( 'wc_order_id', 'ka_order_id', 'awb' ), true ) ) {
+            $kiriof_search_by = 'wc_order_id';
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
         $kiriof_status_filter = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
         if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed'], true)) {
             $kiriof_status_filter = 'all';
@@ -87,6 +93,8 @@ class Kiriof_TransactionProcessIndex
         $cod    = sanitize_text_field(wp_unslash($_GET['cod'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $courier = sanitize_text_field(wp_unslash($_GET['courier'] ?? ''));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
+        $search_by = sanitize_text_field(wp_unslash($_GET['search_by'] ?? 'wc_order_id'));
 
         // Whitelist of post_status values exposed by the pill row in the view.
         // Anything outside the whitelist (including empty) falls back to all.
@@ -99,9 +107,21 @@ class Kiriof_TransactionProcessIndex
         $isAllFilter        = ('all' === $status);
 
         $key_like   = '';
-        $month_like = '';
         if ('' !== $key) {
             $key_like = '%' . $wpdb->esc_like($key) . '%';
+        }
+
+        $key_clause = '';
+        switch ( $search_by ) {
+            case 'ka_order_id':
+                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.order_id LIKE %s )';
+                break;
+            case 'awb':
+                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.awb LIKE %s )';
+                break;
+            default:
+                $key_clause = "{$key_clause}";
+                break;
         }
         if ('' !== $month) {
             $month_like = '%' . $wpdb->esc_like($month) . '%';
@@ -142,7 +162,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.status != 'canceled'
                         {$cod_clause}
                         {$courier_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $key,
                     $key_like,
@@ -167,7 +187,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.status != 'canceled'
                         {$cod_clause}
                         {$courier_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
@@ -192,7 +212,7 @@ class Kiriof_TransactionProcessIndex
                     WHERE orders_tbl.{$o['status']} = %s
                         {$cod_clause}
                         {$courier_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     'wc-cancelled',
                     $key,
@@ -215,7 +235,7 @@ class Kiriof_TransactionProcessIndex
                     WHERE orders_tbl.{$o['status']} = %s
                         {$cod_clause}
                         {$courier_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
@@ -241,7 +261,7 @@ class Kiriof_TransactionProcessIndex
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         {$cod_clause}
                         {$courier_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $key,
                     $key_like,
@@ -263,7 +283,7 @@ class Kiriof_TransactionProcessIndex
                 WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                     {$cod_clause}
                     {$courier_clause}
-                    AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                    {$key_clause}
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC
@@ -289,7 +309,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.status = %s
                         {$cod_clause}
                         {$courier_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                        {$key_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $status,
                     'new',
@@ -314,7 +334,7 @@ class Kiriof_TransactionProcessIndex
                     AND kiriminaja_transactions.status = %s
                     {$cod_clause}
                     {$courier_clause}
-                    AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )
+                    {$key_clause}
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC
