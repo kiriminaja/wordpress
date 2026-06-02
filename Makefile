@@ -52,7 +52,7 @@ test:
 	vendor/bin/phpunit --testdox
 
 changelog:
-	@php scripts/changelog.php $(if $(V),$(V),) $(if $(FROM),$(FROM),) $(BUMP)
+	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"
 
 tag:
 	@echo "Creating git tag v$(VERSION)..."

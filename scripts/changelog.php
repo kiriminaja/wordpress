@@ -219,40 +219,38 @@ $features = array_unique( $features );
 $fixes    = array_unique( $fixes );
 
 if ( empty( $features ) && empty( $fixes ) ) {
-    echo "No feature/fixing commits found since {$last_version}. Nothing to add.\n";
-    exit( 0 );
+    echo "No feature/fixing commits found since {$last_version}. Skipping changelog entry.\n";
+} else {
+    // --- Build changelog entry ---
+    $entry = "= {$version} =\n";
+
+    foreach ( $features as $f ) {
+        $entry .= "- {$f}\n";
+    }
+    foreach ( $fixes as $f ) {
+        $entry .= "- {$f}\n";
+    }
+
+    echo "Found " . count( $features ) . " feature(s) and " . count( $fixes ) . " fix(es).\n";
+
+    // --- Insert into readme.txt ---
+    $marker = '== Changelog ==';
+    $pos    = strpos( $readme_content, $marker );
+
+    if ( $pos === false ) {
+        fwrite( STDERR, "Error: '== Changelog ==' section not found in readme.txt.\n" );
+        exit( 1 );
+    }
+
+    $before = substr( $readme_content, 0, $pos + strlen( $marker ) );
+    $after  = substr( $readme_content, $pos + strlen( $marker ) );
+
+    $new_content = $before . "\n" . $entry . $after;
+
+    file_put_contents( $readme, $new_content );
+
+    echo "Updated readme.txt with changelog for version {$version}.\n";
 }
-
-// --- Build changelog entry ---
-$entry = "= {$version} =\n";
-
-foreach ( $features as $f ) {
-    $entry .= "- {$f}\n";
-}
-foreach ( $fixes as $f ) {
-    $entry .= "- {$f}\n";
-}
-
-echo "Found " . count( $features ) . " feature(s) and " . count( $fixes ) . " fix(es).\n";
-
-// --- Insert into readme.txt ---
-$marker = '== Changelog ==';
-$pos    = strpos( $readme_content, $marker );
-
-if ( $pos === false ) {
-    fwrite( STDERR, "Error: '== Changelog ==' section not found in readme.txt.\n" );
-    exit( 1 );
-}
-
-$insert_pos     = $pos + strlen( $marker ) . "\n";
-$before         = substr( $readme_content, 0, $pos + strlen( $marker ) );
-$after          = substr( $readme_content, $pos + strlen( $marker ) );
-
-$new_content = $before . "\n" . $entry . $after;
-
-file_put_contents( $readme, $new_content );
-
-echo "Updated readme.txt with changelog for version {$version}.\n";
 
 // --- Also update Stable tag and Version header ---
 $new_content = file_get_contents( $readme );
@@ -283,6 +281,44 @@ if ( file_exists( $plugin ) ) {
 
     file_put_contents( $plugin, $plugin_content );
     echo "Updated kiriminaja.php version to {$version}.\n";
+}
+
+// --- Sync translation package headers with release version ---
+$lang_dir = $root_dir . '/lang';
+if ( is_dir( $lang_dir ) ) {
+    $translation_files = glob( $lang_dir . '/*.{po,pot}', GLOB_BRACE );
+
+    foreach ( $translation_files as $translation_file ) {
+        $translation_content = file_get_contents( $translation_file );
+        $updated_content     = preg_replace(
+            '/^"Project-Id-Version:\s*KiriminAja Official\s+[^\\\\"]*\\\\n"$/m',
+            "\"Project-Id-Version: KiriminAja Official {$version}\\n\"",
+            $translation_content
+        );
+
+        if ( $updated_content !== null && $updated_content !== $translation_content ) {
+            file_put_contents( $translation_file, $updated_content );
+            echo 'Updated ' . basename( $translation_file ) . " Project-Id-Version to {$version}.\n";
+        }
+    }
+
+    $msgfmt = trim( (string) shell_exec( 'command -v msgfmt 2>/dev/null' ) );
+    if ( $msgfmt ) {
+        foreach ( glob( $lang_dir . '/*.po' ) as $po_file ) {
+            $mo_file = preg_replace( '/\.po$/', '.mo', $po_file );
+            $cmd     = escapeshellcmd( $msgfmt ) . ' -o ' . escapeshellarg( $mo_file ) . ' ' . escapeshellarg( $po_file );
+            exec( $cmd, $msgfmt_output, $msgfmt_status );
+
+            if ( $msgfmt_status !== 0 ) {
+                fwrite( STDERR, 'Warning: Failed to compile ' . basename( $mo_file ) . ".\n" );
+            } else {
+                echo 'Compiled ' . basename( $mo_file ) . ".\n";
+            }
+        }
+    } elseif ( glob( $lang_dir . '/*.po' ) ) {
+        fwrite( STDERR, "Error: msgfmt not found; cannot compile updated .mo translation files.\n" );
+        exit( 1 );
+    }
 }
 
 echo "Done!\n";
