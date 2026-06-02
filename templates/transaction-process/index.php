@@ -7,6 +7,23 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
     wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'kiriminaja-official' ) );
 }
 
+/**
+ * @var array $kiriof_results
+ * @var array $kiriof_monthOptions
+ * @var array $kiriof_statusCounts
+ * @var array $kiriof_couriers
+ * @var string $kiriof_search_by
+ * @var string $kiriof_status_filter
+ * @var string $kiriof_cod_filter
+ * @var string $kiriof_courier_filter
+ * @var int $kiriof_total_pages
+ * @var int $kiriof_total
+ * @var int $kiriof_per_page    
+ * @var string $locale
+ * @var string $status
+ * @var string $key
+ */
+
 
 class Kiriof_TransactionProcessIndex
 {
@@ -87,6 +104,10 @@ class Kiriof_TransactionProcessIndex
         $key = sanitize_text_field(wp_unslash($_GET['key'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $month = sanitize_text_field(wp_unslash($_GET['month'] ?? ''));
+        $month_like = '';
+        if ('' !== $month) {
+            $month_like = $wpdb->esc_like($month) . '%';
+        }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $status = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
@@ -111,22 +132,6 @@ class Kiriof_TransactionProcessIndex
             $key_like = '%' . $wpdb->esc_like($key) . '%';
         }
 
-        $key_clause = '';
-        switch ( $search_by ) {
-            case 'ka_order_id':
-                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.order_id LIKE %s )';
-                break;
-            case 'awb':
-                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.awb LIKE %s )';
-                break;
-            default:
-                $key_clause = "{$key_clause}";
-                break;
-        }
-        if ('' !== $month) {
-            $month_like = '%' . $wpdb->esc_like($month) . '%';
-        }
-
         $cod_clause = '';
         if ('1' === $cod) {
             $cod_clause = 'AND kiriminaja_transactions.cod_fee > 0';
@@ -147,6 +152,19 @@ class Kiriof_TransactionProcessIndex
          * returns the correct table name and column aliases.
          */
         $o = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getOrdersTable();
+
+        $key_clause = '';
+        switch ( $search_by ) {
+            case 'ka_order_id':
+                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.order_id LIKE %s )';
+                break;
+            case 'awb':
+                $key_clause = 'AND ( %s = \'\' OR kiriminaja_transactions.awb LIKE %s )';
+                break;
+            default:
+                $key_clause = "AND ( %s = '' OR orders_tbl.{$o['id']} LIKE %s )";
+                break;
+        }
 
         if ($isProcessedFilter) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter

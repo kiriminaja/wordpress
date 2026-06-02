@@ -69,7 +69,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' );
                                         ?>">
                                         <label class="screen-reader-text" for="kiriof-search-by"><?php esc_html_e( 'Search by:', 'kiriminaja-official' ); ?></label>
-                                        <select id="kiriof-search-by" onchange="kiriofApplySearch('search_by',this.value)">
+                                        <select id="kiriof-search-by" onchange="if(document.getElementById('kiriof-search-input').value.trim()){kiriofApplySearch('search_by',this.value)}">
                                             <option value="wc_order_id" <?php selected( $kiriof_search_by, 'wc_order_id' ); ?>>Order Number</option>
                                             <option value="ka_order_id" <?php selected( $kiriof_search_by, 'ka_order_id' ); ?>>KA Order ID</option>
                                             <option value="awb" <?php selected( $kiriof_search_by, 'awb' ); ?>>AWB</option>
@@ -221,7 +221,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             . ( $kiriof_awb
                                                                 ? '<div><span style="color: #8c8f94">AWB: </span><span style="font-weight: 700">' . esc_html($kiriof_awb) . '</span></div>'
                                                                 : '<div style="color: #8c8f94">AWB: —</div>' )
-                                                            . '<div><span style="color: #8c8f94">Order ID: </span><span style="font-size: 12px">' . esc_html($kiriof_orderIdKA) . '</span></div>
+                                                            . '<div><span style="color: #8c8f94">Order ID: </span><span style="font-weight: 700">' . esc_html($kiriof_orderIdKA) . '</span></div>
                                                         </td>
                                                         <td class="manage-column column-thumb">
                                                             <div>' . esc_html(trim($kiriof_shippingFirstName . ' ' . $kiriof_shippingLastName)) . '</div>
