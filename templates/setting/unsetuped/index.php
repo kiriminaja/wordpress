@@ -72,7 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     <div id="setup-form">
                                                         <!--INPUT-->
                                                         <div>
-                                                            <div>Setup Key (Secret)</div>
+                                                            <div><?php esc_html_e( 'Setup Key (Secret)', 'kiriminaja-official' ); ?></div>
                                                             <div style="margin-top: .5rem"></div>
                                                             <div>
                                                                 <input style="width: 100%; max-width: 25rem" name="setup_key" type="text" class="input-text regular-input" placeholder="<?php echo esc_attr(__( 'Put your setup key here', 'kiriminaja-official' )); ?>..." value="">

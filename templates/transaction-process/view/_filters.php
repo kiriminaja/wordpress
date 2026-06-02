@@ -23,7 +23,7 @@ $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash
 ?>
 
 <select id="month_search<?php echo esc_attr( $kiriof_filter_suffix ); ?>">
-    <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
+    <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>><?php esc_html_e( 'All Dates', 'kiriminaja-official' ); ?></option>
     <?php
     if ( ! empty( $kiriof_monthOptions ) && count($kiriof_monthOptions) > 0 ) {
         foreach ($kiriof_monthOptions as $kiriof_key => $kiriof_value) {
@@ -34,13 +34,13 @@ $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash
 </select>
 
 <select id="cod_search<?php echo esc_attr( $kiriof_filter_suffix ); ?>">
-    <option value="" <?php echo empty($kiriof_cod_filter) ? 'selected' : ''; ?>>All Payment</option>
-    <option value="1" <?php echo $kiriof_cod_filter === '1' ? 'selected' : ''; ?>>COD</option>
-    <option value="0" <?php echo $kiriof_cod_filter === '0' ? 'selected' : ''; ?>>Non-COD</option>
+    <option value="" <?php echo empty($kiriof_cod_filter) ? 'selected' : ''; ?>><?php esc_html_e( 'All Payment', 'kiriminaja-official' ); ?></option>
+    <option value="1" <?php echo $kiriof_cod_filter === '1' ? 'selected' : ''; ?>><?php esc_html_e( 'COD', 'kiriminaja-official' ); ?></option>
+    <option value="0" <?php echo $kiriof_cod_filter === '0' ? 'selected' : ''; ?>><?php esc_html_e( 'Non-COD', 'kiriminaja-official' ); ?></option>
 </select>
 
 <select id="courier_search<?php echo esc_attr( $kiriof_filter_suffix ); ?>">
-    <option value="" <?php echo empty($kiriof_courier_filter) ? 'selected' : ''; ?>>All Couriers</option>
+    <option value="" <?php echo empty($kiriof_courier_filter) ? 'selected' : ''; ?>><?php esc_html_e( 'All Couriers', 'kiriminaja-official' ); ?></option>
     <?php
     if ( ! empty( $kiriof_couriers ) ) {
         foreach ( $kiriof_couriers as $kiriof_courier ) {

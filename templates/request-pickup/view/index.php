@@ -124,7 +124,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                                         <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                                             <path d="M8.47961 7.20001C8.15961 7.12001 7.83961 6.96001 7.59961 6.72001C7.35961 6.64001 7.27961 6.40001 7.27961 6.24001C7.27961 6.08001 7.35961 5.84001 7.51961 5.76001C7.75961 5.60001 7.99961 5.44001 8.23961 5.52001C8.71961 5.52001 9.11961 5.76001 9.35961 6.08001L10.0796 5.12001C9.83961 4.88001 9.59961 4.72001 9.35961 4.56001C9.11961 4.40001 8.79961 4.32001 8.47961 4.32001V3.20001H7.51961V4.32001C7.11961 4.40001 6.71961 4.64001 6.39961 4.96001C6.07961 5.36001 5.83961 5.84001 5.91961 6.32001C5.91961 6.80001 6.07961 7.28001 6.39961 7.60001C6.79961 8.00001 7.35961 8.24001 7.83961 8.48001C8.07961 8.56001 8.39961 8.72001 8.63961 8.88001C8.79961 9.04001 8.87961 9.28001 8.87961 9.52001C8.87961 9.76001 8.79961 10 8.63961 10.24C8.39961 10.48 8.07961 10.56 7.83961 10.56C7.51961 10.56 7.11961 10.48 6.87961 10.24C6.63961 10.08 6.39961 9.84001 6.23961 9.60001L5.43961 10.48C5.67961 10.8 5.91961 11.04 6.23961 11.28C6.63961 11.52 7.11961 11.76 7.59961 11.76V12.8H8.47961V11.6C8.95961 11.52 9.35961 11.28 9.67961 10.96C10.0796 10.56 10.3196 9.92001 10.3196 9.36001C10.3196 8.88001 10.1596 8.32001 9.75961 8.00001C9.35961 7.60001 8.95961 7.36001 8.47961 7.20001ZM7.99961 1.60001C4.47961 1.60001 1.59961 4.48001 1.59961 8.00001C1.59961 11.52 4.47961 14.4 7.99961 14.4C11.5196 14.4 14.3996 11.52 14.3996 8.00001C14.3996 4.48001 11.5196 1.60001 7.99961 1.60001ZM7.99961 13.52C4.95961 13.52 2.47961 11.04 2.47961 8.00001C2.47961 4.96001 4.95961 2.48001 7.99961 2.48001C11.0396 2.48001 13.5196 4.96001 13.5196 8.00001C13.5196 11.04 11.0396 13.52 7.99961 13.52Z" fill="white"/>
                                                                         </svg>
-                                                                        <span style="margin-left: 6px">Payment</span>
+                                                                        <span style="margin-left: 6px">' . esc_html__( 'Payment', 'kiriminaja-official' ) . '</span>
                                                                     </div>
                                                                 </div>
                                                             </button>
@@ -134,7 +134,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <button class="button button-primary" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                        <span>Reschedule</span>
+                                                                        <span>' . esc_html__( 'Reschedule', 'kiriminaja-official' ) . '</span>
                                                                     </div>
                                                                 </div>
                                                         </button>
@@ -153,7 +153,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                             <a class="button button-primary-secondary" href="'.esc_url($kiriof_detail_url).'">
                                                                 <div style="display: flex">
                                                                     <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                       <span>Details</span>
+                                                                       <span>' . esc_html__( 'Details', 'kiriminaja-official' ) . '</span>
                                                                     </div>
                                                                 </div>
                                                             </a>
@@ -190,13 +190,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">'.esc_html($kiriof_row->pickup_number).'</div>
-                                                        <div style="font-size: 12px;">Requested: '.esc_html(wp_date('Y/m/d H:i',strtotime($kiriof_row->created_at))).'</div>
+                                                        <div style="font-size: 12px;">' . esc_html__( 'Requested', 'kiriminaja-official' ) . ': '.esc_html(wp_date('Y/m/d H:i',strtotime($kiriof_row->created_at))).'</div>
                                                     </td>
                                                     <td class="manage-column column-thumb">'.esc_html(gmdate('Y/m/d H:i',strtotime($kiriof_row->pickup_schedule)) . ' WIB').'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="font-weight: 700">Rp. '.esc_html(kiriof_money_format($kiriof_row->cost ?? 0)).'</div>
                                                     </td>
-                                                    <td class="manage-column column-thumb">'.esc_html($kiriof_row->order_amt).' Order</td>
+                                                    <td class="manage-column column-thumb">'.esc_html($kiriof_row->order_amt).' ' . esc_html__( 'Order', 'kiriminaja-official' ) . '</td>
                                                     <td class="manage-column column-thumb">'.wp_kses($kiriof_statusContent, $kiriof_allowed_status_content).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">'.wp_kses($kiriof_btnGroup, $kiriof_allowed_html).'</div>
@@ -524,17 +524,17 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 jQuery('#schedule-transaction-summary').append(`
                 <div>
                     <div class="row">
-                        <div class="col">Tagihan Paket COD</div>
+                        <div class="col"><?php echo esc_js( __( 'Tagihan Paket COD', 'kiriminaja-official' ) ); ?></div>
                         <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
                     </div>
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
-                        <div class="col">Tagihan Paket Non-COD</div>
+                        <div class="col"><?php echo esc_js( __( 'Tagihan Paket Non-COD', 'kiriminaja-official' ) ); ?></div>
                         <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
                     </div>
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
-                        <div class="col">Total Tagihan</div>
+                        <div class="col"><?php echo esc_js( __( 'Total Tagihan', 'kiriminaja-official' ) ); ?></div>
                         <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((sum_cod_fee))}</div>
                     </div>
                 </div>

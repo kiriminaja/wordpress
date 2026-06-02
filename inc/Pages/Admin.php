@@ -99,7 +99,7 @@ class Admin extends BaseInit{
     
         /** Add pages link in plugin menu links*/
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">Settings</a>';
+            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">' . esc_html__( 'Settings', 'kiriminaja-official' ) . '</a>';
             array_push($links,$settings_link);
             return $links;
         });

@@ -1,684 +1,639 @@
+# Copyright (C) 2026 KiriminAja
+# This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
 "Project-Id-Version: KiriminAja Official 2.1.38\n"
-"POT-Creation-Date: 2026-06-02 00:00+0000\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wordpress\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-06-02T08:13:01+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: kiriminaja-official\n"
 
-#: templates/transaction-process/view/index.php:283 templates/transaction-process/view/index.php:86
-msgid "%s item"
-msgid_plural "%s items"
-msgstr[0] ""
-msgstr[1] ""
-
-#: inc/Controllers/ProductController.php:153
-msgid "%1$d / %2$d Configured"
-msgstr ""
-
-#: inc/Pages/Admin.php:280 templates/setting/setuped/index.php:113
-msgid "%1$d / %2$d Product Volumetric Configurations"
-msgstr ""
-
-#: kiriminaja.php:133
-msgid "%1$s requires %2$s to be installed and activated. Please install and activate WooCommerce before activating this plugin."
-msgstr ""
-
-#: templates/_setup-guide.php:58
-msgid "(Optional)"
-msgstr ""
-
-#: templates/woocommerce/cart/cart-totals.php:84
-msgid "(estimated for %s)"
-msgstr ""
-
-#: kiriminaja.php:109
-msgid "<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin."
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:857
-msgid "<strong>Checkout Calculation</strong> is not finished yet"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:851
-msgid "<strong>District</strong> is a required field"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:375
-msgid "<strong>Field Kelurahan</strong> is a required field."
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:854
-msgid "<strong>Shipping</strong> is a required field"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:37
-msgid "AWB"
-msgstr ""
-
-#: templates/setting/setuped/index.php:139 templates/setting/setuped/section-account.php:81
-msgid "Account Configuration"
-msgstr ""
-
-#: inc/Pages/Admin.php:327
-msgid "Account Connection"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:123 templates/transaction-process/view/index.php:269 templates/request-pickup-detail/view/index.php:75 templates/request-pickup/view/index.php:102 templates/request-pickup/view/index.php:220
-msgid "Action"
-msgstr ""
-
-#: templates/setting/setuped/index.php:185
-msgid "Action needed"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:85
-msgid "Add the shortcode [kiriminaja-tracking-front-page] to a page to enable order tracking for your customers."
-msgstr ""
-
-#: templates/woocommerce/checkout/form-shipping.php:59
-msgid "Additional information"
-msgstr ""
-
-#: templates/setting/setuped/section-address.php:30
-msgid "Address"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:120 templates/transaction-process/view/index.php:266 templates/request-pickup-detail/view/index.php:70
-msgid "Airwaybill / Order ID"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:57 templates/request-pickup/view/index.php:44
-msgid "All"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:61 templates/request-pickup/view/index.php:228
-msgid "All Dates"
-msgstr ""
-
-#: inc/Controllers/ProductController.php:150 inc/Pages/Admin.php:277 templates/setting/setuped/index.php:110
-msgid "All Product Configured"
-msgstr ""
-
-#: templates/setting/setuped/index.php:221
-msgid "Allow customers to pay when they receive their order."
-msgstr ""
-
-#: templates/transaction-process/view/index.php:460 templates/request-pickup/view/index.php:511
-msgid "An error occurred."
-msgstr ""
-
-#: templates/transaction-process/view/_filters.php:55 templates/request-pickup/view/index.php:70 templates/request-pickup/view/index.php:237
-msgid "Apply"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-coupon.php:39 templates/woocommerce/checkout/form-coupon.php:39 templates/woocommerce/cart/cart.php:174 templates/woocommerce/cart/cart.php:174
-msgid "Apply coupon"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:769
-msgid "Are you sure you want to cancel this transaction?"
-msgstr ""
-
-#: templates/setting/setuped/section-address.php:46
-msgid "Area"
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:114
-msgid "Available on backorder"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:883
-msgid "Berat Produk %s Perlu di Setting"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-billing.php:24
-msgid "Billing &amp; Shipping"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-billing.php:28
-msgid "Billing details"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:161
-msgid "By clicking Connect, you agree to accept KiriminAja's"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:179 templates/order/metabox-shipping.php:107
-msgid "COD Fee"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:814
-msgid "COD Fee:"
-msgstr ""
-
-#: templates/request-pickup-detail/view/index.php:73
-msgid "COD Value"
-msgstr ""
-
-#: templates/setting/setuped/section-webhooks.php:28
-msgid "Callback URL"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:247 templates/transaction-process/view/index.php:247
-msgid "Cancel"
-msgstr ""
-
-#: templates/transaction-process/view/modal-cancel.php:18 templates/transaction-process/view/modal-cancel.php:45
-msgid "Cancel Shipment"
-msgstr ""
-
-#: inc/Base/Helper.php:37 inc/Base/Helper.php:57
-msgid "Canceled"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:62
-msgid "Cancelled"
-msgstr ""
-
-#: templates/woocommerce/cart/cart-totals.php:28
-msgid "Cart totals"
-msgstr ""
-
-#: templates/setting/setuped/index.php:220
-msgid "Cash on Delivery"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:66
-msgid "Cash on Delivery Support"
-msgstr ""
-
-#: templates/woocommerce/cart/cart-shipping.php:95
-msgid "Change address"
-msgstr ""
-
-#: inc/Pages/Admin.php:343
-msgid "Choose which courier services to offer at checkout. Only enabled couriers appear to buyers."
-msgstr ""
-
-#: templates/setting/setuped/index.php:196
-msgid "Choose which couriers are available at checkout."
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:79
-msgid "City"
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:78
-msgid "City:"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:798
-msgid "Click"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:175
-msgid "Click Add Integration and choose WooCommerce."
-msgstr ""
-
-#: templates/woocommerce/checkout/form-coupon.php:26
-msgid "Click here to enter your code"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-login.php:26
-msgid "Click here to login"
-msgstr ""
-
-#: inc/Controllers/EditOrderController.php:400
-msgid "Cod Fee"
-msgstr ""
-
-#: inc/Base/Helper.php:54
-msgid "Completed"
-msgstr ""
-
-#: templates/setting/setuped/index.php:133
-msgid "Configuration"
-msgstr ""
-
-#: templates/setting/setuped/index.php:249
-msgid "Configure callback URL for shipment status updates."
-msgstr ""
-
-#: templates/setting/setuped/index.php:154
-msgid "Configure the order tracking page for your customers."
-msgstr ""
-
-#: inc/Pages/Admin.php:338
-msgid "Configure your pickup address and subdistrict so couriers quote the correct rates."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:157 templates/setting/setuped/section-account.php:206
-msgid "Connect"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:111
-msgid "Connect Now"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:56
-msgid "Connect Wordpress to KiriminAja"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:60
-msgid "Connect to KiriminAja Application by Input the setup key"
-msgstr ""
-
-#: inc/Pages/Admin.php:328
-msgid "Connect your KiriminAja account to sync orders, shipments, and automate label printing."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:204
-msgid "Connecting…"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:111
-msgid "Connection"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:206
-msgid "Connection failed. Please check your setup key."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:179
-msgid "Copy and paste the Setup Key above."
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:28
-msgid "Country / region:"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-coupon.php:35 templates/woocommerce/cart/cart.php:174
-msgid "Coupon code"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-coupon.php:34 templates/woocommerce/cart/cart.php:174
-msgid "Coupon:"
-msgstr ""
-
-#: templates/setting/setuped/index.php:195 templates/setting/setuped/section-couriers.php:18
-msgid "Courier List"
+#. Plugin Name of the plugin
+#: kiriminaja.php
+msgid "KiriminAja Official"
 msgstr ""
 
-#: inc/Pages/Admin.php:342
-msgid "Courier Setup"
+#. Plugin URI of the plugin
+#: kiriminaja.php
+msgid "https://wordpress.org/plugins/kiriminaja-official/"
 msgstr ""
 
-#: inc/Pages/Admin.php:353
-msgid "Create a public tracking page so customers can monitor their shipment status in real time."
+#. Description of the plugin
+#: kiriminaja.php
+msgid "Ship smarter with KiriminAja — real-time rates from multiple couriers, COD support, one-click pickup scheduling, label printing, and package tracking, all from your WooCommerce dashboard. Built for online sellers across Indonesia."
 msgstr ""
 
-#: templates/woocommerce/checkout/form-billing.php:55
-msgid "Create an account?"
+#. Author of the plugin
+#: kiriminaja.php
+msgid "KiriminAja"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:96 templates/transaction-process/view/index.php:293
-msgid "Current Page"
+#. Author URI of the plugin
+#: kiriminaja.php
+msgid "https://kiriminaja.com"
 msgstr ""
 
-#: wc/KiriminajaShippingMethod.php:23
-msgid "Custom Shipping Method for Kiriminaja"
+#: inc/Base/Helper.php:13
+#: templates/transaction-process/view/modal-detail.php:18
+msgid "New"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:754
-msgid "Date"
+#: inc/Base/Helper.php:16
+#: templates/transaction-process/view/index.php:28
+#: templates/transaction-process/view/index.php:337
+msgid "Request Pickup"
 msgstr ""
 
-#: templates/woocommerce/checkout/order-receipt.php:29 templates/woocommerce/checkout/thankyou.php:54
-msgid "Date:"
+#: inc/Base/Helper.php:19
+msgid "Pending"
 msgstr ""
 
 #: inc/Base/Helper.php:22
 msgid "Delivered"
 msgstr ""
 
-#: templates/order/metabox-shipping.php:79
-msgid "Destination"
+#: inc/Base/Helper.php:25
+msgid "In Transit"
 msgstr ""
 
-#: templates/order/metabox-shipping.php:72
-msgid "Destination Phone"
+#: inc/Base/Helper.php:28
+msgid "Returning"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:242 templates/transaction-process/view/index.php:242 templates/request-pickup-detail/view/index.php:157 templates/request-pickup-detail/view/index.php:157
-msgid "Detail"
+#: inc/Base/Helper.php:31
+msgid "Returned"
 msgstr ""
 
-#: inc/Pages/Admin.php:186
-msgid "Developer"
+#: inc/Base/Helper.php:34
+msgid "Rejected"
 msgstr ""
 
-#: templates/setting/setuped/section-couriers.php:26
-msgid "Disable All"
+#: inc/Base/Helper.php:37
+#: inc/Base/Helper.php:57
+msgid "Canceled"
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:138 templates/setting/setuped/section-account.php:144
-msgid "Disconnect"
+#: inc/Base/Helper.php:48
+msgid "Processing"
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:211
-msgid "Disconnect KiriminAja integration?"
+#: inc/Base/Helper.php:50
+#: templates/transaction-process/view/index.php:59
+msgid "On Hold"
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:212
-msgid "Disconnect failed."
+#: inc/Base/Helper.php:52
+#: templates/transaction-process/view/index.php:60
+msgid "Pending Payment"
 msgstr ""
 
-#: templates/order/metabox-shipping.php:121
-msgid "Discount"
+#: inc/Base/Helper.php:54
+msgid "Completed"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:937 inc/Controllers/CheckoutController.php:948 inc/Controllers/CheckoutController.php:1120 inc/Controllers/CheckoutController.php:1130 templates/woocommerce/cart/shipping-calculator.php:99 templates/front/form-billing-address.php:273
-msgid "District"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:97
-msgid "Edit"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:793
-msgid "Ekspedisi"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-verify-email.php:44
-msgid "Email address"
-msgstr ""
-
-#: templates/woocommerce/checkout/thankyou.php:60
-msgid "Email:"
-msgstr ""
-
-#: wc/KiriminajaShippingMethod.php:42
-msgid "Enable"
-msgstr ""
-
-#: templates/setting/setuped/section-couriers.php:25
-msgid "Enable All"
-msgstr ""
-
-#: inc/Pages/Admin.php:348
-msgid "Enable shipping zones in WooCommerce so customers can select their delivery destination."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:89
-msgid "Enabled Couriers"
-msgstr ""
-
-#: templates/woocommerce/cart/cart-shipping.php:55
-msgid "Enter a different address"
-msgstr ""
-
-#: templates/transaction-process/view/modal-cancel.php:35
-msgid "Enter reason (min 5, max 200 characters)"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:176
-msgid "Enter your store domain."
-msgstr ""
-
-#: templates/order/metabox-shipping.php:51
-msgid "Expedition"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:119 templates/transaction-process/view/index.php:265 templates/request-pickup-detail/view/index.php:69
-msgid "Expedition & Service"
+#: inc/Base/Helper.php:59
+msgid "Refunded"
 msgstr ""
 
 #: inc/Base/Helper.php:61
 msgid "Failed"
 msgstr ""
 
-#: templates/request-pickup/view/index.php:99 templates/request-pickup/view/index.php:217
-msgid "Fees"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:68
-msgid "Give your page a title, e.g. \"Track Your Order\"."
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:67
-msgid "Go to Pages › Add New in your WordPress admin."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:174
-msgid "Go to the Settings menu and select App Integrations."
-msgstr ""
-
-#: templates/woocommerce/checkout/form-coupon.php:26
-msgid "Have a coupon?"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:67
-msgid "Height (%s)"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:64
-msgid "Height Form"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:65
-msgid "How to Add a Tracking Page"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:118
-msgid "How to Connect"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:171
-msgid "How to Obtain Your Kiriminaja Credentials:"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-coupon.php:31
-msgid "If you have a coupon code, please apply it below."
-msgstr ""
-
-#: templates/woocommerce/checkout/form-login.php:32
-msgid "If you have shopped with us before, please enter your details below. If you are a new customer, please proceed to the Billing section."
-msgstr ""
-
-#: inc/Base/Helper.php:25
-msgid "In Transit"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:69
-msgid "In the content editor, add the shortcode:"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:65
-msgid "Indonesian 3PL Integrations"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:155
-msgid "Input your setup key for KiriminAja"
-msgstr ""
-
-#: inc/Controllers/ShippingProcessController.php:72 inc/Controllers/ShippingProcessController.php:99 inc/Controllers/ShippingProcessController.php:121 inc/Controllers/SettingController.php:56 inc/Controllers/SettingController.php:74 inc/Controllers/SettingController.php:94 inc/Controllers/SettingController.php:113 inc/Controllers/SettingController.php:132
-msgid "Insufficient permissions"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:171 inc/Controllers/CheckoutController.php:806 inc/Controllers/EditOrderController.php:343 inc/Controllers/EditOrderController.php:383 wc/AdminWoocommerceSetting.php:36
+#: inc/Controllers/CheckoutController.php:171
+#: inc/Controllers/CheckoutController.php:806
+#: inc/Controllers/EditOrderController.php:343
+#: inc/Controllers/EditOrderController.php:383
+#: templates/transaction-process/view/index.php:236
+#: wc/AdminWoocommerceSetting.php:36
 msgid "Insurance"
 msgstr ""
 
-#: inc/Controllers/EditOrderController.php:405 templates/order/metabox-shipping.php:114
-msgid "Insurance Fee"
+#: inc/Controllers/CheckoutController.php:179
+#: templates/order/metabox-shipping.php:107
+#: templates/transaction-process/view/index.php:237
+#: templates/transaction-process/view/index.php:685
+#: templates/transaction-process/view/modal-detail.php:105
+msgid "COD Fee"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:966 inc/Controllers/CheckoutController.php:976
+#: inc/Controllers/CheckoutController.php:375
+msgid "<strong>Field Kelurahan</strong> is a required field."
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:750
+#: templates/transaction-process/view/index.php:72
+msgid "Order Number"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:754
+msgid "Date"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:758
+msgid "Payment Method"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:762
+#: templates/transaction-process/view/index.php:673
+#: templates/transaction-process/view/modal-detail.php:97
+msgid "Sub Total"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:766
+#: templates/transaction-process/view/index.php:677
+#: templates/transaction-process/view/modal-detail.php:101
+msgid "Shipping Fee"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:770
+msgid "Payment Total"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:774
+#: inc/Controllers/CheckoutController.php:797
+msgid "Tracking"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:793
+msgid "Ekspedisi"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:798
+msgid "Click"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:814
+msgid "COD Fee:"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:851
+msgid "<strong>District</strong> is a required field"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:854
+msgid "<strong>Shipping</strong> is a required field"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:857
+msgid "<strong>Checkout Calculation</strong> is not finished yet"
+msgstr ""
+
+#. translators: %s: product name
+#: inc/Controllers/CheckoutController.php:883
+#, php-format
+msgid "Berat Produk %s Perlu di Setting"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:922
+#: inc/Controllers/CheckoutController.php:930
+#: inc/Controllers/CheckoutController.php:1102
+#: inc/Controllers/EditOrderController.php:322
+#: inc/Controllers/EditOrderController.php:362
+#: templates/front/form-billing-address.php:485
+#: templates/front/form-billing-address.php:518
+#: templates/setting/setuped/section-address.php:57
+#: templates/woocommerce/cart/shipping-calculator.php:93
+msgid "Select Option"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:937
+#: inc/Controllers/CheckoutController.php:948
+#: inc/Controllers/CheckoutController.php:1120
+#: inc/Controllers/CheckoutController.php:1130
+#: templates/front/form-billing-address.php:273
+#: templates/woocommerce/cart/shipping-calculator.php:99
+msgid "District"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:966
+#: inc/Controllers/CheckoutController.php:976
 msgid "Insurance Shipping"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:58
-msgid "KA Order ID"
-msgstr ""
-
-#: templates/front/form-shipping-address.php:9
-msgid "Kelurahan"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:14
-msgid "KiriminAja Configuration"
-msgstr ""
-
-#: templates/_setup-guide.php:41
-msgid "KiriminAja Setup Guide"
 msgstr ""
 
 #: inc/Controllers/EditOrderController.php:29
 msgid "KiriminAja Shipping"
 msgstr ""
 
-#: wc/KiriminajaShippingMethod.php:22
-msgid "Kiriminaja"
-msgstr ""
-
-#: wc/KiriminajaShippingMethod.php:27 wc/KiriminajaShippingMethod.php:49
-msgid "Kiriminaja Shipping"
-msgstr ""
-
-#: templates/front/tracking.php:33
-msgid "Klik Track Pesanan"
-msgstr ""
-
-#: templates/front/tracking.php:26
-msgid "Lacak Pesanan"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:41
-msgid "Length (%s)"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:38
-msgid "Length Form"
-msgstr ""
-
-#: templates/setting/setuped/section-couriers.php:30
-msgid "Loading couriers…"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:173
-msgid "Log in to your Kiriminaja dashboard."
-msgstr ""
-
-#: wc/KiriminajaShippingMethod.php:185
-msgid "Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman"
-msgstr ""
-
-#: wc/KiriminajaShippingMethod.php:193
-msgid "Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman"
-msgstr ""
-
-#: templates/setting/setuped/index.php:234 templates/setting/setuped/section-address.php:19
-msgid "Manage Locations"
-msgstr ""
-
-#: templates/setting/setuped/index.php:140
-msgid "Manage your KiriminAja account connection and profile."
-msgstr ""
-
-#: inc/Services/CheckoutServices/ValidationCodCalculationService.php:40
-msgid "Maximum COD is %s"
-msgstr ""
-
-#: inc/Services/CheckoutServices/ValidationCodCalculationService.php:34
-msgid "Minimum COD is %s"
-msgstr ""
-
-#: templates/setting/setuped/section-address.php:40
-msgid "My Location"
-msgstr ""
-
-#: templates/woocommerce/checkout/thankyou.php:38
-msgid "My account"
-msgstr ""
-
-#: templates/setting/setuped/section-address.php:58 templates/setting/setuped/section-account.php:212 templates/setting/setuped/section-webhooks.php:39
-msgid "Network error."
-msgstr ""
-
-#: inc/Base/Helper.php:13 templates/transaction-process/view/modal-detail.php:18
-msgid "New"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:58
-msgid "New / Waiting for Shipment"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:96 templates/request-pickup/view/index.php:214
-msgid "No"
-msgstr ""
-
 #: inc/Controllers/EditOrderController.php:54
 msgid "No shipping data available for this order."
 msgstr ""
 
-#: templates/front/tracking.php:20
-msgid "Nomor Resi"
+#: inc/Controllers/EditOrderController.php:85
+#: inc/Controllers/SettingController.php:61
+#: inc/Controllers/SettingController.php:79
+#: inc/Controllers/SettingController.php:99
+#: inc/Controllers/SettingController.php:118
+#: inc/Controllers/SettingController.php:137
+#: inc/Controllers/SettingController.php:164
+#: inc/Controllers/SettingController.php:184
+#: inc/Controllers/SettingController.php:210
+#: inc/Controllers/SettingController.php:241
+#: inc/Controllers/SettingController.php:266
+#: inc/Controllers/SettingController.php:286
+#: inc/Controllers/SettingController.php:303
+#: inc/Controllers/SettingController.php:343
+#: inc/Controllers/SettingController.php:370
+#: inc/Controllers/ShippingProcessController.php:77
+#: inc/Controllers/ShippingProcessController.php:104
+#: inc/Controllers/ShippingProcessController.php:126
+#: inc/Controllers/TransactionProcessController.php:30
+#: inc/Controllers/TransactionProcessController.php:51
+#: inc/Controllers/TransactionProcessController.php:85
+#: inc/Controllers/TransactionProcessController.php:111
+msgid "Security check failed"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:254 templates/request-pickup-detail/view/index.php:166 templates/request-pickup/view/index.php:208
-msgid "Not Found"
+#: inc/Controllers/EditOrderController.php:328
+#: inc/Controllers/EditOrderController.php:368
+msgid "Subdistrict"
 msgstr ""
 
-#: inc/Pages/Admin.php:381
-msgid "Number of items per page:"
+#: inc/Controllers/EditOrderController.php:400
+msgid "Cod Fee"
 msgstr ""
 
-#: inc/Base/Helper.php:50 templates/transaction-process/view/index.php:59
-msgid "On Hold"
+#: inc/Controllers/EditOrderController.php:405
+#: templates/order/metabox-shipping.php:114
+#: templates/transaction-process/view/index.php:693
+#: templates/transaction-process/view/modal-detail.php:109
+msgid "Insurance Fee"
 msgstr ""
 
-#: templates/setting/setuped/index.php:147
-msgid "Online Store"
+#: inc/Controllers/GeneralAjaxController.php:44
+#: inc/Controllers/GeneralAjaxController.php:57
+#: inc/Controllers/GeneralAjaxController.php:93
+msgid "Security Check Kiriminaja"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:118 templates/transaction-process/view/index.php:264 templates/request-pickup-detail/view/index.php:68
-msgid "Order / Transaction"
+#: inc/Controllers/GeneralAjaxController.php:64
+msgid "Please Country/Region Indonesia"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:750
-msgid "Order Number"
+#: inc/Controllers/GeneralAjaxController.php:87
+msgid "Success"
 msgstr ""
 
-#: inc/Services/TransactionProcessServices/CancelTransactionService.php:86
-msgid "Order cancelled via KiriminAja."
+#: inc/Controllers/ProductController.php:122
+#: inc/Controllers/ProductController.php:127
+msgid "Volumetric"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:199
-msgid "Order must be in Processing status before it can be picked up."
+#: inc/Controllers/ProductController.php:150
+#: inc/Pages/Admin.php:277
+#: templates/setting/setuped/index.php:110
+msgid "All Product Configured"
 msgstr ""
 
-#: templates/woocommerce/checkout/order-receipt.php:25 templates/woocommerce/checkout/thankyou.php:49
-msgid "Order number:"
+#. translators: %1$d: configured products, %2$d: total products
+#: inc/Controllers/ProductController.php:153
+#, php-format
+msgid "%1$d / %2$d Configured"
 msgstr ""
 
-#: templates/front/tracking.php:38
-msgid "Order tidak ditemukan"
+#: inc/Controllers/SettingController.php:56
+#: inc/Controllers/SettingController.php:74
+#: inc/Controllers/SettingController.php:94
+#: inc/Controllers/SettingController.php:113
+#: inc/Controllers/SettingController.php:132
+#: inc/Controllers/SettingController.php:159
+#: inc/Controllers/SettingController.php:179
+#: inc/Controllers/SettingController.php:200
+#: inc/Controllers/SettingController.php:237
+#: inc/Controllers/SettingController.php:262
+#: inc/Controllers/SettingController.php:282
+#: inc/Controllers/SettingController.php:299
+#: inc/Controllers/SettingController.php:339
+#: inc/Controllers/SettingController.php:366
+#: inc/Controllers/ShippingProcessController.php:72
+#: inc/Controllers/ShippingProcessController.php:99
+#: inc/Controllers/ShippingProcessController.php:121
+#: inc/Controllers/TransactionProcessController.php:25
+#: inc/Controllers/TransactionProcessController.php:46
+#: inc/Controllers/TransactionProcessController.php:80
+#: inc/Controllers/TransactionProcessController.php:106
+msgid "Insufficient permissions"
 msgstr ""
 
-#: templates/request-pickup/view/index.php:100 templates/request-pickup/view/index.php:218
-msgid "Orders"
+#: inc/Controllers/TransactionProcessController.php:152
+msgid "Pesanan dibatalkan dari WooCommerce"
+msgstr ""
+
+#: inc/Pages/Admin.php:102
+#: templates/setting/setuped/index.php:121
+#: templates/setting/setuped/section-account.php:81
+#: templates/setting/setuped/section-address.php:19
+#: templates/setting/setuped/section-couriers.php:18
+#: templates/setting/setuped/section-tracking.php:58
+#: templates/setting/setuped/section-webhooks.php:19
+msgid "Settings"
+msgstr ""
+
+#: inc/Pages/Admin.php:126
+msgid "Thank you for choosing KiriminAja"
+msgstr ""
+
+#: inc/Pages/Admin.php:184
+msgid "Plugin Page"
+msgstr ""
+
+#: inc/Pages/Admin.php:185
+msgid "Support"
+msgstr ""
+
+#: inc/Pages/Admin.php:186
+msgid "Developer"
+msgstr ""
+
+#. translators: %1$d: configured products, %2$d: total products
+#: inc/Pages/Admin.php:280
+#: templates/setting/setuped/index.php:113
+#, php-format
+msgid "%1$d / %2$d Product Volumetric Configurations"
+msgstr ""
+
+#: inc/Pages/Admin.php:327
+msgid "Account Connection"
+msgstr ""
+
+#: inc/Pages/Admin.php:328
+msgid "Connect your KiriminAja account to sync orders, shipments, and automate label printing."
+msgstr ""
+
+#: inc/Pages/Admin.php:333
+msgid "Set weight and dimensions for each product so shipping rates are calculated accurately."
 msgstr ""
 
 #: inc/Pages/Admin.php:337
 msgid "Origin Setup"
 msgstr ""
 
-#: templates/setting/setuped/index.php:242
-msgid "Others"
+#: inc/Pages/Admin.php:338
+msgid "Configure your pickup address and subdistrict so couriers quote the correct rates."
 msgstr ""
 
-#: templates/transaction-process/view/index.php:122 templates/transaction-process/view/index.php:268 templates/request-pickup-detail/view/index.php:72
-msgid "Packages & Fee"
+#: inc/Pages/Admin.php:342
+msgid "Courier Setup"
 msgstr ""
 
-#: templates/setting/setuped/section-tracking.php:79
-msgid "Pages Using Tracking Shortcode"
+#: inc/Pages/Admin.php:343
+msgid "Choose which courier services to offer at checkout. Only enabled couriers appear to buyers."
 msgstr ""
 
-#: templates/request-pickup/view/index.php:46 templates/request-pickup/view/index.php:115
-msgid "Paid"
+#: inc/Pages/Admin.php:347
+msgid "Shipping Locations"
+msgstr ""
+
+#: inc/Pages/Admin.php:348
+msgid "Enable shipping zones in WooCommerce so customers can select their delivery destination."
+msgstr ""
+
+#: inc/Pages/Admin.php:352
+#: templates/setting/setuped/index.php:153
+#: templates/setting/setuped/section-tracking.php:58
+msgid "Tracking Page"
+msgstr ""
+
+#: inc/Pages/Admin.php:353
+msgid "Create a public tracking page so customers can monitor their shipment status in real time."
+msgstr ""
+
+#: inc/Pages/Admin.php:386
+msgid "Number of items per page:"
+msgstr ""
+
+#. Translators: %s is the minimum COD amount formatted as a price.
+#: inc/Services/CheckoutServices/ValidationCodCalculationService.php:34
+#, php-format
+msgid "Minimum COD is %s"
+msgstr ""
+
+#. Translators: %s is the maximum COD amount formatted as a price.
+#: inc/Services/CheckoutServices/ValidationCodCalculationService.php:40
+#, php-format
+msgid "Maximum COD is %s"
+msgstr ""
+
+#: inc/Services/TransactionProcessServices/CancelTransactionService.php:86
+msgid "Order cancelled via KiriminAja."
+msgstr ""
+
+#. translators: %1$s: Plugin name, %2$s: WooCommerce.
+#: kiriminaja.php:109
+#, php-format
+msgid "<strong>%1$s</strong> requires <strong>%2$s</strong> to be installed and activated. Please install and activate WooCommerce to continue using this plugin."
+msgstr ""
+
+#: kiriminaja.php:112
+msgid "Plugin Kiriminaja"
+msgstr ""
+
+#: kiriminaja.php:113
+msgid "WooCommerce"
+msgstr ""
+
+#. translators: %1$s: Plugin name, %2$s: WooCommerce.
+#: kiriminaja.php:133
+#, php-format
+msgid "%1$s requires %2$s to be installed and activated. Please install and activate WooCommerce before activating this plugin."
+msgstr ""
+
+#: kiriminaja.php:143
+msgid "Return to Plugins"
+msgstr ""
+
+#: kiriminaja.php:148
+msgid "Plugin Activation Error"
+msgstr ""
+
+#: templates/front/form-billing-address.php:285
+msgid "Select District"
+msgstr ""
+
+#: templates/front/form-shipping-address.php:9
+msgid "Kelurahan"
+msgstr ""
+
+#: templates/front/tracking.php:15
+msgid "Pesanan Anda"
+msgstr ""
+
+#: templates/front/tracking.php:20
+#: templates/front/tracking.php:119
+msgid "Nomor Resi"
+msgstr ""
+
+#: templates/front/tracking.php:22
+msgid "Masukan Nomor Resi atau Nomor Order ..."
+msgstr ""
+
+#: templates/front/tracking.php:26
+msgid "Lacak Pesanan"
+msgstr ""
+
+#: templates/front/tracking.php:33
+msgid "Untuk mendapatkan informasi pesanan anda"
+msgstr ""
+
+#: templates/front/tracking.php:33
+msgid "Klik Track Pesanan"
+msgstr ""
+
+#: templates/front/tracking.php:38
+msgid "Order tidak ditemukan"
+msgstr ""
+
+#: templates/front/tracking.php:56
+msgid "Tanggal"
+msgstr ""
+
+#: templates/front/tracking.php:57
+#: templates/order/metabox-shipping.php:44
+#: templates/request-pickup-detail/view/index.php:74
+msgid "Status"
+msgstr ""
+
+#: templates/front/tracking.php:118
+msgid "Nomor Order"
+msgstr ""
+
+#: templates/front/tracking.php:134
+msgid "Kurir"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:37
+#: templates/transaction-process/view/index.php:74
+#: templates/transaction-process/view/index.php:225
+#: templates/transaction-process/view/index.php:226
+msgid "AWB"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:51
+msgid "Expedition"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:58
+#: templates/transaction-process/view/index.php:73
+msgid "KA Order ID"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:65
+msgid "Pickup ID"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:72
+msgid "Destination Phone"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:79
+msgid "Destination"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:86
+#: templates/request-pickup/view/index.php:127
+#: templates/woocommerce/checkout/review-order.php:62
+#: wc/AdminWoocommerceSetting.php:35
+msgid "Payment"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:93
+msgid "Weight"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:100
+msgid "Shipping Cost"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:121
+#: templates/transaction-process/view/index.php:238
+msgid "Discount"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:128
+#: templates/transaction-process/view/index.php:239
+#: templates/transaction-process/view/index.php:661
+#: templates/transaction-process/view/index.php:668
+#: templates/transaction-process/view/index.php:699
+#: templates/transaction-process/view/modal-detail.php:85
+#: templates/transaction-process/view/modal-detail.php:92
+#: templates/transaction-process/view/modal-detail.php:113
+#: templates/woocommerce/cart/cart-totals.php:110
+#: templates/woocommerce/cart/cart-totals.php:111
+#: templates/woocommerce/checkout/review-order.php:140
+msgid "Total"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:137
+msgid "View in KiriminAja"
+msgstr ""
+
+#: templates/order/metabox-shipping.php:140
+msgid "Track Shipment"
+msgstr ""
+
+#. Translators: %s weight unit
+#: templates/product/general-wc-tab-setting.php:22
+#, php-format
+msgid "Weight (%s)"
+msgstr ""
+
+#: templates/product/general-wc-tab-setting.php:24
+msgid "Weight Form"
+msgstr ""
+
+#: templates/product/general-wc-tab-setting.php:38
+msgid "Length Form"
+msgstr ""
+
+#. Translators: %s length unit
+#: templates/product/general-wc-tab-setting.php:41
+#, php-format
+msgid "Length (%s)"
+msgstr ""
+
+#: templates/product/general-wc-tab-setting.php:51
+msgid "Width Form"
+msgstr ""
+
+#. Translators: %s width unit
+#: templates/product/general-wc-tab-setting.php:54
+#, php-format
+msgid "Width (%s)"
+msgstr ""
+
+#: templates/product/general-wc-tab-setting.php:64
+msgid "Height Form"
+msgstr ""
+
+#. Translators: %s height unit
+#: templates/product/general-wc-tab-setting.php:67
+#, php-format
+msgid "Height (%s)"
+msgstr ""
+
+#: templates/request-pickup-detail/index.php:7
+#: templates/request-pickup/index.php:7
+#: templates/setting/index.php:6
+#: templates/transaction-process/index.php:7
+msgid "You do not have sufficient permissions to access this page."
+msgstr ""
+
+#: templates/request-pickup-detail/view/index.php:25
+msgid "Print All"
+msgstr ""
+
+#: templates/request-pickup-detail/view/index.php:29
+#: templates/request-pickup/view/index.php:22
+msgid "Payments"
+msgstr ""
+
+#: templates/request-pickup-detail/view/index.php:43
+msgid "Total Paket"
 msgstr ""
 
 #: templates/request-pickup-detail/view/index.php:50
@@ -689,268 +644,432 @@ msgstr ""
 msgid "Paket Non-COD"
 msgstr ""
 
-#: templates/woocommerce/checkout/thankyou.php:36
-msgid "Pay"
+#: templates/request-pickup-detail/view/index.php:68
+#: templates/transaction-process/view/index.php:118
+#: templates/transaction-process/view/index.php:264
+msgid "Order / Transaction"
 msgstr ""
 
-#: wc/AdminWoocommerceSetting.php:35 templates/order/metabox-shipping.php:86
-msgid "Payment"
+#: templates/request-pickup-detail/view/index.php:69
+#: templates/transaction-process/view/index.php:119
+#: templates/transaction-process/view/index.php:265
+msgid "Expedition & Service"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:758
-msgid "Payment Method"
+#: templates/request-pickup-detail/view/index.php:70
+#: templates/transaction-process/view/index.php:120
+#: templates/transaction-process/view/index.php:266
+msgid "Airwaybill / Order ID"
 msgstr ""
 
-#: templates/request-pickup/view/index.php:101 templates/request-pickup/view/index.php:219
-msgid "Payment Status"
+#: templates/request-pickup-detail/view/index.php:71
+#: templates/transaction-process/view/index.php:121
+#: templates/transaction-process/view/index.php:267
+msgid "Ship To"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:770
-msgid "Payment Total"
+#: templates/request-pickup-detail/view/index.php:72
+#: templates/transaction-process/view/index.php:122
+#: templates/transaction-process/view/index.php:268
+msgid "Packages & Fee"
 msgstr ""
 
-#: templates/woocommerce/checkout/order-receipt.php:38 templates/woocommerce/checkout/thankyou.php:72
-msgid "Payment method:"
+#: templates/request-pickup-detail/view/index.php:73
+msgid "COD Value"
 msgstr ""
 
-#: templates/request-pickup-detail/view/index.php:29 templates/request-pickup/view/index.php:22
-msgid "Payments"
-msgstr ""
-
-#: inc/Base/Helper.php:19
-msgid "Pending"
-msgstr ""
-
-#: inc/Base/Helper.php:52 templates/transaction-process/view/index.php:60
-msgid "Pending Payment"
-msgstr ""
-
-#: templates/front/tracking.php:15
-msgid "Pesanan Anda"
-msgstr ""
-
-#: inc/Controllers/TransactionProcessController.php:152
-msgid "Pesanan dibatalkan dari WooCommerce"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:65
-msgid "Pickup ID"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:97 templates/request-pickup/view/index.php:215
-msgid "Pickup Number"
+#: templates/request-pickup-detail/view/index.php:75
+#: templates/request-pickup/view/index.php:102
+#: templates/request-pickup/view/index.php:220
+#: templates/transaction-process/view/index.php:123
+#: templates/transaction-process/view/index.php:269
+msgid "Action"
 msgstr ""
 
 #: templates/request-pickup-detail/view/index.php:117
+#, php-format
 msgid "Pickup: %s"
 msgstr ""
 
-#: templates/setting/setuped/section-address.php:33
-msgid "Pin Location"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:177
-msgid "Please allow up to 2 business days for API generation."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:203
-msgid "Please enter a setup key."
-msgstr ""
-
-#: kiriminaja.php:148
-msgid "Plugin Activation Error"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:62
-msgid "Plugin Features"
-msgstr ""
-
-#: kiriminaja.php:112
-msgid "Plugin Kiriminaja"
-msgstr ""
-
-#: inc/Pages/Admin.php:184
-msgid "Plugin Page"
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:86
-msgid "Postcode / ZIP"
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:85
-msgid "Postcode / ZIP:"
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:33 templates/woocommerce/cart/cart.php:119
-msgid "Price"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:244 templates/transaction-process/view/index.php:244 templates/request-pickup-detail/view/index.php:155 templates/request-pickup-detail/view/index.php:155
+#: templates/request-pickup-detail/view/index.php:155
+#: templates/transaction-process/view/index.php:244
 msgid "Print"
 msgstr ""
 
-#: templates/request-pickup-detail/view/index.php:25
-msgid "Print All"
+#: templates/request-pickup-detail/view/index.php:157
+#: templates/transaction-process/view/index.php:242
+msgid "Detail"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:61
-msgid "Processed"
+#: templates/request-pickup-detail/view/index.php:166
+#: templates/request-pickup/view/index.php:208
+#: templates/transaction-process/view/index.php:254
+msgid "Not Found"
 msgstr ""
 
-#: inc/Base/Helper.php:48
-msgid "Processing"
+#: templates/request-pickup/view/index.php:44
+#: templates/transaction-process/view/index.php:57
+msgid "All"
 msgstr ""
 
-#: templates/woocommerce/checkout/review-order.php:23 templates/woocommerce/checkout/form-pay.php:27 templates/woocommerce/cart/cart.php:32 templates/woocommerce/cart/cart.php:93
-msgid "Product"
+#: templates/request-pickup/view/index.php:45
+msgid "Waiting for Payment"
 msgstr ""
 
-#: templates/setting/setuped/index.php:167
-msgid "Product Volumetric Configurations"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:72
-msgid "Publish the page."
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:78
-msgid "Put your setup key here"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-pay.php:28
-msgid "Qty"
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:34 templates/woocommerce/cart/cart.php:126
-msgid "Quantity"
-msgstr ""
-
-#: templates/setting/setuped/index.php:185
-msgid "Ready"
-msgstr ""
-
-#: templates/setting/unsetuped/index.php:67
-msgid "Realtime Tracking"
-msgstr ""
-
-#: templates/transaction-process/view/modal-cancel.php:33
-msgid "Reason for Cancellation"
-msgstr ""
-
-#: templates/transaction-process/view/modal-detail.php:124 templates/request-pickup/view/modal-payment.php:89 templates/request-pickup/view/modal-payment.php:101
-msgid "Refresh"
-msgstr ""
-
-#: inc/Base/Helper.php:59
-msgid "Refunded"
-msgstr ""
-
-#: inc/Base/Helper.php:34
-msgid "Rejected"
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:71
-msgid "Remove %s from cart"
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:30
-msgid "Remove item"
-msgstr ""
-
-#: inc/Base/Helper.php:16 templates/transaction-process/view/index.php:28
-msgid "Request Pickup"
-msgstr ""
-
-#: templates/setting/setuped/index.php:207
-msgid "Require shipping insurance on all orders."
-msgstr ""
-
-#: kiriminaja.php:143
-msgid "Return to Plugins"
-msgstr ""
-
-#: templates/woocommerce/checkout/cart-errors.php:25
-msgid "Return to cart"
-msgstr ""
-
-#: inc/Base/Helper.php:31
-msgid "Returned"
-msgstr ""
-
-#: inc/Base/Helper.php:28
-msgid "Returning"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-login.php:26
-msgid "Returning customer?"
-msgstr ""
-
-#: templates/setting/setuped/section-webhooks.php:31
-msgid "Save"
-msgstr ""
-
-#: templates/setting/setuped/section-address.php:49
-msgid "Save Changes"
-msgstr ""
-
-#: templates/setting/setuped/section-address.php:58 templates/setting/setuped/section-webhooks.php:39
-msgid "Save failed."
-msgstr ""
-
-#: templates/setting/setuped/section-webhooks.php:39
-msgid "Saved."
-msgstr ""
-
-#: templates/request-pickup/view/modal-payment.php:18
-msgid "Scan to Pay"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:98 templates/request-pickup/view/index.php:216
-msgid "Schedule"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:65
-msgid "Search Orders"
+#: templates/request-pickup/view/index.php:46
+#: templates/request-pickup/view/index.php:115
+msgid "Paid"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:49
 msgid "Search Payments"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:70
-msgid "Search by:"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:66
-msgid "Search order…"
-msgstr ""
-
 #: templates/request-pickup/view/index.php:50
 msgid "Search payment…"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:61
+#: templates/request-pickup/view/index.php:228
+#: templates/transaction-process/view/_filters.php:26
+msgid "All Dates"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:70
+#: templates/request-pickup/view/index.php:237
+#: templates/transaction-process/view/_filters.php:55
+msgid "Apply"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:81
+#: templates/request-pickup/view/index.php:248
+#: templates/transaction-process/view/index.php:98
+#: templates/transaction-process/view/index.php:295
+msgid "of"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:96
+#: templates/request-pickup/view/index.php:214
+msgid "No"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:97
+#: templates/request-pickup/view/index.php:215
+msgid "Pickup Number"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:98
+#: templates/request-pickup/view/index.php:216
+msgid "Schedule"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:99
+#: templates/request-pickup/view/index.php:217
+msgid "Fees"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:100
+#: templates/request-pickup/view/index.php:218
+msgid "Orders"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:101
+#: templates/request-pickup/view/index.php:219
+msgid "Payment Status"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:137
+msgid "Reschedule"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:147
+msgid "Waiting For Payment"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:156
+msgid "Details"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:193
+msgid "Requested"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:199
+#: templates/transaction-process/view/modal-detail.php:17
+msgid "Order"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:511
+#: templates/transaction-process/view/index.php:461
+msgid "An error occurred."
+msgstr ""
+
+#: templates/request-pickup/view/index.php:527
+#: templates/request-pickup/view/modal-request-pickup.php:33
+#: templates/transaction-process/view/index.php:475
+#: templates/transaction-process/view/modal-request-pickup.php:34
+msgid "Tagihan Paket COD"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:532
+#: templates/request-pickup/view/modal-request-pickup.php:38
+#: templates/transaction-process/view/index.php:480
+#: templates/transaction-process/view/modal-request-pickup.php:39
+msgid "Tagihan Paket Non-COD"
+msgstr ""
+
+#: templates/request-pickup/view/index.php:537
+#: templates/request-pickup/view/modal-request-pickup.php:43
+#: templates/transaction-process/view/index.php:485
+#: templates/transaction-process/view/modal-request-pickup.php:44
+msgid "Total Tagihan"
+msgstr ""
+
+#: templates/request-pickup/view/modal-payment.php:18
+msgid "Scan to Pay"
+msgstr ""
+
+#: templates/request-pickup/view/modal-payment.php:89
+#: templates/request-pickup/view/modal-payment.php:101
+#: templates/request-pickup/view/modal-request-pickup.php:73
+#: templates/transaction-process/view/modal-detail.php:124
+msgid "Refresh"
+msgstr ""
+
+#: templates/request-pickup/view/modal-payment.php:99
+#: templates/request-pickup/view/modal-request-pickup.php:72
+#: templates/transaction-process/view/modal-detail.php:123
+#: templates/transaction-process/view/modal-request-pickup.php:76
+msgid "Terjadi Kesalahan !"
+msgstr ""
+
+#: templates/request-pickup/view/modal-request-pickup.php:18
+#: templates/transaction-process/view/modal-request-pickup.php:18
+msgid "Schedule for Pickup"
+msgstr ""
+
+#: templates/request-pickup/view/modal-request-pickup.php:66
+#: templates/transaction-process/view/modal-request-pickup.php:70
+msgid "Pick Schedule"
 msgstr ""
 
 #: templates/setting/setuped/index.php:24
 msgid "Section not found."
 msgstr ""
 
-#: inc/Controllers/ShippingProcessController.php:77 inc/Controllers/ShippingProcessController.php:104 inc/Controllers/ShippingProcessController.php:126 inc/Controllers/SettingController.php:61 inc/Controllers/SettingController.php:79 inc/Controllers/SettingController.php:99 inc/Controllers/SettingController.php:118 inc/Controllers/SettingController.php:137
-msgid "Security check failed"
+#: templates/setting/setuped/index.php:126
+msgid "WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features."
 msgstr ""
 
-#: templates/front/form-billing-address.php:285 templates/front/form-billing-address.php:285
-msgid "Select District"
+#: templates/setting/setuped/index.php:133
+msgid "Configuration"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:922 inc/Controllers/CheckoutController.php:930 inc/Controllers/CheckoutController.php:1102 inc/Controllers/EditOrderController.php:322 inc/Controllers/EditOrderController.php:362 templates/woocommerce/cart/shipping-calculator.php:93 templates/setting/setuped/section-address.php:57 templates/front/form-billing-address.php:485
-msgid "Select Option"
+#: templates/setting/setuped/index.php:139
+#: templates/setting/setuped/section-account.php:81
+msgid "Account Configuration"
 msgstr ""
 
-#: templates/woocommerce/cart/shipping-calculator.php:30
-msgid "Select a country / region&hellip;"
+#: templates/setting/setuped/index.php:140
+msgid "Manage your KiriminAja account connection and profile."
 msgstr ""
 
-#: templates/woocommerce/cart/shipping-calculator.php:56
-msgid "Select an option&hellip;"
+#: templates/setting/setuped/index.php:147
+msgid "Online Store"
+msgstr ""
+
+#: templates/setting/setuped/index.php:154
+msgid "Configure the order tracking page for your customers."
+msgstr ""
+
+#: templates/setting/setuped/index.php:161
+#: templates/woocommerce/cart/cart-totals.php:62
+#: templates/woocommerce/cart/cart-totals.php:63
+#: wc/AdminWoocommerceSetting.php:34
+msgid "Shipping"
+msgstr ""
+
+#: templates/setting/setuped/index.php:167
+msgid "Product Volumetric Configurations"
+msgstr ""
+
+#: templates/setting/setuped/index.php:168
+msgid "Set weight, length, width, and height for every product and variation."
+msgstr ""
+
+#: templates/setting/setuped/index.php:181
+msgid "WooCommerce Shipping Locations"
+msgstr ""
+
+#: templates/setting/setuped/index.php:182
+msgid "Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout."
+msgstr ""
+
+#: templates/setting/setuped/index.php:185
+msgid "Ready"
+msgstr ""
+
+#: templates/setting/setuped/index.php:185
+msgid "Action needed"
+msgstr ""
+
+#: templates/setting/setuped/index.php:195
+#: templates/setting/setuped/section-couriers.php:18
+msgid "Courier List"
+msgstr ""
+
+#: templates/setting/setuped/index.php:196
+msgid "Choose which couriers are available at checkout."
+msgstr ""
+
+#: templates/setting/setuped/index.php:206
+msgid "Shipping Insurance"
+msgstr ""
+
+#: templates/setting/setuped/index.php:207
+msgid "Require shipping insurance on all orders."
+msgstr ""
+
+#: templates/setting/setuped/index.php:220
+msgid "Cash on Delivery"
+msgstr ""
+
+#: templates/setting/setuped/index.php:221
+msgid "Allow customers to pay when they receive their order."
+msgstr ""
+
+#: templates/setting/setuped/index.php:234
+#: templates/setting/setuped/section-address.php:19
+msgid "Manage Locations"
+msgstr ""
+
+#: templates/setting/setuped/index.php:235
+msgid "Set your business location for accurate shipping rates."
+msgstr ""
+
+#: templates/setting/setuped/index.php:242
+msgid "Others"
+msgstr ""
+
+#: templates/setting/setuped/index.php:248
+#: templates/setting/setuped/section-webhooks.php:19
+msgid "Webhooks"
+msgstr ""
+
+#: templates/setting/setuped/index.php:249
+msgid "Configure callback URL for shipment status updates."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:89
+msgid "Enabled Couriers"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:111
+msgid "Connection"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:138
+#: templates/setting/setuped/section-account.php:144
+msgid "Disconnect"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:142
+msgid "Unable to load account information. Your integration may be incomplete."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:152
+msgid "Setup Key"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:155
+msgid "Input your setup key for KiriminAja"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:157
+#: templates/setting/setuped/section-account.php:206
+msgid "Connect"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:161
+msgid "By clicking Connect, you agree to accept KiriminAja's"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:162
+msgid "terms and conditions"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:163
+msgid "and its"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:164
+msgid "privacy policy"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:171
+msgid "How to Obtain Your Kiriminaja Credentials:"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:173
+msgid "Log in to your Kiriminaja dashboard."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:174
+msgid "Go to the Settings menu and select App Integrations."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:175
+msgid "Click Add Integration and choose WooCommerce."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:176
+msgid "Enter your store domain."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:177
+msgid "Please allow up to 2 business days for API generation."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:178
+msgid "Setup Key will appear on the App Integrations page."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:179
+msgid "Copy and paste the Setup Key above."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:180
+msgid "Start using Kiriminaja in your store."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:189
+msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:203
+msgid "Please enter a setup key."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:204
+msgid "Connecting…"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:206
+msgid "Connection failed. Please check your setup key."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:211
+msgid "Disconnect KiriminAja integration?"
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:212
+#: templates/setting/setuped/section-address.php:58
+#: templates/setting/setuped/section-webhooks.php:39
+msgid "Network error."
+msgstr ""
+
+#: templates/setting/setuped/section-account.php:212
+msgid "Disconnect failed."
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:28
@@ -961,326 +1080,630 @@ msgstr ""
 msgid "Sender Phone"
 msgstr ""
 
-#: templates/setting/setuped/index.php:182
-msgid "Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout."
+#: templates/setting/setuped/section-address.php:30
+msgid "Address"
 msgstr ""
 
-#: inc/Pages/Admin.php:333
-msgid "Set weight and dimensions for each product so shipping rates are calculated accurately."
+#: templates/setting/setuped/section-address.php:33
+msgid "Pin Location"
 msgstr ""
 
-#: templates/setting/setuped/index.php:168
-msgid "Set weight, length, width, and height for every product and variation."
-msgstr ""
-
-#: templates/setting/setuped/index.php:235
-msgid "Set your business location for accurate shipping rates."
-msgstr ""
-
-#: templates/setting/setuped/index.php:121 templates/setting/setuped/section-tracking.php:58 templates/setting/setuped/section-address.php:19 templates/setting/setuped/section-account.php:81 templates/setting/setuped/section-webhooks.php:19 templates/setting/setuped/section-couriers.php:18
-msgid "Settings"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:152
-msgid "Setup Key"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:178
-msgid "Setup Key will appear on the App Integrations page."
-msgstr ""
-
-#: templates/transaction-process/view/index.php:121 templates/transaction-process/view/index.php:267 templates/request-pickup-detail/view/index.php:71
-msgid "Ship To"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-shipping.php:26
-msgid "Ship to a different address?"
-msgstr ""
-
-#: wc/AdminWoocommerceSetting.php:34 templates/woocommerce/cart/cart-totals.php:62 templates/woocommerce/cart/cart-totals.php:63 templates/setting/setuped/index.php:161
-msgid "Shipping"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:100
-msgid "Shipping Cost"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:766
-msgid "Shipping Fee"
-msgstr ""
-
-#: templates/setting/setuped/index.php:206
-msgid "Shipping Insurance"
-msgstr ""
-
-#: inc/Pages/Admin.php:347
-msgid "Shipping Locations"
-msgstr ""
-
-#: templates/woocommerce/cart/cart-shipping.php:50
-msgid "Shipping costs are calculated during checkout."
-msgstr ""
-
-#: templates/woocommerce/cart/cart-shipping.php:97
-msgid "Shipping options will be updated during checkout."
-msgstr ""
-
-#: templates/woocommerce/cart/cart-shipping.php:94
-msgid "Shipping to %s."
-msgstr ""
-
-#: wc/KiriminajaShippingMethod.php:74 wc/KiriminajaShippingMethod.php:178
-msgid "Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja"
-msgstr ""
-
-#: templates/woocommerce/checkout/payment.php:30
-msgid "Since your browser does not support JavaScript, or it is disabled, please ensure you click the %1$sUpdate Totals%2$s button before placing your order. You may be charged more than the amount stated above if you fail to do so."
-msgstr ""
-
-#: templates/woocommerce/checkout/review-order.php:80 templates/woocommerce/checkout/form-pay.php:94
-msgid "Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements."
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:180
-msgid "Start using Kiriminaja in your store."
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:49 templates/woocommerce/cart/shipping-calculator.php:55 templates/woocommerce/cart/shipping-calculator.php:69
-msgid "State / County"
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:54 templates/woocommerce/cart/shipping-calculator.php:68
-msgid "State / County:"
-msgstr ""
-
-#: templates/request-pickup-detail/view/index.php:74 templates/order/metabox-shipping.php:44
-msgid "Status"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:762
-msgid "Sub Total"
-msgstr ""
-
-#: inc/Controllers/EditOrderController.php:328 inc/Controllers/EditOrderController.php:368
-msgid "Subdistrict"
-msgstr ""
-
-#: templates/woocommerce/checkout/review-order.php:24 templates/woocommerce/checkout/review-order.php:56 templates/woocommerce/cart/cart.php:35 templates/woocommerce/cart/cart.php:155 templates/woocommerce/cart/cart-totals.php:34 templates/woocommerce/cart/cart-totals.php:35
-msgid "Subtotal"
-msgstr ""
-
-#: inc/Pages/Admin.php:185
-msgid "Support"
-msgstr ""
-
-#: templates/transaction-process/view/modal-detail.php:123 templates/request-pickup/view/modal-payment.php:99
-msgid "Terjadi Kesalahan !"
-msgstr ""
-
-#: inc/Pages/Admin.php:126
-msgid "Thank you for choosing KiriminAja"
-msgstr ""
-
-#: templates/woocommerce/checkout/order-received.php:36
-msgid "Thank you. Your order has been received."
-msgstr ""
-
-#: templates/woocommerce/checkout/cart-errors.php:21
-msgid "There are some issues with the items in your cart. Please go back to the cart page and resolve these issues before checking out."
-msgstr ""
-
-#: templates/transaction-process/view/index.php:423
-msgid "There is no selected transaction."
-msgstr ""
-
-#: templates/transaction-process/view/index.php:198
-msgid "This order has already been processed."
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:31
-msgid "Thumbnail image"
-msgstr ""
-
-#: wc/KiriminajaShippingMethod.php:47
-msgid "Title"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-verify-email.php:36
-msgid "To view this page, you must either %1$slogin%2$s or verify the email address associated with the order."
-msgstr ""
-
-#: templates/order/metabox-shipping.php:128 templates/woocommerce/checkout/review-order.php:140 templates/woocommerce/cart/cart-totals.php:110 templates/woocommerce/cart/cart-totals.php:111
-msgid "Total"
-msgstr ""
-
-#: templates/request-pickup-detail/view/index.php:43
-msgid "Total Paket"
-msgstr ""
-
-#: templates/woocommerce/checkout/order-receipt.php:33 templates/woocommerce/checkout/thankyou.php:66
-msgid "Total:"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-pay.php:29
-msgid "Totals"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:140
-msgid "Track Shipment"
-msgstr ""
-
-#: inc/Controllers/CheckoutController.php:774 inc/Controllers/CheckoutController.php:797
-msgid "Tracking"
-msgstr ""
-
-#: inc/Pages/Admin.php:352 templates/setting/setuped/index.php:153 templates/setting/setuped/section-tracking.php:58
-msgid "Tracking Page"
-msgstr ""
-
-#: templates/transaction-process/view/index.php:798
-msgid "Transaction cancelled successfully."
-msgstr ""
-
-#: templates/transaction-process/view/index.php:28
-msgid "Transactions"
-msgstr ""
-
-#: templates/setting/setuped/section-account.php:142
-msgid "Unable to load account information. Your integration may be incomplete."
-msgstr ""
-
-#: templates/woocommerce/checkout/thankyou.php:33
-msgid "Unfortunately your order cannot be processed as the originating bank/merchant has declined your transaction. Please attempt your purchase again."
-msgstr ""
-
-#: templates/front/tracking.php:33
-msgid "Untuk mendapatkan informasi pesanan anda"
-msgstr ""
-
-#: templates/woocommerce/cart/shipping-calculator.php:105
-msgid "Update"
-msgstr ""
-
-#: templates/woocommerce/cart/cart.php:179 templates/woocommerce/cart/cart.php:179
-msgid "Update cart"
-msgstr ""
-
-#: templates/woocommerce/checkout/payment.php:32 templates/woocommerce/checkout/payment.php:32
-msgid "Update totals"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-verify-email.php:50
-msgid "Verify"
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:96
-msgid "View"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:137
-msgid "View in KiriminAja"
-msgstr ""
-
-#: inc/Controllers/ProductController.php:122 inc/Controllers/ProductController.php:127
-msgid "Volumetric"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:147
-msgid "Waiting For Payment"
-msgstr ""
-
-#: templates/request-pickup/view/index.php:45
-msgid "Waiting for Payment"
-msgstr ""
-
-#: templates/woocommerce/checkout/form-verify-email.php:29
-msgid "We were unable to verify the email address you provided. Please try again."
-msgstr ""
-
-#: templates/setting/setuped/index.php:248 templates/setting/setuped/section-webhooks.php:19
-msgid "Webhooks"
-msgstr ""
-
-#: templates/order/metabox-shipping.php:93
-msgid "Weight"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:22
-msgid "Weight (%s)"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:24
-msgid "Weight Form"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:54
-msgid "Width (%s)"
-msgstr ""
-
-#: templates/product/general-wc-tab-setting.php:51
-msgid "Width Form"
-msgstr ""
-
-#: kiriminaja.php:113
-msgid "WooCommerce"
-msgstr ""
-
-#: templates/setting/setuped/index.php:181
-msgid "WooCommerce Shipping Locations"
-msgstr ""
-
-#: templates/setting/setuped/index.php:126
-msgid "WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features."
-msgstr ""
-
-#: templates/transaction-process/index.php:7 templates/request-pickup-detail/index.php:7 templates/request-pickup/index.php:7 templates/setting/index.php:6
-msgid "You do not have sufficient permissions to access this page."
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:84
-msgid "You haven't configured any tracking page yet."
-msgstr ""
-
-#: templates/woocommerce/checkout/form-checkout.php:26
-msgid "You must be logged in to checkout."
-msgstr ""
-
-#: templates/setting/setuped/section-tracking.php:73
-msgid "Your customers can now track their orders by visiting this page and entering their order number."
-msgstr ""
-
-#: templates/woocommerce/checkout/form-checkout.php:54
-msgid "Your order"
+#: templates/setting/setuped/section-address.php:40
+msgid "My Location"
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:45
 msgid "Zipcode"
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:163
-msgid "and its"
+#: templates/setting/setuped/section-address.php:46
+msgid "Area"
 msgstr ""
 
-#: wc/AdminWoocommerceSetting.php:71
-msgid "include 11% Vat"
+#: templates/setting/setuped/section-address.php:49
+msgid "Save Changes"
 msgstr ""
 
-#: templates/transaction-process/view/index.php:98 templates/transaction-process/view/index.php:295 templates/request-pickup/view/index.php:81 templates/request-pickup/view/index.php:248
-msgid "of"
+#: templates/setting/setuped/section-address.php:58
+#: templates/setting/setuped/section-webhooks.php:39
+msgid "Save failed."
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:164
-msgid "privacy policy"
+#: templates/setting/setuped/section-couriers.php:25
+msgid "Enable All"
+msgstr ""
+
+#: templates/setting/setuped/section-couriers.php:26
+msgid "Disable All"
+msgstr ""
+
+#: templates/setting/setuped/section-couriers.php:30
+msgid "Loading couriers…"
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:65
+msgid "How to Add a Tracking Page"
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:67
+msgid "Go to Pages › Add New in your WordPress admin."
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:68
+msgid "Give your page a title, e.g. \"Track Your Order\"."
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:69
+msgid "In the content editor, add the shortcode:"
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:72
+msgid "Publish the page."
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:73
+msgid "Your customers can now track their orders by visiting this page and entering their order number."
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:79
+msgid "Pages Using Tracking Shortcode"
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:84
+msgid "You haven't configured any tracking page yet."
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:85
+msgid "Add the shortcode [kiriminaja-tracking-front-page] to a page to enable order tracking for your customers."
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:96
+msgid "View"
+msgstr ""
+
+#: templates/setting/setuped/section-tracking.php:97
+msgid "Edit"
+msgstr ""
+
+#: templates/setting/setuped/section-webhooks.php:28
+msgid "Callback URL"
+msgstr ""
+
+#: templates/setting/setuped/section-webhooks.php:31
+msgid "Save"
+msgstr ""
+
+#: templates/setting/setuped/section-webhooks.php:39
+msgid "Saved."
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:14
+msgid "KiriminAja Configuration"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:56
+msgid "Connect Wordpress to KiriminAja"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:60
+msgid "Connect to KiriminAja Application by Input the setup key"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:62
+msgid "Plugin Features"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:65
+msgid "Indonesian 3PL Integrations"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:66
+msgid "Cash on Delivery Support"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:67
+msgid "Realtime Tracking"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:75
+msgid "Setup Key (Secret)"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:78
+msgid "Put your setup key here"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:111
+msgid "Connect Now"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:118
+msgid "How to Connect"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:28
+msgid "Transactions"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:58
+msgid "New / Waiting for Shipment"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:61
+msgid "Processed"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:62
+msgid "Cancelled"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:65
+msgid "Search Orders"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:66
+msgid "Search order…"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:70
+msgid "Search by:"
+msgstr ""
+
+#. translators: %s: total number of items
+#: templates/transaction-process/view/index.php:86
+#: templates/transaction-process/view/index.php:283
+#, php-format
+msgid "%s item"
+msgid_plural "%s items"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/transaction-process/view/index.php:96
+#: templates/transaction-process/view/index.php:293
+msgid "Current Page"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:165
+#: templates/transaction-process/view/_filters.php:38
+msgid "COD"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:165
+msgid "NON COD"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:198
+msgid "This order has already been processed."
+msgstr ""
+
+#: templates/transaction-process/view/index.php:199
+msgid "Order must be in Processing status before it can be picked up."
+msgstr ""
+
+#: templates/transaction-process/view/index.php:216
+msgid "via"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:227
+msgid "Order ID"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:247
+msgid "Cancel"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:424
+msgid "There is no selected transaction."
+msgstr ""
+
+#: templates/transaction-process/view/index.php:612
+#: templates/transaction-process/view/modal-detail.php:36
+msgid "Billing Details"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:617
+#: templates/transaction-process/view/modal-detail.php:41
+msgid "Shipping Details"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:627
+#: templates/transaction-process/view/modal-detail.php:51
+msgid "Email"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:634
+#: templates/transaction-process/view/modal-detail.php:58
+msgid "Phone"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:641
+#: templates/transaction-process/view/modal-detail.php:65
+msgid "Payment via"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:647
+#: templates/transaction-process/view/modal-detail.php:71
+msgid "Shipping Method"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:659
+#: templates/transaction-process/view/index.php:666
+#: templates/transaction-process/view/modal-detail.php:83
+#: templates/transaction-process/view/modal-detail.php:90
+#: templates/woocommerce/cart/cart.php:32
+#: templates/woocommerce/cart/cart.php:93
+#: templates/woocommerce/checkout/form-pay.php:27
+#: templates/woocommerce/checkout/review-order.php:23
+msgid "Product"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:660
+#: templates/transaction-process/view/index.php:667
+#: templates/transaction-process/view/modal-detail.php:84
+#: templates/transaction-process/view/modal-detail.php:91
+#: templates/woocommerce/cart/cart.php:34
+#: templates/woocommerce/cart/cart.php:126
+msgid "Quantity"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:762
+msgid "*Alasan minimal 5 karakter"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:766
+msgid "*Alasan maksimal 200 karakter"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:770
+msgid "Are you sure you want to cancel this transaction?"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:795
+msgid "Terjadi kesalahan"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:799
+msgid "Transaction cancelled successfully."
+msgstr ""
+
+#: templates/transaction-process/view/modal-cancel.php:18
+#: templates/transaction-process/view/modal-cancel.php:45
+msgid "Cancel Shipment"
+msgstr ""
+
+#: templates/transaction-process/view/modal-cancel.php:33
+msgid "Reason for Cancellation"
+msgstr ""
+
+#: templates/transaction-process/view/modal-cancel.php:35
+msgid "Enter reason (min 5, max 200 characters)"
+msgstr ""
+
+#: templates/transaction-process/view/_filters.php:37
+msgid "All Payment"
+msgstr ""
+
+#: templates/transaction-process/view/_filters.php:39
+msgid "Non-COD"
+msgstr ""
+
+#: templates/transaction-process/view/_filters.php:43
+msgid "All Couriers"
+msgstr ""
+
+#: templates/woocommerce/cart/cart-shipping.php:50
+msgid "Shipping costs are calculated during checkout."
+msgstr ""
+
+#: templates/woocommerce/cart/cart-shipping.php:55
+msgid "Enter a different address"
+msgstr ""
+
+#. Translators: $s shipping destination.
+#: templates/woocommerce/cart/cart-shipping.php:94
+#, php-format
+msgid "Shipping to %s."
+msgstr ""
+
+#: templates/woocommerce/cart/cart-shipping.php:95
+msgid "Change address"
+msgstr ""
+
+#: templates/woocommerce/cart/cart-shipping.php:97
+msgid "Shipping options will be updated during checkout."
+msgstr ""
+
+#: templates/woocommerce/cart/cart-totals.php:28
+msgid "Cart totals"
+msgstr ""
+
+#: templates/woocommerce/cart/cart-totals.php:34
+#: templates/woocommerce/cart/cart-totals.php:35
+#: templates/woocommerce/cart/cart.php:35
+#: templates/woocommerce/cart/cart.php:155
+#: templates/woocommerce/checkout/review-order.php:24
+#: templates/woocommerce/checkout/review-order.php:56
+msgid "Subtotal"
+msgstr ""
+
+#. translators: %s location.
+#: templates/woocommerce/cart/cart-totals.php:84
+#, php-format
+msgid "(estimated for %s)"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:30
+msgid "Remove item"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:31
+msgid "Thumbnail image"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:33
+#: templates/woocommerce/cart/cart.php:119
+msgid "Price"
+msgstr ""
+
+#. translators: %s is the product name
+#: templates/woocommerce/cart/cart.php:71
+#, php-format
+msgid "Remove %s from cart"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:114
+msgid "Available on backorder"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:174
+#: templates/woocommerce/checkout/form-coupon.php:34
+msgid "Coupon:"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:174
+#: templates/woocommerce/checkout/form-coupon.php:35
+msgid "Coupon code"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:174
+#: templates/woocommerce/checkout/form-coupon.php:39
+msgid "Apply coupon"
+msgstr ""
+
+#: templates/woocommerce/cart/cart.php:179
+msgid "Update cart"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:28
+msgid "Country / region:"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:30
+msgid "Select a country / region&hellip;"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:49
+#: templates/woocommerce/cart/shipping-calculator.php:55
+#: templates/woocommerce/cart/shipping-calculator.php:69
+msgid "State / County"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:54
+#: templates/woocommerce/cart/shipping-calculator.php:68
+msgid "State / County:"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:56
+msgid "Select an option&hellip;"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:78
+msgid "City:"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:79
+msgid "City"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:85
+msgid "Postcode / ZIP:"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:86
+msgid "Postcode / ZIP"
+msgstr ""
+
+#: templates/woocommerce/cart/shipping-calculator.php:105
+msgid "Update"
+msgstr ""
+
+#: templates/woocommerce/checkout/cart-errors.php:21
+msgid "There are some issues with the items in your cart. Please go back to the cart page and resolve these issues before checking out."
+msgstr ""
+
+#: templates/woocommerce/checkout/cart-errors.php:25
+msgid "Return to cart"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-billing.php:24
+msgid "Billing &amp; Shipping"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-billing.php:28
+msgid "Billing details"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-billing.php:55
+msgid "Create an account?"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-checkout.php:26
+msgid "You must be logged in to checkout."
+msgstr ""
+
+#: templates/woocommerce/checkout/form-checkout.php:54
+msgid "Your order"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-coupon.php:26
+msgid "Have a coupon?"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-coupon.php:26
+msgid "Click here to enter your code"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-coupon.php:31
+msgid "If you have a coupon code, please apply it below."
+msgstr ""
+
+#: templates/woocommerce/checkout/form-login.php:26
+msgid "Returning customer?"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-login.php:26
+msgid "Click here to login"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-login.php:32
+msgid "If you have shopped with us before, please enter your details below. If you are a new customer, please proceed to the Billing section."
+msgstr ""
+
+#: templates/woocommerce/checkout/form-pay.php:28
+msgid "Qty"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-pay.php:29
+msgid "Totals"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-pay.php:94
+#: templates/woocommerce/checkout/review-order.php:80
+msgid "Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements."
+msgstr ""
+
+#: templates/woocommerce/checkout/form-shipping.php:26
+msgid "Ship to a different address?"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-shipping.php:59
+msgid "Additional information"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-verify-email.php:29
+msgid "We were unable to verify the email address you provided. Please try again."
+msgstr ""
+
+#. translators: 1: opening login link 2: closing login link
+#: templates/woocommerce/checkout/form-verify-email.php:36
+#, php-format
+msgid "To view this page, you must either %1$slogin%2$s or verify the email address associated with the order."
+msgstr ""
+
+#: templates/woocommerce/checkout/form-verify-email.php:44
+msgid "Email address"
+msgstr ""
+
+#: templates/woocommerce/checkout/form-verify-email.php:50
+msgid "Verify"
+msgstr ""
+
+#: templates/woocommerce/checkout/order-receipt.php:25
+#: templates/woocommerce/checkout/thankyou.php:49
+msgid "Order number:"
+msgstr ""
+
+#: templates/woocommerce/checkout/order-receipt.php:29
+#: templates/woocommerce/checkout/thankyou.php:54
+msgid "Date:"
+msgstr ""
+
+#: templates/woocommerce/checkout/order-receipt.php:33
+#: templates/woocommerce/checkout/thankyou.php:66
+msgid "Total:"
+msgstr ""
+
+#: templates/woocommerce/checkout/order-receipt.php:38
+#: templates/woocommerce/checkout/thankyou.php:72
+msgid "Payment method:"
+msgstr ""
+
+#: templates/woocommerce/checkout/order-received.php:36
+msgid "Thank you. Your order has been received."
+msgstr ""
+
+#. translators: $1 and $2 opening and closing emphasis tags respectively
+#: templates/woocommerce/checkout/payment.php:30
+#, php-format
+msgid "Since your browser does not support JavaScript, or it is disabled, please ensure you click the %1$sUpdate Totals%2$s button before placing your order. You may be charged more than the amount stated above if you fail to do so."
+msgstr ""
+
+#: templates/woocommerce/checkout/payment.php:32
+msgid "Update totals"
 msgstr ""
 
 #: templates/woocommerce/checkout/terms.php:32
 msgid "required"
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:162
-msgid "terms and conditions"
+#: templates/woocommerce/checkout/thankyou.php:33
+msgid "Unfortunately your order cannot be processed as the originating bank/merchant has declined your transaction. Please attempt your purchase again."
 msgstr ""
 
-#: templates/setting/setuped/section-account.php:189
-msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
+#: templates/woocommerce/checkout/thankyou.php:36
+msgid "Pay"
+msgstr ""
+
+#: templates/woocommerce/checkout/thankyou.php:38
+msgid "My account"
+msgstr ""
+
+#: templates/woocommerce/checkout/thankyou.php:60
+msgid "Email:"
+msgstr ""
+
+#: templates/_setup-guide.php:41
+msgid "KiriminAja Setup Guide"
+msgstr ""
+
+#: templates/_setup-guide.php:58
+msgid "(Optional)"
+msgstr ""
+
+#: wc/AdminWoocommerceSetting.php:71
+msgid "include 11% Vat"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:22
+msgid "Kiriminaja"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:23
+msgid "Custom Shipping Method for Kiriminaja"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:27
+#: wc/KiriminajaShippingMethod.php:49
+msgid "Kiriminaja Shipping"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:42
+msgid "Enable"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:47
+msgid "Title"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:74
+#: wc/KiriminajaShippingMethod.php:178
+msgid "Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:185
+msgid "Maaf Produk ini Tidak Memiliki Berat untuk Pengiriman"
+msgstr ""
+
+#: wc/KiriminajaShippingMethod.php:193
+msgid "Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman"
 msgstr ""

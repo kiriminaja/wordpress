@@ -59,7 +59,7 @@ defined( 'ABSPATH' ) || exit;
 
 		<!-- KJ Custom Payment -->
 		<tr class="kj-payment-checkout">
-			<th>Payment</th>
+			<th><?php esc_html_e( 'Payment', 'kiriminaja-official' ); ?></th>
 			<td>
 				<div id="payment">
 				<?php

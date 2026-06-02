@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     </svg>
                 </div>
                 <div class="content-header" style="background-color: #ffffff" >
-                    <h1>Schedule for Pickup</h1>
+                    <h1><?php esc_html_e( 'Schedule for Pickup', 'kiriminaja-official' ); ?></h1>
                 </div>
                 <div class="content-body">
 
@@ -30,17 +30,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div style="margin-top: .75rem"></div>
                         <div id="schedule-transaction-summary" style="padding: 10px;border: 1px solid #c3c4c7;background-color: #ffffff">
                             <div class="row">
-                                <div class="col">Tagihan Paket COD</div>
+                                <div class="col"><?php esc_html_e( 'Tagihan Paket COD', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
-                                <div class="col">Tagihan Paket Non-COD</div>
+                                <div class="col"><?php esc_html_e( 'Tagihan Paket Non-COD', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp300.000</div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
-                                <div class="col">Total Tagihan</div>
+                                <div class="col"><?php esc_html_e( 'Total Tagihan', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp300.000</div>
                             </div>
                         </div>
@@ -63,14 +63,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
                             <button onclick="kjRequestPickupProcess()" class="button button-primary" type="button">
-                                <span>Pick Schedule</span>
+                                <span><?php esc_html_e( 'Pick Schedule', 'kiriminaja-official' ); ?></span>
                             </button>
                         </div>
                     </div>
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
-                        <p style="margin-bottom: 1.5rem">Terjadi Kesalahan !</p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()">Refresh</button>
+                        <p style="margin-bottom: 1.5rem"><?php esc_html_e( 'Terjadi Kesalahan !', 'kiriminaja-official' ); ?></p>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()"><?php esc_html_e( 'Refresh', 'kiriminaja-official' ); ?></button>
                     </div>
 
                 </div>
