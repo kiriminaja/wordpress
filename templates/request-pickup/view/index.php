@@ -144,7 +144,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     
                                                     $kiriof_statusContent= '
                                                         <div class="kj-badge warning">
-                                                            <span>' . esc_html__('Waiting For Payment','kiriminaja-official') . '</span>
+                                                            <span>' . esc_html__( 'Waiting for Payment', 'kiriminaja-official' ) . '</span>
                                                         </div>
                                                     ';
                                                 }

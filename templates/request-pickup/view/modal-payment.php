@@ -45,7 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
                             <div style="text-align: center; font-weight: 700">
-                                Code: <span id="trx-code">TRX-230239230</span>
+                                <?php esc_html_e( 'Code', 'kiriminaja-official' ); ?>: <span id="trx-code">TRX-230239230</span>
                             </div>
                             <div class="row-divider" style="margin-top: .75rem"></div>
                             <div style="text-align: center; font-weight: 700; color: #2271b1;font-size: 20px;">
@@ -75,7 +75,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div class="row-divider"></div>
                         
                         <div style="text-align: center;color: #a60000; font-weight: 700">
-                            <div style="font-size: 16px;">QR will expire at</div>
+                            <div style="font-size: 16px;"><?php esc_html_e( 'QR will expire at', 'kiriminaja-official' ); ?></div>
                             <div class="row-divider" style="margin-top: .25rem"></div>
                             <div style="font-size: 18px;"><span id="trx-expired-at">2024-02-20 15:55:05</span></div>
                         </div>
