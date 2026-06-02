@@ -93,6 +93,44 @@ tr.woocommerce-shipping-totals {
   font-weight: 700;
 }
 
+.kiriof-shipping-rate-pricing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex-wrap: wrap;
+}
+
+.kiriof-shipping-rate-original {
+  color: #8b97a7;
+}
+
+.kiriof-shipping-rate-discounted {
+  color: #0f4f86;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.kiriof-shipping-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: #e8f5ec;
+  color: #1d6b39;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kiriof-shipping-rate-note {
+  display: inline-flex;
+  margin-left: 8px;
+  color: #9a5d00;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .kj-cart-total
   .woocommerce-shipping-methods
   .kiriof-shipping-method-input:checked

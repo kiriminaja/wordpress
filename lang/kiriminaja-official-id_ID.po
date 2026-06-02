@@ -1457,6 +1457,36 @@ msgstr "Gagal memuat daftar provinsi."
 msgid "Failed to load cities."
 msgstr "Gagal memuat daftar kota."
 
+#: inc/Services/ShippingDiscountCouponService.php:31
+#: inc/Services/ShippingDiscountCouponService.php:35
+msgid "Add items to your cart first."
+msgstr "Tambahkan produk ke keranjang terlebih dahulu."
+
+#: inc/Services/ShippingDiscountCouponService.php:39
+msgid "This coupon requires a physical product with shipping."
+msgstr "Kupon ini membutuhkan produk fisik yang memerlukan pengiriman."
+
+#: inc/Services/ShippingDiscountCouponService.php:44
+msgid "Please enter your shipping address to check coupon eligibility."
+msgstr "Silakan masukkan alamat pengiriman untuk memeriksa kelayakan kupon."
+
+#: inc/Services/ShippingDiscountCouponService.php:48
+msgid "This coupon is not valid for your shipping destination."
+msgstr "Kupon ini tidak berlaku untuk tujuan pengiriman Anda."
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Shipping discount applied"
+msgstr "Diskon ongkir diterapkan"
+
+#: inc/Services/ShippingDiscountCouponService.php:111
+msgid "Coupon not applicable"
+msgstr "Kupon tidak berlaku"
+
+#: templates/woocommerce/cart/cart-totals.php:48
+#: templates/woocommerce/checkout/review-order.php:112
+msgid "Applied to shipping"
+msgstr "Diterapkan ke ongkir"
+
 msgid "Thumbnail image"
 msgstr "Gambar thumbnail"
 

@@ -19,6 +19,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+$kiriof_shipping_discount_service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+
 ?>
 <div class="kj-cart-total cart_totals <?php echo ( WC()->customer->has_calculated_shipping() ) ? 'calculated_shipping' : ''; ?>">
 
@@ -40,7 +42,15 @@ defined( 'ABSPATH' ) || exit;
 	foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
 			<tr class="cart-discount coupon-<?php echo esc_attr( sanitize_title( $code ) ); ?>">
 				<th><?php wc_cart_totals_coupon_label( $coupon ); ?></th>
-				<td data-title="<?php echo esc_attr( wc_cart_totals_coupon_label( $coupon, false ) ); ?>"><?php wc_cart_totals_coupon_html( $coupon ); ?></td>
+				<td data-title="<?php echo esc_attr( wc_cart_totals_coupon_label( $coupon, false ) ); ?>">
+					<?php
+					if ( $kiriof_shipping_discount_service->isShippingCoupon( $coupon ) ) {
+						echo esc_html__( 'Applied to shipping', 'kiriminaja-official' );
+					} else {
+						wc_cart_totals_coupon_html( $coupon );
+					}
+					?>
+				</td>
 			</tr>
 		<?php endforeach; ?>
 

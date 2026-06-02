@@ -105,6 +105,7 @@ function kiriof_shipping_method(){
                         'id' => $this->id.'_'.$row['key'],
                         'label' => $row['value'],
                         'cost' => $row['cost'],
+                        'meta_data' => $row['meta_data'] ?? [],
                     );
 
                     $this->add_rate($rate);
@@ -113,6 +114,8 @@ function kiriof_shipping_method(){
             }
 
             public function filterOptions($pricingData,$quantity){
+
+                $shippingDiscountService = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 
                 $chosen_payment_method = WC()->session->get('chosen_payment_method') ?: WC()->session->get('kiriof_payment_method');
 
@@ -138,11 +141,18 @@ function kiriof_shipping_method(){
                     if (!$is_cod || $is_cod && $option->cod){
                         
                         $shipping_cost = $option->cost - $option->discount_amount;
+                        $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
 
                         $filteredOptions[] = [
                             'key'=>$option->service.'_'.$option->service_type,
                             'value'=>$option->service_name,
-                            'cost'=>$shipping_cost
+                            'cost'=>$shippingDiscountPricing['cost'],
+                            'meta_data'=>[
+                                'kiriof_shipping_coupon_original_cost' => (float) $shippingDiscountPricing['original_cost'],
+                                'kiriof_shipping_coupon_discount_amount' => (float) $shippingDiscountPricing['discount_amount'],
+                                'kiriof_shipping_coupon_notice' => (string) $shippingDiscountPricing['notice'],
+                                'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
+                            ],
                         ];    
                     }
                 }

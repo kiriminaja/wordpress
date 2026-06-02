@@ -217,6 +217,36 @@ msgstr ""
 msgid "Failed to load cities."
 msgstr ""
 
+#: inc/Services/ShippingDiscountCouponService.php:31
+#: inc/Services/ShippingDiscountCouponService.php:35
+msgid "Add items to your cart first."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:39
+msgid "This coupon requires a physical product with shipping."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:44
+msgid "Please enter your shipping address to check coupon eligibility."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:48
+msgid "This coupon is not valid for your shipping destination."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Shipping discount applied"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:111
+msgid "Coupon not applicable"
+msgstr ""
+
+#: templates/woocommerce/cart/cart-totals.php:48
+#: templates/woocommerce/checkout/review-order.php:112
+msgid "Applied to shipping"
+msgstr ""
+
 #: inc/Base/Helper.php:48
 msgid "Processing"
 msgstr ""

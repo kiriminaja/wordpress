@@ -16,6 +16,8 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+$kiriof_shipping_discount_service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 ?>
 <table class="shop_table woocommerce-checkout-review-order-table">
 	<thead>
@@ -103,7 +105,15 @@ defined( 'ABSPATH' ) || exit;
 		foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
 			<tr class="cart-discount coupon-<?php echo esc_attr( sanitize_title( $code ) ); ?>">
 				<th><?php wc_cart_totals_coupon_label( $coupon ); ?></th>
-				<td><?php wc_cart_totals_coupon_html( $coupon ); ?></td>
+				<td>
+					<?php
+					if ( $kiriof_shipping_discount_service->isShippingCoupon( $coupon ) ) {
+						echo esc_html__( 'Applied to shipping', 'kiriminaja-official' );
+					} else {
+						wc_cart_totals_coupon_html( $coupon );
+					}
+					?>
+				</td>
 			</tr>
 		<?php endforeach; ?>
 

@@ -1,0 +1,310 @@
+<?php
+namespace KiriminAjaOfficial\Services;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class ShippingDiscountCouponService {
+    public const COUPON_TYPE = 'kiriof_shipping_discount';
+    public const META_REGIONS = '_kiriof_coupon_regions';
+    public const META_COURIERS = '_kiriof_coupon_couriers';
+
+    public function isShippingCoupon( $coupon ): bool {
+        if ( is_string( $coupon ) || is_numeric( $coupon ) ) {
+            $coupon = new \WC_Coupon( $coupon );
+        }
+
+        return $coupon instanceof \WC_Coupon && self::COUPON_TYPE === $coupon->get_discount_type();
+    }
+
+    public function validateCouponForCart( $coupon ): array {
+        if ( ! $this->isShippingCoupon( $coupon ) ) {
+            return array(
+                'valid' => true,
+                'message' => '',
+            );
+        }
+
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
+        }
+
+        if ( empty( WC()->cart->get_cart() ) ) {
+            return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
+        }
+
+        if ( ! WC()->cart->needs_shipping() ) {
+            return $this->invalid( __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
+        }
+
+        $destination = $this->getDestinationContext();
+        if ( $destination['id'] < 1 && '' === $destination['name'] ) {
+            return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
+        }
+
+        if ( ! $this->couponMatchesDestination( $coupon, $destination ) ) {
+            return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
+        }
+
+        return array(
+            'valid' => true,
+            'message' => '',
+        );
+    }
+
+    public function getAdjustedRatePricing( $option, float $baseCost ): array {
+        $result = array(
+            'original_cost' => $baseCost,
+            'cost' => $baseCost,
+            'discount_amount' => 0.0,
+            'eligible' => false,
+            'notice' => '',
+            'badge' => '',
+        );
+
+        if ( $this->hasActiveFreeShippingCoupon() ) {
+            return $result;
+        }
+
+        $coupons = $this->getShippingCoupons();
+        if ( empty( $coupons ) ) {
+            return $result;
+        }
+
+        $courierCode = sanitize_key( (string) ( $option->service ?? '' ) );
+        $remainingCost = max( 0, $baseCost );
+        $matchedDestination = false;
+        $matchedCourier = false;
+        $discountTotal = 0.0;
+
+        foreach ( $coupons as $coupon ) {
+            $validation = $this->validateCouponForCart( $coupon );
+            if ( ! $validation['valid'] ) {
+                continue;
+            }
+
+            $matchedDestination = true;
+            if ( ! $this->couponAllowsCourier( $coupon, $courierCode ) ) {
+                continue;
+            }
+
+            $matchedCourier = true;
+            $couponAmount = max( 0, (float) $coupon->get_amount() );
+            if ( $couponAmount <= 0 ) {
+                continue;
+            }
+
+            $applied = min( $remainingCost, $couponAmount );
+            if ( $applied <= 0 ) {
+                continue;
+            }
+
+            $discountTotal += $applied;
+            $remainingCost -= $applied;
+        }
+
+        if ( $discountTotal > 0 ) {
+            $result['cost'] = max( 0, $baseCost - $discountTotal );
+            $result['discount_amount'] = $discountTotal;
+            $result['eligible'] = true;
+            $result['badge'] = __( 'Shipping discount applied', 'kiriminaja-official' );
+            return $result;
+        }
+
+        if ( $matchedDestination && ! $matchedCourier ) {
+            $result['notice'] = __( 'Coupon not applicable', 'kiriminaja-official' );
+        }
+
+        return $result;
+    }
+
+    public function formatShippingMethodLabel( string $label, $method ): string {
+        if ( ! is_object( $method ) || ! method_exists( $method, 'get_meta' ) || ! method_exists( $method, 'get_label' ) ) {
+            return $label;
+        }
+
+        $originalCost = (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true );
+        $discountAmount = (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true );
+        $notice = (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true );
+        $badge = (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true );
+        $cost = (float) $method->cost;
+
+        if ( $discountAmount <= 0 && '' === $notice ) {
+            return $label;
+        }
+
+        $methodLabel = esc_html( (string) $method->get_label() );
+        $currentPrice = '<span class="amount">' . wp_kses_post( wc_price( $cost ) ) . '</span>';
+
+        if ( $discountAmount > 0 && $originalCost > $cost ) {
+            $originalPrice = '<del class="kiriof-shipping-rate-original">' . wp_kses_post( wc_price( $originalCost ) ) . '</del>';
+            $discountedPrice = '<ins class="kiriof-shipping-rate-discounted">' . wp_kses_post( wc_price( $cost ) ) . '</ins>';
+            $badgeHtml = '';
+
+            if ( '' !== $badge ) {
+                $badgeHtml = ' <span class="kiriof-shipping-rate-badge">' . esc_html( $badge ) . '</span>';
+            }
+
+            return $methodLabel . $badgeHtml . '<span class="kiriof-shipping-rate-pricing">' . $originalPrice . $discountedPrice . '</span>';
+        }
+
+        if ( '' !== $notice ) {
+            return $methodLabel . '<span class="kiriof-shipping-rate-pricing">' . $currentPrice . '</span><span class="kiriof-shipping-rate-note">' . esc_html( $notice ) . '</span>';
+        }
+
+        return $label;
+    }
+
+    public function getDestinationContext(): array {
+        $destinationId = 0;
+        $destinationName = '';
+
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $destinationId = (int) ( WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' ) ?: 0 );
+            $destinationName = (string) ( WC()->session->get( 'shipping_destination_name' ) ?: WC()->session->get( 'destination_name' ) ?: '' );
+        }
+
+        return array(
+            'id' => $destinationId,
+            'name' => sanitize_text_field( $destinationName ),
+            'normalized_name' => $this->normalizeText( $destinationName ),
+        );
+    }
+
+    private function getShippingCoupons(): array {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return array();
+        }
+
+        return array_values(
+            array_filter(
+                (array) WC()->cart->get_coupons(),
+                array( $this, 'isShippingCoupon' )
+            )
+        );
+    }
+
+    private function couponMatchesDestination( $coupon, array $destination ): bool {
+        $regions = $this->getCouponRegions( $coupon );
+        if ( empty( $regions ) ) {
+            return true;
+        }
+
+        foreach ( $regions as $region ) {
+            if ( ! is_array( $region ) ) {
+                continue;
+            }
+
+            if ( $this->destinationMatchesRegion( $destination, $region ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getCouponRegions( $coupon ): array {
+        if ( ! $this->isShippingCoupon( $coupon ) ) {
+            return array();
+        }
+
+        $raw = get_post_meta( $coupon->get_id(), self::META_REGIONS, true );
+        $regions = is_string( $raw ) ? json_decode( $raw, true ) : $raw;
+
+        return is_array( $regions ) ? $regions : array();
+    }
+
+    private function destinationMatchesRegion( array $destination, array $region ): bool {
+        $type = sanitize_key( (string) ( $region['type'] ?? '' ) );
+        if ( 'all_province' === $type ) {
+            return true;
+        }
+
+        $haystack = $destination['normalized_name'] ?? '';
+        if ( '' === $haystack ) {
+            return false;
+        }
+
+        $province = $this->normalizeText( (string) ( $region['province_name'] ?? '' ) );
+        $city = $this->normalizeText( (string) ( $region['city_name'] ?? '' ) );
+
+        if ( 'all_city_in_province' === $type ) {
+            return '' !== $province && str_contains( $haystack, $province );
+        }
+
+        if ( 'specific_city' !== $type || '' === $city ) {
+            return false;
+        }
+
+        if ( ! str_contains( $haystack, $city ) ) {
+            return false;
+        }
+
+        return '' === $province || str_contains( $haystack, $province );
+    }
+
+    private function couponAllowsCourier( $coupon, string $courierCode ): bool {
+        $couriers = $this->getCouponCouriers( $coupon );
+        if ( empty( $couriers ) ) {
+            return true;
+        }
+
+        return in_array( sanitize_key( $courierCode ), $couriers, true );
+    }
+
+    private function getCouponCouriers( $coupon ): array {
+        if ( ! $this->isShippingCoupon( $coupon ) ) {
+            return array();
+        }
+
+        $raw = get_post_meta( $coupon->get_id(), self::META_COURIERS, true );
+        if ( is_array( $raw ) ) {
+            return array_values( array_filter( array_map( 'sanitize_key', $raw ) ) );
+        }
+
+        if ( is_string( $raw ) && '' !== $raw ) {
+            return array_values( array_filter( array_map( 'sanitize_key', explode( ',', $raw ) ) ) );
+        }
+
+        return array();
+    }
+
+    private function hasActiveFreeShippingCoupon(): bool {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return false;
+        }
+
+        foreach ( WC()->cart->get_coupons() as $coupon ) {
+            if ( $coupon && method_exists( $coupon, 'get_free_shipping' ) && $coupon->get_free_shipping() ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeText( string $value ): string {
+        $value = (string) $value;
+        if ( function_exists( 'remove_accents' ) ) {
+            $value = remove_accents( $value );
+        }
+
+        if ( function_exists( 'mb_strtolower' ) ) {
+            $value = mb_strtolower( $value, 'UTF-8' );
+        } else {
+            $value = strtolower( $value );
+        }
+
+        $value = preg_replace( '/[^a-z0-9]+/i', ' ', $value ) ?: '';
+        return trim( preg_replace( '/\s+/', ' ', $value ) ?: '' );
+    }
+
+    private function invalid( string $message ): array {
+        return array(
+            'valid' => false,
+            'message' => $message,
+        );
+    }
+}

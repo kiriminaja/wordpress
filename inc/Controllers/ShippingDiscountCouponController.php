@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use KiriminAjaOfficial\Repositories\ShippingDiscountRegionRepository;
 use KiriminAjaOfficial\Services\KiriminajaApiService;
+use KiriminAjaOfficial\Services\ShippingDiscountCouponService;
 use KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService;
 
 class ShippingDiscountCouponController {
@@ -17,6 +18,8 @@ class ShippingDiscountCouponController {
 
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
+        add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
+        add_filter( 'woocommerce_cart_shipping_method_full_label', array( $this, 'filterShippingMethodLabel' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_usage_restriction', array( $this, 'renderUsageRestrictionFields' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
@@ -27,6 +30,35 @@ class ShippingDiscountCouponController {
     public function registerDiscountType( $types ) {
         $types[ self::COUPON_TYPE ] = __( 'Shipping Discount', 'kiriminaja-official' );
         return $types;
+    }
+
+    public function validateShippingCouponForCart( $valid, $coupon ) {
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $valid;
+        }
+
+        if ( ! $valid ) {
+            return false;
+        }
+
+        $validation = $service->validateCouponForCart( $coupon );
+        if ( $validation['valid'] ) {
+            return true;
+        }
+
+        $message = $validation['message'] ?? '';
+        if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
+            if ( ! function_exists( 'wc_has_notice' ) || ! wc_has_notice( $message, 'error' ) ) {
+                wc_add_notice( $message, 'error' );
+            }
+        }
+
+        return false;
+    }
+
+    public function filterShippingMethodLabel( $label, $method ) {
+        return ( new ShippingDiscountCouponService() )->formatShippingMethodLabel( (string) $label, $method );
     }
 
     public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
