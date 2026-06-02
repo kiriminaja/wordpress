@@ -1726,3 +1726,55 @@ msgstr ""
 #: inc/Pages/Admin.php:60
 msgid "Request Pickup Detail"
 msgstr ""
+
+#: templates/setting/unsetuped/index.php:90
+msgid "Error"
+msgstr ""
+
+#: templates/setting/unsetuped/index.php:93
+msgid "Invalid setup key, please try another key please"
+msgstr ""
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Invalid coordinates"
+msgstr ""
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Geolocation is not supported by this browser."
+msgstr ""
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Permission denied"
+msgstr ""
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Location unavailable"
+msgstr ""
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Timeout"
+msgstr ""
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Unknown error"
+msgstr ""
+
+#: templates/setting/setuped/section-couriers.php:38
+msgid "No couriers"
+msgstr ""
+
+#: templates/setting/setuped/section-couriers.php:38
+msgid "Failed to load couriers."
+msgstr ""
+
+#: templates/setting/setuped/section-couriers.php:38
+msgid "%1$s of %2$s enabled"
+msgstr ""
+
+#: templates/setting/setuped/_section-js-shared.php:17
+msgid "Unexpected response."
+msgstr ""
+
+#: templates/setting/setuped/_section-js-shared.php:19
+msgid "Server returned an invalid response."
+msgstr ""

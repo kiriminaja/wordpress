@@ -87,10 +87,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                                 </svg>
                                                                 <div style="margin-left: 8px">
                                                                     <div>
-                                                                        <span style="font-weight: 600">Error</span>
+                                                                        <span style="font-weight: 600"><?php echo esc_html__( 'Error', 'kiriminaja-official' ); ?></span>
                                                                     </div>
                                                                     <div>
-                                                                        <span class="msg">Invalid setup key, please try another key please</span>
+                                                                        <span class="msg"><?php echo esc_html__( 'Invalid setup key, please try another key please', 'kiriminaja-official' ); ?></span>
                                                                     </div>
                                                                 </div>
                                                             </div>

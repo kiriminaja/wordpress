@@ -137,7 +137,7 @@ msgstr "Semua Produk Terkonfigurasi"
 
 #: templates/setting/setuped/index.php:221
 msgid "Allow customers to pay when they receive their order."
-msgstr "Allow customers to pay when they receive their order."
+msgstr "Izinkan pelanggan membayar saat pesanan diterima."
 
 #: templates/request-pickup/view/index.php:511
 #: templates/transaction-process/view/index.php:461
@@ -161,7 +161,7 @@ msgstr "Are you sure you want to cancel this transaction?"
 
 #: templates/setting/setuped/section-address.php:46
 msgid "Area"
-msgstr "Area"
+msgstr "Wilayah"
 
 #: templates/woocommerce/cart/cart.php:114
 msgid "Available on backorder"
@@ -229,7 +229,7 @@ msgstr "Total Keranjang"
 
 #: templates/setting/setuped/index.php:220
 msgid "Cash on Delivery"
-msgstr "Cash on Delivery"
+msgstr "Bayar di Tempat (COD)"
 
 #: templates/setting/unsetuped/index.php:66
 msgid "Cash on Delivery Support"
@@ -241,11 +241,11 @@ msgstr "Ubah alamat"
 
 #: inc/Pages/Admin.php:343
 msgid "Choose which courier services to offer at checkout. Only enabled couriers appear to buyers."
-msgstr "Choose which courier services to offer at checkout. Only enabled couriers appear to buyers."
+msgstr "Pilih layanan kurir yang ditawarkan saat checkout. Hanya kurir yang aktif yang akan tampil ke pembeli."
 
 #: templates/setting/setuped/index.php:196
 msgid "Choose which couriers are available at checkout."
-msgstr "Choose which couriers are available at checkout."
+msgstr "Pilih kurir yang tersedia saat checkout."
 
 #: templates/woocommerce/cart/shipping-calculator.php:79
 msgid "City"
@@ -285,7 +285,7 @@ msgstr "Konfigurasi"
 
 #: templates/setting/setuped/index.php:249
 msgid "Configure callback URL for shipment status updates."
-msgstr "Configure callback URL for shipment status updates."
+msgstr "Atur URL callback untuk pembaruan status pengiriman."
 
 #: templates/setting/setuped/index.php:154
 msgid "Configure the order tracking page for your customers."
@@ -293,7 +293,7 @@ msgstr "Konfigurasikan halaman pelacakan pesanan untuk pelanggan Anda."
 
 #: inc/Pages/Admin.php:338
 msgid "Configure your pickup address and subdistrict so couriers quote the correct rates."
-msgstr "Configure your pickup address and subdistrict so couriers quote the correct rates."
+msgstr "Atur alamat pickup dan kelurahan agar kurir dapat menampilkan tarif yang tepat."
 
 #: templates/setting/setuped/section-account.php:157
 #: templates/setting/setuped/section-account.php:206
@@ -314,11 +314,11 @@ msgstr "Hubungkan ke aplikasi KiriminAja dengan memasukkan setup key"
 
 #: inc/Pages/Admin.php:328
 msgid "Connect your KiriminAja account to sync orders, shipments, and automate label printing."
-msgstr "Connect your KiriminAja account to sync orders, shipments, and automate label printing."
+msgstr "Hubungkan akun KiriminAja untuk menyinkronkan pesanan, pengiriman, dan mengotomatiskan cetak label."
 
 #: templates/setting/setuped/section-account.php:204
 msgid "Connecting…"
-msgstr "Connecting…"
+msgstr "Menghubungkan…"
 
 #: templates/setting/setuped/section-account.php:111
 msgid "Connection"
@@ -357,7 +357,7 @@ msgstr "Pengaturan Kurir"
 
 #: inc/Pages/Admin.php:353
 msgid "Create a public tracking page so customers can monitor their shipment status in real time."
-msgstr "Create a public tracking page so customers can monitor their shipment status in real time."
+msgstr "Buat halaman pelacakan publik agar pelanggan dapat memantau status pengiriman secara real-time."
 
 #: templates/woocommerce/checkout/form-billing.php:55
 msgid "Create an account?"
@@ -459,7 +459,7 @@ msgstr "Aktifkan Semua"
 
 #: inc/Pages/Admin.php:348
 msgid "Enable shipping zones in WooCommerce so customers can select their delivery destination."
-msgstr "Enable shipping zones in WooCommerce so customers can select their delivery destination."
+msgstr "Aktifkan zona pengiriman di WooCommerce agar pelanggan dapat memilih tujuan pengiriman."
 
 #: templates/setting/setuped/section-account.php:89
 msgid "Enabled Couriers"
@@ -502,7 +502,7 @@ msgstr "Beri judul halaman, misalnya \"Lacak Pesanan Anda\"."
 
 #: templates/setting/setuped/section-tracking.php:67
 msgid "Go to Pages › Add New in your WordPress admin."
-msgstr "Go to Pages › Add New in your WordPress admin."
+msgstr "Buka Pages › Add New di admin WordPress Anda."
 
 #: templates/setting/setuped/section-account.php:174
 msgid "Go to the Settings menu and select App Integrations."
@@ -653,7 +653,7 @@ msgstr "Form Panjang"
 
 #: templates/setting/setuped/section-couriers.php:30
 msgid "Loading couriers…"
-msgstr "Loading couriers…"
+msgstr "Memuat kurir…"
 
 #: templates/setting/setuped/section-account.php:173
 msgid "Log in to your Kiriminaja dashboard."
@@ -783,7 +783,7 @@ msgstr "Pengaturan Origin"
 
 #: templates/setting/setuped/index.php:242
 msgid "Others"
-msgstr "Others"
+msgstr "Lainnya"
 
 #: templates/request-pickup-detail/view/index.php:72
 #: templates/transaction-process/view/index.php:122
@@ -902,7 +902,7 @@ msgstr "Plugin Kiriminaja"
 
 #: inc/Pages/Admin.php:184
 msgid "Plugin Page"
-msgstr "Plugin Page"
+msgstr "Halaman Plugin"
 
 #: templates/woocommerce/cart/shipping-calculator.php:86
 msgid "Postcode / ZIP"
@@ -972,7 +972,7 @@ msgstr "Jumlah"
 
 #: templates/setting/setuped/index.php:185
 msgid "Ready"
-msgstr "Ready"
+msgstr "Siap"
 
 #: templates/setting/unsetuped/index.php:67
 msgid "Realtime Tracking"
@@ -1015,7 +1015,7 @@ msgstr "Request Pickup"
 
 #: templates/setting/setuped/index.php:207
 msgid "Require shipping insurance on all orders."
-msgstr "Require shipping insurance on all orders."
+msgstr "Wajibkan asuransi pengiriman untuk semua pesanan."
 
 #: kiriminaja.php:143
 msgid "Return to Plugins"
@@ -1048,11 +1048,11 @@ msgstr "Simpan Perubahan"
 #: templates/setting/setuped/section-address.php:58
 #: templates/setting/setuped/section-webhooks.php:39
 msgid "Save failed."
-msgstr "Save failed."
+msgstr "Gagal menyimpan."
 
 #: templates/setting/setuped/section-webhooks.php:39
 msgid "Saved."
-msgstr "Saved."
+msgstr "Tersimpan."
 
 #: templates/request-pickup/view/modal-payment.php:18
 msgid "Scan to Pay"
@@ -1146,11 +1146,11 @@ msgstr "Nomor HP Pengirim"
 
 #: templates/setting/setuped/index.php:182
 msgid "Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout."
-msgstr "Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout."
+msgstr "Atur lokasi pengiriman agar WooCommerce dapat menampilkan tarif KiriminAja saat checkout."
 
 #: inc/Pages/Admin.php:333
 msgid "Set weight and dimensions for each product so shipping rates are calculated accurately."
-msgstr "Set weight and dimensions for each product so shipping rates are calculated accurately."
+msgstr "Atur berat dan dimensi setiap produk agar tarif pengiriman dihitung akurat."
 
 #: templates/setting/setuped/index.php:168
 msgid "Set weight, length, width, and height for every product and variation."
@@ -1158,7 +1158,7 @@ msgstr "Atur berat, panjang, lebar, dan tinggi untuk setiap produk dan variasi."
 
 #: templates/setting/setuped/index.php:235
 msgid "Set your business location for accurate shipping rates."
-msgstr "Set your business location for accurate shipping rates."
+msgstr "Atur lokasi bisnis Anda untuk tarif pengiriman yang akurat."
 
 #: inc/Pages/Admin.php:102
 #: templates/setting/setuped/index.php:121
@@ -1209,11 +1209,11 @@ msgstr "Ongkos Kirim"
 
 #: templates/setting/setuped/index.php:206
 msgid "Shipping Insurance"
-msgstr "Shipping Insurance"
+msgstr "Asuransi Pengiriman"
 
 #: inc/Pages/Admin.php:347
 msgid "Shipping Locations"
-msgstr "Shipping Locations"
+msgstr "Lokasi Pengiriman"
 
 #: templates/woocommerce/cart/cart-shipping.php:50
 msgid "Shipping costs are calculated during checkout."
@@ -1288,7 +1288,7 @@ msgstr "Subtotal"
 
 #: inc/Pages/Admin.php:185
 msgid "Support"
-msgstr "Support"
+msgstr "Bantuan"
 
 #: templates/request-pickup/view/modal-payment.php:99
 #: templates/request-pickup/view/modal-request-pickup.php:72
@@ -1299,7 +1299,7 @@ msgstr "Terjadi Kesalahan!"
 
 #: inc/Pages/Admin.php:126
 msgid "Thank you for choosing KiriminAja"
-msgstr "Thank you for choosing KiriminAja"
+msgstr "Terima kasih telah memilih KiriminAja"
 
 #: templates/woocommerce/checkout/order-received.php:36
 msgid "Thank you. Your order has been received."
@@ -1475,7 +1475,7 @@ msgstr "Lokasi Pengiriman WooCommerce"
 
 #: templates/setting/setuped/index.php:126
 msgid "WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features."
-msgstr "WooCommerce is not yet installed or activated. This plugin only supports WooCommerce features."
+msgstr "WooCommerce belum terpasang atau belum aktif. Plugin ini hanya mendukung fitur WooCommerce."
 
 #: templates/request-pickup-detail/index.php:7
 #: templates/request-pickup/index.php:7
@@ -1533,7 +1533,7 @@ msgstr "syarat dan ketentuan"
 
 #: templates/setting/setuped/section-account.php:189
 msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
-msgstr "© 2025 PT Selalu Siap Solusi. All rights reserved."
+msgstr "© 2025 PT Selalu Siap Solusi. Hak cipta dilindungi undang-undang."
 
 #. Plugin Name of the plugin
 #: kiriminaja.php
@@ -1725,3 +1725,55 @@ msgstr "Transaksi KiriminAja"
 #: inc/Pages/Admin.php:60
 msgid "Request Pickup Detail"
 msgstr "Detail Request Pickup"
+
+#: templates/setting/unsetuped/index.php:90
+msgid "Error"
+msgstr "Error"
+
+#: templates/setting/unsetuped/index.php:93
+msgid "Invalid setup key, please try another key please"
+msgstr "Setup key tidak valid, silakan coba setup key lainnya."
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Invalid coordinates"
+msgstr "Koordinat tidak valid"
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Geolocation is not supported by this browser."
+msgstr "Geolocation tidak didukung oleh browser ini."
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Permission denied"
+msgstr "Izin lokasi ditolak"
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Location unavailable"
+msgstr "Lokasi tidak tersedia"
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Timeout"
+msgstr "Waktu habis"
+
+#: templates/setting/setuped/section-address.php:66
+msgid "Unknown error"
+msgstr "Terjadi kesalahan tidak diketahui"
+
+#: templates/setting/setuped/section-couriers.php:38
+msgid "No couriers"
+msgstr "Tidak ada kurir"
+
+#: templates/setting/setuped/section-couriers.php:38
+msgid "Failed to load couriers."
+msgstr "Gagal memuat kurir."
+
+#: templates/setting/setuped/section-couriers.php:38
+msgid "%1$s of %2$s enabled"
+msgstr "%1$s dari %2$s aktif"
+
+#: templates/setting/setuped/_section-js-shared.php:17
+msgid "Unexpected response."
+msgstr "Respons tidak terduga."
+
+#: templates/setting/setuped/_section-js-shared.php:19
+msgid "Server returned an invalid response."
+msgstr "Server mengembalikan respons yang tidak valid."

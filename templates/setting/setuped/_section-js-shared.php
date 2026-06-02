@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         try {
             var p = JSON.parse(r.responseText);
             p = (p && typeof p === 'object' && 'data' in p) ? p.data : p;
-            return (p && typeof p === 'object') ? p : { status: 0, message: 'Unexpected response.' };
+            return (p && typeof p === 'object') ? p : { status: 0, message: '<?php echo esc_js( __( 'Unexpected response.', 'kiriminaja-official' ) ); ?>' };
         } catch(e) {
-            return { status: 0, message: 'Server returned an invalid response.' };
+            return { status: 0, message: '<?php echo esc_js( __( 'Server returned an invalid response.', 'kiriminaja-official' ) ); ?>' };
         }
     };
