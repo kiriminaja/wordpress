@@ -87,6 +87,7 @@ if ( ! function_exists( 'kiriof_sanitize_recursive' ) ) {
 
 add_action( 'plugins_loaded', 'kiriof_load_textdomain' );
 function kiriof_load_textdomain() {
+    // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Kept for compatibility outside wp.org language-pack loading.
     load_plugin_textdomain(
         'kiriminaja-official',
         false,

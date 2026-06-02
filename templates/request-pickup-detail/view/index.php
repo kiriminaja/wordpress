@@ -114,6 +114,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         </td>
                                         <td class="manage-column column-thumb">
                                             <div style="font-weight: 600"><?php echo esc_html( strtoupper( $kiriof_txn->service . ' ' . ( $kiriof_txn->service_name ?? '' ) ) ); ?></div>
+                                            <?php /* translators: %s: pickup schedule date/time. */ ?>
                                             <div style="font-size: 12px; color: #50575e; margin-top: 4px"><?php echo esc_html( sprintf( __( 'Pickup: %s', 'kiriminaja-official' ), $kiriof_payment_data['schedule'] ) ); ?></div>
                                         </td>
                                         <td class="manage-column column-thumb">

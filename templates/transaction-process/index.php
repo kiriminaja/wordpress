@@ -165,6 +165,7 @@ class Kiriof_TransactionProcessIndex
                     $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.awb LIKE %s', $key_like );
                     break;
                 default:
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic column identifier comes from trusted getOrdersTable() map.
                     $key_clause = $wpdb->prepare( "AND orders_tbl.{$o['id']} LIKE %s", $key_like );
                     break;
             }
