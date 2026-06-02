@@ -35,66 +35,61 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     <input type="text" name="month" value="<?php echo esc_attr( isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '' ); ?>">
                                 </form>
                                 
-                                
-                                <div>
-                                    <div style="display: inline-block">
-                                        <ul class="subsubsub">
+                                <div class="wp-filter" style="display: flex;justify-content: space-between;">
+                                    <ul class="filter-links">
+                                        <?php
+                                        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+                                        $kiriof_status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
+                                        ?>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','');return false" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>>All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','unpaid');return false" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current" aria-current="page"' : ''; ?>>Waiting for Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','paid');return false" <?php echo $kiriof_status_filter === 'paid' ? 'class="current" aria-current="page"' : ''; ?>>Paid <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a></li>
+                                    </ul>
+                                    <form class="search-form search-plugins" onsubmit="return false">
+                                        <label class="screen-reader-text" for="kiriof-payment-search"><?php esc_html_e( 'Search Payments', 'kiriminaja-official' ); ?></label>
+                                        <input type="search" id="kiriof-payment-search" class="wp-filter-search" placeholder="<?php esc_attr_e( 'Search payment…', 'kiriminaja-official' ); ?>" value="<?php echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>">
+                                    </form>
+                                </div>
+
+                                <div class="tablenav top">
+                                    <div class="alignleft actions" style="display:flex;align-items:center">
+                                        <select id="month_search_1">
                                             <?php
                                             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
-                                            $kiriof_status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
+                                            $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '';
                                             ?>
-                                            <li ><a href="#" onclick="kiriofApplySearch('status','')" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current"' : ''; ?> >All <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a> |</li>
-                                            <li ><a href="#" onclick="kiriofApplySearch('status','unpaid')" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current"' : ''; ?> >Waiting for Payment <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a>  |</li>
-                                            <li ><a href="#" onclick="kiriofApplySearch('status','paid')" <?php echo $kiriof_status_filter === 'paid' ? 'class="current"' : ''; ?> >Paid <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a>  |</li>
-                                        </ul>
+                                            <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
+                                            <?php
+                                            if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
+                                                foreach ($monthOptions as $kiriof_key => $kiriof_value){
+                                                    echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
+                                                }                                                            
+                                            }
+                                            ?>
+                                        </select>
+                                        <button class="button" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
                                     </div>
-                                    
-                                    <div class="row-divider"></div>
-                                    <div class="container-fluid p-0">
-                                        <div class="row">
-                                            <div class="col">
-                                                <!--Month Search-->
-                                                <div style="display: flex;width: 100%; gap: 2px">
-                                                    <select  style="width: 100%; max-width: 12.5rem" name="month_search" id="month_search_1">
-                                                        <?php
-                                                        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
-                                                        $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : '';
-                                                        ?>
-                                                        <option selected="selected" value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
-                                                        <?php
-                                                        if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
-                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value){
-                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
-                                                            }                                                            
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)">
-                                                        <div style="display: flex">
-                                                            <div style="margin: auto">
-                                                                <span>Apply</span>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col">
-                                                <!--Key Search-->
-                                                <div style="display: flex;justify-content: end;width: 100%; gap: 2px">
-                                                    <input style="width: 100%; max-width: 12.5rem" name="key_search" type="search" class="input-text regular-input" placeholder="Search Payment" value="<?php echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>">
-                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('key',document.getElementsByName('key_search')[0].value)">
-                                                        <div style="display: flex">
-                                                            <div style="margin: auto">
-                                                                <span>Search</span>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <?php if ( $total_pages > 1 ) : ?>
+                                    <div class="tablenav-pages">
+                                        <span class="pagination-links">
+                                            <?php if ( $prev_page_link ) : ?>
+                                            <a class="prev-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page - 1 ); ?>);return false"><span>&lsaquo;</span></a>
+                                            <?php else : ?>
+                                            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
+                                            <?php endif; ?>
+                                            <span class="paging-input">
+                                                <span class="tablenav-paging-text"><?php echo esc_html( $page ); ?> <?php esc_html_e( 'of', 'kiriminaja-official' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $total_pages ) ); ?></span></span>
+                                            </span>
+                                            <?php if ( $next_page_link ) : ?>
+                                            <a class="next-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page + 1 ); ?>);return false"><span>&rsaquo;</span></a>
+                                            <?php else : ?>
+                                            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
+                                            <?php endif; ?>
+                                        </span>
                                     </div>
-                                    
-                                    <div class="row-divider"></div>
+                                    <?php endif; ?>
+                                    <br class="clear">
+                                </div>
                                     <table class="wp-list-table widefat fixed striped table-view-list posts">
                                         <thead>
                                         <tr>
@@ -117,7 +112,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                                 $kiriof_statusContent= '
                                                     <div class="kj-badge success">
-                                                        <span>Paid</span>
+                                                        <span>' . esc_html__('Paid','kiriminaja-official') . '</span>
                                                     </div>
                                                 ';
                                                 if (@$kiriof_row->status!=="paid"){
@@ -149,7 +144,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     
                                                     $kiriof_statusContent= '
                                                         <div class="kj-badge warning">
-                                                            <span>Waiting For Payment</span>
+                                                            <span>' . esc_html__('Waiting For Payment','kiriminaja-official') . '</span>
                                                         </div>
                                                     ';
                                                 }
@@ -227,65 +222,40 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         </tfoot>
                                     </table>
 
-                                    <div class="row-divider"></div>
-                                    <div class="container-fluid p-0">
-                                        <div class="row">
-                                            <div class="col">
-                                                <!--Month Search-->
-                                                <div style="display: flex;width: 100%; gap: 2px">
-                                                    <select  style="width: 100%; max-width: 12.5rem" name="month_search_2" id="month_search_2">
-                                                        <option selected="selected" value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
-                                                        <?php
-                                                        if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
-                                                            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template loop variables
-                                                            foreach ($monthOptions as $kiriof_key => $kiriof_value){
-                                                                echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
-                                                            }
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <button class="button button-primary-secondary" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)">
-                                                        <div style="display: flex">
-                                                            <div style="margin: auto">
-                                                                <span>Apply</span>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col">
-                                                <!--Pagination-->
-                                                <div style="display: flex;justify-content: end;align-items: center;justify-items: center;gap: 6px">
-                                                    <span style="font-weight: 700;"><?php echo absint( count( $results ) ); ?> items</span>
-                                                    <div>
-                                                        <button <?php echo @$prev_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button button-primary-blank" type="button">
-                                                            <?php echo esc_attr($prev_page_link)!='' ? '<a href="'.esc_url($prev_page_link).'" class="inset-absolute"></a>' : ''; ?>
-                                                            <div style="display: flex">
-                                                                <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                        <path d="M11.1998 4L7.1998 8L11.1998 12L10.3998 13.6L4.7998 8L10.3998 2.4L11.1998 4Z" fill="black"/>
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    </div>
-                                                    <span style="font-weight: 700;"> <?php echo esc_html($page); ?> of <?php echo esc_html($total_pages); ?> </span>
-                                                    <div>
-                                                        <button <?php echo @$next_page_link!='' ? '' : 'disabled'; ?> style="position: relative" class="button button-primary-blank" type="button">
-                                                            <?php echo esc_attr($next_page_link)!='' ? '<a href="'.esc_url($next_page_link).'" class="inset-absolute"></a>' : ''; ?>
-
-                                                            <div style="display: flex">
-                                                                <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                        <path d="M4.7998 12L8.7998 8L4.7998 4L5.5998 2.4L11.1998 8L5.5998 13.6L4.7998 12Z" fill="black"/>
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <div class="tablenav bottom">
+                                        <div class="alignleft actions" style="display:flex;align-items:center">
+                                            <select id="month_search_2" onchange="document.getElementById('month_search_1').value=this.value;kiriofApplySearch('month',this.value)">
+                                                <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>>All Dates</option>
+                                                <?php
+                                                if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
+                                                    foreach ($monthOptions as $kiriof_key => $kiriof_value){
+                                                        echo '<option value="' . esc_attr($kiriof_key) . '" ' . ( $kiriof_month_filter === $kiriof_key ? 'selected' : '' ) . '>' . esc_html($kiriof_value) . '</option>';
+                                                    }
+                                                }
+                                                ?>
+                                            </select>
+                                            <button class="button" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
                                         </div>
+                                        <?php if ( $total_pages > 1 ) : ?>
+                                        <div class="tablenav-pages">
+                                            <span class="pagination-links">
+                                                <?php if ( $prev_page_link ) : ?>
+                                                <a class="prev-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page - 1 ); ?>);return false"><span>&lsaquo;</span></a>
+                                                <?php else : ?>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
+                                                <?php endif; ?>
+                                                <span class="paging-input">
+                                                    <span class="tablenav-paging-text"><?php echo esc_html( $page ); ?> <?php esc_html_e( 'of', 'kiriminaja-official' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $total_pages ) ); ?></span></span>
+                                                </span>
+                                                <?php if ( $next_page_link ) : ?>
+                                                <a class="next-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page + 1 ); ?>);return false"><span>&rsaquo;</span></a>
+                                                <?php else : ?>
+                                                <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <br class="clear">
                                     </div>
 
     <?php include 'modal-payment.php' ?>
@@ -298,8 +268,19 @@ if ( ! defined( 'ABSPATH' ) ) {
     function kiriofApplySearch (key,value){
         if (jQuery(`#table-form [name="${key}"]`).length > 0){
             jQuery(`#table-form [name="${key}"]`).val(value)
-            jQuery(`#table-form`).trigger('submit')
         }
+        // Clear search when switching status tabs
+        if (key === 'status' && value) {
+            jQuery(`#table-form [name="key"]`).val('');
+            jQuery('#kiriof-payment-search').val('');
+        }
+        jQuery(`#table-form [name="cpage"]`).val('1')
+        jQuery(`#table-form`).trigger('submit')
+    }
+
+    function kiriofGoToPage(page){
+        jQuery(`#table-form [name="cpage"]`).val(page)
+        jQuery(`#table-form`).trigger('submit')
     }
 
     // Heartbeat nonce auto-refresh (mirrors setuped/index.php)
@@ -310,7 +291,16 @@ if ( ! defined( 'ABSPATH' ) ) {
         if (data.kiriof_new_nonce){
             kiriofAjax.nonce = data.kiriof_new_nonce;
         }
-    });    
+    });
+
+    var kiriofPaymentSearchTimer;
+    jQuery(document).on('keyup', '#kiriof-payment-search', function(){
+        clearTimeout(kiriofPaymentSearchTimer);
+        var $input = jQuery(this);
+        kiriofPaymentSearchTimer = setTimeout(function(){
+            kiriofApplySearch('key', $input.val());
+        }, 400);
+    });
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
@@ -518,7 +508,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     modalElemLoader.addClass('kj-hidden')
                     modalElemContent.addClass('kj-hidden')
                     modalElemErr.removeClass('kj-hidden')
-                    alert(resp?.message ?? 'Terjadi kesalahan')
+                    alert(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>')
                     return
                 }
 

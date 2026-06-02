@@ -420,7 +420,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
         });
 
         if (orderIds.length === 0) {
-            alert('There is no selected transaction');
+            alert('<?php echo esc_js(__('There is no selected transaction.', 'kiriminaja-official')); ?>');
             return;
         }
 
@@ -457,7 +457,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     $modalElemLoader.addClass('kj-hidden');
                     $modalElemContent.addClass('kj-hidden');
                     $modalElemErr.removeClass('kj-hidden');
-                    alert(resp?.message ?? 'Terjadi kesalahan');
+                    alert(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>');
                     return;
                 }
 
@@ -766,7 +766,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
             return;
         }
 
-        if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini?')) {
+        if (!confirm('<?php echo esc_js(__('Are you sure you want to cancel this transaction?', 'kiriminaja-official')); ?>')) {
             return;
         }
 
@@ -795,7 +795,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     return;
                 }
 
-                alert(resp?.message ?? 'Transaksi berhasil dibatalkan');
+                alert(resp?.message ?? '<?php echo esc_js(__('Transaction cancelled successfully.', 'kiriminaja-official')); ?>');
                 window.location.reload();
             }
         });
