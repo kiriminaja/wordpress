@@ -459,10 +459,8 @@
 
   function syncScopeUi() {
     var isAll = state.scope === "all";
-    $("#kiriof_coupon_region_scope_value").val(state.scope);
-    $(".kiriof-region-toggle").each(function () {
-      $(this).toggleClass("is-active", $(this).data("scope") === state.scope);
-    });
+    $("input[name='kiriof_coupon_region_scope'][value='all']").prop("checked", isAll);
+    $("input[name='kiriof_coupon_region_scope'][value='selected']").prop("checked", !isAll);
     $(".kiriof-region-picker")
       .toggleClass("is-all-scope", isAll)
       .toggleClass("is-selected-scope", !isAll);
@@ -605,8 +603,8 @@
     renderTree();
 
     $(document).on("change", "#discount_type", syncVisibility);
-    $(document).on("click", ".kiriof-region-toggle", function () {
-        state.scope = $(this).data("scope") === "selected" ? "selected" : "all";
+    $(document).on("change", "input[name='kiriof_coupon_region_scope']", function () {
+        state.scope = $(this).val() === "selected" ? "selected" : "all";
         syncScopeUi();
       });
     $(document).on("input", "#kiriof_coupon_region_search", function () {

@@ -200,12 +200,11 @@ class ShippingDiscountCouponController {
         echo '</div>';
 
         echo '<input type="hidden" id="kiriof_coupon_regions" name="' . esc_attr( self::META_REGIONS ) . '" value="' . esc_attr( wp_json_encode( $savedRegions ) ) . '" />';
-        echo '<input type="hidden" id="kiriof_coupon_region_scope_value" name="kiriof_coupon_region_scope" value="all" />';
 
         echo '<div class="kiriof-region-picker">';
         echo '<div class="kiriof-region-picker-mode">';
-        echo '<button type="button" class="kiriof-region-toggle" data-scope="all">' . esc_html__( 'All Indonesian Regions', 'kiriminaja-official' ) . '</button>';
-        echo '<button type="button" class="kiriof-region-toggle" data-scope="selected">' . esc_html__( 'Selected Regions', 'kiriminaja-official' ) . '</button>';
+        echo '<label class="kiriof-region-toggle"><input type="radio" name="kiriof_coupon_region_scope" value="all" /> ' . esc_html__( 'All Indonesian Regions', 'kiriminaja-official' ) . '</label>';
+        echo '<label class="kiriof-region-toggle"><input type="radio" name="kiriof_coupon_region_scope" value="selected" /> ' . esc_html__( 'Selected Regions', 'kiriminaja-official' ) . '</label>';
         echo '</div>';
 
         echo '<div class="kiriof-region-picker-toolbar">';
