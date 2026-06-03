@@ -12,6 +12,7 @@ A WordPress/WooCommerce plugin that integrates [KiriminAja](https://kiriminaja.c
 
 - Live shipping rate calculation at checkout
 - Multi-courier support (JNE, J&T, SiCepat, and more)
+- Shipping discounts via WooCommerce coupons (fixed/percentage shipping) with courier/area restrictions
 - COD (Cash on Delivery) with daily fund disbursement
 - Package pickup scheduling from your location
 - AWB printing and shipment tracking
