@@ -86,6 +86,21 @@ $kiriof_calculator_text          = '';
 						$kiriof_notice            = (string) ( $kiriof_rate_meta['notice'] ?? '' );
 						$kiriof_current_cost      = isset( $method->cost ) ? (float) $method->cost : 0.0;
 
+						if ( method_exists( $method, 'get_meta' ) ) {
+							if ( 0.0 === $kiriof_original_cost ) {
+								$kiriof_original_cost = (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true );
+							}
+							if ( 0.0 === $kiriof_discount_amount ) {
+								$kiriof_discount_amount = max( 0.0, (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true ) );
+							}
+							if ( '' === $kiriof_badge ) {
+								$kiriof_badge = (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true );
+							}
+							if ( '' === $kiriof_notice ) {
+								$kiriof_notice = (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true );
+							}
+						}
+
 						if ( $kiriof_discount_amount > 0 && $kiriof_original_cost > $kiriof_current_cost ) {
 							$kiriof_method_label_html = esc_html( (string) $method->get_label() );
 							if ( '' !== $kiriof_badge ) {
