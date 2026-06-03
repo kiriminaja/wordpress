@@ -199,13 +199,17 @@ class ShippingDiscountCouponService {
                     continue;
                 }
 
-                $discountTotal += $this->getRateDiscountAmount( $rate );
+                // Discount meta is intentionally NOT stored on WC_Shipping_Rate->meta_data
+                // (to prevent block checkout rendering raw numbers as sub-lines).
+                // Always read discount/cost from session rate meta map instead.
+                $sessionMeta = $sessionRateMeta[ $chosenMethodId ] ?? array();
+                $sessionDiscount = isset( $sessionMeta['discount_amount'] ) ? max( 0, (float) $sessionMeta['discount_amount'] ) : $this->getRateDiscountAmount( $rate );
+                $discountTotal += $sessionDiscount;
+
                 if ( '' === $primaryRateLabel ) {
                     $primaryRateLabel = method_exists( $rate, 'get_label' ) ? (string) $rate->get_label() : '';
-                    $primaryCurrentCost = isset( $rate->cost ) ? (float) $rate->cost : 0.0;
-                    $primaryOriginalCost = method_exists( $rate, 'get_meta' )
-                        ? (float) $rate->get_meta( 'kiriof_shipping_coupon_original_cost', true )
-                        : $primaryCurrentCost;
+                    $primaryCurrentCost = isset( $sessionMeta['cost'] ) ? (float) $sessionMeta['cost'] : ( isset( $rate->cost ) ? (float) $rate->cost : 0.0 );
+                    $primaryOriginalCost = isset( $sessionMeta['original_cost'] ) ? (float) $sessionMeta['original_cost'] : $primaryCurrentCost;
                 }
                 $matchedRate = true;
                 break;
