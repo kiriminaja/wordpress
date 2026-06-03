@@ -453,6 +453,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 function kiriofClearBlockShippingRatesFromStore() {
+                    // Guard against re-entrant calls (e.g. triggered by wp.data.subscribe).
+                    if (kiriofClearBlockShippingRatesFromStore._pending) {
+                        return;
+                    }
+                    kiriofClearBlockShippingRatesFromStore._pending = true;
+                    window.setTimeout(function() {
+                        kiriofClearBlockShippingRatesFromStore._pending = false;
+                    }, 3000);
+
                     // Clear the server-side destination_id session so calculate_shipping()
                     // returns no rates — removes stale rates from the Order Summary when
                     // the district warning is shown.
@@ -475,6 +484,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return jQuery('.wp-block-woocommerce-checkout-payment-block, .wc-block-components-checkout-step--payment-method, .wc-block-checkout__payment').first();
                 }
 
+                // Split warning state sync into two concerns:
+                // - kiriofSyncBlockDistrictWarningState: pure UI (show/hide warning, sections)
+                //   safe to call from anywhere including wp.data.subscribe
+                // - kiriofClearBlockShippingRatesFromStore: triggers store dispatch, must ONLY
+                //   be called from explicit user interactions, never from subscribe handlers
                 function kiriofSyncBlockDistrictWarningState() {
                     var hasValidDistrict = kiriofHasValidBlockDistrict();
                     var $warning = kiriofEnsureBlockDistrictWarning();
@@ -496,11 +510,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     kiriofClearBlockShippingMethodSelection();
-                    kiriofClearBlockShippingRatesFromStore();
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
                     $shippingOptions.parent().find('.wc-block-components-checkout-step__heading').hide();
                     $paymentOptions.hide();
+                }
+
+                // Call this version (with store clear) only from explicit user interactions.
+                function kiriofSyncBlockDistrictWarningStateWithClear() {
+                    kiriofClearBlockShippingRatesFromStore();
+                    kiriofSyncBlockDistrictWarningState();
                 }
 
                 function kiriofResetBlockDistrictState(options) {
@@ -597,15 +616,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                     });
                 setTimeout(function() {
                     kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
-                    kiriofSyncBlockDistrictWarningState();
+                    kiriofSyncBlockDistrictWarningStateWithClear();
                 }, 300);
                 // Retry for block themes (e.g. ShopVerse) that hydrate form inputs after initial render
                 setTimeout(function() {
                     kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
-                    kiriofSyncBlockDistrictWarningState();
+                    kiriofSyncBlockDistrictWarningStateWithClear();
                 }, 1500);
             
-                // Watch for postcode changes via data store
+                // Watch for postcode changes via data store — use UI-only sync (no store dispatch)
+                // to avoid triggering an infinite subscribe → dispatch → subscribe loop.
                 wp.data.subscribe(function() {
                     try {
                         var store = wp.data.select('wc/store/cart');
@@ -623,7 +643,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 jQuery(document).on('click.kiriofAddressEdit', '.wc-block-components-address-card__edit, [class*="address-card__edit"], button[class*="edit"]', function() {
                     setTimeout(function() {
                         kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
-                        kiriofSyncBlockDistrictWarningState();
+                        kiriofSyncBlockDistrictWarningStateWithClear();
                     }, 400);
                     setTimeout(function() {
                         kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());

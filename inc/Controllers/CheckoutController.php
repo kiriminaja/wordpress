@@ -978,7 +978,18 @@ class CheckoutController
         $fields = self::kiriof_add_field_subdistrict( $fields );
         // add field insurance checkout
         $fields = self::kiriof_add_field_insurance( $fields );
+        // Phone is required for courier pickup coordination
+        $fields = self::kiriof_require_phone_fields( $fields );
     
+        return $fields;
+    }
+    private static function kiriof_require_phone_fields( $fields ) {
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $key = $group . '_phone';
+            if ( isset( $fields[ $group ][ $key ] ) ) {
+                $fields[ $group ][ $key ]['required'] = true;
+            }
+        }
         return $fields;
     }
     private function kiriof_remove_fields_checkout($fields,$fields_selected){
