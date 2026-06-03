@@ -453,7 +453,6 @@
 
     $(".kiriof-region-picker-tree").html(html.join(""));
     applyCheckboxStates();
-    syncScopeUi();
     updateStats();
   }
 
@@ -599,6 +598,7 @@
 
     buildIndexes();
     loadInitialRegions();
+    syncScopeUi(); // apply is-all-scope before rendering tree
     syncVisibility();
     renderTree();
 
