@@ -2037,3 +2037,71 @@ msgstr "Kode"
 #: templates/request-pickup/view/modal-payment.php:78
 msgid "QR will expire at"
 msgstr "QR akan kedaluwarsa pada"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Shipping Discount"
+msgstr "Diskon Ongkir"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Shipping Discount (%s)"
+msgstr "Diskon Ongkir (%s)"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Shipping Discounts"
+msgstr "Diskon Ongkir"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Save %s"
+msgstr "Hemat %s"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Regular service"
+msgstr "Layanan Reguler"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Economy service"
+msgstr "Layanan Ekonomi"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Same-day service"
+msgstr "Layanan Hari yang Sama"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Next-day service"
+msgstr "Layanan Keesokan Hari"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Overnight service"
+msgstr "Layanan Semalaman"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Cargo service"
+msgstr "Layanan Kargo"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "service"
+msgstr "layanan"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Includes insurance"
+msgstr "Termasuk asuransi"
+
+#: templates/front/form-billing-address.php
+msgid "District required"
+msgstr "Kelurahan wajib diisi"
+
+#: templates/front/form-billing-address.php
+msgid "Please select your District before choosing a shipping service."
+msgstr "Silakan pilih Kelurahan Anda sebelum memilih layanan pengiriman."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Security check failed."
+msgstr "Pemeriksaan keamanan gagal."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Province data could not be normalized from the KiriminAja API response."
+msgstr "Data provinsi tidak dapat dinormalisasi dari respons API KiriminAja."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "City data for province %d could not be normalized from the KiriminAja API response."
+msgstr "Data kota untuk provinsi %d tidak dapat dinormalisasi dari respons API KiriminAja."

@@ -1254,13 +1254,23 @@ class CheckoutController
             return;
         }
 
-        $shipping_method = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( wp_unslash( $data['shipping_metode_id'] ) ) : '';
-        $destination_id  = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
+        $shipping_method  = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( wp_unslash( $data['shipping_metode_id'] ) ) : '';
+        $destination_id   = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
         $destination_name = isset( $data['destination_name'] ) ? sanitize_text_field( wp_unslash( $data['destination_name'] ) ) : '';
-        $payment_method  = isset( $data['payment_method'] ) ? sanitize_text_field( wp_unslash( $data['payment_method'] ) ) : '';
-        $insurance       = ! empty( $data['insurance'] ) ? 1 : 0;
-        $force_insurance = ! empty( $data['force_insurance'] ) ? 1 : 0;
-        $postcode        = isset( $data['postcode'] ) ? sanitize_text_field( wp_unslash( $data['postcode'] ) ) : '';
+        $payment_method   = isset( $data['payment_method'] ) ? sanitize_text_field( wp_unslash( $data['payment_method'] ) ) : '';
+        $insurance        = ! empty( $data['insurance'] ) ? 1 : 0;
+        $force_insurance  = ! empty( $data['force_insurance'] ) ? 1 : 0;
+        $postcode         = isset( $data['postcode'] ) ? sanitize_text_field( wp_unslash( $data['postcode'] ) ) : '';
+
+        if ( 'cod' === $payment_method ) {
+            WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
+            WC()->session->set( 'kiriof_payment_method', $payment_method );
+        } else {
+            WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
+            WC()->session->set( 'kiriof_payment_method', '' );
+        }
 
         if ( '' !== $shipping_method ) {
             WC()->session->set( 'kiriof_chosen_shipping_methods', array( $shipping_method ) );
@@ -1289,16 +1299,6 @@ class CheckoutController
             WC()->session->set( 'destination_name', '' );
             WC()->session->set( 'shipping_destination_name', '' );
             WC()->session->set( 'kiriof_destination_area_name', '' );
-        }
-
-        if ( 'cod' === $payment_method ) {
-            WC()->session->set( 'chosen_payment_method', $payment_method );
-            WC()->session->set( 'payment_method', $payment_method );
-            WC()->session->set( 'kiriof_payment_method', $payment_method );
-        } else {
-            WC()->session->set( 'chosen_payment_method', $payment_method );
-            WC()->session->set( 'payment_method', $payment_method );
-            WC()->session->set( 'kiriof_payment_method', '' );
         }
 
         WC()->session->set( 'kiriof_insurance', $insurance );

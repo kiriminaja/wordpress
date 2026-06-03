@@ -143,9 +143,9 @@
     const kiriofFees = fees.filter(function (fee) {
       return (
         fee &&
-        (fee.key === "insurance" ||
+        (fee.key === 'insurance' ||
           fee.name === "Insurance" ||
-          fee.name === "COD Fee")
+          fee.name === 'COD Fee')
       );
     });
 

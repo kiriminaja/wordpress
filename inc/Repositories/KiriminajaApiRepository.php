@@ -74,10 +74,9 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function getCitiesByProvinceId($provinceId){
-        $provinceId = (int) $provinceId;
         $responses = array(
             $this->post('/api/mitra/city', array(
-                'provinsi_id' => $provinceId,
+                'provinsi_id' => (int) $provinceId,
             )),
             $this->post('/api/mitra/city', array(
                 'province_id' => $provinceId,
