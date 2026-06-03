@@ -440,6 +440,21 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return !!(districtId && String(districtId).trim() !== '' && String(districtId) !== '0');
                 }
 
+                function kiriofClearBlockShippingRatesFromStore() {
+                    // Clear the server-side destination_id session so calculate_shipping()
+                    // returns no rates — removes stale rates from the Order Summary when
+                    // the district warning is shown.
+                    kiriofBlockExtensionCartUpdate({
+                        destination_id: 0,
+                        destination_name: '',
+                        postcode: kiriofGetCurrentPostcodeKey(),
+                        payment_method: kiriofGetPaymentMethod(),
+                        insurance: 0,
+                        force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
+                    });
+                    kiriofRefreshBlockShippingRates();
+                }
+
                 function kiriofClearBlockShippingMethodSelection() {
                     jQuery('.wc-block-components-radio-control__input[name*="shipping"], .wc-block-components-radio-control__input[value*="kiriminaja-official"], input.shipping_method').prop('checked', false);
                 }
@@ -462,6 +477,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     kiriofClearBlockShippingMethodSelection();
+                    kiriofClearBlockShippingRatesFromStore();
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
                 }
