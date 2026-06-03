@@ -68,6 +68,12 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         $provinces = $this->normalizeRows( $provinceService->data, 'province' );
+        if ( empty( $provinces ) ) {
+            $message = __( 'Province data could not be normalized from the KiriminAja API response.', 'kiriminaja-official' );
+            $this->updateStatus( 'error', $message );
+            return self::error( array(), $message );
+        }
+
         $regionRepo->upsertProvinces( $provinces );
 
         foreach ( $provinces as $province ) {
@@ -101,6 +107,16 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         $cities = $this->normalizeRows( $cityService->data, 'city' );
+        if ( empty( $cities ) ) {
+            return self::error(
+                array(),
+                sprintf(
+                    __( 'City data for province %d could not be normalized from the KiriminAja API response.', 'kiriminaja-official' ),
+                    $provinceId
+                )
+            );
+        }
+
         $repo = new ShippingDiscountRegionRepository();
         $repo->upsertCities( $provinceId, $cities );
 
@@ -124,7 +140,21 @@ class ShippingDiscountRegionCacheService extends BaseService {
         foreach ( (array) $rows as $row ) {
             $row = (object) $row;
             $id = (int) ( $row->id ?? $row->{$kind . '_id'} ?? 0 );
-            $name = (string) ( $row->name ?? $row->{$kind . '_name'} ?? $row->text ?? '' );
+            $nameCandidates = array(
+                $row->name ?? null,
+                $row->{$kind . '_name'} ?? null,
+                $row->provinsi_name ?? null,
+                $row->kabupaten_name ?? null,
+                $row->text ?? null,
+            );
+            $name = '';
+
+            foreach ( $nameCandidates as $candidate ) {
+                if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
+                    $name = $candidate;
+                    break;
+                }
+            }
 
             if ( $id < 1 || '' === $name ) {
                 continue;

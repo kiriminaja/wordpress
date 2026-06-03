@@ -25,9 +25,8 @@
 
   function syncVisibility() {
     var config = getConfig();
-    var shippingTypes = Array.isArray(config.discountTypes)
-      ? config.discountTypes
-      : [];
+    var shippingTypes =
+      Array.isArray(config.discountTypes) ? config.discountTypes : [];
     var isShipping = shippingTypes.indexOf($("#discount_type").val()) !== -1;
     $(".kiriof-shipping-discount-options").toggle(isShipping);
 
@@ -525,11 +524,20 @@
         }
         window.location.reload();
       })
-      .fail(function () {
+      .fail(function (xhr) {
+        var message =
+          strings.cacheRefreshFailed || "Failed to refresh region data.";
+
+        if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
+          if (typeof xhr.responseJSON.data.message === "string") {
+            message = xhr.responseJSON.data.message;
+          } else if (typeof xhr.responseJSON.data === "string") {
+            message = xhr.responseJSON.data;
+          }
+        }
+
         if (!silent) {
-          window.alert(
-            strings.cacheRefreshFailed || "Failed to refresh region data.",
-          );
+          window.alert(message);
         }
       })
       .always(function () {

@@ -36,8 +36,20 @@ final class ShippingDiscountCouponAdminTest extends TestCase
 
         $this->assertStringContainsString('function getProvinces', $content);
         $this->assertStringContainsString('/api/mitra/province', $content);
+        $this->assertStringContainsString("post('/api/mitra/province')", $content);
         $this->assertStringContainsString('function getCitiesByProvinceId', $content);
-        $this->assertStringContainsString('/api/mitra/city?province_id=', $content);
+        $this->assertStringContainsString("post('/api/mitra/city'", $content);
+        $this->assertStringContainsString("'provinsi_id' => (int) \$provinceId", $content);
+    }
+
+    #[Test]
+    public function region_cache_service_normalizes_documented_region_fields(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php');
+
+        $this->assertStringContainsString('provinsi_name', $content);
+        $this->assertStringContainsString('kabupaten_name', $content);
+        $this->assertStringContainsString('could not be normalized', $content);
     }
 
     #[Test]
@@ -82,5 +94,14 @@ final class ShippingDiscountCouponAdminTest extends TestCase
     {
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/css/kj-coupon-admin.css');
+    }
+
+    #[Test]
+    public function coupon_admin_script_surfaces_ajax_error_messages(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
+
+        $this->assertStringContainsString('xhr.responseJSON.data.message', $content);
+        $this->assertStringContainsString('window.alert(message)', $content);
     }
 }

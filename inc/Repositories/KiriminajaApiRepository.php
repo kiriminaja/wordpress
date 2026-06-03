@@ -65,11 +65,13 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function getProvinces(){
-        return $this->get('/api/mitra/province');
+        return $this->post('/api/mitra/province');
     }
 
     public function getCitiesByProvinceId($provinceId){
-        return $this->get('/api/mitra/city?province_id=' . rawurlencode((string) $provinceId));
+        return $this->post('/api/mitra/city', [
+            'provinsi_id' => (int) $provinceId,
+        ]);
     }
 
     public function getPrintAwb($awb){
