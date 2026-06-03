@@ -460,7 +460,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofClearBlockShippingRatesFromStore._pending = true;
                     window.setTimeout(function() {
                         kiriofClearBlockShippingRatesFromStore._pending = false;
-                    }, 3000);
+                    }, 800);
 
                     // Clear the server-side destination_id session so calculate_shipping()
                     // returns no rates — removes stale rates from the Order Summary when
@@ -485,7 +485,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 // Split warning state sync into two concerns:
-                // - kiriofSyncBlockDistrictWarningState: pure UI (show/hide warning, sections)
+                // - kiriofSyncBlockDistrictWarningState: pure UI (body class + warning element)
                 //   safe to call from anywhere including wp.data.subscribe
                 // - kiriofClearBlockShippingRatesFromStore: triggers store dispatch, must ONLY
                 //   be called from explicit user interactions, never from subscribe handlers
@@ -493,27 +493,25 @@ if ( ! defined( 'ABSPATH' ) ) {
                     var hasValidDistrict = kiriofHasValidBlockDistrict();
                     var $warning = kiriofEnsureBlockDistrictWarning();
                     var $shippingOptions = kiriofGetBlockShippingOptionsContainer();
-                    var $paymentOptions = kiriofGetBlockPaymentOptionsContainer();
 
                     if (kiriofDistrictResultsLoading || kiriofPendingDistrictRestore) {
                         $warning.hide();
                         $shippingOptions.addClass('kiriof-shipping-options-blocked');
+                        jQuery('body').addClass('kiriof-no-district');
                         return;
                     }
 
                     if (hasValidDistrict) {
                         $warning.hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
-                        $shippingOptions.parent().find('.wc-block-components-checkout-step__heading').show();
-                        $paymentOptions.show();
+                        jQuery('body').removeClass('kiriof-no-district');
                         return;
                     }
 
                     kiriofClearBlockShippingMethodSelection();
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
-                    $shippingOptions.parent().find('.wc-block-components-checkout-step__heading').hide();
-                    $paymentOptions.hide();
+                    jQuery('body').addClass('kiriof-no-district');
                 }
 
                 // Call this version (with store clear) only from explicit user interactions.
@@ -626,16 +624,21 @@ if ( ! defined( 'ABSPATH' ) ) {
             
                 // Watch for postcode changes via data store — use UI-only sync (no store dispatch)
                 // to avoid triggering an infinite subscribe → dispatch → subscribe loop.
+                // Debounced at 150ms to reduce DOM thrashing on rapid store updates.
+                var kiriofSubscribeDebounceTimer = null;
                 wp.data.subscribe(function() {
-                    try {
-                        var store = wp.data.select('wc/store/cart');
-                        if (!store) return;
-                        var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
-                        var billing = store.getBillingAddress ? store.getBillingAddress() : {};
-                        var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
-                        kiriofFetchDistricts(postcode);
-                        kiriofSyncBlockDistrictWarningState();
-                    } catch(e) {}
+                    if (kiriofSubscribeDebounceTimer) clearTimeout(kiriofSubscribeDebounceTimer);
+                    kiriofSubscribeDebounceTimer = setTimeout(function() {
+                        try {
+                            var store = wp.data.select('wc/store/cart');
+                            if (!store) return;
+                            var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
+                            var billing = store.getBillingAddress ? store.getBillingAddress() : {};
+                            var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
+                            kiriofFetchDistricts(postcode);
+                            kiriofSyncBlockDistrictWarningState();
+                        } catch(e) {}
+                    }, 150);
                 });
 
                 // Logged-in compact address: when user clicks "Edit" the full form
