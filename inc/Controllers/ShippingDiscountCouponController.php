@@ -150,10 +150,13 @@ class ShippingDiscountCouponController {
         echo '<div class="kiriof-combination-column">';
         foreach ( $types as $type => $config ) {
             $isEnabled = in_array( $type, $enabledTypes, true );
-            // translators: %s is the coupon type label (e.g. "Fixed cart discount").
-            $title = $isEnabled
-                ? sprintf( __( 'Can combine with %s', 'kiriminaja-official' ), $config['label'] )
-                : sprintf( __( 'Cannot combine with %s', 'kiriminaja-official' ), $config['label'] );
+            if ( $isEnabled ) {
+                // translators: %s is the coupon type label (e.g. "Fixed cart discount").
+                $title = sprintf( __( 'Can combine with %s', 'kiriminaja-official' ), $config['label'] );
+            } else {
+                // translators: %s is the coupon type label (e.g. "Fixed cart discount").
+                $title = sprintf( __( 'Cannot combine with %s', 'kiriminaja-official' ), $config['label'] );
+            }
 
             echo '<span class="kiriof-combination-badge ' . esc_attr( $isEnabled ? 'is-enabled' : 'is-disabled' ) . '" title="' . esc_attr( $title ) . '" style="opacity:' . ( $isEnabled ? '1' : '0.4' ) . '"><span class="dashicons ' . esc_attr( $config['icon'] ) . '" aria-hidden="true"></span></span>';
         }
