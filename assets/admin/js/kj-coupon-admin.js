@@ -30,30 +30,26 @@
     var isShipping = shippingTypes.indexOf($("#discount_type").val()) !== -1;
     $(".kiriof-shipping-discount-options").toggle(isShipping);
 
-    var $tabs = $(
-      ".coupon_data_tabs .kiriof_courier_restrictions_options, .coupon_data_tabs .kiriof_usage_combinations_options",
-    );
-    var $panels = $(
-      "#kiriof_courier_restrictions_coupon_data, #kiriof_usage_combinations_coupon_data",
-    );
+    // Hide WooCommerce's "Allow free shipping" field — not applicable for shipping discounts.
+    $(".free_shipping_field").toggle(!isShipping);
 
-    $tabs.toggle(isShipping);
-    $panels.toggleClass("hidden", !isShipping);
+    // "Individual use only" stays visible — combinations react to it instead.
+    syncCombinationsAvailability();
 
-    // Show/hide the Area Restrictions metabox.
+    // Show/hide the three KiriminAja metaboxes.
     $("#kiriof_area_restrictions_metabox").toggle(isShipping);
+    $("#kiriof_courier_restrictions_metabox").toggle(isShipping);
+    $("#kiriof_usage_combinations_metabox").toggle(isShipping);
+  }
 
-    if (!isShipping) {
-      var $activeTab = $(".coupon_data_tabs li.active");
-      if (
-        $activeTab.hasClass("kiriof_courier_restrictions_options") ||
-        $activeTab.hasClass("kiriof_usage_combinations_options")
-      ) {
-        $('.coupon_data_tabs a[href="#usage_restriction_coupon_data"]').trigger(
-          "click",
-        );
-      }
-    }
+  function syncCombinationsAvailability() {
+    var isIndividualUse = $('input[name="individual_use"]').is(":checked");
+    var $options = $(".kiriof-combination-options");
+    var $notice = $("#kiriof-individual-use-active-notice");
+
+    $options.find('input[type="checkbox"]').prop("disabled", isIndividualUse);
+    $options.css("opacity", isIndividualUse ? "0.4" : "1");
+    $notice.toggle(isIndividualUse);
   }
 
 
@@ -465,7 +461,8 @@
       .toggleClass("is-selected-scope", !isAll);
     // Force inline style to override any cached CSS
     $(".kiriof-region-picker-tree, .kiriof-region-picker-toolbar")
-      .css("display", isAll ? "none" : "");
+      .css("display", isAll ? "none" : "")
+      .css("margin-top", isAll ? "" : "16px");
     $(".kiriof-region-picker-stats").css("display", isAll ? "none" : "");
     $(".kiriof-region-picker-tree :checkbox").prop("disabled", isAll);
     serializeRegions();
@@ -600,6 +597,13 @@
       $("#kiriof_coupon_couriers").select2();
     }
 
+    // Courier scope toggle
+    $(document).on("change", "input[name='kiriof_coupon_courier_scope']", function () {
+      var isSelected = $(this).val() === "selected";
+      $(".kiriof-courier-list").toggle(isSelected).css("margin-top", isSelected ? "16px" : "");
+      $('input[name="_kiriof_coupon_couriers_scope"]').val($(this).val());
+    });
+
     // Inject critical layout styles inline to guarantee they win over cached CSS.
     if (!$("#kiriof-region-styles").length) {
       $("head").append(
@@ -623,6 +627,7 @@
     renderTree();
 
     $(document).on("change", "#discount_type", syncVisibility);
+    $(document).on("change", 'input[name="individual_use"]', syncCombinationsAvailability);
     $(document).on("change", "input[name='kiriof_coupon_region_scope']", function () {
         state.scope = $(this).val() === "selected" ? "selected" : "all";
         syncScopeUi();
@@ -658,6 +663,24 @@
 
     $("#post").on("submit", function (event) {
       var strings = getStrings();
+      var config = getConfig();
+      var shippingTypes = Array.isArray(config.discountTypes) ? config.discountTypes : [];
+      var currentType = $("#discount_type").val();
+
+      // Block save if percentage shipping discount amount exceeds 100.
+      if (shippingTypes.indexOf(currentType) !== -1 && currentType.indexOf("percent") !== -1) {
+        var amount = parseFloat($("#coupon_amount").val());
+        if (!isNaN(amount) && amount > 100) {
+          event.preventDefault();
+          window.alert(
+            strings.percentageExceeds100 ||
+              "Discount amount cannot exceed 100% for a percentage shipping discount.",
+          );
+          $("#coupon_amount").focus();
+          return;
+        }
+      }
+
       var payload = serializeRegions();
 
       if (state.scope === "selected" && !payload.length) {
@@ -666,6 +689,19 @@
           strings.selectRegionBeforeSave ||
             "Choose at least one city or switch back to all regions before saving this coupon.",
         );
+      }
+    });
+
+    // Real-time cap: clamp coupon_amount to 100 for percentage shipping discounts.
+    $(document).on("change blur", "#coupon_amount", function () {
+      var config = getConfig();
+      var shippingTypes = Array.isArray(config.discountTypes) ? config.discountTypes : [];
+      var currentType = $("#discount_type").val();
+      if (shippingTypes.indexOf(currentType) !== -1 && currentType.indexOf("percent") !== -1) {
+        var val = parseFloat($(this).val());
+        if (!isNaN(val) && val > 100) {
+          $(this).val("100");
+        }
       }
     });
 

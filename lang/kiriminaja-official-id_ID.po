@@ -2133,3 +2133,99 @@ msgstr "Data wilayah dimuat dari file bawaan."
 #: inc/Controllers/ShippingDiscountCouponController.php
 msgid "Leave empty (All Indonesian Regions) to allow all shipping destinations. Only applies to shipping discount coupon types."
 msgstr "Kosongkan (Semua Wilayah Indonesia) untuk mengizinkan semua tujuan pengiriman. Hanya berlaku untuk tipe kupon diskon ongkir."
+
+#: templates/cache/index.php inc/Pages/Admin.php
+msgid "Cache"
+msgstr "Cache"
+
+#: templates/cache/index.php
+msgid "Cache Management"
+msgstr "Manajemen Cache"
+
+#: templates/cache/index.php
+msgid "Region Coverage Cache"
+msgstr "Cache Data Wilayah"
+
+#: templates/cache/index.php
+msgid "This cache stores the province and city coverage data used for coupon area restrictions. Re-validate to fetch the latest data from the KiriminAja API."
+msgstr "Cache ini menyimpan data provinsi dan kota yang digunakan untuk pembatasan area kupon. Re-validasi untuk mengambil data terbaru dari API KiriminAja."
+
+#: templates/cache/index.php
+msgid "Last Updated"
+msgstr "Terakhir Diperbarui"
+
+#: templates/cache/index.php
+msgid "Re-validate Region Cache"
+msgstr "Re-validasi Cache Wilayah"
+
+#: templates/cache/index.php
+msgid "Cache updated successfully."
+msgstr "Cache berhasil diperbarui."
+
+#: templates/cache/index.php
+msgid "Re-validate failed."
+msgstr "Re-validasi gagal."
+
+#: templates/cache/index.php
+msgid "Refreshing\xe2\x80\xa6"
+msgstr "Sedang memperbarui\xe2\x80\xa6"
+
+#: templates/cache/index.php
+msgid "Scheduling\xe2\x80\xa6"
+msgstr "Menjadwalkan\xe2\x80\xa6"
+
+#: templates/cache/index.php
+msgid "Request failed. Please try again."
+msgstr "Permintaan gagal. Silakan coba lagi."
+
+#: templates/setting/setuped/index.php
+msgid "Manage cached data such as region coverage used for coupon restrictions."
+msgstr "Kelola data cache seperti data wilayah yang digunakan untuk pembatasan kupon."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Province and city data used for coupon area restrictions. Re-validate to fetch the latest data from the KiriminAja API."
+msgstr "Data provinsi dan kota yang digunakan untuk pembatasan area kupon. Re-validasi untuk mengambil data terbaru dari API KiriminAja."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Restrict this coupon to specific couriers. Leave as \"All Couriers\" to apply to every courier."
+msgstr "Batasi kupon ini ke kurir tertentu. Biarkan \"Semua Kurir\" untuk berlaku di semua kurir."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Selected Couriers"
+msgstr "Kurir Terpilih"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "No couriers available. Please check your KiriminAja account settings."
+msgstr "Tidak ada kurir tersedia. Periksa pengaturan akun KiriminAja Anda."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Extension"
+msgstr "Ekstensi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Default"
+msgstr "Default"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "All Extensions"
+msgstr "Semua Ekstensi"
+
+#: inc/Pages/Admin.php
+msgid "Promotions"
+msgstr "Promosi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Discount amount cannot exceed 100% for a percentage shipping discount."
+msgstr "Jumlah diskon tidak boleh melebihi 100% untuk diskon ongkir persentase."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Allow Combinations is not available because \"Individual use only\" is enabled. Uncheck it above to configure combinations."
+msgstr "Izinkan Kombinasi tidak tersedia karena \"Hanya penggunaan individu\" diaktifkan. Hapus centang di atas untuk mengonfigurasi kombinasi."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Individual use only — cannot combine with other coupons"
+msgstr "Hanya penggunaan individu — tidak bisa digabungkan dengan kupon lain"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Individual use"
+msgstr "Penggunaan individu"
