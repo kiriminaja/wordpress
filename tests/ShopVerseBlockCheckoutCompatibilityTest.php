@@ -645,6 +645,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'kiriofPendingDistrictRestore',
+            $content,
+            'Block checkout should keep a short-lived restore state so the saved District can be re-applied before the warning banner shows'
+        );
+
+        $this->assertStringContainsString(
+            'silentWarning: kiriofPendingDistrictRestore',
+            $content,
+            'Resetting District state for a postcode with a saved selection should suppress the warning until the restore attempt finishes'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofNormalizePostcode',
+            $content,
+            'Saved District restoration should normalize postcode keys before looking them up in the frontend session map'
+        );
+
+        $this->assertStringContainsString(
             'postcode: data.postcode',
             $content,
             'Store API session persistence should include the current postcode so the server can remember District selections by postcode'
@@ -1598,13 +1616,49 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'kiriof_get_current_shipping_discount',
             $script,
-            'Block checkout should fetch the current shipping discount amount from the cart session so shipping coupons render as their own row in block themes'
+            'Block checkout should fetch the current shipping discount amount from the cart session so shipping coupons can decorate the selected shipping line in block themes'
         );
 
         $this->assertStringContainsString(
-            'kiriof-block-shipping-discount-row',
+            'kiriof_get_shipping_rate_meta',
             $script,
-            'Slot/fill must render a dedicated Shipping Discount row in the Woo Blocks order summary'
+            'Block checkout should fetch shipping-rate metadata so the shipping options list can show courier detail, ETA, and discount context before selection'
+        );
+
+        $this->assertStringContainsString(
+            'scheduleShippingDecorationRefresh',
+            $script,
+            'Block checkout should retry shipping decoration refreshes briefly after cart changes because coupon application can recalculate rates asynchronously'
+        );
+
+        $this->assertStringContainsString(
+            'invalidateBlockShippingRates',
+            $script,
+            'Block checkout should explicitly invalidate shipping rates when coupon chips change so removing a shipping coupon clears discounted courier state without a manual refresh'
+        );
+
+        $this->assertStringContainsString(
+            'syncShippingSummaryLine',
+            $script,
+            'Block checkout script should decorate the selected shipping summary line with original and discounted shipping prices'
+        );
+
+        $this->assertStringContainsString(
+            'getShippingOptionTextTarget',
+            $script,
+            'Block checkout should attach courier metadata to a stable left-side text container so switching the selected courier does not push details into the right price column'
+        );
+
+        $this->assertStringContainsString(
+            'detail.hidden = !input.checked',
+            $script,
+            'Courier metadata should behave like a selected-state description panel and only be shown for the active shipping option'
+        );
+
+        $this->assertStringContainsString(
+            'decorateShippingOptions',
+            $script,
+            'Block checkout script should decorate each courier option with richer metadata similar to Shopify-style shipping options'
         );
 
         $this->assertStringContainsString(
@@ -1616,7 +1670,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'getCurrentShippingDiscountSummary',
             $couponController,
-            'Block checkout AJAX should use the shipping discount summary so buyers can see a clearer label when a shipping coupon is applied'
+            'Block checkout AJAX should use the shipping discount summary so buyers can see the shipping method name plus original and discounted shipping prices'
+        );
+
+        $this->assertStringContainsString(
+            'getShippingRateMetaAjax',
+            $couponController,
+            'Checkout should expose rate metadata for block themes so courier options can show ETA and descriptive shipping information'
         );
 
         $this->assertStringContainsString(

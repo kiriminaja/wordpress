@@ -188,6 +188,90 @@ tr.woocommerce-shipping-totals {
   color: #0f766e;
 }
 
+.kiriof-block-shipping-rate-details {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-right: 12px;
+}
+
+.kiriof-block-shipping-rate-pricing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.kiriof-block-shipping-rate-pricing del {
+  color: #6b7280;
+}
+
+.kiriof-block-shipping-option-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 20px 18px 56px;
+  max-width: none;
+  padding-top: 12px;
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.kiriof-block-shipping-option-eta {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #111827;
+  font-weight: 500;
+}
+
+.kiriof-block-shipping-option-description {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+.kiriof-block-shipping-option-pricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.kiriof-block-shipping-option-pricing del {
+  color: #6b7280;
+}
+
+.kiriof-block-shipping-option-pricing ins {
+  color: #111827;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.kiriof-block-shipping-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.kiriof-block-shipping-option-card .wc-block-components-radio-control__option-layout,
+.kiriof-block-shipping-option-card .wc-block-components-shipping-rates-control__package-list-item {
+  align-items: flex-start;
+  width: 100%;
+}
+
+.kiriof-block-shipping-option-card:not(.kiriof-block-shipping-option-selected) .kiriof-block-shipping-option-meta {
+  display: none;
+}
+
+@media (max-width: 781px) {
+  .kiriof-block-shipping-option-meta {
+    margin-left: 48px;
+    margin-right: 16px;
+  }
+}
+
 .kiriof-block-district-warning {
   margin-top: 16px;
 }

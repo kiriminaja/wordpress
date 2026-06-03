@@ -112,18 +112,40 @@ function kiriof_shipping_method(){
                 $kiriofRateMetaMap = array();
                 foreach($this->filterOptions($res_pricing,$quantity) as $row){
                     
-                    $rate= array(
-                        'id' => $this->id.'_'.$row['key'],
-                        'label' => $row['value'],
-                        'cost' => $row['cost'],
-                        'meta_data' => $row['meta_data'] ?? [],
+                    $rowMeta    = $row['meta_data'] ?? [];
+                    $origCost   = (float) ( $rowMeta['kiriof_shipping_coupon_original_cost'] ?? $row['cost'] );
+                    $discAmount = (float) ( $rowMeta['kiriof_shipping_coupon_discount_amount'] ?? 0 );
+                    $notice     = (string) ( $rowMeta['kiriof_shipping_coupon_notice'] ?? '' );
+                    $badge      = (string) ( $rowMeta['kiriof_shipping_coupon_badge'] ?? '' );
+
+                    // Only pass display-safe meta to the WC_Shipping_Rate object.
+                    // Coupon pricing meta (original_cost, discount_amount, notice, badge)
+                    // must NOT be included here: WooCommerce Block checkout (e.g. ShopVerse)
+                    // reads ALL meta_data from WC_Shipping_Rate and renders each value as a
+                    // sub-line in the Order Summary, causing numeric prices to appear janky.
+                    // Those values are stored in the WC session (kiriof_shipping_coupon_rate_meta)
+                    // and read back by formatShippingMethodLabel() for classic checkout.
+                    $rate = array(
+                        'id'        => $this->id . '_' . $row['key'],
+                        'label'     => $row['value'],
+                        'cost'      => $row['cost'],
+                        'meta_data' => array(
+                            'kiriof_rate_eta'         => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
+                            'kiriof_rate_description' => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                        ),
                     );
 
                     $kiriofRateMetaMap[ $rate['id'] ] = array(
-                        'label'           => (string) $rate['label'],
-                        'cost'            => (float) $rate['cost'],
-                        'original_cost'   => (float) ( $rate['meta_data']['kiriof_shipping_coupon_original_cost'] ?? $rate['cost'] ),
-                        'discount_amount' => (float) ( $rate['meta_data']['kiriof_shipping_coupon_discount_amount'] ?? 0 ),
+                        'label'                   => (string) $rate['label'],
+                        'cost'                    => (float) $rate['cost'],
+                        'original_cost'           => $origCost,
+                        'discount_amount'         => $discAmount,
+                        'notice'                  => $notice,
+                        'badge'                   => $badge,
+                        'eta'                     => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
+                        'description'             => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                        'formatted_cost'          => wp_strip_all_tags( wc_price( (float) $rate['cost'] ) ),
+                        'formatted_original_cost' => wp_strip_all_tags( wc_price( $origCost ) ),
                     );
 
                     $this->add_rate($rate);
@@ -175,6 +197,8 @@ function kiriof_shipping_method(){
                                 'kiriof_shipping_coupon_discount_amount' => (float) $shippingDiscountPricing['discount_amount'],
                                 'kiriof_shipping_coupon_notice' => (string) $shippingDiscountPricing['notice'],
                                 'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
+                                'kiriof_rate_eta' => $this->formatEta($option),
+                                'kiriof_rate_description' => $this->formatRateDescription($option, $kiriof_insurance),
                             ],
                         ];    
                     }
@@ -186,6 +210,77 @@ function kiriof_shipping_method(){
                 });
                 
                 return $filteredOptions;
+            }
+
+            private function formatEta($option) {
+                $eta = '';
+
+                foreach ( array( 'etd', 'eta', 'estimation', 'estimation_day', 'lead_time' ) as $field ) {
+                    if ( isset( $option->{$field} ) && '' !== (string) $option->{$field} ) {
+                        $eta = (string) $option->{$field};
+                        break;
+                    }
+                }
+
+                $eta = trim( preg_replace( '/\s+/', ' ', $eta ) );
+                if ( '' === $eta ) {
+                    return '';
+                }
+
+                if ( preg_match( '/business day/i', $eta ) ) {
+                    return $eta;
+                }
+
+                if ( preg_match( '/^\d+\s*(?:-|to)\s*\d+$/i', $eta ) ) {
+                    return $eta . ' business days';
+                }
+
+                if ( preg_match( '/^\d+$/', $eta ) ) {
+                    return '1' === $eta ? '1 business day' : $eta . ' business days';
+                }
+
+                return $eta;
+            }
+
+            private function formatRateDescription($option, $kiriof_insurance) {
+                $parts = array();
+                $service_type = isset( $option->service_type ) ? strtoupper( trim( (string) $option->service_type ) ) : '';
+                $service_label = $this->describeServiceType( $service_type );
+
+                if ( '' !== $service_label ) {
+                    $parts[] = $service_label;
+                }
+
+                if ( ! empty( $kiriof_insurance ) ) {
+                    $parts[] = __( 'Includes insurance', 'kiriminaja-official' );
+                }
+
+                return implode( ' • ', array_filter( $parts ) );
+            }
+
+            private function describeServiceType( $service_type ) {
+                $service_type = strtoupper( preg_replace( '/[^A-Z]/', '', (string) $service_type ) );
+
+                if ( '' === $service_type ) {
+                    return '';
+                }
+
+                $map = array(
+                    'JTR' => __( 'Cargo service', 'kiriminaja-official' ),
+                    'REG' => __( 'Regular service', 'kiriminaja-official' ),
+                    'OKE' => __( 'Economy service', 'kiriminaja-official' ),
+                    'YES' => __( 'Next-day service', 'kiriminaja-official' ),
+                    'SDS' => __( 'Same-day service', 'kiriminaja-official' ),
+                    'ONS' => __( 'Overnight service', 'kiriminaja-official' ),
+                );
+
+                foreach ( $map as $prefix => $label ) {
+                    if ( 0 === strpos( $service_type, $prefix ) ) {
+                        return $label;
+                    }
+                }
+
+                return ucwords( strtolower( $service_type ) ) . ' ' . __( 'service', 'kiriminaja-official' );
             }
 
             private function hasActiveFreeShippingCoupon(){

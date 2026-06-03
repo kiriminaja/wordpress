@@ -31,6 +31,8 @@ class ShippingDiscountCouponController {
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
         add_action( 'wp_ajax_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
         add_action( 'wp_ajax_nopriv_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
+        add_action( 'wp_ajax_kiriof_get_shipping_rate_meta', array( $this, 'getShippingRateMetaAjax' ) );
+        add_action( 'wp_ajax_nopriv_kiriof_get_shipping_rate_meta', array( $this, 'getShippingRateMetaAjax' ) );
         add_action( ShippingDiscountRegionCacheService::CRON_HOOK, array( $this, 'refreshRegionCacheCron' ) );
     }
 
@@ -108,6 +110,29 @@ class ShippingDiscountCouponController {
             'formatted' => $amount > 0 ? wp_strip_all_tags( wc_price( $amount ) ) : '',
             'label'     => (string) ( $summary['label'] ?? __( 'Shipping Discount', 'kiriminaja-official' ) ),
             'codes'     => (array) ( $summary['codes'] ?? array() ),
+            'rate_label' => (string) ( $summary['rate_label'] ?? '' ),
+            'current_cost' => (float) ( $summary['current_cost'] ?? 0 ),
+            'original_cost' => (float) ( $summary['original_cost'] ?? 0 ),
+            'formatted_current_cost' => ! empty( $summary['current_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['current_cost'] ) ) : '',
+            'formatted_original_cost' => ! empty( $summary['original_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['original_cost'] ) ) : '',
+        ) );
+    }
+
+    public function getShippingRateMetaAjax() {
+        if ( isset( $_POST['nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
+            if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'message' => __( 'Security check failed.', 'kiriminaja-official' ) ), 403 );
+            }
+        }
+
+        $rate_meta = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $rate_meta = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+        }
+
+        wp_send_json_success( array(
+            'rates' => $rate_meta,
         ) );
     }
 

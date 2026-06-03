@@ -1153,59 +1153,8 @@ class CheckoutController
     }
 
     public function kiriof_render_block_checkout_shipping_discount_row( $block_content, $block ) {
-        if ( ! is_string( $block_content ) || '' === $block_content || ! $this->kiriof_is_block_checkout_request() ) {
-            return $block_content;
-        }
-
-        $block_name = '';
-        if ( is_array( $block ) && isset( $block['blockName'] ) ) {
-            $block_name = (string) $block['blockName'];
-        } elseif ( is_object( $block ) && isset( $block->name ) ) {
-            $block_name = (string) $block->name;
-        }
-
-        $target_blocks = array(
-            'woocommerce/checkout-totals-block',
-            'woocommerce/checkout-order-summary-totals-block',
-            'woocommerce/checkout-order-summary-block',
-        );
-
-        if ( '' !== $block_name && ! in_array( $block_name, $target_blocks, true ) ) {
-            return $block_content;
-        }
-
-        if ( false === strpos( $block_content, 'wc-block-components-totals-wrapper' ) || false !== strpos( $block_content, 'kiriof-block-shipping-discount-row' ) ) {
-            return $block_content;
-        }
-
-        $service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
-        $discount_amount = $service->getCurrentShippingDiscountTotal();
-        if ( $discount_amount <= 0 ) {
-            return $block_content;
-        }
-
-        $shipping_discount_row = sprintf(
-            '<div class="wc-block-components-totals-item kiriof-block-fee-breakdown__row kiriof-block-shipping-discount-row"><span>%1$s</span><strong>-%2$s</strong></div>',
-            esc_html__( 'Shipping Discount', 'kiriminaja-official' ),
-            wp_kses_post( wc_price( $discount_amount ) )
-        );
-
-        $updated_content = preg_replace( '/(<div class="[^"]*wc-block-components-totals-footer[^"]*"[^>]*>)/', $shipping_discount_row . '$1', $block_content, 1 );
-        if ( is_string( $updated_content ) && $updated_content !== $block_content ) {
-            return $updated_content;
-        }
-
-        $updated_content = preg_replace( '/(<div class="[^"]*wc-block-components-totals-item--total[^"]*"[^>]*>)/', $shipping_discount_row . '$1', $block_content, 1 );
-        if ( is_string( $updated_content ) && $updated_content !== $block_content ) {
-            return $updated_content;
-        }
-
-        $updated_content = preg_replace( '/(<\/div>\s*$)/', $shipping_discount_row . '$1', $block_content, 1 );
-        if ( is_string( $updated_content ) && $updated_content !== $block_content ) {
-            return $updated_content;
-        }
-
-        return $block_content . $shipping_discount_row;
+        unset( $block );
+        return $block_content;
     }
 
     /**

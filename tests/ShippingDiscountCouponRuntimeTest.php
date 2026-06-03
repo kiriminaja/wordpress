@@ -29,10 +29,14 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('kiriof_shipping_coupon_original_cost', $content);
         $this->assertStringContainsString('kiriof_shipping_coupon_notice', $content);
         $this->assertStringContainsString('kiriof_shipping_coupon_rate_meta', $content);
+        $this->assertStringContainsString('kiriof_rate_eta', $content);
+        $this->assertStringContainsString('kiriof_rate_description', $content);
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $serviceContent);
         $this->assertStringContainsString('getCurrentShippingDiscountSummary', $serviceContent);
         $this->assertStringContainsString('kiriof_shipping_coupon_discount_amount', $serviceContent);
         $this->assertStringContainsString('Shipping Discount (%s)', $serviceContent);
+        $this->assertStringContainsString("'original_cost'", $serviceContent);
+        $this->assertStringContainsString("'rate_label'", $serviceContent);
     }
 
     #[Test]
@@ -55,7 +59,21 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('Save %s', $cartShipping);
         $this->assertStringContainsString('kiriof-shipping-rate-savings', $cartShipping);
         $this->assertStringContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
-        $this->assertStringContainsString('kiriof-block-shipping-discount-row', $blockCheckout);
+        $this->assertStringContainsString('kiriof_get_shipping_rate_meta', $blockCheckout);
+        $this->assertStringContainsString('scheduleShippingDecorationRefresh', $blockCheckout);
+        $this->assertStringContainsString('retryDelays = [ 0, 250, 800, 1600 ]', $blockCheckout);
+        $this->assertStringContainsString('invalidateBlockShippingRates', $blockCheckout);
+        $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
+        $this->assertStringContainsString('syncShippingSummaryLine', $blockCheckout);
+        $this->assertStringContainsString('getShippingOptionLayoutHost', $blockCheckout);
+        $this->assertStringContainsString('decorateShippingOptions', $blockCheckout);
+        $this->assertStringContainsString('if ( ! input.checked ) {', $blockCheckout);
+        $this->assertStringContainsString('optionNode.insertBefore( detail, layoutHost.nextSibling )', $blockCheckout);
+        $this->assertStringContainsString('kiriof-block-shipping-option-selected', $blockCheckout);
+        $this->assertStringContainsString('kiriof-block-shipping-option-meta', $blockCheckout);
+        $this->assertStringContainsString('kiriof-block-shipping-rate-details', $blockCheckout);
+        $this->assertStringNotContainsString('kiriof-block-shipping-rate-badge', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
+        $this->assertStringContainsString('getShippingRateMetaAjax', $couponController);
     }
 }

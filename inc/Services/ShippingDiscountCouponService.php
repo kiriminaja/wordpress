@@ -131,15 +131,25 @@ class ShippingDiscountCouponService {
     }
 
     public function formatShippingMethodLabel( string $label, $method ): string {
-        if ( ! is_object( $method ) || ! method_exists( $method, 'get_meta' ) || ! method_exists( $method, 'get_label' ) ) {
+        if ( ! is_object( $method ) || ! method_exists( $method, 'get_meta' ) || ! method_exists( $method, 'get_label' ) || ! method_exists( $method, 'get_id' ) ) {
             return $label;
         }
 
-        $originalCost = (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true );
-        $discountAmount = (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true );
-        $notice = (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true );
-        $badge = (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true );
-        $cost = (float) $method->cost;
+        // Coupon pricing meta is no longer stored on the WC_Shipping_Rate object because
+        // WooCommerce Block checkout (e.g. ShopVerse) renders ALL rate meta_data as visible
+        // sub-lines in the Order Summary, causing numeric values to appear janky.
+        // Read the coupon data from the WC session map instead.
+        $sessionMeta    = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $rateMetaMap = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+            $sessionMeta = (array) ( $rateMetaMap[ $method->get_id() ] ?? array() );
+        }
+
+        $originalCost   = isset( $sessionMeta['original_cost'] ) ? (float) $sessionMeta['original_cost'] : (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true );
+        $discountAmount = isset( $sessionMeta['discount_amount'] ) ? (float) $sessionMeta['discount_amount'] : (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true );
+        $notice         = isset( $sessionMeta['notice'] ) ? (string) $sessionMeta['notice'] : (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true );
+        $badge          = isset( $sessionMeta['badge'] ) ? (string) $sessionMeta['badge'] : (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true );
+        $cost           = (float) $method->cost;
 
         if ( $discountAmount <= 0 && '' === $notice ) {
             return $label;
