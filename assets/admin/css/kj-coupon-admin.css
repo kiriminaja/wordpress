@@ -18,7 +18,7 @@
 
 .kiriof-region-picker-mode {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -27,9 +27,31 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  padding: 10px 18px;
+  border: 2px solid #dcdcde;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
   font-weight: 500;
+  color: #50575e;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+
+.kiriof-region-toggle:has(input:checked) {
+  border-color: #2271b1;
+  background: #f0f6fc;
   color: #1d2327;
+}
+
+.kiriof-region-toggle input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2271b1;
+  flex-shrink: 0;
 }
 
 .kiriof-region-picker-toolbar {
@@ -132,7 +154,7 @@
 
 .kiriof-region-picker.is-all-scope .kiriof-region-picker-tree,
 .kiriof-region-picker.is-all-scope .kiriof-region-picker-toolbar {
-  opacity: 0.55;
+  display: none;
 }
 
 .kiriof-region-empty-state {
