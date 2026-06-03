@@ -1613,12 +1613,11 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Slot/fill should render the native COD Fee cart fee from Store API data'
         );
 
-        // kiriof_get_current_shipping_discount AJAX endpoint no longer needed in block checkout
-        // since coupon invalidation uses couponSignature from WC store data directly.
-        $this->assertStringNotContainsString(
+        // kiriof_get_current_shipping_discount is fetched to show strikethrough price in Order Summary totals row
+        $this->assertStringContainsString(
             'kiriof_get_current_shipping_discount',
             $script,
-            'Block checkout no longer polls for discount amount; coupon invalidation uses WC store couponSignature directly'
+            'Block checkout should fetch discount data to show strikethrough original price in the Order Summary shipping totals row'
         );
 
         // Shipping rate decoration removed — block themes render ALL WC_Shipping_Rate meta_data

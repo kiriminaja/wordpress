@@ -59,9 +59,8 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $reviewOrder);
         $this->assertStringContainsString('Save %s', $cartShipping);
         $this->assertStringContainsString('kiriof-shipping-rate-savings', $cartShipping);
-        // kiriof_get_current_shipping_discount AJAX endpoint no longer needed in block checkout
-        // since coupon invalidation uses couponSignature from WC store data directly.
-        $this->assertStringNotContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
+        // kiriof_get_current_shipping_discount fetched to show strikethrough in Order Summary totals row
+        $this->assertStringContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
         // Shipping rate decoration (ETA/description injection, strikethrough pricing) removed —
         // block themes render rate meta_data as visible sub-lines causing janky display.
         $this->assertStringNotContainsString('kiriof_get_shipping_rate_meta', $blockCheckout);

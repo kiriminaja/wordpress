@@ -4,7 +4,7 @@
   }
 
   const { registerPlugin } = wp.plugins;
-  const { createElement, Fragment, useEffect, useMemo, useRef } = wp.element;
+  const { createElement, Fragment, useEffect, useMemo, useRef, useState } = wp.element;
   const { ExperimentalOrderMeta } = wc.blocksCheckout;
 
   if (!ExperimentalOrderMeta) {
@@ -17,6 +17,86 @@
       return fee.totals.currency_prefix + total.toLocaleString("id-ID");
     }
     return "";
+  }
+
+  function fetchCurrentShippingDiscount(onComplete) {
+    if (!window.kiriofAjax || !window.kiriofAjax.ajaxurl) {
+      onComplete(null);
+      return function () {};
+    }
+
+    const body = new URLSearchParams();
+    body.append("action", "kiriof_get_current_shipping_discount");
+    body.append("nonce", window.kiriofAjax.nonce || "");
+
+    let active = true;
+
+    window
+      .fetch(window.kiriofAjax.ajaxurl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        },
+        body: body.toString(),
+      })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (payload) {
+        if (active && payload && payload.success && payload.data) {
+          onComplete(payload.data);
+        } else if (active) {
+          onComplete(null);
+        }
+      })
+      .catch(function () {
+        if (active) {
+          onComplete(null);
+        }
+      });
+
+    return function () {
+      active = false;
+    };
+  }
+
+  // Injects a strikethrough original price into the Order Summary shipping totals row.
+  // Scoped only to the totals section — does NOT touch the shipping options list.
+  function syncShippingTotalsStrikethrough(discount) {
+    document.querySelectorAll(".kiriof-shipping-totals-original").forEach(function (n) {
+      n.remove();
+    });
+
+    if (
+      !discount ||
+      parseFloat(discount.amount || 0) <= 0 ||
+      !discount.formatted_original_cost ||
+      !discount.formatted_current_cost
+    ) {
+      return;
+    }
+
+    const shippingRow = document.querySelector(
+      ".wc-block-components-totals-shipping",
+    );
+    if (!shippingRow) {
+      return;
+    }
+
+    const priceNode = shippingRow.querySelector(
+      ".wc-block-formatted-money-amount, " +
+      ".wc-block-components-formatted-money-amount, " +
+      ".wc-block-components-totals-item__value",
+    );
+    if (!priceNode) {
+      return;
+    }
+
+    const del = document.createElement("del");
+    del.className = "kiriof-shipping-totals-original";
+    del.textContent = discount.formatted_original_cost;
+    priceNode.parentNode.insertBefore(del, priceNode);
   }
 
   function invalidateBlockShippingRates() {
@@ -58,6 +138,7 @@
   function KiriofOrderMetaFill(props) {
     const cart = props && props.cart ? props.cart : {};
     const previousCouponsRef = useRef("");
+    const [shippingDiscount, setShippingDiscount] = useState(null);
     const fees = Array.isArray(cart.fees) ? cart.fees : [];
     const kiriofFees = fees.filter(function (fee) {
       return (
@@ -88,6 +169,50 @@
         }
       },
       [couponSignature],
+    );
+
+    // Fetch shipping discount and schedule DOM sync retries to survive React re-renders.
+    useEffect(
+      function () {
+        const retryDelays = [0, 400, 1000, 2000];
+        const timers = [];
+        let cancelled = false;
+        let cancelFetch = function () {};
+
+        function runFetch() {
+          cancelFetch();
+          cancelFetch = fetchCurrentShippingDiscount(function (data) {
+            if (!cancelled) {
+              setShippingDiscount(data);
+            }
+          });
+        }
+
+        retryDelays.forEach(function (delay) {
+          const t = window.setTimeout(function () {
+            if (!cancelled) {
+              runFetch();
+            }
+          }, delay);
+          timers.push(t);
+        });
+
+        return function () {
+          cancelled = true;
+          cancelFetch();
+          timers.forEach(function (t) {
+            window.clearTimeout(t);
+          });
+        };
+      },
+      [couponSignature],
+    );
+
+    useEffect(
+      function () {
+        syncShippingTotalsStrikethrough(shippingDiscount);
+      },
+      [shippingDiscount],
     );
 
     if (!kiriofFees.length) {
