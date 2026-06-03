@@ -259,11 +259,7 @@
     var cities = 0;
 
     if (state.scope === "all") {
-      return {
-        islands: state.totals.islands,
-        provinces: state.totals.provinces,
-        cities: state.totals.cities,
-      };
+      return { islands: 0, provinces: 0, cities: 0 };
     }
 
     Object.keys(state.islandIndex).forEach(function (islandId) {
@@ -291,6 +287,13 @@
   function updateStats() {
     var strings = getStrings();
     var selected = selectedTotals();
+    var isAll = state.scope === "all";
+
+    $(".kiriof-region-picker-stats").toggle(!isAll);
+
+    if (isAll) {
+      return;
+    }
 
     $(".kiriof-region-stat[data-kind='islands']").text(
       selected.islands +
