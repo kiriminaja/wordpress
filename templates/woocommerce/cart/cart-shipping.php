@@ -73,6 +73,35 @@ $kiriof_calculator_text          = '';
 					<li class="kiriof-shipping-method-item">
 						<?php
 						$kiriof_method_label_html = wp_kses_post( wc_cart_totals_shipping_method_label( $method ) );
+						$kiriof_original_cost = method_exists( $method, 'get_meta' ) ? (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true ) : 0.0;
+						$kiriof_discount_amount = method_exists( $method, 'get_meta' ) ? (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true ) : 0.0;
+						$kiriof_badge = method_exists( $method, 'get_meta' ) ? (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true ) : '';
+						$kiriof_notice = method_exists( $method, 'get_meta' ) ? (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true ) : '';
+						$kiriof_current_cost = isset( $method->cost ) ? (float) $method->cost : 0.0;
+
+						if ( $kiriof_discount_amount > 0 && $kiriof_original_cost > $kiriof_current_cost ) {
+							$kiriof_method_label_html = esc_html( (string) $method->get_label() );
+							if ( '' !== $kiriof_badge ) {
+								$kiriof_method_label_html .= ' <span class="kiriof-shipping-rate-badge">' . esc_html( $kiriof_badge ) . '</span>';
+							}
+
+							$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-pricing">';
+							$kiriof_method_label_html .= '<del class="kiriof-shipping-rate-original">' . wp_kses_post( wc_price( $kiriof_original_cost ) ) . '</del>';
+							$kiriof_method_label_html .= '<ins class="kiriof-shipping-rate-discounted">' . wp_kses_post( wc_price( $kiriof_current_cost ) ) . '</ins>';
+							$kiriof_method_label_html .= '</span>';
+							$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-savings">';
+							$kiriof_method_label_html .= sprintf(
+								/* translators: %s discount amount. */
+								esc_html__( 'Save %s', 'kiriminaja-official' ),
+								wp_strip_all_tags( wc_price( $kiriof_discount_amount ) )
+							);
+							$kiriof_method_label_html .= '</span>';
+						} elseif ( '' !== $kiriof_notice ) {
+							$kiriof_method_label_html = esc_html( (string) $method->get_label() );
+							$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-pricing"><span class="amount">' . wp_kses_post( wc_price( $kiriof_current_cost ) ) . '</span></span>';
+							$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-note">' . esc_html( $kiriof_notice ) . '</span>';
+						}
+
 						if ( 1 < count( $available_methods ) ) {
 							printf( '<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="shipping_method_%1$d_%2$s" value="%3$s" class="shipping_method kiriof-shipping-method-input" %4$s />', absint( $index ), esc_attr( sanitize_title( $method->id ) ), esc_attr( $method->id ), checked( $method->id, $chosen_method, false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 							// WPCS: XSS ok.

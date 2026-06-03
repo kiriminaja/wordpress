@@ -131,6 +131,14 @@ tr.woocommerce-shipping-totals {
   font-weight: 600;
 }
 
+.kiriof-shipping-rate-savings {
+  display: inline-flex;
+  margin-left: 8px;
+  color: #1d6b39;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .kj-cart-total
   .woocommerce-shipping-methods
   .kiriof-shipping-method-input:checked

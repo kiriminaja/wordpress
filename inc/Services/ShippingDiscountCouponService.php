@@ -183,6 +183,41 @@ class ShippingDiscountCouponService {
         );
     }
 
+    public function getCurrentShippingDiscountTotal(): float {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return 0.0;
+        }
+
+        $chosenMethods = WC()->session->get( 'chosen_shipping_methods', array() );
+        if ( empty( $chosenMethods ) || ! is_array( $chosenMethods ) ) {
+            return 0.0;
+        }
+
+        $packages = array();
+        if ( isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'get_packages' ) ) {
+            $packages = (array) WC()->shipping()->get_packages();
+        } elseif ( isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_shipping_packages' ) ) {
+            $packages = (array) WC()->cart->get_shipping_packages();
+        }
+
+        $discountTotal = 0.0;
+
+        foreach ( $chosenMethods as $packageIndex => $chosenMethodId ) {
+            $rates = (array) ( $packages[ $packageIndex ]['rates'] ?? array() );
+            foreach ( $rates as $rateKey => $rate ) {
+                $rateId = is_object( $rate ) && isset( $rate->id ) ? (string) $rate->id : (string) $rateKey;
+                if ( (string) $chosenMethodId !== $rateId ) {
+                    continue;
+                }
+
+                $discountTotal += $this->getRateDiscountAmount( $rate );
+                break;
+            }
+        }
+
+        return max( 0, $discountTotal );
+    }
+
     private function getShippingCoupons(): array {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
             return array();
@@ -224,6 +259,22 @@ class ShippingDiscountCouponService {
         $regions = is_string( $raw ) ? json_decode( $raw, true ) : $raw;
 
         return is_array( $regions ) ? $regions : array();
+    }
+
+    private function getRateDiscountAmount( $rate ): float {
+        if ( ! is_object( $rate ) ) {
+            return 0.0;
+        }
+
+        if ( method_exists( $rate, 'get_meta' ) ) {
+            return max( 0, (float) $rate->get_meta( 'kiriof_shipping_coupon_discount_amount', true ) );
+        }
+
+        if ( isset( $rate->meta_data['kiriof_shipping_coupon_discount_amount'] ) ) {
+            return max( 0, (float) $rate->meta_data['kiriof_shipping_coupon_discount_amount'] );
+        }
+
+        return 0.0;
     }
 
     private function destinationMatchesRegion( array $destination, array $region ): bool {

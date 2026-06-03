@@ -22,11 +22,14 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
     public function shipping_method_applies_runtime_shipping_coupon_pricing_metadata(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
 
         $this->assertStringContainsString('ShippingDiscountCouponService', $content);
         $this->assertStringContainsString('getAdjustedRatePricing', $content);
         $this->assertStringContainsString('kiriof_shipping_coupon_original_cost', $content);
         $this->assertStringContainsString('kiriof_shipping_coupon_notice', $content);
+        $this->assertStringContainsString('getCurrentShippingDiscountTotal', $serviceContent);
+        $this->assertStringContainsString('kiriof_shipping_coupon_discount_amount', $serviceContent);
     }
 
     #[Test]
@@ -34,10 +37,17 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
     {
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
         $reviewOrder = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
+        $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
 
         $this->assertStringContainsString('Applied to shipping', $cartTotals);
         $this->assertStringContainsString('Applied to shipping', $reviewOrder);
         $this->assertStringContainsString('isShippingCoupon', $cartTotals);
         $this->assertStringContainsString('isShippingCoupon', $reviewOrder);
+        $this->assertStringContainsString('Shipping Discount', $cartTotals);
+        $this->assertStringContainsString('Shipping Discount', $reviewOrder);
+        $this->assertStringContainsString('getCurrentShippingDiscountTotal', $cartTotals);
+        $this->assertStringContainsString('getCurrentShippingDiscountTotal', $reviewOrder);
+        $this->assertStringContainsString('Save %s', $cartShipping);
+        $this->assertStringContainsString('kiriof-shipping-rate-savings', $cartShipping);
     }
 }
