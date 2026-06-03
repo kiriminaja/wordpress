@@ -463,6 +463,10 @@
     $(".kiriof-region-picker")
       .toggleClass("is-all-scope", isAll)
       .toggleClass("is-selected-scope", !isAll);
+    // Force inline style to override any cached CSS
+    $(".kiriof-region-picker-tree, .kiriof-region-picker-toolbar")
+      .css("display", isAll ? "none" : "");
+    $(".kiriof-region-picker-stats").css("display", isAll ? "none" : "");
     $(".kiriof-region-picker-tree :checkbox").prop("disabled", isAll);
     serializeRegions();
     updateStats();
@@ -594,6 +598,22 @@
 
     if ($("#kiriof_coupon_couriers").length) {
       $("#kiriof_coupon_couriers").select2();
+    }
+
+    // Inject critical layout styles inline to guarantee they win over cached CSS.
+    if (!$("#kiriof-region-styles").length) {
+      $("head").append(
+        '<style id="kiriof-region-styles">' +
+        ".kiriof-region-province-list{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:10px!important;padding:12px!important}" +
+        ".kiriof-region-province-card{border:1px solid #dcdcde!important;border-radius:8px!important;background:#fdfdfd!important;padding:10px 12px!important}" +
+        ".kiriof-region-island{border:1px solid #c3c4c7!important;border-radius:10px!important;background:#fff!important;overflow:hidden!important;margin-bottom:12px!important}" +
+        ".kiriof-region-island-label{display:flex!important;align-items:center!important;gap:8px!important;padding:10px 14px!important;background:#f0f0f1!important;border-bottom:1px solid #dcdcde!important;font-size:13px!important;font-weight:700!important;text-transform:uppercase!important}" +
+        ".kiriof-region-province{display:flex!important;align-items:center!important;gap:7px!important;font-size:12px!important;font-weight:700!important;color:#2271b1!important;text-transform:uppercase!important;margin-bottom:8px!important;padding-bottom:7px!important;border-bottom:1px solid #ebebec!important}" +
+        ".kiriof-region-cities-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important;gap:5px 8px!important}" +
+        ".kiriof-region-city{display:flex!important;align-items:flex-start!important;gap:5px!important;font-size:12px!important;line-height:1.4!important}" +
+        ".kiriof-region-picker-tree{max-height:640px!important;overflow:auto!important;padding:16px!important;border:1px solid #dcdcde!important;border-radius:12px!important;background:#f6f7f7!important}" +
+        "</style>",
+      );
     }
 
     buildIndexes();

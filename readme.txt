@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.39
+Stable tag: 2.1.40
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,11 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.40 =
+- Feat(coupon-ui): move Area Restrictions into full-width metabox postbox
+- Fix(coupon-ui): region tree hidden in All Regions mode, 3-column province grid
+- Fix(coupon-ui): inline style overrides to bust CSS cache
+
 = 2.1.39 =
 - Migrate plugin translations to WordPress i18n (#191)
 - Transaction table UX overhaul — filters, pagination, search, & status badges (#190)
