@@ -14,6 +14,7 @@ use KiriminAjaOfficial\Repositories\ShippingDiscountRegionRepository;
 use KiriminAjaOfficial\Services\KiriminajaApiService;
 use KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template-local variables, not globals
 $regionRepo         = new ShippingDiscountRegionRepository();
 $regionCacheService = new ShippingDiscountRegionCacheService();
 $cacheStatus        = $regionCacheService->getStatus();
@@ -31,6 +32,7 @@ $courierCount    = ( 200 === $courierResult->status && is_array( $courierResult-
 $courierCached   = ( false !== get_transient( 'kiriof_couriers_list' ) );
 $courierBadgeBg  = $courierCached ? '#00a32a' : '#dba617';
 $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 'Not cached', 'kiriminaja-official' );
+// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 <div class="wrap kj-wrap">
 

@@ -62,7 +62,7 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
         // Allow enough time for sequential API calls across all provinces.
         if ( function_exists( 'set_time_limit' ) ) {
-            set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            set_time_limit( 300 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- needed to allow sufficient time for sequential per-province API calls
         }
 
         // Ensure the cache tables exist before writing (handles cases where
@@ -135,6 +135,7 @@ class ShippingDiscountRegionCacheService extends BaseService {
             return self::error(
                 array(),
                 sprintf(
+                    // translators: %d is the province ID number.
                     __( 'City data for province %d could not be normalized from the KiriminAja API response.', 'kiriminaja-official' ),
                     $provinceId
                 )

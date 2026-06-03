@@ -150,6 +150,7 @@ class ShippingDiscountCouponController {
         echo '<div class="kiriof-combination-column">';
         foreach ( $types as $type => $config ) {
             $isEnabled = in_array( $type, $enabledTypes, true );
+            // translators: %s is the coupon type label (e.g. "Fixed cart discount").
             $title = $isEnabled
                 ? sprintf( __( 'Can combine with %s', 'kiriminaja-official' ), $config['label'] )
                 : sprintf( __( 'Cannot combine with %s', 'kiriminaja-official' ), $config['label'] );
@@ -334,7 +335,7 @@ class ShippingDiscountCouponController {
             foreach ( $couriers as $courier ) {
                 $checked = checked( in_array( $courier['id'], $savedCouriers, true ), true, false );
                 echo '<label style="display:flex;align-items:center;gap:6px;font-size:13px">';
-                echo '<input type="checkbox" name="' . esc_attr( self::META_COURIERS ) . '[]" value="' . esc_attr( $courier['id'] ) . '" ' . $checked . ' />';
+                echo '<input type="checkbox" name="' . esc_attr( self::META_COURIERS ) . '[]" value="' . esc_attr( $courier['id'] ) . '" ' . $checked . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- checked() returns a safe HTML attribute string
                 echo esc_html( $courier['text'] );
                 echo '</label>';
             }
@@ -396,6 +397,8 @@ class ShippingDiscountCouponController {
             return;
         }
 
+        // WooCommerce verifies the nonce before firing woocommerce_process_shop_coupon_meta.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing
         $regions = isset( $_POST[ self::META_REGIONS ] )
             ? sanitize_text_field( wp_unslash( $_POST[ self::META_REGIONS ] ) )
             : '[]';
@@ -408,6 +411,7 @@ class ShippingDiscountCouponController {
         $combinations = isset( $_POST[ self::META_COMBINATIONS ] )
             ? array_map( 'sanitize_key', (array) wp_unslash( $_POST[ self::META_COMBINATIONS ] ) )
             : array();
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $discountType = $coupon instanceof \WC_Coupon ? $coupon->get_discount_type() : '';
 
         update_post_meta( $post_id, self::META_REGIONS, wp_json_encode( $this->normalizeRegions( $regions ) ) );
@@ -416,7 +420,7 @@ class ShippingDiscountCouponController {
         if ( $this->isShippingDiscountType( $discountType ) ) {
             $allowedTypes = array_keys( $this->getCombinationTypes() );
             // If "Individual use only" is checked, combinations are unavailable — clear them.
-            $isIndividualUse = isset( $_POST['individual_use'] ) && 'yes' === sanitize_key( wp_unslash( $_POST['individual_use'] ) );
+            $isIndividualUse = isset( $_POST['individual_use'] ) && 'yes' === sanitize_key( wp_unslash( $_POST['individual_use'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies nonce before firing this hook
             $resolvedCombinations = $isIndividualUse
                 ? array()
                 : array_values( array_intersect( $allowedTypes, $combinations ) );
@@ -450,8 +454,8 @@ class ShippingDiscountCouponController {
         }
 
         $currentType = '';
-        if ( isset( $_GET['post'] ) ) {
-            $coupon = new \WC_Coupon( absint( $_GET['post'] ) );
+        if ( isset( $_GET['post'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only coupon type detection for JS config
+            $coupon = new \WC_Coupon( absint( $_GET['post'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $currentType = $coupon->get_discount_type();
         }
 
@@ -483,7 +487,9 @@ class ShippingDiscountCouponController {
                     'allRegionsLabel' => __( 'All Indonesian Regions', 'kiriminaja-official' ),
                     'selectedRegionsLabel' => __( 'Selected Regions', 'kiriminaja-official' ),
                     'allProvinceLabel' => __( 'All provinces in Indonesia', 'kiriminaja-official' ),
+                    // translators: %s is the province name (e.g. "Jawa Barat").
                     'allCitiesLabel' => __( 'All cities in %s', 'kiriminaja-official' ),
+                    // translators: %1$s is the city name, %2$s is the province name.
                     'specificCityLabel' => __( '%1$s, %2$s', 'kiriminaja-official' ),
                     'searchRegions' => __( 'Search region, province, or city', 'kiriminaja-official' ),
                     'chooseProvince' => __( 'Please choose a province first.', 'kiriminaja-official' ),
@@ -740,9 +746,11 @@ class ShippingDiscountCouponController {
         }
 
         if ( 'all_city_in_province' === $region['type'] ) {
+            // translators: %s is the province name (e.g. "Jawa Barat").
             return sprintf( __( 'All cities in %s', 'kiriminaja-official' ), $region['province_name'] );
         }
 
+        // translators: %1$s is the city name, %2$s is the province name.
         return sprintf( __( '%1$s, %2$s', 'kiriminaja-official' ), $region['city_name'] ?? '', $region['province_name'] );
     }
 
