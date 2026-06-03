@@ -318,6 +318,19 @@ body.kiriof-no-district .wc-block-components-checkout-step--shipping-method
   display: none !important;
 }
 
+/* Collapse the shipping step content area (rates list + loading spinner) */
+body.kiriof-no-district .wc-block-components-checkout-step--shipping-method
+  .wc-block-components-checkout-step__content {
+  display: none !important;
+}
+
+/* Shrink the shipping step container so it leaves no whitespace gap */
+body.kiriof-no-district .wc-block-components-checkout-step--shipping-method {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  min-height: 0 !important;
+}
+
 body.kiriof-no-district .wc-block-components-checkout-place-order button,
 body.kiriof-no-district .wp-block-woocommerce-checkout-place-order button {
   opacity: 0.5 !important;
