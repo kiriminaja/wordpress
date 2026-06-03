@@ -35,13 +35,10 @@
   font-weight: 500;
   color: #50575e;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    color 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.kiriof-region-toggle:has(input:checked) {
+.kiriof-region-toggle.is-active {
   border-color: #2271b1;
   background: #f0f6fc;
   color: #1d2327;

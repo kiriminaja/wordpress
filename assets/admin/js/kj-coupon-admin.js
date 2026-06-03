@@ -453,14 +453,10 @@
 
   function syncScopeUi() {
     var isAll = state.scope === "all";
-    $("input[name='kiriof_coupon_region_scope'][value='all']").prop(
-      "checked",
-      isAll,
-    );
-    $("input[name='kiriof_coupon_region_scope'][value='selected']").prop(
-      "checked",
-      !isAll,
-    );
+    $("input[name='kiriof_coupon_region_scope'][value='all']").prop("checked", isAll);
+    $("input[name='kiriof_coupon_region_scope'][value='selected']").prop("checked", !isAll);
+    $("input[name='kiriof_coupon_region_scope'][value='all']").closest(".kiriof-region-toggle").toggleClass("is-active", isAll);
+    $("input[name='kiriof_coupon_region_scope'][value='selected']").closest(".kiriof-region-toggle").toggleClass("is-active", !isAll);
     $(".kiriof-region-picker")
       .toggleClass("is-all-scope", isAll)
       .toggleClass("is-selected-scope", !isAll);
