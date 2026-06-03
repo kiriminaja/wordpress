@@ -148,6 +148,7 @@
           fee.name === "COD Fee")
       );
     });
+
     const couponSignature = useMemo(
       function () {
         const coupons =
@@ -157,6 +158,24 @@
             })
           : [];
         return coupons.join("|");
+      },
+      [cart],
+    );
+
+    // Track which shipping rate is selected — re-fetch strikethrough when a
+    // rate appears or changes (e.g. after district is first selected on load).
+    const shippingRateSignature = useMemo(
+      function () {
+        const packages = Array.isArray(cart.shippingRates) ? cart.shippingRates : [];
+        return packages
+          .map(function (pkg) {
+            const rates = Array.isArray(pkg.shipping_rates) ? pkg.shipping_rates : [];
+            return rates
+              .filter(function (r) { return r && r.selected; })
+              .map(function (r) { return r.rate_id || r.id || ""; })
+              .join(",");
+          })
+          .join("|");
       },
       [cart],
     );
@@ -172,6 +191,8 @@
     );
 
     // Fetch shipping discount and schedule DOM sync retries to survive React re-renders.
+    // Re-runs when coupons change OR when selected shipping rate changes so the
+    // strikethrough appears as soon as the user (or autoload) picks a courier.
     useEffect(
       function () {
         const retryDelays = [0, 400, 1000, 2000];
@@ -205,7 +226,7 @@
           });
         };
       },
-      [couponSignature],
+      [couponSignature, shippingRateSignature],
     );
 
     useEffect(
