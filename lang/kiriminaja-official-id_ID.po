@@ -2229,3 +2229,51 @@ msgstr "Hanya penggunaan individu — tidak bisa digabungkan dengan kupon lain"
 #: inc/Controllers/ShippingDiscountCouponController.php
 msgid "Individual use"
 msgstr "Penggunaan individu"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon is only valid when KiriminAja shipping is selected."
+msgstr "Kupon ini hanya berlaku ketika pengiriman KiriminAja dipilih."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Courier List Cache"
+msgstr "Cache Daftar Kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Courier names and types fetched from the KiriminAja API. Used for proper labelling in the transactions filter and coupon courier restrictions. Cached for 24 hours."
+msgstr "Nama dan jenis kurir yang diambil dari API KiriminAja. Digunakan untuk penamaan yang tepat pada filter transaksi dan pembatasan kurir kupon. Di-cache selama 24 jam."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Couriers"
+msgstr "Kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Flush &amp; Re-fetch Couriers"
+msgstr "Hapus &amp; Ambil Ulang Kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Flushing\xe2\x80\xa6"
+msgstr "Menghapus\xe2\x80\xa6"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Cache refreshed."
+msgstr "Cache diperbarui."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Flushed, but could not re-fetch from API. Will retry on next page load."
+msgstr "Cache dihapus, tetapi gagal mengambil ulang dari API. Akan dicoba lagi saat halaman dimuat berikutnya."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Flush failed. Please try again."
+msgstr "Penghapusan cache gagal. Silakan coba lagi."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Not cached"
+msgstr "Tidak di-cache"
+
+#: templates/setting/setuped/section-cache.php
+msgid "couriers"
+msgstr "kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Cached"
+msgstr "Sudah di-cache"

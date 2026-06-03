@@ -44,8 +44,8 @@ $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash
     <?php
     if ( ! empty( $kiriof_couriers ) ) {
         foreach ( $kiriof_couriers as $kiriof_courier ) {
-            $kiriof_courier_code = strtoupper( $kiriof_courier->service );
-            echo '<option value="' . esc_attr( $kiriof_courier->service ) . '" ' . ( $kiriof_courier_filter === $kiriof_courier->service ? 'selected' : '' ) . '>' . esc_html( $kiriof_courier_code ) . '</option>';
+            $kiriof_courier_label = $kiriof_courier->label ?? strtoupper( $kiriof_courier->service );
+            echo '<option value="' . esc_attr( $kiriof_courier->service ) . '" ' . ( $kiriof_courier_filter === $kiriof_courier->service ? 'selected' : '' ) . '>' . esc_html( $kiriof_courier_label ) . '</option>';
         }
     }
     ?>

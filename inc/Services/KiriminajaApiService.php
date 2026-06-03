@@ -44,12 +44,63 @@ class KiriminajaApiService extends BaseService{
         }
         return self::success($repo['data']);
     }
+    private const KIRIOF_COURIERS_CACHE_KEY = 'kiriof_couriers_list_v2';
+    private const KIRIOF_COURIERS_CACHE_TTL = DAY_IN_SECONDS;
+
     public function get_couriers(){
+        $cached = get_transient( self::KIRIOF_COURIERS_CACHE_KEY );
+        if ( false !== $cached ) {
+            return self::success( $cached );
+        }
+
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->get_couriers();
         if (!@$repo['status'] || !@$repo['data']->status){
             return self::error([],@$repo['data']->text ?? 'Something is wrong');
         }
-        return self::success($repo['data']->datas);
+
+        $excluded_types = array( 'instant', 'international' );
+        $data           = array_values(
+            array_filter(
+                (array) $repo['data']->datas,
+                function ( $courier ) use ( $excluded_types ) {
+                    $type = strtolower( (string) ( ( (object) $courier )->type ?? '' ) );
+                    return ! in_array( $type, $excluded_types, true );
+                }
+            )
+        );
+        set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $data, self::KIRIOF_COURIERS_CACHE_TTL );
+        return self::success( $data );
+    }
+
+    public function invalidateCouriersCache(): void {
+        delete_transient( self::KIRIOF_COURIERS_CACHE_KEY );
+    }
+
+    /**
+     * Returns a map of courier_code => label built from the API list.
+     *
+     * @return array<string, string>
+     */
+    public function getCourierNameMap(): array {
+        $service = $this->get_couriers();
+        if ( 200 !== $service->status || empty( $service->data ) ) {
+            return array();
+        }
+
+        $map = array();
+        foreach ( (array) $service->data as $courier ) {
+            $courier = (object) $courier;
+            if ( empty( $courier->code ) ) {
+                continue;
+            }
+            $label = ! empty( $courier->name ) ? (string) $courier->name : strtoupper( (string) $courier->code );
+            if ( ! empty( $courier->type ) ) {
+                $label .= ' (' . (string) $courier->type . ')';
+            }
+            $map[ strtolower( (string) $courier->code ) ] = $label;
+        }
+
+        return $map;
     }
     public function getProvinces(){
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProvinces();

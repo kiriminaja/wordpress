@@ -56,10 +56,29 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
         }
 
+        if ( ! $this->isKiriminAjaShippingSelected() ) {
+            return $this->invalid( __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
+        }
+
         return array(
             'valid' => true,
             'message' => '',
         );
+    }
+
+    private function isKiriminAjaShippingSelected(): bool {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return false;
+        }
+
+        $chosen = (array) WC()->session->get( 'chosen_shipping_methods', array() );
+        foreach ( $chosen as $method ) {
+            if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getAdjustedRatePricing( $option, float $baseCost ): array {

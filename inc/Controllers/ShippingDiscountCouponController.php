@@ -31,6 +31,7 @@ class ShippingDiscountCouponController {
         add_action( 'restrict_manage_posts', array( $this, 'renderCouponExtensionFilter' ) );
         add_action( 'pre_get_posts', array( $this, 'filterCouponsByExtension' ) );
         add_action( 'wp_ajax_kiriof_refresh_coupon_regions', array( $this, 'refreshRegionCacheAjax' ) );
+        add_action( 'wp_ajax_kiriof_flush_couriers_cache', array( $this, 'flushCouriersCache' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_status', array( $this, 'getRegionCacheStatusAjax' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
         add_action( 'wp_ajax_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
@@ -541,6 +542,28 @@ class ShippingDiscountCouponController {
                 'city_count'     => $regionRepo->getCityCount(),
             )
         );
+    }
+
+    public function flushCouriersCache() {
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ), 403 );
+        }
+
+        $nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', 'kiriminaja-official' ) ), 403 );
+        }
+
+        $service       = new KiriminajaApiService();
+        $service->invalidateCouriersCache();
+        $fresh = $service->get_couriers();
+
+        if ( 200 !== $fresh->status ) {
+            wp_send_json_error( array( 'message' => __( 'Flushed, but could not re-fetch from API. Will retry on next page load.', 'kiriminaja-official' ) ) );
+        }
+
+        $count = is_array( $fresh->data ) ? count( $fresh->data ) : 0;
+        wp_send_json_success( array( 'count' => $count ) );
     }
 
     public function refreshRegionCacheCron() {

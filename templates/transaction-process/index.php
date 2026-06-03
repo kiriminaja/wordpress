@@ -75,7 +75,15 @@ class Kiriof_TransactionProcessIndex
             'processed'     => $kiriof_transactionRepo->getCountProcessed(),
         ];
 
-        $kiriof_couriers = $kiriof_transactionRepo->getDistinctCouriers();
+        $kiriof_distinct_couriers = $kiriof_transactionRepo->getDistinctCouriers();
+        $kiriof_courier_name_map  = ( new \KiriminAjaOfficial\Services\KiriminajaApiService() )->getCourierNameMap();
+
+        // Merge: distinct codes from DB, labels from API cache.
+        $kiriof_couriers = array_map( function ( $row ) use ( $kiriof_courier_name_map ) {
+            $code  = strtolower( (string) $row->service );
+            $label = $kiriof_courier_name_map[ $code ] ?? strtoupper( $code );
+            return (object) array( 'service' => $row->service, 'label' => $label );
+        }, $kiriof_distinct_couriers );
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
         $kiriof_search_by = isset( $_GET['search_by'] ) ? sanitize_text_field( wp_unslash( $_GET['search_by'] ) ) : 'wc_order_id';
