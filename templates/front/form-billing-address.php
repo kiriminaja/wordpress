@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $destination_name
  * @var string $shipping_destination_name
  * @var bool   $kiriof_global_insurance
+ * @var array  $kiriof_saved_destination_map
  */
 ?>
 <div id="kiriof_destination_area_group">    
@@ -29,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         var kiriofUpdatingCheckoutLock = false;
         var kiriofTriggeredInitialShippingUpdate = false;
+        var kiriofSavedDistrictByPostcode = <?php echo wp_json_encode( is_array( $kiriof_saved_destination_map ) ? $kiriof_saved_destination_map : array() ); ?>;
 
         jQuery(document).ready(function($) {
             <?php if ( $kiriof_global_insurance ) : ?>
@@ -279,8 +281,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $wrapper.after($fieldWrapper);
                     }
             
-                    var currentValue = $field.val() || $select.val() || '';
-                    var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || '';
+                    var currentPostcode = kiriofGetCurrentPostcodeKey();
+                    var savedDistrict = kiriofGetSavedDistrictForPostcode(currentPostcode);
+                    var currentValue = $field.val() || $select.val() || (savedDistrict ? String(savedDistrict.destination_id || '') : '');
+                    var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || (savedDistrict ? String(savedDistrict.destination_name || '') : '');
+                    var hasMatchingSavedDistrict = false;
                     var placeholderSelected = currentValue ? '' : ' selected';
                     var html = '<option value="" data-alternate-values="[<?php echo esc_js(__('Select District','kiriminaja-official')); ?>]" disabled' + placeholderSelected + '><?php echo esc_js(__('Select District','kiriminaja-official')); ?></option>';
                     results.forEach(function(d) {
@@ -288,13 +293,25 @@ if ( ! defined( 'ABSPATH' ) ) {
                         html += '<option value="' + d.id + '" data-alternate-values="[' + d.text + ']"' + selected + '>' + d.text + '</option>';
                         if (String(d.id) === String(currentValue)) {
                             currentName = d.text;
+                            hasMatchingSavedDistrict = true;
                         }
                     });
+
+                    if (currentValue && !hasMatchingSavedDistrict) {
+                        currentValue = '';
+                        currentName = '';
+                    }
             
                     $select.html(html).val(currentValue);
+                    $field.val(currentValue);
             
                     if (currentValue && currentName) {
                         jQuery('[name="kiriof_destination_area_name"]').val(currentName);
+                        jQuery('[name="kiriof_shipping_destination_area_name"]').val(currentName);
+                        kiriofRememberDistrictForPostcode(currentPostcode, currentValue, currentName);
+                    } else {
+                        jQuery('[name="kiriof_destination_area_name"]').val('');
+                        jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
                     }
             
                     return true;
@@ -312,6 +329,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 function kiriofFetchDistricts(postcode) {
                     if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
                     kiriofLastPostcode = postcode;
+                    kiriofResetBlockDistrictState();
             
                     var kiriofAjaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
                         ? kiriofAjax.ajaxurl
@@ -331,7 +349,148 @@ if ( ! defined( 'ABSPATH' ) ) {
                         success: function(response) {
                             if (!response || !response.data || !response.data.length) return;
                             kiriofRenderBlockDistrictSelect(response.data);
+                            kiriofSyncBlockDistrictWarningState();
+                            kiriofRestoreSavedDistrictForCurrentPostcode();
                         }
+                    });
+                }
+
+                function kiriofGetCurrentPostcodeKey() {
+                    var postcode = kiriofGetCheckoutPostcodeFromDom();
+                    if (!postcode && typeof wp !== 'undefined' && wp.data && wp.data.select) {
+                        try {
+                            var store = wp.data.select('wc/store/cart');
+                            var shipping = store && store.getShippingAddress ? store.getShippingAddress() : {};
+                            var billing = store && store.getBillingAddress ? store.getBillingAddress() : {};
+                            postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || '';
+                        } catch(e) {}
+                    }
+
+                    return String(postcode || '').trim();
+                }
+
+                function kiriofGetSavedDistrictForPostcode(postcode) {
+                    postcode = String(postcode || '').trim();
+                    if (!postcode || !kiriofSavedDistrictByPostcode || !kiriofSavedDistrictByPostcode[postcode]) {
+                        return null;
+                    }
+
+                    return kiriofSavedDistrictByPostcode[postcode];
+                }
+
+                function kiriofRememberDistrictForPostcode(postcode, destinationId, destinationName) {
+                    postcode = String(postcode || '').trim();
+                    if (!postcode || !destinationId) {
+                        return;
+                    }
+
+                    kiriofSavedDistrictByPostcode[postcode] = {
+                        destination_id: String(destinationId),
+                        destination_name: destinationName || ''
+                    };
+                }
+
+                function kiriofGetBlockShippingOptionsContainer() {
+                    return jQuery('.wp-block-woocommerce-checkout-shipping-methods-block, .wc-block-components-shipping-rates-control, .wc-block-checkout__shipping-method, .wc-block-components-checkout-step--shipping-method').first();
+                }
+
+                function kiriofEnsureBlockDistrictWarning() {
+                    var $shippingAddressSection = jQuery('.wp-block-woocommerce-checkout-shipping-address-block, .wc-block-components-checkout-step--shipping-address, .wc-block-checkout__shipping-address').first();
+                    if (!$shippingAddressSection.length) {
+                        return jQuery();
+                    }
+
+                    var $warning = $shippingAddressSection.find('.kiriof-block-district-warning');
+                    if (!$warning.length) {
+                        $warning = jQuery(
+                            '<div class="wc-block-components-notice-banner is-warning kiriof-block-district-warning" role="alert">' +
+                                '<div class="wc-block-components-notice-banner__content">' +
+                                    '<strong><?php echo esc_js(__('District required', 'kiriminaja-official')); ?></strong>' +
+                                    '<p><?php echo esc_js(__('Please select your District before choosing a shipping service.', 'kiriminaja-official')); ?></p>' +
+                                '</div>' +
+                            '</div>'
+                        ).hide();
+                        $shippingAddressSection.append($warning);
+                    }
+
+                    return $warning;
+                }
+
+                function kiriofHasValidBlockDistrict() {
+                    var districtId = kiriofGetDestinationId(jQuery('[name="ship_to_different_address"]:checked').length);
+                    return !!(districtId && String(districtId).trim() !== '' && String(districtId) !== '0');
+                }
+
+                function kiriofClearBlockShippingMethodSelection() {
+                    jQuery('.wc-block-components-radio-control__input[name*="shipping"], .wc-block-components-radio-control__input[value*="kiriminaja-official"], input.shipping_method').prop('checked', false);
+                }
+
+                function kiriofSyncBlockDistrictWarningState() {
+                    var hasValidDistrict = kiriofHasValidBlockDistrict();
+                    var $warning = kiriofEnsureBlockDistrictWarning();
+                    var $shippingOptions = kiriofGetBlockShippingOptionsContainer();
+
+                    if (hasValidDistrict) {
+                        $warning.hide();
+                        $shippingOptions.removeClass('kiriof-shipping-options-blocked');
+                        return;
+                    }
+
+                    kiriofClearBlockShippingMethodSelection();
+                    $warning.show();
+                    $shippingOptions.addClass('kiriof-shipping-options-blocked');
+                }
+
+                function kiriofResetBlockDistrictState() {
+                    var $sourceField = kiriofGetBlockDistrictField();
+                    var $select = jQuery('.kiriof-block-district-select');
+
+                    $sourceField.val('').trigger('input');
+                    if ($select.length) {
+                        $select.val('');
+                    }
+
+                    jQuery('[name="kiriof_destination_area_name"]').val('');
+                    jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
+                    kiriofUpdateCheckoutAdditionalFields('');
+                    kiriofBlockExtensionCartUpdate({
+                        shipping_metode_id: '',
+                        destination_id: 0,
+                        destination_name: '',
+                        payment_method: kiriofGetPaymentMethod(),
+                        insurance: 0,
+                        force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
+                    });
+                    kiriofRefreshBlockShippingRates();
+                    kiriofSyncBlockDistrictWarningState();
+                }
+
+                function kiriofRestoreSavedDistrictForCurrentPostcode() {
+                    var postcode = kiriofGetCurrentPostcodeKey();
+                    var savedDistrict = kiriofGetSavedDistrictForPostcode(postcode);
+                    var $select = jQuery('.kiriof-block-district-select');
+                    var $sourceField = kiriofGetBlockDistrictField();
+
+                    if (!savedDistrict || !$select.length) {
+                        return;
+                    }
+
+                    if (!$select.find('option[value="' + String(savedDistrict.destination_id) + '"]').length) {
+                        return;
+                    }
+
+                    if (String($select.val() || '') !== String(savedDistrict.destination_id)) {
+                        $select.val(String(savedDistrict.destination_id));
+                    }
+
+                    $sourceField.val(String(savedDistrict.destination_id)).trigger('input');
+                    jQuery('[name="kiriof_destination_area_name"]').val(savedDistrict.destination_name || '');
+                    jQuery('[name="kiriof_shipping_destination_area_name"]').val(savedDistrict.destination_name || '');
+                    kiriofUpdateCheckoutAdditionalFields(String(savedDistrict.destination_id));
+                    kiriofSyncBlockDistrictWarningState();
+                    kiriofPersistDestinationArea(String(savedDistrict.destination_id), savedDistrict.destination_name || '', jQuery('[name="ship_to_different_address"]:checked').length, function() {
+                        kiriofRefreshBlockShippingRates();
+                        kiriofCodInsurance();
                     });
                 }
             
@@ -339,6 +498,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
                         var val = jQuery(this).val();
                         var label = jQuery(this).find('option:selected').text();
+                        var postcode = kiriofGetCurrentPostcodeKey();
                         var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
                         var $sourceField = kiriofGetBlockDistrictField();
             
@@ -349,6 +509,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
             
                         kiriofUpdateCheckoutAdditionalFields(val);
+                        kiriofRememberDistrictForPostcode(postcode, val, label);
+                        kiriofSyncBlockDistrictWarningState();
                         kiriofPersistDestinationArea(val, label, differentAddress, function() {
                             kiriofRefreshBlockShippingRates();
                             kiriofCodInsurance();
@@ -364,6 +526,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     });
                 setTimeout(function() {
                     kiriofFetchDistricts(kiriofGetCheckoutPostcodeFromDom());
+                    kiriofSyncBlockDistrictWarningState();
                 }, 300);
             
                 // Watch for postcode changes via data store
@@ -375,6 +538,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         var billing = store.getBillingAddress ? store.getBillingAddress() : {};
                         var postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || kiriofGetCheckoutPostcodeFromDom();
                         kiriofFetchDistricts(postcode);
+                        kiriofSyncBlockDistrictWarningState();
                     } catch(e) {}
                 });
             }
@@ -604,6 +768,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             shipping_metode_id: data.shipping_metode_id,
                             destination_id: data.destination_id,
                             destination_name: data.destination_name,
+                            postcode: data.postcode,
                             payment_method: data.payment_method,
                             insurance: data.insurance,
                             force_insurance: data.force_insurance
@@ -742,6 +907,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 destination_name,
+                postcode: kiriofGetCurrentPostcodeKey(),
                 payment_method,
                 insurance : (typeof insurance === 'undefined' ? 0 : parseInt(insurance)),
                 force_insurance : parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)

@@ -69,6 +69,7 @@ class CheckoutController
             add_action('woocommerce_checkout_before_customer_details', array($this,'kiriof_add_checkout_nonce_field' ) );
             
             add_action( 'woocommerce_cart_calculate_fees', array($this,'kiriof_shipping_method_update') );
+            add_filter( 'render_block', array( $this, 'kiriof_render_block_checkout_shipping_discount_row' ), 20, 2 );
 
             /** Control COD availability based on KiriminAja Config tab */
             add_filter( 'woocommerce_available_payment_gateways', array($this,'kiriof_filter_cod_availability'), 10, 1 );
@@ -387,6 +388,7 @@ class CheckoutController
         $destination_name = WC()->session->get($this->key_destination_name);
         $shipping_destination_id = WC()->session->get($this->key_shipping_destination_id);
         $shipping_destination_name = WC()->session->get($this->key_shipping_destination_name);
+        $kiriof_saved_destination_map = WC()->session->get( 'kiriof_destination_postcode_map', array() );
         
         $insurance_setting        = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
         $kiriof_global_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
@@ -1150,11 +1152,62 @@ class CheckoutController
         return $gateways;
     }
 
-    /**
-     * Inject Insurance + COD fee HTML into the block checkout fee block.
-     * Block checkout renders fees via checkout-order-summary-fee-block.
-     * render_block filter fires during server-side rendering of the block.
-     */
+    public function kiriof_render_block_checkout_shipping_discount_row( $block_content, $block ) {
+        if ( ! is_string( $block_content ) || '' === $block_content || ! $this->kiriof_is_block_checkout_request() ) {
+            return $block_content;
+        }
+
+        $block_name = '';
+        if ( is_array( $block ) && isset( $block['blockName'] ) ) {
+            $block_name = (string) $block['blockName'];
+        } elseif ( is_object( $block ) && isset( $block->name ) ) {
+            $block_name = (string) $block->name;
+        }
+
+        $target_blocks = array(
+            'woocommerce/checkout-totals-block',
+            'woocommerce/checkout-order-summary-totals-block',
+            'woocommerce/checkout-order-summary-block',
+        );
+
+        if ( '' !== $block_name && ! in_array( $block_name, $target_blocks, true ) ) {
+            return $block_content;
+        }
+
+        if ( false === strpos( $block_content, 'wc-block-components-totals-wrapper' ) || false !== strpos( $block_content, 'kiriof-block-shipping-discount-row' ) ) {
+            return $block_content;
+        }
+
+        $service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+        $discount_amount = $service->getCurrentShippingDiscountTotal();
+        if ( $discount_amount <= 0 ) {
+            return $block_content;
+        }
+
+        $shipping_discount_row = sprintf(
+            '<div class="wc-block-components-totals-item kiriof-block-fee-breakdown__row kiriof-block-shipping-discount-row"><span>%1$s</span><strong>-%2$s</strong></div>',
+            esc_html__( 'Shipping Discount', 'kiriminaja-official' ),
+            wp_kses_post( wc_price( $discount_amount ) )
+        );
+
+        $updated_content = preg_replace( '/(<div class="[^"]*wc-block-components-totals-footer[^"]*"[^>]*>)/', $shipping_discount_row . '$1', $block_content, 1 );
+        if ( is_string( $updated_content ) && $updated_content !== $block_content ) {
+            return $updated_content;
+        }
+
+        $updated_content = preg_replace( '/(<div class="[^"]*wc-block-components-totals-item--total[^"]*"[^>]*>)/', $shipping_discount_row . '$1', $block_content, 1 );
+        if ( is_string( $updated_content ) && $updated_content !== $block_content ) {
+            return $updated_content;
+        }
+
+        $updated_content = preg_replace( '/(<\/div>\s*$)/', $shipping_discount_row . '$1', $block_content, 1 );
+        if ( is_string( $updated_content ) && $updated_content !== $block_content ) {
+            return $updated_content;
+        }
+
+        return $block_content . $shipping_discount_row;
+    }
+
     /**
      * Register District field for block checkout (ShopVerse etc.).
      * woocommerce_checkout_fields doesn't work with the checkout block —
@@ -1247,22 +1300,35 @@ class CheckoutController
         $payment_method  = isset( $data['payment_method'] ) ? sanitize_text_field( wp_unslash( $data['payment_method'] ) ) : '';
         $insurance       = ! empty( $data['insurance'] ) ? 1 : 0;
         $force_insurance = ! empty( $data['force_insurance'] ) ? 1 : 0;
+        $postcode        = isset( $data['postcode'] ) ? sanitize_text_field( wp_unslash( $data['postcode'] ) ) : '';
 
         if ( '' !== $shipping_method ) {
             WC()->session->set( 'kiriof_chosen_shipping_methods', array( $shipping_method ) );
             WC()->session->set( 'chosen_shipping_methods', array( $shipping_method ) );
             WC()->session->set( 'kiriof_expedition', $this->kiriof_extract_expedition_from_method( $shipping_method ) );
+        } elseif ( $destination_id <= 0 ) {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array() );
+            WC()->session->set( 'chosen_shipping_methods', array() );
+            WC()->session->set( 'kiriof_expedition', '' );
         }
 
         if ( $destination_id > 0 ) {
             WC()->session->set( 'destination_id', $destination_id );
             WC()->session->set( 'shipping_destination_id', $destination_id );
             WC()->session->set( 'kiriof_destination_area', $destination_id );
+        } else {
+            WC()->session->set( 'destination_id', '' );
+            WC()->session->set( 'shipping_destination_id', '' );
+            WC()->session->set( 'kiriof_destination_area', '' );
         }
         if ( '' !== $destination_name ) {
             WC()->session->set( 'destination_name', $destination_name );
             WC()->session->set( 'shipping_destination_name', $destination_name );
             WC()->session->set( 'kiriof_destination_area_name', $destination_name );
+        } else {
+            WC()->session->set( 'destination_name', '' );
+            WC()->session->set( 'shipping_destination_name', '' );
+            WC()->session->set( 'kiriof_destination_area_name', '' );
         }
 
         if ( 'cod' === $payment_method ) {
@@ -1282,5 +1348,15 @@ class CheckoutController
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
         WC()->session->set( 'kiriof_cached_cod_amt', 0 );
         WC()->session->set( 'kiriof_cached_fee_context', array() );
+        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+
+        if ( $destination_id > 0 && '' !== $postcode ) {
+            $saved_destination_map = (array) WC()->session->get( 'kiriof_destination_postcode_map', array() );
+            $saved_destination_map[ $postcode ] = array(
+                'destination_id'   => $destination_id,
+                'destination_name' => $destination_name,
+            );
+            WC()->session->set( 'kiriof_destination_postcode_map', $saved_destination_map );
+        }
     }
 }

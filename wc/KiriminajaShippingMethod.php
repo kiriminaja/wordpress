@@ -53,12 +53,22 @@ function kiriof_shipping_method(){
     
             public function calculate_shipping( $package = array() ){
                 if ($this->hasActiveFreeShippingCoupon()) {
+                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+                    }
                     return;
                 }
 
                 $country = $package["destination"]["country"];
                 $destination_id = WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
+
+                if ( empty( $destination_id ) ) {
+                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+                    }
+                    return;
+                }
                   
                 
                 $length = 0;
@@ -99,6 +109,7 @@ function kiriof_shipping_method(){
                 $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 
                 $res_pricing = $kiriofPricing['data']; //object
+                $kiriofRateMetaMap = array();
                 foreach($this->filterOptions($res_pricing,$quantity) as $row){
                     
                     $rate= array(
@@ -108,7 +119,19 @@ function kiriof_shipping_method(){
                         'meta_data' => $row['meta_data'] ?? [],
                     );
 
+                    $kiriofRateMetaMap[ $rate['id'] ] = array(
+                        'label'           => (string) $rate['label'],
+                        'cost'            => (float) $rate['cost'],
+                        'original_cost'   => (float) ( $rate['meta_data']['kiriof_shipping_coupon_original_cost'] ?? $rate['cost'] ),
+                        'discount_amount' => (float) ( $rate['meta_data']['kiriof_shipping_coupon_discount_amount'] ?? 0 ),
+                    );
+
                     $this->add_rate($rate);
+                }
+
+                if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+                    $existingRateMetaMap = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+                    WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array_merge( $existingRateMetaMap, $kiriofRateMetaMap ) );
                 }
 
             }

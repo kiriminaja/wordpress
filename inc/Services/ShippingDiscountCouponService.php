@@ -184,13 +184,32 @@ class ShippingDiscountCouponService {
     }
 
     public function getCurrentShippingDiscountTotal(): float {
+        $summary = $this->getCurrentShippingDiscountSummary();
+        return (float) $summary['amount'];
+    }
+
+    public function getCurrentShippingDiscountSummary(): array {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
-            return 0.0;
+            return array(
+                'amount' => 0.0,
+                'label'  => __( 'Shipping Discount', 'kiriminaja-official' ),
+                'codes'  => array(),
+                'rate_label' => '',
+                'current_cost' => 0.0,
+                'original_cost' => 0.0,
+            );
         }
 
         $chosenMethods = WC()->session->get( 'chosen_shipping_methods', array() );
         if ( empty( $chosenMethods ) || ! is_array( $chosenMethods ) ) {
-            return 0.0;
+            return array(
+                'amount' => 0.0,
+                'label'  => __( 'Shipping Discount', 'kiriminaja-official' ),
+                'codes'  => $this->getCurrentShippingCouponCodes(),
+                'rate_label' => '',
+                'current_cost' => 0.0,
+                'original_cost' => 0.0,
+            );
         }
 
         $packages = array();
@@ -201,21 +220,52 @@ class ShippingDiscountCouponService {
         }
 
         $discountTotal = 0.0;
+        $sessionRateMeta = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+        $primaryRateLabel = '';
+        $primaryCurrentCost = 0.0;
+        $primaryOriginalCost = 0.0;
 
         foreach ( $chosenMethods as $packageIndex => $chosenMethodId ) {
+            $chosenMethodId = (string) $chosenMethodId;
             $rates = (array) ( $packages[ $packageIndex ]['rates'] ?? array() );
+            $matchedRate = false;
+
             foreach ( $rates as $rateKey => $rate ) {
                 $rateId = is_object( $rate ) && isset( $rate->id ) ? (string) $rate->id : (string) $rateKey;
-                if ( (string) $chosenMethodId !== $rateId ) {
+                if ( $chosenMethodId !== $rateId ) {
                     continue;
                 }
 
                 $discountTotal += $this->getRateDiscountAmount( $rate );
+                if ( '' === $primaryRateLabel ) {
+                    $primaryRateLabel = method_exists( $rate, 'get_label' ) ? (string) $rate->get_label() : '';
+                    $primaryCurrentCost = isset( $rate->cost ) ? (float) $rate->cost : 0.0;
+                    $primaryOriginalCost = method_exists( $rate, 'get_meta' )
+                        ? (float) $rate->get_meta( 'kiriof_shipping_coupon_original_cost', true )
+                        : $primaryCurrentCost;
+                }
+                $matchedRate = true;
                 break;
+            }
+
+            if ( ! $matchedRate && isset( $sessionRateMeta[ $chosenMethodId ]['discount_amount'] ) ) {
+                $discountTotal += max( 0, (float) $sessionRateMeta[ $chosenMethodId ]['discount_amount'] );
+                if ( '' === $primaryRateLabel ) {
+                    $primaryRateLabel = (string) ( $sessionRateMeta[ $chosenMethodId ]['label'] ?? '' );
+                    $primaryCurrentCost = (float) ( $sessionRateMeta[ $chosenMethodId ]['cost'] ?? 0 );
+                    $primaryOriginalCost = (float) ( $sessionRateMeta[ $chosenMethodId ]['original_cost'] ?? $primaryCurrentCost );
+                }
             }
         }
 
-        return max( 0, $discountTotal );
+        return array(
+            'amount' => max( 0, $discountTotal ),
+            'label'  => $this->getCurrentShippingDiscountLabel(),
+            'codes'  => $this->getCurrentShippingCouponCodes(),
+            'rate_label' => sanitize_text_field( $primaryRateLabel ),
+            'current_cost' => max( 0, $primaryCurrentCost ),
+            'original_cost' => max( 0, $primaryOriginalCost ),
+        );
     }
 
     private function getShippingCoupons(): array {
@@ -275,6 +325,36 @@ class ShippingDiscountCouponService {
         }
 
         return 0.0;
+    }
+
+    private function getCurrentShippingCouponCodes(): array {
+        $codes = array();
+
+        foreach ( $this->getShippingCoupons() as $coupon ) {
+            if ( $coupon instanceof \WC_Coupon ) {
+                $codes[] = sanitize_text_field( (string) $coupon->get_code() );
+            }
+        }
+
+        return array_values( array_filter( array_unique( $codes ) ) );
+    }
+
+    private function getCurrentShippingDiscountLabel(): string {
+        $codes = $this->getCurrentShippingCouponCodes();
+
+        if ( 1 === count( $codes ) ) {
+            return sprintf(
+                /* translators: %s shipping coupon code. */
+                __( 'Shipping Discount (%s)', 'kiriminaja-official' ),
+                $codes[0]
+            );
+        }
+
+        if ( count( $codes ) > 1 ) {
+            return __( 'Shipping Discounts', 'kiriminaja-official' );
+        }
+
+        return __( 'Shipping Discount', 'kiriminaja-official' );
     }
 
     private function destinationMatchesRegion( array $destination, array $region ): bool {

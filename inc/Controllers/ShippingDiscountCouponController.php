@@ -29,6 +29,8 @@ class ShippingDiscountCouponController {
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
         add_action( 'wp_ajax_kiriof_refresh_coupon_regions', array( $this, 'refreshRegionCacheAjax' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
+        add_action( 'wp_ajax_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
+        add_action( 'wp_ajax_nopriv_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
         add_action( ShippingDiscountRegionCacheService::CRON_HOOK, array( $this, 'refreshRegionCacheCron' ) );
     }
 
@@ -87,6 +89,26 @@ class ShippingDiscountCouponController {
 
     public function filterShippingMethodLabel( $label, $method ) {
         return ( new ShippingDiscountCouponService() )->formatShippingMethodLabel( (string) $label, $method );
+    }
+
+    public function getCurrentShippingDiscountAjax() {
+        if ( isset( $_POST['nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
+            if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'message' => __( 'Security check failed.', 'kiriminaja-official' ) ), 403 );
+            }
+        }
+
+        $service = new ShippingDiscountCouponService();
+        $summary = $service->getCurrentShippingDiscountSummary();
+        $amount  = (float) $summary['amount'];
+
+        wp_send_json_success( array(
+            'amount'    => $amount,
+            'formatted' => $amount > 0 ? wp_strip_all_tags( wc_price( $amount ) ) : '',
+            'label'     => (string) ( $summary['label'] ?? __( 'Shipping Discount', 'kiriminaja-official' ) ),
+            'codes'     => (array) ( $summary['codes'] ?? array() ),
+        ) );
     }
 
     public function registerCouponListColumns( $columns ) {

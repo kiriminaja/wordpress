@@ -28,8 +28,11 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getAdjustedRatePricing', $content);
         $this->assertStringContainsString('kiriof_shipping_coupon_original_cost', $content);
         $this->assertStringContainsString('kiriof_shipping_coupon_notice', $content);
+        $this->assertStringContainsString('kiriof_shipping_coupon_rate_meta', $content);
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $serviceContent);
+        $this->assertStringContainsString('getCurrentShippingDiscountSummary', $serviceContent);
         $this->assertStringContainsString('kiriof_shipping_coupon_discount_amount', $serviceContent);
+        $this->assertStringContainsString('Shipping Discount (%s)', $serviceContent);
     }
 
     #[Test]
@@ -38,6 +41,8 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
         $reviewOrder = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
+        $blockCheckout = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+        $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString('Applied to shipping', $cartTotals);
         $this->assertStringContainsString('Applied to shipping', $reviewOrder);
@@ -49,5 +54,8 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $reviewOrder);
         $this->assertStringContainsString('Save %s', $cartShipping);
         $this->assertStringContainsString('kiriof-shipping-rate-savings', $cartShipping);
+        $this->assertStringContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
+        $this->assertStringContainsString('kiriof-block-shipping-discount-row', $blockCheckout);
+        $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
     }
 }

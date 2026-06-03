@@ -536,6 +536,51 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_requires_district_before_showing_shipping_options(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $css = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+
+        $this->assertStringContainsString(
+            'kiriofEnsureBlockDistrictWarning',
+            $content,
+            'Block checkout should create a visible warning near Shipping address when District is still missing'
+        );
+
+        $this->assertStringContainsString(
+            'Please select your District before choosing a shipping service.',
+            $content,
+            'Buyer-facing block checkout warning should clearly explain why shipping methods are unavailable'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-shipping-options-blocked',
+            $content,
+            'Block checkout should toggle a blocked state on shipping options until District is selected'
+        );
+
+        $this->assertStringContainsString(
+            'destination_id <= 0',
+            $controller,
+            'Store API update callback should clear stale destination and shipping session data when District is not set'
+        );
+
+        $this->assertStringContainsString(
+            'if ( empty( $destination_id ) )',
+            $shippingMethod,
+            'Shipping method calculation should bail out when District is missing so stale shipping costs do not show'
+        );
+
+        $this->assertStringContainsString(
+            '.kiriof-shipping-options-blocked',
+            $css,
+            'Frontend styles should suppress the shipping options list while District is incomplete'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_selection_persists_destination_session_before_shipping_rate_refetch(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
@@ -566,6 +611,49 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriofGetDestinationAreaAjaxData',
             $content,
             'The block and classic District handlers should share the same destination/session payload builder'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_restores_saved_district_selection_for_the_same_postcode(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'kiriofSavedDistrictByPostcode',
+            $content,
+            'Block checkout should preload saved District selections keyed by postcode from session'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetSavedDistrictForPostcode',
+            $content,
+            'District selector should look up a saved selection for the current postcode before forcing the buyer to choose again'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofRememberDistrictForPostcode',
+            $content,
+            'Selecting a District should save that postcode-to-district pairing in the frontend state'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofRestoreSavedDistrictForCurrentPostcode',
+            $content,
+            'Fetched district results should automatically restore the saved District when the postcode matches'
+        );
+
+        $this->assertStringContainsString(
+            'postcode: data.postcode',
+            $content,
+            'Store API session persistence should include the current postcode so the server can remember District selections by postcode'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_destination_postcode_map',
+            $controller,
+            'Checkout controller should store District selections in Woo session keyed by postcode'
         );
     }
 
@@ -1468,6 +1556,8 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString(
             'kiriof-block-checkout',
@@ -1503,6 +1593,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "fee.name === 'COD Fee'",
             $script,
             'Slot/fill should render the native COD Fee cart fee from Store API data'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_get_current_shipping_discount',
+            $script,
+            'Block checkout should fetch the current shipping discount amount from the cart session so shipping coupons render as their own row in block themes'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-block-shipping-discount-row',
+            $script,
+            'Slot/fill must render a dedicated Shipping Discount row in the Woo Blocks order summary'
+        );
+
+        $this->assertStringContainsString(
+            'getCurrentShippingDiscountAjax',
+            $couponController,
+            'Shipping discount amount should be exposed through a frontend AJAX endpoint for block checkout refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'getCurrentShippingDiscountSummary',
+            $couponController,
+            'Block checkout AJAX should use the shipping discount summary so buyers can see a clearer label when a shipping coupon is applied'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_render_block_checkout_shipping_discount_row',
+            $controller,
+            'Checkout controller should add a server-rendered fallback row so block themes that SSR totals wrappers still show the shipping discount amount'
         );
     }
 
