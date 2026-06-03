@@ -2277,3 +2277,7 @@ msgstr "kurir"
 #: templates/setting/setuped/section-cache.php
 msgid "Cached"
 msgstr "Sudah di-cache"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Free shipping"
+msgstr "Gratis ongkir"

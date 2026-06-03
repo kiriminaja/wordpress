@@ -14,8 +14,8 @@ class ShippingDiscountRegionRepository {
     public function __construct() {
         global $wpdb;
         $this->wpdb = $wpdb;
-        $this->provincesTable = $wpdb->prefix . 'kiriminaja_provinces';
-        $this->citiesTable = $wpdb->prefix . 'kiriminaja_cities';
+        $this->provincesTable = esc_sql( $wpdb->prefix . 'kiriminaja_provinces' );
+        $this->citiesTable = esc_sql( $wpdb->prefix . 'kiriminaja_cities' );
     }
 
     public function getProvinces(): array {

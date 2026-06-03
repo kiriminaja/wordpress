@@ -180,7 +180,9 @@ class CheckoutCalculationService extends BaseService{
 
         $cartTotalAfterDiscount = 0;
         if (function_exists('WC') && WC() && isset(WC()->cart) && WC()->cart) {
-            $cartTotalAfterDiscount = (float) WC()->cart->get_total('edit');
+            // Use get_cart_contents_total() to get the items-only total after WC discounts,
+            // excluding shipping, fees, and taxes which are added back separately.
+            $cartTotalAfterDiscount = (float) WC()->cart->get_cart_contents_total();
         }
         if ($cartTotalAfterDiscount <= 0 && $cartTotalBeforeDiscount > 0) {
             $cartTotalAfterDiscount = 0;

@@ -65,7 +65,13 @@ $kiriof_calculator_text          = '';
 		<?php endif; ?>
 
         <?php 
-		if ( ! empty( $available_methods ) && is_array( $available_methods ) ) : ?>
+		if ( ! empty( $available_methods ) && is_array( $available_methods ) ) :
+			// Coupon pricing meta is stored in session (not on WC_Shipping_Rate) to avoid
+			// block checkout themes rendering raw meta values in the Order Summary.
+			$kiriof_session_rate_meta = ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session )
+				? (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() )
+				: array();
+		?>
 			<ul id="shipping_method" class="woocommerce-shipping-methods kiriof-shipping-methods-list">
 				<?php
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template loop variable
@@ -73,11 +79,12 @@ $kiriof_calculator_text          = '';
 					<li class="kiriof-shipping-method-item">
 						<?php
 						$kiriof_method_label_html = wp_kses_post( wc_cart_totals_shipping_method_label( $method ) );
-						$kiriof_original_cost = method_exists( $method, 'get_meta' ) ? (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true ) : 0.0;
-						$kiriof_discount_amount = method_exists( $method, 'get_meta' ) ? (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true ) : 0.0;
-						$kiriof_badge = method_exists( $method, 'get_meta' ) ? (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true ) : '';
-						$kiriof_notice = method_exists( $method, 'get_meta' ) ? (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true ) : '';
-						$kiriof_current_cost = isset( $method->cost ) ? (float) $method->cost : 0.0;
+						$kiriof_rate_meta         = $kiriof_session_rate_meta[ $method->id ] ?? array();
+						$kiriof_original_cost     = (float) ( $kiriof_rate_meta['original_cost'] ?? 0.0 );
+						$kiriof_discount_amount   = (float) ( $kiriof_rate_meta['discount_amount'] ?? 0.0 );
+						$kiriof_badge             = (string) ( $kiriof_rate_meta['badge'] ?? '' );
+						$kiriof_notice            = (string) ( $kiriof_rate_meta['notice'] ?? '' );
+						$kiriof_current_cost      = isset( $method->cost ) ? (float) $method->cost : 0.0;
 
 						if ( $kiriof_discount_amount > 0 && $kiriof_original_cost > $kiriof_current_cost ) {
 							$kiriof_method_label_html = esc_html( (string) $method->get_label() );

@@ -221,7 +221,9 @@ class GetWCCartAttributeService extends BaseService{
             return $fallbackTotal;
         }
 
-        $rawTotal = $wc->cart->get_total('edit');
+        // Use get_cart_contents_total() for items-only total after discounts,
+        // to avoid including shipping/fees/taxes in the pricing item_value.
+        $rawTotal = $wc->cart->get_cart_contents_total();
         if ($rawTotal === '' || $rawTotal === null) {
             return $fallbackTotal;
         }

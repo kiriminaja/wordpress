@@ -207,8 +207,9 @@ class SetupMigration {
 
         require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
 
-        $provinces_table = esc_sql( $wpdb->prefix . 'kiriminaja_provinces' );
-        $cities_table    = esc_sql( $wpdb->prefix . 'kiriminaja_cities' );
+        $provinces_table  = esc_sql( $wpdb->prefix . 'kiriminaja_provinces' );
+        $cities_table     = esc_sql( $wpdb->prefix . 'kiriminaja_cities' );
+        $charset_collate  = $wpdb->get_charset_collate();
 
         $provinces_sql = "CREATE TABLE `" . $provinces_table . "`(
             `id` bigint(20) NOT NULL,
@@ -216,7 +217,7 @@ class SetupMigration {
             `updated_at` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
             KEY `name` (`name`)
-        );";
+        ) " . $charset_collate . ";";
 
         $cities_sql = "CREATE TABLE `" . $cities_table . "`(
             `id` bigint(20) NOT NULL,
@@ -226,7 +227,7 @@ class SetupMigration {
             PRIMARY KEY (`id`),
             KEY `province_id` (`province_id`),
             KEY `name` (`name`)
-        );";
+        ) " . $charset_collate . ";";
 
         dbDelta($provinces_sql);
         dbDelta($cities_sql);

@@ -56,6 +56,13 @@ function kiriof_shipping_method(){
                     if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
                         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
                     }
+                    // Add a 0-cost rate so KiriminAja remains a valid shipping option
+                    // rather than leaving the customer with no available shipping methods.
+                    $this->add_rate( array(
+                        'id'    => $this->id . '_free',
+                        'label' => __( 'Free shipping', 'kiriminaja-official' ),
+                        'cost'  => 0,
+                    ) );
                     return;
                 }
 
