@@ -30,7 +30,7 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         $this->updateStatus( 'scheduled' );
-        wp_schedule_single_event( time() + 5, self::CRON_HOOK );
+        wp_schedule_single_event( time(), self::CRON_HOOK );
 
         return true;
     }
@@ -59,6 +59,12 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
     public function refreshAll() {
         $this->updateStatus( 'running' );
+
+        // Allow enough time for sequential API calls across all provinces.
+        if ( function_exists( 'set_time_limit' ) ) {
+            set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+        }
+
         $regionRepo = new ShippingDiscountRegionRepository();
         $provinceService = ( new KiriminajaApiService() )->getProvinces();
 

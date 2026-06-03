@@ -27,6 +27,7 @@ class ShippingDiscountCouponController {
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
         add_action( 'wp_ajax_kiriof_refresh_coupon_regions', array( $this, 'refreshRegionCacheAjax' ) );
+        add_action( 'wp_ajax_kiriof_get_coupon_region_status', array( $this, 'getRegionCacheStatusAjax' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
         add_action( 'wp_ajax_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
         add_action( 'wp_ajax_nopriv_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
@@ -183,6 +184,7 @@ class ShippingDiscountCouponController {
 
         if ( $regionRepo->isCacheStale() ) {
             $regionCacheService->scheduleRefresh();
+            spawn_cron();
         }
 
         $provinces = $regionRepo->getProvinces();
@@ -373,12 +375,33 @@ class ShippingDiscountCouponController {
             wp_send_json_error( array( 'message' => __( 'Security check failed', 'kiriminaja-official' ) ), 403 );
         }
 
-        $service = ( new ShippingDiscountRegionCacheService() )->refreshAll();
-        if ( 200 !== $service->status ) {
-            wp_send_json_error( array( 'message' => $service->message ), 400 );
+        $cacheService = new ShippingDiscountRegionCacheService();
+        $cacheService->scheduleRefresh( true );
+        spawn_cron();
+
+        wp_send_json_success( array( 'state' => 'scheduled' ) );
+    }
+
+    public function getRegionCacheStatusAjax() {
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ), 403 );
         }
 
-        wp_send_json_success( $service->data );
+        $nonce = isset( $_GET['nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['nonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', 'kiriminaja-official' ) ), 403 );
+        }
+
+        $cacheService = new ShippingDiscountRegionCacheService();
+        $regionRepo   = new ShippingDiscountRegionRepository();
+
+        wp_send_json_success(
+            array(
+                'status'         => $cacheService->getStatus(),
+                'province_count' => $regionRepo->getProvinceCount(),
+                'city_count'     => $regionRepo->getCityCount(),
+            )
+        );
     }
 
     public function refreshRegionCacheCron() {

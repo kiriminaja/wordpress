@@ -507,6 +507,51 @@
     });
   }
 
+  function pollCacheStatus(silent) {
+    var strings = getStrings();
+    var $button = $(".kiriof-refresh-regions-button");
+
+    $.get(getConfig().ajaxurl, {
+      action: "kiriof_get_coupon_region_status",
+      nonce: getConfig().nonce,
+    })
+      .done(function (response) {
+        var data = response && response.data ? response.data : {};
+        var cacheState = data.status ? data.status.state : "";
+
+        if (cacheState === "ready") {
+          if (!silent) {
+            window.alert(strings.cacheRefreshed || "Region data refreshed.");
+          }
+          window.location.reload();
+          return;
+        }
+
+        if (cacheState === "error") {
+          var errorMsg =
+            (data.status && data.status.last_error) ||
+            strings.cacheRefreshFailed ||
+            "Failed to refresh region data.";
+          if (!silent) {
+            window.alert(errorMsg);
+          }
+          $button
+            .prop("disabled", false)
+            .text(strings.refreshRegionData || "Refresh Region Data");
+          return;
+        }
+
+        setTimeout(function () {
+          pollCacheStatus(silent);
+        }, 3000);
+      })
+      .fail(function () {
+        setTimeout(function () {
+          pollCacheStatus(silent);
+        }, 5000);
+      });
+  }
+
   function refreshCache(silent) {
     var strings = getStrings();
     var $button = $(".kiriof-refresh-regions-button");
@@ -519,10 +564,9 @@
       nonce: getConfig().nonce,
     })
       .done(function () {
-        if (!silent) {
-          window.alert(strings.cacheRefreshed || "Region data refreshed.");
-        }
-        window.location.reload();
+        setTimeout(function () {
+          pollCacheStatus(silent);
+        }, 3000);
       })
       .fail(function (xhr) {
         var message =
@@ -539,8 +583,6 @@
         if (!silent) {
           window.alert(message);
         }
-      })
-      .always(function () {
         $button
           .prop("disabled", false)
           .text(strings.refreshRegionData || "Refresh Region Data");
