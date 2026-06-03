@@ -198,6 +198,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                         different_address: different_address,
                         text: label || '',
+                        postcode: kiriofGetCurrentPostcodeKey(),
                         payment_method: kiriofGetPaymentMethod(),
                         nonce: "<?php echo esc_js( wp_create_nonce('kiriof-destination') ); ?>",
                         country: jQuery('#billing_country').find(':selected').val() || 'ID'
@@ -574,6 +575,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofUpdateCheckoutAdditionalFields(String(savedDistrict.destination_id));
                     kiriofPendingDistrictRestore = false;
                     kiriofSyncBlockDistrictWarningState();
+
+                    // Persist to Store API (saves postcode map to session so district restores on next page load).
+                    kiriofBlockExtensionCartUpdate({
+                        destination_id: parseInt(savedDistrict.destination_id) || 0,
+                        destination_name: savedDistrict.destination_name || '',
+                        postcode: postcode,
+                        payment_method: kiriofGetPaymentMethod(),
+                        insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                        force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
+                    });
+
                     kiriofPersistDestinationArea(String(savedDistrict.destination_id), savedDistrict.destination_name || '', jQuery('[name="ship_to_different_address"]:checked').length, function() {
                         kiriofRefreshBlockShippingRates();
                         kiriofCodInsurance();
@@ -595,12 +607,23 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
             
                         kiriofUpdateCheckoutAdditionalFields(val);
-                    kiriofRememberDistrictForPostcode(postcode, val, label);
-                    kiriofPendingDistrictRestore = false;
-                    kiriofDistrictResultsLoading = false;
-                    kiriofSyncBlockDistrictWarningState();
-                    kiriofPersistDestinationArea(val, label, differentAddress, function() {
-                        kiriofRefreshBlockShippingRates();
+                        kiriofRememberDistrictForPostcode(postcode, val, label);
+                        kiriofPendingDistrictRestore = false;
+                        kiriofDistrictResultsLoading = false;
+                        kiriofSyncBlockDistrictWarningState();
+
+                        // Persist to WC session via Store API (saves to postcode map for restore on next page load).
+                        kiriofBlockExtensionCartUpdate({
+                            destination_id: parseInt(val) || 0,
+                            destination_name: label || '',
+                            postcode: postcode,
+                            payment_method: kiriofGetPaymentMethod(),
+                            insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                            force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
+                        });
+
+                        kiriofPersistDestinationArea(val, label, differentAddress, function() {
+                            kiriofRefreshBlockShippingRates();
                             kiriofCodInsurance();
                         });
                     });
