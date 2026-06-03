@@ -437,7 +437,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                 function kiriofHasValidBlockDistrict() {
                     var districtId = kiriofGetDestinationId(jQuery('[name="ship_to_different_address"]:checked').length);
-                    return !!(districtId && String(districtId).trim() !== '' && String(districtId) !== '0');
+                    if (districtId && String(districtId).trim() !== '' && String(districtId) !== '0') {
+                        return true;
+                    }
+                    // Logged-in users show a compact address summary (no visible form inputs).
+                    // Fall back to the saved district map for the current postcode.
+                    var postcode = kiriofGetCurrentPostcodeKey();
+                    if (postcode) {
+                        var saved = kiriofGetSavedDistrictForPostcode(postcode);
+                        if (saved && saved.destination_id && String(saved.destination_id) !== '0') {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
 
                 function kiriofClearBlockShippingRatesFromStore() {
@@ -459,10 +471,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                     jQuery('.wc-block-components-radio-control__input[name*="shipping"], .wc-block-components-radio-control__input[value*="kiriminaja-official"], input.shipping_method').prop('checked', false);
                 }
 
+                function kiriofGetBlockPaymentOptionsContainer() {
+                    return jQuery('.wp-block-woocommerce-checkout-payment-block, .wc-block-components-checkout-step--payment-method, .wc-block-checkout__payment').first();
+                }
+
                 function kiriofSyncBlockDistrictWarningState() {
                     var hasValidDistrict = kiriofHasValidBlockDistrict();
                     var $warning = kiriofEnsureBlockDistrictWarning();
                     var $shippingOptions = kiriofGetBlockShippingOptionsContainer();
+                    var $paymentOptions = kiriofGetBlockPaymentOptionsContainer();
 
                     if (kiriofDistrictResultsLoading || kiriofPendingDistrictRestore) {
                         $warning.hide();
@@ -473,6 +490,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     if (hasValidDistrict) {
                         $warning.hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
+                        $shippingOptions.parent().find('.wc-block-components-checkout-step__heading').show();
+                        $paymentOptions.show();
                         return;
                     }
 
@@ -480,6 +499,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofClearBlockShippingRatesFromStore();
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
+                    $shippingOptions.parent().find('.wc-block-components-checkout-step__heading').hide();
+                    $paymentOptions.hide();
                 }
 
                 function kiriofResetBlockDistrictState(options) {
@@ -595,6 +616,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                         kiriofFetchDistricts(postcode);
                         kiriofSyncBlockDistrictWarningState();
                     } catch(e) {}
+                });
+
+                // Logged-in compact address: when user clicks "Edit" the full form
+                // expands. Re-fetch districts and re-sync warning state after it renders.
+                jQuery(document).on('click.kiriofAddressEdit', '.wc-block-components-address-card__edit, [class*="address-card__edit"], button[class*="edit"]', function() {
+                    setTimeout(function() {
+                        kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
+                        kiriofSyncBlockDistrictWarningState();
+                    }, 400);
+                    setTimeout(function() {
+                        kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
+                        kiriofSyncBlockDistrictWarningState();
+                    }, 1200);
                 });
             }
         }

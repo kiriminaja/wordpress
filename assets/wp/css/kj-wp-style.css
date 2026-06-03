@@ -255,13 +255,16 @@ tr.woocommerce-shipping-totals {
   align-items: stretch;
 }
 
-.kiriof-block-shipping-option-card .wc-block-components-radio-control__option-layout,
-.kiriof-block-shipping-option-card .wc-block-components-shipping-rates-control__package-list-item {
+.kiriof-block-shipping-option-card
+  .wc-block-components-radio-control__option-layout,
+.kiriof-block-shipping-option-card
+  .wc-block-components-shipping-rates-control__package-list-item {
   align-items: flex-start;
   width: 100%;
 }
 
-.kiriof-block-shipping-option-card:not(.kiriof-block-shipping-option-selected) .kiriof-block-shipping-option-meta {
+.kiriof-block-shipping-option-card:not(.kiriof-block-shipping-option-selected)
+  .kiriof-block-shipping-option-meta {
   display: none;
 }
 
@@ -282,8 +285,16 @@ tr.woocommerce-shipping-totals {
 }
 
 .kiriof-shipping-options-blocked .wc-block-components-radio-control,
-.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control__package,
-.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control__package-list {
+.kiriof-shipping-options-blocked
+  .wc-block-components-shipping-rates-control__package,
+.kiriof-shipping-options-blocked
+  .wc-block-components-shipping-rates-control__package-list {
   visibility: hidden;
   min-height: 0;
+}
+
+/* Hide the "Shipping options" step heading when district is not selected */
+.wc-block-components-checkout-step--shipping-method
+  .wc-block-components-checkout-step__heading {
+  transition: opacity 0.2s ease;
 }
