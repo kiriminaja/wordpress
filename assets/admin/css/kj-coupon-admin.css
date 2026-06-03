@@ -19,36 +19,30 @@
 .kiriof-region-picker-mode {
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
 .kiriof-region-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
+  padding: 8px 18px;
   border: 2px solid #dcdcde;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #50575e;
   cursor: pointer;
+  line-height: 1.4;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
 .kiriof-region-toggle.is-active {
   border-color: #2271b1;
   background: #f0f6fc;
-  color: #1d2327;
-}
-
-.kiriof-region-toggle input[type="radio"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #2271b1;
-  flex-shrink: 0;
+  color: #135e96;
+  font-weight: 600;
 }
 
 .kiriof-region-picker-toolbar {
