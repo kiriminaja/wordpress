@@ -13,9 +13,10 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString('woocommerce_coupon_is_valid_for_cart', $content);
-        $this->assertStringContainsString('woocommerce_cart_shipping_method_full_label', $content);
         $this->assertStringContainsString('validateShippingCouponForCart', $content);
-        $this->assertStringContainsString('filterShippingMethodLabel', $content);
+        // Shipping label injection removed — janky on block checkout themes (ShopVerse)
+        $this->assertStringNotContainsString('woocommerce_cart_shipping_method_full_label', $content);
+        $this->assertStringNotContainsString('filterShippingMethodLabel', $content);
     }
 
     #[Test]
@@ -58,22 +59,23 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $reviewOrder);
         $this->assertStringContainsString('Save %s', $cartShipping);
         $this->assertStringContainsString('kiriof-shipping-rate-savings', $cartShipping);
-        $this->assertStringContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
-        $this->assertStringContainsString('kiriof_get_shipping_rate_meta', $blockCheckout);
-        $this->assertStringContainsString('scheduleShippingDecorationRefresh', $blockCheckout);
-        $this->assertStringContainsString('retryDelays = [ 0, 250, 800, 1600 ]', $blockCheckout);
+        // kiriof_get_current_shipping_discount AJAX endpoint no longer needed in block checkout
+        // since coupon invalidation uses couponSignature from WC store data directly.
+        $this->assertStringNotContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
+        // Shipping rate decoration (ETA/description injection, strikethrough pricing) removed —
+        // block themes render rate meta_data as visible sub-lines causing janky display.
+        $this->assertStringNotContainsString('kiriof_get_shipping_rate_meta', $blockCheckout);
+        $this->assertStringNotContainsString('scheduleShippingDecorationRefresh', $blockCheckout);
+        $this->assertStringNotContainsString('syncShippingSummaryLine', $blockCheckout);
+        $this->assertStringNotContainsString('getShippingOptionLayoutHost', $blockCheckout);
+        $this->assertStringNotContainsString('decorateShippingOptions', $blockCheckout);
+        $this->assertStringNotContainsString('kiriof-block-shipping-option-selected', $blockCheckout);
+        $this->assertStringNotContainsString('kiriof-block-shipping-option-meta', $blockCheckout);
+        $this->assertStringNotContainsString('kiriof-block-shipping-rate-details', $blockCheckout);
+        $this->assertStringNotContainsString('kiriof-block-shipping-rate-badge', $blockCheckout);
         $this->assertStringContainsString('invalidateBlockShippingRates', $blockCheckout);
         $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
-        $this->assertStringContainsString('syncShippingSummaryLine', $blockCheckout);
-        $this->assertStringContainsString('getShippingOptionLayoutHost', $blockCheckout);
-        $this->assertStringContainsString('decorateShippingOptions', $blockCheckout);
-        $this->assertStringContainsString('if ( ! input.checked ) {', $blockCheckout);
-        $this->assertStringContainsString('optionNode.insertBefore( detail, layoutHost.nextSibling )', $blockCheckout);
-        $this->assertStringContainsString('kiriof-block-shipping-option-selected', $blockCheckout);
-        $this->assertStringContainsString('kiriof-block-shipping-option-meta', $blockCheckout);
-        $this->assertStringContainsString('kiriof-block-shipping-rate-details', $blockCheckout);
-        $this->assertStringNotContainsString('kiriof-block-shipping-rate-badge', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
-        $this->assertStringContainsString('getShippingRateMetaAjax', $couponController);
+        $this->assertStringNotContainsString('getShippingRateMetaAjax', $couponController);
     }
 }

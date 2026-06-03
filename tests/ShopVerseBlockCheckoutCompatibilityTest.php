@@ -1613,22 +1613,26 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Slot/fill should render the native COD Fee cart fee from Store API data'
         );
 
-        $this->assertStringContainsString(
+        // kiriof_get_current_shipping_discount AJAX endpoint no longer needed in block checkout
+        // since coupon invalidation uses couponSignature from WC store data directly.
+        $this->assertStringNotContainsString(
             'kiriof_get_current_shipping_discount',
             $script,
-            'Block checkout should fetch the current shipping discount amount from the cart session so shipping coupons can decorate the selected shipping line in block themes'
+            'Block checkout no longer polls for discount amount; coupon invalidation uses WC store couponSignature directly'
         );
 
-        $this->assertStringContainsString(
+        // Shipping rate decoration removed — block themes render ALL WC_Shipping_Rate meta_data
+        // as visible sub-lines in Order Summary, causing janky display on ShopVerse etc.
+        $this->assertStringNotContainsString(
             'kiriof_get_shipping_rate_meta',
             $script,
-            'Block checkout should fetch shipping-rate metadata so the shipping options list can show courier detail, ETA, and discount context before selection'
+            'Shipping rate meta AJAX was removed to prevent block checkout from injecting janky UI'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'scheduleShippingDecorationRefresh',
             $script,
-            'Block checkout should retry shipping decoration refreshes briefly after cart changes because coupon application can recalculate rates asynchronously'
+            'Shipping decoration refresh was removed to prevent janky block checkout injection'
         );
 
         $this->assertStringContainsString(
@@ -1637,28 +1641,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout should explicitly invalidate shipping rates when coupon chips change so removing a shipping coupon clears discounted courier state without a manual refresh'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'syncShippingSummaryLine',
             $script,
-            'Block checkout script should decorate the selected shipping summary line with original and discounted shipping prices'
+            'Shipping summary line decoration was removed to prevent janky block checkout injection'
         );
 
-        $this->assertStringContainsString(
-            'getShippingOptionTextTarget',
-            $script,
-            'Block checkout should attach courier metadata to a stable left-side text container so switching the selected courier does not push details into the right price column'
-        );
-
-        $this->assertStringContainsString(
-            'detail.hidden = !input.checked',
-            $script,
-            'Courier metadata should behave like a selected-state description panel and only be shown for the active shipping option'
-        );
-
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'decorateShippingOptions',
             $script,
-            'Block checkout script should decorate each courier option with richer metadata similar to Shopify-style shipping options'
+            'Shipping options decoration was removed to prevent janky block checkout injection'
         );
 
         $this->assertStringContainsString(
@@ -1673,10 +1665,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout AJAX should use the shipping discount summary so buyers can see the shipping method name plus original and discounted shipping prices'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'getShippingRateMetaAjax',
             $couponController,
-            'Checkout should expose rate metadata for block themes so courier options can show ETA and descriptive shipping information'
+            'Rate meta AJAX endpoint was removed along with shipping injection feature'
         );
 
         $this->assertStringContainsString(

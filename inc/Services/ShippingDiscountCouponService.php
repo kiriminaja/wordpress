@@ -130,53 +130,6 @@ class ShippingDiscountCouponService {
         return $result;
     }
 
-    public function formatShippingMethodLabel( string $label, $method ): string {
-        if ( ! is_object( $method ) || ! method_exists( $method, 'get_meta' ) || ! method_exists( $method, 'get_label' ) || ! method_exists( $method, 'get_id' ) ) {
-            return $label;
-        }
-
-        // Coupon pricing meta is no longer stored on the WC_Shipping_Rate object because
-        // WooCommerce Block checkout (e.g. ShopVerse) renders ALL rate meta_data as visible
-        // sub-lines in the Order Summary, causing numeric values to appear janky.
-        // Read the coupon data from the WC session map instead.
-        $sessionMeta    = array();
-        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-            $rateMetaMap = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
-            $sessionMeta = (array) ( $rateMetaMap[ $method->get_id() ] ?? array() );
-        }
-
-        $originalCost   = isset( $sessionMeta['original_cost'] ) ? (float) $sessionMeta['original_cost'] : (float) $method->get_meta( 'kiriof_shipping_coupon_original_cost', true );
-        $discountAmount = isset( $sessionMeta['discount_amount'] ) ? (float) $sessionMeta['discount_amount'] : (float) $method->get_meta( 'kiriof_shipping_coupon_discount_amount', true );
-        $notice         = isset( $sessionMeta['notice'] ) ? (string) $sessionMeta['notice'] : (string) $method->get_meta( 'kiriof_shipping_coupon_notice', true );
-        $badge          = isset( $sessionMeta['badge'] ) ? (string) $sessionMeta['badge'] : (string) $method->get_meta( 'kiriof_shipping_coupon_badge', true );
-        $cost           = (float) $method->cost;
-
-        if ( $discountAmount <= 0 && '' === $notice ) {
-            return $label;
-        }
-
-        $methodLabel = esc_html( (string) $method->get_label() );
-        $currentPrice = '<span class="amount">' . wp_kses_post( wc_price( $cost ) ) . '</span>';
-
-        if ( $discountAmount > 0 && $originalCost > $cost ) {
-            $originalPrice = '<del class="kiriof-shipping-rate-original">' . wp_kses_post( wc_price( $originalCost ) ) . '</del>';
-            $discountedPrice = '<ins class="kiriof-shipping-rate-discounted">' . wp_kses_post( wc_price( $cost ) ) . '</ins>';
-            $badgeHtml = '';
-
-            if ( '' !== $badge ) {
-                $badgeHtml = ' <span class="kiriof-shipping-rate-badge">' . esc_html( $badge ) . '</span>';
-            }
-
-            return $methodLabel . $badgeHtml . '<span class="kiriof-shipping-rate-pricing">' . $originalPrice . $discountedPrice . '</span>';
-        }
-
-        if ( '' !== $notice ) {
-            return $methodLabel . '<span class="kiriof-shipping-rate-pricing">' . $currentPrice . '</span><span class="kiriof-shipping-rate-note">' . esc_html( $notice ) . '</span>';
-        }
-
-        return $label;
-    }
-
     public function getDestinationContext(): array {
         $destinationId = 0;
         $destinationName = '';

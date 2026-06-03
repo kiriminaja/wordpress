@@ -559,9 +559,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                         kiriofFetchDistricts(jQuery(this).val());
                     });
                 setTimeout(function() {
-                    kiriofFetchDistricts(kiriofGetCheckoutPostcodeFromDom());
+                    kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
                     kiriofSyncBlockDistrictWarningState();
                 }, 300);
+                // Retry for block themes (e.g. ShopVerse) that hydrate form inputs after initial render
+                setTimeout(function() {
+                    kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
+                    kiriofSyncBlockDistrictWarningState();
+                }, 1500);
             
                 // Watch for postcode changes via data store
                 wp.data.subscribe(function() {

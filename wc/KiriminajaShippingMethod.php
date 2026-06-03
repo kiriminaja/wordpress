@@ -59,7 +59,6 @@ function kiriof_shipping_method(){
                     return;
                 }
 
-                $country = $package["destination"]["country"];
                 $destination_id = WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
 
@@ -110,7 +109,7 @@ function kiriof_shipping_method(){
                 
                 $res_pricing = $kiriofPricing['data']; //object
                 $kiriofRateMetaMap = array();
-                foreach($this->filterOptions($res_pricing,$quantity) as $row){
+                foreach($this->filterOptions($res_pricing, $quantity, $kiriof_insurance) as $row){
                     
                     $rowMeta    = $row['meta_data'] ?? [];
                     $origCost   = (float) ( $rowMeta['kiriof_shipping_coupon_original_cost'] ?? $row['cost'] );
@@ -123,8 +122,7 @@ function kiriof_shipping_method(){
                     // must NOT be included here: WooCommerce Block checkout (e.g. ShopVerse)
                     // reads ALL meta_data from WC_Shipping_Rate and renders each value as a
                     // sub-line in the Order Summary, causing numeric prices to appear janky.
-                    // Those values are stored in the WC session (kiriof_shipping_coupon_rate_meta)
-                    // and read back by formatShippingMethodLabel() for classic checkout.
+                    // Those values are stored in the WC session (kiriof_shipping_coupon_rate_meta).
                     $rate = array(
                         'id'        => $this->id . '_' . $row['key'],
                         'label'     => $row['value'],
@@ -158,7 +156,7 @@ function kiriof_shipping_method(){
 
             }
 
-            public function filterOptions($pricingData,$quantity){
+            public function filterOptions($pricingData, $quantity, $kiriof_insurance = null){
 
                 $shippingDiscountService = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 
