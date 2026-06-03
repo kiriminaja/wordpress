@@ -2129,3 +2129,7 @@ msgstr "Gagal memuat data provinsi dari file bawaan."
 #: inc/Services/ShippingDiscountRegionCacheService.php
 msgid "Region data loaded from bundled file."
 msgstr "Data wilayah dimuat dari file bawaan."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Leave empty (All Indonesian Regions) to allow all shipping destinations. Only applies to shipping discount coupon types."
+msgstr "Kosongkan (Semua Wilayah Indonesia) untuk mengizinkan semua tujuan pengiriman. Hanya berlaku untuk tipe kupon diskon ongkir."

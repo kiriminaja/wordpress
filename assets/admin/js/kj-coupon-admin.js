@@ -31,19 +31,21 @@
     $(".kiriof-shipping-discount-options").toggle(isShipping);
 
     var $tabs = $(
-      ".coupon_data_tabs .kiriof_area_restrictions_options, .coupon_data_tabs .kiriof_courier_restrictions_options, .coupon_data_tabs .kiriof_usage_combinations_options",
+      ".coupon_data_tabs .kiriof_courier_restrictions_options, .coupon_data_tabs .kiriof_usage_combinations_options",
     );
     var $panels = $(
-      "#kiriof_area_restrictions_coupon_data, #kiriof_courier_restrictions_coupon_data, #kiriof_usage_combinations_coupon_data",
+      "#kiriof_courier_restrictions_coupon_data, #kiriof_usage_combinations_coupon_data",
     );
 
     $tabs.toggle(isShipping);
     $panels.toggleClass("hidden", !isShipping);
 
+    // Show/hide the Area Restrictions metabox.
+    $("#kiriof_area_restrictions_metabox").toggle(isShipping);
+
     if (!isShipping) {
       var $activeTab = $(".coupon_data_tabs li.active");
       if (
-        $activeTab.hasClass("kiriof_area_restrictions_options") ||
         $activeTab.hasClass("kiriof_courier_restrictions_options") ||
         $activeTab.hasClass("kiriof_usage_combinations_options")
       ) {
@@ -53,6 +55,7 @@
       }
     }
   }
+
 
   function escapeHtml(value) {
     return String(value || "")

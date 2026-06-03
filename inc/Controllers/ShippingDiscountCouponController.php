@@ -26,6 +26,7 @@ class ShippingDiscountCouponController {
         add_action( 'woocommerce_coupon_options_usage_restriction', array( $this, 'renderUsageRestrictionFields' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
+        add_action( 'add_meta_boxes', array( $this, 'registerAreaRestrictionsMetabox' ) );
         add_action( 'wp_ajax_kiriof_refresh_coupon_regions', array( $this, 'refreshRegionCacheAjax' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_status', array( $this, 'getRegionCacheStatusAjax' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
@@ -41,12 +42,6 @@ class ShippingDiscountCouponController {
     }
 
     public function registerCouponDataTabs( $tabs ) {
-        $tabs['kiriof_area_restrictions'] = array(
-            'label' => __( 'Area Restrictions', 'kiriminaja-official' ),
-            'target' => 'kiriof_area_restrictions_coupon_data',
-            'class' => $this->getShippingCouponVisibilityClasses(),
-        );
-
         $tabs['kiriof_courier_restrictions'] = array(
             'label' => __( 'Courier Restrictions', 'kiriminaja-official' ),
             'target' => 'kiriof_courier_restrictions_coupon_data',
@@ -157,11 +152,6 @@ class ShippingDiscountCouponController {
     public function renderCouponDataPanels() {
         $coupon_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 
-        echo '<div id="kiriof_area_restrictions_coupon_data" class="panel woocommerce_options_panel kiriof-shipping-discount-panel ' . esc_attr( implode( ' ', $this->getShippingCouponVisibilityClasses() ) ) . '">';
-        $this->renderAreaRestrictionFields( $coupon_id );
-        $this->renderTabFooter();
-        echo '</div>';
-
         echo '<div id="kiriof_courier_restrictions_coupon_data" class="panel woocommerce_options_panel kiriof-shipping-discount-panel ' . esc_attr( implode( ' ', $this->getShippingCouponVisibilityClasses() ) ) . '">';
         $this->renderCourierRestrictionFields( $coupon_id );
         $this->renderTabFooter();
@@ -171,6 +161,21 @@ class ShippingDiscountCouponController {
         $this->renderUsageCombinationFields( $coupon_id );
         $this->renderTabFooter();
         echo '</div>';
+    }
+
+    public function registerAreaRestrictionsMetabox() {
+        add_meta_box(
+            'kiriof_area_restrictions_metabox',
+            __( 'Area Restrictions', 'kiriminaja-official' ),
+            array( $this, 'renderAreaRestrictionsMetabox' ),
+            'shop_coupon',
+            'normal',
+            'default'
+        );
+    }
+
+    public function renderAreaRestrictionsMetabox( $post ) {
+        $this->renderAreaRestrictionFields( (int) $post->ID );
     }
 
     public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
@@ -187,17 +192,16 @@ class ShippingDiscountCouponController {
         $cacheStatus    = $regionCacheService->getStatus();
         $isCachePending = $regionCacheService->isRefreshPending();
 
-        echo '<div class="options_group kiriof-shipping-discount-options">';
-        echo '<p class="form-field">';
-        echo '<label for="kiriof_coupon_region_search">' . esc_html__( 'Allowed Regions', 'kiriminaja-official' ) . '</label>';
-        echo '<span class="wrap">';
-        echo '<button type="button" class="button-link kiriof-refresh-regions-button">' . esc_html__( 'Refresh Region Data', 'kiriminaja-official' ) . '</button>';
-        echo '</span>';
-        echo '<span class="description">' . esc_html__( 'Leave empty to allow all shipping destinations.', 'kiriminaja-official' ) . '</span>';
-        echo '</p>';
+        echo '<div class="kiriof-area-restrictions-metabox">';
+
+        echo '<div class="kiriof-metabox-header">';
+        echo '<p class="description">' . esc_html__( 'Leave empty (All Indonesian Regions) to allow all shipping destinations. Only applies to shipping discount coupon types.', 'kiriminaja-official' ) . '</p>';
+        echo '<button type="button" class="button button-secondary kiriof-refresh-regions-button">' . esc_html__( 'Refresh Region Data', 'kiriminaja-official' ) . '</button>';
+        echo '</div>';
 
         echo '<input type="hidden" id="kiriof_coupon_regions" name="' . esc_attr( self::META_REGIONS ) . '" value="' . esc_attr( wp_json_encode( $savedRegions ) ) . '" />';
         echo '<input type="hidden" id="kiriof_coupon_region_scope_value" name="kiriof_coupon_region_scope" value="all" />';
+
         echo '<div class="kiriof-region-picker">';
         echo '<div class="kiriof-region-picker-mode">';
         echo '<button type="button" class="kiriof-region-toggle" data-scope="all">' . esc_html__( 'All Indonesian Regions', 'kiriminaja-official' ) . '</button>';
@@ -218,13 +222,13 @@ class ShippingDiscountCouponController {
         echo '</div>';
 
         if ( $isCachePending && empty( $provinces ) ) {
-            echo '<p class="form-field"><span class="description">' . esc_html__( 'Coverage data is being prepared in the background. Please wait a moment, then reload this tab.', 'kiriminaja-official' ) . '</span></p>';
+            echo '<p class="description">' . esc_html__( 'Coverage data is being prepared in the background. Please wait a moment, then reload this tab.', 'kiriminaja-official' ) . '</p>';
         } elseif ( $isCacheStale ) {
-            echo '<p class="form-field"><span class="description">' . esc_html__( 'Region data is older than 24 hours. It will be refreshed automatically in the background.', 'kiriminaja-official' ) . '</span></p>';
+            echo '<p class="description">' . esc_html__( 'Region data is older than 24 hours. It will be refreshed automatically in the background.', 'kiriminaja-official' ) . '</p>';
         }
 
         if ( 'error' === ( $cacheStatus['state'] ?? '' ) && ! empty( $cacheStatus['last_error'] ) ) {
-            echo '<p class="form-field"><span class="description">' . esc_html( $cacheStatus['last_error'] ) . '</span></p>';
+            echo '<p class="description kiriof-error-text">' . esc_html( $cacheStatus['last_error'] ) . '</p>';
         }
 
         echo '</div>';

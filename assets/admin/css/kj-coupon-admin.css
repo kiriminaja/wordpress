@@ -1,3 +1,26 @@
+.kiriof-area-restrictions-metabox {
+  padding: 12px 0 4px;
+}
+
+.kiriof-metabox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #dcdcde;
+}
+
+.kiriof-metabox-header .description {
+  margin: 0;
+  flex: 1;
+}
+
+.kiriof-error-text {
+  color: #d63638;
+}
+
 .kiriof-shipping-discount-options {
   padding: 12px 0 0;
 }
