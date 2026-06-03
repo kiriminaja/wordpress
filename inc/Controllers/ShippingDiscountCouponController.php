@@ -178,29 +178,13 @@ class ShippingDiscountCouponController {
     }
 
     private function renderAreaRestrictionFields( int $coupon_id ): void {
-        $savedRegions = $this->getSavedRegions( $coupon_id );
-
-        // Ensure tables exist (handles first-run after feature deployment).
-        if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
-            ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
-        }
-
-        $regionRepo = new ShippingDiscountRegionRepository();
+        $savedRegions       = $this->getSavedRegions( $coupon_id );
+        $regionRepo         = new ShippingDiscountRegionRepository();
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
-        if ( $regionRepo->isCacheStale() ) {
-            // Seed instantly from bundled JSON so the tree shows immediately,
-            // then schedule a live API refresh in the background.
-            if ( $regionRepo->getProvinceCount() < 1 ) {
-                $regionCacheService->seedFromBundledData( $regionRepo );
-            }
-            $regionCacheService->scheduleRefresh();
-            spawn_cron();
-        }
-
-        $provinces = $regionRepo->getProvinces();
-        $isCacheStale = $regionRepo->isCacheStale();
-        $cacheStatus = $regionCacheService->getStatus();
+        $provinces      = $regionRepo->getProvinces();
+        $isCacheStale   = $regionRepo->isCacheStale();
+        $cacheStatus    = $regionCacheService->getStatus();
         $isCachePending = $regionCacheService->isRefreshPending();
 
         echo '<div class="options_group kiriof-shipping-discount-options">';
@@ -319,8 +303,24 @@ class ShippingDiscountCouponController {
             return;
         }
 
-        $regionRepo = new ShippingDiscountRegionRepository();
+        // Ensure tables exist and seed from bundle if DB is empty —
+        // must happen before getRegionPickerTreeData() reads from DB.
+        if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
+            ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
+        }
+
+        $regionRepo         = new ShippingDiscountRegionRepository();
         $regionCacheService = new ShippingDiscountRegionCacheService();
+
+        if ( $regionRepo->getProvinceCount() < 1 ) {
+            $regionCacheService->seedFromBundledData( $regionRepo );
+        }
+
+        if ( $regionRepo->isCacheStale() ) {
+            $regionCacheService->scheduleRefresh();
+            spawn_cron();
+        }
+
         $currentType = '';
         if ( isset( $_GET['post'] ) ) {
             $coupon = new \WC_Coupon( absint( $_GET['post'] ) );
