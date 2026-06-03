@@ -74,7 +74,11 @@ class ShippingDiscountRegionCacheService extends BaseService {
             return self::error( array(), $message );
         }
 
-        $regionRepo->upsertProvinces( $provinces );
+        if ( ! $regionRepo->upsertProvinces( $provinces ) || $regionRepo->getProvinceCount() < 1 ) {
+            $message = __( 'Failed to refresh province data.', 'kiriminaja-official' );
+            $this->updateStatus( 'error', $message );
+            return self::error( array(), $message );
+        }
 
         foreach ( $provinces as $province ) {
             $cityRefresh = $this->refreshProvinceCities( (int) $province['id'] );
@@ -118,7 +122,9 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         $repo = new ShippingDiscountRegionRepository();
-        $repo->upsertCities( $provinceId, $cities );
+        if ( ! $repo->upsertCities( $provinceId, $cities ) ) {
+            return self::error( array(), __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
+        }
 
         return self::success( array( 'city_count' => count( $cities ) ), __( 'City cache updated.', 'kiriminaja-official' ) );
     }
@@ -139,7 +145,23 @@ class ShippingDiscountRegionCacheService extends BaseService {
         $normalized = array();
         foreach ( (array) $rows as $row ) {
             $row = (object) $row;
-            $id = (int) ( $row->id ?? $row->{$kind . '_id'} ?? 0 );
+            $idCandidates = array(
+                $row->id ?? null,
+                $row->{$kind . '_id'} ?? null,
+                $row->province_id ?? null,
+                $row->provinsi_id ?? null,
+                $row->city_id ?? null,
+                $row->kabupaten_id ?? null,
+            );
+            $id = 0;
+
+            foreach ( $idCandidates as $candidate ) {
+                if ( is_numeric( $candidate ) && (int) $candidate > 0 ) {
+                    $id = (int) $candidate;
+                    break;
+                }
+            }
+
             $nameCandidates = array(
                 $row->name ?? null,
                 $row->{$kind . '_name'} ?? null,

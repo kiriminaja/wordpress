@@ -65,13 +65,75 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function getProvinces(){
-        return $this->post('/api/mitra/province');
+        $responses = array(
+            $this->post('/api/mitra/province'),
+            $this->get('/api/mitra/province'),
+        );
+
+        return $this->pickBestListResponse( $responses );
     }
 
     public function getCitiesByProvinceId($provinceId){
-        return $this->post('/api/mitra/city', [
-            'provinsi_id' => (int) $provinceId,
-        ]);
+        $provinceId = (int) $provinceId;
+        $responses = array(
+            $this->post('/api/mitra/city', array(
+                'provinsi_id' => $provinceId,
+            )),
+            $this->post('/api/mitra/city', array(
+                'province_id' => $provinceId,
+            )),
+            $this->get('/api/mitra/city?provinsi_id=' . rawurlencode((string) $provinceId)),
+            $this->get('/api/mitra/city?province_id=' . rawurlencode((string) $provinceId)),
+        );
+
+        return $this->pickBestListResponse( $responses );
+    }
+
+    private function pickBestListResponse( array $responses ) {
+        foreach ( $responses as $response ) {
+            if ( $this->responseHasListData( $response ) ) {
+                return $response;
+            }
+        }
+
+        foreach ( $responses as $response ) {
+            if ( ! empty( $response['status'] ) ) {
+                return $response;
+            }
+        }
+
+        return end( $responses ) ?: array(
+            'status' => false,
+            'data' => 'No valid API response',
+        );
+    }
+
+    private function responseHasListData( $response ): bool {
+        if ( empty( $response['status'] ) || empty( $response['data'] ) || ! is_object( $response['data'] ) ) {
+            return false;
+        }
+
+        $data = $response['data'];
+        $candidates = array(
+            $data->datas ?? null,
+            $data->result ?? null,
+            $data->results ?? null,
+            $data->data ?? null,
+        );
+
+        foreach ( $candidates as $candidate ) {
+            if ( is_array( $candidate ) && ! empty( $candidate ) ) {
+                return true;
+            }
+
+            if ( $candidate instanceof \Traversable ) {
+                foreach ( $candidate as $unused ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function getPrintAwb($awb){

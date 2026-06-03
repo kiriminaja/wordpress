@@ -134,8 +134,24 @@ class KiriminajaApiService extends BaseService{
             return trim($data);
         }
 
-        if (is_object($data) && !empty($data->text)) {
-            return (string) $data->text;
+        if (is_object($data)) {
+            $candidates = array(
+                $data->text ?? null,
+                $data->message ?? null,
+                $data->error ?? null,
+                $data->errors->message ?? null,
+                $data->data->message ?? null,
+            );
+
+            foreach ( $candidates as $candidate ) {
+                if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
+                    return trim( $candidate );
+                }
+            }
+
+            if (isset($data->success) && false === $data->success) {
+                return $fallback;
+            }
         }
 
         return $fallback;

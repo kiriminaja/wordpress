@@ -37,9 +37,13 @@ final class ShippingDiscountCouponAdminTest extends TestCase
         $this->assertStringContainsString('function getProvinces', $content);
         $this->assertStringContainsString('/api/mitra/province', $content);
         $this->assertStringContainsString("post('/api/mitra/province')", $content);
+        $this->assertStringContainsString("get('/api/mitra/province')", $content);
         $this->assertStringContainsString('function getCitiesByProvinceId', $content);
         $this->assertStringContainsString("post('/api/mitra/city'", $content);
         $this->assertStringContainsString("'provinsi_id' => (int) \$provinceId", $content);
+        $this->assertStringContainsString("'province_id' => \$provinceId", $content);
+        $this->assertStringContainsString("get('/api/mitra/city?provinsi_id='", $content);
+        $this->assertStringContainsString("get('/api/mitra/city?province_id='", $content);
     }
 
     #[Test]

@@ -14,7 +14,7 @@ class KiriminAjaApi
     public function __construct()
     {
         global $wp_version;
-        $this->base_url = 'https://client.kiriminaja.com'; // PRODUCTION
+        $this->base_url = $this->resolve_base_url();
         
         $dbApiToken = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
@@ -39,6 +39,38 @@ class KiriminAjaApi
             'filename' => null,
         );
     }
+
+    private function resolve_base_url(): string
+    {
+        $defaultBaseUrl = 'https://client.kiriminaja.com';
+
+        $settingRow = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'api_base_url' );
+        $settingBaseUrl = ( is_object( $settingRow ) && ! empty( $settingRow->value ) ) ? trim( (string) $settingRow->value ) : '';
+
+        $constantBaseUrl = '';
+        if ( defined( 'KIRIOF_API_BASE_URL' ) ) {
+            $constantValue = constant( 'KIRIOF_API_BASE_URL' );
+            if ( is_string( $constantValue ) ) {
+                $constantBaseUrl = trim( $constantValue );
+            }
+        }
+
+        $candidate = $constantBaseUrl ?: ( $settingBaseUrl ?: $defaultBaseUrl );
+
+        /**
+         * Filters the base URL used for KiriminAja API requests.
+         *
+         * @param string $candidate Current base URL candidate.
+         */
+        $candidate = (string) apply_filters( 'kiriof_api_base_url', $candidate );
+
+        if ( '' === $candidate || ! preg_match( '#^https?://#i', $candidate ) ) {
+            return $defaultBaseUrl;
+        }
+
+        return untrailingslashit( $candidate );
+    }
+
     private function populate_output($response)
     {
         if (is_wp_error($response)) {
@@ -112,7 +144,12 @@ class KiriminAjaApi
     }
     public function post($endpoint, $body = array())
     {
-        $args = wp_parse_args(array('body' => wp_json_encode($body)), $this->default_args);
+        $requestBody = $body;
+        if ( is_array( $body ) && empty( $body ) ) {
+            $requestBody = (object) array();
+        }
+
+        $args = wp_parse_args(array('body' => wp_json_encode($requestBody)), $this->default_args);
         $response = wp_remote_post($this->base_url . $endpoint, $args);
         if (class_exists('WPMonolog')) {
             global $logger;
