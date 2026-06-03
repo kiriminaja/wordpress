@@ -65,6 +65,12 @@ class ShippingDiscountRegionCacheService extends BaseService {
             set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
         }
 
+        // Ensure the cache tables exist before writing (handles cases where
+        // the plugin was updated without re-running the activation hook).
+        if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
+            ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
+        }
+
         $regionRepo = new ShippingDiscountRegionRepository();
         $provinceService = ( new KiriminajaApiService() )->getProvinces();
 
@@ -81,7 +87,9 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         if ( ! $regionRepo->upsertProvinces( $provinces ) || $regionRepo->getProvinceCount() < 1 ) {
-            $message = __( 'Failed to refresh province data.', 'kiriminaja-official' );
+            global $wpdb;
+            $dbErr   = ! empty( $wpdb->last_error ) ? ' DB: ' . $wpdb->last_error : '';
+            $message = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
             $this->updateStatus( 'error', $message );
             return self::error( array(), $message );
         }

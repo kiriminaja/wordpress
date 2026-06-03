@@ -1484,6 +1484,10 @@ msgstr "Cache wilayah berhasil diperbarui."
 msgid "City cache updated."
 msgstr "Cache kota berhasil diperbarui."
 
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Failed to save province data to database."
+msgstr "Gagal menyimpan data provinsi ke database."
+
 #: inc/Services/KiriminajaApiService.php:58
 msgid "Failed to load provinces."
 msgstr "Gagal memuat daftar provinsi."

@@ -179,6 +179,12 @@ class ShippingDiscountCouponController {
 
     private function renderAreaRestrictionFields( int $coupon_id ): void {
         $savedRegions = $this->getSavedRegions( $coupon_id );
+
+        // Ensure tables exist (handles first-run after feature deployment).
+        if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
+            ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
+        }
+
         $regionRepo = new ShippingDiscountRegionRepository();
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
