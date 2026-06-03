@@ -2,186 +2,514 @@
   "use strict";
 
   var state = {
-    regions: [],
+    scope: "all",
+    searchTerm: "",
+    selectedCities: {},
+    tree: [],
+    provinceIndex: {},
+    islandIndex: {},
+    totals: {
+      islands: 0,
+      provinces: 0,
+      cities: 0,
+    },
   };
 
   function getConfig() {
-    return window.kiriofCouponAdmin || { strings: {} };
+    return window.kiriofCouponAdmin || { strings: {}, regionTree: [] };
+  }
+
+  function getStrings() {
+    return getConfig().strings || {};
   }
 
   function syncVisibility() {
     var config = getConfig();
-    var isShipping = $("#discount_type").val() === config.discountType;
+    var shippingTypes = Array.isArray(config.discountTypes)
+      ? config.discountTypes
+      : [];
+    var isShipping = shippingTypes.indexOf($("#discount_type").val()) !== -1;
     $(".kiriof-shipping-discount-options").toggle(isShipping);
-  }
 
-  function syncBuilderVisibility() {
-    var mode = $("#kiriof_coupon_region_mode").val();
-    $(".kiriof-region-province-field").prop("hidden", mode === "all_province");
-    $(".kiriof-region-city-field").prop("hidden", mode !== "specific_city");
-  }
-
-  function saveRegions() {
-    $("#kiriof_coupon_regions").val(JSON.stringify(state.regions));
-  }
-
-  function regionKey(region) {
-    return [region.type, region.province_id || "", region.city_id || ""].join(
-      ":",
+    var $tabs = $(
+      ".coupon_data_tabs .kiriof_area_restrictions_options, .coupon_data_tabs .kiriof_courier_restrictions_options, .coupon_data_tabs .kiriof_usage_combinations_options",
     );
-  }
+    var $panels = $(
+      "#kiriof_area_restrictions_coupon_data, #kiriof_courier_restrictions_coupon_data, #kiriof_usage_combinations_coupon_data",
+    );
 
-  function formatRegionLabel(region) {
-    var strings = getConfig().strings || {};
+    $tabs.toggle(isShipping);
+    $panels.toggleClass("hidden", !isShipping);
 
-    if (region.type === "all_province") {
-      return strings.allProvinceLabel || "All provinces in Indonesia";
-    }
-
-    if (region.type === "all_city_in_province") {
-      return (strings.allCitiesLabel || "All cities in %s").replace(
-        "%s",
-        region.province_name || "",
-      );
-    }
-
-    var template = strings.specificCityLabel || "%1$s, %2$s";
-    return template
-      .replace("%1$s", region.city_name || "")
-      .replace("%2$s", region.province_name || "");
-  }
-
-  function renderRegions() {
-    var strings = getConfig().strings || {};
-    var $list = $(".kiriof-region-chip-list");
-    $list.empty();
-
-    state.regions.forEach(function (region, index) {
-      var $chip = $("<span />", { class: "kiriof-region-chip" });
-      $chip.append(document.createTextNode(formatRegionLabel(region)));
-      $chip.append(
-        $("<button />", {
-          type: "button",
-          class: "kiriof-remove-chip",
-          "data-index": index,
-          "aria-label": strings.removeRegion || "Remove region",
-          text: "×",
-        }),
-      );
-      $list.append($chip);
-    });
-
-    saveRegions();
-  }
-
-  function loadInitialRegions() {
-    try {
-      state.regions = JSON.parse($("#kiriof_coupon_regions").val() || "[]");
-      if (!Array.isArray(state.regions)) {
-        state.regions = [];
+    if (!isShipping) {
+      var $activeTab = $(".coupon_data_tabs li.active");
+      if (
+        $activeTab.hasClass("kiriof_area_restrictions_options") ||
+        $activeTab.hasClass("kiriof_courier_restrictions_options") ||
+        $activeTab.hasClass("kiriof_usage_combinations_options")
+      ) {
+        $('.coupon_data_tabs a[href="#usage_restriction_coupon_data"]').trigger(
+          "click",
+        );
       }
-    } catch (error) {
-      state.regions = [];
     }
-    renderRegions();
   }
 
-  function fetchCities(provinceId) {
-    return $.post(getConfig().ajaxurl, {
-      action: "kiriof_get_coupon_region_cities",
-      nonce: getConfig().nonce,
-      province_id: provinceId,
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function buildIndexes() {
+    state.tree =
+      Array.isArray(getConfig().regionTree) ? getConfig().regionTree : [];
+    state.provinceIndex = {};
+    state.islandIndex = {};
+    state.totals = { islands: 0, provinces: 0, cities: 0 };
+
+    state.tree.forEach(function (island) {
+      var provinceIds = [];
+      state.totals.islands += 1;
+
+      (island.provinces || []).forEach(function (province) {
+        var cityIds = [];
+        var cityNames = {};
+        state.totals.provinces += 1;
+        provinceIds.push(String(province.id));
+
+        (province.cities || []).forEach(function (city) {
+          cityIds.push(String(city.id));
+          cityNames[String(city.id)] = city.name;
+          state.totals.cities += 1;
+        });
+
+        state.provinceIndex[String(province.id)] = {
+          id: String(province.id),
+          name: province.name,
+          islandId: String(island.id),
+          cityIds: cityIds,
+          cityNames: cityNames,
+        };
+      });
+
+      state.islandIndex[String(island.id)] = {
+        id: String(island.id),
+        name: island.name,
+        provinceIds: provinceIds,
+      };
     });
   }
 
-  function populateCities(provinceId) {
-    var strings = getConfig().strings || {};
-    var $cities = $("#kiriof_coupon_region_cities");
-    $cities.empty();
+  function selectedCityMap(provinceId) {
+    provinceId = String(provinceId);
+    if (!state.selectedCities[provinceId]) {
+      state.selectedCities[provinceId] = {};
+    }
+    return state.selectedCities[provinceId];
+  }
 
-    if (!provinceId) {
-      return $.Deferred().resolve();
+  function selectedCityCount(provinceId) {
+    var province = state.provinceIndex[String(provinceId)];
+    if (!province) {
+      return 0;
     }
 
-    return fetchCities(provinceId)
-      .done(function (response) {
-        if (!response || !response.success || !Array.isArray(response.data)) {
+    return province.cityIds.filter(function (cityId) {
+      return !!selectedCityMap(provinceId)[cityId];
+    }).length;
+  }
+
+  function provinceSelectionState(provinceId) {
+    var province = state.provinceIndex[String(provinceId)];
+    var count = selectedCityCount(provinceId);
+    var total = province ? province.cityIds.length : 0;
+
+    return {
+      checked: total > 0 && count === total,
+      indeterminate: count > 0 && count < total,
+      selectedCount: count,
+      totalCount: total,
+    };
+  }
+
+  function islandSelectionState(islandId) {
+    var island = state.islandIndex[String(islandId)];
+    var total = 0;
+    var selected = 0;
+
+    if (!island) {
+      return {
+        checked: false,
+        indeterminate: false,
+        selectedCount: 0,
+        totalCount: 0,
+      };
+    }
+
+    island.provinceIds.forEach(function (provinceId) {
+      var provinceState = provinceSelectionState(provinceId);
+      total += provinceState.totalCount;
+      selected += provinceState.selectedCount;
+    });
+
+    return {
+      checked: total > 0 && selected === total,
+      indeterminate: selected > 0 && selected < total,
+      selectedCount: selected,
+      totalCount: total,
+    };
+  }
+
+  function setProvinceSelection(provinceId, checked) {
+    var province = state.provinceIndex[String(provinceId)];
+    var selection = selectedCityMap(provinceId);
+
+    if (!province) {
+      return;
+    }
+
+    province.cityIds.forEach(function (cityId) {
+      if (checked) {
+        selection[cityId] = true;
+      } else {
+        delete selection[cityId];
+      }
+    });
+
+    if (!Object.keys(selection).length) {
+      delete state.selectedCities[String(provinceId)];
+    }
+  }
+
+  function setIslandSelection(islandId, checked) {
+    var island = state.islandIndex[String(islandId)];
+    if (!island) {
+      return;
+    }
+
+    island.provinceIds.forEach(function (provinceId) {
+      setProvinceSelection(provinceId, checked);
+    });
+  }
+
+  function setCitySelection(provinceId, cityId, checked) {
+    var selection = selectedCityMap(provinceId);
+    cityId = String(cityId);
+
+    if (checked) {
+      selection[cityId] = true;
+    } else {
+      delete selection[cityId];
+    }
+
+    if (!Object.keys(selection).length) {
+      delete state.selectedCities[String(provinceId)];
+    }
+  }
+
+  function serializeRegions() {
+    var payload = [];
+
+    if (state.scope === "selected") {
+      state.tree.forEach(function (island) {
+        (island.provinces || []).forEach(function (province) {
+          var provinceId = String(province.id);
+          var provinceState = provinceSelectionState(provinceId);
+
+          if (!provinceState.selectedCount) {
+            return;
+          }
+
+          if (provinceState.checked) {
+            payload.push({
+              type: "all_city_in_province",
+              province_id: provinceId,
+              province_name: province.name,
+            });
+            return;
+          }
+
+          (province.cities || []).forEach(function (city) {
+            if (!selectedCityMap(provinceId)[String(city.id)]) {
+              return;
+            }
+
+            payload.push({
+              type: "specific_city",
+              province_id: provinceId,
+              province_name: province.name,
+              city_id: String(city.id),
+              city_name: city.name,
+            });
+          });
+        });
+      });
+    }
+
+    $("#kiriof_coupon_regions").val(JSON.stringify(payload));
+    return payload;
+  }
+
+  function selectedTotals() {
+    var islands = 0;
+    var provinces = 0;
+    var cities = 0;
+
+    if (state.scope === "all") {
+      return {
+        islands: state.totals.islands,
+        provinces: state.totals.provinces,
+        cities: state.totals.cities,
+      };
+    }
+
+    Object.keys(state.islandIndex).forEach(function (islandId) {
+      var islandSeen = false;
+
+      state.islandIndex[islandId].provinceIds.forEach(function (provinceId) {
+        var provinceCount = selectedCityCount(provinceId);
+        if (!provinceCount) {
           return;
         }
 
-        response.data.forEach(function (city) {
-          var option = new Option(city.text, city.id, false, false);
-          $cities.append(option);
-        });
+        provinces += 1;
+        cities += provinceCount;
 
-        $cities.trigger("change");
-      })
-      .fail(function () {
-        window.alert(
-          strings.cacheRefreshFailed || "Failed to refresh region data.",
-        );
+        if (!islandSeen) {
+          islands += 1;
+          islandSeen = true;
+        }
       });
+    });
+
+    return { islands: islands, provinces: provinces, cities: cities };
   }
 
-  function addRegion() {
-    var strings = getConfig().strings || {};
-    var mode = $("#kiriof_coupon_region_mode").val();
-    var $province = $("#kiriof_coupon_region_province");
-    var provinceId = $province.val();
-    var provinceName = $province.find("option:selected").text();
-    var additions = [];
+  function updateStats() {
+    var strings = getStrings();
+    var selected = selectedTotals();
 
-    if (mode === "all_province") {
-      additions.push({
-        type: "all_province",
-        province_id: "all",
-        province_name: strings.allProvinceLabel || "All provinces in Indonesia",
+    $(".kiriof-region-stat[data-kind='islands']").text(
+      selected.islands +
+        "/" +
+        state.totals.islands +
+        " " +
+        (strings.islands || "Islands"),
+    );
+    $(".kiriof-region-stat[data-kind='provinces']").text(
+      selected.provinces +
+        "/" +
+        state.totals.provinces +
+        " " +
+        (strings.provinces || "Provinces"),
+    );
+    $(".kiriof-region-stat[data-kind='cities']").text(
+      selected.cities +
+        "/" +
+        state.totals.cities +
+        " " +
+        (strings.cities || "Cities"),
+    );
+  }
+
+  function applyCheckboxStates() {
+    $(".kiriof-region-tree-checkbox").each(function () {
+      var $input = $(this);
+      var kind = $input.data("kind");
+      var selectionState;
+
+      if (kind === "island") {
+        selectionState = islandSelectionState($input.data("islandId"));
+      } else if (kind === "province") {
+        selectionState = provinceSelectionState($input.data("provinceId"));
+      } else {
+        selectionState = {
+          checked: !!selectedCityMap($input.data("provinceId"))[
+            String($input.data("cityId"))
+          ],
+          indeterminate: false,
+        };
+      }
+
+      $input.prop("checked", selectionState.checked);
+      $input.prop("indeterminate", selectionState.indeterminate);
+    });
+  }
+
+  function matchesSearch(term, values) {
+    if (!term) {
+      return true;
+    }
+
+    return values.some(function (value) {
+      return (
+        String(value || "")
+          .toLowerCase()
+          .indexOf(term) !== -1
+      );
+    });
+  }
+
+  function renderTree() {
+    var strings = getStrings();
+    var term = String(state.searchTerm || "")
+      .trim()
+      .toLowerCase();
+    var html = [];
+    var hasMatches = false;
+
+    state.tree.forEach(function (island) {
+      var islandMatches = matchesSearch(term, [island.name]);
+      var provinceHtml = [];
+
+      (island.provinces || []).forEach(function (province) {
+        var provinceMatches =
+          islandMatches || matchesSearch(term, [province.name]);
+        var cityHtml = [];
+        var visibleCities = 0;
+
+        (province.cities || []).forEach(function (city) {
+          var cityMatches = provinceMatches || matchesSearch(term, [city.name]);
+          if (!cityMatches) {
+            return;
+          }
+
+          visibleCities += 1;
+          cityHtml.push(
+            '<label class="kiriof-region-city">' +
+              '<input class="kiriof-region-tree-checkbox" type="checkbox" data-kind="city" data-province-id="' +
+              escapeHtml(province.id) +
+              '" data-city-id="' +
+              escapeHtml(city.id) +
+              '">' +
+              "<span>" +
+              escapeHtml(city.name) +
+              "</span>" +
+              "</label>",
+          );
+        });
+
+        if (!provinceMatches && !visibleCities) {
+          return;
+        }
+
+        hasMatches = true;
+        provinceHtml.push(
+          '<div class="kiriof-region-province-card">' +
+            '<label class="kiriof-region-province">' +
+            '<input class="kiriof-region-tree-checkbox" type="checkbox" data-kind="province" data-province-id="' +
+            escapeHtml(province.id) +
+            '">' +
+            "<span>" +
+            escapeHtml(province.name) +
+            "</span>" +
+            "</label>" +
+            '<div class="kiriof-region-cities-grid">' +
+            cityHtml.join("") +
+            "</div>" +
+            "</div>",
+        );
       });
-    } else if (!provinceId) {
-      window.alert(strings.chooseProvince || "Please choose a province first.");
-      return;
-    } else if (mode === "all_city_in_province") {
-      additions.push({
-        type: "all_city_in_province",
-        province_id: provinceId,
-        province_name: provinceName,
-      });
-    } else {
-      var cityIds = $("#kiriof_coupon_region_cities").val() || [];
-      if (!cityIds.length) {
-        window.alert(strings.chooseCity || "Please choose at least one city.");
+
+      if (!provinceHtml.length) {
         return;
       }
 
-      cityIds.forEach(function (cityId) {
-        var cityName = $(
-          '#kiriof_coupon_region_cities option[value="' + cityId + '"]',
-        ).text();
-        additions.push({
-          type: "specific_city",
-          province_id: provinceId,
-          province_name: provinceName,
-          city_id: cityId,
-          city_name: cityName,
-        });
-      });
-    }
-
-    additions.forEach(function (region) {
-      var exists = state.regions.some(function (item) {
-        return regionKey(item) === regionKey(region);
-      });
-      if (!exists) {
-        state.regions.push(region);
-      }
+      html.push(
+        '<section class="kiriof-region-island">' +
+          '<label class="kiriof-region-island-label">' +
+          '<input class="kiriof-region-tree-checkbox" type="checkbox" data-kind="island" data-island-id="' +
+          escapeHtml(island.id) +
+          '">' +
+          "<span>" +
+          escapeHtml(island.name) +
+          "</span>" +
+          "</label>" +
+          '<div class="kiriof-region-province-list">' +
+          provinceHtml.join("") +
+          "</div>" +
+          "</section>",
+      );
     });
 
-    renderRegions();
-    $(".kiriof-region-builder").prop("hidden", true);
+    if (!hasMatches) {
+      html.push(
+        '<p class="kiriof-region-empty-state">' +
+          escapeHtml(
+            strings.noRegionMatches || "No regions match your search.",
+          ) +
+          "</p>",
+      );
+    }
+
+    $(".kiriof-region-picker-tree").html(html.join(""));
+    applyCheckboxStates();
+    syncScopeUi();
+    updateStats();
+  }
+
+  function syncScopeUi() {
+    var isAll = state.scope === "all";
+    $("input[name='kiriof_coupon_region_scope'][value='all']").prop(
+      "checked",
+      isAll,
+    );
+    $("input[name='kiriof_coupon_region_scope'][value='selected']").prop(
+      "checked",
+      !isAll,
+    );
+    $(".kiriof-region-picker")
+      .toggleClass("is-all-scope", isAll)
+      .toggleClass("is-selected-scope", !isAll);
+    $("#kiriof_coupon_region_search").prop("disabled", isAll);
+    $(".kiriof-region-picker-tree :checkbox").prop("disabled", isAll);
+    serializeRegions();
+    updateStats();
+  }
+
+  function loadInitialRegions() {
+    var raw;
+
+    try {
+      raw = JSON.parse($("#kiriof_coupon_regions").val() || "[]");
+    } catch (error) {
+      raw = [];
+    }
+
+    state.selectedCities = {};
+    state.scope = "all";
+
+    if (!Array.isArray(raw) || !raw.length) {
+      return;
+    }
+
+    raw.forEach(function (region) {
+      var provinceId = String(region.province_id || "");
+
+      if (region.type === "all_province" && provinceId === "all") {
+        state.scope = "all";
+        return;
+      }
+
+      state.scope = "selected";
+
+      if (region.type === "all_city_in_province") {
+        setProvinceSelection(provinceId, true);
+        return;
+      }
+
+      if (region.type === "specific_city" && region.city_id) {
+        setCitySelection(provinceId, String(region.city_id), true);
+      }
+    });
   }
 
   function refreshCache(silent) {
-    var strings = getConfig().strings || {};
+    var strings = getStrings();
     var $button = $(".kiriof-refresh-regions-button");
     $button
       .prop("disabled", true)
@@ -205,7 +533,9 @@
         }
       })
       .always(function () {
-        $button.prop("disabled", false).text("Refresh Region Data");
+        $button
+          .prop("disabled", false)
+          .text(strings.refreshRegionData || "Refresh Region Data");
       });
   }
 
@@ -214,36 +544,67 @@
       return;
     }
 
-    $("#kiriof_coupon_couriers, #kiriof_coupon_region_cities").select2();
+    if ($("#kiriof_coupon_couriers").length) {
+      $("#kiriof_coupon_couriers").select2();
+    }
+
+    buildIndexes();
     loadInitialRegions();
     syncVisibility();
-    syncBuilderVisibility();
+    renderTree();
 
     $(document).on("change", "#discount_type", syncVisibility);
-    $(document).on("click", ".kiriof-add-region-button", function () {
-      $(".kiriof-region-builder").prop("hidden", function (_, value) {
-        return !value;
-      });
-    });
     $(document).on(
       "change",
-      "#kiriof_coupon_region_mode",
-      syncBuilderVisibility,
+      "input[name='kiriof_coupon_region_scope']",
+      function () {
+        state.scope = $(this).val() === "selected" ? "selected" : "all";
+        syncScopeUi();
+      },
     );
-    $(document).on("change", "#kiriof_coupon_region_province", function () {
-      populateCities($(this).val());
+    $(document).on("input", "#kiriof_coupon_region_search", function () {
+      state.searchTerm = $(this).val() || "";
+      renderTree();
     });
-    $(document).on("click", ".kiriof-confirm-region-button", addRegion);
-    $(document).on("click", ".kiriof-remove-chip", function () {
-      var index = parseInt($(this).data("index"), 10);
-      state.regions.splice(index, 1);
-      renderRegions();
+    $(document).on("change", ".kiriof-region-tree-checkbox", function () {
+      var $input = $(this);
+      var kind = $input.data("kind");
+      var checked = $input.is(":checked");
+
+      if (kind === "island") {
+        setIslandSelection($input.data("islandId"), checked);
+      } else if (kind === "province") {
+        setProvinceSelection($input.data("provinceId"), checked);
+      } else {
+        setCitySelection(
+          $input.data("provinceId"),
+          $input.data("cityId"),
+          checked,
+        );
+      }
+
+      applyCheckboxStates();
+      serializeRegions();
+      updateStats();
     });
     $(document).on("click", ".kiriof-refresh-regions-button", function () {
       refreshCache(false);
     });
 
-    if (getConfig().isCacheStale) {
+    $("#post").on("submit", function (event) {
+      var strings = getStrings();
+      var payload = serializeRegions();
+
+      if (state.scope === "selected" && !payload.length) {
+        event.preventDefault();
+        window.alert(
+          strings.selectRegionBeforeSave ||
+            "Choose at least one city or switch back to all regions before saving this coupon.",
+        );
+      }
+    });
+
+    if (getConfig().isCacheStale && !state.totals.cities) {
       refreshCache(true);
     }
   });

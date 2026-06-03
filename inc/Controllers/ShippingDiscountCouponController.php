@@ -12,27 +12,52 @@ use KiriminAjaOfficial\Services\ShippingDiscountCouponService;
 use KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService;
 
 class ShippingDiscountCouponController {
-    private const COUPON_TYPE = 'kiriof_shipping_discount';
     private const META_REGIONS = '_kiriof_coupon_regions';
     private const META_COURIERS = '_kiriof_coupon_couriers';
     private const META_COMBINATIONS = '_kiriof_coupon_combinations';
 
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
+        add_filter( 'woocommerce_coupon_data_tabs', array( $this, 'registerCouponDataTabs' ) );
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
         add_filter( 'woocommerce_cart_shipping_method_full_label', array( $this, 'filterShippingMethodLabel' ), 20, 2 );
         add_filter( 'manage_edit-shop_coupon_columns', array( $this, 'registerCouponListColumns' ) );
         add_action( 'manage_shop_coupon_posts_custom_column', array( $this, 'renderCouponListColumn' ), 10, 2 );
+        add_action( 'woocommerce_coupon_data_panels', array( $this, 'renderCouponDataPanels' ) );
         add_action( 'woocommerce_coupon_options_usage_restriction', array( $this, 'renderUsageRestrictionFields' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
         add_action( 'wp_ajax_kiriof_refresh_coupon_regions', array( $this, 'refreshRegionCacheAjax' ) );
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
+        add_action( ShippingDiscountRegionCacheService::CRON_HOOK, array( $this, 'refreshRegionCacheCron' ) );
     }
 
     public function registerDiscountType( $types ) {
-        $types[ self::COUPON_TYPE ] = __( 'Shipping Discount', 'kiriminaja-official' );
+        $types[ ShippingDiscountCouponService::FIXED_COUPON_TYPE ] = __( 'Fixed shipping discount', 'kiriminaja-official' );
+        $types[ ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE ] = __( 'Percentage shipping discount', 'kiriminaja-official' );
         return $types;
+    }
+
+    public function registerCouponDataTabs( $tabs ) {
+        $tabs['kiriof_area_restrictions'] = array(
+            'label' => __( 'Area Restrictions', 'kiriminaja-official' ),
+            'target' => 'kiriof_area_restrictions_coupon_data',
+            'class' => $this->getShippingCouponVisibilityClasses(),
+        );
+
+        $tabs['kiriof_courier_restrictions'] = array(
+            'label' => __( 'Courier Restrictions', 'kiriminaja-official' ),
+            'target' => 'kiriof_courier_restrictions_coupon_data',
+            'class' => $this->getShippingCouponVisibilityClasses(),
+        );
+
+        $tabs['kiriof_usage_combinations'] = array(
+            'label' => __( 'Usage Combinations', 'kiriminaja-official' ),
+            'target' => 'kiriof_usage_combinations_coupon_data',
+            'class' => $this->getShippingCouponVisibilityClasses(),
+        );
+
+        return $tabs;
     }
 
     public function validateShippingCouponForCart( $valid, $coupon ) {
@@ -86,7 +111,7 @@ class ShippingDiscountCouponController {
         }
 
         $coupon = new \WC_Coupon( $post_id );
-        if ( self::COUPON_TYPE !== $coupon->get_discount_type() ) {
+        if ( ! $this->isShippingDiscountType( $coupon->get_discount_type() ) ) {
             echo '&mdash;';
             return;
         }
@@ -106,71 +131,90 @@ class ShippingDiscountCouponController {
         echo '</div>';
     }
 
-    public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
-        $coupon_id = absint( $coupon_id );
-        $savedRegions = $this->getSavedRegions( $coupon_id );
-        $savedCouriers = $this->getSavedCouriers( $coupon_id );
-        $savedCombinations = $this->getSavedCombinations( $coupon_id );
-        $regionRepo = new ShippingDiscountRegionRepository();
+    public function renderCouponDataPanels() {
+        $coupon_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 
-        if ( $regionRepo->getProvinceCount() < 1 ) {
-            ( new ShippingDiscountRegionCacheService() )->refreshAll();
+        echo '<div id="kiriof_area_restrictions_coupon_data" class="panel woocommerce_options_panel kiriof-shipping-discount-panel ' . esc_attr( implode( ' ', $this->getShippingCouponVisibilityClasses() ) ) . '">';
+        $this->renderAreaRestrictionFields( $coupon_id );
+        $this->renderTabFooter();
+        echo '</div>';
+
+        echo '<div id="kiriof_courier_restrictions_coupon_data" class="panel woocommerce_options_panel kiriof-shipping-discount-panel ' . esc_attr( implode( ' ', $this->getShippingCouponVisibilityClasses() ) ) . '">';
+        $this->renderCourierRestrictionFields( $coupon_id );
+        $this->renderTabFooter();
+        echo '</div>';
+
+        echo '<div id="kiriof_usage_combinations_coupon_data" class="panel woocommerce_options_panel kiriof-shipping-discount-panel ' . esc_attr( implode( ' ', $this->getShippingCouponVisibilityClasses() ) ) . '">';
+        $this->renderUsageCombinationFields( $coupon_id );
+        $this->renderTabFooter();
+        echo '</div>';
+    }
+
+    public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
+        unset( $coupon_id, $coupon );
+    }
+
+    private function renderAreaRestrictionFields( int $coupon_id ): void {
+        $savedRegions = $this->getSavedRegions( $coupon_id );
+        $regionRepo = new ShippingDiscountRegionRepository();
+        $regionCacheService = new ShippingDiscountRegionCacheService();
+
+        if ( $regionRepo->isCacheStale() ) {
+            $regionCacheService->scheduleRefresh();
         }
 
         $provinces = $regionRepo->getProvinces();
-        $couriers = $this->getCourierOptions();
         $isCacheStale = $regionRepo->isCacheStale();
+        $cacheStatus = $regionCacheService->getStatus();
+        $isCachePending = $regionCacheService->isRefreshPending();
 
-        echo '<div class="options_group show_if_' . esc_attr( self::COUPON_TYPE ) . ' kiriof-shipping-discount-options">';
-
+        echo '<div class="options_group kiriof-shipping-discount-options">';
         echo '<p class="form-field">';
-        echo '<label for="kiriof_coupon_regions_builder">' . esc_html__( 'Allowed Regions', 'kiriminaja-official' ) . '</label>';
+        echo '<label for="kiriof_coupon_region_search">' . esc_html__( 'Allowed Regions', 'kiriminaja-official' ) . '</label>';
         echo '<span class="wrap">';
-        echo '<button type="button" class="button kiriof-add-region-button">' . esc_html__( 'Add Region', 'kiriminaja-official' ) . '</button> ';
         echo '<button type="button" class="button-link kiriof-refresh-regions-button">' . esc_html__( 'Refresh Region Data', 'kiriminaja-official' ) . '</button>';
         echo '</span>';
         echo '<span class="description">' . esc_html__( 'Leave empty to allow all shipping destinations.', 'kiriminaja-official' ) . '</span>';
         echo '</p>';
 
         echo '<input type="hidden" id="kiriof_coupon_regions" name="' . esc_attr( self::META_REGIONS ) . '" value="' . esc_attr( wp_json_encode( $savedRegions ) ) . '" />';
-
-        echo '<div class="kiriof-region-builder" hidden>';
-        echo '<p class="form-field">';
-        echo '<label for="kiriof_coupon_region_mode">' . esc_html__( 'Selection Mode', 'kiriminaja-official' ) . '</label>';
-        echo '<select id="kiriof_coupon_region_mode" class="short">';
-        echo '<option value="all_province">' . esc_html__( 'All Province', 'kiriminaja-official' ) . '</option>';
-        echo '<option value="all_city_in_province">' . esc_html__( 'All City inside Province', 'kiriminaja-official' ) . '</option>';
-        echo '<option value="specific_city">' . esc_html__( 'Specific City', 'kiriminaja-official' ) . '</option>';
-        echo '</select>';
-        echo '</p>';
-
-        echo '<p class="form-field kiriof-region-province-field">';
-        echo '<label for="kiriof_coupon_region_province">' . esc_html__( 'Province', 'kiriminaja-official' ) . '</label>';
-        echo '<select id="kiriof_coupon_region_province" class="short">';
-        echo '<option value="">' . esc_html__( 'Select a province', 'kiriminaja-official' ) . '</option>';
-        foreach ( $provinces as $province ) {
-            echo '<option value="' . esc_attr( $province->id ) . '">' . esc_html( $province->name ) . '</option>';
-        }
-        echo '</select>';
-        echo '</p>';
-
-        echo '<p class="form-field kiriof-region-city-field" hidden>';
-        echo '<label for="kiriof_coupon_region_cities">' . esc_html__( 'Cities', 'kiriminaja-official' ) . '</label>';
-        echo '<select id="kiriof_coupon_region_cities" class="wc-enhanced-select" multiple="multiple" style="width: 50%;"></select>';
-        echo '<span class="description">' . esc_html__( 'Choose one or more cities inside the selected province.', 'kiriminaja-official' ) . '</span>';
-        echo '</p>';
-
-        echo '<p class="form-field">';
-        echo '<button type="button" class="button button-secondary kiriof-confirm-region-button">' . esc_html__( 'Save Region', 'kiriminaja-official' ) . '</button>';
-        echo '</p>';
+        echo '<div class="kiriof-region-picker">';
+        echo '<div class="kiriof-region-picker-mode">';
+        echo '<label class="kiriof-region-toggle"><input type="radio" name="kiriof_coupon_region_scope" value="all" /><span>' . esc_html__( 'All Indonesian Regions', 'kiriminaja-official' ) . '</span></label>';
+        echo '<label class="kiriof-region-toggle"><input type="radio" name="kiriof_coupon_region_scope" value="selected" /><span>' . esc_html__( 'Selected Regions', 'kiriminaja-official' ) . '</span></label>';
         echo '</div>';
 
-        echo '<div class="kiriof-region-chip-list">';
-        foreach ( $savedRegions as $region ) {
-            echo '<span class="kiriof-region-chip">' . esc_html( $this->formatRegionLabel( $region ) ) . '<button type="button" class="kiriof-remove-chip" aria-label="' . esc_attr__( 'Remove region', 'kiriminaja-official' ) . '">&times;</button></span>';
-        }
+        echo '<div class="kiriof-region-picker-toolbar">';
+        echo '<label class="screen-reader-text" for="kiriof_coupon_region_search">' . esc_html__( 'Search region, province, or city', 'kiriminaja-official' ) . '</label>';
+        echo '<input type="search" id="kiriof_coupon_region_search" class="regular-text" placeholder="' . esc_attr__( 'Search region, province, or city', 'kiriminaja-official' ) . '" />';
+        echo '<div class="kiriof-region-picker-stats">';
+        echo '<span class="kiriof-region-stat" data-kind="islands"></span>';
+        echo '<span class="kiriof-region-stat" data-kind="provinces"></span>';
+        echo '<span class="kiriof-region-stat" data-kind="cities"></span>';
+        echo '</div>';
         echo '</div>';
 
+        echo '<div class="kiriof-region-picker-tree"></div>';
+        echo '</div>';
+
+        if ( $isCachePending && empty( $provinces ) ) {
+            echo '<p class="form-field"><span class="description">' . esc_html__( 'Coverage data is being prepared in the background. Please wait a moment, then reload this tab.', 'kiriminaja-official' ) . '</span></p>';
+        } elseif ( $isCacheStale ) {
+            echo '<p class="form-field"><span class="description">' . esc_html__( 'Region data is older than 24 hours. It will be refreshed automatically in the background.', 'kiriminaja-official' ) . '</span></p>';
+        }
+
+        if ( 'error' === ( $cacheStatus['state'] ?? '' ) && ! empty( $cacheStatus['last_error'] ) ) {
+            echo '<p class="form-field"><span class="description">' . esc_html( $cacheStatus['last_error'] ) . '</span></p>';
+        }
+
+        echo '</div>';
+    }
+
+    private function renderCourierRestrictionFields( int $coupon_id ): void {
+        $savedCouriers = $this->getSavedCouriers( $coupon_id );
+        $couriers = $this->getCourierOptions();
+
+        echo '<div class="options_group kiriof-shipping-discount-options">';
         echo '<p class="form-field">';
         echo '<label for="kiriof_coupon_couriers">' . esc_html__( 'Allowed Couriers', 'kiriminaja-official' ) . '</label>';
         echo '<select id="kiriof_coupon_couriers" name="' . esc_attr( self::META_COURIERS ) . '[]" class="wc-enhanced-select" multiple="multiple" style="width: 50%;">';
@@ -178,12 +222,18 @@ class ShippingDiscountCouponController {
             echo '<option value="' . esc_attr( $courier['id'] ) . '" ' . selected( in_array( $courier['id'], $savedCouriers, true ), true, false ) . '>' . esc_html( $courier['text'] ) . '</option>';
         }
         echo '</select>';
-        echo '<span class="description">' . esc_html__( 'Leave empty to apply the shipping discount to all couriers.', 'kiriminaja-official' ) . '</span>';
+        echo '<span class="description">' . esc_html__( 'Leave empty to apply this shipping coupon to all couriers.', 'kiriminaja-official' ) . '</span>';
         echo '</p>';
+        echo '</div>';
+    }
 
-        echo '<p class="form-field">';
+    private function renderUsageCombinationFields( int $coupon_id ): void {
+        $savedCombinations = $this->getSavedCombinations( $coupon_id );
+
+        echo '<div class="options_group kiriof-shipping-discount-options">';
+        echo '<p class="form-field" style="display: flex;flex-direction: column;">';
         echo '<label>' . esc_html__( 'Allow Combinations', 'kiriminaja-official' ) . '</label>';
-        echo '<span class="wrap kiriof-combination-options">';
+        echo '<span class="wrap kiriof-combination-options" style="display: flex;flex-direction: column;">';
         foreach ( $this->getCombinationTypes() as $type => $config ) {
             echo '<label class="kiriof-combination-option">';
             echo '<input type="checkbox" name="' . esc_attr( self::META_COMBINATIONS ) . '[]" value="' . esc_attr( $type ) . '" ' . checked( in_array( $type, $savedCombinations, true ), true, false ) . ' /> ';
@@ -191,13 +241,14 @@ class ShippingDiscountCouponController {
             echo '</label>';
         }
         echo '</span>';
-        echo '<span class="description">' . esc_html__( 'Leave selected to allow this shipping coupon to stack with the checked discount types.', 'kiriminaja-official' ) . '</span>';
+        echo '<span class="description">' . esc_html__( 'Leave selected to allow this shipping discount coupon to stack with the checked discount types.', 'kiriminaja-official' ) . '</span>';
         echo '</p>';
+        echo '</div>';
+    }
 
-        if ( $isCacheStale ) {
-            echo '<p class="form-field"><span class="description">' . esc_html__( 'Region data is older than 24 hours. It will be refreshed automatically in the background.', 'kiriminaja-official' ) . '</span></p>';
-        }
-
+    private function renderTabFooter(): void {
+        echo '<div class="kiriof-coupon-tab-footer" style="padding: 12px">';
+        echo esc_html__( 'Powered by KiriminAja Discount Extension', 'kiriminaja-official' );
         echo '</div>';
     }
 
@@ -220,7 +271,7 @@ class ShippingDiscountCouponController {
         update_post_meta( $post_id, self::META_REGIONS, wp_json_encode( $this->normalizeRegions( $regions ) ) );
         update_post_meta( $post_id, self::META_COURIERS, array_values( array_unique( array_filter( $couriers ) ) ) );
 
-        if ( self::COUPON_TYPE === $discountType ) {
+        if ( $this->isShippingDiscountType( $discountType ) ) {
             $allowedTypes = array_keys( $this->getCombinationTypes() );
             update_post_meta( $post_id, self::META_COMBINATIONS, array_values( array_intersect( $allowedTypes, $combinations ) ) );
         } else {
@@ -234,6 +285,7 @@ class ShippingDiscountCouponController {
         }
 
         $regionRepo = new ShippingDiscountRegionRepository();
+        $regionCacheService = new ShippingDiscountRegionCacheService();
         $currentType = '';
         if ( isset( $_GET['post'] ) ) {
             $coupon = new \WC_Coupon( absint( $_GET['post'] ) );
@@ -260,18 +312,29 @@ class ShippingDiscountCouponController {
             array(
                 'ajaxurl' => admin_url( 'admin-ajax.php' ),
                 'nonce' => wp_create_nonce( KIRIOF_NONCE ),
-                'discountType' => self::COUPON_TYPE,
+                'discountTypes' => $this->getShippingCouponTypes(),
                 'isCacheStale' => $regionRepo->isCacheStale(),
+                'isCachePending' => $regionCacheService->isRefreshPending(),
+                'regionTree' => $this->getRegionPickerTreeData( $regionRepo ),
                 'strings' => array(
+                    'allRegionsLabel' => __( 'All Indonesian Regions', 'kiriminaja-official' ),
+                    'selectedRegionsLabel' => __( 'Selected Regions', 'kiriminaja-official' ),
                     'allProvinceLabel' => __( 'All provinces in Indonesia', 'kiriminaja-official' ),
                     'allCitiesLabel' => __( 'All cities in %s', 'kiriminaja-official' ),
                     'specificCityLabel' => __( '%1$s, %2$s', 'kiriminaja-official' ),
+                    'searchRegions' => __( 'Search region, province, or city', 'kiriminaja-official' ),
                     'chooseProvince' => __( 'Please choose a province first.', 'kiriminaja-official' ),
                     'chooseCity' => __( 'Please choose at least one city.', 'kiriminaja-official' ),
                     'cacheRefreshing' => __( 'Refreshing region data…', 'kiriminaja-official' ),
                     'cacheRefreshed' => __( 'Region data refreshed.', 'kiriminaja-official' ),
                     'cacheRefreshFailed' => __( 'Failed to refresh region data.', 'kiriminaja-official' ),
-                    'removeRegion' => __( 'Remove region', 'kiriminaja-official' ),
+                    'cachePreparing' => __( 'Coverage data is being prepared in the background. Please wait a moment, then reload this tab.', 'kiriminaja-official' ),
+                    'islands' => __( 'Islands', 'kiriminaja-official' ),
+                    'provinces' => __( 'Provinces', 'kiriminaja-official' ),
+                    'cities' => __( 'Cities', 'kiriminaja-official' ),
+                    'noRegionMatches' => __( 'No regions match your search.', 'kiriminaja-official' ),
+                    'selectRegionBeforeSave' => __( 'Choose at least one city or switch back to all regions before saving this coupon.', 'kiriminaja-official' ),
+                    'refreshRegionData' => __( 'Refresh Region Data', 'kiriminaja-official' ),
                 ),
                 'currentType' => $currentType,
             )
@@ -296,6 +359,10 @@ class ShippingDiscountCouponController {
         wp_send_json_success( $service->data );
     }
 
+    public function refreshRegionCacheCron() {
+        ( new ShippingDiscountRegionCacheService() )->refreshAll();
+    }
+
     public function getCitiesByProvinceAjax() {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ), 403 );
@@ -311,7 +378,10 @@ class ShippingDiscountCouponController {
         $cities = $repo->getCitiesByProvinceId( $provinceId );
 
         if ( empty( $cities ) && $provinceId > 0 ) {
-            ( new ShippingDiscountRegionCacheService() )->refreshProvinceCities( $provinceId );
+            $cacheService = new ShippingDiscountRegionCacheService();
+            if ( ! $cacheService->isRefreshPending() ) {
+                $cacheService->refreshProvinceCities( $provinceId );
+            }
             $cities = $repo->getCitiesByProvinceId( $provinceId );
         }
 
@@ -441,9 +511,13 @@ class ShippingDiscountCouponController {
 
     private function getCombinationTypes(): array {
         return array(
-            self::COUPON_TYPE => array(
-                'label' => __( 'Shipping Discount', 'kiriminaja-official' ),
-                'short' => 'SHIP',
+            ShippingDiscountCouponService::FIXED_COUPON_TYPE => array(
+                'label' => __( 'Fixed shipping discount', 'kiriminaja-official' ),
+                'short' => 'SHIPF',
+            ),
+            ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE => array(
+                'label' => __( 'Percentage shipping discount', 'kiriminaja-official' ),
+                'short' => 'SHIPP',
             ),
             'fixed_cart' => array(
                 'label' => __( 'Fixed cart discount', 'kiriminaja-official' ),
@@ -470,5 +544,119 @@ class ShippingDiscountCouponController {
         }
 
         return sprintf( __( '%1$s, %2$s', 'kiriminaja-official' ), $region['city_name'] ?? '', $region['province_name'] );
+    }
+
+    private function getShippingCouponTypes(): array {
+        return ( new ShippingDiscountCouponService() )->getShippingCouponTypes();
+    }
+
+    private function getShippingCouponVisibilityClasses(): array {
+        return array_map(
+            static function ( string $type ): string {
+                return 'show_if_' . $type;
+            },
+            $this->getShippingCouponTypes()
+        );
+    }
+
+    private function isShippingDiscountType( string $discountType ): bool {
+        return in_array( $discountType, $this->getShippingCouponTypes(), true );
+    }
+
+    private function getRegionPickerTreeData( ShippingDiscountRegionRepository $regionRepo ): array {
+        $groupedCities = array();
+        foreach ( $regionRepo->getCities() as $city ) {
+            $provinceId = (string) ( $city->province_id ?? '' );
+            if ( '' === $provinceId ) {
+                continue;
+            }
+
+            if ( ! isset( $groupedCities[ $provinceId ] ) ) {
+                $groupedCities[ $provinceId ] = array();
+            }
+
+            $groupedCities[ $provinceId ][] = array(
+                'id' => (string) $city->id,
+                'name' => (string) $city->name,
+            );
+        }
+
+        $groups = array();
+        foreach ( $regionRepo->getProvinces() as $province ) {
+            $provinceId = (string) $province->id;
+            $groupKey = $this->getIslandKeyForProvince( (string) $province->name );
+
+            if ( ! isset( $groups[ $groupKey ] ) ) {
+                $groups[ $groupKey ] = array(
+                    'id' => $groupKey,
+                    'name' => $this->getIslandLabel( $groupKey ),
+                    'provinces' => array(),
+                );
+            }
+
+            $groups[ $groupKey ]['provinces'][] = array(
+                'id' => $provinceId,
+                'name' => (string) $province->name,
+                'cities' => $groupedCities[ $provinceId ] ?? array(),
+            );
+        }
+
+        $orderedGroups = array();
+        foreach ( array( 'sumatra', 'java', 'bali_nusa_tenggara', 'kalimantan', 'sulawesi', 'maluku', 'papua', 'other' ) as $groupKey ) {
+            if ( isset( $groups[ $groupKey ] ) ) {
+                $orderedGroups[] = $groups[ $groupKey ];
+            }
+        }
+
+        return $orderedGroups;
+    }
+
+    private function getIslandKeyForProvince( string $provinceName ): string {
+        $name = strtolower( $provinceName );
+
+        if ( preg_match( '/aceh|sumatera|sumatra|riau|jambi|bengkulu|lampung|bangka|belitung/', $name ) ) {
+            return 'sumatra';
+        }
+
+        if ( preg_match( '/jakarta|jawa|banten|yogyakarta/', $name ) ) {
+            return 'java';
+        }
+
+        if ( preg_match( '/bali|nusa tenggara/', $name ) ) {
+            return 'bali_nusa_tenggara';
+        }
+
+        if ( preg_match( '/kalimantan/', $name ) ) {
+            return 'kalimantan';
+        }
+
+        if ( preg_match( '/sulawesi|gorontalo/', $name ) ) {
+            return 'sulawesi';
+        }
+
+        if ( preg_match( '/maluku/', $name ) ) {
+            return 'maluku';
+        }
+
+        if ( preg_match( '/papua/', $name ) ) {
+            return 'papua';
+        }
+
+        return 'other';
+    }
+
+    private function getIslandLabel( string $groupKey ): string {
+        $labels = array(
+            'sumatra' => __( 'Sumatra', 'kiriminaja-official' ),
+            'java' => __( 'Java', 'kiriminaja-official' ),
+            'bali_nusa_tenggara' => __( 'Bali & Nusa Tenggara', 'kiriminaja-official' ),
+            'kalimantan' => __( 'Kalimantan', 'kiriminaja-official' ),
+            'sulawesi' => __( 'Sulawesi', 'kiriminaja-official' ),
+            'maluku' => __( 'Maluku', 'kiriminaja-official' ),
+            'papua' => __( 'Papua', 'kiriminaja-official' ),
+            'other' => __( 'Other Regions', 'kiriminaja-official' ),
+        );
+
+        return $labels[ $groupKey ] ?? $labels['other'];
     }
 }

@@ -79,8 +79,20 @@ msgstr ""
 msgid "Canceled"
 msgstr ""
 
-#: inc/Controllers/ShippingDiscountCouponController.php:26
-msgid "Shipping Discount"
+#: inc/Controllers/ShippingDiscountCouponController.php:36
+msgid "Fixed shipping discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:37
+msgid "Percentage shipping discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:32
+msgid "Area Restrictions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:38
+msgid "Courier Restrictions"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:48
@@ -88,10 +100,6 @@ msgid "Allowed Regions"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:50
-msgid "Add Region"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:51
 msgid "Refresh Region Data"
 msgstr ""
 
@@ -99,66 +107,85 @@ msgstr ""
 msgid "Leave empty to allow all shipping destinations."
 msgstr ""
 
-#: inc/Controllers/ShippingDiscountCouponController.php:59
-msgid "Selection Mode"
+#: inc/Controllers/ShippingDiscountCouponController.php:56
+msgid "All Indonesian Regions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:57
+msgid "Selected Regions"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:61
-msgid "All Province"
+msgid "Search region, province, or city"
 msgstr ""
 
-#: inc/Controllers/ShippingDiscountCouponController.php:62
-msgid "All City inside Province"
+#: inc/Controllers/ShippingDiscountCouponController.php:75
+msgid "Coverage data is being prepared in the background. Please wait a moment, then reload this tab."
 msgstr ""
 
-#: inc/Controllers/ShippingDiscountCouponController.php:63
-msgid "Specific City"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:68
-msgid "Province"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:70
-msgid "Select a province"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:78
-msgid "Cities"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:80
-msgid "Choose one or more cities inside the selected province."
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:84
-msgid "Save Region"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:89
-#: inc/Controllers/ShippingDiscountCouponController.php:163
-msgid "Remove region"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:95
-msgid "Allowed Couriers"
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:101
-msgid "Leave empty to apply the shipping discount to all couriers."
-msgstr ""
-
-#: inc/Controllers/ShippingDiscountCouponController.php:105
+#: inc/Controllers/ShippingDiscountCouponController.php:77
 msgid "Region data is older than 24 hours. It will be refreshed automatically in the background."
 msgstr ""
 
-#: inc/Controllers/ShippingDiscountCouponController.php:150
-#: inc/Controllers/ShippingDiscountCouponController.php:243
+#: inc/Controllers/ShippingDiscountCouponController.php:174
+msgid "Islands"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:175
+msgid "Provinces"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:176
+msgid "Cities"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:177
+msgid "No regions match your search."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:178
+msgid "Choose at least one city or switch back to all regions before saving this coupon."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:636
+msgid "Sumatra"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:637
+msgid "Java"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:638
+msgid "Bali & Nusa Tenggara"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:639
+msgid "Kalimantan"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:640
+msgid "Sulawesi"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:641
+msgid "Maluku"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:642
+msgid "Papua"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:643
+msgid "Other Regions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:180
+#: inc/Controllers/ShippingDiscountCouponController.php:610
 msgid "All provinces in Indonesia"
 msgstr ""
 
-#: inc/Controllers/ShippingDiscountCouponController.php:151
-#: inc/Controllers/ShippingDiscountCouponController.php:247
+#: inc/Controllers/ShippingDiscountCouponController.php:181
+#: inc/Controllers/ShippingDiscountCouponController.php:614
 #, php-format
 msgid "All cities in %s"
 msgstr ""
@@ -235,7 +262,15 @@ msgid "This coupon is not valid for your shipping destination."
 msgstr ""
 
 #: inc/Services/ShippingDiscountCouponService.php:106
-msgid "Shipping discount applied"
+msgid "Fixed shipping discount applied"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Percentage shipping discount applied"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Shipping discounts applied"
 msgstr ""
 
 #: inc/Services/ShippingDiscountCouponService.php:111
@@ -267,7 +302,7 @@ msgid "Allow Combinations"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:151
-msgid "Leave selected to allow this shipping coupon to stack with the checked discount types."
+msgid "Leave selected to allow this shipping discount coupon to stack with the checked discount types."
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:366
@@ -1249,6 +1284,14 @@ msgstr ""
 
 #: templates/setting/setuped/section-account.php:189
 msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:54
+msgid "Usage Combinations"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:261
+msgid "Powered by KiriminAja Discount Extension"
 msgstr ""
 
 #: templates/setting/setuped/section-account.php:203

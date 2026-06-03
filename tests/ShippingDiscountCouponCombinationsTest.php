@@ -27,7 +27,10 @@ final class ShippingDiscountCouponCombinationsTest extends TestCase
         $this->assertStringContainsString("'fixed_cart'", $content);
         $this->assertStringContainsString("'percent'", $content);
         $this->assertStringContainsString("'fixed_product'", $content);
-        $this->assertStringContainsString("self::COUPON_TYPE", $content);
+        $this->assertStringContainsString('ShippingDiscountCouponService::FIXED_COUPON_TYPE', $content);
+        $this->assertStringContainsString('ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE', $content);
+        $this->assertStringContainsString('Fixed shipping discount', $content);
+        $this->assertStringContainsString('Percentage shipping discount', $content);
         $this->assertStringContainsString('Fixed cart discount', $content);
         $this->assertStringContainsString('Percentage discount', $content);
         $this->assertStringContainsString('Fixed product discount', $content);

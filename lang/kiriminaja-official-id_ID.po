@@ -1319,19 +1319,27 @@ msgstr "Pesanan ini sudah diproses."
 
 #: templates/woocommerce/cart/cart.php:31
 
-#: inc/Controllers/ShippingDiscountCouponController.php:26
-msgid "Shipping Discount"
-msgstr "Diskon Ongkir"
+#: inc/Controllers/ShippingDiscountCouponController.php:36
+msgid "Fixed shipping discount"
+msgstr "Diskon ongkir tetap"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:37
+msgid "Percentage shipping discount"
+msgstr "Diskon ongkir persentase"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:32
+msgid "Area Restrictions"
+msgstr "Batasan Area"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:38
+msgid "Courier Restrictions"
+msgstr "Batasan Kurir"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:48
 msgid "Allowed Regions"
 msgstr "Wilayah yang Diizinkan"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:50
-msgid "Add Region"
-msgstr "Tambah Wilayah"
-
-#: inc/Controllers/ShippingDiscountCouponController.php:51
 msgid "Refresh Region Data"
 msgstr "Segarkan Data Wilayah"
 
@@ -1339,66 +1347,93 @@ msgstr "Segarkan Data Wilayah"
 msgid "Leave empty to allow all shipping destinations."
 msgstr "Kosongkan untuk mengizinkan semua tujuan pengiriman."
 
-#: inc/Controllers/ShippingDiscountCouponController.php:59
-msgid "Selection Mode"
-msgstr "Mode Pemilihan"
+#: inc/Controllers/ShippingDiscountCouponController.php:56
+msgid "All Indonesian Regions"
+msgstr "Semua Wilayah Indonesia"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:57
+msgid "Selected Regions"
+msgstr "Wilayah Terpilih"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:61
-msgid "All Province"
-msgstr "Semua Provinsi"
+msgid "Search region, province, or city"
+msgstr "Cari pulau, provinsi, atau kota"
 
-#: inc/Controllers/ShippingDiscountCouponController.php:62
-msgid "All City inside Province"
-msgstr "Semua Kota dalam Provinsi"
+#: inc/Controllers/ShippingDiscountCouponController.php:75
+msgid "Coverage data is being prepared in the background. Please wait a moment, then reload this tab."
+msgstr "Data cakupan sedang disiapkan di latar belakang. Tunggu sebentar, lalu muat ulang tab ini."
 
-#: inc/Controllers/ShippingDiscountCouponController.php:63
-msgid "Specific City"
-msgstr "Kota Tertentu"
+#: inc/Controllers/ShippingDiscountCouponController.php:77
+msgid "Region data is older than 24 hours. It will be refreshed automatically in the background."
+msgstr "Data wilayah lebih lama dari 24 jam. Data akan diperbarui otomatis di latar belakang."
 
-#: inc/Controllers/ShippingDiscountCouponController.php:68
-msgid "Province"
+#: inc/Controllers/ShippingDiscountCouponController.php:174
+msgid "Islands"
+msgstr "Pulau"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:175
+msgid "Provinces"
 msgstr "Provinsi"
 
-#: inc/Controllers/ShippingDiscountCouponController.php:70
-msgid "Select a province"
-msgstr "Pilih provinsi"
-
-#: inc/Controllers/ShippingDiscountCouponController.php:78
+#: inc/Controllers/ShippingDiscountCouponController.php:176
 msgid "Cities"
 msgstr "Kota"
 
-#: inc/Controllers/ShippingDiscountCouponController.php:80
-msgid "Choose one or more cities inside the selected province."
-msgstr "Pilih satu atau beberapa kota dalam provinsi yang dipilih."
+#: inc/Controllers/ShippingDiscountCouponController.php:177
+msgid "No regions match your search."
+msgstr "Tidak ada wilayah yang cocok dengan pencarian Anda."
 
-#: inc/Controllers/ShippingDiscountCouponController.php:84
-msgid "Save Region"
-msgstr "Simpan Wilayah"
-
-#: inc/Controllers/ShippingDiscountCouponController.php:89
-#: inc/Controllers/ShippingDiscountCouponController.php:163
-msgid "Remove region"
-msgstr "Hapus wilayah"
+#: inc/Controllers/ShippingDiscountCouponController.php:178
+msgid "Choose at least one city or switch back to all regions before saving this coupon."
+msgstr "Pilih setidaknya satu kota atau kembali ke semua wilayah sebelum menyimpan kupon ini."
 
 #: inc/Controllers/ShippingDiscountCouponController.php:95
 msgid "Allowed Couriers"
 msgstr "Kurir yang Diizinkan"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:101
-msgid "Leave empty to apply the shipping discount to all couriers."
-msgstr "Kosongkan untuk menerapkan diskon ongkir ke semua kurir."
+msgid "Leave empty to apply this shipping coupon to all couriers."
+msgstr "Kosongkan untuk menerapkan kupon ongkir ini ke semua kurir."
 
-#: inc/Controllers/ShippingDiscountCouponController.php:105
-msgid "Region data is older than 24 hours. It will be refreshed automatically in the background."
-msgstr "Data wilayah lebih lama dari 24 jam. Data akan diperbarui otomatis di latar belakang."
+#: inc/Controllers/ShippingDiscountCouponController.php:636
+msgid "Sumatra"
+msgstr "Sumatra"
 
-#: inc/Controllers/ShippingDiscountCouponController.php:150
-#: inc/Controllers/ShippingDiscountCouponController.php:243
+#: inc/Controllers/ShippingDiscountCouponController.php:637
+msgid "Java"
+msgstr "Jawa"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:638
+msgid "Bali & Nusa Tenggara"
+msgstr "Bali & Nusa Tenggara"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:639
+msgid "Kalimantan"
+msgstr "Kalimantan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:640
+msgid "Sulawesi"
+msgstr "Sulawesi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:641
+msgid "Maluku"
+msgstr "Maluku"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:642
+msgid "Papua"
+msgstr "Papua"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:643
+msgid "Other Regions"
+msgstr "Wilayah Lainnya"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:180
+#: inc/Controllers/ShippingDiscountCouponController.php:610
 msgid "All provinces in Indonesia"
 msgstr "Semua provinsi di Indonesia"
 
-#: inc/Controllers/ShippingDiscountCouponController.php:151
-#: inc/Controllers/ShippingDiscountCouponController.php:247
+#: inc/Controllers/ShippingDiscountCouponController.php:181
+#: inc/Controllers/ShippingDiscountCouponController.php:614
 #, php-format
 msgid "All cities in %s"
 msgstr "Semua kota di %s"
@@ -1475,7 +1510,15 @@ msgid "This coupon is not valid for your shipping destination."
 msgstr "Kupon ini tidak berlaku untuk tujuan pengiriman Anda."
 
 #: inc/Services/ShippingDiscountCouponService.php:106
-msgid "Shipping discount applied"
+msgid "Fixed shipping discount applied"
+msgstr "Diskon ongkir tetap diterapkan"
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Percentage shipping discount applied"
+msgstr "Diskon ongkir persentase diterapkan"
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Shipping discounts applied"
 msgstr "Diskon ongkir diterapkan"
 
 #: inc/Services/ShippingDiscountCouponService.php:111
@@ -1507,8 +1550,8 @@ msgid "Allow Combinations"
 msgstr "Izinkan Kombinasi"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:151
-msgid "Leave selected to allow this shipping coupon to stack with the checked discount types."
-msgstr "Biarkan terpilih agar kupon ongkir ini bisa digabungkan dengan tipe diskon yang dicentang."
+msgid "Leave selected to allow this shipping discount coupon to stack with the checked discount types."
+msgstr "Biarkan terpilih agar kupon diskon ongkir ini bisa digabungkan dengan tipe diskon yang dicentang."
 
 #: inc/Controllers/ShippingDiscountCouponController.php:366
 msgid "Fixed cart discount"
@@ -1735,6 +1778,14 @@ msgstr "syarat dan ketentuan"
 #: templates/setting/setuped/section-account.php:189
 msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
 msgstr "© 2025 PT Selalu Siap Solusi. Hak cipta dilindungi undang-undang."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:54
+msgid "Usage Combinations"
+msgstr "Kombinasi Penggunaan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:261
+msgid "Powered by KiriminAja Discount Extension"
+msgstr "Didukung oleh Ekstensi Diskon KiriminAja"
 
 #. Plugin Name of the plugin
 #: kiriminaja.php

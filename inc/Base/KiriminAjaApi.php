@@ -47,19 +47,36 @@ class KiriminAjaApi
                 'data' => $response->get_error_message()
             );
         }
+        $body = wp_remote_retrieve_body($response);
+        $decodedBody = json_decode($body);
+
         if (200 !== wp_remote_retrieve_response_code($response)) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('api_call_err',$response);
+
+            $message = 'Error ' . wp_remote_retrieve_response_code($response);
+            if (is_object($decodedBody) && !empty($decodedBody->text)) {
+                $message = (string) $decodedBody->text;
+            } elseif (is_string($body) && '' !== trim($body)) {
+                $message = trim($body);
+            }
+
             return array(
                 'status' => false,
-                'data' => 'Error ' . wp_remote_retrieve_response_code($response)
+                'data' => $message
             );
         }
-        $body = wp_remote_retrieve_body($response);
-        $body = json_decode($body);
-        if (false === $body->status) {
-            if (!empty($body->errors)) {
+
+        if (null === $decodedBody && JSON_ERROR_NONE !== json_last_error()) {
+            return array(
+                'status' => false,
+                'data' => 'Invalid API response'
+            );
+        }
+
+        if (is_object($decodedBody) && isset($decodedBody->status) && false === $decodedBody->status) {
+            if (!empty($decodedBody->errors)) {
                 $errorMessages = [];
-                foreach ($body->errors as $field => $messages) {
+                foreach ($decodedBody->errors as $field => $messages) {
                     if (is_array($messages)) {
                         foreach ($messages as $msg) {
                             $errorMessages[] = $msg;
@@ -70,7 +87,7 @@ class KiriminAjaApi
                 }
                 $finalMessage = "Terdapat beberapa kesalahan pada data yang dikirim: " . implode(" ", $errorMessages);
             } else {
-                $finalMessage = isset($body->text) ? $body->text : 'Unknown error';
+                $finalMessage = isset($decodedBody->text) ? $decodedBody->text : 'Unknown error';
             }
             return array(
                 'status' => false,
@@ -79,7 +96,7 @@ class KiriminAjaApi
         }
         return array(
             'status' => true,
-            'data' => $body
+            'data' => $decodedBody
         );
     }
     

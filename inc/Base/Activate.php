@@ -11,7 +11,7 @@ class Activate {
         try {
             flush_rewrite_rules();
             if ( class_exists( '\\KiriminAjaOfficial\\Services\\ShippingDiscountRegionCacheService' ) ) {
-                ( new \KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService() )->refreshAll();
+                ( new \KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService() )->scheduleRefresh( true );
             }
         }catch (\Throwable $th){}
     }

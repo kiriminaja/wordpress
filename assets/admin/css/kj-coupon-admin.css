@@ -1,52 +1,186 @@
 .kiriof-shipping-discount-options {
-  padding-top: 8px;
+  padding: 12px 0 0;
 }
 
-.kiriof-region-builder {
-  margin: 12px 0;
-  padding: 12px;
-  border: 1px solid #dcdcde;
-  border-radius: 4px;
-  background: #fff;
+.kiriof-shipping-discount-panel .options_group {
+  border-top: 0;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
-.kiriof-region-chip-list {
+.kiriof-shipping-discount-panel .form-field {
+  margin-bottom: 18px;
+}
+
+.kiriof-region-picker {
+  margin: 12px 0 0;
+}
+
+.kiriof-region-picker-mode {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.kiriof-region-chip {
+.kiriof-region-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #f0f6fc;
-  border: 1px solid #c5d9ed;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d2327;
 }
 
-.kiriof-remove-chip {
-  border: 0;
-  background: transparent;
-  color: #8a2424;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
+.kiriof-region-picker-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+#kiriof_coupon_region_search {
+  min-width: 320px;
+  flex: 1 1 320px;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+.kiriof-region-picker-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.kiriof-region-stat {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f0f0f1;
+  color: #50575e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kiriof-region-picker-tree {
+  max-height: 580px;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid #dcdcde;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fcfcfd 0%, #f6f7f7 100%);
+}
+
+.kiriof-region-island {
+  padding: 16px;
+  border: 1px solid #dcdcde;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.kiriof-region-island + .kiriof-region-island {
+  margin-top: 14px;
+}
+
+.kiriof-region-island-label,
+.kiriof-region-province,
+.kiriof-region-city {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kiriof-region-island-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.kiriof-region-province-list {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e0e0e2;
+  border-radius: 14px;
+  background: #f8f9fa;
+}
+
+.kiriof-region-province-card + .kiriof-region-province-card {
+  margin-top: 16px;
+}
+
+.kiriof-region-province {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3338;
+}
+
+.kiriof-region-cities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+  margin-top: 14px;
+  padding-left: 28px;
+}
+
+.kiriof-region-city {
+  font-size: 14px;
+  color: #3c434a;
+}
+
+.kiriof-region-picker.is-all-scope .kiriof-region-picker-tree,
+.kiriof-region-picker.is-all-scope .kiriof-region-picker-toolbar {
+  opacity: 0.55;
+}
+
+.kiriof-region-empty-state {
+  margin: 0;
+  color: #646970;
+  text-align: center;
+}
+
+.kiriof-region-tree-checkbox {
+  margin-top: 2px;
+}
+
+@media (max-width: 782px) {
+  .kiriof-region-picker-toolbar {
+    align-items: stretch;
+  }
+
+  #kiriof_coupon_region_search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .kiriof-region-cities-grid {
+    grid-template-columns: 1fr;
+    padding-left: 0;
+  }
 }
 
 .kiriof-combination-options {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .kiriof-combination-option {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+}
+
+.kiriof-coupon-tab-footer {
+  margin: 8px 12px 0;
+  padding: 12px 0 4px;
+  border-top: 1px solid #dcdcde;
+  color: #646970;
+  font-size: 12px;
 }
 
 .kiriof-combination-column {

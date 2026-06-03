@@ -10,11 +10,60 @@ use KiriminAjaOfficial\Base\BaseService;
 use KiriminAjaOfficial\Repositories\ShippingDiscountRegionRepository;
 
 class ShippingDiscountRegionCacheService extends BaseService {
+    public const CRON_HOOK = 'kiriof_refresh_coupon_regions_cache';
+    private const STATUS_OPTION = 'kiriof_region_cache_status';
+
+    public function scheduleRefresh( bool $force = false ): bool {
+        if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+            return false;
+        }
+
+        if ( ! $force && $this->isRefreshPending() ) {
+            return false;
+        }
+
+        if ( $force && function_exists( 'wp_next_scheduled' ) && function_exists( 'wp_unschedule_event' ) ) {
+            $timestamp = wp_next_scheduled( self::CRON_HOOK );
+            if ( $timestamp ) {
+                wp_unschedule_event( $timestamp, self::CRON_HOOK );
+            }
+        }
+
+        $this->updateStatus( 'scheduled' );
+        wp_schedule_single_event( time() + 5, self::CRON_HOOK );
+
+        return true;
+    }
+
+    public function isRefreshPending(): bool {
+        $status = $this->getStatus();
+        if ( in_array( $status['state'], array( 'scheduled', 'running' ), true ) ) {
+            return true;
+        }
+
+        return function_exists( 'wp_next_scheduled' ) && (bool) wp_next_scheduled( self::CRON_HOOK );
+    }
+
+    public function getStatus(): array {
+        $status = get_option( self::STATUS_OPTION, array() );
+
+        return wp_parse_args(
+            is_array( $status ) ? $status : array(),
+            array(
+                'state' => 'idle',
+                'last_error' => '',
+                'last_completed_at' => '',
+            )
+        );
+    }
+
     public function refreshAll() {
+        $this->updateStatus( 'running' );
         $regionRepo = new ShippingDiscountRegionRepository();
         $provinceService = ( new KiriminajaApiService() )->getProvinces();
 
         if ( 200 !== $provinceService->status ) {
+            $this->updateStatus( 'error', $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
             return self::error( array(), $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
         }
 
@@ -22,8 +71,14 @@ class ShippingDiscountRegionCacheService extends BaseService {
         $regionRepo->upsertProvinces( $provinces );
 
         foreach ( $provinces as $province ) {
-            $this->refreshProvinceCities( (int) $province['id'] );
+            $cityRefresh = $this->refreshProvinceCities( (int) $province['id'] );
+            if ( 200 !== $cityRefresh->status ) {
+                $this->updateStatus( 'error', $cityRefresh->message ?? __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
+                return $cityRefresh;
+            }
         }
+
+        $this->updateStatus( 'ready' );
 
         return self::success(
             array(
@@ -50,6 +105,18 @@ class ShippingDiscountRegionCacheService extends BaseService {
         $repo->upsertCities( $provinceId, $cities );
 
         return self::success( array( 'city_count' => count( $cities ) ), __( 'City cache updated.', 'kiriminaja-official' ) );
+    }
+
+    private function updateStatus( string $state, string $lastError = '' ): void {
+        update_option(
+            self::STATUS_OPTION,
+            array(
+                'state' => $state,
+                'last_error' => $lastError,
+                'last_completed_at' => in_array( $state, array( 'ready', 'error' ), true ) ? gmdate( 'Y-m-d H:i:s' ) : '',
+            ),
+            false
+        );
     }
 
     private function normalizeRows( $rows, string $kind ): array {

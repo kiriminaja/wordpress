@@ -46,12 +46,35 @@ final class ShippingDiscountCouponAdminTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString('woocommerce_coupon_discount_types', $content);
+        $this->assertStringContainsString('woocommerce_coupon_data_tabs', $content);
+        $this->assertStringContainsString('woocommerce_coupon_data_panels', $content);
         $this->assertStringContainsString('woocommerce_coupon_options_usage_restriction', $content);
         $this->assertStringContainsString('woocommerce_coupon_options_save', $content);
         $this->assertStringContainsString('wp_ajax_kiriof_refresh_coupon_regions', $content);
         $this->assertStringContainsString('wp_ajax_kiriof_get_coupon_region_cities', $content);
+        $this->assertStringContainsString('refreshRegionCacheCron', $content);
+        $this->assertStringContainsString('Area Restrictions', $content);
+        $this->assertStringContainsString('Courier Restrictions', $content);
+        $this->assertStringContainsString('Usage Combinations', $content);
+        $this->assertStringContainsString('Fixed shipping discount', $content);
+        $this->assertStringContainsString('Percentage shipping discount', $content);
+        $this->assertStringContainsString('All Indonesian Regions', $content);
+        $this->assertStringContainsString('Selected Regions', $content);
+        $this->assertStringContainsString('Search region, province, or city', $content);
+        $this->assertStringContainsString('Powered by KiriminAja Discount Extension', $content);
         $this->assertStringContainsString('_kiriof_coupon_regions', $content);
         $this->assertStringContainsString('_kiriof_coupon_couriers', $content);
+        $this->assertStringContainsString('_kiriof_coupon_combinations', $content);
+    }
+
+    #[Test]
+    public function activation_schedules_region_cache_warmup(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Base/Activate.php');
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php');
+
+        $this->assertStringContainsString('scheduleRefresh', $content);
+        $this->assertStringContainsString('kiriof_refresh_coupon_regions_cache', $serviceContent);
     }
 
     #[Test]

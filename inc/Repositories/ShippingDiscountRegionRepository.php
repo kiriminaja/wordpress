@@ -33,6 +33,31 @@ class ShippingDiscountRegionRepository {
                 absint( $provinceId )
             )
         );
+        return is_array( $results ) ? $results : array();
+    }
+
+    public function getCities(): array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results = $this->wpdb->get_results( "SELECT id, province_id, name, updated_at FROM {$this->citiesTable} ORDER BY province_id ASC, name ASC" );
+        return is_array( $results ) ? $results : array();
+    }
+
+    public function getCitiesByProvinceIds( array $provinceIds ): array {
+        $provinceIds = array_values( array_filter( array_map( 'absint', $provinceIds ) ) );
+        if ( empty( $provinceIds ) ) {
+            return array();
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $provinceIds ), '%d' ) );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "SELECT id, province_id, name, updated_at FROM {$this->citiesTable} WHERE province_id IN ({$placeholders}) ORDER BY province_id ASC, name ASC",
+                $provinceIds
+            )
+        );
 
         return is_array( $results ) ? $results : array();
     }

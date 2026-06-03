@@ -55,7 +55,7 @@ class KiriminajaApiService extends BaseService{
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProvinces();
         $rows = $this->extractListRows($repo);
         if (!@$repo['status'] || empty($rows)){
-            return self::error([], @$repo['data']->text ?? __('Failed to load provinces.', 'kiriminaja-official'));
+            return self::error([], $this->extractErrorMessage($repo, __('Failed to load provinces.', 'kiriminaja-official')));
         }
 
         return self::success($rows);
@@ -64,7 +64,7 @@ class KiriminajaApiService extends BaseService{
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getCitiesByProvinceId($provinceId);
         $rows = $this->extractListRows($repo);
         if (!@$repo['status'] || (!@$repo['data']->status && empty($rows))){
-            return self::error([], @$repo['data']->text ?? __('Failed to load cities.', 'kiriminaja-official'));
+            return self::error([], $this->extractErrorMessage($repo, __('Failed to load cities.', 'kiriminaja-official')));
         }
 
         return self::success($rows);
@@ -99,6 +99,11 @@ class KiriminajaApiService extends BaseService{
         }
 
         $data = $repo['data'];
+
+        if (is_array($data)) {
+            return $data;
+        }
+
         $candidates = array(
             $data->result ?? null,
             $data->results ?? null,
@@ -117,5 +122,22 @@ class KiriminajaApiService extends BaseService{
         }
 
         return array();
+    }
+
+    private function extractErrorMessage($repo, string $fallback): string {
+        if (!isset($repo['data'])) {
+            return $fallback;
+        }
+
+        $data = $repo['data'];
+        if (is_string($data) && '' !== trim($data)) {
+            return trim($data);
+        }
+
+        if (is_object($data) && !empty($data->text)) {
+            return (string) $data->text;
+        }
+
+        return $fallback;
     }
 }

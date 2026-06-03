@@ -7,16 +7,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class ShippingDiscountCouponService {
-    public const COUPON_TYPE = 'kiriof_shipping_discount';
+    public const FIXED_COUPON_TYPE = 'kiriof_fixed_shipping_discount';
+    public const PERCENTAGE_COUPON_TYPE = 'kiriof_percent_shipping_discount';
     public const META_REGIONS = '_kiriof_coupon_regions';
     public const META_COURIERS = '_kiriof_coupon_couriers';
+
+    public function getShippingCouponTypes(): array {
+        return array(
+            self::FIXED_COUPON_TYPE,
+            self::PERCENTAGE_COUPON_TYPE,
+        );
+    }
 
     public function isShippingCoupon( $coupon ): bool {
         if ( is_string( $coupon ) || is_numeric( $coupon ) ) {
             $coupon = new \WC_Coupon( $coupon );
         }
 
-        return $coupon instanceof \WC_Coupon && self::COUPON_TYPE === $coupon->get_discount_type();
+        return $coupon instanceof \WC_Coupon && in_array( $coupon->get_discount_type(), $this->getShippingCouponTypes(), true );
     }
 
     public function validateCouponForCart( $coupon ): array {
@@ -78,6 +86,7 @@ class ShippingDiscountCouponService {
         $matchedDestination = false;
         $matchedCourier = false;
         $discountTotal = 0.0;
+        $appliedCouponTypes = array();
 
         foreach ( $coupons as $coupon ) {
             $validation = $this->validateCouponForCart( $coupon );
@@ -96,20 +105,21 @@ class ShippingDiscountCouponService {
                 continue;
             }
 
-            $applied = min( $remainingCost, $couponAmount );
+            $applied = $this->calculateCouponDiscount( $coupon, $remainingCost, $couponAmount );
             if ( $applied <= 0 ) {
                 continue;
             }
 
             $discountTotal += $applied;
             $remainingCost -= $applied;
+            $appliedCouponTypes[] = $coupon->get_discount_type();
         }
 
         if ( $discountTotal > 0 ) {
             $result['cost'] = max( 0, $baseCost - $discountTotal );
             $result['discount_amount'] = $discountTotal;
             $result['eligible'] = true;
-            $result['badge'] = __( 'Shipping discount applied', 'kiriminaja-official' );
+            $result['badge'] = $this->getAppliedDiscountBadge( $appliedCouponTypes );
             return $result;
         }
 
@@ -299,6 +309,33 @@ class ShippingDiscountCouponService {
 
         $value = preg_replace( '/[^a-z0-9]+/i', ' ', $value ) ?: '';
         return trim( preg_replace( '/\s+/', ' ', $value ) ?: '' );
+    }
+
+    private function calculateCouponDiscount( \WC_Coupon $coupon, float $remainingCost, float $couponAmount ): float {
+        $discountType = $coupon->get_discount_type();
+
+        if ( self::PERCENTAGE_COUPON_TYPE === $discountType ) {
+            $percentage = min( 100, $couponAmount );
+            return min( $remainingCost, round( $remainingCost * ( $percentage / 100 ), wc_get_price_decimals() ) );
+        }
+
+        return min( $remainingCost, $couponAmount );
+    }
+
+    private function getAppliedDiscountBadge( array $appliedCouponTypes ): string {
+        $appliedCouponTypes = array_values( array_unique( array_filter( array_map( 'strval', $appliedCouponTypes ) ) ) );
+
+        if ( 1 === count( $appliedCouponTypes ) ) {
+            if ( self::FIXED_COUPON_TYPE === $appliedCouponTypes[0] ) {
+                return __( 'Fixed shipping discount applied', 'kiriminaja-official' );
+            }
+
+            if ( self::PERCENTAGE_COUPON_TYPE === $appliedCouponTypes[0] ) {
+                return __( 'Percentage shipping discount applied', 'kiriminaja-official' );
+            }
+        }
+
+        return __( 'Shipping discounts applied', 'kiriminaja-official' );
     }
 
     private function invalid( string $message ): array {
