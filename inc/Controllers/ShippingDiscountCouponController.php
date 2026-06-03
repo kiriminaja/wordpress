@@ -189,6 +189,11 @@ class ShippingDiscountCouponController {
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
         if ( $regionRepo->isCacheStale() ) {
+            // Seed instantly from bundled JSON so the tree shows immediately,
+            // then schedule a live API refresh in the background.
+            if ( $regionRepo->getProvinceCount() < 1 ) {
+                $regionCacheService->seedFromBundledData( $regionRepo );
+            }
             $regionCacheService->scheduleRefresh();
             spawn_cron();
         }

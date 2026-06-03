@@ -71,10 +71,16 @@ class ShippingDiscountRegionCacheService extends BaseService {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
-        $regionRepo = new ShippingDiscountRegionRepository();
+        $regionRepo      = new ShippingDiscountRegionRepository();
         $provinceService = ( new KiriminajaApiService() )->getProvinces();
 
         if ( 200 !== $provinceService->status ) {
+            // API failed — try seeding from bundled JSON as fallback.
+            $seeded = $this->seedFromBundledData( $regionRepo );
+            if ( 200 === $seeded->status ) {
+                $this->updateStatus( 'ready' );
+                return $seeded;
+            }
             $this->updateStatus( 'error', $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
             return self::error( array(), $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
         }
@@ -203,5 +209,54 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         return $normalized;
+    }
+
+    /**
+     * Seed provinces and cities from the bundled regions.json file.
+     * Used as a fallback when the live API is unreachable.
+     */
+    public function seedFromBundledData( ShippingDiscountRegionRepository $regionRepo ): \KiriminAjaOfficial\Utils\ServiceResponse {
+        $jsonPath = dirname( __DIR__ ) . '/Data/regions.json';
+        if ( ! file_exists( $jsonPath ) ) {
+            return self::error( array(), __( 'Bundled region data file not found.', 'kiriminaja-official' ) );
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $raw = file_get_contents( $jsonPath );
+        if ( false === $raw ) {
+            return self::error( array(), __( 'Failed to read bundled region data.', 'kiriminaja-official' ) );
+        }
+
+        $data = json_decode( $raw, true );
+        if ( ! is_array( $data ) || empty( $data['provinces'] ) || empty( $data['cities'] ) ) {
+            return self::error( array(), __( 'Bundled region data is invalid.', 'kiriminaja-official' ) );
+        }
+
+        if ( ! $regionRepo->upsertProvinces( $data['provinces'] ) ) {
+            return self::error( array(), __( 'Failed to seed province data from bundle.', 'kiriminaja-official' ) );
+        }
+
+        // Group cities by province and upsert.
+        $citiesByProvince = array();
+        foreach ( $data['cities'] as $city ) {
+            $pid = (int) ( $city['province_id'] ?? 0 );
+            if ( $pid < 1 ) {
+                continue;
+            }
+            $citiesByProvince[ $pid ][] = $city;
+        }
+
+        foreach ( $citiesByProvince as $pid => $cities ) {
+            $regionRepo->upsertCities( $pid, $cities );
+        }
+
+        return self::success(
+            array(
+                'province_count' => $regionRepo->getProvinceCount(),
+                'city_count'     => $regionRepo->getCityCount(),
+                'source'         => 'bundled',
+            ),
+            __( 'Region data loaded from bundled file.', 'kiriminaja-official' )
+        );
     }
 }

@@ -2109,3 +2109,23 @@ msgstr "Data provinsi tidak dapat dinormalisasi dari respons API KiriminAja."
 #: inc/Services/ShippingDiscountRegionCacheService.php
 msgid "City data for province %d could not be normalized from the KiriminAja API response."
 msgstr "Data kota untuk provinsi %d tidak dapat dinormalisasi dari respons API KiriminAja."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Bundled region data file not found."
+msgstr "File data wilayah bawaan tidak ditemukan."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Failed to read bundled region data."
+msgstr "Gagal membaca data wilayah bawaan."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Bundled region data is invalid."
+msgstr "Data wilayah bawaan tidak valid."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Failed to seed province data from bundle."
+msgstr "Gagal memuat data provinsi dari file bawaan."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Region data loaded from bundled file."
+msgstr "Data wilayah dimuat dari file bawaan."
