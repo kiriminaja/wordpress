@@ -281,9 +281,11 @@ tr.woocommerce-shipping-totals {
 
 /* When district is missing, keep the fieldset + step content visible so the
    native-styled "select district" message is shown inline where rates appear.
-   Only hide the actual rates list and radio controls. */
-.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control__package-list,
-.kiriof-shipping-options-blocked .wc-block-components-radio-control {
+   Hide the entire rates control (includes the Shipment package card with product
+   image and the native "Enter a shipping address" message). Our injected warning
+   is prepended directly to .wc-block-components-checkout-step__content so it
+   remains visible outside this hidden element. */
+.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control {
   display: none !important;
 }
 
