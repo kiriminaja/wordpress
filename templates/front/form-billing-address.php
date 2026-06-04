@@ -612,8 +612,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     if (kiriofDistrictResultsLoading || kiriofPendingDistrictRestore) {
                         $warning.hide();
-                        $shippingOptions.addClass('kiriof-shipping-options-blocked');
-                        jQuery('body').addClass('kiriof-no-district');
+                        // If we already know the district is valid (e.g. from the WC cart store
+                        // for a logged-in user), keep shipping options visible so there is no
+                        // blank gap while the district select is being fetched and restored.
+                        if (!hasValidDistrict) {
+                            $shippingOptions.addClass('kiriof-shipping-options-blocked');
+                            jQuery('body').addClass('kiriof-no-district');
+                        }
                         return;
                     }
 
