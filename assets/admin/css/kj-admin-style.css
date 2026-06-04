@@ -394,7 +394,8 @@ body {
 }
 
 .wc-backbone-modal.kiriof-backbone-modal .wc-backbone-modal-main {
-  max-width: 520px;
+  width: 100%;
+  max-width: none;
 }
 
 .wc-backbone-modal.kiriof-backbone-modal .wc-backbone-modal-header h1 {

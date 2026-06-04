@@ -321,7 +321,7 @@ class TransactionProcessController{
         ?>
         <script type="text/template" id="tmpl-kiriof-modal-request-pickup">
             <div class="wc-backbone-modal kiriof-backbone-modal kiriof-request-pickup-modal">
-                <div class="wc-backbone-modal-content">
+                <div class="wc-backbone-modal-content" style="max-width:640px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
                         <header class="wc-backbone-modal-header">
                             <h1><?php esc_html_e( 'Schedule for Pickup', 'kiriminaja-official' ); ?></h1>
@@ -380,7 +380,7 @@ class TransactionProcessController{
 
         <script type="text/template" id="tmpl-kiriof-modal-cancel-transaction">
             <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-transaction-modal">
-                <div class="wc-backbone-modal-content">
+                <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
                         <header class="wc-backbone-modal-header">
                             <h1><?php esc_html_e( 'Cancel Shipment', 'kiriminaja-official' ); ?></h1>
