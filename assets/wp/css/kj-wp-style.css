@@ -280,17 +280,7 @@ tr.woocommerce-shipping-totals {
 }
 
 .kiriof-shipping-options-blocked {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.kiriof-shipping-options-blocked .wc-block-components-radio-control,
-.kiriof-shipping-options-blocked
-  .wc-block-components-shipping-rates-control__package,
-.kiriof-shipping-options-blocked
-  .wc-block-components-shipping-rates-control__package-list {
-  visibility: hidden;
-  min-height: 0;
+  display: none !important;
 }
 
 /* Hide the "Shipping options" step heading when district is not selected */
@@ -313,13 +303,15 @@ body.kiriof-no-district .wc-block-checkout__payment {
   display: none !important;
 }
 
-body.kiriof-no-district .wc-block-components-checkout-step--shipping-method
+body.kiriof-no-district
+  .wc-block-components-checkout-step--shipping-method
   .wc-block-components-checkout-step__heading {
   display: none !important;
 }
 
 /* Collapse the shipping step content area (rates list + loading spinner) */
-body.kiriof-no-district .wc-block-components-checkout-step--shipping-method
+body.kiriof-no-district
+  .wc-block-components-checkout-step--shipping-method
   .wc-block-components-checkout-step__content {
   display: none !important;
 }
