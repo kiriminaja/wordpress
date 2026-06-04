@@ -1625,6 +1625,10 @@ msgstr ""
 msgid "Cancel Shipment"
 msgstr ""
 
+#: inc/Controllers/TransactionProcessController.php
+msgid "Close modal panel"
+msgstr ""
+
 msgid "Available Schedules"
 msgstr ""
 

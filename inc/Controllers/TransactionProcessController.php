@@ -326,7 +326,7 @@ class TransactionProcessController{
                         <header class="wc-backbone-modal-header">
                             <h1><?php esc_html_e( 'Schedule for Pickup', 'kiriminaja-official' ); ?></h1>
                             <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'woocommerce' ); ?></span>
+                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'kiriminaja-official' ); ?></span>
                             </button>
                         </header>
                         <article class="kiriof-backbone-modal-body">
@@ -385,7 +385,7 @@ class TransactionProcessController{
                         <header class="wc-backbone-modal-header">
                             <h1><?php esc_html_e( 'Cancel Shipment', 'kiriminaja-official' ); ?></h1>
                             <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'woocommerce' ); ?></span>
+                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'kiriminaja-official' ); ?></span>
                             </button>
                         </header>
                         <article class="kiriof-backbone-modal-body">
@@ -486,7 +486,7 @@ class TransactionProcessController{
     }
 
     private function isTransactionProcessPage() {
-        $page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+        $page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page slug check, no data processed
 
         return 'kiriminaja-transaction-process' === $page;
     }

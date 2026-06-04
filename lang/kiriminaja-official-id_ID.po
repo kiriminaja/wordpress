@@ -214,6 +214,10 @@ msgstr "Batalkan"
 msgid "Cancel Shipment"
 msgstr "Batalkan Pengiriman"
 
+#: inc/Controllers/TransactionProcessController.php
+msgid "Close modal panel"
+msgstr "Tutup panel modal"
+
 msgid "Available Schedules"
 msgstr "Jadwal Tersedia"
 
