@@ -524,12 +524,29 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 function kiriofEnsureBlockDistrictWarning() {
-                    var $shippingAddressSection = jQuery('.wp-block-woocommerce-checkout-shipping-address-block, .wc-block-components-checkout-step--shipping-address, .wc-block-checkout__shipping-address').first();
-                    if (!$shippingAddressSection.length) {
+                    // Place the warning inside the shipping options step, below its heading,
+                    // so the user sees it in context ("Shipping options → District required").
+                    var $shippingMethodStep = jQuery(
+                        '.wp-block-woocommerce-checkout-shipping-methods-block, ' +
+                        '.wc-block-checkout__shipping-option, ' +
+                        '.wc-block-components-checkout-step--shipping-method'
+                    ).first();
+
+                    // Fall back to the shipping address section if the shipping methods
+                    // step is not in the DOM yet.
+                    if (!$shippingMethodStep.length) {
+                        $shippingMethodStep = jQuery(
+                            '.wp-block-woocommerce-checkout-shipping-address-block, ' +
+                            '.wc-block-components-checkout-step--shipping-address, ' +
+                            '.wc-block-checkout__shipping-address'
+                        ).first();
+                    }
+
+                    if (!$shippingMethodStep.length) {
                         return jQuery();
                     }
 
-                    var $warning = $shippingAddressSection.find('.kiriof-block-district-warning');
+                    var $warning = $shippingMethodStep.find('.kiriof-block-district-warning');
                     if (!$warning.length) {
                         $warning = jQuery(
                             '<div class="wc-block-components-notice-banner is-warning kiriof-block-district-warning" role="alert">' +
@@ -539,7 +556,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 '</div>' +
                             '</div>'
                         ).hide();
-                        $shippingAddressSection.append($warning);
+
+                        // Insert after the heading container so it sits between the
+                        // heading and the (now hidden) shipping rates content.
+                        var $headingContainer = $shippingMethodStep.find('.wc-block-components-checkout-step__heading-container').first();
+                        if ($headingContainer.length) {
+                            $warning.insertAfter($headingContainer);
+                        } else {
+                            $shippingMethodStep.prepend($warning);
+                        }
                     }
 
                     return $warning;
