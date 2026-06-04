@@ -279,9 +279,11 @@ tr.woocommerce-shipping-totals {
   margin-top: 16px;
 }
 
-/* When district is missing, keep the fieldset visible so the heading + warning
-   are shown, but hide the actual shipping rates content */
-.kiriof-shipping-options-blocked .wc-block-components-checkout-step__content {
+/* When district is missing, keep the fieldset + step content visible so the
+   native-styled "select district" message is shown inline where rates appear.
+   Only hide the actual rates list and radio controls. */
+.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control__package-list,
+.kiriof-shipping-options-blocked .wc-block-components-radio-control {
   display: none !important;
 }
 

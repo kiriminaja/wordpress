@@ -524,8 +524,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 function kiriofEnsureBlockDistrictWarning() {
-                    // Place the warning inside the shipping options step, below its heading,
-                    // so the user sees it in context ("Shipping options → District required").
+                    // Place the warning inside the shipping options step using the native
+                    // WC "no shipping address" structure so it blends with the WC UI.
                     var $shippingMethodStep = jQuery(
                         '.wp-block-woocommerce-checkout-shipping-methods-block, ' +
                         '.wc-block-checkout__shipping-option, ' +
@@ -548,22 +548,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     var $warning = $shippingMethodStep.find('.kiriof-block-district-warning');
                     if (!$warning.length) {
+                        // Use the exact same markup & classes WooCommerce uses for its
+                        // "Enter a shipping address to view shipping options." message
+                        // so the notice looks completely native.
                         $warning = jQuery(
-                            '<div class="wc-block-components-notice-banner is-warning kiriof-block-district-warning" role="alert">' +
-                                '<div class="wc-block-components-notice-banner__content">' +
-                                    '<strong><?php echo esc_js(__('District required', 'kiriminaja-official')); ?></strong>' +
-                                    '<p><?php echo esc_js(__('Please select your District before choosing a shipping service.', 'kiriminaja-official')); ?></p>' +
+                            '<div class="wc-block-components-shipping-rates-control kiriof-block-district-warning" role="alert">' +
+                                '<div class="wc-block-components-shipping-rates-control__package">' +
+                                    '<p role="status" aria-live="polite" ' +
+                                       'class="wc-block-components-shipping-rates-control__no-shipping-address-message">' +
+                                        '<?php echo esc_js(__('Please select your District to view shipping options.', 'kiriminaja-official')); ?>' +
+                                    '</p>' +
                                 '</div>' +
                             '</div>'
                         ).hide();
 
-                        // Insert after the heading container so it sits between the
-                        // heading and the (now hidden) shipping rates content.
-                        var $headingContainer = $shippingMethodStep.find('.wc-block-components-checkout-step__heading-container').first();
-                        if ($headingContainer.length) {
-                            $warning.insertAfter($headingContainer);
+                        // Inject inside the step content so it appears where rates normally live.
+                        var $stepContent = $shippingMethodStep.find('.wc-block-components-checkout-step__content').first();
+                        if ($stepContent.length) {
+                            $stepContent.prepend($warning);
                         } else {
-                            $shippingMethodStep.prepend($warning);
+                            var $headingContainer = $shippingMethodStep.find('.wc-block-components-checkout-step__heading-container').first();
+                            if ($headingContainer.length) {
+                                $warning.insertAfter($headingContainer);
+                            } else {
+                                $shippingMethodStep.prepend($warning);
+                            }
                         }
                     }
 
