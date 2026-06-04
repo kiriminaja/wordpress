@@ -1522,6 +1522,10 @@ msgid "Please enter your shipping address to check coupon eligibility."
 msgstr "Silakan masukkan alamat pengiriman untuk memeriksa kelayakan kupon."
 
 #: inc/Services/ShippingDiscountCouponService.php:48
+msgid "This coupon is not valid for the selected courier."
+msgstr "Kupon ini tidak berlaku untuk kurir yang dipilih."
+
+#: inc/Services/ShippingDiscountCouponService.php:56
 msgid "This coupon is not valid for your shipping destination."
 msgstr "Kupon ini tidak berlaku untuk tujuan pengiriman Anda."
 
@@ -2107,8 +2111,8 @@ msgid "District required"
 msgstr "Kelurahan wajib diisi"
 
 #: templates/front/form-billing-address.php
-msgid "Please select your District before choosing a shipping service."
-msgstr "Silakan pilih Kelurahan Anda sebelum memilih layanan pengiriman."
+msgid "Please select your District to view shipping options."
+msgstr "Silakan pilih Kelurahan Anda untuk melihat opsi pengiriman."
 
 #: inc/Controllers/ShippingDiscountCouponController.php
 msgid "Security check failed."
