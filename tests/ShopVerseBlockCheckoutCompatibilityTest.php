@@ -550,7 +550,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'Please select your District before choosing a shipping service.',
+            'Please select your District to view shipping options.',
             $content,
             'Buyer-facing block checkout warning should clearly explain why shipping methods are unavailable'
         );
@@ -657,9 +657,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'skipStoreSync: true',
+            $content,
+            'Postcode edits should clear local District UI without immediately sending a destination reset back through Store API, otherwise Woo blocks can snap the postcode back to the persisted address'
+        );
+
+        $this->assertStringContainsString(
             'kiriofNormalizePostcode',
             $content,
             'Saved District restoration should normalize postcode keys before looking them up in the frontend session map'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSavedCheckoutPostcode',
+            $content,
+            'Block checkout should preload the latest checkout postcode from session so a hard refresh can restore the current postcode before District lookup runs'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofRestoreSavedPostcodeField',
+            $content,
+            'Block checkout should restore the saved postcode back into the visible Woo Blocks field before attempting District re-selection'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofRestoreSavedCheckoutState',
+            $content,
+            'Block checkout should restore postcode and District together after Woo re-renders the address form from the compact Edit state'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetFocusedPostcodeInput',
+            $content,
+            'Block checkout postcode sync should prefer the actively edited postcode field over stale store values'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofLastTypedPostcodeAt',
+            $content,
+            'Block checkout postcode sync should keep a short-lived typing window so store subscribers do not snap the field back to a cached postcode'
         );
 
         $this->assertStringContainsString(
@@ -672,6 +708,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriof_destination_postcode_map',
             $controller,
             'Checkout controller should store District selections in Woo session keyed by postcode'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_checkout_postcode', \$postcode );",
+            $controller,
+            'Store API callback should persist the latest checkout postcode in session so block checkout can restore it after a full page refresh'
         );
     }
 

@@ -71,6 +71,11 @@ class CheckoutController
             add_action( 'woocommerce_cart_calculate_fees', array($this,'kiriof_shipping_method_update') );
             add_filter( 'render_block', array( $this, 'kiriof_render_block_checkout_shipping_discount_row' ), 20, 2 );
 
+            // Phone is required for courier pickup — force it at the locale level so
+            // block checkout also treats it as mandatory (shows "Phone" not "Phone (optional)").
+            add_filter( 'woocommerce_get_country_locale', array( $this, 'kiriof_require_phone_locale' ), 9999 );
+            add_action( 'wp_footer', array( $this, 'kiriof_block_checkout_require_phone_label' ) );
+
             /** Control COD availability based on KiriminAja Config tab */
             add_filter( 'woocommerce_available_payment_gateways', array($this,'kiriof_filter_cod_availability'), 10, 1 );
         }
@@ -389,6 +394,7 @@ class CheckoutController
         $shipping_destination_id = WC()->session->get($this->key_shipping_destination_id);
         $shipping_destination_name = WC()->session->get($this->key_shipping_destination_name);
         $kiriof_saved_destination_map = WC()->session->get( 'kiriof_destination_postcode_map', array() );
+        $kiriof_saved_checkout_postcode = WC()->session->get( 'kiriof_checkout_postcode', '' );
         
         $insurance_setting        = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
         $kiriof_global_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
@@ -992,6 +998,68 @@ class CheckoutController
         }
         return $fields;
     }
+
+    /**
+     * Force phone to required in the WooCommerce country locale data.
+     * The block checkout reads locale rules to decide whether to append " (optional)"
+     * to the label — setting required:true here removes that suffix globally.
+     *
+     * @param array $locales
+     * @return array
+     */
+    public function kiriof_require_phone_locale( $locales ) {
+        foreach ( $locales as $country => $fields ) {
+            $locales[ $country ]['phone']['required'] = true;
+            $locales[ $country ]['phone']['hidden']   = false;
+        }
+        // Also set the 'default' locale used as fallback.
+        if ( isset( $locales['default'] ) ) {
+            $locales['default']['phone']['required'] = true;
+            $locales['default']['phone']['hidden']   = false;
+        }
+        return $locales;
+    }
+
+    /**
+     * Block checkout renders "(optional)" via JavaScript after the label text.
+     * Inject a tiny inline script on the checkout page that strips any remaining
+     * "(optional)" suffix from the phone label via a MutationObserver, as a
+     * belt-and-suspenders fallback for themes that bypass the locale filter.
+     */
+    public function kiriof_block_checkout_require_phone_label() {
+        if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+            return;
+        }
+        ?>
+        <script>
+        (function() {
+            var kiriofStripPhoneOptional = function() {
+                document.querySelectorAll(
+                    'label[for*="phone"], .wc-block-components-text-input label, .wc-block-components-address-form label'
+                ).forEach(function(label) {
+                    if (/phone/i.test(label.htmlFor || label.getAttribute('for') || '')) {
+                        label.childNodes.forEach(function(node) {
+                            if (node.nodeType === 3) { // Text node
+                                node.textContent = node.textContent.replace(/\s*\(optional\)/i, '');
+                            }
+                        });
+                        // Also handle span children used by some block themes.
+                        label.querySelectorAll('span').forEach(function(span) {
+                            if (/optional/i.test(span.textContent)) {
+                                span.remove();
+                            }
+                        });
+                    }
+                });
+            };
+            // Run once on load and observe DOM changes from React re-renders.
+            kiriofStripPhoneOptional();
+            var observer = new MutationObserver(kiriofStripPhoneOptional);
+            observer.observe(document.body, { childList: true, subtree: true });
+        })();
+        </script>
+        <?php
+    }
     private function kiriof_remove_fields_checkout($fields,$fields_selected){
         foreach ($fields_selected as $field_key) {
             unset( $fields['billing']['billing_'.$field_key] );
@@ -1261,6 +1329,7 @@ class CheckoutController
         $insurance        = ! empty( $data['insurance'] ) ? 1 : 0;
         $force_insurance  = ! empty( $data['force_insurance'] ) ? 1 : 0;
         $postcode         = isset( $data['postcode'] ) ? sanitize_text_field( wp_unslash( $data['postcode'] ) ) : '';
+        $postcode         = trim( preg_replace( '/\s+/', '', (string) $postcode ) );
 
         if ( 'cod' === $payment_method ) {
             WC()->session->set( 'chosen_payment_method', $payment_method );
@@ -1306,9 +1375,22 @@ class CheckoutController
         WC()->session->set( 'force_insurance', $force_insurance );
         WC()->session->set( 'kiriof_force_insurance', $force_insurance );
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
-        WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+       WC()->session->set( 'kiriof_cached_cod_amt', 0 );
         WC()->session->set( 'kiriof_cached_fee_context', array() );
         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+        WC()->session->set( 'kiriof_checkout_postcode', $postcode );
+
+        if ( '' !== $postcode && isset( WC()->customer ) && is_object( WC()->customer ) ) {
+            if ( method_exists( WC()->customer, 'set_shipping_postcode' ) ) {
+                WC()->customer->set_shipping_postcode( $postcode );
+            }
+            if ( method_exists( WC()->customer, 'set_billing_postcode' ) ) {
+                WC()->customer->set_billing_postcode( $postcode );
+            }
+            if ( method_exists( WC()->customer, 'save' ) ) {
+                WC()->customer->save();
+            }
+        }
 
         if ( $destination_id > 0 && '' !== $postcode ) {
             $saved_destination_map = (array) WC()->session->get( 'kiriof_destination_postcode_map', array() );
