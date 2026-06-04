@@ -629,6 +629,18 @@ if ( ! defined( 'ABSPATH' ) ) {
                         return;
                     }
 
+                    // For non-logged-in users on a fresh form (no postcode entered yet),
+                    // showing "District required" immediately is bad UX — the user hasn't
+                    // done anything wrong. Suppress warning and blocking until they have
+                    // actually typed a postcode (or there is a saved one from a prior visit).
+                    var hasPostcode = !!(kiriofGetCurrentPostcodeKey() || kiriofSavedCheckoutPostcode || kiriofLastTypedPostcode);
+                    if (!hasPostcode) {
+                        $warning.hide();
+                        $shippingOptions.removeClass('kiriof-shipping-options-blocked');
+                        jQuery('body').removeClass('kiriof-no-district');
+                        return;
+                    }
+
                     kiriofClearBlockShippingMethodSelection();
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
