@@ -827,7 +827,20 @@ if ( ! defined( 'ABSPATH' ) ) {
                 // so the cart data store can lag behind the visible postcode input.
                 jQuery(document).off('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors)
                     .on('input.kiriofBlockPostcode change.kiriofBlockPostcode', kiriofBlockPostcodeSelectors, function() {
-                        kiriofLastTypedPostcode = kiriofNormalizePostcode(jQuery(this).val());
+                        var newPostcode = kiriofNormalizePostcode(jQuery(this).val());
+
+                        // When postcode is cleared, reset all district state immediately so
+                        // the shipping options section is blocked until a new district is chosen.
+                        if (!newPostcode) {
+                            kiriofLastTypedPostcode    = '';
+                            kiriofSavedCheckoutPostcode = '';
+                            kiriofLastPostcode          = ''; // allow re-fetch when user types again
+                            kiriofResetBlockDistrictState();
+                            kiriofSyncBlockDistrictWarningStateWithClear();
+                            return;
+                        }
+
+                        kiriofLastTypedPostcode = newPostcode;
                         kiriofLastTypedPostcodeAt = Date.now();
                         kiriofSavedCheckoutPostcode = kiriofLastTypedPostcode;
                         kiriofFetchDistricts(kiriofLastTypedPostcode);
@@ -856,11 +869,23 @@ if ( ! defined( 'ABSPATH' ) ) {
                             if (!store) return;
                             var shipping = store.getShippingAddress ? store.getShippingAddress() : {};
                             var billing = store.getBillingAddress ? store.getBillingAddress() : {};
-                            var postcode = kiriofNormalizePostcode(kiriofGetCheckoutPostcodeFromDom());
+                            var domPostcode = kiriofNormalizePostcode(kiriofGetCheckoutPostcodeFromDom());
                             var recentlyTyped = kiriofLastTypedPostcodeAt && (Date.now() - kiriofLastTypedPostcodeAt) < 2500;
-                            if (!postcode || (!kiriofGetFocusedPostcodeInput().length && !recentlyTyped)) {
+                            var postcode;
+                            if (domPostcode || recentlyTyped) {
+                                // DOM has a value or user recently typed — trust DOM + last-typed.
+                                postcode = domPostcode || kiriofLastTypedPostcode;
+                            } else {
+                                // DOM is empty and no recent typing — fall back to store.
                                 postcode = kiriofNormalizePostcode((shipping && shipping.postcode) || (billing && billing.postcode) || kiriofLastTypedPostcode);
                             }
+
+                            // If every source is empty the user has cleared the postcode field.
+                            // Reset saved state so hasPostcode check suppresses the warning correctly.
+                            if (!postcode && !kiriofLastTypedPostcode) {
+                                kiriofSavedCheckoutPostcode = '';
+                            }
+
                             kiriofFetchDistricts(postcode);
                             kiriofSyncBlockDistrictWarningState();
                         } catch(e) {}
