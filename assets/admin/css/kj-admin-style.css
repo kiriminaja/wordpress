@@ -393,6 +393,110 @@ body {
   text-align: right;
 }
 
+.wc-backbone-modal.kiriof-backbone-modal .wc-backbone-modal-main {
+  max-width: 520px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .wc-backbone-modal-header h1 {
+  padding-right: 56px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-body {
+  padding: 24px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-loader {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary {
+  border: 1px solid #dcdcde;
+  border-radius: 8px;
+  background: #f6f7f7;
+  padding: 12px 14px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary-row + .kiriof-backbone-summary-row {
+  border-top: 1px solid #dcdcde;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-section {
+  margin-top: 20px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-section-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-opt-list {
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option + .kiriof-schedule-option {
+  margin-top: 10px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option-row input {
+  margin-top: 2px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option-label label {
+  display: block;
+  font-weight: 500;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-field textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-counter {
+  margin-top: 6px;
+  text-align: right;
+  font-size: 12px;
+  color: #757575;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-inline-error,
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-error-text {
+  margin: 16px 0 0;
+  color: #d63638;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-button-danger {
+  background: #d63638;
+  border-color: #d63638;
+}
+
 .kj-badge {
   font-weight: 400;
   padding: 4px 8px;

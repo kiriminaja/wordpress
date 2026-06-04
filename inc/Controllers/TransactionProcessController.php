@@ -18,6 +18,7 @@ class TransactionProcessController{
         add_action( 'woocommerce_admin_order_preview_end', array( $this, 'renderWooOrderPreviewKiriminajaDetails' ) );
         add_action( 'admin_footer', array( $this, 'renderWooOrderPreviewKiriminajaRelocatorScript' ) );
         add_action( 'admin_footer', array( $this, 'renderWooOrderPreviewTemplateForKiriofPage' ) );
+        add_action( 'admin_footer', array( $this, 'renderWooActionModalTemplatesForKiriofPage' ) );
 
         /** Auto-cancel KA transaction when WC order is cancelled */
         add_action('woocommerce_order_status_cancelled', array($this, 'handleWcOrderCancelled'), 10, 1);
@@ -297,9 +298,7 @@ class TransactionProcessController{
     }
 
     public function renderWooOrderPreviewTemplateForKiriofPage() {
-        $page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
-
-        if ( 'kiriminaja-transaction-process' !== $page ) {
+        if ( ! $this->isTransactionProcessPage() ) {
             return;
         }
 
@@ -313,6 +312,114 @@ class TransactionProcessController{
             $legacy_list_table = new \WC_Admin_List_Table_Orders();
             $legacy_list_table->order_preview_template();
         }
+    }
+
+    public function renderWooActionModalTemplatesForKiriofPage() {
+        if ( ! $this->isTransactionProcessPage() ) {
+            return;
+        }
+        ?>
+        <script type="text/template" id="tmpl-kiriof-modal-request-pickup">
+            <div class="wc-backbone-modal kiriof-backbone-modal kiriof-request-pickup-modal">
+                <div class="wc-backbone-modal-content">
+                    <section class="wc-backbone-modal-main" role="main">
+                        <header class="wc-backbone-modal-header">
+                            <h1><?php esc_html_e( 'Schedule for Pickup', 'kiriminaja-official' ); ?></h1>
+                            <button class="modal-close modal-close-link dashicons dashicons-no-alt">
+                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'woocommerce' ); ?></span>
+                            </button>
+                        </header>
+                        <article class="kiriof-backbone-modal-body">
+                            <form>
+                                <div class="kiriof-modal-state kiriof-modal-state-loading">
+                                    <div class="kiriof-backbone-modal-loader">
+                                        <span class="spinner is-active"></span>
+                                    </div>
+                                </div>
+
+                                <div class="kiriof-modal-state kiriof-modal-state-error" style="display:none;">
+                                    <p class="kiriof-backbone-modal-error-text"><?php esc_html_e( 'An error occurred.', 'kiriminaja-official' ); ?></p>
+                                </div>
+
+                                <div class="kiriof-modal-state kiriof-modal-state-content" style="display:none;">
+                                    <div class="kiriof-backbone-summary">
+                                        <div class="kiriof-backbone-summary-row">
+                                            <span><?php esc_html_e( 'COD Package Charges', 'kiriminaja-official' ); ?></span>
+                                            <strong class="kiriof-summary-cod">Rp0</strong>
+                                        </div>
+                                        <div class="kiriof-backbone-summary-row">
+                                            <span><?php esc_html_e( 'Non-COD Package Charges', 'kiriminaja-official' ); ?></span>
+                                            <strong class="kiriof-summary-non-cod">Rp0</strong>
+                                        </div>
+                                        <div class="kiriof-backbone-summary-row">
+                                            <span><?php esc_html_e( 'Total Charges', 'kiriminaja-official' ); ?></span>
+                                            <strong class="kiriof-summary-total">Rp0</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="kiriof-backbone-section">
+                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e( 'Available Schedules', 'kiriminaja-official' ); ?></h2>
+                                        <div class="kiriof-schedule-opt-list"></div>
+                                    </div>
+
+                                    <p class="kiriof-backbone-inline-error err_msg" style="display:none;"></p>
+                                </div>
+                            </form>
+                        </article>
+                        <footer>
+                            <div class="inner">
+                                <button class="button button-large modal-close"><?php esc_html_e( 'Close', 'kiriminaja-official' ); ?></button>
+                                <button class="button button-primary button-large" id="btn-next" disabled><?php esc_html_e( 'Pick Schedule', 'kiriminaja-official' ); ?></button>
+                            </div>
+                        </footer>
+                    </section>
+                </div>
+            </div>
+            <div class="wc-backbone-modal-backdrop modal-close"></div>
+        </script>
+
+        <script type="text/template" id="tmpl-kiriof-modal-cancel-transaction">
+            <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-transaction-modal">
+                <div class="wc-backbone-modal-content">
+                    <section class="wc-backbone-modal-main" role="main">
+                        <header class="wc-backbone-modal-header">
+                            <h1><?php esc_html_e( 'Cancel Shipment', 'kiriminaja-official' ); ?></h1>
+                            <button class="modal-close modal-close-link dashicons dashicons-no-alt">
+                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'woocommerce' ); ?></span>
+                            </button>
+                        </header>
+                        <article class="kiriof-backbone-modal-body">
+                            <form>
+                                <input type="hidden" name="order_id" value="{{ data.order_id }}">
+                                <div class="kiriof-backbone-field">
+                                    <label for="kiriof-cancel-reason" class="kiriof-backbone-label">
+                                        <?php esc_html_e( 'Reason for Cancellation', 'kiriminaja-official' ); ?> <span class="required">*</span>
+                                    </label>
+                                    <textarea id="kiriof-cancel-reason" class="kiriof-cancel-reason" name="reason" rows="4" maxlength="200" placeholder="<?php echo esc_attr__( 'Enter reason (min 5, max 200 characters)', 'kiriminaja-official' ); ?>"></textarea>
+                                    <div class="kiriof-backbone-counter"><span class="kiriof-cancel-reason-count">0</span>/200</div>
+                                </div>
+
+                                <p class="kiriof-backbone-inline-error err_msg" style="display:none;"></p>
+
+                                <div class="kiriof-modal-state kiriof-modal-state-loading" style="display:none;">
+                                    <div class="kiriof-backbone-modal-loader">
+                                        <span class="spinner is-active"></span>
+                                    </div>
+                                </div>
+                            </form>
+                        </article>
+                        <footer>
+                            <div class="inner">
+                                <button class="button button-large modal-close"><?php esc_html_e( 'Close', 'kiriminaja-official' ); ?></button>
+                                <button class="button button-primary button-large kiriof-button-danger" id="btn-next"><?php esc_html_e( 'Cancel Shipment', 'kiriminaja-official' ); ?></button>
+                            </div>
+                        </footer>
+                    </section>
+                </div>
+            </div>
+            <div class="wc-backbone-modal-backdrop modal-close"></div>
+        </script>
+        <?php
     }
 
     private function getWooOrderPreviewSummaryRowsHtml( \WC_Order $order, $transaction ) {
@@ -376,5 +483,11 @@ class TransactionProcessController{
             $label,
             $amount_html
         );
+    }
+
+    private function isTransactionProcessPage() {
+        $page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+
+        return 'kiriminaja-transaction-process' === $page;
     }
 }

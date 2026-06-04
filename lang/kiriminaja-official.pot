@@ -1048,21 +1048,21 @@ msgstr ""
 #: templates/request-pickup/view/modal-request-pickup.php:33
 #: templates/transaction-process/view/index.php:475
 #: templates/transaction-process/view/modal-request-pickup.php:34
-msgid "Tagihan Paket COD"
+msgid "COD Package Charges"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:532
 #: templates/request-pickup/view/modal-request-pickup.php:38
 #: templates/transaction-process/view/index.php:480
 #: templates/transaction-process/view/modal-request-pickup.php:39
-msgid "Tagihan Paket Non-COD"
+msgid "Non-COD Package Charges"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:537
 #: templates/request-pickup/view/modal-request-pickup.php:43
 #: templates/transaction-process/view/index.php:485
 #: templates/transaction-process/view/modal-request-pickup.php:44
-msgid "Total Tagihan"
+msgid "Total Charges"
 msgstr ""
 
 #: templates/request-pickup/view/modal-payment.php:18

@@ -332,9 +332,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         <br class="clear">
                                     </div>
 
-    <?php include 'modal-request-pickup.php' ?>
-    <?php include 'modal-cancel.php' ?>
-
 </div>
 
 <!--Table Search-->
@@ -437,6 +434,32 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
             }, 400);
         });
 
+        function kiriofGetRequestPickupModal() {
+            return $('.kiriof-request-pickup-modal');
+        }
+
+        function kiriofGetCancelModal() {
+            return $('.kiriof-cancel-transaction-modal');
+        }
+
+        function kiriofSetModalState($modal, state) {
+            $modal.find('.kiriof-modal-state').hide();
+            $modal.find('.err_msg').hide().text('');
+
+            if (state === 'loading') {
+                $modal.find('.kiriof-modal-state-loading').show();
+            } else if (state === 'error') {
+                $modal.find('.kiriof-modal-state-error').show();
+            } else {
+                $modal.find('.kiriof-modal-state-content').show();
+            }
+        }
+
+        function kiriofUpdateCancelReasonCounter() {
+            const $modal = kiriofGetCancelModal();
+            $modal.find('.kiriof-cancel-reason-count').text(($modal.find('.kiriof-cancel-reason').val() || '').length);
+        }
+
         window.kjRequestPickupSchedule = function() {
         /** Reset orderIds*/
         orderIds = [];
@@ -449,21 +472,14 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
             return;
         }
 
-        const $modal = $('#request-pickup-modal');
-        const modalElem = $modal[0];
-        const modalElemContent = $modal.find('.kj-modal-content')[0];
-        const modalElemLoader = $modal.find('.kj-modal-loader')[0];
-        const modalElemErr = $modal.find('.kj-err-container')[0];
-        
-        const $modalElem = $modal;
-        const $modalElemContent = $(modalElemContent);
-        const $modalElemLoader = $(modalElemLoader);
-        const $modalElemErr = $(modalElemErr)
+        $(document.body).WCBackboneModal({
+            template: 'kiriof-modal-request-pickup',
+            variable: {}
+        });
 
-        $modalElem.removeClass('kj-hidden');
-        $modalElemLoader.removeClass('kj-hidden');
-        $modalElemContent.addClass('kj-hidden');
-        $modalElemErr.addClass('kj-hidden');
+        const $modal = kiriofGetRequestPickupModal();
+        kiriofSetModalState($modal, 'loading');
+        $modal.find('#btn-next').prop('disabled', true);
 
         $.ajax({
             type: "post",
@@ -479,10 +495,8 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                 const resp = JSON.parse(response.responseText).data;
 
                 if (resp?.status !== 200) {
-                    $modalElemLoader.addClass('kj-hidden');
-                    $modalElemContent.addClass('kj-hidden');
-                    $modalElemErr.removeClass('kj-hidden');
-                    alert(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>');
+                    kiriofSetModalState($modal, 'error');
+                    $modal.find('.kiriof-backbone-modal-error-text').text(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>');
                     return;
                 }
 
@@ -490,37 +504,22 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                 const transaction_summary = resp?.data?.transaction_summary ?? {};
                 const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
                 const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
+                const total_fee = parseInt(sum_cod_fee || 0, 10) + parseInt(sum_non_cod_fee || 0, 10);
 
                 /** transaction_summary*/
-                const $scheduleSummary = $('#schedule-transaction-summary');
-                $scheduleSummary.empty().append(`
-                <div>
-                    <div class="row">
-                        <div class="col"><?php echo esc_js( __( 'Tagihan Paket COD', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
-                    </div>
-                    <div class="row-divider" style="margin-top: .5rem"></div>
-                    <div class="row">
-                        <div class="col"><?php echo esc_js( __( 'Tagihan Paket Non-COD', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
-                    </div>
-                    <div class="row-divider" style="margin-top: .5rem"></div>
-                    <div class="row">
-                        <div class="col"><?php echo esc_js( __( 'Total Tagihan', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((sum_cod_fee))}</div>
-                    </div>
-                </div>
-                `);
+                $modal.find('.kiriof-summary-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_cod ?? 0)}`);
+                $modal.find('.kiriof-summary-non-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_non_cod ?? 0)}`);
+                $modal.find('.kiriof-summary-total').text(`Rp${kiriofMoneyFormat(total_fee)}`);
 
                 /** schedules*/
-                const $scheduleList = $('#schedule-opt-list');
+                const $scheduleList = $modal.find('.kiriof-schedule-opt-list');
                 $scheduleList.empty();
                 $.each(schedules, function(idx, schedule) {
                     $scheduleList.append(`
-                        <div style="margin-bottom: .75rem">
-                            <div style="display: flex;align-items: center;justify-items: center;">
-                                <input id="opt_${schedule?.clock}" style="margin: 0" value="${schedule?.clock}" type="radio" name="schedule-opt">
-                                <span style="margin-left: .5rem;margin-top: auto;margin-bottom: auto">
+                        <div class="kiriof-schedule-option">
+                            <div class="kiriof-schedule-option-row">
+                                <input id="opt_${schedule?.clock}" value="${schedule?.clock}" type="radio" name="schedule-opt">
+                                <span class="kiriof-schedule-option-label">
                                     <label for="opt_${schedule?.clock}">${schedule?.label}</label>                                
                                 </span>
                             </div>
@@ -528,24 +527,43 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                 `)
                 });
 
-                $modalElemLoader.addClass('kj-hidden');
-                $modalElemContent.removeClass('kj-hidden');
-                $modalElemErr.addClass('kj-hidden');
+                kiriofSetModalState($modal, 'content');
+                $modal.find('#btn-next').prop('disabled', schedules.length === 0);
+                if (schedules.length === 0) {
+                    $modal.find('.err_msg').text('*<?php echo esc_js(__('No pickup schedule is available.', 'kiriminaja-official')); ?>').show();
+                }
             }
         });
     };
 
-    window.kjRequestPickupProcess = function() {
-        const $modal = $('#request-pickup-modal');
+    window.kjShowCancelModal = function(orderId) {
+        $(document.body).WCBackboneModal({
+            template: 'kiriof-modal-cancel-transaction',
+            variable: {
+                order_id: orderId
+            }
+        });
+        kiriofUpdateCancelReasonCounter();
+    };
+
+    $(document).on('input', '.kiriof-cancel-reason', function() {
+        kiriofUpdateCancelReasonCounter();
+    });
+
+    $(document.body).on('wc_backbone_modal_next_response', function(event, target, data, closeModal) {
+        if (target === 'kiriof-modal-request-pickup') {
+        const $modal = kiriofGetRequestPickupModal();
         const $errMsg = $modal.find('.err_msg');
-        const $modalContent = $modal.find('.kj-modal-content');
-        const $modalLoader = $modal.find('.kj-modal-loader');
-        const $modalErr = $modal.find('.kj-err-container');
+        const schedule = data?.schedule_opt;
         
-        $errMsg.addClass('kj-hidden');
-        $modalLoader.removeClass('kj-hidden');
-        $modalContent.addClass('kj-hidden');
-        $modalErr.addClass('kj-hidden');
+        if (!schedule) {
+            $errMsg.text('*<?php echo esc_js(__('Please select a pickup schedule.', 'kiriminaja-official')); ?>').show();
+            return;
+        }
+
+        $errMsg.hide().text('');
+        kiriofSetModalState($modal, 'loading');
+        $modal.find('#btn-next').prop('disabled', true);
 
         $.ajax({
             type: "post",
@@ -553,55 +571,40 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
             data: {
                 action: "kiriof_request_pickup_transaction",
                 data: {
-                    schedule: $('[name="schedule-opt"]:checked').val(),
+                    schedule: schedule,
                     order_ids: orderIds,
                     nonce: kiriofAjax.nonce
                 }
             },
             complete: function(response) {
-                /** Reset Err*/
-                $errMsg.empty().addClass('kj-hidden');
-
                 const resp = JSON.parse(response.responseText).data;
                 if (resp?.status !== 200) {
-                    $modalLoader.addClass('kj-hidden');
-                    $modalErr.addClass('kj-hidden');
-                    $modalContent.removeClass('kj-hidden');
-                    $errMsg.text('*' + resp?.message).removeClass('kj-hidden');
+                    kiriofSetModalState($modal, 'content');
+                    $modal.find('#btn-next').prop('disabled', false);
+                    $errMsg.text('*' + resp?.message).show();
                     return;
                 }
 
+                closeModal();
                 window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${resp?.data?.pickup_number}&open_payment=1`;
             }
         });
-    };
+        return;
+        }
 
-    window.kjShowCancelModal = function(orderId) {
-        const $modal = $('#cancel-transaction-modal');
-        $('#cancel-order-id').val(orderId);
-        $('#cancel-reason').val('');
-        $('#cancel-reason-count').text('0');
-        $modal.find('.err_msg').html('').addClass('kj-hidden');
-        $modal.find('.kj-modal-loader').addClass('kj-hidden');
-        $modal.find('.kj-modal-content').removeClass('kj-hidden');
-        $modal.removeClass('kj-hidden');
-    };
-
-    window.kjCancelTransactionProcess = function() {
-        const $modal = $('#cancel-transaction-modal');
+        if (target === 'kiriof-modal-cancel-transaction') {
+        const $modal = kiriofGetCancelModal();
         const $errMsg = $modal.find('.err_msg');
-        const $modalContent = $modal.find('.kj-modal-content');
-        const $modalLoader = $modal.find('.kj-modal-loader');
-
-        const orderId = $('#cancel-order-id').val();
-        const reason = $('#cancel-reason').val().trim();
+        const $loader = $modal.find('.kiriof-modal-state-loading');
+        const reason = (data?.reason || '').trim();
+        const orderId = data?.order_id || '';
 
         if (reason.length < 5) {
-            $errMsg.text('<?php echo esc_js( __( '*Alasan minimal 5 karakter', 'kiriminaja-official' ) ); ?>').removeClass('kj-hidden');
+            $errMsg.text('<?php echo esc_js( __( '*Alasan minimal 5 karakter', 'kiriminaja-official' ) ); ?>').show();
             return;
         }
         if (reason.length > 200) {
-            $errMsg.text('<?php echo esc_js( __( '*Alasan maksimal 200 karakter', 'kiriminaja-official' ) ); ?>').removeClass('kj-hidden');
+            $errMsg.text('<?php echo esc_js( __( '*Alasan maksimal 200 karakter', 'kiriminaja-official' ) ); ?>').show();
             return;
         }
 
@@ -609,9 +612,10 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
             return;
         }
 
-        $errMsg.addClass('kj-hidden');
-        $modalLoader.removeClass('kj-hidden');
-        $modalContent.addClass('kj-hidden');
+        $errMsg.hide().text('');
+        $loader.show();
+        $modal.find('form').css('opacity', 0.45);
+        $modal.find('#btn-next').prop('disabled', true);
 
         $.ajax({
             type: "post",
@@ -628,17 +632,20 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                 const resp = JSON.parse(response.responseText).data;
 
                 if (resp?.status !== 200) {
-                    $modalLoader.addClass('kj-hidden');
-                    $modalContent.removeClass('kj-hidden');
-                    $errMsg.text('*' + (resp?.message ?? '<?php echo esc_js( __( 'Terjadi kesalahan', 'kiriminaja-official' ) ); ?>')).removeClass('kj-hidden');
+                    $loader.hide();
+                    $modal.find('form').css('opacity', 1);
+                    $modal.find('#btn-next').prop('disabled', false);
+                    $errMsg.text('*' + (resp?.message ?? '<?php echo esc_js( __( 'Terjadi kesalahan', 'kiriminaja-official' ) ); ?>')).show();
                     return;
                 }
 
+                closeModal();
                 alert(resp?.message ?? '<?php echo esc_js(__('Transaction cancelled successfully.', 'kiriminaja-official')); ?>');
                 window.location.reload();
             }
         });
-    };
+        }
+    });
     
     })(jQuery);
 
