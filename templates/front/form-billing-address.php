@@ -639,6 +639,29 @@ if ( ! defined( 'ABSPATH' ) ) {
                 //   safe to call from anywhere including wp.data.subscribe
                 // - kiriofClearBlockShippingRatesFromStore: triggers store dispatch, must ONLY
                 //   be called from explicit user interactions, never from subscribe handlers
+                function kiriofGetPlaceOrderButton() {
+                    return jQuery(
+                        '.wc-block-components-checkout-place-order-button, ' +
+                        '.wc-block-components-checkout-place-order button, ' +
+                        '.wp-block-woocommerce-checkout-place-order button'
+                    );
+                }
+
+                function kiriofSetPlaceOrderDisabled(disabled) {
+                    var $btn = kiriofGetPlaceOrderButton();
+                    if (!$btn.length) return;
+                    if (disabled) {
+                        $btn.prop('disabled', true)
+                            .attr('aria-disabled', 'true');
+                    } else {
+                        // Only re-enable if WC itself hasn't disabled it for another reason
+                        // (e.g. a required field empty). Keep disabled if aria-label contains
+                        // "loading" or the button already had disabled before we touched it.
+                        $btn.prop('disabled', false)
+                            .removeAttr('aria-disabled');
+                    }
+                }
+
                 function kiriofSyncBlockDistrictWarningState() {
                     var hasValidDistrict = kiriofHasValidBlockDistrict();
                     var $warning = kiriofEnsureBlockDistrictWarning();
@@ -660,6 +683,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $warning.hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
                         jQuery('body').removeClass('kiriof-no-district');
+                        kiriofSetPlaceOrderDisabled(false);
                         return;
                     }
 
@@ -672,6 +696,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $warning.hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
                         jQuery('body').removeClass('kiriof-no-district');
+                        kiriofSetPlaceOrderDisabled(false);
                         return;
                     }
 
@@ -679,6 +704,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
                     jQuery('body').addClass('kiriof-no-district');
+                    kiriofSetPlaceOrderDisabled(true);
                 }
 
                 // Call this version (with store clear) only from explicit user interactions.
