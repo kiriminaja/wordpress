@@ -277,6 +277,122 @@ body {
   vertical-align: middle;
 }
 
+.kj-wrap .kiriof-transaction-table {
+  table-layout: fixed;
+}
+
+.kj-wrap .kiriof-transaction-table th,
+.kj-wrap .kiriof-transaction-table td {
+  padding: 14px 12px;
+  vertical-align: top;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table thead th,
+.kj-wrap .kiriof-transaction-table tfoot th {
+  white-space: nowrap;
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-select {
+  width: 42px;
+  text-align: center;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order {
+  width: 18%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition {
+  width: 16%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill {
+  width: 16%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto {
+  width: 21%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages {
+  width: 18%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-action {
+  width: 110px;
+  min-width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order,
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages {
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table thead .kiriof-col-action,
+.kj-wrap .kiriof-transaction-table tfoot .kiriof-col-action {
+  text-align: right;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages * {
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order a,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill span,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages div {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-order > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-order > a {
+  max-width: 100%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-shipto-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-shipto-line {
+  font-size: 12px;
+  color: #50575e;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-action .button,
+.kj-wrap .kiriof-transaction-table .kiriof-col-action button.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+.kj-wrap .kiriof-transaction-table td.kiriof-col-action {
+  text-align: right;
+}
+
 .kj-badge {
   font-weight: 400;
   padding: 4px 8px;

@@ -21,6 +21,7 @@ class Kiriof_AdminWoocommerceSettings
     public function kiriof_new_order_column($columns){
         $columns['payment_method'] = 'Payment';
         $columns['shipping_method'] = 'Shipping';
+        $columns['kiriminaja_info'] = 'KiriminAja';
         $columns['is_insurance'] = 'Insurance';
 
         return $columns;
@@ -32,6 +33,7 @@ class Kiriof_AdminWoocommerceSettings
             $new_columns[$column_name] = $column_info;
             if ('order_status' === $column_name) {
                 $new_columns['shipping_method'] = __('Shipping', 'kiriminaja-official');
+                $new_columns['kiriminaja_info'] = __('KiriminAja', 'kiriminaja-official');
                 $new_columns['payment_method'] = __('Payment', 'kiriminaja-official');
                 $new_columns['is_insurance'] = __('Insurance', 'kiriminaja-official');
             }
@@ -44,15 +46,62 @@ class Kiriof_AdminWoocommerceSettings
         global $post;
         
         $order    = wc_get_order( $post->ID );
+        if ( ! $order ) {
+            return;
+        }
+
         $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
         
-        $ka_id_shipping = 'kiriminaja-official';
         $shipping_methods = $order->get_shipping_methods();
-        $shipping_method_id = array_shift( $shipping_methods )['method_id'];
+        $shipping_method    = array_shift( $shipping_methods );
+        $shipping_method_id = '';
+
+        if ( is_object( $shipping_method ) && method_exists( $shipping_method, 'get_method_id' ) ) {
+            $shipping_method_id = (string) $shipping_method->get_method_id();
+        } elseif ( is_array( $shipping_method ) && isset( $shipping_method['method_id'] ) ) {
+            $shipping_method_id = (string) $shipping_method['method_id'];
+        }
+
+        $is_kiriminaja_shipping = false;
+
+        if ( '' !== $shipping_method_id && false !== strpos( $shipping_method_id, 'kiriminaja-official' ) ) {
+            $is_kiriminaja_shipping = true;
+        }
+
+        if ( ! $is_kiriminaja_shipping && $transactionKiriminaja ) {
+            $is_kiriminaja_shipping = true;
+        }
 
 
         if ( 'shipping_method' === $column ) {
             echo esc_html( $order->get_shipping_method() );
+        }
+
+        if ( 'kiriminaja_info' === $column ) {
+            if ( ! $transactionKiriminaja ) {
+                echo '-';
+                return;
+            }
+
+            $has_output = false;
+
+            if ( ! empty( $transactionKiriminaja->order_id ) ) {
+                echo wp_kses_post(
+                    '<div><span style="color:#50575e">KA Order ID: </span><span style="font-weight:700">' . esc_html( $transactionKiriminaja->order_id ) . '</span></div>'
+                );
+                $has_output = true;
+            }
+
+            if ( ! empty( $transactionKiriminaja->awb ) ) {
+                echo wp_kses_post(
+                    '<div><span style="color:#50575e">AWB: </span><span style="font-weight:700">' . esc_html( $transactionKiriminaja->awb ) . '</span></div>'
+                );
+                $has_output = true;
+            }
+
+            if ( ! $has_output ) {
+                echo '-';
+            }
         }
 
         if ( 'payment_method' === $column ) {
@@ -61,7 +110,7 @@ class Kiriof_AdminWoocommerceSettings
                 
                 echo esc_html( $order->get_payment_method() );
                 
-                if( $shipping_method_id != $ka_id_shipping ){
+                if( ! $is_kiriminaja_shipping ){
                     return false;
                 }
 
@@ -82,7 +131,7 @@ class Kiriof_AdminWoocommerceSettings
             $insurance_admin_billing = ucfirst( $order->get_meta('_billing_kiriof_insurance') ) ?? '';
             $insurance_admin_shipping = Ucfirst( $order->get_meta('_shipping_kiriof_insurance') ) ?? '';
 
-            if( $shipping_method_id != $ka_id_shipping ){
+            if( ! $is_kiriminaja_shipping ){
                 echo '-';
                 return false;
             }

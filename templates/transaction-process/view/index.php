@@ -109,18 +109,18 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         <br class="clear">
                                     </div>
 
-                                    <table class="wp-list-table widefat fixed striped table-view-list posts">
+                                    <table class="wp-list-table widefat fixed striped table-view-list posts kiriof-transaction-table">
                                         <thead>
                                             <tr>
-                                                <th style="width: 24px;" scope="col" class="manage-column column-thumb">
+                                                <th style="width: 24px;" scope="col" class="manage-column column-thumb kiriof-col-select">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_top">
                                                 </th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Order / Transaction', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Expedition & Service', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Airwaybill / Order ID', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Ship To', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Packages & Fee', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb" style="width:7rem"><?php echo esc_html(__( 'Action', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-order"><?php echo esc_html(__( 'Order / Transaction', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-expedition"><?php echo esc_html(__( 'Expedition & Service', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-airwaybill"><?php echo esc_html(__( 'Airwaybill / Order ID', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-shipto"><?php echo esc_html(__( 'Ship To', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-packages"><?php echo esc_html(__( 'Packages & Fee', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-action" style="width:7rem"><?php echo esc_html(__( 'Action', 'kiriminaja-official' )); ?></th>
                                             </tr>
                                         </thead>
                                         <tbody id="the-list">
@@ -157,6 +157,9 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_shippingLastName = $kiriof_shippingData->_shipping_last_name ?? $kiriof_billingLastName;
                                                     $kiriof_shippingAddress1 = $kiriof_shippingData->_shipping_address_1 ?? $kiriof_billingAddress1;
                                                     $kiriof_shippingAddress2 = $kiriof_shippingData->_shipping_address_2 ?? $kiriof_billingAddress2;
+                                                    $kiriof_shippingCity = $kiriof_shippingData->_shipping_city ?? '';
+                                                    $kiriof_shippingState = $kiriof_shippingData->_shipping_state ?? '';
+                                                    $kiriof_shippingCountry = $kiriof_shippingData->_shipping_country ?? '';
                                                     $kiriof_shippingPostcode = $kiriof_shippingData->_shipping_postcode ?? $kiriof_billingPostcode;
                                                     $kiriof_destinationSubDistrict = $kiriof_row->destination_sub_district ?? '';
                                                     $kiriof_wcOrder = function_exists('wc_get_order') ? wc_get_order($kiriof_row->wc_order_id) : false;
@@ -191,6 +194,26 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         : $kiriof_helper->wcStatusClass($kiriof_postStatus);
                                                     $kiriof_serviceName = strtoupper(trim($kiriof_row->service . ' ' . ($kiriof_row->service_name ?? '')));
                                                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
+                                                    $kiriof_shippingAddressLineTwo = $kiriof_shippingAddress2;
+                                                    $kiriof_shippingAddressLineThree = implode(
+                                                        ', ',
+                                                        array_filter(
+                                                            array(
+                                                                $kiriof_destinationSubDistrict,
+                                                                $kiriof_shippingCity,
+                                                                $kiriof_shippingState,
+                                                            )
+                                                        )
+                                                    );
+                                                    $kiriof_shippingAddressLineFour = implode(
+                                                        ', ',
+                                                        array_filter(
+                                                            array(
+                                                                $kiriof_shippingPostcode,
+                                                                $kiriof_shippingCountry,
+                                                            )
+                                                        )
+                                                    );
 
                                                     $kiriof_isProcessedFilter = ( 'processed' === $kiriof_status_filter );
                                                     $kiriof_checkboxDisabled = ! $kiriof_isProcessable || $kiriof_isProcessedFilter;
@@ -200,16 +223,16 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
                                                     echo '
                                                       <tr>
-                                                        <td class="manage-column column-thumb">
+                                                        <td class="manage-column column-thumb kiriof-col-select">
                                                             <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_orderIdKA) . '"' . ( $kiriof_checkboxDisabled ? ' disabled' : '' ) . ( $kiriof_checkboxTitle ? ' title="' . esc_attr( $kiriof_checkboxTitle ) . '"' : '' ) . '>
                                                         </td>
-                                                        <td class="manage-column column-thumb">
+                                                        <td class="manage-column column-thumb kiriof-col-order">
                                                             <a href="' . esc_url($kiriof_orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($kiriof_row->wc_order_id) . '</a>
                                                             <div style="font-weight: 600; margin-top: 2px">' . esc_html(trim($kiriof_billingFirstName . ' ' . $kiriof_billingLastName)) . '</div>
                                                             <a href="tel:' . esc_attr($kiriof_shippingPhone) . '" style="font-size: 12px; color: #50575e">' . esc_html($kiriof_shippingPhone) . '</a>
                                                             <div style="font-size: 12px; color: #8c8f94">' . esc_html($kiriof_orderDate) . '</div>
                                                         </td>
-                                                        <td class="manage-column column-thumb">
+                                                        <td class="manage-column column-thumb kiriof-col-expedition">
                                                             <div style="font-weight: 600">' . esc_html($kiriof_serviceName) . '</div>
                                                             <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px">
                                                                 <span class="' . esc_attr($kiriof_statusBadgeClass) . '" style="font-size: 11px">' . esc_html($kiriof_statusLabel) . '</span>
@@ -220,17 +243,20 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                                 <span style="font-size: 12px">' . esc_html($kiriof_statusUpper) . '</span>
                                                             </div>
                                                         </td>
-                                                        <td class="manage-column column-thumb">'
+                                                        <td class="manage-column column-thumb kiriof-col-airwaybill">'
                                                             . ( $kiriof_awb
                                                                 ? '<div><span style="color: #8c8f94">' . esc_html__( 'AWB', 'kiriminaja-official' ) . ': </span><span style="font-weight: 700">' . esc_html($kiriof_awb) . '</span></div>'
                                                                 : '<div style="color: #8c8f94">' . esc_html__( 'AWB', 'kiriminaja-official' ) . ': —</div>' )
                                                             . '<div><span style="color: #8c8f94">' . esc_html__( 'Order ID', 'kiriminaja-official' ) . ': </span><span style="font-weight: 700">' . esc_html($kiriof_orderIdKA) . '</span></div>
                                                         </td>
-                                                        <td class="manage-column column-thumb">
-                                                            <div>' . esc_html(trim($kiriof_shippingFirstName . ' ' . $kiriof_shippingLastName)) . '</div>
-                                                            <div style="font-size: 12px; color: #50575e">' . esc_html(trim($kiriof_shippingAddress1 . ', ' . $kiriof_destinationSubDistrict . ', ' . $kiriof_shippingPostcode)) . '</div>
+                                                        <td class="manage-column column-thumb kiriof-col-shipto">
+                                                            <div class="kiriof-shipto-name">' . esc_html(trim($kiriof_shippingFirstName . ' ' . $kiriof_shippingLastName)) . '</div>
+                                                            <div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddress1) . '">' . esc_html($kiriof_shippingAddress1) . '</div>'
+                                                            . ( $kiriof_shippingAddressLineTwo ? '<div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddressLineTwo) . '">' . esc_html($kiriof_shippingAddressLineTwo) . '</div>' : '' )
+                                                            . ( $kiriof_shippingAddressLineThree ? '<div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddressLineThree) . '">' . esc_html($kiriof_shippingAddressLineThree) . '</div>' : '' )
+                                                            . ( $kiriof_shippingAddressLineFour ? '<div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddressLineFour) . '">' . esc_html($kiriof_shippingAddressLineFour) . '</div>' : '' ) . '
                                                         </td>
-                                                        <td class="manage-column column-thumb">
+                                                        <td class="manage-column column-thumb kiriof-col-packages">
                                                             <div style="font-size: 11px; color: #8c8f94">' . esc_html(number_format_i18n($kiriof_weight, 0)) . ' g' . ( $kiriof_packageCount > 1 ? ' × ' . (int) $kiriof_packageCount : '' ) . '</div>
                                                             <div style="font-weight: 600; margin-top: 4px">Rp' . esc_html(kiriof_money_format($kiriof_shippingCost)) . '</div>'
                                                             . ( $kiriof_insuranceCost > 0 ? '<div style="font-size: 12px">' . esc_html__( 'Insurance', 'kiriminaja-official' ) . ': Rp' . esc_html(kiriof_money_format($kiriof_insuranceCost)) . '</div>' : '' )
@@ -238,13 +264,13 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             . ( $kiriof_discountAmount > 0 ? '<div style="font-size: 12px; color: #007017">' . esc_html__( 'Discount', 'kiriminaja-official' ) . ': -Rp' . esc_html(kiriof_money_format($kiriof_discountAmount)) . '</div>' : '' )
                                                             . '<div style="font-weight: 600; margin-top: 2px; border-top: 1px solid #e3e3e3; padding-top: 2px">' . esc_html__( 'Total', 'kiriminaja-official' ) . ': Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</div>
                                                         </td>
-                                                        <td class="manage-column column-thumb" style="white-space:nowrap">' .
-                                                            '<button class="button" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="showTransactionSummaryModal(\'' . esc_js($kiriof_row->wc_order_id) . '\')" title="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M15.188 14.688Q16.5 13.375 16.5 11.5t-1.312-3.187T12 7T8.813 8.313T7.5 11.5t1.313 3.188T12 16t3.188-1.312m-5.1-1.276Q9.3 12.625 9.3 11.5t.788-1.912T12 8.8t1.913.788t.787 1.912t-.787 1.913T12 14.2t-1.912-.787m-4.738 3.55Q2.35 14.925 1 11.5q1.35-3.425 4.35-5.462T12 4t6.65 2.038T23 11.5q-1.35 3.425-4.35 5.463T12 19t-6.65-2.037"/></svg></button>' .
+                                                        <td class="manage-column column-thumb kiriof-col-action" style="white-space:nowrap">' .
+                                                            '<a href="#" class="button order-preview" data-order-id="' . esc_attr( $kiriof_row->wc_order_id ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none" title="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '"><span class="dashicons dashicons-visibility" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>' .
                                                             ( ! empty( $kiriof_awb ) && 'request_pickup' === $kiriof_row->status
-                                                                ? ' <a href="' . esc_url( $kiriof_print_base_url . '&oids=' . urlencode( $kiriof_orderIdKA ) . '&_wpnonce=' . $kiriof_print_nonce ) . '" target="_blank" class="button" title="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M18 7H6V3h12zm0 5.5q.425 0 .713-.288T19 11.5t-.288-.712T18 10.5t-.712.288T17 11.5t.288.713t.712.287M16 19v-4H8v4zm2 2H6v-4H2v-6q0-1.275.875-2.137T5 8h14q1.275 0 2.138.863T22 11v6h-4z"/></svg></a>'
+                                                                ? ' <a href="' . esc_url( $kiriof_print_base_url . '&oids=' . urlencode( $kiriof_orderIdKA ) . '&_wpnonce=' . $kiriof_print_nonce ) . '" target="_blank" class="button" title="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><span class="dashicons dashicons-printer" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>'
                                                                 : '' ) .
                                                             ( ! empty( $kiriof_awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
-                                                                ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="m12 13.4l-4.9 4.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7l4.9-4.9l-4.9-4.9q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.9 4.9l4.9-4.9q.275-.275.7-.275t.7.275t.275.7t-.275.7L13.4 12l4.9 4.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275z"/></svg></button>'
+                                                                ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '"><span class="dashicons dashicons-no-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
                                                                 : '' ) . '
                                                         </td>
                                                     </tr>
@@ -258,15 +284,15 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <th style="width: 24px;" scope="col" class="manage-column column-thumb">
+                                                <th style="width: 24px;" scope="col" class="manage-column column-thumb kiriof-col-select">
                                                     <input style="margin: 0" type="checkbox" id="check_order_id_all_bottom">
                                                 </th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Order / Transaction', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Expedition & Service', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Airwaybill / Order ID', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Ship To', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb"><?php echo esc_html(__( 'Packages & Fee', 'kiriminaja-official' )); ?></th>
-                                                <th scope="col" class="manage-column column-thumb" style="width:7rem"><?php echo esc_html(__( 'Action', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-order"><?php echo esc_html(__( 'Order / Transaction', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-expedition"><?php echo esc_html(__( 'Expedition & Service', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-airwaybill"><?php echo esc_html(__( 'Airwaybill / Order ID', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-shipto"><?php echo esc_html(__( 'Ship To', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-packages"><?php echo esc_html(__( 'Packages & Fee', 'kiriminaja-official' )); ?></th>
+                                                <th scope="col" class="manage-column column-thumb kiriof-col-action" style="width:7rem"><?php echo esc_html(__( 'Action', 'kiriminaja-official' )); ?></th>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -307,7 +333,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                     </div>
 
     <?php include 'modal-request-pickup.php' ?>
-    <?php include 'modal-detail.php' ?>
     <?php include 'modal-cancel.php' ?>
 
 </div>
@@ -329,7 +354,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
 
         // Cache jQuery selectors
         let orderIds = [];
-        let lastwcOrderIdForshowTransactionSummaryModal = 0;
         const $checkAllTop = $('#check_order_id_all_top');
         const $checkAllBottom = $('#check_order_id_all_bottom');
         const $transactionCheckboxes = () => $('[name="transaction_id[]"]');
@@ -548,192 +572,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                 }
 
                 window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${resp?.data?.pickup_number}&open_payment=1`;
-            }
-        });
-    };
-
-    window.showTransactionSummaryModalRefresh = function() {
-        window.showTransactionSummaryModal(lastwcOrderIdForshowTransactionSummaryModal);
-    };
-
-    window.showTransactionSummaryModal = function(wcOrderId) {
-        lastwcOrderIdForshowTransactionSummaryModal = wcOrderId;
-        
-        const $modal = $('#transaction-detail-modal');
-        const $modalContent = $modal.find('.kj-modal-content');
-        const $modalLoader = $modal.find('.kj-modal-loader');
-        const $modalErr = $modal.find('.kj-err-container');
-        const $statusContainer = $modal.find('.status-container');
-        const $wcOrderId = $modal.find('.wc-order-id');
-
-        /** Show Modal & show loader*/
-        $modal.removeClass('kj-hidden');
-        $modalLoader.removeClass('kj-hidden');
-        $modalContent.addClass('kj-hidden');
-        $modalErr.addClass('kj-hidden');
-        $statusContainer.empty();
-
-        $.ajax({
-            type: "post",
-            url: kiriofAjaxRoute(),
-            data: {
-                action: "kiriof_transaction-detail-summary",
-                data: {
-                    wc_order_id: wcOrderId,
-                    nonce: kiriofAjax.nonce
-                }
-            },
-            complete: function(response) {
-                const resp = JSON.parse(response.responseText).data;
-
-                if (resp?.status !== 200) {
-                    /** Hide loader & Show Err*/
-                    $modalLoader.addClass('kj-hidden');
-                    $modalContent.addClass('kj-hidden');
-                    $modalErr.removeClass('kj-hidden');
-                    return;
-                }
-
-                const checkout_data = resp?.data?.checkout_data;
-                const cart_data = resp?.data?.cart_data;
-                const transaction_data = resp?.data?.transaction_data;
-
-                /** Add transaction number to modal*/
-                $wcOrderId.text(wcOrderId);
-
-                /** Empty and add content*/
-                $modalContent.empty().append(`
-                <div>
-                    <div style="padding: 0 15px 0 15px;">
-                        <!--1 row-->
-                        <div class="row-divider" style="margin-top: .75rem"></div>
-                        <div class="row gx-2">
-                            <div class="col">
-                                <div style="font-weight: 700"><?php echo esc_js( __( 'Billing Details', 'kiriminaja-official' ) ); ?></div>
-                                <div class="row-divider" style="margin-top: .25rem"></div>
-                                <div>${checkout_data?._billing_first_name} ${checkout_data?._billing_last_name}, ${checkout_data?._billing_address_1} ${checkout_data?._billing_address_2}, ${transaction_data?.destination_sub_district}, ${checkout_data?._billing_postcode}</div>
-                            </div>
-                            <div class="col">
-                                <div style="font-weight: 700"><?php echo esc_js( __( 'Shipping Details', 'kiriminaja-official' ) ); ?></div>
-                                <div class="row-divider" style="margin-top: .25rem"></div>
-                                <div>${checkout_data?._shipping_first_name ?? checkout_data?._billing_first_name} ${checkout_data?._shipping_last_name ?? checkout_data?._billing_last_name}, ${checkout_data?._shipping_address_1 ?? checkout_data?._billing_address_1} ${checkout_data?._shipping_address_2 ?? checkout_data?._billing_address_2}, ${transaction_data?.destination_sub_district}, ${checkout_data?._shipping_postcode ?? checkout_data?._billing_postcode}</div>
-                            </div>
-                        </div>
-                        <!--2 row-->
-                        <div class="row-divider" style="margin-top: .75rem"></div>
-                        <div class="row gx-2">
-                            <div class="col">
-                                <div>
-                                    <div style="font-weight: 700"><?php echo esc_js( __( 'Email', 'kiriminaja-official' ) ); ?></div>
-                                    <div class="row-divider" style="margin-top: .25rem"></div>
-                                    <div>${checkout_data?._billing_email}</div>
-                                </div>
-        
-                                <div class="row-divider" style="margin-top: .75rem"></div>
-                                <div>
-                                    <div style="font-weight: 700"><?php echo esc_js( __( 'Phone', 'kiriminaja-official' ) ); ?></div>
-                                    <div class="row-divider" style="margin-top: .25rem"></div>
-                                    <div>${checkout_data?._billing_phone}</div>
-                                </div>
-        
-                                <div class="row-divider" style="margin-top: .75rem"></div>
-                                <div>
-                                    <div style="font-weight: 700"><?php echo esc_js( __( 'Payment via', 'kiriminaja-official' ) ); ?></div>
-                                    <div class="row-divider" style="margin-top: .25rem"></div>
-                                    <div>${resp?.data?.payment}</div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div style="font-weight: 700"><?php echo esc_js( __( 'Shipping Method', 'kiriminaja-official' ) ); ?></div>
-                                <div class="row-divider" style="margin-top: .25rem"></div>
-                                <div>${resp?.data?.expedition_service}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <!--3 row-->
-                    <div class="row-divider"></div>
-                    <div>
-                        <table id="cart-table">
-                            <thead>
-                            <tr>
-                                <th><?php echo esc_js( __( 'Product', 'kiriminaja-official' ) ); ?></th>
-                                <th><?php echo esc_js( __( 'Quantity', 'kiriminaja-official' ) ); ?></th>
-                                <th><?php echo esc_js( __( 'Total', 'kiriminaja-official' ) ); ?></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td><?php echo esc_js( __( 'Product', 'kiriminaja-official' ) ); ?></td>
-                                <td><?php echo esc_js( __( 'Quantity', 'kiriminaja-official' ) ); ?></td>
-                                <td><?php echo esc_js( __( 'Total', 'kiriminaja-official' ) ); ?></td>
-                            </tr>
-                            </tbody>
-                            <tfoot>
-                            <tr>
-                                <th colspan="2"><?php echo esc_js( __( 'Sub Total', 'kiriminaja-official' ) ); ?></th>
-                                <th>Rp.${kiriofMoneyFormat(transaction_data?.transaction_value ?? 0)}</th>
-                            </tr>
-                            <tr>
-                                <th colspan="2"><?php echo esc_js( __( 'Shipping Fee', 'kiriminaja-official' ) ); ?></th>
-                                <th>Rp.${kiriofMoneyFormat(transaction_data?.shipping_cost ?? 0)}</th>
-                            </tr>
-                            ` +
-                    (
-                        transaction_data?.cod_fee > 0 ?
-                        `
-                            <tr>
-                            <th colspan="2"><?php echo esc_js( __( 'COD Fee', 'kiriminaja-official' ) ); ?></th>
-                            <th>Rp.${kiriofMoneyFormat(transaction_data?.cod_fee ?? 0)}</th>
-                            </tr>` :
-                        '') +
-                    (
-                        transaction_data?.insurance_cost > 0 ?
-                        `
-                            <tr>
-                            <th colspan="2"><?php echo esc_js( __( 'Insurance Fee', 'kiriminaja-official' ) ); ?></th>
-                            <th>Rp.${kiriofMoneyFormat(transaction_data?.insurance_cost ?? 0)}</th>
-                            </tr>` :
-                        '') +
-                    `
-                            <tr>
-                                <th colspan="2"><?php echo esc_js( __( 'Total', 'kiriminaja-official' ) ); ?></th>
-                                <th>Rp.${kiriofMoneyFormat(
-                                (
-                                    parseInt(transaction_data?.transaction_value ?? 0)
-                                    +
-                                    parseInt(transaction_data?.shipping_cost ?? 0)
-                                    +
-                                    parseInt(transaction_data?.cod_fee ?? 0)
-                                    +
-                                    parseInt(transaction_data?.insurance_cost ?? 0)
-                                )
-                            )}</th>
-                            </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-                `);
-
-                /** Status*/
-                $statusContainer.empty().append(`<span class="${resp?.data?.status_classes}">${resp?.data?.status_label}</span>`);
-
-                /**emptying and add the cart table list*/
-                const $cartTableBody = $modalContent.find('#cart-table tbody').empty();
-                
-                $.each(cart_data, function(index, obj) {
-                    $cartTableBody.append(`
-                    <tr>
-                        <td>${obj?.product_name}</td>
-                        <td>${kiriofMoneyFormat(obj?.product_qty ?? 0)}</td>
-                        <td>Rp.${kiriofMoneyFormat(obj?.product_gross_revenue ?? 0)}</td>
-                    </tr>
-                    `);
-                });
-
-                /** Show Modal*/
-                $modalLoader.addClass('kj-hidden');
-                $modalContent.removeClass('kj-hidden');
             }
         });
     };

@@ -175,6 +175,13 @@ class Enqueue extends BaseInit{
         
         wp_enqueue_style( 'kiriof-grid-style', $this->plugin_url . 'assets/admin/css/bootstrap-grid.css', array(), KIRIOF_VERSION );
 
+        if ( 'kiriminaja-transaction-process' === $page ) {
+            wp_enqueue_style( 'woocommerce_admin_styles' );
+            wp_enqueue_script( 'woocommerce_admin' );
+            wp_enqueue_script( 'wc-backbone-modal' );
+            wp_enqueue_script( 'wc-orders' );
+        }
+
         /** print */
         wp_enqueue_style( 'kiriof-print-style', $this->plugin_url . 'assets/admin/css/print.min.css', array(), KIRIOF_VERSION );
         wp_enqueue_script( 'kiriof-print-script', $this->plugin_url . 'assets/admin/js/print.min.js', array(), KIRIOF_VERSION, true );
