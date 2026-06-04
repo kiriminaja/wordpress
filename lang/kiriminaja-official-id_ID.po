@@ -214,6 +214,18 @@ msgstr "Batalkan"
 msgid "Cancel Shipment"
 msgstr "Batalkan Pengiriman"
 
+msgid "Available Schedules"
+msgstr "Jadwal Tersedia"
+
+msgid "Close"
+msgstr "Tutup"
+
+msgid "No pickup schedule is available."
+msgstr "Tidak ada jadwal pickup yang tersedia."
+
+msgid "Please select a pickup schedule."
+msgstr "Silakan pilih jadwal pickup."
+
 #: inc/Base/Helper.php:37
 #: inc/Base/Helper.php:57
 msgid "Canceled"

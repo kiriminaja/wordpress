@@ -1621,6 +1621,18 @@ msgstr ""
 msgid "Cancel Shipment"
 msgstr ""
 
+msgid "Available Schedules"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "No pickup schedule is available."
+msgstr ""
+
+msgid "Please select a pickup schedule."
+msgstr ""
+
 #: templates/transaction-process/view/modal-cancel.php:33
 msgid "Reason for Cancellation"
 msgstr ""
