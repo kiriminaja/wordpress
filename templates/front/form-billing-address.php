@@ -559,6 +559,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                             return true;
                         }
                     }
+                    // Final fallback: WC store holds the persisted additional address field value
+                    // for logged-in users even before kiriofSavedDistrictByPostcode is populated.
+                    var storedId = kiriofGetStoredDistrictIdFromWcStore();
+                    if (storedId && String(storedId) !== '0') {
+                        return true;
+                    }
                     return false;
                 }
 
@@ -625,8 +631,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 // Call this version (with store clear) only from explicit user interactions.
+                // Skips the clear when a district fetch or restore is already in progress to
+                // prevent the "jank" where WC rates disappear and reappear on first page load.
                 function kiriofSyncBlockDistrictWarningStateWithClear() {
-                    kiriofClearBlockShippingRatesFromStore();
+                    if (!kiriofDistrictResultsLoading && !kiriofPendingDistrictRestore) {
+                        kiriofClearBlockShippingRatesFromStore();
+                    }
                     kiriofSyncBlockDistrictWarningState();
                 }
 
