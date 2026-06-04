@@ -281,11 +281,9 @@ tr.woocommerce-shipping-totals {
 
 /* When district is missing, keep the fieldset + step content visible so the
    native-styled "select district" message is shown inline where rates appear.
-   Hide the entire rates control (includes the Shipment package card with product
-   image and the native "Enter a shipping address" message). Our injected warning
-   is prepended directly to .wc-block-components-checkout-step__content so it
-   remains visible outside this hidden element. */
-.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control {
+   Hide the WC rates control but NOT our own injected warning (which also uses
+   that class to inherit native WC styling). */
+.kiriof-shipping-options-blocked .wc-block-components-shipping-rates-control:not(.kiriof-block-district-warning) {
   display: none !important;
 }
 
