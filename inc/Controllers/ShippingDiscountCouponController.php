@@ -20,6 +20,8 @@ class ShippingDiscountCouponController {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
         add_filter( 'woocommerce_coupon_data_tabs', array( $this, 'registerCouponDataTabs' ) );
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
+        add_action( 'woocommerce_applied_coupon', array( $this, 'handleAppliedShippingCoupon' ), 20, 1 );
+        add_action( 'woocommerce_before_calculate_totals', array( $this, 'enforceShippingCouponRestrictions' ), 20, 1 );
         add_filter( 'manage_edit-shop_coupon_columns', array( $this, 'registerCouponListColumns' ) );
         add_action( 'manage_shop_coupon_posts_custom_column', array( $this, 'renderCouponListColumn' ), 10, 2 );
         add_action( 'woocommerce_coupon_data_panels', array( $this, 'renderCouponDataPanels' ) );
@@ -72,6 +74,78 @@ class ShippingDiscountCouponController {
         }
 
         return false;
+    }
+
+    public function handleAppliedShippingCoupon( $coupon_code ) {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return;
+        }
+
+        $coupon_code = sanitize_text_field( (string) $coupon_code );
+        if ( '' === $coupon_code ) {
+            return;
+        }
+
+        $service = new ShippingDiscountCouponService();
+        $coupon  = new \WC_Coupon( $coupon_code );
+
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return;
+        }
+
+        $validation = $service->validateCouponForCart( $coupon );
+        if ( $validation['valid'] ) {
+            return;
+        }
+
+        WC()->cart->remove_coupon( $coupon_code );
+
+        $message = $validation['message'] ?? '';
+        if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
+            if ( function_exists( 'wc_clear_notices' ) ) {
+                wc_clear_notices();
+            }
+            wc_add_notice( $message, 'error' );
+        }
+    }
+
+    public function enforceShippingCouponRestrictions( $cart ) {
+        static $is_running = false;
+
+        if ( $is_running || ! $cart || ! method_exists( $cart, 'get_coupons' ) ) {
+            return;
+        }
+
+        $service = new ShippingDiscountCouponService();
+        $removed = false;
+        $is_running = true;
+
+        foreach ( (array) $cart->get_coupons() as $coupon ) {
+            if ( ! $service->isShippingCoupon( $coupon ) ) {
+                continue;
+            }
+
+            $validation = $service->validateCouponForCart( $coupon );
+            if ( $validation['valid'] ) {
+                continue;
+            }
+
+            $cart->remove_coupon( (string) $coupon->get_code() );
+            $removed = true;
+
+            $message = $validation['message'] ?? '';
+            if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
+                if ( ! function_exists( 'wc_has_notice' ) || ! wc_has_notice( $message, 'error' ) ) {
+                    wc_add_notice( $message, 'error' );
+                }
+            }
+        }
+
+        $is_running = false;
+
+        if ( $removed && method_exists( $cart, 'calculate_totals' ) ) {
+            $cart->calculate_totals();
+        }
     }
 
     public function getCurrentShippingDiscountAjax() {

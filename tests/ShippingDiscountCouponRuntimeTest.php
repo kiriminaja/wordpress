@@ -13,7 +13,11 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString('woocommerce_coupon_is_valid_for_cart', $content);
+        $this->assertStringContainsString('woocommerce_applied_coupon', $content);
+        $this->assertStringContainsString('woocommerce_before_calculate_totals', $content);
         $this->assertStringContainsString('validateShippingCouponForCart', $content);
+        $this->assertStringContainsString('handleAppliedShippingCoupon', $content);
+        $this->assertStringContainsString('enforceShippingCouponRestrictions', $content);
         // Shipping label injection removed — janky on block checkout themes (ShopVerse)
         $this->assertStringNotContainsString('woocommerce_cart_shipping_method_full_label', $content);
         $this->assertStringNotContainsString('filterShippingMethodLabel', $content);
@@ -34,6 +38,11 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('kiriof_rate_description', $content);
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $serviceContent);
         $this->assertStringContainsString('getCurrentShippingDiscountSummary', $serviceContent);
+        $this->assertStringContainsString('couponAllowsSelectedCourier', $serviceContent);
+        $this->assertStringContainsString('getChosenKiriminAjaCourierCode', $serviceContent);
+        $this->assertStringContainsString('extractCourierCodeFromMethodId', $serviceContent);
+        $this->assertStringContainsString('normalizeCourierCode', $serviceContent);
+        $this->assertStringContainsString('This coupon is not valid for the selected courier.', $serviceContent);
         $this->assertStringContainsString('kiriof_shipping_coupon_discount_amount', $serviceContent);
         $this->assertStringContainsString('Shipping Discount (%s)', $serviceContent);
         $this->assertStringContainsString("'original_cost'", $serviceContent);
@@ -76,5 +85,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
         $this->assertStringNotContainsString('getShippingRateMetaAjax', $couponController);
+        $this->assertStringContainsString('wc_clear_notices', $couponController);
+        $this->assertStringContainsString('remove_coupon', $couponController);
     }
 }

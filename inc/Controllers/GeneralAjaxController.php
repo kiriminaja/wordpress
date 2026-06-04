@@ -71,6 +71,7 @@ class GeneralAjaxController
         $insurance = isset($_POST['insurance']) ? sanitize_text_field(wp_unslash($_POST['insurance'])) : '';
         $different_address = ! empty($_POST['different_address']);
         $postcode = isset($_POST['postcode']) ? sanitize_text_field(wp_unslash($_POST['postcode'])) : '';
+        $postcode = trim( preg_replace( '/\s+/', '', (string) $postcode ) );
 
         if ($different_address) {
             WC()->session->set('shipping_destination_id', $destination_id);
@@ -84,6 +85,7 @@ class GeneralAjaxController
         WC()->session->set('destination_name', $text);
         WC()->session->set('kiriof_payment_method', $payment);
         WC()->session->set('kiriof_insurance', $insurance);
+        WC()->session->set('kiriof_checkout_postcode', $postcode);
 
         // Save postcode→district mapping so the district auto-restores on next page load.
         if ( $destination_id > 0 && '' !== $postcode ) {

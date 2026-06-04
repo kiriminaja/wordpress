@@ -60,6 +60,10 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
         }
 
+        if ( ! $this->couponAllowsSelectedCourier( $coupon ) ) {
+            return $this->invalid( __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ) );
+        }
+
         return array(
             'valid' => true,
             'message' => '',
@@ -100,7 +104,7 @@ class ShippingDiscountCouponService {
             return $result;
         }
 
-        $courierCode = sanitize_key( (string) ( $option->service ?? '' ) );
+        $courierCode = $this->getOptionCourierCode( $option );
         $remainingCost = max( 0, $baseCost );
         $matchedDestination = false;
         $matchedCourier = false;
@@ -378,7 +382,12 @@ class ShippingDiscountCouponService {
             return true;
         }
 
-        return in_array( sanitize_key( $courierCode ), $couriers, true );
+        $courierCode = $this->normalizeCourierCode( $courierCode );
+        if ( '' === $courierCode ) {
+            return false;
+        }
+
+        return in_array( $courierCode, $couriers, true );
     }
 
     private function getCouponCouriers( $coupon ): array {
@@ -388,14 +397,90 @@ class ShippingDiscountCouponService {
 
         $raw = get_post_meta( $coupon->get_id(), self::META_COURIERS, true );
         if ( is_array( $raw ) ) {
-            return array_values( array_filter( array_map( 'sanitize_key', $raw ) ) );
+            return array_values( array_filter( array_map( array( $this, 'normalizeCourierCode' ), $raw ) ) );
         }
 
         if ( is_string( $raw ) && '' !== $raw ) {
-            return array_values( array_filter( array_map( 'sanitize_key', explode( ',', $raw ) ) ) );
+            return array_values( array_filter( array_map( array( $this, 'normalizeCourierCode' ), explode( ',', $raw ) ) ) );
         }
 
         return array();
+    }
+
+    private function couponAllowsSelectedCourier( $coupon ): bool {
+        $couriers = $this->getCouponCouriers( $coupon );
+        if ( empty( $couriers ) ) {
+            return true;
+        }
+
+        $chosenCourier = $this->getChosenKiriminAjaCourierCode();
+        if ( '' === $chosenCourier ) {
+            return true;
+        }
+
+        return in_array( $chosenCourier, $couriers, true );
+    }
+
+    private function getChosenKiriminAjaCourierCode(): string {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return '';
+        }
+
+        $chosen = (array) WC()->session->get( 'chosen_shipping_methods', array() );
+        foreach ( $chosen as $methodId ) {
+            $courierCode = $this->extractCourierCodeFromMethodId( (string) $methodId );
+            if ( '' !== $courierCode ) {
+                return $courierCode;
+            }
+        }
+
+        return '';
+    }
+
+    private function getOptionCourierCode( $option ): string {
+        if ( ! is_object( $option ) ) {
+            return '';
+        }
+
+        foreach ( array( 'service', 'courier', 'code', 'courier_code' ) as $field ) {
+            if ( empty( $option->{$field} ) ) {
+                continue;
+            }
+
+            $courierCode = $this->normalizeCourierCode( (string) $option->{$field} );
+            if ( '' !== $courierCode ) {
+                return $courierCode;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractCourierCodeFromMethodId( string $methodId ): string {
+        if ( 0 === strpos( $methodId, 'kiriminaja-official_' ) ) {
+            $methodId = substr( $methodId, strlen( 'kiriminaja-official_' ) );
+        } elseif ( 0 === strpos( $methodId, 'kiriminaja-official:' ) ) {
+            $methodId = substr( $methodId, strlen( 'kiriminaja-official:' ) );
+        } else {
+            return '';
+        }
+
+        $parts = explode( '_', $methodId );
+        return $this->normalizeCourierCode( (string) ( $parts[0] ?? '' ) );
+    }
+
+    private function normalizeCourierCode( $value ): string {
+        $normalized = sanitize_key( (string) $value );
+        $normalized = str_replace( array( 'express', 'courier', 'logistics' ), '', $normalized );
+        $normalized = trim( $normalized );
+
+        $aliases = array(
+            'jt' => 'jnt',
+            'jandt' => 'jnt',
+            'jtexpress' => 'jnt',
+        );
+
+        return $aliases[ $normalized ] ?? $normalized;
     }
 
     private function hasActiveFreeShippingCoupon(): bool {
