@@ -2301,3 +2301,216 @@ msgstr "Sudah di-cache"
 #: wc/KiriminajaShippingMethod.php
 msgid "Free shipping"
 msgstr "Gratis ongkir"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Insufficient permissions"
+msgstr "Izin tidak mencukupi"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Security check failed"
+msgstr "Pemeriksaan keamanan gagal"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Invalid parameters"
+msgstr "Parameter tidak valid"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Transaction not found"
+msgstr "Transaksi tidak ditemukan"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Order is not flagged as deficit"
+msgstr "Pesanan tidak ditandai sebagai defisit"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Must not be less than Rp%s to avoid deficit"
+msgstr "Tidak boleh kurang dari Rp%s untuk menghindari defisit"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Must not exceed Rp%s"
+msgstr "Tidak boleh melebihi Rp%s"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "COD Adjustment"
+msgstr "Penyesuaian COD"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "COD value adjusted to Rp%s by merchant."
+msgstr "Nilai COD disesuaikan menjadi Rp%s oleh penjual."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "AWB not found for this transaction"
+msgstr "AWB tidak ditemukan untuk transaksi ini"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Deficit COD order cancelled by merchant"
+msgstr "Pesanan COD defisit dibatalkan oleh penjual"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Failed to cancel shipment"
+msgstr "Gagal membatalkan pengiriman"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Deficit COD order cancelled by merchant via KiriminAja."
+msgstr "Pesanan COD defisit dibatalkan oleh penjual melalui KiriminAja."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Failed to update transaction"
+msgstr "Gagal memperbarui transaksi"
+
+#: templates/transaction-process/view/index.php
+msgid "Ins"
+msgstr "Asuransi"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Order cancelled successfully"
+msgstr "Pesanan berhasil dibatalkan"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "COD Issue Information"
+msgstr "Informasi Masalah COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Please change the COD Value information"
+msgstr "Silakan ubah informasi Nilai COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Adjust your COD value to the applicable terms and conditions to continue the shipping process with order id: %s."
+msgstr "Sesuaikan nilai COD Anda sesuai syarat dan ketentuan yang berlaku untuk melanjutkan proses pengiriman dengan id pesanan: %s."
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "COD Value"
+msgstr "Nilai COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Sub Total"
+msgstr "Sub Total"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Total Shipping"
+msgstr "Total Ongkir"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Shipping"
+msgstr "Ongkir"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Insurance"
+msgstr "Asuransi"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "COD Fee"
+msgstr "Biaya COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Discount Code"
+msgstr "Kode Diskon"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "COD Paid By Buyer"
+msgstr "COD Dibayar Pembeli"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Estimated COD Payout"
+msgstr "Estimasi Pencairan COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Confirm & Process"
+msgstr "Konfirmasi & Proses"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Close"
+msgstr "Tutup"
+
+#: inc/Base/Enqueue.php
+msgid "Minimum {min} to avoid COD Settlement deficit"
+msgstr "Minimal {min} untuk menghindari defisit Penyelesaian COD"
+
+#: inc/Base/Enqueue.php
+msgid "Must not exceed {max}"
+msgstr "Tidak boleh melebihi {max}"
+
+#: inc/Base/Enqueue.php
+msgid "Estimated payout must not be negative"
+msgstr "Estimasi pencairan tidak boleh negatif"
+
+#: inc/Base/Enqueue.php
+msgid "Processing…"
+msgstr "Memproses…"
+
+#: inc/Base/Enqueue.php
+msgid "Are you sure you want to cancel this deficit COD order? This cannot be undone."
+msgstr "Apakah Anda yakin ingin membatalkan pesanan COD defisit ini? Tindakan ini tidak dapat dibatalkan."
+
+#: templates/order/metabox-shipping.php
+msgid "COD Deficit"
+msgstr "Defisit COD"
+
+#: templates/order/metabox-shipping.php
+msgid "Adjust COD"
+msgstr "Sesuaikan COD"
+
+#: templates/order/metabox-shipping.php
+msgid "Cancel Deficit Order"
+msgstr "Batalkan Pesanan Defisit"
+
+#: templates/transaction-process/view/index.php
+msgid "Deficit"
+msgstr "Defisit"
+
+#: inc/Services/CheckoutServices/CreateTransactionService.php
+msgid "COD order flagged as deficit — total COD below minimum threshold."
+msgstr "Pesanan COD ditandai sebagai defisit — total COD di bawah ambang minimum."
+
+#: templates/transaction-process/view/index.php
+msgid "Order Issue"
+msgstr "Masalah Pesanan"
+
+#: templates/transaction-process/view/index.php
+msgid "Adjust Deficit"
+msgstr "Sesuaikan Defisit"
+
+#: templates/transaction-process/view/index.php
+msgid "Resolve the COD deficit before proceeding."
+msgstr "Selesaikan defisit COD sebelum melanjutkan."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Adjust COD Deficit Order"
+msgstr "Sesuaikan Order Defisit COD"
+
+#: inc/Base/Enqueue.php
+msgid "Please correct the COD value."
+msgstr "Mohon perbaiki nilai COD."
+
+#: templates/transaction-process/view/index.php
+msgid "Minimum COD: Rp%s (to avoid deficit)"
+msgstr "Minimum COD: Rp%s (untuk menghindari defisit)"
+
+#: templates/order/metabox-shipping.php
+msgid "Shipment"
+msgstr "Pengiriman"
+
+#: templates/order/metabox-shipping.php
+msgid "Pickup"
+msgstr "Penjemputan"
+
+#: templates/order/metabox-shipping.php
+msgid "Unpaid"
+msgstr "Belum Dibayar"
+
+#: templates/order/metabox-shipping.php
+msgid "Value less than the provisions"
+msgstr "Nilai di bawah ketentuan"
+
+#: templates/order/metabox-shipping.php
+msgid "Items with a minimum value of %s cannot proceed."
+msgstr "Item dengan nilai minimum %s tidak dapat diproses."
+
+#: templates/order/metabox-shipping.php
+msgid "COD value is below the minimum required to avoid a deficit."
+msgstr "Nilai COD di bawah minimum yang diperlukan untuk menghindari defisit."
+
+#: templates/order/metabox-shipping.php
+msgid "MINUS"
+msgstr "MINUS"
+

@@ -60,6 +60,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                         <li><a href="#" onclick="kiriofApplySearch('status','wc-pending');return false" <?php echo $kiriof_status_filter === 'wc-pending' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Pending Payment', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ) ); ?>)</span></a></li>
                                         <li><a href="#" onclick="kiriofApplySearch('status','processed');return false" <?php echo $kiriof_status_filter === 'processed' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Processed', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['processed'] ?? 0 ) ) ); ?>)</span></a></li>
                                         <li><a href="#" onclick="kiriofApplySearch('status','wc-cancelled');return false" <?php echo $kiriof_status_filter === 'wc-cancelled' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Cancelled', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['wc-cancelled'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" onclick="kiriofApplySearch('status','order-issue');return false" <?php echo $kiriof_status_filter === 'order-issue' ? 'class="current" aria-current="page"' : ''; ?> style="color:#d63638;"><?php esc_html_e( 'Order Issue', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['order-issue'] ?? 0 ) ) ); ?>)</span></a></li>
                                     </ul>
                                     <form class="search-form search-plugins" onsubmit="return false">
                                         <label class="screen-reader-text" for="kiriof-search-input"><?php esc_html_e( 'Search Orders', 'kiriminaja-official' ); ?></label>
@@ -129,6 +130,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                             <?php
                                             $kiriof_print_nonce = wp_create_nonce( 'kiriof_resi_print' );
                                             $kiriof_print_base_url = admin_url( 'admin-post.php?action=kiriof_resi_print' );
+                                            $kiriof_adj_nonce = wp_create_nonce( KIRIOF_NONCE );
                                             if (!empty($kiriof_results)) {
                                                 foreach ($kiriof_results as $id => $kiriof_row) {
                                                     $kiriof_shippingData = json_decode($kiriof_row->shipping_info ?? '{}');
@@ -186,12 +188,17 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_postStatus = $kiriof_row->post_status ?? 'wc-processing';
                                                     $kiriof_isProcessable   = ( 'wc-processing' === $kiriof_postStatus && 'new' === $kiriof_row->status );
                                                     $kiriof_isKAOrder       = ( 'wc-processing' === $kiriof_postStatus );
-                                                    $kiriof_statusLabel     = $kiriof_isKAOrder
-                                                        ? $kiriof_helper->transactionStatusLabel($kiriof_row->status)
-                                                        : $kiriof_helper->wcStatusLabel($kiriof_postStatus);
-                                                    $kiriof_statusBadgeClass = $kiriof_isKAOrder
-                                                        ? $kiriof_helper->transactionStatusClass($kiriof_row->status)
-                                                        : $kiriof_helper->wcStatusClass($kiriof_postStatus);
+                                                    $kiriof_isDeficitRow    = ! empty( $kiriof_row->is_deficit );
+                                                    $kiriof_statusLabel     = $kiriof_isDeficitRow
+                                                        ? __( 'COD Deficit', 'kiriminaja-official' )
+                                                        : ( $kiriof_isKAOrder
+                                                            ? $kiriof_helper->transactionStatusLabel($kiriof_row->status)
+                                                            : $kiriof_helper->wcStatusLabel($kiriof_postStatus) );
+                                                    $kiriof_statusBadgeClass = $kiriof_isDeficitRow
+                                                        ? 'kj-badge kiriof-badge--deficit-label'
+                                                        : ( $kiriof_isKAOrder
+                                                            ? $kiriof_helper->transactionStatusClass($kiriof_row->status)
+                                                            : $kiriof_helper->wcStatusClass($kiriof_postStatus) );
                                                     $kiriof_serviceName = strtoupper(trim($kiriof_row->service . ' ' . ($kiriof_row->service_name ?? '')));
                                                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
                                                     $kiriof_shippingAddressLineTwo = $kiriof_shippingAddress2;
@@ -215,11 +222,39 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         )
                                                     );
 
+                                                    // Minimum COD tooltip for deficit rows (matches Shopify TableDetail.tsx logic).
+                                                    $kiriof_deficitMinCod = max(
+                                                        (float) ( $kiriof_row->cod_minimum ?? 0 ),
+                                                        $kiriof_shippingCost + $kiriof_insuranceCost + $kiriof_codFee
+                                                    );
+                                                    $kiriof_deficitTooltip = $kiriof_isDeficitRow
+                                                        ? sprintf(
+                                                            /* translators: %s: formatted minimum COD amount */
+                                                            __( 'Minimum COD: Rp%s (to avoid deficit)', 'kiriminaja-official' ),
+                                                            kiriof_money_format( $kiriof_deficitMinCod )
+                                                        )
+                                                        : '';
+
+                                                    // For deficit rows, load WC order for accurate subtotal/discount/total.
+                                                    $kiriof_wcSubtotal      = 0.0;
+                                                    $kiriof_wcDiscountTotal = 0.0;
+                                                    $kiriof_wcTotal         = $kiriof_shippingFee; // fallback
+                                                    if ( $kiriof_isDeficitRow && ! empty( $kiriof_row->wc_order_id ) ) {
+                                                        $_wcOrder = wc_get_order( (int) $kiriof_row->wc_order_id );
+                                                        if ( $_wcOrder ) {
+                                                            $kiriof_wcSubtotal      = (float) $_wcOrder->get_subtotal();
+                                                            $kiriof_wcDiscountTotal = (float) $_wcOrder->get_discount_total();
+                                                            $kiriof_wcTotal         = (float) $_wcOrder->get_total();
+                                                        }
+                                                    }
+
                                                     $kiriof_isProcessedFilter = ( 'processed' === $kiriof_status_filter );
-                                                    $kiriof_checkboxDisabled = ! $kiriof_isProcessable || $kiriof_isProcessedFilter;
-                                                    $kiriof_checkboxTitle   = $kiriof_isProcessedFilter
-                                                        ? __( 'This order has already been processed.', 'kiriminaja-official' )
-                                                        : ( $kiriof_isProcessable ? '' : __( 'Order must be in Processing status before it can be picked up.', 'kiriminaja-official' ) );
+                                                    $kiriof_checkboxDisabled = $kiriof_isDeficitRow || ! $kiriof_isProcessable || $kiriof_isProcessedFilter;
+                                                    $kiriof_checkboxTitle   = $kiriof_isDeficitRow
+                                                        ? __( 'Resolve the COD deficit before proceeding.', 'kiriminaja-official' )
+                                                        : ( $kiriof_isProcessedFilter
+                                                            ? __( 'This order has already been processed.', 'kiriminaja-official' )
+                                                            : ( $kiriof_isProcessable ? '' : __( 'Order must be in Processing status before it can be picked up.', 'kiriminaja-official' ) ) );
 
                                                     echo '
                                                       <tr>
@@ -235,7 +270,8 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         <td class="manage-column column-thumb kiriof-col-expedition">
                                                             <div style="font-weight: 600">' . esc_html($kiriof_serviceName) . '</div>
                                                             <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px">
-                                                                <span class="' . esc_attr($kiriof_statusBadgeClass) . '" style="font-size: 11px">' . esc_html($kiriof_statusLabel) . '</span>
+                                                                <span class="' . esc_attr($kiriof_statusBadgeClass) . '" style="font-size: 11px' . ( $kiriof_isDeficitRow ? ';cursor:help' : '' ) . '"' . ( $kiriof_isDeficitRow ? ' title="' . esc_attr($kiriof_deficitTooltip) . '"' : '' ) . '>' . esc_html($kiriof_statusLabel) . ( $kiriof_isDeficitRow ? ' <span class="dashicons dashicons-warning" style="font-size:11px;width:11px;height:11px;vertical-align:middle;margin-left:2px;"></span>' : '' ) . '</span>
+                                                                ' . ( ! empty( $kiriof_row->is_deficit ) ? '' : '' ) . '
                                                                 <span style="font-size: 11px; color: #8c8f94">' . esc_html__( 'via', 'kiriminaja-official' ) . ' ' . esc_html($kiriof_paymentLabel) . '</span>
                                                             </div>
                                                             <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px">
@@ -256,22 +292,74 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             . ( $kiriof_shippingAddressLineThree ? '<div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddressLineThree) . '">' . esc_html($kiriof_shippingAddressLineThree) . '</div>' : '' )
                                                             . ( $kiriof_shippingAddressLineFour ? '<div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddressLineFour) . '">' . esc_html($kiriof_shippingAddressLineFour) . '</div>' : '' ) . '
                                                         </td>
-                                                        <td class="manage-column column-thumb kiriof-col-packages">
-                                                            <div style="font-size: 11px; color: #8c8f94">' . esc_html(number_format_i18n($kiriof_weight, 0)) . ' g' . ( $kiriof_packageCount > 1 ? ' × ' . (int) $kiriof_packageCount : '' ) . '</div>
-                                                            <div style="font-weight: 600; margin-top: 4px">Rp' . esc_html(kiriof_money_format($kiriof_shippingCost)) . '</div>'
-                                                            . ( $kiriof_insuranceCost > 0 ? '<div style="font-size: 12px">' . esc_html__( 'Insurance', 'kiriminaja-official' ) . ': Rp' . esc_html(kiriof_money_format($kiriof_insuranceCost)) . '</div>' : '' )
-                                                            . ( $kiriof_codFee > 0 ? '<div style="font-size: 12px">' . esc_html__( 'COD Fee', 'kiriminaja-official' ) . ': Rp' . esc_html(kiriof_money_format($kiriof_codFee)) . '</div>' : '' )
-                                                            . ( $kiriof_discountAmount > 0 ? '<div style="font-size: 12px; color: #007017">' . esc_html__( 'Discount', 'kiriminaja-official' ) . ': -Rp' . esc_html(kiriof_money_format($kiriof_discountAmount)) . '</div>' : '' )
-                                                            . '<div style="font-weight: 600; margin-top: 2px; border-top: 1px solid #e3e3e3; padding-top: 2px">' . esc_html__( 'Total', 'kiriminaja-official' ) . ': Rp' . esc_html(kiriof_money_format($kiriof_shippingFee)) . '</div>
+                                                        <td class="manage-column column-thumb kiriof-col-packages">' .
+                                                            // Weight + package count.
+                                                            '<div style="font-size:11px;color:#8c8f94">'
+                                                                . esc_html( number_format_i18n( $kiriof_weight, 0 ) ) . ' g'
+                                                                . ( $kiriof_packageCount > 1 ? ' &times; ' . (int) $kiriof_packageCount : '' )
+                                                            . '</div>'
+                                                            // Shipping cost — always the primary number.
+                                                            . '<div style="font-weight:600;margin-top:4px">Rp' . esc_html( kiriof_money_format( $kiriof_shippingCost ) ) . '</div>'
+                                                            // Extra-fee pills: only shown when applicable.
+                                                            . ( ( $kiriof_insuranceCost > 0 || $kiriof_codFee > 0 || $kiriof_discountAmount > 0 )
+                                                                ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">'
+                                                                    . ( $kiriof_insuranceCost > 0
+                                                                        ? '<span style="font-size:10px;background:#f0f0f0;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( __( 'Insurance', 'kiriminaja-official' ) ) . '">'
+                                                                            . esc_html__( 'Ins', 'kiriminaja-official' ) . ' Rp' . esc_html( kiriof_money_format( $kiriof_insuranceCost ) )
+                                                                            . '</span>'
+                                                                        : '' )
+                                                                    . ( $kiriof_codFee > 0
+                                                                        ? '<span style="font-size:10px;background:#f0f0f0;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( __( 'COD Fee', 'kiriminaja-official' ) ) . '">'
+                                                                            . esc_html__( 'COD Fee', 'kiriminaja-official' ) . ' Rp' . esc_html( kiriof_money_format( $kiriof_codFee ) )
+                                                                            . '</span>'
+                                                                        : '' )
+                                                                    . ( $kiriof_discountAmount > 0
+                                                                        ? '<span style="font-size:10px;background:#e8f5e9;color:#007017;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( __( 'Discount', 'kiriminaja-official' ) ) . '">'
+                                                                            . '-Rp' . esc_html( kiriof_money_format( $kiriof_discountAmount ) )
+                                                                            . '</span>'
+                                                                        : '' )
+                                                                . '</div>'
+                                                                : '' )
+                                                            . '
                                                         </td>
                                                         <td class="manage-column column-thumb kiriof-col-action" style="white-space:nowrap">' .
                                                             '<a href="#" class="button order-preview" data-order-id="' . esc_attr( $kiriof_row->wc_order_id ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none" title="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Detail', 'kiriminaja-official' )) . '"><span class="dashicons dashicons-visibility" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>' .
-                                                            ( ! empty( $kiriof_awb ) && 'request_pickup' === $kiriof_row->status
-                                                                ? ' <a href="' . esc_url( $kiriof_print_base_url . '&oids=' . urlencode( $kiriof_orderIdKA ) . '&_wpnonce=' . $kiriof_print_nonce ) . '" target="_blank" class="button" title="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><span class="dashicons dashicons-printer" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>'
-                                                                : '' ) .
-                                                            ( ! empty( $kiriof_awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
-                                                                ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '"><span class="dashicons dashicons-no-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
-                                                                : '' ) . '
+                                                            ( ! empty( $kiriof_isDeficitRow )
+                                                                ? ' <button type="button"'
+                                                                    . ' class="button"'
+                                                                    . ' style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;color:#d97706"'
+                                                                    . ' onclick="kjShowCodAdjustModal(this)"'
+                                                                    . ' data-ka-order-id="' . esc_attr( $kiriof_orderIdKA ) . '"'
+                                                                    . ' data-current-cod="' . esc_attr( $kiriof_wcTotal ) . '"'
+                                                                    . ' data-cod-minimum="' . esc_attr( $kiriof_deficitMinCod ) . '"'
+                                                                    . ' data-cod-maximum="' . esc_attr( (float) KIRIOF_MAX_COD_AMOUNT ) . '"'
+                                                                    . ' data-shipping-cost="' . esc_attr( $kiriof_shippingCost ) . '"'
+                                                                    . ' data-insurance-fee="' . esc_attr( $kiriof_insuranceCost ) . '"'
+                                                                    . ' data-cod-fee="' . esc_attr( $kiriof_codFee ) . '"'
+                                                                    . ' data-item-price="' . esc_attr( $kiriof_wcSubtotal ) . '"'
+                                                                    . ' data-discount-amount="' . esc_attr( $kiriof_wcDiscountTotal ) . '"'
+                                                                    . ' data-discount-code=""'
+                                                                    . ' data-nonce="' . esc_attr( $kiriof_adj_nonce ) . '"'
+                                                                    . ' title="' . esc_attr( __( 'Adjust Deficit', 'kiriminaja-official' ) ) . '"'
+                                                                    . ' aria-label="' . esc_attr( __( 'Adjust Deficit', 'kiriminaja-official' ) ) . '">'
+                                                                    . '<span class="dashicons dashicons-money-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
+                                                                    . ' <button type="button"'
+                                                                    . ' class="button"'
+                                                                    . ' style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;color:#d63638"'
+                                                                    . ' onclick="kjShowCancelDeficitModal(this)"'
+                                                                    . ' data-ka-order-id="' . esc_attr( $kiriof_orderIdKA ) . '"'
+                                                                    . ' data-nonce="' . esc_attr( $kiriof_adj_nonce ) . '"'
+                                                                    . ' title="' . esc_attr( __( 'Cancel Deficit Order', 'kiriminaja-official' ) ) . '"'
+                                                                    . ' aria-label="' . esc_attr( __( 'Cancel Deficit Order', 'kiriminaja-official' ) ) . '">'
+                                                                    . '<span class="dashicons dashicons-no-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
+                                                                : (
+                                                                    ( ! empty( $kiriof_awb ) && 'request_pickup' === $kiriof_row->status
+                                                                        ? ' <a href="' . esc_url( $kiriof_print_base_url . '&oids=' . urlencode( $kiriof_orderIdKA ) . '&_wpnonce=' . $kiriof_print_nonce ) . '" target="_blank" class="button" title="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Print', 'kiriminaja-official' )) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><span class="dashicons dashicons-printer" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>'
+                                                                        : '' ) .
+                                                                    ( ! empty( $kiriof_awb ) && ! in_array( $kiriof_row->status, [ 'shipped', 'finished', 'returned', 'return', 'canceled' ], true )
+                                                                        ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '" aria-label="' . esc_attr(__( 'Cancel', 'kiriminaja-official' )) . '"><span class="dashicons dashicons-no-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
+                                                                        : '' )
+                                                                ) ) . '
                                                         </td>
                                                     </tr>
                                                     ';
@@ -296,7 +384,6 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                             </tr>
                                         </tfoot>
                                     </table>
-
                                     <br class="clear">
                                     <div class="tablenav bottom">
                                         <div class="alignleft actions" style="display:flex;align-items:center;">

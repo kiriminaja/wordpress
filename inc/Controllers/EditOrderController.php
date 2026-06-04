@@ -55,9 +55,17 @@ class EditOrderController{
             return;
         }
 
-        $data        = $service->data;
+        $data         = $service->data;
         $tracking_url = home_url( '/tracking?order_id=' . $order_id );
-        $detail_url  = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
+        $detail_url   = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
+
+        // Extra WC order data for the redesigned metabox.
+        $wc_order            = wc_get_order( $order_id );
+        $wc_subtotal         = $wc_order ? (float) $wc_order->get_subtotal()       : 0.0;
+        $wc_total            = $wc_order ? (float) $wc_order->get_total()          : 0.0;
+        $wc_discount_total   = $wc_order ? (float) $wc_order->get_discount_total() : 0.0;
+        $wc_coupon_codes     = $wc_order ? $wc_order->get_coupon_codes()           : array();
+        $wc_needs_payment    = $wc_order ? $wc_order->needs_payment()              : false;
 
         include KIRIOF_DIR . '/templates/order/metabox-shipping.php';
     }

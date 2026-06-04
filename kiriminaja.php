@@ -27,6 +27,7 @@ define( 'KIRIOF_SLUG', plugin_basename( __DIR__ ) );
 define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_VERSION', '2.1.40' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
 
 if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
     require_once dirname( __FILE__ ) . '/vendor/autoload.php';

@@ -285,6 +285,20 @@ class SettingRepository{
     }
 
     /**
+     * Convenience static method: return the raw value for a setting key, or null if not found.
+     *
+     * @param string $key Setting key.
+     * @return string|null
+     */
+    public static function getValue( string $key ): ?string {
+        $row = ( new self() )->getSettingByKey( $key );
+        if ( $row && isset( $row->value ) ) {
+            return $row->value;
+        }
+        return null;
+    }
+
+    /**
      * Store courier whitelist without touching other origin fields.
      *
      * @param array $payload

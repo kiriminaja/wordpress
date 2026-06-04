@@ -15,7 +15,10 @@ class Kiriof_AdminWoocommerceSettings
         add_filter('manage_edit-shop_order_columns', [$this,'kiriof_new_order_column'] );
         add_filter('manage_edit-shop_order_columns', [$this,'kiriof_add_order_column_header']);
         add_action( 'manage_shop_order_posts_custom_column', [$this,'kiriof_add_order_column_content'] );
+        add_action( 'manage_shop_order_posts_custom_column', [$this,'kiriof_render_deficit_badge_in_status_column'], 20 );
 
+        // HPOS support.
+        add_action( 'woocommerce_shop_order_list_table_custom_column_content', [$this,'kiriof_render_deficit_badge_hpos'], 20, 2 );
     }
 
     public function kiriof_new_order_column($columns){
@@ -154,6 +157,45 @@ class Kiriof_AdminWoocommerceSettings
             }
 
         }
+    }
+
+    /**
+     * Add a "COD Deficit" badge in the order_status column for legacy WC (non-HPOS).
+     */
+    public function kiriof_render_deficit_badge_in_status_column( $column ) {
+        if ( 'order_status' !== $column ) {
+            return;
+        }
+        global $post;
+        $order = $post ? wc_get_order( $post->ID ) : null;
+        if ( ! $order ) {
+            return;
+        }
+        $transaction = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )->getTransactionByWCOrderNumber( $order->get_id() );
+        if ( ! $transaction || empty( $transaction->is_deficit ) ) {
+            return;
+        }
+        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
+    }
+
+    /**
+     * Add a "COD Deficit" badge in the order_status column for HPOS.
+     *
+     * @param string    $column Column ID.
+     * @param \WC_Order $order  Order object.
+     */
+    public function kiriof_render_deficit_badge_hpos( $column, $order ) {
+        if ( 'order_status' !== $column ) {
+            return;
+        }
+        if ( ! $order instanceof \WC_Order ) {
+            return;
+        }
+        $transaction = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )->getTransactionByWCOrderNumber( $order->get_id() );
+        if ( ! $transaction || empty( $transaction->is_deficit ) ) {
+            return;
+        }
+        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
     }
 }
 
