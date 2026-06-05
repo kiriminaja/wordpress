@@ -90,6 +90,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 </div>
 
 <?php ob_start(); ?>
+    // Fallback: if kiriof-script was not enqueued, define the minimal helpers needed.
+    if (typeof kiriofAjaxRoute === 'undefined') {
+        function kiriofAjaxRoute() {
+            return (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                ? kiriofAjax.ajaxurl
+                : '<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>';
+        }
+    }
+
     function trackOrder(){
 
         hideStateComponent()
@@ -191,5 +200,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php
 $kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
+// Output directly — wp_add_inline_script silently drops the script if
+// kiriof-script was not enqueued (e.g. shouldEnqueueFront missed the page).
+// A direct <script> tag is always reliable for shortcode-rendered content.
+wp_print_inline_script_tag( $kiriof_inline_script );
 ?>
