@@ -35,7 +35,7 @@ class SettingService extends BaseService
             //custom url validation when local set to dev kj only development test
             $setupPayload = [
                 'setup_key' => $setupKey,
-                'callback_url' => @home_url() . '/kiriminaja-callback'
+                'callback_url' => add_query_arg( 'feed', 'kiriminaja-callback', home_url( '/' ) )
             ];
             $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
             $arrayRepo = (array) $repo;
