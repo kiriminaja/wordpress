@@ -1,16 +1,18 @@
 <?php
 /**
- * Build-time script: injects KIRIOF_API_BASE_URL constant into a staged kiriminaja.php.
+ * Build-time script: injects KIRIOF_API_BASE_URL and KIRIOF_ENV constants into a staged kiriminaja.php.
  *
- * Usage: php scripts/inject-api-url.php <target-file> <api-url>
+ * Usage: php scripts/inject-api-url.php <target-file> <api-url> [env]
+ *        env defaults to "prd" when omitted.
  */
 if ( $argc < 3 ) {
-    fwrite( STDERR, "Usage: php inject-api-url.php <target-file> <api-url>\n" );
+    fwrite( STDERR, "Usage: php inject-api-url.php <target-file> <api-url> [env]\n" );
     exit( 1 );
 }
 
 $file = $argv[1];
 $url  = rtrim( trim( $argv[2] ), '/' );
+$env  = isset( $argv[3] ) ? trim( $argv[3] ) : 'prd';
 
 if ( ! file_exists( $file ) ) {
     fwrite( STDERR, "Error: File not found: {$file}\n" );
@@ -25,7 +27,8 @@ if ( ! preg_match( '#^https?://#i', $url ) ) {
 $content = file_get_contents( $file );
 
 $anchor  = "define( 'KIRIOF_MAX_COD_AMOUNT'";
-$inject  = "define( 'KIRIOF_API_BASE_URL', '" . $url . "' );\n";
+$inject  = "define( 'KIRIOF_API_BASE_URL', '" . $url . "' );\n"
+         . "define( 'KIRIOF_ENV', '" . $env . "' );\n";
 
 if ( strpos( $content, $anchor ) === false ) {
     fwrite( STDERR, "Error: Anchor '{$anchor}' not found in {$file}\n" );
@@ -36,3 +39,4 @@ $content = str_replace( $anchor, $inject . $anchor, $content );
 file_put_contents( $file, $content );
 
 echo "  → Injected KIRIOF_API_BASE_URL: {$url}\n";
+echo "  → Injected KIRIOF_ENV: {$env}\n";

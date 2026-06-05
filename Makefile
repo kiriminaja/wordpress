@@ -120,7 +120,7 @@ zip: clean
 	@if [ "$(KIRIOF_ENV)" != "prd" ] && [ -f .env ]; then \
 		API_URL=$$(grep '^$(ENV_VAR_NAME)=' .env | head -1 | cut -d= -f2- | xargs); \
 		if [ -n "$$API_URL" ]; then \
-			php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "$$API_URL"; \
+			php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "$$API_URL" "$(KIRIOF_ENV)"; \
 		else \
 			echo "  → Warning: .env exists but $(ENV_VAR_NAME) is not set. Using default URL."; \
 		fi; \

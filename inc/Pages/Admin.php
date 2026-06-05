@@ -83,7 +83,7 @@ class Admin extends BaseInit{
             ->addPages([
                 [
                     'page_title'=>'KiriminAja',
-                    'menu_title'=>'KiriminAja',
+                    'menu_title'=> 'KiriminAja' . ( defined('KIRIOF_ENV') && KIRIOF_ENV !== 'prd' ? ' [' . strtoupper(KIRIOF_ENV) . ']' : '' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function() use ($plugin_path){
