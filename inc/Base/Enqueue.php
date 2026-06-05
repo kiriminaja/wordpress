@@ -127,6 +127,12 @@ class Enqueue extends BaseInit{
             return true;
         }
 
+        // Fallback: match by page slug in case $post is not set yet or the
+        // shortcode is nested inside a block wrapper that bypasses has_shortcode.
+        if ( is_page( 'tracking' ) ) {
+            return true;
+        }
+
         /**
          * Filters whether to force-enqueue the KiriminAja frontend assets.
          *
