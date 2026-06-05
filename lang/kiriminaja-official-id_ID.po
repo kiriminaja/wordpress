@@ -2063,6 +2063,9 @@ msgid "QR will expire at"
 msgstr "QR akan kedaluwarsa pada"
 
 #: inc/Services/ShippingDiscountCouponService.php
+msgid "Item Discount"
+msgstr "Diskon Produk"
+
 msgid "Shipping Discount"
 msgstr "Diskon Ongkir"
 

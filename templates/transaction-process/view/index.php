@@ -167,6 +167,19 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_wcOrder = function_exists('wc_get_order') ? wc_get_order($kiriof_row->wc_order_id) : false;
                                                     $kiriof_paymentMethod = $kiriof_wcOrder ? $kiriof_wcOrder->get_payment_method() : ($kiriof_shippingData->_payment_method ?? '');
                                                     $kiriof_isCod = $kiriof_paymentMethod === 'cod';
+
+                                                    // Split WC discount for column badges (loaded for every row).
+                                                    $kiriof_colItemDiscount = 0.0;
+                                                    $kiriof_colShipDiscount = 0.0;
+                                                    $kiriof_colItemCoupon   = '';
+                                                    $kiriof_colShipCoupon   = '';
+                                                    if ( $kiriof_wcOrder ) {
+                                                        $kiriof_colItemDiscount = (float) $kiriof_wcOrder->get_discount_total();
+                                                        $kiriof_colShipDiscount = max( 0.0, $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total() );
+                                                        $_colCoupons            = $kiriof_wcOrder->get_coupon_codes();
+                                                        $kiriof_colItemCoupon   = ! empty( $_colCoupons[0] ) ? strtoupper( $_colCoupons[0] ) : '';
+                                                        $kiriof_colShipCoupon   = ! empty( $_colCoupons[1] ) ? strtoupper( $_colCoupons[1] ) : $kiriof_colItemCoupon;
+                                                    }
                                                     $kiriof_paymentLabel = $kiriof_isCod ? __( 'COD', 'kiriminaja-official' ) : __( 'NON COD', 'kiriminaja-official' );
                                                     
                                                     $kiriof_weight       = (float) ($kiriof_row->weight ?? 0);
@@ -307,7 +320,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                             // Shipping cost — always the primary number.
                                                             . '<div style="font-weight:600;margin-top:4px">Rp' . esc_html( kiriof_money_format( $kiriof_shippingCost ) ) . '</div>'
                                                             // Extra-fee pills: only shown when applicable.
-                                                            . ( ( $kiriof_insuranceCost > 0 || $kiriof_codFee > 0 || $kiriof_discountAmount > 0 )
+                                                            . ( ( $kiriof_insuranceCost > 0 || $kiriof_codFee > 0 || $kiriof_colItemDiscount > 0 || $kiriof_colShipDiscount > 0 )
                                                                 ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">'
                                                                     . ( $kiriof_insuranceCost > 0
                                                                         ? '<span style="font-size:10px;background:#f0f0f0;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( __( 'Insurance', 'kiriminaja-official' ) ) . '">'
@@ -319,9 +332,14 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                                             . esc_html__( 'COD Fee', 'kiriminaja-official' ) . ' Rp' . esc_html( kiriof_money_format( $kiriof_codFee ) )
                                                                             . '</span>'
                                                                         : '' )
-                                                                    . ( $kiriof_discountAmount > 0
-                                                                        ? '<span style="font-size:10px;background:#e8f5e9;color:#007017;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( __( 'Discount', 'kiriminaja-official' ) ) . '">'
-                                                                            . '-Rp' . esc_html( kiriof_money_format( $kiriof_discountAmount ) )
+                                                                    . ( $kiriof_colItemDiscount > 0
+                                                                        ? '<span style="font-size:10px;background:#fce8e8;color:#d63638;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( ( $kiriof_colItemCoupon ? $kiriof_colItemCoupon . ' — ' : '' ) . __( 'Item Discount', 'kiriminaja-official' ) ) . '">'
+                                                                            . ( $kiriof_colItemCoupon ? esc_html( $kiriof_colItemCoupon ) . ' ' : '' ) . '-Rp' . esc_html( kiriof_money_format( $kiriof_colItemDiscount ) )
+                                                                            . '</span>'
+                                                                        : '' )
+                                                                    . ( $kiriof_colShipDiscount > 0
+                                                                        ? '<span style="font-size:10px;background:#fce8e8;color:#d63638;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr( ( $kiriof_colShipCoupon ? $kiriof_colShipCoupon . ' — ' : '' ) . __( 'Shipping Discount', 'kiriminaja-official' ) ) . '">'
+                                                                            . ( $kiriof_colShipCoupon ? esc_html( $kiriof_colShipCoupon ) . ' ' : '' ) . '-Rp' . esc_html( kiriof_money_format( $kiriof_colShipDiscount ) )
                                                                             . '</span>'
                                                                         : '' )
                                                                 . '</div>'
