@@ -940,7 +940,28 @@ if ( ! defined( 'ABSPATH' ) ) {
             }
         }
 
-          
+        // Script-scope fallback: kiriofGetCurrentPostcodeKey must be accessible from
+        // all script-level functions (e.g. kiriofCodInsurance). On block-checkout,
+        // the richer version defined inside kiriofInitBlockCheckoutCompatibility()
+        // shadows this via var-hoisting within that function scope, so the inner
+        // version is used for block-checkout code and this one for classic checkout.
+        function kiriofGetCurrentPostcodeKey() {
+            var postcode = jQuery('input[name="billing_postcode"], input[name="shipping_postcode"]')
+                .filter(':visible').first().val() || '';
+            if (!postcode && typeof kiriofSavedCheckoutPostcode !== 'undefined') {
+                postcode = kiriofSavedCheckoutPostcode || '';
+            }
+            if (!postcode && typeof wp !== 'undefined' && wp.data && wp.data.select) {
+                try {
+                    var store = wp.data.select('wc/store/cart');
+                    var shipping = store && store.getShippingAddress ? store.getShippingAddress() : {};
+                    var billing  = store && store.getBillingAddress  ? store.getBillingAddress()  : {};
+                    postcode = (shipping && shipping.postcode) || (billing && billing.postcode) || '';
+                } catch(e) {}
+            }
+            return String(postcode).replace(/\D/g, '');
+        }
+
         function changeDistrict(){
             
             let kelurahanArea = "select#<?php echo esc_js($field_key); ?>,select#kiriof_shipping_destination_area";

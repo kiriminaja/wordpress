@@ -389,6 +389,26 @@ class TransactionRepository{
         return $this->hasError() ? 0 : (int) $query;
     }
 
+    /**
+     * Count distinct orders flagged as COD deficit (is_deficit = 1).
+     */
+    public function getCountDeficit(): int {
+        $o = $this->getOrdersTable();
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $query = $this->wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.{$o['id']})
+            FROM {$o['table']} p
+            INNER JOIN {$this->table} t
+                ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+            WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                AND t.is_deficit = 1"
+        );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+        return $this->hasError() ? 0 : (int) $query;
+    }
+
     public function getDistinctCouriers() {
         $cache_key = 'kiriof_distinct_couriers';
         $cached    = get_transient($cache_key);
@@ -412,6 +432,36 @@ class TransactionRepository{
 
     public function invalidateCouriersCache() {
         delete_transient('kiriof_distinct_couriers');
+    }
+
+    /**
+     * Update COD-related values for a transaction (used by COD adjustment flow).
+     *
+     * @param string $kaOrderId  KiriminAja order ID (order_id column).
+     * @param array  $values {
+     *   @type float $cod              New total COD amount.
+     *   @type float $cod_fee          New COD fee.
+     *   @type float $cod_minimum      New COD minimum.
+     *   @type int   $is_deficit       0 or 1.
+     * }
+     * @return bool
+     */
+    public function updateTransactionCodValues( string $kaOrderId, array $values ): bool {
+        $allowed = [ 'transaction_value', 'cod_fee', 'cod_minimum', 'is_deficit' ];
+        $updateData = array_intersect_key( $values, array_flip( $allowed ) );
+
+        if ( empty( $updateData ) ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $this->wpdb->update(
+            $this->table,
+            $updateData,
+            [ 'order_id' => $kaOrderId ]
+        );
+
+        return ! $this->hasError();
     }
 
     public function updateTransaction($payload){

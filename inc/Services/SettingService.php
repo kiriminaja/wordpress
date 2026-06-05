@@ -50,6 +50,7 @@ class SettingService extends BaseService
                 'oid_prefix' => sanitize_text_field($arrayRepoDataData['oid_prefix']),
                 'setup_key' => sanitize_text_field($setupPayload['setup_key']),
                 'callback_url' => $setupPayload['callback_url'],
+                'is_top' => self::resolveIsTop(),
             ]);
         } catch (\Throwable $th) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('processingSetupKey errr', $th->getMessage());
@@ -247,5 +248,24 @@ class SettingService extends BaseService
             return self::error([], $th->getMessage());
         }
         return self::success([]);
+    }
+
+    /**
+     * Resolve merchant TOP status by calling /api/mitra/v6.2/profile.
+     * Returns true when metadata.payment_method === "TOP".
+     * Falls back to false if the profile call fails (non-blocking).
+     */
+    private static function resolveIsTop(): bool {
+        try {
+            $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            if ( 200 !== $profile->status || empty( $profile->data ) ) {
+                return false;
+            }
+            $paymentMethod = (string) ( $profile->data->metadata->payment_method ?? '' );
+            return strtoupper( $paymentMethod ) === 'TOP';
+        } catch ( \Throwable $th ) {
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis( 'resolveIsTop error', $th->getMessage() );
+            return false;
+        }
     }
 }

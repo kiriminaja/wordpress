@@ -73,6 +73,7 @@ class Kiriof_TransactionProcessIndex
             'wc-pending'    => $kiriof_transactionRepo->getCountByPostStatus('wc-pending'),
             'wc-cancelled'  => $kiriof_transactionRepo->getCountCancelled(),
             'processed'     => $kiriof_transactionRepo->getCountProcessed(),
+            'order-issue'   => $kiriof_transactionRepo->getCountDeficit(),
         ];
 
         $kiriof_distinct_couriers = $kiriof_transactionRepo->getDistinctCouriers();
@@ -93,7 +94,7 @@ class Kiriof_TransactionProcessIndex
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
         $kiriof_status_filter = sanitize_text_field(wp_unslash($_GET['status'] ?? ''));
-        if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed'], true)) {
+        if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed', 'order-issue'], true)) {
             $kiriof_status_filter = 'all';
         }
 
@@ -127,13 +128,14 @@ class Kiriof_TransactionProcessIndex
 
         // Whitelist of post_status values exposed by the pill row in the view.
         // Anything outside the whitelist (including empty) falls back to all.
-        $allowedStatuses = ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed'];
+        $allowedStatuses = ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed', 'order-issue'];
         if (! in_array($status, $allowedStatuses, true)) {
             $status = 'all';
         }
         $isProcessedFilter  = ('processed' === $status);
         $isCancelledFilter  = ('wc-cancelled' === $status);
         $isAllFilter = ('all' === $status);
+        $isDeficitFilter    = ('order-issue' === $status);
 
         $cod_clause = '';
         if ('1' === $cod) {
@@ -179,7 +181,52 @@ class Kiriof_TransactionProcessIndex
             }
         }
 
-        if ($isProcessedFilter) {
+        if ($isDeficitFilter) {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $total = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        AND kiriminaja_transactions.is_deficit = 1
+                        {$cod_clause}
+                        {$courier_clause}
+                        {$key_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                    $month,
+                    $month_like
+                )
+            );
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT
+                        orders_tbl.{$o['id']} as wc_order_id,
+                        orders_tbl.{$o['date']} as wc_date_created,
+                        orders_tbl.{$o['status']} as wc_status,
+                        orders_tbl.{$o['status']} as post_status,
+                        kiriminaja_transactions.*
+                    FROM {$o['table']} as orders_tbl
+                    INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+                        ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
+                    WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        AND kiriminaja_transactions.is_deficit = 1
+                        {$cod_clause}
+                        {$courier_clause}
+                        {$key_clause}
+                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                    GROUP BY orders_tbl.{$o['id']}
+                    ORDER BY orders_tbl.{$o['date']} DESC
+                    LIMIT %d OFFSET %d",
+                    $month,
+                    $month_like,
+                    $per_page,
+                    $offset
+                )
+            );
+            // phpcs:enable ...
+        } elseif ($isProcessedFilter) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = (int) $wpdb->get_var(
                 $wpdb->prepare(

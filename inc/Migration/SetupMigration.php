@@ -74,6 +74,17 @@ class SetupMigration {
         }
         
         /** Alters*/
+        // Ensure is_top row exists for existing installs (added after initial release).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rowExists = $wpdb->get_var( $wpdb->prepare(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            "SELECT COUNT(*) FROM `$table_name` WHERE `key` = %s",
+            'is_top'
+        ) );
+        if ( ! $rowExists ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $wpdb->insert( $table_name, array( 'key' => 'is_top', 'value' => 'no' ), array( '%s', '%s' ) );
+        }
     }
     
     /**
