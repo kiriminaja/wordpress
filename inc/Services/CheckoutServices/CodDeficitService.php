@@ -35,7 +35,6 @@ class CodDeficitService extends BaseService {
      *   @type string $courier_code         Courier code (e.g. "sicepat").
      *   @type string $courier_service_code Courier service code (e.g. "REG").
      *   @type float  $discount_amount      Shipping discount amount.
-     *   @type int    $member_id            Merchant member ID (from settings).
      * }
      * @return array {
      *   @type bool  $isDeficit  Whether the order is deficit.
@@ -55,7 +54,6 @@ class CodDeficitService extends BaseService {
         $courierCode   = (string) ( $params['courier_code'] ?? '' );
         $serviceCode   = (string) ( $params['courier_service_code'] ?? '' );
         $discountAmt   = (float) ( $params['discount_amount'] ?? 0 );
-        $memberId      = (int) ( $params['member_id'] ?? 0 );
 
         if ( ! $isCod ) {
             return [
@@ -68,10 +66,9 @@ class CodDeficitService extends BaseService {
 
         $maxCodAmount = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? (float) KIRIOF_MAX_COD_AMOUNT : 3000000.0;
 
-        // Attempt API-based detection when we have a member_id and courier info.
-        if ( $memberId > 0 && ! empty( $courierCode ) && ! empty( $serviceCode ) ) {
+        // Attempt API-based detection when courier info is available.
+        if ( ! empty( $courierCode ) && ! empty( $serviceCode ) ) {
             $apiResult = $this->detectViaApi(
-                $memberId,
                 $itemPrice,
                 $totalCod,
                 $shippingCost,
@@ -104,7 +101,7 @@ class CodDeficitService extends BaseService {
                 ];
             }
         } else {
-            error_log( '[KiriminAja] CodDeficitService::detect — member_id or courier info missing, using fallback calculation.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            error_log( '[KiriminAja] CodDeficitService::detect — courier info missing, using fallback calculation.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         }
 
         // Fallback: local calculation only.
@@ -117,7 +114,6 @@ class CodDeficitService extends BaseService {
      * @return array|null Array with codFee, isSupportCod, minimumCustomCod keys; null on any API failure.
      */
     private function detectViaApi(
-        int $memberId,
         float $itemPrice,
         float $totalCod,
         float $shippingCost,
@@ -140,7 +136,6 @@ class CodDeficitService extends BaseService {
 
         // Call 1: get minimum_custom_cod threshold (custom_cod = 1, skip validation).
         $call1 = $repo->calculateBulkCod( [
-            'member_id'                     => $memberId,
             'item_price'                    => (int) $itemPrice,
             'custom_cod'                    => 1,
             'exclude_cod_amount_validation' => true,
@@ -156,7 +151,6 @@ class CodDeficitService extends BaseService {
 
         // Call 2: get actual fee and support check for the real COD amount.
         $call2 = $repo->calculateBulkCod( [
-            'member_id'                     => $memberId,
             'item_price'                    => (int) $itemPrice,
             'custom_cod'                    => (int) $totalCod,
             'exclude_cod_amount_validation' => false,
@@ -169,8 +163,8 @@ class CodDeficitService extends BaseService {
         }
 
         return [
-            'codFee'          => (float) ( $call2[0]->total_fee ?? 0 ),
-            'isSupportCod'    => (bool) ( $call2[0]->is_support_cod ?? true ),
+            'codFee'           => (float) ( $call2[0]->total_fee ?? 0 ),
+            'isSupportCod'     => (bool) ( $call2[0]->is_support_cod ?? true ),
             'minimumCustomCod' => $minimumCustomCod,
         ];
     }

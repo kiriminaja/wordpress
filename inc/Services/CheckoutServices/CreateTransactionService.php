@@ -62,7 +62,6 @@ class CreateTransactionService extends BaseService{
 
             // Determine deficit status via CodDeficitService.
             $expeditionParts = $this->payload['kiriof_expedition'] ? explode('_', $this->payload['kiriof_expedition'], 2) : ['', ''];
-            $memberId = (int) ((\KiriminAjaOfficial\Repositories\SettingRepository::getValue('member_id')) ?? 0);
             $deficitResult = (new \KiriminAjaOfficial\Services\CheckoutServices\CodDeficitService())->detect([
                 'is_cod'               => $isCod,
                 'total_cod'            => $transactionValue,
@@ -74,7 +73,6 @@ class CreateTransactionService extends BaseService{
                 'courier_code'         => $expeditionParts[0],
                 'courier_service_code' => $expeditionParts[1] ?? '',
                 'discount_amount'      => (float) ($calcResult['discount_amt'] ?? 0),
-                'member_id'            => $memberId,
             ]);
             $isDeficit  = $deficitResult['isDeficit'] ? 1 : 0;
             $codMinimum = $deficitResult['codMinimum'];

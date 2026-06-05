@@ -88,11 +88,9 @@ class CodAdjustmentController {
         $newCodFee    = $originalCodFee;
         $newCodMinimum = $minimumCod;
 
-        $memberId = (int) ( \KiriminAjaOfficial\Repositories\SettingRepository::getValue( 'member_id' ) ?? 0 );
-        if ( $memberId > 0 && ! empty( $transaction->service ) ) {
+        if ( ! empty( $transaction->service ) ) {
             $serviceParts = explode( '_', $transaction->service . '_' . ( $transaction->service_name ?? '' ), 2 );
             $apiResult = ( new \KiriminAjaOfficial\Repositories\CodFeeApiRepository() )->calculateBulkCod( [
-                'member_id'                     => $memberId,
                 'item_price'                    => (int) ( $transaction->transaction_value ?? 0 ),
                 'custom_cod'                    => (int) $newTotalCod,
                 'exclude_cod_amount_validation' => false,
