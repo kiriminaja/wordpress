@@ -399,10 +399,28 @@ class TransactionProcessController{
                                         <td style="text-align:right;">{{ data.cod_fee_fmt }}</td>
                                     </tr>
                                     <# } #>
-                                    <# if ( data.discount_amount > 0 ) { #>
-                                    <tr style="color:#007017;">
-                                        <td><?php esc_html_e( 'Discount', 'kiriminaja-official' ); ?></td>
-                                        <td style="text-align:right;">{{ data.discount_fmt }}</td>
+                                    <# if ( data.item_discount > 0 ) { #>
+                                    <tr style="color:#d63638;">
+                                        <td>
+                                            <# if ( data.item_coupon ) { #>
+                                                {{ data.item_coupon }} <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e( 'Item', 'kiriminaja-official' ); ?></span>
+                                            <# } else { #>
+                                                <?php esc_html_e( 'Discount', 'kiriminaja-official' ); ?>
+                                            <# } #>
+                                        </td>
+                                        <td style="text-align:right;">{{ data.item_discount_fmt }}</td>
+                                    </tr>
+                                    <# } #>
+                                    <# if ( data.shipping_discount > 0 ) { #>
+                                    <tr style="color:#d63638;">
+                                        <td>
+                                            <# if ( data.shipping_coupon ) { #>
+                                                {{ data.shipping_coupon }} <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e( 'Shipping', 'kiriminaja-official' ); ?></span>
+                                            <# } else { #>
+                                                <?php esc_html_e( 'Shipping Discount', 'kiriminaja-official' ); ?>
+                                            <# } #>
+                                        </td>
+                                        <td style="text-align:right;">{{ data.shipping_discount_fmt }}</td>
                                     </tr>
                                     <# } #>
                                     <tr>
@@ -616,7 +634,7 @@ class TransactionProcessController{
             } else {
                 $item_label = __( 'Discount', 'kiriminaja-official' );
             }
-            $inner .= $this->buildCompactPreviewRow( $item_label, wc_price( -$wc_item_discount, $price_args ), 'color:#007017;' );
+            $inner .= $this->buildCompactPreviewRow( $item_label, wc_price( -$wc_item_discount, $price_args ), 'color:#d63638;' );
         }
 
         // Shipping discount row: "CODE  Shipping" (or plain "Shipping Discount" if no coupon).
@@ -626,7 +644,7 @@ class TransactionProcessController{
             } else {
                 $ship_label = __( 'Shipping Discount', 'kiriminaja-official' );
             }
-            $inner .= $this->buildCompactPreviewRow( $ship_label, wc_price( -$wc_shipping_discount, $price_args ), 'color:#007017;' );
+            $inner .= $this->buildCompactPreviewRow( $ship_label, wc_price( -$wc_shipping_discount, $price_args ), 'color:#d63638;' );
         }
 
         if ( $is_cod ) {
@@ -638,7 +656,7 @@ class TransactionProcessController{
         }
 
         // Inline styles on the wrapper cell and inner table defeat WC's high-specificity td padding rules.
-        $wrap_style  = 'padding:8px 0!important;border-top:1px solid #eee!important;border-bottom:0!important;';
+        $wrap_style  = 'border-top:1px solid #eee!important;border-bottom:0!important;';
         $table_style = 'width:100%;border-collapse:collapse;font-size:13px;';
 
         return sprintf(

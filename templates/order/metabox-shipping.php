@@ -343,8 +343,10 @@ $kiriof_first_coupon       = ! empty( $wc_coupon_codes ) ? strtoupper( $wc_coupo
         data-insurance-fee="<?php echo esc_attr( $kiriof_insurance_raw ); ?>"
         data-cod-fee="<?php echo esc_attr( $kiriof_cod_fee_raw ); ?>"
         data-item-price="<?php echo esc_attr( $wc_subtotal ); ?>"
-        data-discount-amount="<?php echo esc_attr( $wc_discount_total ); ?>"
-        data-discount-code="<?php echo esc_attr( implode( ', ', $wc_coupon_codes ) ); ?>"
+        data-item-discount="<?php echo esc_attr( $wc_discount_total ); ?>"
+        data-shipping-discount="<?php echo esc_attr( $kiriof_wc_shipping_discount ); ?>"
+        data-item-coupon="<?php echo esc_attr( $kiriof_first_coupon ); ?>"
+        data-shipping-coupon="<?php echo esc_attr( ! empty( $wc_coupon_codes[1] ) ? strtoupper( $wc_coupon_codes[1] ) : $kiriof_first_coupon ); ?>"
         data-nonce="<?php echo esc_attr( wp_create_nonce( KIRIOF_NONCE ) ); ?>"
     >
         <?php esc_html_e( 'Adjust Deficit', 'kiriminaja-official' ); ?>

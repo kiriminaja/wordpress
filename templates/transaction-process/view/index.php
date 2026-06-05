@@ -236,17 +236,23 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                         : '';
 
                                                     // For deficit rows, load WC order for accurate subtotal/discount/total.
-                                                    $kiriof_wcSubtotal      = 0.0;
-                                                    $kiriof_wcDiscountTotal = 0.0;
-                                                    $kiriof_wcTotal         = $kiriof_shippingFee; // fallback
+                                                    $kiriof_wcSubtotal           = 0.0;
+                                                    $kiriof_wcDiscountTotal      = 0.0;
+                                                    $kiriof_wcShippingDiscount   = 0.0;
+                                                    $kiriof_wcCouponCodes        = [];
+                                                    $kiriof_wcTotal              = $kiriof_shippingFee; // fallback
                                                     if ( $kiriof_isDeficitRow && ! empty( $kiriof_row->wc_order_id ) ) {
                                                         $_wcOrder = wc_get_order( (int) $kiriof_row->wc_order_id );
                                                         if ( $_wcOrder ) {
-                                                            $kiriof_wcSubtotal      = (float) $_wcOrder->get_subtotal();
-                                                            $kiriof_wcDiscountTotal = (float) $_wcOrder->get_discount_total();
-                                                            $kiriof_wcTotal         = (float) $_wcOrder->get_total();
+                                                            $kiriof_wcSubtotal         = (float) $_wcOrder->get_subtotal();
+                                                            $kiriof_wcDiscountTotal    = (float) $_wcOrder->get_discount_total();
+                                                            $kiriof_wcTotal            = (float) $_wcOrder->get_total();
+                                                            $kiriof_wcShippingDiscount = max( 0.0, $kiriof_shippingCost - (float) $_wcOrder->get_shipping_total() );
+                                                            $kiriof_wcCouponCodes      = $_wcOrder->get_coupon_codes();
                                                         }
                                                     }
+                                                    $kiriof_adjItemCoupon    = ! empty( $kiriof_wcCouponCodes[0] ) ? strtoupper( $kiriof_wcCouponCodes[0] ) : '';
+                                                    $kiriof_adjShipCoupon    = ! empty( $kiriof_wcCouponCodes[1] ) ? strtoupper( $kiriof_wcCouponCodes[1] ) : $kiriof_adjItemCoupon;
 
                                                     $kiriof_isProcessedFilter = ( 'processed' === $kiriof_status_filter );
                                                     $kiriof_checkboxDisabled = $kiriof_isDeficitRow || ! $kiriof_isProcessable || $kiriof_isProcessedFilter;
@@ -337,8 +343,10 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                                     . ' data-insurance-fee="' . esc_attr( $kiriof_insuranceCost ) . '"'
                                                                     . ' data-cod-fee="' . esc_attr( $kiriof_codFee ) . '"'
                                                                     . ' data-item-price="' . esc_attr( $kiriof_wcSubtotal ) . '"'
-                                                                    . ' data-discount-amount="' . esc_attr( $kiriof_wcDiscountTotal ) . '"'
-                                                                    . ' data-discount-code=""'
+                                                                    . ' data-item-discount="' . esc_attr( $kiriof_wcDiscountTotal ) . '"'
+                                                                    . ' data-shipping-discount="' . esc_attr( $kiriof_wcShippingDiscount ) . '"'
+                                                                    . ' data-item-coupon="' . esc_attr( $kiriof_adjItemCoupon ) . '"'
+                                                                    . ' data-shipping-coupon="' . esc_attr( $kiriof_adjShipCoupon ) . '"'
                                                                     . ' data-nonce="' . esc_attr( $kiriof_adj_nonce ) . '"'
                                                                     . ' title="' . esc_attr( __( 'Adjust Deficit', 'kiriminaja-official' ) ) . '"'
                                                                     . ' aria-label="' . esc_attr( __( 'Adjust Deficit', 'kiriminaja-official' ) ) . '">'

@@ -96,44 +96,49 @@
     window.kjShowCodAdjustModal = function (btn) {
         var $btn = $(btn);
 
-        var shippingCost   = parseFloat($btn.data('shippingCost'))   || 0;
-        var insuranceCost  = parseFloat($btn.data('insuranceFee'))   || 0;
-        var codFee         = parseFloat($btn.data('codFee'))         || 0;
-        var subTotal       = parseFloat($btn.data('itemPrice'))      || 0;
-        var discountAmount = parseFloat($btn.data('discountAmount')) || 0;
-        var discountCode   = $btn.data('discountCode')               || '';
-        var currentCod     = parseFloat($btn.data('currentCod'))     || 0;
-        var codMinimum     = parseFloat($btn.data('codMinimum'))     || 0;
-        var codMaximum     = parseFloat($btn.data('codMaximum'))     || 10000000;
-        var totalShipping  = shippingCost + insuranceCost + codFee;
-        var payout         = currentCod - shippingCost - insuranceCost - codFee;
+        var shippingCost     = parseFloat($btn.data('shippingCost'))      || 0;
+        var insuranceCost    = parseFloat($btn.data('insuranceFee'))      || 0;
+        var codFee           = parseFloat($btn.data('codFee'))            || 0;
+        var subTotal         = parseFloat($btn.data('itemPrice'))         || 0;
+        var itemDiscount     = parseFloat($btn.data('itemDiscount'))      || 0;
+        var shippingDiscount = parseFloat($btn.data('shippingDiscount'))  || 0;
+        var itemCoupon       = $btn.data('itemCoupon')                    || '';
+        var shippingCoupon   = $btn.data('shippingCoupon')               || '';
+        var currentCod       = parseFloat($btn.data('currentCod'))        || 0;
+        var codMinimum       = parseFloat($btn.data('codMinimum'))        || 0;
+        var codMaximum       = parseFloat($btn.data('codMaximum'))        || 10000000;
+        var totalShipping    = shippingCost + insuranceCost + codFee;
+        var payout           = currentCod - shippingCost - insuranceCost - codFee;
 
         $(document.body).WCBackboneModal({
             template: 'kiriof-modal-cod-adjustment',
             variable: {
-                order_id:           $btn.data('kaOrderId'),
-                nonce:              $btn.data('nonce') || nonce(),
-                cod_minimum:        codMinimum,
-                cod_maximum:        codMaximum,
-                current_cod:        currentCod,
-                shipping_cost:      shippingCost,
-                insurance_cost:     insuranceCost,
-                cod_fee:            codFee,
-                discount_amount:    discountAmount,
-                discount_code:      discountCode,
-                sub_total:          subTotal,
-                total_shipping:     totalShipping,
-                payout:             payout,
+                order_id:              $btn.data('kaOrderId'),
+                nonce:                 $btn.data('nonce') || nonce(),
+                cod_minimum:           codMinimum,
+                cod_maximum:           codMaximum,
+                current_cod:           currentCod,
+                shipping_cost:         shippingCost,
+                insurance_cost:        insuranceCost,
+                cod_fee:               codFee,
+                item_discount:         itemDiscount,
+                shipping_discount:     shippingDiscount,
+                item_coupon:           itemCoupon,
+                shipping_coupon:       shippingCoupon,
+                sub_total:             subTotal,
+                total_shipping:        totalShipping,
+                payout:                payout,
                 // Pre-formatted display values.
-                sub_total_fmt:      fmtRp(subTotal),
-                shipping_fmt:       fmtRp(shippingCost),
-                insurance_fmt:      fmtRp(insuranceCost),
-                cod_fee_fmt:        fmtRp(codFee),
-                total_shipping_fmt: fmtRp(totalShipping),
-                discount_fmt:       discountAmount > 0 ? ('-' + fmtRp(discountAmount)) : '',
-                current_cod_fmt:    fmtRp(currentCod),
-                payout_fmt:         fmtRp(payout),
-                payout_color:       payout <= 0 ? 'color:#d63638;' : 'color:#007017;'
+                sub_total_fmt:         fmtRp(subTotal),
+                shipping_fmt:          fmtRp(shippingCost),
+                insurance_fmt:         fmtRp(insuranceCost),
+                cod_fee_fmt:           fmtRp(codFee),
+                total_shipping_fmt:    fmtRp(totalShipping),
+                item_discount_fmt:     itemDiscount > 0     ? ('-' + fmtRp(itemDiscount))     : '',
+                shipping_discount_fmt: shippingDiscount > 0 ? ('-' + fmtRp(shippingDiscount)) : '',
+                current_cod_fmt:       fmtRp(currentCod),
+                payout_fmt:            fmtRp(payout),
+                payout_color:          payout <= 0 ? 'color:#d63638;' : 'color:#007017;'
             }
         });
     };
