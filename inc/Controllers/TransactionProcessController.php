@@ -656,7 +656,7 @@ class TransactionProcessController{
         }
 
         // Inline styles on the wrapper cell and inner table defeat WC's high-specificity td padding rules.
-        $wrap_style  = 'border-top:1px solid #eee!important;border-bottom:0!important;';
+        $wrap_style  = 'padding:8px 0;border-top:1px solid #eee!important;border-bottom:0!important;';
         $table_style = 'width:100%;border-collapse:collapse;font-size:13px;';
 
         return sprintf(

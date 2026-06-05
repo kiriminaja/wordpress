@@ -415,7 +415,6 @@ body {
 
 /* WC order preview compact summary — override heavy WC table padding */
 .wc-order-preview .wc-order-preview-table .kiriof-order-preview-summary-wrap-cell {
-  padding: 8px 0 !important;
   border-top: 1px solid #eee !important;
   border-bottom: 0 !important;
 }
