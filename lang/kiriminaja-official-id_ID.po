@@ -2362,6 +2362,14 @@ msgstr "Gagal memperbarui transaksi"
 msgid "Ins"
 msgstr "Asuransi"
 
+#: templates/order/metabox-shipping.php
+msgid "FREE"
+msgstr "GRATIS"
+
+#: templates/order/metabox-shipping.php
+msgid "Shipping Discount"
+msgstr "Diskon Ongkir"
+
 #: inc/Controllers/CodAdjustmentController.php
 msgid "Order cancelled successfully"
 msgstr "Pesanan berhasil dibatalkan"
@@ -2514,3 +2522,11 @@ msgstr "Nilai COD di bawah minimum yang diperlukan untuk menghindari defisit."
 msgid "MINUS"
 msgstr "MINUS"
 
+
+#: inc/Controllers/EditOrderController.php
+msgid "Original Shipping:"
+msgstr "Harga Ongkir Asli:"
+
+#: templates/order/metabox-shipping.php
+msgid "Item"
+msgstr "Item"

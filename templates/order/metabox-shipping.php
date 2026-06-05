@@ -8,14 +8,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * KiriminAja Shipping metabox — rendered on the WooCommerce order edit screen.
  *
  * Variables available:
- * @var array    $data              Shipping info from ShippingInfoServices.
- * @var string   $tracking_url      Public tracking page URL.
- * @var string   $detail_url        Admin KiriminAja transaction process page URL.
- * @var float    $wc_subtotal       WC order subtotal (product items, pre-shipping).
- * @var float    $wc_total          WC order grand total (= COD paid by buyer).
- * @var float    $wc_discount_total WC coupon discount total.
- * @var string[] $wc_coupon_codes   Coupon code strings applied to the order.
- * @var bool     $wc_needs_payment  Whether the WC order still needs payment.
+ * @var array    $data                Shipping info from ShippingInfoServices.
+ * @var string   $tracking_url        Public tracking page URL.
+ * @var string   $detail_url          Admin KiriminAja transaction process page URL.
+ * @var float    $wc_subtotal         WC order subtotal (product items, pre-shipping).
+ * @var float    $wc_total            WC order grand total (= COD paid by buyer).
+ * @var float    $wc_discount_total   WC coupon discount total (item discounts only).
+ * @var float    $wc_shipping_discount WC shipping-line discount (percentage/fixed shipping coupons).
+ * @var string[] $wc_coupon_codes     Coupon code strings applied to the order.
+ * @var bool     $wc_needs_payment    Whether the WC order still needs payment.
  */
 
 $kiriof_shipping_raw  = (float) ( $data['shipping_cost_raw']  ?? 0 );
@@ -26,6 +27,7 @@ $kiriof_total_shipping = $kiriof_shipping_raw + $kiriof_insurance_raw + $kiriof_
 $kiriof_is_cod        = $kiriof_cod_fee_raw > 0 || strtolower( $data['payment_type'] ?? '' ) === 'cod';
 $kiriof_is_deficit    = ! empty( $data['is_deficit'] );
 $kiriof_cod_minimum   = (float) ( $data['cod_minimum'] ?? 0 );
+$kiriof_wc_shipping_discount = isset( $wc_shipping_discount ) ? (float) $wc_shipping_discount : 0.0;
 
 // COD Paid By Buyer = WC order total; payout = total – total_shipping.
 $kiriof_cod_paid = $wc_total;
@@ -248,7 +250,9 @@ $kiriof_first_coupon       = ! empty( $wc_coupon_codes ) ? strtoupper( $wc_coupo
 
         <tr class="kiriof-mb-row-child">
             <td><?php esc_html_e( 'Shipping', 'kiriminaja-official' ); ?></td>
-            <td><?php echo wp_kses_post( wc_price( $kiriof_shipping_raw ) ); ?></td>
+            <td>
+                <?php echo wp_kses_post( wc_price( $kiriof_shipping_raw ) ); ?>
+            </td>
         </tr>
 
         <?php if ( $kiriof_insurance_raw > 0 ) : ?>
@@ -269,13 +273,29 @@ $kiriof_first_coupon       = ! empty( $wc_coupon_codes ) ? strtoupper( $wc_coupo
         <tr>
             <td>
                 <?php if ( $kiriof_first_coupon ) : ?>
-                    <span><?php echo esc_html( $kiriof_first_coupon ); ?></span>
-                    <span class="kiriof-mb-coupon-chip"><?php esc_html_e( 'Discount Code', 'kiriminaja-official' ); ?></span>
+                    <?php echo esc_html( $kiriof_first_coupon ); ?>
+                    <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e( 'Item', 'kiriminaja-official' ); ?></span>
                 <?php else : ?>
                     <?php esc_html_e( 'Discount', 'kiriminaja-official' ); ?>
                 <?php endif; ?>
             </td>
             <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post( wc_price( $kiriof_effective_discount ) ); ?></td>
+        </tr>
+        <?php endif; ?>
+
+        <?php if ( $kiriof_wc_shipping_discount > 0 ) :
+            $kiriof_ship_coupon = ! empty( $wc_coupon_codes[1] ) ? strtoupper( $wc_coupon_codes[1] ) : $kiriof_first_coupon;
+        ?>
+        <tr>
+            <td>
+                <?php if ( $kiriof_ship_coupon ) : ?>
+                    <?php echo esc_html( $kiriof_ship_coupon ); ?>
+                    <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e( 'Shipping', 'kiriminaja-official' ); ?></span>
+                <?php else : ?>
+                    <?php esc_html_e( 'Shipping Discount', 'kiriminaja-official' ); ?>
+                <?php endif; ?>
+            </td>
+            <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post( wc_price( $kiriof_wc_shipping_discount ) ); ?></td>
         </tr>
         <?php endif; ?>
 

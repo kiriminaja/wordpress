@@ -415,7 +415,7 @@ body {
 
 /* WC order preview compact summary — override heavy WC table padding */
 .wc-order-preview .wc-order-preview-table .kiriof-order-preview-summary-wrap-cell {
-  padding: 8px 1.5em !important;
+  padding: 8px 0 !important;
   border-top: 1px solid #eee !important;
   border-bottom: 0 !important;
 }
@@ -424,21 +424,24 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: auto;
 }
 
-.kiriof-order-preview-compact-summary td {
-  padding: 3px 0;
+/* Match WC specificity to override .wc-order-preview .wc-order-preview-table td */
+.wc-order-preview .wc-order-preview-table .kiriof-order-preview-compact-summary td {
+  padding: 4px 0;
   vertical-align: middle;
   border: 0;
   text-align: left;
 }
 
-.kiriof-order-preview-compact-summary td:last-child {
+.wc-order-preview .wc-order-preview-table .kiriof-order-preview-compact-summary td:last-child {
   text-align: right;
-  width: 130px;
+  white-space: nowrap;
+  width: 1%;
 }
 
-.kiriof-order-preview-compact-summary .kiriof-compact-separator-row td {
+.wc-order-preview .wc-order-preview-table .kiriof-order-preview-compact-summary .kiriof-compact-separator-row td {
   border-top: 1px solid #dcdcde;
   padding-top: 8px;
 }

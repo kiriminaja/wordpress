@@ -579,15 +579,21 @@ class TransactionProcessController{
         $price_args  = array( 'currency' => $order->get_currency() );
         $total_cols  = wc_tax_enabled() ? 4 : 3;
 
-        $shipping_cost   = (float) ( $transaction->shipping_cost ?? 0 );
-        $insurance_cost  = (float) ( $transaction->insurance_cost ?? 0 );
-        $cod_fee         = (float) ( $transaction->cod_fee ?? 0 );
-        $discount_amount = (float) ( $transaction->discount_amount ?? 0 );
-        $is_cod          = $cod_fee > 0 || 'cod' === strtolower( (string) $order->get_payment_method() );
+        $shipping_cost  = (float) ( $transaction->shipping_cost ?? 0 );
+        $insurance_cost = (float) ( $transaction->insurance_cost ?? 0 );
+        $cod_fee        = (float) ( $transaction->cod_fee ?? 0 );
+        $is_cod         = $cod_fee > 0 || 'cod' === strtolower( (string) $order->get_payment_method() );
 
         $sub_total      = (float) $order->get_subtotal();
         $total_shipping = $shipping_cost + $insurance_cost + $cod_fee;
         $cod_paid       = (float) $order->get_total();
+
+        // Compute discount breakdown from WC order (mirrors metabox logic).
+        $wc_item_discount     = (float) $order->get_discount_total();
+        $wc_shipping_discount = max( 0.0, $shipping_cost - (float) $order->get_shipping_total() );
+        $wc_coupon_codes      = $order->get_coupon_codes();
+        $first_coupon         = ! empty( $wc_coupon_codes ) ? strtoupper( $wc_coupon_codes[0] ) : '';
+        $second_coupon        = ! empty( $wc_coupon_codes[1] ) ? strtoupper( $wc_coupon_codes[1] ) : $first_coupon;
 
         $inner = '';
 
@@ -603,8 +609,24 @@ class TransactionProcessController{
             $inner .= $this->buildCompactPreviewRow( '&nbsp;&nbsp;&nbsp;' . __( 'COD Fee', 'kiriminaja-official' ), wc_price( $cod_fee, $price_args ), 'color:#50575e;' );
         }
 
-        if ( $discount_amount > 0 ) {
-            $inner .= $this->buildCompactPreviewRow( __( 'Discount', 'kiriminaja-official' ), wc_price( -$discount_amount, $price_args ), 'color:#007017;' );
+        // Item discount row: "CODE  Item" (or plain "Discount" if no coupon).
+        if ( $wc_item_discount > 0 ) {
+            if ( $first_coupon ) {
+                $item_label = $first_coupon . ' <span style="color:#8c8f94;font-size:11px;">' . esc_html__( 'Item', 'kiriminaja-official' ) . '</span>';
+            } else {
+                $item_label = __( 'Discount', 'kiriminaja-official' );
+            }
+            $inner .= $this->buildCompactPreviewRow( $item_label, wc_price( -$wc_item_discount, $price_args ), 'color:#007017;' );
+        }
+
+        // Shipping discount row: "CODE  Shipping" (or plain "Shipping Discount" if no coupon).
+        if ( $wc_shipping_discount > 0 ) {
+            if ( $second_coupon ) {
+                $ship_label = $second_coupon . ' <span style="color:#8c8f94;font-size:11px;">' . esc_html__( 'Shipping', 'kiriminaja-official' ) . '</span>';
+            } else {
+                $ship_label = __( 'Shipping Discount', 'kiriminaja-official' );
+            }
+            $inner .= $this->buildCompactPreviewRow( $ship_label, wc_price( -$wc_shipping_discount, $price_args ), 'color:#007017;' );
         }
 
         if ( $is_cod ) {
@@ -615,9 +637,15 @@ class TransactionProcessController{
             $inner .= $this->buildCompactPreviewRow( __( 'Total', 'kiriminaja-official' ), wc_price( $cod_paid, $price_args ), '', true );
         }
 
+        // Inline styles on the wrapper cell and inner table defeat WC's high-specificity td padding rules.
+        $wrap_style  = 'padding:8px 0!important;border-top:1px solid #eee!important;border-bottom:0!important;';
+        $table_style = 'width:100%;border-collapse:collapse;font-size:13px;';
+
         return sprintf(
-            '<tr><td class="kiriof-order-preview-summary-wrap-cell" colspan="%d"><table class="kiriof-order-preview-compact-summary"><tbody>%s</tbody></table></td></tr>',
+            '<tr><td class="kiriof-order-preview-summary-wrap-cell" colspan="%d" style="%s"><table class="kiriof-order-preview-compact-summary" style="%s"><tbody>%s</tbody></table></td></tr>',
             (int) $total_cols,
+            esc_attr( $wrap_style ),
+            esc_attr( $table_style ),
             $inner
         );
     }
@@ -625,17 +653,25 @@ class TransactionProcessController{
     private function buildCompactPreviewRow( $label, $amount_html, $value_style = '', $is_separator = false, $is_bold = false ) {
         $label_html  = wp_kses_post( (string) $label );
         $value_style = esc_attr( $value_style );
-        $row_class   = $is_separator ? ' class="kiriof-compact-separator-row"' : '';
         $b_open      = ( $is_separator || $is_bold ) ? '<strong>' : '';
         $b_close     = ( $is_separator || $is_bold ) ? '</strong>' : '';
 
+        // Inline td styles ensure WC's `.wc-order-preview-table td { padding:1em 1.5em }` cannot override.
+        $td_base     = 'padding:4px 0;vertical-align:middle;border:0;text-align:left;';
+        $td_val      = $td_base . 'text-align:right;white-space:nowrap;width:1%;' . $value_style;
+
+        if ( $is_separator ) {
+            $td_base .= 'border-top:1px solid #dcdcde;padding-top:8px;';
+            $td_val  .= 'border-top:1px solid #dcdcde;padding-top:8px;';
+        }
+
         return sprintf(
-            '<tr%s><td>%s%s%s</td><td style="%s">%s%s%s</td></tr>',
-            $row_class,
+            '<tr><td style="%s">%s%s%s</td><td style="%s">%s%s%s</td></tr>',
+            esc_attr( $td_base ),
             $b_open,
             $label_html,
             $b_close,
-            $value_style,
+            esc_attr( $td_val ),
             $b_open,
             $amount_html,
             $b_close
