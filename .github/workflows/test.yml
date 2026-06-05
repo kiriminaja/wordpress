@@ -45,16 +45,13 @@ jobs:
         run: make test
 
       - name: Build official zip
-        run: make zip
-
-      - name: Resolve plugin version
-        id: version
-        run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
+        run: make zip plain
 
       - name: Unpack staged build for Plugin Check
         run: |
+          test -f kiriminaja-official.zip || { echo "ERROR: kiriminaja-official.zip not found"; exit 1; }
           mkdir -p /tmp/pcp
-          unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
+          unzip -q "kiriminaja-official.zip" -d /tmp/pcp
           ls -la /tmp/pcp/kiriminaja-official
 
       - name: Create wp-env config in plugin dir
@@ -78,6 +75,14 @@ jobs:
             performance
             accessibility
           ignore-warnings: false
+
+      - name: Upload Plugin Check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-check-results
+          path: /tmp/pcp/kiriminaja-official
+          retention-days: 7
 
   wordpress:
     name: "Integration (WP latest / WC latest / PHP 8.1)"
