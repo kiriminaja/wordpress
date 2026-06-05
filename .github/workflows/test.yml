@@ -167,19 +167,42 @@ jobs:
 
       - name: Run Plugin Check (WP.org compliance)
         id: plugin-check
-        continue-on-error: true
         run: |
+          set -o pipefail
           wp plugin check kiriminaja-official \
             --path=/tmp/wordpress \
             --allow-root \
             --format=json \
             --categories=general,plugin_repo,security,performance,accessibility \
             | tee /tmp/plugin-check-results.json
-          # Surface error count in summary
-          ERRORS=$(php -r '$d=json_decode(file_get_contents("/tmp/plugin-check-results.json"),true); echo array_sum(array_column($d??[],"errors"));' 2>/dev/null || echo "?")
-          WARNINGS=$(php -r '$d=json_decode(file_get_contents("/tmp/plugin-check-results.json"),true); echo array_sum(array_column($d??[],"warnings"));' 2>/dev/null || echo "?")
+          # Parse error/warning counts and fail explicitly if any errors found
+          ERRORS=$(php -r '
+            $content = file_get_contents("/tmp/plugin-check-results.json");
+            $sections = preg_split("/^FILE: /m", $content, -1, PREG_SPLIT_NO_EMPTY);
+            $count = 0;
+            foreach ($sections as $s) {
+              $nl = strpos($s, "\n");
+              $items = json_decode(trim(substr($s, $nl)), true) ?: [];
+              foreach ($items as $i) { if ($i["type"]==="ERROR") $count++; }
+            }
+            echo $count;
+          ')
+          WARNINGS=$(php -r '
+            $content = file_get_contents("/tmp/plugin-check-results.json");
+            $sections = preg_split("/^FILE: /m", $content, -1, PREG_SPLIT_NO_EMPTY);
+            $count = 0;
+            foreach ($sections as $s) {
+              $nl = strpos($s, "\n");
+              $items = json_decode(trim(substr($s, $nl)), true) ?: [];
+              foreach ($items as $i) { if ($i["type"]==="WARNING") $count++; }
+            }
+            echo $count;
+          ')
           echo "Plugin Check: ${ERRORS} error(s), ${WARNINGS} warning(s)"
-          echo "errors=${ERRORS}" >> "$GITHUB_OUTPUT"
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error::Plugin Check found ${ERRORS} error(s). Fix them before merging."
+            exit 1
+          fi
 
       - name: Upload Plugin Check results
         if: always()
