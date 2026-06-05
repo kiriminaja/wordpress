@@ -80,9 +80,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-check-results
+          name: plugin-check-build
           path: /tmp/pcp/kiriminaja-official
-          retention-days: 7
+          overwrite: true
 
   wordpress:
     name: "Integration (WP latest / WC latest / PHP 8.1)"
