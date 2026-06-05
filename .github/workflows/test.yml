@@ -115,9 +115,16 @@ jobs:
         run: |
           wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
 
-      - name: Install plugin
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-build
+          path: /tmp/plugin-build
+
+      - name: Install plugin from clean build
         run: |
-          cp -r $GITHUB_WORKSPACE /tmp/wordpress/wp-content/plugins/kiriminaja-official
+          test -f /tmp/plugin-build/kiriminaja-official.zip || { echo "ERROR: build artifact not found"; exit 1; }
+          unzip -q /tmp/plugin-build/kiriminaja-official.zip -d /tmp/wordpress/wp-content/plugins/
 
       - name: Activate plugin
         run: |

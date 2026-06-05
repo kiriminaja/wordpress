@@ -23,8 +23,8 @@ $max_cod = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? KIRIOF_MAX_COD_AMOUNT : 3000000;
 
         <p class="kiriof-modal__description">
             <?php
-            /* translators: placeholder is the KiriminAja order ID */
             printf(
+                /* translators: %s is the KiriminAja order ID */
                 esc_html__( 'Adjust your COD value to the applicable terms and conditions to continue the shipping process with order id: %s.', 'kiriminaja-official' ),
                 '<strong id="kiriof-modal-order-id"></strong>'
             );
