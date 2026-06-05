@@ -6,3 +6,4 @@ node_modules
 vendor
 build
 .phpunit.cache
+.env
