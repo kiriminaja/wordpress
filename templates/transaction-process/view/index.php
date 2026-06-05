@@ -613,7 +613,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     $scheduleList.append(`
                         <div class="kiriof-schedule-option">
                             <div class="kiriof-schedule-option-row">
-                                <input id="opt_${schedule?.clock}" value="${schedule?.clock}" type="radio" name="schedule-opt">
+                                <input id="opt_${schedule?.clock}" value="${schedule?.clock}" type="radio" name="schedule_opt">
                                 <span class="kiriof-schedule-option-label">
                                     <label for="opt_${schedule?.clock}">${schedule?.label}</label>                                
                                 </span>
