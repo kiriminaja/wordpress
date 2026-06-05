@@ -384,10 +384,10 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                             . ' aria-label="' . esc_attr(__('Cancel Deficit Order', 'kiriminaja-official')) . '">'
                             . '<span class="dashicons dashicons-no-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
                             : (
-                                (! empty($kiriof_awb) && 'request_pickup' === $kiriof_row->status
+                                (! empty( $kiriof_awb ) && 'request_pickup' === $kiriof_row->status
                                     ? ' <a href="' . esc_url($kiriof_print_base_url . '&oids=' . urlencode($kiriof_orderIdKA) . '&_wpnonce=' . $kiriof_print_nonce) . '" target="_blank" class="button" title="' . esc_attr(__('Print', 'kiriminaja-official')) . '" aria-label="' . esc_attr(__('Print', 'kiriminaja-official')) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px"><span class="dashicons dashicons-printer" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>'
                                     : '') .
-                                (! empty($kiriof_awb) && ! in_array($kiriof_row->status, ['shipped', 'finished', 'returned', 'return', 'canceled'], true)
+                                (! empty( $kiriof_awb ) && ! in_array($kiriof_row->status, ['shipped', 'finished', 'returned', 'return', 'canceled'], true)
                                     ? ' <button class="button" style="color:#d63638;padding:4px;width:32px;height:32px;border:none;box-shadow:none" onclick="kjShowCancelModal(\'' . esc_js($kiriof_orderIdKA) . '\')" title="' . esc_attr(__('Cancel', 'kiriminaja-official')) . '" aria-label="' . esc_attr(__('Cancel', 'kiriminaja-official')) . '"><span class="dashicons dashicons-no-alt" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
                                     : '')
                             )) . '
