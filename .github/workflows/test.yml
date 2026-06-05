@@ -47,45 +47,15 @@ jobs:
       - name: Build official zip
         run: make zip plain
 
-      - name: Unpack staged build for Plugin Check
-        run: |
-          test -f kiriminaja-official.zip || { echo "ERROR: kiriminaja-official.zip not found"; exit 1; }
-          mkdir -p /tmp/pcp
-          unzip -q "kiriminaja-official.zip" -d /tmp/pcp
-          ls -la /tmp/pcp/kiriminaja-official
-
-      - name: Create wp-env config in plugin dir
-        run: |
-          echo '{"testsEnvironment":false}' > /tmp/pcp/kiriminaja-official/.wp-env.json
-
-      - name: WordPress Plugin Check (WP.org compliance)
-        timeout-minutes: 15
-        # Pin v1.1.4 until wordpress/plugin-check-action@v1 reliably runs
-        # wp-env on GitHub's Node 24 runner. v1.1.5+ can report
-        # "Environment not initialized" immediately after wp-env start.
-        uses: wordpress/plugin-check-action@v1.1.4
-        continue-on-error: true
-        with:
-          build-dir: /tmp/pcp/kiriminaja-official
-          wp-version: "latest"
-          categories: |
-            general
-            plugin_repo
-            security
-            performance
-            accessibility
-          ignore-warnings: false
-
-      - name: Upload Plugin Check results
-        if: always()
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-check-build
-          path: /tmp/pcp/kiriminaja-official
+          name: plugin-build
+          path: kiriminaja-official.zip
           overwrite: true
 
   wordpress:
-    name: "Integration (WP latest / WC latest / PHP 8.1)"
+    name: "Integration + Plugin Check (WP latest / WC latest / PHP 8.1)"
     runs-on: ubuntu-latest
     needs: static
 
@@ -183,3 +153,31 @@ jobs:
           wp plugin deactivate kiriminaja-official --path=/tmp/wordpress --allow-root
           wp plugin activate kiriminaja-official --path=/tmp/wordpress --allow-root
           wp eval 'echo "Reactivation OK\n";' --path=/tmp/wordpress --allow-root
+
+      - name: Install plugin-check
+        run: |
+          wp plugin install plugin-check --activate --path=/tmp/wordpress --allow-root
+
+      - name: Run Plugin Check (WP.org compliance)
+        id: plugin-check
+        continue-on-error: true
+        run: |
+          wp plugin check kiriminaja-official \
+            --path=/tmp/wordpress \
+            --allow-root \
+            --format=json \
+            --categories=general,plugin_repo,security,performance,accessibility \
+            | tee /tmp/plugin-check-results.json
+          # Surface error count in summary
+          ERRORS=$(php -r '$d=json_decode(file_get_contents("/tmp/plugin-check-results.json"),true); echo array_sum(array_column($d??[],"errors"));' 2>/dev/null || echo "?")
+          WARNINGS=$(php -r '$d=json_decode(file_get_contents("/tmp/plugin-check-results.json"),true); echo array_sum(array_column($d??[],"warnings"));' 2>/dev/null || echo "?")
+          echo "Plugin Check: ${ERRORS} error(s), ${WARNINGS} warning(s)"
+          echo "errors=${ERRORS}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Plugin Check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-check-results
+          path: /tmp/plugin-check-results.json
+          overwrite: true
