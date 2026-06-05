@@ -44,7 +44,7 @@ jobs:
           fi
 
       - name: Build ZIP (official variant — WP.org-ready)
-        run: make zip
+        run: make zip plain
 
       - name: Extract changelog from readme.txt
         id: changelog
@@ -128,10 +128,10 @@ jobs:
 
             ### Assets
 
-            - `kiriminaja-official-${{ steps.version.outputs.version }}.zip` — WP.org-ready build.
+            - `kiriminaja-official.zip` — WP.org-ready build (v${{ steps.version.outputs.version }}).
           generate_release_notes: true
           files: |
-            kiriminaja-official-${{ steps.version.outputs.version }}.zip
+            kiriminaja-official.zip
           make_latest: ${{ steps.version.outputs.prerelease == 'false' && 'true' || 'false' }}
 
       - name: Deploy to WordPress.org SVN
