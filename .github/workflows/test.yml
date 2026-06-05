@@ -168,14 +168,15 @@ jobs:
       - name: Run Plugin Check (WP.org compliance)
         id: plugin-check
         run: |
-          set -o pipefail
+          # wp plugin check exits 1 for any issue (errors OR warnings).
+          # Capture output regardless, then fail only on errors.
           wp plugin check kiriminaja-official \
             --path=/tmp/wordpress \
             --allow-root \
             --format=json \
             --categories=general,plugin_repo,security,performance,accessibility \
-            | tee /tmp/plugin-check-results.json
-          # Parse error/warning counts and fail explicitly if any errors found
+            > /tmp/plugin-check-results.json 2>&1 || true
+          cat /tmp/plugin-check-results.json
           ERRORS=$(php -r '
             $content = file_get_contents("/tmp/plugin-check-results.json");
             $sections = preg_split("/^FILE: /m", $content, -1, PREG_SPLIT_NO_EMPTY);
