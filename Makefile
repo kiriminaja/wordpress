@@ -31,7 +31,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.phpunit.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: zip clean changelog release test tag publish dev stg
+.PHONY: zip clean changelog release test tag publish dev stg plain
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -58,11 +58,17 @@ else
   ZIP_FILE     := $(PLUGIN_SLUG)-$(VERSION).zip
 endif
 
+# plain: output kiriminaja-official.zip regardless of env/version.
+ifneq ($(filter plain,$(MAKECMDGOALS)),)
+  ZIP_FILE := $(PLUGIN_SLUG).zip
+  $(eval plain:;@:)
+endif
+
 # Allow positional version: `make release 2.1.9` or `make release v2.1.9`
 # Any extra goals after release/publish/changelog are treated as V=<version>.
 RELEASE_GOALS := $(filter release publish changelog,$(MAKECMDGOALS))
 ifneq ($(RELEASE_GOALS),)
-  EXTRA_GOALS := $(filter-out release publish changelog tag zip clean test dev stg,$(MAKECMDGOALS))
+  EXTRA_GOALS := $(filter-out release publish changelog tag zip clean test dev stg plain,$(MAKECMDGOALS))
   ifneq ($(EXTRA_GOALS),)
     V := $(patsubst v%,%,$(firstword $(EXTRA_GOALS)))
     # Make the extra args no-op targets so Make doesn't error out.
