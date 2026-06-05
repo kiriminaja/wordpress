@@ -46,6 +46,10 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['oid_prefix']), array('key' => 'oid_prefix')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['setup_key']), array('key' => 'setup_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+        // Store merchant type from API response. is_top = 'yes' means TOP merchant (published rate, no discount).
+        $isTop = isset( $payload['is_top'] ) ? ( $payload['is_top'] ? 'yes' : 'no' ) : 'no';
+        $wpdb->update( $this->table, array( 'value' => $isTop ), array( 'key' => 'is_top' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     
         return true;
     }
@@ -57,6 +61,7 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => null), array('key' => 'oid_prefix')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => null), array('key' => 'setup_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => null), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update( $this->table, array( 'value' => 'no' ), array( 'key' => 'is_top' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return true;
     }
     public function getOriginData(){

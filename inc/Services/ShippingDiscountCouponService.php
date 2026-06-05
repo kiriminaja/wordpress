@@ -47,6 +47,16 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
         }
 
+        // TOP merchants see published rates — custom shipping discount coupons do not apply.
+        if ( $this->isMerchantTop() ) {
+            return $this->invalid( __( 'Shipping discount coupons are not available for your account type.', 'kiriminaja-official' ) );
+        }
+
+        // Free shipping and a shipping discount coupon cannot both reduce the same shipping cost.
+        if ( $this->hasActiveFreeShippingCoupon() ) {
+            return $this->invalid( __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
+        }
+
         $destination = $this->getDestinationContext();
         if ( $destination['id'] < 1 && '' === $destination['name'] ) {
             return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
@@ -96,6 +106,12 @@ class ShippingDiscountCouponService {
         );
 
         if ( $this->hasActiveFreeShippingCoupon() ) {
+            $result['notice'] = __( 'Shipping discount coupon not applied — free shipping is active.', 'kiriminaja-official' );
+            return $result;
+        }
+
+        // TOP merchants see published rates only — custom coupons do not apply.
+        if ( $this->isMerchantTop() ) {
             return $result;
         }
 
@@ -495,6 +511,16 @@ class ShippingDiscountCouponService {
         }
 
         return false;
+    }
+
+    /**
+     * Returns true if the authenticated merchant is a TOP (published rate) account.
+     * TOP merchants see published shipping rates — custom shipping discount coupons do not apply.
+     * is_top is stored during setup key integration (from API response) and reset on disconnect.
+     */
+    private function isMerchantTop(): bool {
+        $setting = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'is_top' );
+        return $setting && 'yes' === (string) ( $setting->value ?? 'no' );
     }
 
     private function normalizeText( string $value ): string {
