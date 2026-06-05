@@ -150,9 +150,13 @@ class CodDeficitService extends BaseService {
         $minimumCustomCod = (float) ( $call1[0]->minimum_custom_cod ?? 0 );
 
         // Call 2: get actual fee and support check for the real COD amount.
+        // Floor custom_cod to max(totalCod, itemPrice, 100000) so very low amounts
+        // don't cause API errors — mirrors the Shopify TS Math.max(totalCod, itemValue, 100000) guard.
+        $customCodForFee = max( (int) $totalCod, (int) $itemPrice, 100000 );
+
         $call2 = $repo->calculateBulkCod( [
             'item_price'                    => (int) $itemPrice,
-            'custom_cod'                    => (int) $totalCod,
+            'custom_cod'                    => $customCodForFee,
             'exclude_cod_amount_validation' => false,
             'couriers'                      => $courierData,
         ] );
