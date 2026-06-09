@@ -474,7 +474,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 8px 0;
+  padding: 16px;
 }
 
 .wc-backbone-modal.kiriof-backbone-modal
