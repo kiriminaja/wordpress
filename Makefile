@@ -112,7 +112,14 @@ clean:
 
 zip: clean
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
-	msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo
+	@if command -v msgfmt >/dev/null 2>&1; then \
+		msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo; \
+	elif [ -f lang/kiriminaja-official-id_ID.mo ]; then \
+		echo "msgfmt not found; using committed lang/kiriminaja-official-id_ID.mo"; \
+	else \
+		echo "Error: msgfmt not found and lang/kiriminaja-official-id_ID.mo is missing"; \
+		exit 127; \
+	fi
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
