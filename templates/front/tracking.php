@@ -165,7 +165,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <td>${trackData.status}</td>
                             </tr>`)
                     });
-                    return;
+                    return
                 }
 
                 jQuery('.state-err').removeClass('kj-hidden')
@@ -184,8 +184,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         const urlParams = new URLSearchParams(window.location.search);
         const orderIdToLoad = urlParams.get('order_id');
         if (orderIdToLoad) {
-            jQuery('[name="order_number"]').val(orderIdToLoad);
-            trackOrder();
+            jQuery('[name="order_number"]').val(orderIdToLoad)
+            trackOrder()
         }
     });
     
