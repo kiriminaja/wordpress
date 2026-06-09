@@ -303,20 +303,20 @@ final class InsuranceFeatureTest extends TestCase
     }
 
     #[Test]
-    public function pickup_service_uses_saved_destination_area_name_instead_of_customer_name(): void
+    public function pickup_service_uses_customer_name_for_destination_name(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
 
         $this->assertStringContainsString(
-            "_shipping_kiriof_destination_name",
+            "\$firstName = \$shipping_info->_shipping_first_name ?? \$shipping_info->_billing_first_name ?? '';",
             $content,
-            'SendRequestPickupTransactionService must source destination_name from saved destination area labels'
+            'SendRequestPickupTransactionService must source destination_name from the shipping recipient first name with billing fallback'
         );
 
-        $this->assertStringNotContainsString(
-            "trim(\$firstName . ' ' . \$lastName)",
+        $this->assertStringContainsString(
+            "\$lastName = \$shipping_info->_shipping_last_name ?? \$shipping_info->_billing_last_name ?? '';",
             $content,
-            'SendRequestPickupTransactionService must not send the customer full name as destination_name'
+            'SendRequestPickupTransactionService must source destination_name from the shipping recipient last name with billing fallback'
         );
     }
 
