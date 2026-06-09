@@ -2077,6 +2077,10 @@ msgstr "Diskon Ongkir (%s)"
 msgid "Shipping Discounts"
 msgstr "Diskon Ongkir"
 
+#: inc/Controllers/CheckoutController.php
+msgid "Actual Shipping"
+msgstr "Ongkir Aktual"
+
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Save %s"
 msgstr "Hemat %s"
@@ -2306,14 +2310,6 @@ msgid "Free shipping"
 msgstr "Gratis ongkir"
 
 #: inc/Controllers/CodAdjustmentController.php
-msgid "Insufficient permissions"
-msgstr "Izin tidak mencukupi"
-
-#: inc/Controllers/CodAdjustmentController.php
-msgid "Security check failed"
-msgstr "Pemeriksaan keamanan gagal"
-
-#: inc/Controllers/CodAdjustmentController.php
 msgid "Invalid parameters"
 msgstr "Parameter tidak valid"
 
@@ -2369,10 +2365,6 @@ msgstr "Asuransi"
 msgid "FREE"
 msgstr "GRATIS"
 
-#: templates/order/metabox-shipping.php
-msgid "Shipping Discount"
-msgstr "Diskon Ongkir"
-
 #: inc/Controllers/CodAdjustmentController.php
 msgid "Order cancelled successfully"
 msgstr "Pesanan berhasil dibatalkan"
@@ -2390,28 +2382,8 @@ msgid "Adjust your COD value to the applicable terms and conditions to continue 
 msgstr "Sesuaikan nilai COD Anda sesuai syarat dan ketentuan yang berlaku untuk melanjutkan proses pengiriman dengan id pesanan: %s."
 
 #: templates/order/partials/cod-adjustment-modal.php
-msgid "COD Value"
-msgstr "Nilai COD"
-
-#: templates/order/partials/cod-adjustment-modal.php
-msgid "Sub Total"
-msgstr "Sub Total"
-
-#: templates/order/partials/cod-adjustment-modal.php
 msgid "Total Shipping"
 msgstr "Total Ongkir"
-
-#: templates/order/partials/cod-adjustment-modal.php
-msgid "Shipping"
-msgstr "Ongkir"
-
-#: templates/order/partials/cod-adjustment-modal.php
-msgid "Insurance"
-msgstr "Asuransi"
-
-#: templates/order/partials/cod-adjustment-modal.php
-msgid "COD Fee"
-msgstr "Biaya COD"
 
 #: templates/order/partials/cod-adjustment-modal.php
 msgid "Discount Code"
@@ -2428,10 +2400,6 @@ msgstr "Estimasi Pencairan COD"
 #: templates/order/partials/cod-adjustment-modal.php
 msgid "Confirm & Process"
 msgstr "Konfirmasi & Proses"
-
-#: templates/order/partials/cod-adjustment-modal.php
-msgid "Close"
-msgstr "Tutup"
 
 #: inc/Base/Enqueue.php
 msgid "Minimum {min} to avoid COD Settlement deficit"

@@ -885,6 +885,10 @@ class CheckoutController
         if( $shipping_discount > 0 ){
             $html .= '
             <tr>
+				<th scope="row">'.esc_html__('Actual Shipping','kiriminaja-official').':</th>
+				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transaction_shipping_cost).'</td>
+			</tr>
+            <tr>
 				<th scope="row">'.esc_html__('Shipping Discount','kiriminaja-official').':</th>
 				<td class="wc-block-order-confirmation-totals__total">-'.wc_price($shipping_discount).'</td>
 			</tr>';

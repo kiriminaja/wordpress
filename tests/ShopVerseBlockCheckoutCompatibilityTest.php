@@ -1782,6 +1782,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Order details should render a dedicated shipping discount row when KiriminAja raw shipping exceeds the discounted Woo shipping total'
         );
 
+        $this->assertStringContainsString(
+            'Actual Shipping',
+            $methodBody,
+            'Order details should render the original shipping amount before the shipping discount so buyers can see the full breakdown'
+        );
+
         $this->assertStringNotContainsString(
             '? $transactionKiriminaja->cod_fee : 0',
             $methodBody,

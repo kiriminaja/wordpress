@@ -507,6 +507,10 @@ msgstr ""
 msgid "Insurance Fee"
 msgstr ""
 
+#: inc/Controllers/CheckoutController.php
+msgid "Actual Shipping"
+msgstr ""
+
 #: inc/Controllers/GeneralAjaxController.php:44
 #: inc/Controllers/GeneralAjaxController.php:57
 #: inc/Controllers/GeneralAjaxController.php:93

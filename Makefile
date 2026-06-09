@@ -112,6 +112,7 @@ clean:
 
 zip: clean
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
+	msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
