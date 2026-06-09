@@ -34,7 +34,9 @@ class SendRequestPickupTransactionService extends BaseService
 
     private function sanitizeApiName($value)
     {
-        return preg_replace('/[^a-zA-Z\d\s]/', '', (string) $value);
+        $decodedValue = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return preg_replace('/[^a-zA-Z\d\s]/', '', $decodedValue);
     }
 
     private function appendPickupDiscountFields(array $payload, $transaction)

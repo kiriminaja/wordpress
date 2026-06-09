@@ -332,6 +332,12 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            "html_entity_decode((string) \$value, ENT_QUOTES | ENT_HTML5, 'UTF-8')",
+            $content,
+            'Pickup name sanitization must decode HTML entities before removing unsupported characters'
+        );
+
+        $this->assertStringContainsString(
             '"name"          => $this->sanitizeApiName($getOriginData[\'origin_name\'] ?? \'\')',
             $content,
             'Pickup request payload must sanitize origin_name before sending it'
