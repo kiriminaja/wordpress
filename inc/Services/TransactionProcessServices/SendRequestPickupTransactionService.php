@@ -181,14 +181,29 @@ class SendRequestPickupTransactionService extends BaseService
             $note = preg_replace('/[^a-zA-Z\d.\/:,\+\-()\'\"_&;?\s]/', '', $note);
             
             // Get shipping/billing info with fallbacks
-            $firstName = $shipping_info->_shipping_first_name ?? $shipping_info->_billing_first_name ?? '';
-            $lastName = $shipping_info->_shipping_last_name ?? $shipping_info->_billing_last_name ?? '';
             $address1 = $shipping_info->_shipping_address_1 ?? $shipping_info->_billing_address_1 ?? '';
             $address2 = $shipping_info->_shipping_address_2 ?? $shipping_info->_billing_address_2 ?? '';
+            $destinationName = '';
+
+            if ($order) {
+                $destinationName = (string) $order->get_meta('_shipping_kiriof_destination_name', true);
+
+                if ($destinationName === '') {
+                    $destinationName = (string) $order->get_meta('_billing_kiriof_destination_name', true);
+                }
+
+                if ($destinationName === '') {
+                    $destinationName = (string) $order->get_meta('_kiriof_checkout_destination_area_name', true);
+                }
+            }
+
+            if ($destinationName === '') {
+                $destinationName = (string) ($transaction->destination_sub_district ?? '');
+            }
             
             $result = [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => trim($firstName . ' ' . $lastName),
+                "destination_name"          => $destinationName,
                 "destination_phone"         => $shipping_info->_billing_phone ?? '',
                 "destination_address"       => trim($address1 . ' ' . $address2 . ', ' . ($transaction->destination_sub_district ?? '')),
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
