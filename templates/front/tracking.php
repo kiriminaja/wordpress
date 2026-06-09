@@ -95,14 +95,20 @@ if ( ! defined( 'ABSPATH' ) ) {
         hideStateComponent()
         jQuery('.state-loading').removeClass('kj-hidden')
 
-        wp.ajax.post( "kiriof-tracking-ajax", {
-            order_number:jQuery('[name="order_number"]').val()
-        }).done(function(response) {  
-                              
-            hideStateComponent()
-            jQuery('.track-btn').removeClass('kj-hidden')
+        jQuery.ajax({
+            type: 'POST',
+            url: kiriofAjaxRoute(),
+            data: {
+                action: 'kiriof-tracking-ajax',
+                order_number: jQuery('[name="order_number"]').val()
+            },
+            success: function(res) {
+                var response = res && res.success ? res.data : null;
 
-            if (response.status === 200){
+                hideStateComponent()
+                jQuery('.track-btn').removeClass('kj-hidden')
+
+                if (response && response.status === 200){
                     jQuery('.state-success').removeClass('kj-hidden')
 
                     const trackingHistories = response?.data?.histories ?? [];
@@ -150,20 +156,26 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <td>${trackData.created_at}</td>
                                 <td>${trackData.status}</td>
                             </tr>`)
-                    });                    
-                return
-            }
+                    });
+                    return
+                }
 
-            jQuery('.state-err').removeClass('kj-hidden')
-            jQuery('#err_msg').text(response?.message)
+                jQuery('.state-err').removeClass('kj-hidden')
+                jQuery('#err_msg').text(response?.message ?? '<?php echo esc_js( __( 'Order tidak ditemukan', 'kiriminaja-official' ) ); ?>')
+            },
+            error: function() {
+                hideStateComponent()
+                jQuery('.track-btn').removeClass('kj-hidden')
+                jQuery('.state-err').removeClass('kj-hidden')
+                jQuery('#err_msg').text('<?php echo esc_js( __( 'Order tidak ditemukan', 'kiriminaja-official' ) ); ?>')
+            }
         });
     }
 
-    const url = new URL(window.location.href);
     jQuery(document).ready(function() {
-        const urlParams = url.searchParams;
-        const orderIdToLoad = encodeURI(urlParams.get("order_id"));
-        if (orderIdToLoad!=='null'){
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderIdToLoad = urlParams.get('order_id');
+        if (orderIdToLoad) {
             jQuery('[name="order_number"]').val(orderIdToLoad)
             trackOrder()
         }
