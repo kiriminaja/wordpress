@@ -723,7 +723,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
         $start = strpos($content, 'function kiriofRefreshBlockShippingRates');
         $this->assertNotFalse($start, 'Block checkout must define an explicit shipping-rate refresh helper');
-        $methodBody = substr($content, $start, 2200);
+        $methodBody = substr($content, $start, 3200);
 
         $this->assertStringContainsString(
             "wp.data.dispatch('wc/store/cart')",
@@ -1748,6 +1748,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $service,
             'CreateTransactionService must not add duplicate COD Fee/Insurance order items when block checkout already created them'
         );
+
+        $this->assertStringContainsString(
+            'getFeeNameAliases',
+            $service,
+            'CreateTransactionService must treat translated fee labels as the same logical fee to avoid doubling COD Fee and Insurance on localized stores'
+        );
     }
 
     #[Test]
@@ -1768,6 +1774,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             '$transaction_insurance_cost > 0',
             $methodBody,
             'Insurance fallback row should only render when the transaction has a positive insurance cost'
+        );
+
+        $this->assertStringContainsString(
+            'Shipping Discount',
+            $methodBody,
+            'Order details should render a dedicated shipping discount row when KiriminAja raw shipping exceeds the discounted Woo shipping total'
         );
 
         $this->assertStringNotContainsString(

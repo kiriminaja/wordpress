@@ -208,12 +208,29 @@ class CreateTransactionService extends BaseService{
     }
 
     private function orderHasFeeItem($order, $feeName){
+        $aliases = $this->getFeeNameAliases( $feeName );
+
         foreach ($order->get_items('fee') as $feeItem) {
-            if ($feeItem->get_name() === $feeName) {
+            $itemName = trim( (string) $feeItem->get_name() );
+            if ( in_array( $itemName, $aliases, true ) ) {
                 return true;
             }
         }
+
         return false;
+    }
+
+    private function getFeeNameAliases($feeName){
+        $feeName = trim( (string) $feeName );
+        $aliases = array( $feeName );
+
+        if ( 'Insurance' === $feeName ) {
+            $aliases[] = trim( (string) __( 'Insurance', 'kiriminaja-official' ) );
+        } elseif ( 'COD Fee' === $feeName ) {
+            $aliases[] = trim( (string) __( 'COD Fee', 'kiriminaja-official' ) );
+        }
+
+        return array_values( array_unique( array_filter( $aliases, 'strlen' ) ) );
     }
 
     private function isInsuranceRequested($forceInsurance = 0){

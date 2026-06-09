@@ -877,8 +877,18 @@ class CheckoutController
 				<th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
 				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.esc_url( home_url('/tracking?order_id='.$order->get_id()) ).'">'.esc_html__('Click','kiriminaja-official').'</a></td>
 			</tr>';
+        $transaction_shipping_cost  = $transactionKiriminaja ? (float) $transactionKiriminaja->shipping_cost : 0;
         $transaction_insurance_cost = $transactionKiriminaja ? (float) $transactionKiriminaja->insurance_cost : 0;
         $transaction_cod_fee        = $transactionKiriminaja ? (float) $transactionKiriminaja->cod_fee : 0;
+        $shipping_discount          = max( 0, $transaction_shipping_cost - (float) $order->get_shipping_total() );
+
+        if( $shipping_discount > 0 ){
+            $html .= '
+            <tr>
+				<th scope="row">'.esc_html__('Shipping Discount','kiriminaja-official').':</th>
+				<td class="wc-block-order-confirmation-totals__total">-'.wc_price($shipping_discount).'</td>
+			</tr>';
+        }
 
         if( ! $this->kiriof_order_has_fee_item($order, 'Insurance') && $transaction_insurance_cost > 0 ){
             $html .= '
@@ -902,12 +912,29 @@ class CheckoutController
     }
 
     private function kiriof_order_has_fee_item($order, $feeName){
+        $aliases = $this->kiriof_get_fee_name_aliases( $feeName );
+
         foreach ($order->get_items('fee') as $feeItem) {
-            if ($feeItem->get_name() === $feeName) {
+            $itemName = trim( (string) $feeItem->get_name() );
+            if ( in_array( $itemName, $aliases, true ) ) {
                 return true;
             }
         }
+
         return false;
+    }
+
+    private function kiriof_get_fee_name_aliases($feeName){
+        $feeName = trim( (string) $feeName );
+        $aliases = array( $feeName );
+
+        if ( 'Insurance' === $feeName ) {
+            $aliases[] = trim( (string) __( 'Insurance', 'kiriminaja-official' ) );
+        } elseif ( 'COD Fee' === $feeName ) {
+            $aliases[] = trim( (string) __( 'COD Fee', 'kiriminaja-official' ) );
+        }
+
+        return array_values( array_unique( array_filter( $aliases, 'strlen' ) ) );
     }
     public function kiriof_shipping_rate_cache_invalidation( $packages ) {
         foreach ( $packages as &$package ) {
