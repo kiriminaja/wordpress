@@ -37,6 +37,31 @@ class SendRequestPickupTransactionService extends BaseService
         return preg_replace('/[^a-zA-Z\d\s]/', '', (string) $value);
     }
 
+    private function appendPickupDiscountFields(array $payload, $transaction)
+    {
+        $discountFields = [
+            'discount_amount',
+            'shipping_discount_amount',
+            'woocommerce_discount_amount',
+            'discount_percentage',
+        ];
+
+        foreach ($discountFields as $field) {
+            $value = $transaction->$field ?? null;
+
+            if ($value !== null && (float) $value >= 1) {
+                $payload[$field] = $value;
+            }
+        }
+
+        $description = trim((string) ($transaction->woocommerce_discount_description ?? ''));
+        if ($description !== '') {
+            $payload['woocommerce_discount_description'] = $description;
+        }
+
+        return $payload;
+    }
+
     public function call()
     {
         if (empty($this->orderIds)) {
@@ -232,11 +257,11 @@ class SendRequestPickupTransactionService extends BaseService
                     $transaction->discount_amount +
                     $transaction->insurance_cost +
                     $transaction->cod_fee) : 0,
-                "discount_amount" => $transaction->discount_amount ?? 0,
-                "discount_percentage" => $transaction->discount_percentage ?? 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
             ];
+
+            $result = $this->appendPickupDiscountFields($result, $transaction);
             
             if (!empty($itemsPayload)) {
                 $result['items'] = $itemsPayload;
