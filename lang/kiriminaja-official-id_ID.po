@@ -2081,6 +2081,11 @@ msgstr "Diskon Ongkir"
 msgid "Actual Shipping"
 msgstr "Ongkir Aktual"
 
+#: templates/order/metabox-shipping.php
+#: inc/Controllers/TransactionProcessController.php
+msgid "Discounted Shipping"
+msgstr "Ongkir Terdiskon"
+
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Save %s"
 msgstr "Hemat %s"

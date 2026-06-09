@@ -649,6 +649,7 @@ class TransactionProcessController
             // Compute discount breakdown from WC order (mirrors metabox logic).
             $wc_item_discount     = (float) $order->get_discount_total();
             $wc_shipping_discount = max(0.0, $shipping_cost - (float) $order->get_shipping_total());
+            $discounted_shipping  = max(0.0, $shipping_cost - $wc_shipping_discount);
             $wc_coupon_codes      = $order->get_coupon_codes();
             $first_coupon         = ! empty($wc_coupon_codes) ? strtoupper($wc_coupon_codes[0]) : '';
             $second_coupon        = ! empty($wc_coupon_codes[1]) ? strtoupper($wc_coupon_codes[1]) : $first_coupon;
@@ -685,10 +686,11 @@ class TransactionProcessController
                     $ship_label = __('Shipping Discount', 'kiriminaja-official');
                 }
                 $inner .= $this->buildCompactPreviewRow($ship_label, wc_price(-$wc_shipping_discount, $price_args), 'color:#d63638;');
+                $inner .= $this->buildCompactPreviewRow(__('Discounted Shipping', 'kiriminaja-official'), wc_price($discounted_shipping, $price_args), '', true);
             }
 
             if ($is_cod) {
-                $inner .= $this->buildCompactPreviewRow(__('COD Paid By Buyer', 'kiriminaja-official'), wc_price($cod_paid, $price_args), '', true);
+                $inner .= $this->buildCompactPreviewRow(__('COD Paid By Buyer', 'kiriminaja-official'), wc_price($cod_paid, $price_args), '', $wc_shipping_discount <= 0);
                 $payout  = $cod_paid - $shipping_cost - $insurance_cost - $cod_fee;
                 $inner  .= $this->buildCompactPreviewRow(__('Estimated COD Payout', 'kiriminaja-official'), wc_price($payout, $price_args), $payout < 0 ? 'color:#d63638;' : 'color:#007017;', false, true);
             } else {

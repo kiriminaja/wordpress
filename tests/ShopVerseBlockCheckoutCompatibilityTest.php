@@ -1824,4 +1824,23 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Insurance decision helper must honor globally forced insurance'
         );
     }
+
+    #[Test]
+    public function admin_shipping_breakdown_shows_net_shipping_paid_by_buyer_after_shipping_coupon(): void
+    {
+        $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
+        $preview = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+
+        $this->assertStringContainsString(
+            'Discounted Shipping',
+            $metabox,
+            'Order metabox should show the discounted base shipping amount after shipping discount, excluding insurance and COD fee'
+        );
+
+        $this->assertStringContainsString(
+            'Discounted Shipping',
+            $preview,
+            'Transaction process preview should mirror the order metabox and show the discounted base shipping amount, excluding insurance and COD fee'
+        );
+    }
 }

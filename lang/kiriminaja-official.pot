@@ -511,6 +511,11 @@ msgstr ""
 msgid "Actual Shipping"
 msgstr ""
 
+#: templates/order/metabox-shipping.php
+#: inc/Controllers/TransactionProcessController.php
+msgid "Discounted Shipping"
+msgstr ""
+
 #: inc/Controllers/GeneralAjaxController.php:44
 #: inc/Controllers/GeneralAjaxController.php:57
 #: inc/Controllers/GeneralAjaxController.php:93

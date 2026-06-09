@@ -24,10 +24,11 @@ $kiriof_insurance_raw = (float) ( $data['insurance_cost_raw'] ?? 0 );
 $kiriof_cod_fee_raw   = (float) ( $data['cod_fee_raw']        ?? 0 );
 $kiriof_discount_raw  = (float) ( $data['discount_amount_raw'] ?? 0 );
 $kiriof_total_shipping = $kiriof_shipping_raw + $kiriof_insurance_raw + $kiriof_cod_fee_raw;
+$kiriof_wc_shipping_discount = isset( $wc_shipping_discount ) ? (float) $wc_shipping_discount : 0.0;
+$kiriof_discounted_shipping = max( 0, $kiriof_shipping_raw - $kiriof_wc_shipping_discount );
 $kiriof_is_cod        = $kiriof_cod_fee_raw > 0 || strtolower( $data['payment_type'] ?? '' ) === 'cod';
 $kiriof_is_deficit    = ! empty( $data['is_deficit'] );
 $kiriof_cod_minimum   = (float) ( $data['cod_minimum'] ?? 0 );
-$kiriof_wc_shipping_discount = isset( $wc_shipping_discount ) ? (float) $wc_shipping_discount : 0.0;
 
 // COD Paid By Buyer = WC order total; payout = total – total_shipping.
 $kiriof_cod_paid = $wc_total;
@@ -297,10 +298,14 @@ $kiriof_first_coupon       = ! empty( $wc_coupon_codes ) ? strtoupper( $wc_coupo
             </td>
             <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post( wc_price( $kiriof_wc_shipping_discount ) ); ?></td>
         </tr>
+        <tr class="kiriof-mb-row-sep">
+            <td><?php esc_html_e( 'Discounted Shipping', 'kiriminaja-official' ); ?></td>
+            <td><?php echo wp_kses_post( wc_price( $kiriof_discounted_shipping ) ); ?></td>
+        </tr>
         <?php endif; ?>
 
         <?php if ( $kiriof_is_cod ) : ?>
-        <tr class="kiriof-mb-row-sep">
+        <tr class="<?php echo $kiriof_wc_shipping_discount > 0 ? '' : 'kiriof-mb-row-sep'; ?>">
             <td><?php esc_html_e( 'COD Paid By Buyer', 'kiriminaja-official' ); ?></td>
             <td><?php echo wp_kses_post( wc_price( $kiriof_cod_paid ) ); ?></td>
         </tr>
