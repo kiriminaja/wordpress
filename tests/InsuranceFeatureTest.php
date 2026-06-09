@@ -302,6 +302,90 @@ final class InsuranceFeatureTest extends TestCase
         );
     }
 
+    #[Test]
+    public function pickup_service_uses_customer_name_for_destination_name(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            "\$firstName = \$shipping_info->_shipping_first_name ?? \$shipping_info->_billing_first_name ?? '';",
+            $content,
+            'SendRequestPickupTransactionService must source destination_name from the shipping recipient first name with billing fallback'
+        );
+
+        $this->assertStringContainsString(
+            "\$lastName = \$shipping_info->_shipping_last_name ?? \$shipping_info->_billing_last_name ?? '';",
+            $content,
+            'SendRequestPickupTransactionService must source destination_name from the shipping recipient last name with billing fallback'
+        );
+    }
+
+    #[Test]
+    public function pickup_service_sanitizes_origin_and_destination_names_for_api(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            'private function sanitizeApiName($value)',
+            $content,
+            'SendRequestPickupTransactionService must normalize pickup names before sending them to the API'
+        );
+
+        $this->assertStringContainsString(
+            "html_entity_decode((string) \$value, ENT_QUOTES | ENT_HTML5, 'UTF-8')",
+            $content,
+            'Pickup name sanitization must decode HTML entities before removing unsupported characters'
+        );
+
+        $this->assertStringContainsString(
+            '"name"          => $this->sanitizeApiName($getOriginData[\'origin_name\'] ?? \'\')',
+            $content,
+            'Pickup request payload must sanitize origin_name before sending it'
+        );
+
+        $this->assertStringContainsString(
+            '"destination_name"          => $this->sanitizeApiName($destinationName)',
+            $content,
+            'Pickup request payload must sanitize destination_name before sending it'
+        );
+    }
+
+    #[Test]
+    public function pickup_service_only_sends_discount_fields_when_meaningful(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            'private function appendPickupDiscountFields(array $payload, $transaction)',
+            $content,
+            'SendRequestPickupTransactionService must centralize optional pickup discount fields'
+        );
+
+        $this->assertStringContainsString(
+            "'shipping_discount_amount'",
+            $content,
+            'Pickup request payload should support shipping discount amounts when they are meaningful'
+        );
+
+        $this->assertStringContainsString(
+            "'woocommerce_discount_amount'",
+            $content,
+            'Pickup request payload should support WooCommerce discount amounts when they are meaningful'
+        );
+
+        $this->assertStringContainsString(
+            "'woocommerce_discount_description'",
+            $content,
+            'Pickup request payload should support WooCommerce discount descriptions when they are present'
+        );
+
+        $this->assertStringContainsString(
+            '(float) $value >= 1',
+            $content,
+            'Pickup request payload must omit zero-value discount fields'
+        );
+    }
+
     // ------------------------------------------------------------------
     // Settings UI Template
     // ------------------------------------------------------------------

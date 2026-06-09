@@ -31,6 +31,39 @@ class SendRequestPickupTransactionService extends BaseService
         }
         return $this->helperCache;
     }
+
+    private function sanitizeApiName($value)
+    {
+        $decodedValue = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return preg_replace('/[^a-zA-Z\d\s]/', '', $decodedValue);
+    }
+
+    private function appendPickupDiscountFields(array $payload, $transaction)
+    {
+        $discountFields = [
+            'discount_amount',
+            'shipping_discount_amount',
+            'woocommerce_discount_amount',
+            'discount_percentage',
+        ];
+
+        foreach ($discountFields as $field) {
+            $value = $transaction->$field ?? null;
+
+            if ($value !== null && (float) $value >= 1) {
+                $payload[$field] = $value;
+            }
+        }
+
+        $description = trim((string) ($transaction->woocommerce_discount_description ?? ''));
+        if ($description !== '') {
+            $payload['woocommerce_discount_description'] = $description;
+        }
+
+        return $payload;
+    }
+
     public function call()
     {
         if (empty($this->orderIds)) {
@@ -52,7 +85,7 @@ class SendRequestPickupTransactionService extends BaseService
             "phone"         => $getOriginData['origin_phone'] ?? '',
             "kelurahan_id"  => $getOriginData['origin_sub_district_id'] ?? '',
             "packages"      => $getPackageData,
-            "name"          => $getOriginData['origin_name'] ?? '',
+            "name"          => $this->sanitizeApiName($getOriginData['origin_name'] ?? ''),
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
             "schedule"      => $this->schedule,
             "dropoff"        => false,
@@ -185,10 +218,11 @@ class SendRequestPickupTransactionService extends BaseService
             $lastName = $shipping_info->_shipping_last_name ?? $shipping_info->_billing_last_name ?? '';
             $address1 = $shipping_info->_shipping_address_1 ?? $shipping_info->_billing_address_1 ?? '';
             $address2 = $shipping_info->_shipping_address_2 ?? $shipping_info->_billing_address_2 ?? '';
+            $destinationName = trim($firstName . ' ' . $lastName);
             
             $result = [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => trim($firstName . ' ' . $lastName),
+                "destination_name"          => $this->sanitizeApiName($destinationName),
                 "destination_phone"         => $shipping_info->_billing_phone ?? '',
                 "destination_address"       => trim($address1 . ' ' . $address2 . ', ' . ($transaction->destination_sub_district ?? '')),
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
@@ -211,11 +245,11 @@ class SendRequestPickupTransactionService extends BaseService
                     $transaction->discount_amount +
                     $transaction->insurance_cost +
                     $transaction->cod_fee) : 0,
-                "discount_amount" => $transaction->discount_amount ?? 0,
-                "discount_percentage" => $transaction->discount_percentage ?? 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
             ];
+
+            $result = $this->appendPickupDiscountFields($result, $transaction);
             
             if (!empty($itemsPayload)) {
                 $result['items'] = $itemsPayload;

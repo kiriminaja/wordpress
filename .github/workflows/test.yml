@@ -41,11 +41,14 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run tests
-        run: make test
+      - name: Install gettext
+        run: sudo apt-get update && sudo apt-get install -y gettext
 
       - name: Build official zip
         run: make zip
+
+      - name: Run tests
+        run: make test
 
       - name: Resolve plugin version
         id: version
