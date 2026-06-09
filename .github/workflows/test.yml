@@ -41,11 +41,11 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run tests
-        run: make test
-
       - name: Build official zip
         run: make zip
+
+      - name: Run tests
+        run: make test
 
       - name: Resolve plugin version
         id: version
