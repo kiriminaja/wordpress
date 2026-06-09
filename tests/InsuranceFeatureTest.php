@@ -344,6 +344,42 @@ final class InsuranceFeatureTest extends TestCase
         );
     }
 
+    #[Test]
+    public function pickup_service_only_sends_discount_fields_when_meaningful(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            'private function appendPickupDiscountFields(array $payload, $transaction)',
+            $content,
+            'SendRequestPickupTransactionService must centralize optional pickup discount fields'
+        );
+
+        $this->assertStringContainsString(
+            "'shipping_discount_amount'",
+            $content,
+            'Pickup request payload should support shipping discount amounts when they are meaningful'
+        );
+
+        $this->assertStringContainsString(
+            "'woocommerce_discount_amount'",
+            $content,
+            'Pickup request payload should support WooCommerce discount amounts when they are meaningful'
+        );
+
+        $this->assertStringContainsString(
+            "'woocommerce_discount_description'",
+            $content,
+            'Pickup request payload should support WooCommerce discount descriptions when they are present'
+        );
+
+        $this->assertStringContainsString(
+            '(float) $value >= 1',
+            $content,
+            'Pickup request payload must omit zero-value discount fields'
+        );
+    }
+
     // ------------------------------------------------------------------
     // Settings UI Template
     // ------------------------------------------------------------------
