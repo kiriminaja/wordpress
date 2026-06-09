@@ -414,7 +414,9 @@ body {
 }
 
 /* WC order preview compact summary — override heavy WC table padding */
-.wc-order-preview .wc-order-preview-table .kiriof-order-preview-summary-wrap-cell {
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-summary-wrap-cell {
   border-top: 1px solid #eee !important;
   border-bottom: 0 !important;
 }
@@ -427,20 +429,30 @@ body {
 }
 
 /* Match WC specificity to override .wc-order-preview .wc-order-preview-table td */
-.wc-order-preview .wc-order-preview-table .kiriof-order-preview-compact-summary td {
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-compact-summary
+  td {
   padding: 4px 0;
   vertical-align: middle;
   border: 0;
   text-align: left;
 }
 
-.wc-order-preview .wc-order-preview-table .kiriof-order-preview-compact-summary td:last-child {
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-compact-summary
+  td:last-child {
   text-align: right;
   white-space: nowrap;
   width: 1%;
 }
 
-.wc-order-preview .wc-order-preview-table .kiriof-order-preview-compact-summary .kiriof-compact-separator-row td {
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-compact-summary
+  .kiriof-compact-separator-row
+  td {
   border-top: 1px solid #dcdcde;
   padding-top: 8px;
 }
@@ -465,7 +477,9 @@ body {
   padding: 8px 0;
 }
 
-.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary-row + .kiriof-backbone-summary-row {
+.wc-backbone-modal.kiriof-backbone-modal
+  .kiriof-backbone-summary-row
+  + .kiriof-backbone-summary-row {
   border-top: 1px solid #dcdcde;
 }
 
@@ -485,7 +499,9 @@ body {
   padding-right: 4px;
 }
 
-.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option + .kiriof-schedule-option {
+.wc-backbone-modal.kiriof-backbone-modal
+  .kiriof-schedule-option
+  + .kiriof-schedule-option {
   margin-top: 10px;
 }
 
@@ -613,7 +629,7 @@ body {
 .kiriof-modal {
   background: #fff;
   border-radius: 4px;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.28);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.28);
   width: 480px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 40px);
