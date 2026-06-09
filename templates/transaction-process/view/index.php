@@ -180,9 +180,9 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     if ($kiriof_wcOrder) {
                         $kiriof_colItemDiscount = (float) $kiriof_wcOrder->get_discount_total();
                         $kiriof_colShipDiscount = max(0.0, $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total());
-                        $_colCoupons            = $kiriof_wcOrder->get_coupon_codes();
-                        $kiriof_colItemCoupon   = ! empty($_colCoupons[0]) ? strtoupper($_colCoupons[0]) : '';
-                        $kiriof_colShipCoupon   = ! empty($_colCoupons[1]) ? strtoupper($_colCoupons[1]) : $kiriof_colItemCoupon;
+                        $kiriof_colCoupons      = $kiriof_wcOrder->get_coupon_codes();
+                        $kiriof_colItemCoupon   = ! empty($kiriof_colCoupons[0]) ? strtoupper($kiriof_colCoupons[0]) : '';
+                        $kiriof_colShipCoupon   = ! empty($kiriof_colCoupons[1]) ? strtoupper($kiriof_colCoupons[1]) : $kiriof_colItemCoupon;
                     }
                     $kiriof_paymentLabel = $kiriof_isCod ? __('COD', 'kiriminaja-official') : __('NON COD', 'kiriminaja-official');
 
@@ -260,13 +260,13 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     $kiriof_wcCouponCodes        = [];
                     $kiriof_wcTotal              = $kiriof_shippingFee; // fallback
                     if ($kiriof_isDeficitRow && ! empty($kiriof_row->wc_order_id)) {
-                        $_wcOrder = wc_get_order((int) $kiriof_row->wc_order_id);
-                        if ($_wcOrder) {
-                            $kiriof_wcSubtotal         = (float) $_wcOrder->get_subtotal();
-                            $kiriof_wcDiscountTotal    = (float) $_wcOrder->get_discount_total();
-                            $kiriof_wcTotal            = (float) $_wcOrder->get_total();
-                            $kiriof_wcShippingDiscount = max(0.0, $kiriof_shippingCost - (float) $_wcOrder->get_shipping_total());
-                            $kiriof_wcCouponCodes      = $_wcOrder->get_coupon_codes();
+                        $kiriof_wcOrderForDeficit = wc_get_order((int) $kiriof_row->wc_order_id);
+                        if ($kiriof_wcOrderForDeficit) {
+                            $kiriof_wcSubtotal         = (float) $kiriof_wcOrderForDeficit->get_subtotal();
+                            $kiriof_wcDiscountTotal    = (float) $kiriof_wcOrderForDeficit->get_discount_total();
+                            $kiriof_wcTotal            = (float) $kiriof_wcOrderForDeficit->get_total();
+                            $kiriof_wcShippingDiscount = max(0.0, $kiriof_shippingCost - (float) $kiriof_wcOrderForDeficit->get_shipping_total());
+                            $kiriof_wcCouponCodes      = $kiriof_wcOrderForDeficit->get_coupon_codes();
                         }
                     }
                     $kiriof_adjItemCoupon    = ! empty($kiriof_wcCouponCodes[0]) ? strtoupper($kiriof_wcCouponCodes[0]) : '';

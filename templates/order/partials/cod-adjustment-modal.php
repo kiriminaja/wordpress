@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$max_cod = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? KIRIOF_MAX_COD_AMOUNT : 3000000;
+$kiriof_max_cod = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? KIRIOF_MAX_COD_AMOUNT : 3000000;
 ?>
 <div id="kiriof-cod-modal-backdrop" class="kiriof-modal-backdrop" style="display:none;" aria-hidden="true">
     <div class="kiriof-modal" role="dialog" aria-modal="true" aria-labelledby="kiriof-cod-modal-title">
@@ -44,7 +44,7 @@ $max_cod = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? KIRIOF_MAX_COD_AMOUNT : 3000000;
                     min="0"
                     step="1"
                     autocomplete="off"
-                    data-max-cod="<?php echo esc_attr( $max_cod ); ?>"
+                    data-max-cod="<?php echo esc_attr( $kiriof_max_cod ); ?>"
                 />
             </div>
             <p class="kiriof-modal__hint" id="kiriof-cod-hint"></p>
