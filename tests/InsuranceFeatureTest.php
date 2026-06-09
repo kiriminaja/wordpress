@@ -302,6 +302,48 @@ final class InsuranceFeatureTest extends TestCase
         );
     }
 
+    #[Test]
+    public function pickup_service_uses_saved_destination_area_name_instead_of_customer_name(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            "_shipping_kiriof_destination_name",
+            $content,
+            'SendRequestPickupTransactionService must source destination_name from saved destination area labels'
+        );
+
+        $this->assertStringNotContainsString(
+            "trim(\$firstName . ' ' . \$lastName)",
+            $content,
+            'SendRequestPickupTransactionService must not send the customer full name as destination_name'
+        );
+    }
+
+    #[Test]
+    public function pickup_service_sanitizes_origin_and_destination_names_for_api(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            'private function sanitizeApiName($value)',
+            $content,
+            'SendRequestPickupTransactionService must normalize pickup names before sending them to the API'
+        );
+
+        $this->assertStringContainsString(
+            '"name"          => $this->sanitizeApiName($getOriginData[\'origin_name\'] ?? \'\')',
+            $content,
+            'Pickup request payload must sanitize origin_name before sending it'
+        );
+
+        $this->assertStringContainsString(
+            '"destination_name"          => $this->sanitizeApiName($destinationName)',
+            $content,
+            'Pickup request payload must sanitize destination_name before sending it'
+        );
+    }
+
     // ------------------------------------------------------------------
     // Settings UI Template
     // ------------------------------------------------------------------

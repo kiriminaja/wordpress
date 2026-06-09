@@ -41,8 +41,8 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run tests
-        run: make test
+      - name: Install gettext
+        run: sudo apt-get update && sudo apt-get install -y gettext
 
       - name: Build official zip
         run: make zip plain
@@ -53,6 +53,9 @@ jobs:
           name: plugin-build
           path: kiriminaja-official.zip
           overwrite: true
+
+      - name: Run tests
+        run: make test
 
   wordpress:
     name: "Integration + Plugin Check (WP latest / WC latest / PHP 8.1)"
