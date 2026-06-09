@@ -212,25 +212,11 @@ class SendRequestPickupTransactionService extends BaseService
             $note = preg_replace('/[^a-zA-Z\d.\/:,\+\-()\'\"_&;?\s]/', '', $note);
             
             // Get shipping/billing info with fallbacks
+            $firstName = $shipping_info->_shipping_first_name ?? $shipping_info->_billing_first_name ?? '';
+            $lastName = $shipping_info->_shipping_last_name ?? $shipping_info->_billing_last_name ?? '';
             $address1 = $shipping_info->_shipping_address_1 ?? $shipping_info->_billing_address_1 ?? '';
             $address2 = $shipping_info->_shipping_address_2 ?? $shipping_info->_billing_address_2 ?? '';
-            $destinationName = '';
-
-            if ($order) {
-                $destinationName = (string) $order->get_meta('_shipping_kiriof_destination_name', true);
-
-                if ($destinationName === '') {
-                    $destinationName = (string) $order->get_meta('_billing_kiriof_destination_name', true);
-                }
-
-                if ($destinationName === '') {
-                    $destinationName = (string) $order->get_meta('_kiriof_checkout_destination_area_name', true);
-                }
-            }
-
-            if ($destinationName === '') {
-                $destinationName = (string) ($transaction->destination_sub_district ?? '');
-            }
+            $destinationName = trim($firstName . ' ' . $lastName);
             
             $result = [
                 "order_id"                  => $transaction->order_id,
