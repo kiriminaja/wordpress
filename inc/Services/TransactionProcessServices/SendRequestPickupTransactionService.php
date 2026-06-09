@@ -31,6 +31,12 @@ class SendRequestPickupTransactionService extends BaseService
         }
         return $this->helperCache;
     }
+
+    private function sanitizeApiName($value)
+    {
+        return preg_replace('/[^a-zA-Z\d\s]/', '', (string) $value);
+    }
+
     public function call()
     {
         if (empty($this->orderIds)) {
@@ -52,7 +58,7 @@ class SendRequestPickupTransactionService extends BaseService
             "phone"         => $getOriginData['origin_phone'] ?? '',
             "kelurahan_id"  => $getOriginData['origin_sub_district_id'] ?? '',
             "packages"      => $getPackageData,
-            "name"          => $getOriginData['origin_name'] ?? '',
+            "name"          => $this->sanitizeApiName($getOriginData['origin_name'] ?? ''),
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
             "schedule"      => $this->schedule,
             "dropoff"        => false,
@@ -203,7 +209,7 @@ class SendRequestPickupTransactionService extends BaseService
             
             $result = [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => $destinationName,
+                "destination_name"          => $this->sanitizeApiName($destinationName),
                 "destination_phone"         => $shipping_info->_billing_phone ?? '',
                 "destination_address"       => trim($address1 . ' ' . $address2 . ', ' . ($transaction->destination_sub_district ?? '')),
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
