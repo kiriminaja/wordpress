@@ -363,7 +363,7 @@ $kiriof_first_coupon       = ! empty($wc_coupon_codes) ? strtoupper($wc_coupon_c
                 </td>
                 <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post(wc_price($kiriof_wc_shipping_discount)); ?></td>
             </tr>
-            <tr class="kiriof-mb-row-sep">
+            <tr>
                 <td><?php esc_html_e('Discounted Shipping', 'kiriminaja-official'); ?></td>
                 <td><?php echo wp_kses_post(wc_price($kiriof_discounted_shipping)); ?></td>
             </tr>

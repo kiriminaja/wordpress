@@ -686,7 +686,7 @@ class TransactionProcessController
                     $ship_label = __('Shipping Discount', 'kiriminaja-official');
                 }
                 $inner .= $this->buildCompactPreviewRow($ship_label, wc_price(-$wc_shipping_discount, $price_args), 'color:#d63638;');
-                $inner .= $this->buildCompactPreviewRow(__('Discounted Shipping', 'kiriminaja-official'), wc_price($discounted_shipping, $price_args), '', true);
+                $inner .= $this->buildCompactPreviewRow(__('Discounted Shipping', 'kiriminaja-official'), wc_price($discounted_shipping, $price_args));
             }
 
             if ($is_cod) {
