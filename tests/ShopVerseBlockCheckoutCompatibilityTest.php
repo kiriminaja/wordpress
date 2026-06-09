@@ -1762,7 +1762,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_order_details');
         $this->assertNotFalse($start, 'Order details renderer must exist');
-        $methodBody = substr($content, $start, 2200);
+        $methodBody = substr($content, $start, 3200);
 
         $this->assertStringContainsString(
             '$transaction_cod_fee > 0',

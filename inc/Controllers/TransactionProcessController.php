@@ -30,7 +30,7 @@ class TransactionProcessController
 
     public function getRequestPickupSchedule()
     {
-        if (! current_user_can('manage_woocommerce')) {
+        if (! current_user_can( 'manage_woocommerce' )) {
             wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
             wp_die();
         }
@@ -52,7 +52,7 @@ class TransactionProcessController
     public function sendRequestPickupTransaction()
     {
         try {
-            if (! current_user_can('manage_woocommerce')) {
+            if (! current_user_can( 'manage_woocommerce' )) {
                 wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
                 wp_die();
             }
@@ -84,7 +84,7 @@ class TransactionProcessController
     public function cancelTransaction()
     {
         try {
-            if (! current_user_can('manage_woocommerce')) {
+            if (! current_user_can( 'manage_woocommerce' )) {
                 wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
                 wp_die();
             }
@@ -128,7 +128,7 @@ class TransactionProcessController
             }
 
             // Skip if no AWB — nothing to cancel on Mitra side
-            if (empty($transaction->awb)) {
+            if (empty( $transaction->awb )) {
                 return;
             }
 
