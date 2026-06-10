@@ -15,13 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $kiriof_total_steps   = count( $steps );
 $kiriof_current_index = isset( $current_step_index ) ? max( 0, min( (int) $current_step_index, max( 0, $kiriof_total_steps - 1 ) ) ) : 0;
 $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
-global $pagenow;
-$kiriof_is_dashboard = ( 'index.php' === $pagenow );
 ?>
 <div
     id="<?php echo esc_attr( $kiriof_notice_id ); ?>"
-    class="<?php echo esc_attr( $kiriof_is_dashboard ? 'postbox' : 'notice' ); ?>"
-    style="<?php echo esc_attr( $kiriof_is_dashboard ? 'max-width:none;margin:16px 0;padding:0;' : 'padding:0;max-width:none;margin-bottom:16px;border:1px solid #d0d4da;border-left-width:1px;border-left-color:#d0d4da;border-radius:12px;overflow:hidden;background:#fff' ); ?>"
+    class="postbox"
+    style="max-width:none;margin:16px 0;padding:0;border:1px solid #d0d4da;border-radius:12px;overflow:hidden;background:#fff"
 >
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #e6e8eb;background:#fff">
         <div style="display:flex;align-items:center;gap:12px;min-width:0">
@@ -49,7 +47,7 @@ $kiriof_is_dashboard = ( 'index.php' === $pagenow );
                 <path style="fill:url(#kiriof-sg-grad1)" d="M19.082 6.336l-2.188 6.645c-.152.527-.59.727-.894.445l-.606-.586-.289-.293-1.593 1.473c-3.11 3.379.077 6.57.077 6.57l-4.933-4.933c-.016-.016-.035-.031-.051-.047-.012-.016-.024-.031-.04-.043l-.03-.035c-.829-.922-.759-2.285.128-3.176l3.105-3.164-.27-.273-.593-.535c-.305-.281-.191-.789.2-.91l7.23-1.645c.394-.125.773.227.746.508z"/>
                 <path style="fill:url(#kiriof-sg-grad2)" d="M17.973 18.473c.937.937.945 2.39.03 3.3-.917.907-2.347.864-3.277-.066l-1.238-1.23c-.52-.586-2.746-3.446.023-6.457zm-9.407-2.907c.016.012.028.028.04.043.015.016.035.031.05.047l3.375 3.375-3.316-3.3c-.067-.063-.125-.13-.18-.2zm-.03-.035c-.013-.012-.02-.024-.032-.04.012.016.02.028.032.04z"/>
             </svg>
-            <strong style="font-size:14px;line-height:1.4"><?php echo esc_html__( 'Panduan Setup KiriminAja', 'kiriminaja-official' ); ?></strong>
+            <strong style="font-size:14px;line-height:1.4"><?php echo esc_html__( 'KiriminAja Setup Guide', 'kiriminaja-official' ); ?></strong>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             <button type="button" class="button-link" data-kiriof-setup-prev style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:#1d2327;cursor:pointer;padding:0">
@@ -74,10 +72,10 @@ $kiriof_is_dashboard = ( 'index.php' === $pagenow );
                 <span>
                     <?php
                     if ( $kiriof_index === $kiriof_total_steps - 1 && ! $kiriof_step['required'] ) {
-                        echo esc_html__( 'Tahap Terakhir', 'kiriminaja-official' );
+                        echo esc_html__( 'Final Step', 'kiriminaja-official' );
                     } else {
                         printf(
-                            esc_html__( 'Tahap %1$d dari %2$d', 'kiriminaja-official' ),
+                            esc_html__( 'Step %1$d of %2$d', 'kiriminaja-official' ),
                             absint( $kiriof_index + 1 ),
                             absint( $kiriof_total_steps )
                         );
@@ -89,18 +87,18 @@ $kiriof_is_dashboard = ( 'index.php' === $pagenow );
                 <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
                     <h2 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:#111"><?php echo esc_html( $kiriof_step['title'] ); ?></h2>
                     <?php if ( ! $kiriof_step['required'] ) : ?>
-                    <span style="font-size:14px;font-weight:500;color:#50575e"><?php echo esc_html__( 'Opsional', 'kiriminaja-official' ); ?></span>
+                    <span style="font-size:14px;font-weight:500;color:#50575e"><?php echo esc_html__( 'Optional', 'kiriminaja-official' ); ?></span>
                     <?php endif; ?>
                 </div>
                 <p style="margin:0 0 20px;font-size:15px;line-height:1.5;color:#1d2327;max-width:760px"><?php echo esc_html( $kiriof_step['description'] ); ?></p>
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
                     <a href="<?php echo esc_url( $kiriof_step['url'] ); ?>" class="button button-primary" style="margin:0;background:#5c2ecb;border-color:#5c2ecb;min-height:40px;padding:0 14px;display:inline-flex;align-items:center;gap:8px">
                         <span class="dashicons dashicons-admin-generic" aria-hidden="true" style="font-size:16px;width:16px;height:16px"></span>
-                        <span><?php echo esc_html( $kiriof_step['done'] ? __( 'Lihat Pengaturan', 'kiriminaja-official' ) : __( 'Konfigurasi Sekarang', 'kiriminaja-official' ) ); ?></span>
+                        <span><?php echo esc_html( $kiriof_step['done'] ? __( 'View Settings', 'kiriminaja-official' ) : __( 'Configure Now', 'kiriminaja-official' ) ); ?></span>
                     </a>
                     <?php if ( ! $kiriof_step['required'] ) : ?>
                     <button type="button" class="button" data-kiriof-setup-skip style="min-height:40px;padding:0 16px;border-color:#c3c4c7;color:#3858e9;background:#fff">
-                        <?php echo esc_html__( 'Lewati', 'kiriminaja-official' ); ?>
+                        <?php echo esc_html__( 'Skip', 'kiriminaja-official' ); ?>
                     </button>
                     <?php endif; ?>
                 </div>

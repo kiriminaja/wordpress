@@ -279,10 +279,10 @@ class Admin extends BaseInit{
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
         $product_volumetric_label = $product_volumetric_ready
-            ? __( 'Konfigurasi Volumetrik Produk', 'kiriminaja-official' )
+            ? __( 'Product Volumetric Configurations', 'kiriminaja-official' )
             : sprintf(
                 /* translators: %1$d: configured products, %2$d: total products */
-                __( 'Konfigurasi Volumetrik Produk (%1$d/%2$d)', 'kiriminaja-official' ),
+                __( 'Product Volumetric Configurations (%1$d/%2$d)', 'kiriminaja-official' ),
                 $product_volumetric_configured,
                 $product_volumetric_total
             );
@@ -329,33 +329,33 @@ class Admin extends BaseInit{
         $steps = array(
             array(
                 'key' => 'account', 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'],
-                'title'       => __( 'Koneksi Akun KiriminAja', 'kiriminaja-official' ),
-                'description' => __( 'Hubungkan akun KiriminAja untuk menyinkronkan pesanan, pengiriman, dan mengotomatiskan cetak label.', 'kiriminaja-official' ),
+                'title'       => __( 'KiriminAja Account Connection', 'kiriminaja-official' ),
+                'description' => __( 'Connect your KiriminAja account to synchronize orders, shipments, and automate label printing.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'products', 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'],
                 'title'       => $product_volumetric_label,
-                'description' => __( 'Atur berat dan dimensi setiap produk agar tarif pengiriman dihitung akurat.', 'kiriminaja-official' ),
+                'description' => __( 'Set the weight and dimensions for each product so shipping rates are calculated accurately.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'origin', 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'],
-                'title'       => __( 'Pengaturan Alamat Pengiriman', 'kiriminaja-official' ),
-                'description' => __( 'Atur alamat pickup dan kelurahan agar kurir dapat menampilkan tarif yang tepat.', 'kiriminaja-official' ),
+                'title'       => __( 'Shipping Address Setup', 'kiriminaja-official' ),
+                'description' => __( 'Set the pickup address and subdistrict so couriers can display accurate shipping rates.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'couriers', 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'],
-                'title'       => __( 'Pengaturan Layanan Kurir', 'kiriminaja-official' ),
-                'description' => __( 'Pilih layanan kurir yang ditawarkan saat checkout. Hanya kurir yang aktif yang akan tampil ke pembeli.', 'kiriminaja-official' ),
+                'title'       => __( 'Courier Service Setup', 'kiriminaja-official' ),
+                'description' => __( 'Choose which courier services to offer at checkout. Only active couriers will be shown to customers.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'shipping_locations', 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'],
-                'title'       => __( 'Lokasi Pengiriman', 'kiriminaja-official' ),
-                'description' => __( 'Aktifkan zona pengiriman di WooCommerce agar pelanggan dapat memilih tujuan pengiriman.', 'kiriminaja-official' ),
+                'title'       => __( 'Shipping Locations', 'kiriminaja-official' ),
+                'description' => __( 'Enable shipping zones in WooCommerce so customers can choose their delivery destination.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'tracking', 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'],
-                'title'       => __( 'Halaman Pelacakan', 'kiriminaja-official' ),
-                'description' => __( 'Buat halaman pelacakan publik agar pelanggan dapat memantau status pengiriman secara real-time.', 'kiriminaja-official' ),
+                'title'       => __( 'Tracking Page', 'kiriminaja-official' ),
+                'description' => __( 'Create a public tracking page so customers can monitor shipping status in real time.', 'kiriminaja-official' ),
             ),
         );
 
