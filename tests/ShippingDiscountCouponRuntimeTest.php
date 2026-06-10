@@ -45,6 +45,11 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getChosenKiriminAjaCourierCode', $serviceContent);
         $this->assertStringContainsString('extractCourierCodeFromMethodId', $serviceContent);
         $this->assertStringContainsString('normalizeCourierCode', $serviceContent);
+        $this->assertStringContainsString('splitCouponCodesByScope', $serviceContent);
+        $this->assertStringContainsString('getPostedDestinationId', $serviceContent);
+        $this->assertStringContainsString('getPostedDestinationName', $serviceContent);
+        $this->assertStringContainsString("'kiriof_shipping_destination_area'", $serviceContent);
+        $this->assertStringContainsString("'kiriof_destination_area_name'", $serviceContent);
         $this->assertStringContainsString('This coupon is not valid for the selected courier.', $serviceContent);
         $this->assertStringContainsString('kiriof_shipping_coupon_discount_amount', $serviceContent);
         $this->assertStringContainsString('Shipping Discount (%s)', $serviceContent);
@@ -60,6 +65,9 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
         $blockCheckout = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
+        $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
+        $transactionProcess = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
 
         $this->assertStringContainsString('Applied to shipping', $cartTotals);
         $this->assertStringContainsString('Applied to shipping', $reviewOrder);
@@ -87,6 +95,9 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('invalidateBlockShippingRates', $blockCheckout);
         $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
+        $this->assertStringContainsString('splitCouponCodesByScope', $metabox);
+        $this->assertStringContainsString('splitCouponCodesByScope', $transactionProcess);
+        $this->assertStringContainsString('splitCouponCodesByScope', $transactionProcessView);
         $this->assertStringNotContainsString('getShippingRateMetaAjax', $couponController);
         $this->assertStringContainsString('wc_clear_notices', $couponController);
         $this->assertStringContainsString('remove_coupon', $couponController);

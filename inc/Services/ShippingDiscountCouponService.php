@@ -19,6 +19,31 @@ class ShippingDiscountCouponService {
         );
     }
 
+    public function splitCouponCodesByScope( array $couponCodes ): array {
+        $shippingCodes = array();
+        $itemCodes     = array();
+
+        foreach ( $couponCodes as $couponCode ) {
+            $couponCode = sanitize_text_field( (string) $couponCode );
+            if ( '' === $couponCode ) {
+                continue;
+            }
+
+            $coupon = new \WC_Coupon( $couponCode );
+            if ( $this->isShippingCoupon( $coupon ) ) {
+                $shippingCodes[] = strtoupper( $couponCode );
+                continue;
+            }
+
+            $itemCodes[] = strtoupper( $couponCode );
+        }
+
+        return array(
+            'shipping' => array_values( array_unique( $shippingCodes ) ),
+            'item'     => array_values( array_unique( $itemCodes ) ),
+        );
+    }
+
     public function isShippingCoupon( $coupon ): bool {
         if ( is_string( $coupon ) || is_numeric( $coupon ) ) {
             $coupon = new \WC_Coupon( $coupon );

@@ -39,7 +39,10 @@ $kiriof_has_pickup = ! empty($data['pickup_id']) && '-' !== $data['pickup_id'];
 
 // Effective discount: use the larger of KA discount_amount or WC coupon discount.
 $kiriof_effective_discount = max($kiriof_discount_raw, $wc_discount_total);
-$kiriof_first_coupon       = ! empty($wc_coupon_codes) ? strtoupper($wc_coupon_codes[0]) : '';
+$kiriof_coupon_service     = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+$kiriof_coupon_scopes      = $kiriof_coupon_service->splitCouponCodesByScope((array) $wc_coupon_codes);
+$kiriof_first_coupon       = $kiriof_coupon_scopes['item'][0] ?? '';
+$kiriof_ship_coupon        = $kiriof_coupon_scopes['shipping'][0] ?? '';
 ?>
 <style>
     #kiriminaja-shipping-info .kiriof-mb-header {
@@ -349,9 +352,7 @@ $kiriof_first_coupon       = ! empty($wc_coupon_codes) ? strtoupper($wc_coupon_c
             </tr>
         <?php endif; ?>
 
-        <?php if ($kiriof_wc_shipping_discount > 0) :
-            $kiriof_ship_coupon = ! empty($wc_coupon_codes[1]) ? strtoupper($wc_coupon_codes[1]) : $kiriof_first_coupon;
-        ?>
+        <?php if ($kiriof_wc_shipping_discount > 0) : ?>
             <tr>
                 <td>
                     <?php if ($kiriof_ship_coupon) : ?>
@@ -416,7 +417,7 @@ $kiriof_first_coupon       = ! empty($wc_coupon_codes) ? strtoupper($wc_coupon_c
             data-item-discount="<?php echo esc_attr($wc_discount_total); ?>"
             data-shipping-discount="<?php echo esc_attr($kiriof_wc_shipping_discount); ?>"
             data-item-coupon="<?php echo esc_attr($kiriof_first_coupon); ?>"
-            data-shipping-coupon="<?php echo esc_attr(! empty($wc_coupon_codes[1]) ? strtoupper($wc_coupon_codes[1]) : $kiriof_first_coupon); ?>"
+            data-shipping-coupon="<?php echo esc_attr($kiriof_ship_coupon); ?>"
             data-nonce="<?php echo esc_attr(wp_create_nonce(KIRIOF_NONCE)); ?>">
             <?php esc_html_e('Adjust Deficit', 'kiriminaja-official'); ?>
         </button>

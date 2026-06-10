@@ -181,8 +181,10 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                         $kiriof_colItemDiscount = (float) $kiriof_wcOrder->get_discount_total();
                         $kiriof_colShipDiscount = max(0.0, $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total());
                         $kiriof_colCoupons      = $kiriof_wcOrder->get_coupon_codes();
-                        $kiriof_colItemCoupon   = ! empty($kiriof_colCoupons[0]) ? strtoupper($kiriof_colCoupons[0]) : '';
-                        $kiriof_colShipCoupon   = ! empty($kiriof_colCoupons[1]) ? strtoupper($kiriof_colCoupons[1]) : $kiriof_colItemCoupon;
+                        $kiriof_couponService   = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+                        $kiriof_couponScopes    = $kiriof_couponService->splitCouponCodesByScope((array) $kiriof_colCoupons);
+                        $kiriof_colItemCoupon   = $kiriof_couponScopes['item'][0] ?? '';
+                        $kiriof_colShipCoupon   = $kiriof_couponScopes['shipping'][0] ?? '';
                     }
                     $kiriof_paymentLabel = $kiriof_isCod ? __('COD', 'kiriminaja-official') : __('NON COD', 'kiriminaja-official');
 
@@ -269,8 +271,9 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                             $kiriof_wcCouponCodes      = $kiriof_wcOrderForDeficit->get_coupon_codes();
                         }
                     }
-                    $kiriof_adjItemCoupon    = ! empty($kiriof_wcCouponCodes[0]) ? strtoupper($kiriof_wcCouponCodes[0]) : '';
-                    $kiriof_adjShipCoupon    = ! empty($kiriof_wcCouponCodes[1]) ? strtoupper($kiriof_wcCouponCodes[1]) : $kiriof_adjItemCoupon;
+                    $kiriof_adjCouponScopes  = (new \KiriminAjaOfficial\Services\ShippingDiscountCouponService())->splitCouponCodesByScope((array) $kiriof_wcCouponCodes);
+                    $kiriof_adjItemCoupon    = $kiriof_adjCouponScopes['item'][0] ?? '';
+                    $kiriof_adjShipCoupon    = $kiriof_adjCouponScopes['shipping'][0] ?? '';
 
                     $kiriof_isProcessedFilter = ('processed' === $kiriof_status_filter);
                     $kiriof_checkboxDisabled = $kiriof_isDeficitRow || ! $kiriof_isProcessable || $kiriof_isProcessedFilter;

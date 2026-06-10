@@ -651,8 +651,10 @@ class TransactionProcessController
             $wc_shipping_discount = max(0.0, $shipping_cost - (float) $order->get_shipping_total());
             $discounted_shipping  = max(0.0, $shipping_cost - $wc_shipping_discount);
             $wc_coupon_codes      = $order->get_coupon_codes();
-            $first_coupon         = ! empty($wc_coupon_codes) ? strtoupper($wc_coupon_codes[0]) : '';
-            $second_coupon        = ! empty($wc_coupon_codes[1]) ? strtoupper($wc_coupon_codes[1]) : $first_coupon;
+            $coupon_service       = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+            $coupon_scopes        = $coupon_service->splitCouponCodesByScope( (array) $wc_coupon_codes );
+            $first_coupon         = $coupon_scopes['item'][0] ?? '';
+            $second_coupon        = $coupon_scopes['shipping'][0] ?? '';
 
             $inner = '';
 
