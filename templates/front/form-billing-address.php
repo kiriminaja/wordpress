@@ -31,6 +31,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         var kiriofUpdatingCheckoutLock = false;
         var kiriofTriggeredInitialShippingUpdate = false;
+        var kiriofFeeRefreshRequest = null;
+        var kiriofInFlightFeeRefreshKey = '';
+        var kiriofPendingFeeRefresh = false;
+        var kiriofPendingFeeRefreshKey = '';
+        var kiriofCodInsuranceTimer = null;
+        var kiriofBlockRatesRefreshTimer = null;
+        var kiriofLastBlockCartUpdateKey = '';
+        var kiriofLastObservedBlockPostcode = '';
         var kiriofSavedDistrictByPostcode = <?php echo wp_json_encode( is_array( $kiriof_saved_destination_map ) ? $kiriof_saved_destination_map : array() ); ?>;
         var kiriofSavedCheckoutPostcode = <?php echo wp_json_encode( (string) $kiriof_saved_checkout_postcode ); ?>;
 
@@ -86,6 +94,28 @@ if ( ! defined( 'ABSPATH' ) ) {
         }); 
 
         function kiriofInitBlockCheckoutCompatibility() {
+            function kiriofScheduleCodInsurance(delay) {
+                delay = typeof delay === 'number' ? delay : 150;
+                if (kiriofCodInsuranceTimer) {
+                    clearTimeout(kiriofCodInsuranceTimer);
+                }
+                kiriofCodInsuranceTimer = setTimeout(function() {
+                    kiriofCodInsuranceTimer = null;
+                    kiriofCodInsurance();
+                }, delay);
+            }
+
+            function kiriofScheduleBlockShippingRatesRefresh(delay) {
+                delay = typeof delay === 'number' ? delay : 120;
+                if (kiriofBlockRatesRefreshTimer) {
+                    clearTimeout(kiriofBlockRatesRefreshTimer);
+                }
+                kiriofBlockRatesRefreshTimer = setTimeout(function() {
+                    kiriofBlockRatesRefreshTimer = null;
+                    kiriofRefreshBlockShippingRates();
+                }, delay);
+            }
+
             // Block checkout: listen for shipping method changes via WC data store.
             // React blocks don't use jQuery change events reliably.
             if (typeof wp !== 'undefined' && wp.data && wp.data.subscribe) {
@@ -111,7 +141,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
                             kiriofLastShippingMethod = currentMethod;
                             // Delay to let the Store API update the cart first
-                            setTimeout(function() { kiriofCodInsurance(); }, 400);
+                            kiriofScheduleCodInsurance(400);
                         }
                     } catch(e) {}
                 });
@@ -124,7 +154,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         var currentPaymentMethod = kiriofGetPaymentMethod();
                         if (!currentPaymentMethod || currentPaymentMethod === kiriofLastPaymentMethod) return;
                         kiriofLastPaymentMethod = currentPaymentMethod;
-                        setTimeout(function() { kiriofCodInsurance(); }, 250);
+                        kiriofScheduleCodInsurance(250);
                     } catch(e) {}
                 });
             
@@ -368,9 +398,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         }
 
                                         sourceField.setAttribute('value', normalizedValue);
-                                        sourceField.dispatchEvent(new Event('input', { bubbles: true }));
-                                        if (options.triggerChange) {
-                                            sourceField.dispatchEvent(new Event('change', { bubbles: true }));
+                                        if (!options.silentEvents) {
+                                            sourceField.dispatchEvent(new Event('input', { bubbles: true }));
+                                            if (options.triggerChange) {
+                                                sourceField.dispatchEvent(new Event('change', { bubbles: true }));
+                                            }
                                         }
                                     }
                                 }
@@ -444,30 +476,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
                     } catch(e) {}
 
-                    try {
-                        var cartStore = wp.data.select('wc/store/cart');
-                        var cartDispatch = wp.data.dispatch('wc/store/cart');
-                        if (!cartStore || !cartDispatch) {
-                            return;
-                        }
-
-                        var billingAddress = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
-                        var shippingAddress = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
-
-                        billingAddress = Object.assign({}, billingAddress);
-                        shippingAddress = Object.assign({}, shippingAddress);
-
-                        billingAddress[kiriofFieldId] = val;
-                        shippingAddress[kiriofFieldId] = val;
-
-                        if (typeof cartDispatch.setBillingAddress === 'function') {
-                            cartDispatch.setBillingAddress(billingAddress);
-                        }
-
-                        if (typeof cartDispatch.setShippingAddress === 'function') {
-                            cartDispatch.setShippingAddress(shippingAddress);
-                        }
-                    } catch(e) {}
                 }
             
                 function kiriofGetDestinationAreaAjaxData(val, label, different_address) {
@@ -525,6 +533,38 @@ if ( ! defined( 'ABSPATH' ) ) {
                             coreDataDispatch.invalidateResolution('wc/store/cart', 'getShippingRates', []);
                         }
                     } catch(e) {}
+                }
+
+                function kiriofBuildBlockCartUpdateKey(data) {
+                    return [
+                        data.shipping_metode_id || '',
+                        data.destination_id || '',
+                        data.destination_name || '',
+                        data.postcode || '',
+                        data.payment_method || '',
+                        data.insurance || 0,
+                        data.force_insurance || 0
+                    ].join('|');
+                }
+
+                function kiriofPersistBlockDistrictSelection(data) {
+                    var updateKey = kiriofBuildBlockCartUpdateKey(data);
+                    if (updateKey && updateKey === kiriofLastBlockCartUpdateKey) {
+                        kiriofScheduleBlockShippingRatesRefresh(160);
+                        return;
+                    }
+
+                    kiriofLastBlockCartUpdateKey = updateKey;
+                    var result = kiriofBlockExtensionCartUpdate(data);
+                    if (result && typeof result.then === 'function') {
+                        result.then(function() {
+                            kiriofScheduleBlockShippingRatesRefresh(80);
+                        }).catch(function() {
+                            kiriofScheduleBlockShippingRatesRefresh(160);
+                        });
+                    } else {
+                        kiriofScheduleBlockShippingRatesRefresh(160);
+                    }
                 }
             
                 var kiriofLastDistrictResults = [];
@@ -630,7 +670,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                         if (selectValue) {
                             kiriofSyncBlockDistrictSourceField(
                                 selectValue,
-                                jQuery('.kiriof-block-district-select option:selected').text() || jQuery('[name="kiriof_destination_area_name"]').val() || ''
+                                jQuery('.kiriof-block-district-select option:selected').text() || jQuery('[name="kiriof_destination_area_name"]').val() || '',
+                                { silentEvents: true }
                             );
                         }
                     });
@@ -1115,19 +1156,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofPendingDistrictRestore = false;
                     kiriofSyncBlockDistrictWarningState();
 
-                    // Persist to Store API (saves postcode map to session so district restores on next page load).
-                    kiriofBlockExtensionCartUpdate({
+                    kiriofPersistBlockDistrictSelection({
                         destination_id: parseInt(savedDistrict.destination_id) || 0,
                         destination_name: savedDistrict.destination_name || '',
                         postcode: postcode,
                         payment_method: kiriofGetPaymentMethod(),
                         insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
                         force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
-                    });
-
-                    kiriofPersistDestinationArea(String(savedDistrict.destination_id), savedDistrict.destination_name || '', jQuery('[name="ship_to_different_address"]:checked').length, function() {
-                        kiriofRefreshBlockShippingRates();
-                        kiriofCodInsurance();
                     });
                 }
             
@@ -1136,9 +1171,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                         var val = jQuery(this).val();
                         var label = jQuery(this).find('option:selected').text();
                         var postcode = kiriofGetCurrentPostcodeKey();
-                        var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
-                        var $sourceField = kiriofGetBlockDistrictField();
-            
                         kiriofSyncBlockDistrictSourceField(val, label || '', { triggerChange: true });
             
                         kiriofUpdateCheckoutAdditionalFields(val);
@@ -1147,19 +1179,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                         kiriofDistrictResultsLoading = false;
                         kiriofSyncBlockDistrictWarningState();
 
-                        // Persist to WC session via Store API (saves to postcode map for restore on next page load).
-                        kiriofBlockExtensionCartUpdate({
+                        kiriofPersistBlockDistrictSelection({
                             destination_id: parseInt(val) || 0,
                             destination_name: label || '',
                             postcode: postcode,
                             payment_method: kiriofGetPaymentMethod(),
                             insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
                             force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
-                        });
-
-                        kiriofPersistDestinationArea(val, label, differentAddress, function() {
-                            kiriofRefreshBlockShippingRates();
-                            kiriofCodInsurance();
                         });
                     });
             
@@ -1190,13 +1216,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                 setTimeout(function() {
                     kiriofRestoreSavedCheckoutState();
                     kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
-                    kiriofSyncBlockDistrictWarningStateWithClear();
+                    kiriofSyncBlockDistrictWarningState();
                 }, 300);
                 // Retry for block themes (e.g. ShopVerse) that hydrate form inputs after initial render
                 setTimeout(function() {
                     kiriofRestoreSavedCheckoutState();
                     kiriofFetchDistricts(kiriofGetCurrentPostcodeKey());
-                    kiriofSyncBlockDistrictWarningStateWithClear();
+                    kiriofSyncBlockDistrictWarningState();
                 }, 1500);
             
                 // Watch for postcode changes via data store — use UI-only sync (no store dispatch)
@@ -1228,8 +1254,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 kiriofSavedCheckoutPostcode = '';
                             }
 
-                            kiriofFetchDistricts(postcode);
-                            kiriofSyncBlockDistrictWarningState();
+                            if (postcode !== kiriofLastObservedBlockPostcode) {
+                                kiriofLastObservedBlockPostcode = postcode;
+                                kiriofFetchDistricts(postcode);
+                            }
+                            if (postcode || kiriofLastTypedPostcode || kiriofSavedCheckoutPostcode) {
+                                kiriofSyncBlockDistrictWarningState();
+                            }
                         } catch(e) {}
                     }, 150);
                 });
@@ -1453,25 +1484,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
         function kiriofChangeCodPayment(){
-            jQuery(document).on('change','[name="payment_method"]:checked,#kiriof_insurance,#kiriof_shipping_insurance',function() {
-                kiriofHandleCodInsurance();
-            });
-
+            jQuery(document)
+                .off('change.kiriofPaymentRefresh', '[name="payment_method"], #kiriof_insurance, #kiriof_shipping_insurance')
+                .on('change.kiriofPaymentRefresh', '[name="payment_method"], #kiriof_insurance, #kiriof_shipping_insurance', function() {
+                    if (this.name === 'payment_method' && !jQuery(this).is(':checked')) {
+                        return;
+                    }
+                    kiriofHandleCodInsurance();
+                });
         }
 
         function kiriofChangeDifferentAddress(){
-            jQuery('[name="ship_to_different_address"]').on('change',function(e) {
-                if(jQuery(this).is(':checked')){
-                    jQuery('#kiriof_destination_area').val(jQuery('#kiriof_shipping_destination_area option:selected').val()).trigger("change");
-                }else{
-                    jQuery('#kiriof_destination_area').val(jQuery('#kiriof_destination_area option:selected').val()).trigger("change");
-                }
-            });
+            jQuery(document)
+                .off('change.kiriofDifferentAddress', '[name="ship_to_different_address"]')
+                .on('change.kiriofDifferentAddress', '[name="ship_to_different_address"]', function() {
+                    if(jQuery(this).is(':checked')){
+                        jQuery('#kiriof_destination_area').val(jQuery('#kiriof_shipping_destination_area option:selected').val()).trigger("change");
+                    }else{
+                        jQuery('#kiriof_destination_area').val(jQuery('#kiriof_destination_area option:selected').val()).trigger("change");
+                    }
+                });
+        }
+
+        function kiriofIsBlockCheckoutContext() {
+            return !!(
+                jQuery('.wp-block-woocommerce-checkout, .wc-block-checkout, .wc-block-components-checkout-place-order-button').length
+                && typeof wp !== 'undefined'
+                && wp.data
+            );
         }
 
         function kiriofHandleCodInsurance(){
-            kiriofUpdatingCheckoutLock = false;
+            if ( kiriofUpdatingCheckoutLock ) {
+                kiriofPendingFeeRefresh = true;
+                return;
+            }
             <?php if( is_checkout()){ ?>
+                if ( kiriofIsBlockCheckoutContext() ) {
+                    kiriofCodInsurance();
+                    return;
+                }
                 jQuery(document.body).off('updated_checkout.kiriofFeeRefresh').one('updated_checkout.kiriofFeeRefresh', function() {
                     kiriofCodInsurance();
                 });
@@ -1489,13 +1541,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         function kiriofBlockExtensionCartUpdate(data) {
             if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
-                return;
+                return null;
             }
 
             try {
                 var cartDispatch = wp.data.dispatch('wc/store/cart');
                 if (cartDispatch && typeof cartDispatch.extensionCartUpdate === 'function') {
-                    cartDispatch.extensionCartUpdate({
+                    return cartDispatch.extensionCartUpdate({
                         namespace: 'kiriminaja-official',
                         data: {
                             shipping_metode_id: data.shipping_metode_id,
@@ -1507,13 +1559,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                             force_insurance: data.force_insurance
                         }
                     });
-                    return;
                 }
 
                 if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
                     cartDispatch.invalidateResolutionForStore();
                 }
             } catch(e) {}
+
+            return null;
         }
 
         function kiriofGetDestinationId(different_address) {
@@ -1584,6 +1637,18 @@ if ( ! defined( 'ABSPATH' ) ) {
             return payment_method || '';
         }
 
+        function kiriofBuildFeeRefreshKey(data) {
+            return [
+                data.shipping_metode_id || '',
+                data.destination_id || '',
+                data.destination_name || '',
+                data.postcode || '',
+                data.payment_method || '',
+                data.insurance || 0,
+                data.force_insurance || 0
+            ].join('|');
+        }
+
         function kiriofCodInsurance(){
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
@@ -1646,13 +1711,37 @@ if ( ! defined( 'ABSPATH' ) ) {
                 force_insurance : parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
             };
 
+            let refreshKey = kiriofBuildFeeRefreshKey(data);
+
+            if (kiriofUpdatingCheckoutLock) {
+                if (refreshKey === kiriofInFlightFeeRefreshKey) {
+                    return;
+                }
+
+                kiriofPendingFeeRefresh = true;
+                kiriofPendingFeeRefreshKey = refreshKey;
+
+                if (kiriofFeeRefreshRequest && kiriofFeeRefreshRequest.readyState !== 4) {
+                    try {
+                        kiriofFeeRefreshRequest.abort();
+                    } catch(e) {}
+                }
+
+                return;
+            }
+
+            kiriofUpdatingCheckoutLock = true;
+            kiriofInFlightFeeRefreshKey = refreshKey;
+            kiriofPendingFeeRefresh = false;
+            kiriofPendingFeeRefreshKey = '';
+
             // Persist the block-checkout selections immediately through Store API.
             // The legacy admin-ajax fee request below can finish after the buyer
             // submits the order; if we wait for that success callback, the final
             // Store API checkout hook may not have kiriminaja session context yet.
             kiriofBlockExtensionCartUpdate(data);
 
-            jQuery.ajax({
+            kiriofFeeRefreshRequest = jQuery.ajax({
                         url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
                         type: 'post',
                         data: data,
@@ -1662,20 +1751,36 @@ if ( ! defined( 'ABSPATH' ) ) {
                             kiriofSetFeeSkeletonLoading(true);
                         },
                         success:function(response){                                 
-                            jQuery('#order_review').find('.shop_table').unblock();  
-                
-                            kiriofSetFeeSkeletonLoading(false);
-                                    
                             jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance);
-
-                            kiriofUpdatingCheckoutLock = true;
-                            jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
+                            if (!kiriofIsBlockCheckoutContext()) {
+                                jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
+                            }
 
                         },
-                        error:function(xhr){
+                        error:function(xhr, textStatus){
+                            if (textStatus === 'abort') {
+                                return;
+                            }
+                            alert("Sorry System Trouble Error Code : "+xhr.status);
+                         },
+                        complete:function(){
                             kiriofSetFeeSkeletonLoading(false);
                             jQuery('#order_review').find('.shop_table').unblock();
-                            alert("Sorry System Trouble Error Code : "+xhr.status);
+                            kiriofUpdatingCheckoutLock = false;
+                            kiriofFeeRefreshRequest = null;
+                            kiriofInFlightFeeRefreshKey = '';
+
+                            if (kiriofPendingFeeRefresh) {
+                                var pendingKey = kiriofPendingFeeRefreshKey;
+                                kiriofPendingFeeRefresh = false;
+                                kiriofPendingFeeRefreshKey = '';
+
+                                window.setTimeout(function() {
+                                    if (!kiriofUpdatingCheckoutLock && (!pendingKey || pendingKey !== kiriofInFlightFeeRefreshKey)) {
+                                        kiriofCodInsurance();
+                                    }
+                                }, 0);
+                            }
                          }
             });
         }

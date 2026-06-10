@@ -649,22 +649,20 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'District updater should merge with existing checkout additional fields instead of overwriting unrelated extension fields'
         );
 
-        $this->assertStringContainsString(
+        $functionStart = strpos($content, 'function kiriofUpdateCheckoutAdditionalFields');
+        $this->assertNotFalse($functionStart, 'District additional-field updater must exist');
+        $functionBody = substr($content, $functionStart, 2600);
+
+        $this->assertStringNotContainsString(
             "wp.data.dispatch('wc/store/cart')",
-            $content,
-            'Address-scoped block checkout fields must also update the cart store, not only wc/store/checkout additional fields'
+            $functionBody,
+            'District additional-field sync must not also write cart billing/shipping address stores; that dispatches broad cart updates and can freeze block checkout while rates are recalculating'
         );
 
         $this->assertStringContainsString(
-            'setBillingAddress',
+            'extensionCartUpdate',
             $content,
-            'Required block checkout District field must be mirrored into the billing address store so checkout submission does not fail validation silently'
-        );
-
-        $this->assertStringContainsString(
-            'setShippingAddress',
-            $content,
-            'Required block checkout District field must be mirrored into the shipping address store so checkout submission does not fail validation silently'
+            'District selection should persist cart/session state through the Store API extension update instead of mutating cart address stores from the additional-field helper'
         );
 
         $this->assertStringContainsString(
@@ -763,29 +761,29 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($start, 'Block District change handler must exist');
         $handlerBody = substr($content, $start, 2600);
 
-        $persistPosition = strpos($handlerBody, 'kiriofPersistDestinationArea');
-        $refreshPosition = strpos($handlerBody, 'kiriofRefreshBlockShippingRates');
+        $persistPosition = strpos($handlerBody, 'kiriofPersistBlockDistrictSelection');
+        $refreshPosition = strpos($content, 'kiriofScheduleBlockShippingRatesRefresh');
 
         $this->assertNotFalse(
             $persistPosition,
-            'Selecting a District in block checkout must persist destination_id to WC session before rates are recalculated'
+            'Selecting a District in block checkout must persist destination_id through Store API before rates are recalculated'
         );
 
         $this->assertNotFalse(
             $refreshPosition,
-            'Block checkout must explicitly refresh Store API shipping rates after District persistence; themes like Blocksy may not refetch rates from an additional custom field change alone'
-        );
-
-        $this->assertLessThan(
-            $refreshPosition,
-            $persistPosition,
-            'Shipping-rate refresh must happen after destination_id is persisted server-side so KiriminAja calculate_shipping receives the fulfilled address'
+            'Block checkout must schedule a single Store API shipping-rate refresh after District persistence; themes may not refetch rates from an additional custom field change alone'
         );
 
         $this->assertStringContainsString(
-            'kiriofGetDestinationAreaAjaxData',
+            'kiriofBlockExtensionCartUpdate',
             $content,
-            'The block and classic District handlers should share the same destination/session payload builder'
+            'Block District persistence should use the Woo Store API extension update instead of the legacy admin-ajax destination endpoint'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriofPersistDestinationArea(val, label',
+            $handlerBody,
+            'Selecting District in block checkout must not call the legacy destination AJAX endpoint; combining that with Store API updates causes duplicate cart recalculations and freezes'
         );
     }
 
@@ -1352,6 +1350,111 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
             $successBody,
             'After fee cache updates, classic checkout must refresh once so WooCommerce native fee rows render Insurance and COD Fee'
+        );
+
+        $this->assertStringContainsString(
+            'if (!kiriofIsBlockCheckoutContext())',
+            $successBody,
+            'Fee AJAX success must skip the classic update_checkout fragment refresh path when running inside block checkout'
+        );
+    }
+
+    #[Test]
+    public function checkout_refresh_handlers_must_not_accumulate_duplicate_change_listeners(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            ".off('change.kiriofPaymentRefresh'",
+            $template,
+            'Payment and insurance refresh binding must unbind the previous delegated handler before rebinding, otherwise each updated_checkout adds another listener and amplifies AJAX refreshes'
+        );
+
+        $this->assertStringContainsString(
+            ".on('change.kiriofPaymentRefresh'",
+            $template,
+            'Payment and insurance refresh binding must use a namespaced delegated handler so rebinding stays idempotent across checkout refreshes'
+        );
+
+        $this->assertStringContainsString(
+            ".off('change.kiriofDifferentAddress'",
+            $template,
+            'Ship-to-different-address binding must be removed before re-attaching or each checkout refresh stacks another change handler'
+        );
+
+        $this->assertStringContainsString(
+            ".on('change.kiriofDifferentAddress'",
+            $template,
+            'Ship-to-different-address binding must use a namespaced delegated handler so WooCommerce refreshes do not leak listeners'
+        );
+    }
+
+    #[Test]
+    public function fee_refresh_must_collapse_inflight_requests_instead_of_stacking_more_ajax(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($template, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($start, 'Fee AJAX function must exist');
+        $functionBody = substr($template, $start, 7600);
+
+        $this->assertStringContainsString(
+            'var kiriofFeeRefreshRequest = null;',
+            $template,
+            'Checkout script must track the in-flight fee refresh request so repeated UI/store updates do not pile up concurrent admin-ajax calls'
+        );
+
+        $this->assertStringContainsString(
+            'if (kiriofUpdatingCheckoutLock)',
+            $functionBody,
+            'Fee refresh must short-circuit while a previous refresh is still running, otherwise block checkout can spiral into repeated refreshes and freeze the tab'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofFeeRefreshRequest.abort()',
+            $functionBody,
+            'When a newer fee refresh supersedes an older one, the stale request should be aborted instead of left running in parallel'
+        );
+
+        $this->assertStringContainsString(
+            "if (textStatus === 'abort')",
+            $functionBody,
+            'Aborted fee refreshes should exit quietly; alerting on intentional aborts makes rapid checkout updates feel broken'
+        );
+
+        $this->assertStringContainsString(
+            'complete:function()',
+            $functionBody,
+            'Fee refresh cleanup must happen in the AJAX complete hook so locks and loading state are always released after success, failure, or abort'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_fee_refreshes_must_be_scheduled_and_skip_classic_fragment_cycles(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'var kiriofCodInsuranceTimer = null;',
+            $template,
+            'Block checkout fee refreshes should be funneled through a shared timer so rapid payment/shipping/store changes collapse into one recalculation'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofScheduleCodInsurance(delay)',
+            $template,
+            'Block checkout should debounce fee refreshes instead of calling kiriofCodInsurance directly from every subscribe and persistence callback'
+        );
+
+        $this->assertStringContainsString(
+            'if ( kiriofIsBlockCheckoutContext() ) {',
+            $template,
+            'Block checkout should detect its own context so classic update_checkout wiring can be bypassed'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofRefreshBlockShippingRates();',
+            $template,
+            'Block checkout fee AJAX success should refresh block store rates directly instead of always triggering classic checkout fragment refreshes'
         );
     }
 
