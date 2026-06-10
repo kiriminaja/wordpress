@@ -206,6 +206,14 @@ class ShippingDiscountCouponService {
             $destinationName = (string) ( WC()->session->get( 'shipping_destination_name' ) ?: WC()->session->get( 'destination_name' ) ?: '' );
         }
 
+        if ( $destinationId < 1 ) {
+            $destinationId = $this->getPostedDestinationId();
+        }
+
+        if ( '' === $destinationName ) {
+            $destinationName = $this->getPostedDestinationName();
+        }
+
         return array(
             'id' => $destinationId,
             'name' => sanitize_text_field( $destinationName ),
@@ -524,6 +532,69 @@ class ShippingDiscountCouponService {
         );
 
         return $aliases[ $normalized ] ?? $normalized;
+    }
+
+    private function getPostedDestinationId(): int {
+        foreach ( $this->getRequestValuesByKeys(
+            array(
+                'kiriof_shipping_destination_area',
+                'kiriof_destination_area',
+                'shipping_destination_id',
+                'destination_id',
+                'destination_area_id',
+                'kiriminaja-official/kiriof_destination_area',
+            )
+        ) as $value ) {
+            if ( is_numeric( $value ) ) {
+                return (int) $value;
+            }
+        }
+
+        return 0;
+    }
+
+    private function getPostedDestinationName(): string {
+        foreach ( $this->getRequestValuesByKeys(
+            array(
+                'kiriof_shipping_destination_area_name',
+                'kiriof_destination_area_name',
+                'shipping_destination_name',
+                'destination_name',
+            )
+        ) as $value ) {
+            $value = sanitize_text_field( (string) $value );
+            if ( '' !== $value ) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function getRequestValuesByKeys( array $keys ): array {
+        $found = array();
+        $stack = array( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- request state only
+
+        while ( ! empty( $stack ) ) {
+            $candidate = array_pop( $stack );
+            if ( ! is_array( $candidate ) ) {
+                continue;
+            }
+
+            foreach ( $candidate as $key => $value ) {
+                if ( is_array( $value ) ) {
+                    $stack[] = $value;
+                }
+
+                if ( ! is_string( $key ) || ! in_array( $key, $keys, true ) || is_array( $value ) ) {
+                    continue;
+                }
+
+                $found[] = wp_unslash( $value );
+            }
+        }
+
+        return $found;
     }
 
     private function hasActiveFreeShippingCoupon(): bool {
