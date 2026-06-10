@@ -105,6 +105,30 @@ class ShippingDiscountCouponService {
         );
     }
 
+    public function clearValidationNotices(): void {
+        if ( ! function_exists( 'wc_get_notices' ) || ! function_exists( 'wc_set_notices' ) ) {
+            return;
+        }
+
+        $notices = wc_get_notices();
+        if ( empty( $notices['error'] ) || ! is_array( $notices['error'] ) ) {
+            return;
+        }
+
+        $validationMessages = $this->getValidationMessages();
+        $notices['error'] = array_values(
+            array_filter(
+                $notices['error'],
+                static function ( $notice ) use ( $validationMessages ) {
+                    $message = isset( $notice['notice'] ) ? wp_strip_all_tags( (string) $notice['notice'] ) : '';
+                    return ! in_array( $message, $validationMessages, true );
+                }
+            )
+        );
+
+        wc_set_notices( $notices );
+    }
+
     private function isKiriminAjaShippingSelected(): bool {
         foreach ( $this->getChosenShippingMethods() as $method ) {
             if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
@@ -620,6 +644,19 @@ class ShippingDiscountCouponService {
         }
 
         return $found;
+    }
+
+    private function getValidationMessages(): array {
+        return array(
+            __( 'Add items to your cart first.', 'kiriminaja-official' ),
+            __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ),
+            __( 'Shipping discount coupons are not available for your account type.', 'kiriminaja-official' ),
+            __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ),
+            __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ),
+            __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ),
+            __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ),
+            __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ),
+        );
     }
 
     private function hasActiveFreeShippingCoupon(): bool {

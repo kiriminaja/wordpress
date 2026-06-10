@@ -63,6 +63,7 @@ class ShippingDiscountCouponController {
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
+            $service->clearValidationNotices();
             return true;
         }
 
@@ -95,6 +96,7 @@ class ShippingDiscountCouponController {
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
+            $service->clearValidationNotices();
             return;
         }
 
@@ -127,6 +129,7 @@ class ShippingDiscountCouponController {
 
             $validation = $service->validateCouponForCart( $coupon );
             if ( $validation['valid'] ) {
+                $service->clearValidationNotices();
                 continue;
             }
 

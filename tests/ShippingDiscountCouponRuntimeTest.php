@@ -48,6 +48,9 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('splitCouponCodesByScope', $serviceContent);
         $this->assertStringContainsString('getPostedDestinationId', $serviceContent);
         $this->assertStringContainsString('getPostedDestinationName', $serviceContent);
+        $this->assertStringContainsString('clearValidationNotices', $serviceContent);
+        $this->assertStringContainsString('getValidationMessages', $serviceContent);
+        $this->assertStringContainsString('wc_set_notices', $serviceContent);
         $this->assertStringContainsString("'kiriof_shipping_destination_area'", $serviceContent);
         $this->assertStringContainsString("'kiriof_destination_area_name'", $serviceContent);
         $this->assertStringContainsString('This coupon is not valid for the selected courier.', $serviceContent);
@@ -95,6 +98,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('invalidateBlockShippingRates', $blockCheckout);
         $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
+        $this->assertStringContainsString('clearValidationNotices', $couponController);
         $this->assertStringContainsString('splitCouponCodesByScope', $metabox);
         $this->assertStringContainsString('splitCouponCodesByScope', $transactionProcess);
         $this->assertStringContainsString('splitCouponCodesByScope', $transactionProcessView);
