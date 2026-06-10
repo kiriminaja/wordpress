@@ -965,7 +965,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     var districtLabel = $districtSelect.find('option:selected').text() || jQuery('[name="kiriof_destination_area_name"]').val() || '';
                     var postcode = kiriofGetCurrentPostcodeKey();
 
-                    kiriofSyncBlockDistrictSourceField(districtValue, districtLabel, { triggerChange: true });
+                    kiriofSyncBlockDistrictSourceField(districtValue, districtLabel, { silentEvents: true });
                     kiriofUpdateCheckoutAdditionalFields(districtValue);
                     kiriofRememberDistrictForPostcode(postcode, districtValue, districtLabel);
                     kiriofPendingDistrictRestore = false;
@@ -1171,9 +1171,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         var val = jQuery(this).val();
                         var label = jQuery(this).find('option:selected').text();
                         var postcode = kiriofGetCurrentPostcodeKey();
-                        kiriofSyncBlockDistrictSourceField(val, label || '', { triggerChange: true });
-            
-                        kiriofUpdateCheckoutAdditionalFields(val);
+                        kiriofSyncBlockDistrictSourceField(val, label || '', { silentEvents: true });
                         kiriofRememberDistrictForPostcode(postcode, val, label);
                         kiriofPendingDistrictRestore = false;
                         kiriofDistrictResultsLoading = false;

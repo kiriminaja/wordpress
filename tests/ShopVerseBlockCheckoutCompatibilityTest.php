@@ -785,6 +785,22 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $handlerBody,
             'Selecting District in block checkout must not call the legacy destination AJAX endpoint; combining that with Store API updates causes duplicate cart recalculations and freezes'
         );
+
+        $this->assertStringNotContainsString(
+            'kiriofUpdateCheckoutAdditionalFields(val)',
+            $handlerBody,
+            'Selecting District in block checkout must not immediately write Woo checkout additional fields; fresh block checkouts can remount and freeze while shipping rates are recalculating. Commit that field right before place order instead.'
+        );
+
+        $placeOrderStart = strpos($content, 'function kiriofCommitSelectedBlockDistrict');
+        $this->assertNotFalse($placeOrderStart, 'Place-order District commit must exist');
+        $placeOrderBody = substr($content, $placeOrderStart, 1200);
+
+        $this->assertStringContainsString(
+            'kiriofUpdateCheckoutAdditionalFields(districtValue)',
+            $placeOrderBody,
+            'Place-order handling should still push District into Woo checkout additional fields before submission'
+        );
     }
 
     #[Test]
