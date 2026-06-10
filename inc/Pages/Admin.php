@@ -231,6 +231,11 @@ class Admin extends BaseInit{
             return;
         }
 
+        global $pagenow;
+        if ( ! in_array( $pagenow, array( 'index.php', 'edit.php', 'admin.php' ), true ) ) {
+            return;
+        }
+
         $repo = new \KiriminAjaOfficial\Repositories\SettingRepository();
 
         // 1. Account Connection
@@ -309,10 +314,10 @@ class Admin extends BaseInit{
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
         $product_volumetric_label = $product_volumetric_ready
-            ? __( 'All Product Configured', 'kiriminaja-official' )
+            ? __( 'Product Volumetric Configurations', 'kiriminaja-official' )
             : sprintf(
                 /* translators: %1$d: configured products, %2$d: total products */
-                __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
+                __( 'Product Volumetric Configurations (%1$d/%2$d)', 'kiriminaja-official' ),
                 $product_volumetric_configured,
                 $product_volumetric_total
             );
@@ -359,33 +364,33 @@ class Admin extends BaseInit{
         $steps = array(
             array(
                 'key' => 'account', 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'],
-                'title'       => __( 'Account Connection', 'kiriminaja-official' ),
-                'description' => __( 'Connect your KiriminAja account to sync orders, shipments, and automate label printing.', 'kiriminaja-official' ),
+                'title'       => __( 'KiriminAja Account Connection', 'kiriminaja-official' ),
+                'description' => __( 'Connect your KiriminAja account to synchronize orders, shipments, and automate label printing.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'products', 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'],
                 'title'       => $product_volumetric_label,
-                'description' => __( 'Set weight and dimensions for each product so shipping rates are calculated accurately.', 'kiriminaja-official' ),
+                'description' => __( 'Set the weight and dimensions for each product so shipping rates are calculated accurately.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'origin', 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'],
-                'title'       => __( 'Origin Setup', 'kiriminaja-official' ),
-                'description' => __( 'Configure your pickup address and subdistrict so couriers quote the correct rates.', 'kiriminaja-official' ),
+                'title'       => __( 'Shipping Address Setup', 'kiriminaja-official' ),
+                'description' => __( 'Set the pickup address and subdistrict so couriers can display accurate shipping rates.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'couriers', 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'],
-                'title'       => __( 'Courier Setup', 'kiriminaja-official' ),
-                'description' => __( 'Choose which courier services to offer at checkout. Only enabled couriers appear to buyers.', 'kiriminaja-official' ),
+                'title'       => __( 'Courier Service Setup', 'kiriminaja-official' ),
+                'description' => __( 'Choose which courier services to offer at checkout. Only active couriers will be shown to customers.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'shipping_locations', 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'],
                 'title'       => __( 'Shipping Locations', 'kiriminaja-official' ),
-                'description' => __( 'Enable shipping zones in WooCommerce so customers can select their delivery destination.', 'kiriminaja-official' ),
+                'description' => __( 'Enable shipping zones in WooCommerce so customers can choose their delivery destination.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'tracking', 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'],
                 'title'       => __( 'Tracking Page', 'kiriminaja-official' ),
-                'description' => __( 'Create a public tracking page so customers can monitor their shipment status in real time.', 'kiriminaja-official' ),
+                'description' => __( 'Create a public tracking page so customers can monitor shipping status in real time.', 'kiriminaja-official' ),
             ),
         );
 
@@ -398,6 +403,14 @@ class Admin extends BaseInit{
         // Hide if all required steps completed
         if ( $all_required_done ) {
             return;
+        }
+
+        $current_step_index = 0;
+        foreach ( $steps as $index => $step ) {
+            if ( empty( $step['done'] ) ) {
+                $current_step_index = $index;
+                break;
+            }
         }
 
         $kiriof_setup_guide_clickable_marker = <<<'KIRIOF_SETUP_GUIDE_MARKER'

@@ -636,6 +636,74 @@ msgstr "Konfigurasi KiriminAja"
 msgid "KiriminAja Setup Guide"
 msgstr "Panduan Setup KiriminAja"
 
+#. translators: %1$d: configured products, %2$d: total products
+#: inc/Pages/Admin.php:285
+#, php-format
+msgid "Product Volumetric Configurations (%1$d/%2$d)"
+msgstr "Konfigurasi Volumetrik Produk (%1$d/%2$d)"
+
+#: inc/Pages/Admin.php:332
+msgid "KiriminAja Account Connection"
+msgstr "Koneksi Akun KiriminAja"
+
+#: inc/Pages/Admin.php:333
+msgid "Connect your KiriminAja account to synchronize orders, shipments, and automate label printing."
+msgstr "Hubungkan akun KiriminAja untuk menyinkronkan pesanan, pengiriman, dan mengotomatiskan cetak label."
+
+#: inc/Pages/Admin.php:338
+msgid "Set the weight and dimensions for each product so shipping rates are calculated accurately."
+msgstr "Atur berat dan dimensi setiap produk agar tarif pengiriman dihitung akurat."
+
+#: inc/Pages/Admin.php:342
+msgid "Shipping Address Setup"
+msgstr "Pengaturan Alamat Pengiriman"
+
+#: inc/Pages/Admin.php:343
+msgid "Set the pickup address and subdistrict so couriers can display accurate shipping rates."
+msgstr "Atur alamat pickup dan kelurahan agar kurir dapat menampilkan tarif yang tepat."
+
+#: inc/Pages/Admin.php:347
+msgid "Courier Service Setup"
+msgstr "Pengaturan Layanan Kurir"
+
+#: inc/Pages/Admin.php:348
+msgid "Choose which courier services to offer at checkout. Only active couriers will be shown to customers."
+msgstr "Pilih layanan kurir yang ditawarkan saat checkout. Hanya kurir yang aktif yang akan tampil ke pembeli."
+
+#: inc/Pages/Admin.php:353
+msgid "Enable shipping zones in WooCommerce so customers can choose their delivery destination."
+msgstr "Aktifkan zona pengiriman di WooCommerce agar pelanggan dapat memilih tujuan pengiriman."
+
+#: inc/Pages/Admin.php:358
+msgid "Create a public tracking page so customers can monitor shipping status in real time."
+msgstr "Buat halaman pelacakan publik agar pelanggan dapat memantau status pengiriman secara real-time."
+
+#: templates/_setup-guide.php:77
+msgid "Final Step"
+msgstr "Tahap Terakhir"
+
+#. translators: %1$d: current step number, %2$d: total step count.
+#: templates/_setup-guide.php:80
+#, php-format
+msgid "Step %1$d of %2$d"
+msgstr "Tahap %1$d dari %2$d"
+
+#: templates/_setup-guide.php:92
+msgid "Optional"
+msgstr "Opsional"
+
+#: templates/_setup-guide.php:99
+msgid "View Settings"
+msgstr "Lihat Pengaturan"
+
+#: templates/_setup-guide.php:99
+msgid "Configure Now"
+msgstr "Konfigurasi Sekarang"
+
+#: templates/_setup-guide.php:103
+msgid "Skip"
+msgstr "Lewati"
+
 #: inc/Controllers/EditOrderController.php:29
 msgid "KiriminAja Shipping"
 msgstr "KiriminAja Shipping"
