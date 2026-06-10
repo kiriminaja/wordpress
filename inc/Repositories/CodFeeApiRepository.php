@@ -29,7 +29,14 @@ class CodFeeApiRepository extends KiriminAjaApi {
     public function calculateBulkCod( array $data ): ?array {
         $couriers = $data['couriers'] ?? [];
         if ( empty( $couriers ) ) {
-            error_log( '[KiriminAja] CodFeeApiRepository::calculateBulkCod — no couriers provided, skipping API call.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            kiriof_log(
+                'warning',
+                'COD fee calculation skipped because no couriers were provided.',
+                array(
+                    'source'    => 'kiriminaja_payment',
+                    'operation' => 'calculate_bulk_cod',
+                )
+            );
             return null;
         }
 
@@ -40,16 +47,37 @@ class CodFeeApiRepository extends KiriminAjaApi {
             'data'                          => $couriers,
         ];
 
-        $response = $this->post( '/api/mitra/calculations/cod', $body );
+        $response = $this->post( '/api/mitra/calculations/cod', $body, array(
+            'source'        => 'kiriminaja_payment',
+            'operation'     => 'calculate_bulk_cod',
+            'courier_count' => count( $couriers ),
+        ) );
 
         if ( empty( $response['status'] ) ) {
-            error_log( '[KiriminAja] CodFeeApiRepository::calculateBulkCod — API error: ' . ( is_string( $response['data'] ) ? $response['data'] : wp_json_encode( $response['data'] ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            kiriof_log(
+                'warning',
+                'COD fee calculation API request failed.',
+                array(
+                    'source'        => 'kiriminaja_payment',
+                    'operation'     => 'calculate_bulk_cod',
+                    'courier_count' => count( $couriers ),
+                    'response'      => is_string( $response['data'] ) ? $response['data'] : $response['data'],
+                )
+            );
             return null;
         }
 
         $results = $response['data']->results ?? null;
         if ( ! is_array( $results ) || empty( $results ) ) {
-            error_log( '[KiriminAja] CodFeeApiRepository::calculateBulkCod — empty results in response.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            kiriof_log(
+                'warning',
+                'COD fee calculation API request returned no result rows.',
+                array(
+                    'source'        => 'kiriminaja_payment',
+                    'operation'     => 'calculate_bulk_cod',
+                    'courier_count' => count( $couriers ),
+                )
+            );
             return null;
         }
 

@@ -30,17 +30,15 @@ class BaseInit{
         if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
             return;
         }
-        
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
-        $bt = debug_backtrace();
-        $caller = array_shift($bt);
-        
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-        error_log(gmdate("[Y-m-d H:i:s] ").wp_json_encode([
-            'log_name'      => $test, 
-            'log_result'    => $loggedItem,
-            'file'          => $caller['file'],
-            'line'          => $caller['line']
-            ])."\n");
+
+        kiriof_log(
+            'debug',
+            'Legacy debug instrumentation emitted a development log entry.',
+            array(
+                'source'  => 'kiriminaja_debug',
+                'tag'     => $test,
+                'payload' => $loggedItem,
+            )
+        );
     }
 }

@@ -16,7 +16,6 @@ class KiriminajaApiService extends BaseService{
     public function sub_district_search($search)
     {
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sub_district_search($search);
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
@@ -37,8 +36,6 @@ class KiriminajaApiService extends BaseService{
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getTracking([
             'order_id'=>$order_id
         ]);
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
-                
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
@@ -130,6 +127,13 @@ class KiriminajaApiService extends BaseService{
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             $cachedProfile = get_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY);
             if (false !== $cachedProfile) {
+                kiriof_log(
+                    'warning',
+                    'Profile lookup used the cached fallback because the live API request failed.',
+                    array(
+                        'source' => 'kiriminaja_api',
+                    )
+                );
                 set_transient(self::KIRIOF_PROFILE_CACHE_KEY, $cachedProfile, self::KIRIOF_PROFILE_CACHE_TTL);
                 return self::success($cachedProfile);
             }

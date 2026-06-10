@@ -110,7 +110,14 @@ class CodAdjustmentController {
                 $localMinimum  = $shippingCost + $insuranceFee + $newCodFee + $adminFee;
                 $newCodMinimum = max( $localMinimum, (float) ( $apiResult[0]->minimum_custom_cod ?? 0 ), $dbCodMinimum );
             } else {
-                error_log( '[KiriminAja] CodAdjustmentController::handleAdjust — API unavailable, using original codFee as fallback.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                kiriof_log(
+                    'warning',
+                    'COD adjustment used the existing COD fee because the recalculation API was unavailable.',
+                    array(
+                        'source'           => 'kiriminaja_payment',
+                        'order_package_id' => $kaOrderId,
+                    )
+                );
             }
         }
 
@@ -138,9 +145,31 @@ class CodAdjustmentController {
         ] );
 
         if ( ! $updated ) {
+            kiriof_log(
+                'error',
+                'COD adjustment could not be saved to the transaction table.',
+                array(
+                    'source'           => 'kiriminaja_payment',
+                    'order_package_id' => $kaOrderId,
+                    'new_total_cod'    => $newTotalCod,
+                )
+            );
             wp_send_json_error( [ 'status' => 500, 'message' => __( 'Failed to update transaction', 'kiriminaja-official' ) ] );
             wp_die();
         }
+
+        kiriof_log(
+            'notice',
+            'COD adjustment updated the transaction and WooCommerce order totals.',
+            array(
+                'source'           => 'kiriminaja_payment',
+                'order_package_id' => $kaOrderId,
+                'woocommerce_id'   => (int) ( $transaction->wp_wc_order_stat_order_id ?? 0 ),
+                'new_total_cod'    => $newTotalCod,
+                'new_cod_fee'      => $newCodFee,
+                'new_cod_minimum'  => $newCodMinimum,
+            )
+        );
 
         // Update WooCommerce order total to match the new COD value.
         $wcOrderId = (int) ( $transaction->wp_wc_order_stat_order_id ?? 0 );

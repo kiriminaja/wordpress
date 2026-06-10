@@ -58,6 +58,27 @@ This runs 125+ PHPUnit tests covering security, escaping, prefix compliance, tem
 
 > **Note:** Your workspace/IDE must be opened at the WordPress root directory so the plugin is located at `wp-content/plugins/kiriminaja-official`. Tests depend on WordPress core paths (`ABSPATH`) and will not work if you open the plugin folder in isolation.
 
+### Logging
+
+The plugin uses WooCommerce's native logger through `kiriof_log()` and `KiriminAjaOfficial\Utils\Logger`.
+
+Current source identifiers:
+
+- `kiriminaja_api` for external API transport and profile/cache failures
+- `kiriminaja_import` for region cache warmups and bundled-data refresh fallbacks
+- `kiriminaja_shipping` for shipping-rate, courier, tracking, and pickup API requests
+- `kiriminaja_payment` for COD fee and COD adjustment flows
+- `kiriminaja_settings` for setup key, callback, COD, and insurance configuration changes
+- `kiriminaja_webhook` for inbound webhook validation and transaction sync events
+- `kiriminaja_debug` for legacy local-only debug instrumentation
+
+Available filters:
+
+- `kiriof_logger_threshold` to set a plugin-level minimum level such as `error`, `warning`, `info`, `debug`, or `none`
+- `kiriof_log_directory` to override the WooCommerce log directory
+- `kiriof_logger_suppressed_messages` to suppress recurring noisy KiriminAja log messages through `woocommerce_logger_log_message`
+- `kiriof_api_debug_logging` to enable success-level API debug logs during development
+
 ### Building
 
 ```bash

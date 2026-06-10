@@ -101,7 +101,14 @@ class CodDeficitService extends BaseService {
                 ];
             }
         } else {
-            error_log( '[KiriminAja] CodDeficitService::detect — courier info missing, using fallback calculation.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            kiriof_log(
+                'warning',
+                'COD deficit detection used the local fallback because courier information was missing.',
+                array(
+                    'source'  => 'kiriminaja_payment',
+                    'service' => $serviceCode,
+                )
+            );
         }
 
         // Fallback: local calculation only.
@@ -143,7 +150,15 @@ class CodDeficitService extends BaseService {
         ] );
 
         if ( null === $call1 ) {
-            error_log( '[KiriminAja] CodDeficitService::detectViaApi — Call 1 failed, falling back to local.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            kiriof_log(
+                'warning',
+                'COD deficit detection fell back to the local calculation after the minimum threshold API call failed.',
+                array(
+                    'source'               => 'kiriminaja_payment',
+                    'courier_code'         => $courierCode,
+                    'courier_service_code' => $serviceCode,
+                )
+            );
             return null;
         }
 
@@ -162,7 +177,15 @@ class CodDeficitService extends BaseService {
         ] );
 
         if ( null === $call2 ) {
-            error_log( '[KiriminAja] CodDeficitService::detectViaApi — Call 2 failed, falling back to local.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            kiriof_log(
+                'warning',
+                'COD deficit detection fell back to the local calculation after the COD fee API call failed.',
+                array(
+                    'source'               => 'kiriminaja_payment',
+                    'courier_code'         => $courierCode,
+                    'courier_service_code' => $serviceCode,
+                )
+            );
             return null;
         }
 
