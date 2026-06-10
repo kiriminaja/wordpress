@@ -1738,6 +1738,14 @@ msgstr ""
 msgid "Skip"
 msgstr ""
 
+#: templates/_setup-guide.php:54
+msgid "Previous step"
+msgstr ""
+
+#: templates/_setup-guide.php:58
+msgid "Next step"
+msgstr ""
+
 #: templates/_setup-guide.php:58
 msgid "(Optional)"
 msgstr ""

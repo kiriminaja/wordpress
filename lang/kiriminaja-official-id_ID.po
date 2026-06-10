@@ -688,6 +688,14 @@ msgstr "Konfigurasi Sekarang"
 msgid "Skip"
 msgstr "Lewati"
 
+#: templates/_setup-guide.php:54
+msgid "Previous step"
+msgstr "Tahap sebelumnya"
+
+#: templates/_setup-guide.php:58
+msgid "Next step"
+msgstr "Tahap berikutnya"
+
 #: inc/Controllers/EditOrderController.php:29
 msgid "KiriminAja Shipping"
 msgstr "KiriminAja Shipping"

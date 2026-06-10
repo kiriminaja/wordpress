@@ -279,10 +279,10 @@ class Admin extends BaseInit{
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
         $product_volumetric_label = $product_volumetric_ready
-            ? __( 'Product Volumetric Configurations', 'kiriminaja-official' )
+            ? __( 'All Product Configured', 'kiriminaja-official' )
             : sprintf(
                 /* translators: %1$d: configured products, %2$d: total products */
-                __( 'Product Volumetric Configurations (%1$d/%2$d)', 'kiriminaja-official' ),
+                __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
                 $product_volumetric_configured,
                 $product_volumetric_total
             );
