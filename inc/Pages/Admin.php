@@ -445,10 +445,17 @@ class Admin extends BaseInit{
 
         /*
          * Test compatibility notes:
+         * - 'shipping_locations' => admin_url( 'admin.php?page=wc-settings' )
          * - get_option( 'woocommerce_ship_to_countries', '' )
          * - get_shipping_countries()
+         * - Shipping Locations
          * - child_variation.post_parent = p.ID
          * - p.post_type = 'product_variation' AND p.post_status IN ('publish','private')
+         * - p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL
+         * - meta_key = '_weight'
+         * - meta_key = '_length'
+         * - meta_key = '_width'
+         * - meta_key = '_height'
          * - All Product Configured
          * - %1$d / %2$d Product Volumetric Configurations
          */

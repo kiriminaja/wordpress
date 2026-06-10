@@ -86,7 +86,7 @@ $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
             <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;width:100%">
                 <div style="flex:1 1 520px;min-width:280px">
                     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-                    <h2 style="margin:0;font-size:18px;line-height:1.25;font-weight:700;color:#111"><?php echo esc_html( $kiriof_step['title'] ); ?></h2>
+                    <h2 style="margin:0;font-size:18px;line-height:1.25;font-weight:700;color:#111"><a href="<?php echo esc_url( $kiriof_step['url'] ); ?>" style="color:inherit;text-decoration:none"><?php echo esc_html( $kiriof_step['title'] ); ?></a></h2>
                     <?php if ( ! $kiriof_step['required'] ) : ?>
                     <span style="font-size:12px;font-weight:500;color:#50575e"><?php echo esc_html__( 'Optional', 'kiriminaja-official' ); ?></span>
                     <?php endif; ?>
