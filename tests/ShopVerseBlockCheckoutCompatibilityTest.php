@@ -99,6 +99,31 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_no_district_state_must_not_make_place_order_a_dead_button(): void
+    {
+        $script = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+
+        $this->assertStringContainsString(
+            "data-kiriof-disabled",
+            $script,
+            'Block checkout should soft-disable the place-order button so clicks can show the district warning instead of becoming inert'
+        );
+
+        $this->assertStringContainsString(
+            'click.kiriofBlockPlaceOrder',
+            $script,
+            'Block checkout should intercept clicks on the soft-disabled place-order button and direct the buyer back to the district field'
+        );
+
+        $this->assertStringNotContainsString(
+            'pointer-events: none !important;',
+            $styles,
+            'CSS must not suppress pointer events on the place-order button because that makes "Lakukan Pemesanan" appear broken'
+        );
+    }
+
+    #[Test]
     public function checkout_pricing_must_use_variation_dimensions_when_cart_item_is_variable(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php');
@@ -532,6 +557,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'getAdditionalFields',
             $content,
             'District updater should merge with existing checkout additional fields instead of overwriting unrelated extension fields'
+        );
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/cart')",
+            $content,
+            'Address-scoped block checkout fields must also update the cart store, not only wc/store/checkout additional fields'
+        );
+
+        $this->assertStringContainsString(
+            'setBillingAddress',
+            $content,
+            'Required block checkout District field must be mirrored into the billing address store so checkout submission does not fail validation silently'
+        );
+
+        $this->assertStringContainsString(
+            'setShippingAddress',
+            $content,
+            'Required block checkout District field must be mirrored into the shipping address store so checkout submission does not fail validation silently'
         );
     }
 

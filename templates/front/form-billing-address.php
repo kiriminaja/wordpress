@@ -234,16 +234,39 @@ if ( ! defined( 'ABSPATH' ) ) {
                     try {
                         var checkoutStore = wp.data.select('wc/store/checkout');
                         var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
-                        if (!checkoutDispatch || typeof checkoutDispatch.setAdditionalFields !== 'function') {
+                        if (checkoutDispatch && typeof checkoutDispatch.setAdditionalFields === 'function') {
+                            var additionalFields = checkoutStore && typeof checkoutStore.getAdditionalFields === 'function'
+                                ? (checkoutStore.getAdditionalFields() || {})
+                                : {};
+
+                            additionalFields[kiriofFieldId] = val;
+                            checkoutDispatch.setAdditionalFields(additionalFields);
+                        }
+                    } catch(e) {}
+
+                    try {
+                        var cartStore = wp.data.select('wc/store/cart');
+                        var cartDispatch = wp.data.dispatch('wc/store/cart');
+                        if (!cartStore || !cartDispatch) {
                             return;
                         }
-            
-                        var additionalFields = checkoutStore && typeof checkoutStore.getAdditionalFields === 'function'
-                            ? (checkoutStore.getAdditionalFields() || {})
-                            : {};
-            
-                        additionalFields[kiriofFieldId] = val;
-                        checkoutDispatch.setAdditionalFields(additionalFields);
+
+                        var billingAddress = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
+                        var shippingAddress = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
+
+                        billingAddress = Object.assign({}, billingAddress);
+                        shippingAddress = Object.assign({}, shippingAddress);
+
+                        billingAddress[kiriofFieldId] = val;
+                        shippingAddress[kiriofFieldId] = val;
+
+                        if (typeof cartDispatch.setBillingAddress === 'function') {
+                            cartDispatch.setBillingAddress(billingAddress);
+                        }
+
+                        if (typeof cartDispatch.setShippingAddress === 'function') {
+                            cartDispatch.setShippingAddress(shippingAddress);
+                        }
                     } catch(e) {}
                 }
             
@@ -639,11 +662,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                 //   safe to call from anywhere including wp.data.subscribe
                 // - kiriofClearBlockShippingRatesFromStore: triggers store dispatch, must ONLY
                 //   be called from explicit user interactions, never from subscribe handlers
+                function kiriofGetPlaceOrderButtonSelector() {
+                    return [
+                        'button.wc-block-components-checkout-place-order-button',
+                        '.wc-block-components-checkout-place-order button',
+                        '.wp-block-woocommerce-checkout-place-order button'
+                    ].join(', ');
+                }
+
                 function kiriofGetPlaceOrderButton() {
                     return jQuery(
-                        '.wc-block-components-checkout-place-order-button, ' +
-                        '.wc-block-components-checkout-place-order button, ' +
-                        '.wp-block-woocommerce-checkout-place-order button'
+                        kiriofGetPlaceOrderButtonSelector()
                     );
                 }
 
@@ -651,16 +680,55 @@ if ( ! defined( 'ABSPATH' ) ) {
                     var $btn = kiriofGetPlaceOrderButton();
                     if (!$btn.length) return;
                     if (disabled) {
-                        $btn.prop('disabled', true)
-                            .attr('aria-disabled', 'true');
+                        $btn.attr('data-kiriof-disabled', 'true')
+                            .addClass('kiriof-place-order-soft-disabled');
+
+                        $btn.each(function() {
+                            var $currentButton = jQuery(this);
+                            if (!$currentButton.prop('disabled') && $currentButton.attr('aria-disabled') !== 'true') {
+                                $currentButton.attr('data-kiriof-aria-disabled', 'true')
+                                    .attr('aria-disabled', 'true');
+                            }
+                        });
                     } else {
-                        // Only re-enable if WC itself hasn't disabled it for another reason
-                        // (e.g. a required field empty). Keep disabled if aria-label contains
-                        // "loading" or the button already had disabled before we touched it.
-                        $btn.prop('disabled', false)
-                            .removeAttr('aria-disabled');
+                        $btn.removeAttr('data-kiriof-disabled')
+                            .removeClass('kiriof-place-order-soft-disabled');
+
+                        $btn.each(function() {
+                            var $currentButton = jQuery(this);
+                            if ($currentButton.attr('data-kiriof-aria-disabled') === 'true' && !$currentButton.prop('disabled')) {
+                                $currentButton.removeAttr('aria-disabled');
+                            }
+                            $currentButton.removeAttr('data-kiriof-aria-disabled');
+                        });
                     }
                 }
+
+                jQuery(document)
+                    .off('click.kiriofBlockPlaceOrder')
+                    .on('click.kiriofBlockPlaceOrder', kiriofGetPlaceOrderButtonSelector(), function(event) {
+                        var $button = jQuery(this);
+                        if ($button.attr('data-kiriof-disabled') !== 'true') {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+
+                        kiriofSyncBlockDistrictWarningState();
+
+                        var $warning = kiriofEnsureBlockDistrictWarning();
+                        if ($warning.length) {
+                            jQuery('html, body').animate({
+                                scrollTop: Math.max($warning.offset().top - 120, 0)
+                            }, 200);
+                        }
+
+                        var $districtSelect = jQuery('.kiriof-block-district-select').first();
+                        if ($districtSelect.length) {
+                            $districtSelect.trigger('focus');
+                        }
+                    });
 
                 function kiriofSyncBlockDistrictWarningState() {
                     var hasValidDistrict = kiriofHasValidBlockDistrict();

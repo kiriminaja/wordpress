@@ -331,6 +331,5 @@ body.kiriof-no-district .wc-block-components-checkout-place-order-button,
 body.kiriof-no-district .wc-block-components-checkout-place-order button,
 body.kiriof-no-district .wp-block-woocommerce-checkout-place-order button {
   opacity: 0.5 !important;
-  pointer-events: none !important;
   cursor: not-allowed !important;
 }
