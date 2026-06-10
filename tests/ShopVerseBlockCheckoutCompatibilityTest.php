@@ -462,6 +462,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $content,
             'Block checkout needs a DOM postcode fallback when cart data store postcode is not populated yet'
         );
+
+        $this->assertStringContainsString(
+            'currentValue === savedPostcode || currentValue',
+            $content,
+            'Saved postcode restoration must only fill empty inputs; otherwise a buyer typing a new postcode gets overwritten by the stale session postcode'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofUpdateBlockCheckoutPostcode',
+            $content,
+            'Block checkout must immediately mirror typed postcodes into the Woo checkout/cart stores so React cannot rehydrate the old session postcode back into the field'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofUpdateBlockCheckoutPostcode(kiriofLastTypedPostcode)',
+            $content,
+            'Postcode input handler must update the Woo stores as soon as the buyer types a new postcode'
+        );
     }
 
     #[Test]

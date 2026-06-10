@@ -175,7 +175,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     var restored = false;
                     kiriofGetRelevantPostcodeInputs().each(function() {
                         var $input = jQuery(this);
-                        if (kiriofNormalizePostcode($input.val()) === savedPostcode) {
+                        var currentValue = kiriofNormalizePostcode($input.val());
+                        if (currentValue === savedPostcode || currentValue) {
                             return;
                         }
 
@@ -189,6 +190,58 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     return restored;
+                }
+
+                function kiriofUpdateBlockCheckoutPostcode(postcode) {
+                    postcode = kiriofNormalizePostcode(postcode);
+
+                    if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
+                        return;
+                    }
+
+                    try {
+                        var checkoutStore = wp.data.select('wc/store/checkout');
+                        var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
+                        var editingShippingAddress = checkoutStore && typeof checkoutStore.getEditingShippingAddress === 'function'
+                            ? (checkoutStore.getEditingShippingAddress() || {})
+                            : {};
+                        var editingBillingAddress = checkoutStore && typeof checkoutStore.getEditingBillingAddress === 'function'
+                            ? (checkoutStore.getEditingBillingAddress() || {})
+                            : {};
+
+                        editingShippingAddress = Object.assign({}, editingShippingAddress, { postcode: postcode });
+                        editingBillingAddress = Object.assign({}, editingBillingAddress, { postcode: postcode });
+
+                        if (checkoutDispatch && typeof checkoutDispatch.setEditingShippingAddress === 'function') {
+                            checkoutDispatch.setEditingShippingAddress(editingShippingAddress);
+                        }
+
+                        if (checkoutDispatch && typeof checkoutDispatch.setEditingBillingAddress === 'function') {
+                            checkoutDispatch.setEditingBillingAddress(editingBillingAddress);
+                        }
+                    } catch(e) {}
+
+                    try {
+                        var cartStore = wp.data.select('wc/store/cart');
+                        var cartDispatch = wp.data.dispatch('wc/store/cart');
+                        if (!cartStore || !cartDispatch) {
+                            return;
+                        }
+
+                        var billingAddress = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
+                        var shippingAddress = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
+
+                        billingAddress = Object.assign({}, billingAddress, { postcode: postcode });
+                        shippingAddress = Object.assign({}, shippingAddress, { postcode: postcode });
+
+                        if (typeof cartDispatch.setBillingAddress === 'function') {
+                            cartDispatch.setBillingAddress(billingAddress);
+                        }
+
+                        if (typeof cartDispatch.setShippingAddress === 'function') {
+                            cartDispatch.setShippingAddress(shippingAddress);
+                        }
+                    } catch(e) {}
                 }
             
                 function kiriofGetCheckoutPostcodeFromDom() {
@@ -1131,6 +1184,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         kiriofLastTypedPostcode = newPostcode;
                         kiriofLastTypedPostcodeAt = Date.now();
                         kiriofSavedCheckoutPostcode = kiriofLastTypedPostcode;
+                        kiriofUpdateBlockCheckoutPostcode(kiriofLastTypedPostcode);
                         kiriofFetchDistricts(kiriofLastTypedPostcode);
                     });
                 setTimeout(function() {
