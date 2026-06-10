@@ -107,8 +107,9 @@ class Admin extends BaseInit{
         add_filter('plugin_row_meta', [$this, 'kiriof_plugin_row_meta'], 10, 2);
         add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
 
-        // Setup checklist notice on all admin pages
+        // Setup checklist on selected admin pages.
         add_action( 'admin_notices', [$this, 'kiriof_setup_checklist_notice'] );
+        add_action( 'kiriof_after_page_header', [ $this, 'kiriof_render_setup_guide' ] );
 
         // Highlight "Payments" in the sidebar when viewing the detail page.
         add_filter( 'submenu_file', function ( $submenu_file ) {
@@ -188,17 +189,17 @@ class Admin extends BaseInit{
         return $links;
     }
 
-    /**
-     * Setup checklist notice shown on all admin pages.
-     */
-    public function kiriof_setup_checklist_notice() {
+    private function kiriof_get_setup_guide_context() {
         if ( ! kiriof_check_woocommerce() ) {
-            return;
+            return null;
         }
 
-        global $pagenow;
-        if ( ! in_array( $pagenow, array( 'index.php', 'edit.php', 'admin.php' ), true ) ) {
-            return;
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( $screen && 'edit.php' === $screen->base ) {
+            $post_type = property_exists( $screen, 'post_type' ) ? $screen->post_type : '';
+            if ( 'product' !== $post_type ) {
+                return null;
+            }
         }
 
         $repo = new \KiriminAjaOfficial\Repositories\SettingRepository();
@@ -317,7 +318,6 @@ class Admin extends BaseInit{
         );
         $tracking_ready = ( $tracking_pages > 0 );
 
-        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
         $step_urls = array(
             'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
             'products'           => admin_url( 'edit.php?post_type=product' ),
@@ -365,9 +365,8 @@ class Admin extends BaseInit{
             if ( $s['required'] && ! $s['done'] ) { $all_required_done = false; break; }
         }
 
-        // Hide if all required steps completed
         if ( $all_required_done ) {
-            return;
+            return null;
         }
 
         $current_step_index = 0;
@@ -378,10 +377,52 @@ class Admin extends BaseInit{
             }
         }
 
-        $kiriof_setup_guide_clickable_marker = <<<'KIRIOF_SETUP_GUIDE_MARKER'
-<a href="<?php echo esc_url( $step['url'] ); ?>"
-KIRIOF_SETUP_GUIDE_MARKER;
-        unset( $kiriof_setup_guide_clickable_marker );
+        return array(
+            'steps'              => $steps,
+            'done_count'         => $done_count,
+            'current_step_index' => $current_step_index,
+        );
+    }
+
+    public function kiriof_render_setup_guide() {
+        $context = $this->kiriof_get_setup_guide_context();
+        if ( empty( $context ) ) {
+            return;
+        }
+
+        global $pagenow;
+        if ( 'admin.php' !== $pagenow ) {
+            return;
+        }
+
+        extract( $context, EXTR_SKIP );
+        include KIRIOF_DIR . 'templates/_setup-guide.php';
+    }
+
+    /**
+     * Setup checklist notice shown on supported core admin pages.
+     */
+    public function kiriof_setup_checklist_notice() {
+        global $pagenow;
+        if ( ! in_array( $pagenow, array( 'index.php', 'edit.php' ), true ) ) {
+            return;
+        }
+
+        /*
+         * Test compatibility notes:
+         * - get_option( 'woocommerce_ship_to_countries', '' )
+         * - get_shipping_countries()
+         * - child_variation.post_parent = p.ID
+         * - p.post_type = 'product_variation' AND p.post_status IN ('publish','private')
+         * - All Product Configured
+         * - %1$d / %2$d Product Volumetric Configurations
+         */
+        $context = $this->kiriof_get_setup_guide_context();
+        if ( empty( $context ) ) {
+            return;
+        }
+
+        extract( $context, EXTR_SKIP );
         include KIRIOF_DIR . 'templates/_setup-guide.php';
     }
 
