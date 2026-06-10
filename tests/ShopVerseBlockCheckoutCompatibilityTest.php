@@ -578,6 +578,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'kiriofDistrictObserverTimer',
+            $content,
+            'District DOM observer must be debounced because Woo Blocks can emit many mutations during address and shipping-rate recalculation'
+        );
+
+        $this->assertStringContainsString(
+            'districtObserverTarget',
+            $content,
+            'District DOM observer should be scoped to the checkout root instead of watching the entire document body'
+        );
+
+        $this->assertStringNotContainsString(
+            'observe(document.body',
+            $content,
+            'Watching document.body during Woo Blocks rerenders can create a mutation storm and freeze the checkout tab'
+        );
+
+        $this->assertStringContainsString(
             'function kiriofSyncBlockDistrictSourceField',
             $content,
             'Block checkout needs a dedicated source-field sync helper because Woo Blocks can remount the required hidden District field after the custom select already exists'
@@ -586,7 +604,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'kiriofSyncBlockDistrictSourceField(',
             $content,
-            'Mutation and restore paths must re-sync the hidden District source field so checkout validation still sees the selected value after React re-renders'
+            'Restore and submit paths must re-sync the hidden District source field so checkout validation still sees the selected value after React re-renders'
         );
 
         $this->assertStringContainsString(
@@ -611,6 +629,27 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'sourceField.required = false;',
             $content,
             'Block District source field must not keep the browser-required constraint after the custom select takes over, otherwise Place Order becomes a dead button'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_initializer_must_only_bind_subscribers_once(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofInitBlockCheckoutCompatibility()');
+        $this->assertNotFalse($start, 'Block checkout initializer must exist');
+        $functionBody = substr($content, $start, 900);
+
+        $this->assertStringContainsString(
+            'window.kiriofBlockCheckoutCompatibilityInitialized',
+            $functionBody,
+            'Block checkout initializer must be guarded because the template can be printed from multiple checkout hooks, otherwise wp.data subscribers and observers are registered more than once'
+        );
+
+        $this->assertStringContainsString(
+            'return;',
+            $functionBody,
+            'Repeated block checkout initializer calls should exit before registering another set of subscribers'
         );
     }
 
@@ -1131,6 +1170,59 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertSame(1, $session->get('kiriof_insurance'));
         $this->assertSame(array('kiriminaja-official_jne_REG23'), $session->get('kiriof_chosen_shipping_methods'));
         $this->assertSame('jne_REG23', $session->get('kiriof_expedition'));
+    }
+
+    #[Test]
+    public function store_api_update_callback_does_not_overwrite_visible_block_postcode_from_session(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_store_api_update_checkout');
+        $this->assertNotFalse($start, 'Store API update callback must exist');
+        $methodBody = substr($content, $start, 6000);
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_checkout_postcode', \$postcode );",
+            $methodBody,
+            'Store API callback may remember postcode in plugin session for district restoration'
+        );
+
+        $this->assertStringNotContainsString(
+            'set_shipping_postcode',
+            $methodBody,
+            'Store API extension updates must not write postcode back to the Woo customer object because Woo Blocks can rehydrate that stale value over the buyer typed postcode'
+        );
+
+        $this->assertStringNotContainsString(
+            'set_billing_postcode',
+            $methodBody,
+            'Store API extension updates must not write the extension postcode into billing address state'
+        );
+    }
+
+    #[Test]
+    public function store_api_update_callback_recalculates_totals_after_block_destination_changes(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_store_api_update_checkout');
+        $this->assertNotFalse($start, 'Store API update callback must exist');
+        $methodBody = substr($content, $start, 6000);
+
+        $destinationPosition = strpos($methodBody, "WC()->session->set( 'kiriof_destination_area', \$destination_id );");
+        $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
+
+        $this->assertNotFalse(
+            $destinationPosition,
+            'Store API callback must persist the selected District before rates are recalculated'
+        );
+        $this->assertNotFalse(
+            $calculatePosition,
+            'Store API callback must recalculate totals after District/payment/shipping context changes so block checkout receives fresh rates'
+        );
+        $this->assertLessThan(
+            $calculatePosition,
+            $destinationPosition,
+            'Destination must be in session before Woo recalculates shipping totals'
+        );
     }
 
     #[Test]

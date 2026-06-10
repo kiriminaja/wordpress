@@ -1401,27 +1401,31 @@ class CheckoutController
             WC()->session->set( 'kiriof_destination_area_name', '' );
         }
 
+        // Persist the district in customer additional fields so the Store API
+        // response reflects the selected district.  The Store API builds the
+        // shipping_address / billing_address additional_fields from customer
+        // meta, NOT from WC()->session, so session-only storage leaves the
+        // field empty in the cart response and can cause empty shipping rates.
+        if ( $destination_id > 0 ) {
+            WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
+            WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
+        } else {
+            WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', '' );
+            WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', '' );
+        }
+        WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area_name', $destination_name );
+        WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area_name', $destination_name );
+        WC()->customer->save_meta_data();
+
         WC()->session->set( 'kiriof_insurance', $insurance );
         WC()->session->set( 'billing_insurance', $insurance );
         WC()->session->set( 'force_insurance', $force_insurance );
         WC()->session->set( 'kiriof_force_insurance', $force_insurance );
         WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
-       WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+        WC()->session->set( 'kiriof_cached_cod_amt', 0 );
         WC()->session->set( 'kiriof_cached_fee_context', array() );
         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
         WC()->session->set( 'kiriof_checkout_postcode', $postcode );
-
-        if ( '' !== $postcode && isset( WC()->customer ) && is_object( WC()->customer ) ) {
-            if ( method_exists( WC()->customer, 'set_shipping_postcode' ) ) {
-                WC()->customer->set_shipping_postcode( $postcode );
-            }
-            if ( method_exists( WC()->customer, 'set_billing_postcode' ) ) {
-                WC()->customer->set_billing_postcode( $postcode );
-            }
-            if ( method_exists( WC()->customer, 'save' ) ) {
-                WC()->customer->save();
-            }
-        }
 
         if ( $destination_id > 0 && '' !== $postcode ) {
             $saved_destination_map = (array) WC()->session->get( 'kiriof_destination_postcode_map', array() );
@@ -1430,6 +1434,15 @@ class CheckoutController
                 'destination_name' => $destination_name,
             );
             WC()->session->set( 'kiriof_destination_postcode_map', $saved_destination_map );
+        }
+
+        if (
+            ( $destination_id > 0 || '' !== $shipping_method || '' !== $payment_method )
+            && isset( WC()->cart )
+            && is_object( WC()->cart )
+            && method_exists( WC()->cart, 'calculate_totals' )
+        ) {
+            WC()->cart->calculate_totals();
         }
     }
 }

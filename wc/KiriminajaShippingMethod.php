@@ -66,7 +66,22 @@ function kiriof_shipping_method(){
                     return;
                 }
 
-                $destination_id = WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' );
+                $destination_id = WC()->session->get( 'shipping_destination_id' );
+                if ( empty( $destination_id ) ) {
+                    $destination_id = WC()->session->get( 'destination_id' );
+                }
+                // Fallback: read from customer additional fields in case the
+                // session was not persisted between API requests.
+                if ( empty( $destination_id ) ) {
+                    try {
+                        $dest = WC()->customer->get_meta( 'shipping_kiriminaja-official/kiriof_destination_area' );
+                        if ( ! empty( $dest ) ) {
+                            $destination_id = (int) $dest;
+                        }
+                    } catch ( \Exception $e ) {
+                        // ignore
+                    }
+                }
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
 
                 if ( empty( $destination_id ) ) {

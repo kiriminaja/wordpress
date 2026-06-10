@@ -94,6 +94,11 @@ if ( ! defined( 'ABSPATH' ) ) {
         }); 
 
         function kiriofInitBlockCheckoutCompatibility() {
+            if (window.kiriofBlockCheckoutCompatibilityInitialized) {
+                return;
+            }
+            window.kiriofBlockCheckoutCompatibilityInitialized = true;
+
             function kiriofScheduleCodInsurance(delay) {
                 delay = typeof delay === 'number' ? delay : 150;
                 if (kiriofCodInsuranceTimer) {
@@ -535,6 +540,51 @@ if ( ! defined( 'ABSPATH' ) ) {
                     } catch(e) {}
                 }
 
+                function kiriofForceBlockCartUpdate(districtName, districtId) {
+                    // Invalidate shipping rates through every available mechanism
+                    try {
+                        var cartDispatch = wp.data.dispatch('wc/store/cart');
+                        if (cartDispatch) {
+                            if (typeof cartDispatch.invalidateResolutionForStoreSelector === 'function') {
+                                cartDispatch.invalidateResolutionForStoreSelector('getShippingRates');
+                            }
+                            if (typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                                cartDispatch.invalidateResolutionForStore();
+                            }
+                        }
+                    } catch(e) {}
+
+                    try {
+                        var coreDataDispatch = wp.data.dispatch('core/data');
+                        if (coreDataDispatch) {
+                            if (typeof coreDataDispatch.invalidateResolution === 'function') {
+                                coreDataDispatch.invalidateResolution('wc/store/cart', 'getShippingRates', []);
+                            }
+                        }
+                    } catch(e) {}
+
+                    // Direct Store API call as final fallback — bypasses @wordpress/data
+                    // isEqual checks that can skip the call when nothing appears to have changed.
+                    // Sends the full current address back unchanged; the server always recalculates
+                    // shipping when update-customer is called, using the updated session data.
+                    if (typeof wp !== 'undefined' && wp.apiFetch && wp.data && wp.data.select && districtId) {
+                        try {
+                            var cartStore = wp.data.select('wc/store/cart');
+                            if (!cartStore) return;
+                            var address = typeof cartStore.getShippingAddress === 'function'
+                                ? Object.assign({}, cartStore.getShippingAddress() || {})
+                                : {};
+                            if (address.postcode) {
+                                wp.apiFetch({
+                                    path: '/wc/store/v1/cart/update-customer',
+                                    method: 'POST',
+                                    data: { shipping_address: address }
+                                }).catch(function() {});
+                            }
+                        } catch(e) {}
+                    }
+                }
+
                 function kiriofBuildBlockCartUpdateKey(data) {
                     return [
                         data.shipping_metode_id || '',
@@ -555,18 +605,25 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     kiriofLastBlockCartUpdateKey = updateKey;
+
+                    function kiriofAfterBlockDistrictPersist() {
+                        kiriofScheduleBlockShippingRatesRefresh(80);
+                        kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
+                    }
+
                     var result = kiriofBlockExtensionCartUpdate(data);
                     if (result && typeof result.then === 'function') {
                         result.then(function() {
-                            kiriofScheduleBlockShippingRatesRefresh(80);
+                            kiriofAfterBlockDistrictPersist();
                         }).catch(function() {
                             kiriofScheduleBlockShippingRatesRefresh(160);
+                            kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
                         });
                     } else {
-                        kiriofScheduleBlockShippingRatesRefresh(160);
+                        kiriofAfterBlockDistrictPersist();
                     }
                 }
-            
+                
                 var kiriofLastDistrictResults = [];
                 var kiriofPendingDistrictRestore = false;
                 var kiriofDistrictResultsLoading = false;
@@ -605,6 +662,30 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $selectWrapper.append($container);
                         $fieldWrapper.append($selectWrapper);
                         $wrapper.after($fieldWrapper);
+
+                        // Direct change handler on the select for reliability.
+                        // The delegated handler on `document` may not fire in WooCommerce
+                        // blocks (React 18 captures native events before they reach document).
+                        $select.on('change.kiriofBlockDistrictDirect', function() {
+                            var districtVal = jQuery(this).val();
+                            var districtLabel = jQuery(this).find('option:selected').text();
+                            var postcode = kiriofGetCurrentPostcodeKey();
+
+                            kiriofSyncBlockDistrictSourceField(districtVal, districtLabel || '', { silentEvents: true });
+                            kiriofRememberDistrictForPostcode(postcode, districtVal, districtLabel);
+                            kiriofPendingDistrictRestore = false;
+                            kiriofDistrictResultsLoading = false;
+                            kiriofSyncBlockDistrictWarningState();
+
+                            kiriofPersistBlockDistrictSelection({
+                                destination_id: parseInt(districtVal) || 0,
+                                destination_name: districtLabel || '',
+                                postcode: postcode,
+                                payment_method: kiriofGetPaymentMethod(),
+                                insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                                force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
+                            });
+                        });
                     }
             
                     var currentPostcode = kiriofGetCurrentPostcodeKey();
@@ -659,23 +740,28 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
             
                 if (typeof MutationObserver !== 'undefined') {
+                    var kiriofDistrictObserverTimer = null;
                     var kiriofDistrictObserver = new MutationObserver(function() {
-                        if (kiriofLastDistrictResults.length && !jQuery('.kiriof-block-district-select').length) {
-                            kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
-                            kiriofRestoreSavedCheckoutState();
-                            return;
+                        if (kiriofDistrictObserverTimer) {
+                            clearTimeout(kiriofDistrictObserverTimer);
                         }
 
-                        var selectValue = String(jQuery('.kiriof-block-district-select').val() || '');
-                        if (selectValue) {
-                            kiriofSyncBlockDistrictSourceField(
-                                selectValue,
-                                jQuery('.kiriof-block-district-select option:selected').text() || jQuery('[name="kiriof_destination_area_name"]').val() || '',
-                                { silentEvents: true }
-                            );
-                        }
+                        kiriofDistrictObserverTimer = setTimeout(function() {
+                            kiriofDistrictObserverTimer = null;
+                            if (kiriofLastDistrictResults.length && !jQuery('.kiriof-block-district-select').length) {
+                                kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
+                                kiriofRestoreSavedCheckoutState();
+                            }
+                        }, 200);
                     });
-                    kiriofDistrictObserver.observe(document.body, { childList: true, subtree: true });
+
+                    var districtObserverTarget = jQuery(
+                        '.wp-block-woocommerce-checkout, .wc-block-checkout, form.wc-block-checkout__form'
+                    ).first().get(0);
+
+                    if (districtObserverTarget) {
+                        kiriofDistrictObserver.observe(districtObserverTarget, { childList: true, subtree: true });
+                    }
                 }
             
                 function kiriofFetchDistricts(postcode) {
