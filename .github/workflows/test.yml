@@ -45,17 +45,42 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gettext
 
       - name: Build official zip
-        run: make zip plain
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: plugin-build
-          path: kiriminaja-official.zip
-          overwrite: true
+        run: make zip
 
       - name: Run tests
         run: make test
+
+      - name: Resolve plugin version
+        id: version
+        run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
+
+      - name: Unpack staged build for Plugin Check
+        run: |
+          mkdir -p /tmp/pcp
+          unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
+          ls -la /tmp/pcp/kiriminaja-official
+
+      - name: Create wp-env config in plugin dir
+        run: |
+          echo '{"testsEnvironment":false}' > /tmp/pcp/kiriminaja-official/.wp-env.json
+
+      - name: WordPress Plugin Check (WP.org compliance)
+        timeout-minutes: 15
+        # Pin v1.1.4 until wordpress/plugin-check-action@v1 reliably runs
+        # wp-env on GitHub's Node 24 runner. v1.1.5+ can report
+        # "Environment not initialized" immediately after wp-env start.
+        uses: wordpress/plugin-check-action@v1.1.4
+        continue-on-error: true
+        with:
+          build-dir: /tmp/pcp/kiriminaja-official
+          wp-version: "latest"
+          categories: |
+            general
+            plugin_repo
+            security
+            performance
+            accessibility
+          ignore-warnings: false
 
   wordpress:
     name: "Integration + Plugin Check (WP latest / WC latest / PHP 8.1)"

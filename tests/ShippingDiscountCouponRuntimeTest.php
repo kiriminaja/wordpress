@@ -39,6 +39,9 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $serviceContent);
         $this->assertStringContainsString('getCurrentShippingDiscountSummary', $serviceContent);
         $this->assertStringContainsString('couponAllowsSelectedCourier', $serviceContent);
+        $this->assertStringContainsString('getChosenShippingMethods', $serviceContent);
+        $this->assertStringContainsString("'kiriof_chosen_shipping_methods'", $serviceContent);
+        $this->assertStringContainsString("isset( \$_POST['shipping_method'] )", $serviceContent);
         $this->assertStringContainsString('getChosenKiriminAjaCourierCode', $serviceContent);
         $this->assertStringContainsString('extractCourierCodeFromMethodId', $serviceContent);
         $this->assertStringContainsString('normalizeCourierCode', $serviceContent);

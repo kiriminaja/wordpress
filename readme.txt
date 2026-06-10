@@ -120,9 +120,7 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 
 == Changelog ==
 = 2.1.40 =
-- Feat(coupon-ui): move Area Restrictions into full-width metabox postbox
-- Fix(coupon-ui): region tree hidden in All Regions mode, 3-column province grid
-- Fix(coupon-ui): inline style overrides to bust CSS cache
+- Fix(PickupRequest): origin_name and destination_name not sanitized, causing the pickup request failed (#205)
 
 = 2.1.39 =
 - Migrate plugin translations to WordPress i18n (#191)

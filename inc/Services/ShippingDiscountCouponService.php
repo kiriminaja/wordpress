@@ -81,18 +81,46 @@ class ShippingDiscountCouponService {
     }
 
     private function isKiriminAjaShippingSelected(): bool {
-        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
-            return false;
-        }
-
-        $chosen = (array) WC()->session->get( 'chosen_shipping_methods', array() );
-        foreach ( $chosen as $method ) {
+        foreach ( $this->getChosenShippingMethods() as $method ) {
             if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function getChosenShippingMethods(): array {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return array();
+        }
+
+        $chosen = (array) WC()->session->get( 'chosen_shipping_methods', array() );
+        if ( ! empty( $chosen ) ) {
+            return $chosen;
+        }
+
+        $kiriofChosen = (array) WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
+        if ( ! empty( $kiriofChosen ) ) {
+            return $kiriofChosen;
+        }
+
+        // During coupon-apply AJAX, WooCommerce can momentarily clear the core
+        // chosen_shipping_methods session key before our checkout mirror is restored.
+        // Preserve a just-posted shipping method so shipping coupon validation does
+        // not falsely reject stacked coupons that otherwise remain eligible.
+        if ( isset( $_POST['shipping_method'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- checkout/coupon request state only
+            $postedMethods = array_map(
+                'sanitize_text_field',
+                (array) wp_unslash( $_POST['shipping_method'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- checkout/coupon request state only
+            );
+            $postedMethods = array_values( array_filter( $postedMethods, 'strlen' ) );
+            if ( ! empty( $postedMethods ) ) {
+                return $postedMethods;
+            }
+        }
+
+        return array();
     }
 
     public function getAdjustedRatePricing( $option, float $baseCost ): array {
@@ -442,8 +470,7 @@ class ShippingDiscountCouponService {
             return '';
         }
 
-        $chosen = (array) WC()->session->get( 'chosen_shipping_methods', array() );
-        foreach ( $chosen as $methodId ) {
+        foreach ( $this->getChosenShippingMethods() as $methodId ) {
             $courierCode = $this->extractCourierCodeFromMethodId( (string) $methodId );
             if ( '' !== $courierCode ) {
                 return $courierCode;
