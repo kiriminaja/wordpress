@@ -23,7 +23,7 @@ $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
 >
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #e6e8eb;background:#fff">
         <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="28" height="28" viewBox="0 0 28 28" style="flex-shrink:0">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24" viewBox="0 0 28 28" style="flex-shrink:0">
                 <defs>
                     <linearGradient id="kiriof-sg-grad0" gradientUnits="userSpaceOnUse" x1="128" y1="0" x2="128" y2="256" gradientTransform="matrix(0.109375,0,0,0.109375,0,0)">
                         <stop offset="0" style="stop-color:rgb(100%,11.372549%,74.509804%);stop-opacity:1"/>
@@ -94,15 +94,9 @@ $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
                     <p style="margin:0;font-size:14px;line-height:1.45;color:#1d2327"><?php echo esc_html( $kiriof_step['description'] ); ?></p>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                    <a href="<?php echo esc_url( $kiriof_step['url'] ); ?>" class="button button-primary" style="margin:0;background:#5c2ecb;border-color:#5c2ecb;min-height:34px;padding:0 12px;display:inline-flex;align-items:center;gap:6px">
-                        <span class="dashicons dashicons-admin-generic" aria-hidden="true" style="font-size:16px;width:16px;height:16px"></span>
+                    <a href="<?php echo esc_url( $kiriof_step['url'] ); ?>" class="button button-primary" style="margin:0;background:#5c2ecb;border-color:#5c2ecb;min-height:34px;padding:0 12px;display:inline-flex;align-items:center">
                         <span><?php echo esc_html( $kiriof_step['done'] ? __( 'View Settings', 'kiriminaja-official' ) : __( 'Configure Now', 'kiriminaja-official' ) ); ?></span>
                     </a>
-                    <?php if ( ! $kiriof_step['required'] ) : ?>
-                    <button type="button" class="button" data-kiriof-setup-skip style="min-height:34px;padding:0 12px;border-color:#c3c4c7;color:#3858e9;background:#fff">
-                        <?php echo esc_html__( 'Skip', 'kiriminaja-official' ); ?>
-                    </button>
-                    <?php endif; ?>
                 </div>
             </div>
         </section>
@@ -125,19 +119,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var prevButton = root.querySelector('[data-kiriof-setup-prev]');
     var nextButton = root.querySelector('[data-kiriof-setup-next]');
 
-    function bindSkipButton() {
-        var skipButton = slides[currentIndex].querySelector('[data-kiriof-setup-skip]');
-        if (!skipButton) {
-            return;
-        }
-
-        skipButton.onclick = function () {
-            if (currentIndex < slides.length - 1) {
-                renderSlide(currentIndex + 1);
-            }
-        };
-    }
-
     function renderSlide(index) {
         currentIndex = index;
 
@@ -156,8 +137,6 @@ document.addEventListener('DOMContentLoaded', function () {
             nextButton.style.opacity = currentIndex === slides.length - 1 ? '0.35' : '1';
             nextButton.style.cursor = currentIndex === slides.length - 1 ? 'default' : 'pointer';
         }
-
-        bindSkipButton();
     }
 
     if (prevButton) {
