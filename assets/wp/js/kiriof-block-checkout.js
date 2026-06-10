@@ -4,7 +4,8 @@
   }
 
   const { registerPlugin } = wp.plugins;
-  const { createElement, Fragment, useEffect, useMemo, useRef, useState } = wp.element;
+  const { createElement, Fragment, useEffect, useMemo, useRef, useState } =
+    wp.element;
   const { ExperimentalOrderMeta } = wc.blocksCheckout;
 
   if (!ExperimentalOrderMeta) {
@@ -64,9 +65,11 @@
   // Injects a strikethrough original price into the Order Summary shipping totals row.
   // Scoped only to the totals section — does NOT touch the shipping options list.
   function syncShippingTotalsStrikethrough(discount) {
-    document.querySelectorAll(".kiriof-shipping-totals-original").forEach(function (n) {
-      n.remove();
-    });
+    document
+      .querySelectorAll(".kiriof-shipping-totals-original")
+      .forEach(function (n) {
+        n.remove();
+      });
 
     if (
       !discount ||
@@ -86,8 +89,8 @@
 
     const priceNode = shippingRow.querySelector(
       ".wc-block-formatted-money-amount, " +
-      ".wc-block-components-formatted-money-amount, " +
-      ".wc-block-components-totals-item__value",
+        ".wc-block-components-formatted-money-amount, " +
+        ".wc-block-components-totals-item__value",
     );
     if (!priceNode) {
       return;
@@ -143,9 +146,9 @@
     const kiriofFees = fees.filter(function (fee) {
       return (
         fee &&
-        (fee.key === 'insurance' ||
+        (fee.key === "insurance" ||
           fee.name === "Insurance" ||
-          fee.name === 'COD Fee')
+          fee.name === "COD Fee")
       );
     });
 
@@ -166,13 +169,19 @@
     // rate appears or changes (e.g. after district is first selected on load).
     const shippingRateSignature = useMemo(
       function () {
-        const packages = Array.isArray(cart.shippingRates) ? cart.shippingRates : [];
+        const packages =
+          Array.isArray(cart.shippingRates) ? cart.shippingRates : [];
         return packages
           .map(function (pkg) {
-            const rates = Array.isArray(pkg.shipping_rates) ? pkg.shipping_rates : [];
+            const rates =
+              Array.isArray(pkg.shipping_rates) ? pkg.shipping_rates : [];
             return rates
-              .filter(function (r) { return r && r.selected; })
-              .map(function (r) { return r.rate_id || r.id || ""; })
+              .filter(function (r) {
+                return r && r.selected;
+              })
+              .map(function (r) {
+                return r.rate_id || r.id || "";
+              })
               .join(",");
           })
           .join("|");

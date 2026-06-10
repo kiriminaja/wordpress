@@ -116,6 +116,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout should intercept clicks on the soft-disabled place-order button and direct the buyer back to the district field'
         );
 
+        $this->assertStringContainsString(
+            'kiriofCommitSelectedBlockDistrict',
+            $script,
+            'Place-order handling should recommit the selected District right before submit so Woo Blocks cannot proceed with a remounted empty hidden field'
+        );
+
+        $this->assertStringContainsString(
+            "document.addEventListener('click'",
+            $script,
+            'Block checkout should sync the selected District in the capture phase of the place-order click before Woo Blocks processes checkout'
+        );
+
         $this->assertStringNotContainsString(
             'pointer-events: none !important;',
             $styles,
@@ -518,6 +530,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            "name.slice(-kiriofFieldId.length) === kiriofFieldId",
+            $content,
+            'District finder must match Woo Blocks address-scoped field names such as shipping_kiriminaja-official/kiriof_destination_area, not only the bare additional-field key'
+        );
+
+        $this->assertStringContainsString(
+            "name.indexOf('kiriof_destination_area_name') !== -1",
+            $content,
+            'District finder must exclude the companion hidden destination label inputs so restore/update writes hit the real required address field'
+        );
+
+        $this->assertStringContainsString(
             'input[id*="kiriof-destination-area"]',
             $content,
             'Woo Blocks renders additional address fields with slash-to-dash IDs such as billing-kiriminaja-official-kiriof-destination-area, so lookup cannot rely only on underscore names'
@@ -533,6 +557,30 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'MutationObserver',
             $content,
             'React checkout can render District after the AJAX response; a DOM observer must re-apply the select when the field appears'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofSyncBlockDistrictSourceField',
+            $content,
+            'Block checkout needs a dedicated source-field sync helper because Woo Blocks can remount the required hidden District field after the custom select already exists'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSyncBlockDistrictSourceField(',
+            $content,
+            'Mutation and restore paths must re-sync the hidden District source field so checkout validation still sees the selected value after React re-renders'
+        );
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/validation')",
+            $content,
+            'District source-field sync should clear stale Woo Blocks validation errors once the required field has been repopulated'
+        );
+
+        $this->assertStringContainsString(
+            "clearValidationErrors([",
+            $content,
+            'District source-field sync must clear both shipping and billing validation error keys so checkout does not stay stuck after the field value is restored'
         );
     }
 
@@ -551,6 +599,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'setAdditionalFields',
             $content,
             'Block checkout District value must be written through setAdditionalFields so Store API checkout receives kiriminaja-official/kiriof_destination_area'
+        );
+
+        $this->assertStringContainsString(
+            'setEditingShippingAddress',
+            $content,
+            'Required block checkout District field must be mirrored into the checkout editing shipping address store because live Woo Blocks submission reads from wc/store/checkout editing state'
+        );
+
+        $this->assertStringContainsString(
+            'setEditingBillingAddress',
+            $content,
+            'Block checkout should also clear billing-side District validation through the checkout editing address store when Woo Blocks tracks both address groups'
         );
 
         $this->assertStringContainsString(
@@ -575,6 +635,30 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'setShippingAddress',
             $content,
             'Required block checkout District field must be mirrored into the shipping address store so checkout submission does not fail validation silently'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_registers_district_only_for_shipping_address(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            "'location'     => 'address'",
+            $content,
+            'District field must remain registered as an address field for Woo Blocks checkout'
+        );
+
+        $this->assertStringContainsString(
+            "'address_type' => array( 'shipping' )",
+            $content,
+            'Block checkout should register District only on the shipping address because the live checkout renders a shipping field and server-side validation otherwise requires a missing billing field too'
+        );
+
+        $this->assertStringNotContainsString(
+            "'address_type' => array( 'billing', 'shipping' )",
+            $content,
+            'Block checkout must not require District on both billing and shipping when only the shipping field is rendered'
         );
     }
 

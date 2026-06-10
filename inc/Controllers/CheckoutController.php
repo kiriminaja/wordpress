@@ -1307,7 +1307,7 @@ class CheckoutController
                 'location'     => 'address',
                 'type'         => 'text',
                 'required'     => true,
-                'address_type' => array( 'billing', 'shipping' ),
+                'address_type' => array( 'shipping' ),
             ));
         } else {
             $register_fn(
@@ -1319,7 +1319,7 @@ class CheckoutController
                     'required' => true,
                     'options'  => $options,
                 ),
-                array( 'address_type' => array( 'billing', 'shipping' ) )
+                array( 'address_type' => array( 'shipping' ) )
             );
         }
     }

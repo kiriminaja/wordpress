@@ -58,7 +58,9 @@
   font-weight: 500;
   color: #1d2327;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .kiriof-region-toggle:has(input:checked) {

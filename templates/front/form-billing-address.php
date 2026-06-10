@@ -209,7 +209,32 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
             
                 function kiriofGetBlockDistrictField() {
+                    function kiriofIsBlockDistrictSourceField($field) {
+                        var name = String($field.attr('name') || '');
+                        var id = String($field.attr('id') || '');
+
+                        if (!name && !id) {
+                            return false;
+                        }
+
+                        if (
+                            name.indexOf('kiriof_destination_area_name') !== -1 ||
+                            name.indexOf('kiriof_shipping_destination_area_name') !== -1
+                        ) {
+                            return false;
+                        }
+
+                        return (
+                            name === kiriofFieldId ||
+                            name.slice(-kiriofFieldId.length) === kiriofFieldId ||
+                            name.indexOf('/kiriof_destination_area') !== -1 ||
+                            id.indexOf('kiriof_destination_area') !== -1 ||
+                            id.indexOf('kiriof-destination-area') !== -1
+                        );
+                    }
+
                     var selectors = [
+                        '.kiriof-block-district-source',
                         '[name="' + kiriofFieldId + '"]',
                         'input[name*="kiriof_destination_area"]',
                         'textarea[name*="kiriof_destination_area"]',
@@ -220,11 +245,67 @@ if ( ! defined( 'ABSPATH' ) ) {
                     ].join(',');
             
                     var $field = jQuery(selectors).filter(function() {
-                        return !jQuery(this).is('select') && !jQuery(this).hasClass('kiriof-block-district-select');
+                                    var $currentField = jQuery(this);
+
+                                    return !$currentField.is('select')
+                                        && !$currentField.hasClass('kiriof-block-district-select')
+                                        && kiriofIsBlockDistrictSourceField($currentField);
                     }).first();
             
                     return $field;
                 }
+
+                            function kiriofSyncBlockDistrictSourceField(destinationId, destinationName, options) {
+                                options = options || {};
+
+                                var $field = kiriofGetBlockDistrictField();
+                                if (!$field.length) {
+                                    return false;
+                                }
+
+                                $field.addClass('kiriof-block-district-source').attr('type', 'hidden').removeAttr('required').hide();
+
+                                var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
+                                if (!$wrapper.length) {
+                                    $wrapper = $field.parent();
+                                }
+                                $wrapper.addClass('kiriof-block-district-source-wrapper').hide();
+
+                                var normalizedValue = String(destinationId || '');
+                                var currentValue = String($field.val() || '');
+                                if (currentValue !== normalizedValue) {
+                                    $field.val(normalizedValue).trigger('input');
+                                    if (options.triggerChange) {
+                                        $field.trigger('change');
+                                    }
+                                }
+
+                                if (typeof destinationName !== 'undefined') {
+                                    jQuery('[name="kiriof_destination_area_name"]').val(destinationName || '');
+                                    jQuery('[name="kiriof_shipping_destination_area_name"]').val(destinationName || '');
+                                }
+
+                                if (normalizedValue) {
+                                    try {
+                                        if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
+                                            var validationDispatch = wp.data.dispatch('wc/store/validation');
+                                            if (validationDispatch && typeof validationDispatch.clearValidationErrors === 'function') {
+                                                validationDispatch.clearValidationErrors([
+                                                    'shipping_' + kiriofFieldId,
+                                                    'billing_' + kiriofFieldId,
+                                                    kiriofFieldId,
+                                                ]);
+                                            } else if (validationDispatch && typeof validationDispatch.clearValidationError === 'function') {
+                                                validationDispatch.clearValidationError('shipping_' + kiriofFieldId);
+                                                validationDispatch.clearValidationError('billing_' + kiriofFieldId);
+                                                validationDispatch.clearValidationError(kiriofFieldId);
+                                            }
+                                        }
+                                    } catch(e) {}
+                                }
+
+                                return true;
+                            }
             
                 function kiriofUpdateCheckoutAdditionalFields(val) {
                     if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
@@ -241,6 +322,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                             additionalFields[kiriofFieldId] = val;
                             checkoutDispatch.setAdditionalFields(additionalFields);
+                        }
+
+                        var editingShippingAddress = checkoutStore && typeof checkoutStore.getEditingShippingAddress === 'function'
+                            ? (checkoutStore.getEditingShippingAddress() || {})
+                            : {};
+                        var editingBillingAddress = checkoutStore && typeof checkoutStore.getEditingBillingAddress === 'function'
+                            ? (checkoutStore.getEditingBillingAddress() || {})
+                            : {};
+
+                        editingShippingAddress = Object.assign({}, editingShippingAddress);
+                        editingBillingAddress = Object.assign({}, editingBillingAddress);
+
+                        editingShippingAddress[kiriofFieldId] = val;
+                        editingBillingAddress[kiriofFieldId] = val;
+
+                        if (typeof checkoutDispatch.setEditingShippingAddress === 'function') {
+                            checkoutDispatch.setEditingShippingAddress(editingShippingAddress);
+                        }
+
+                        if (typeof checkoutDispatch.setEditingBillingAddress === 'function') {
+                            checkoutDispatch.setEditingBillingAddress(editingBillingAddress);
                         }
                     } catch(e) {}
 
@@ -345,7 +447,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     // Woo Blocks renders this as a React-controlled text input.
                     // Hide the React source field and render our selectable UI at
                     // the block field wrapper so React re-renders do not remove it.
-                    $field.addClass('kiriof-block-district-source').attr('type', 'hidden').hide();
+                    kiriofSyncBlockDistrictSourceField($field.val(), undefined);
             
                     var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
                     if (!$wrapper.length) {
@@ -396,17 +498,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                         currentName = '';
                     }
             
-                    $select.html(html).val(currentValue);
-                    $field.val(currentValue).trigger('input');
+                                $select.html(html).val(currentValue);
+                                kiriofSyncBlockDistrictSourceField(currentValue, currentName);
 
                     if (currentValue && currentName) {
-                        jQuery('[name="kiriof_destination_area_name"]').val(currentName);
-                        jQuery('[name="kiriof_shipping_destination_area_name"]').val(currentName);
                         kiriofUpdateCheckoutAdditionalFields(String(currentValue));
                         kiriofRememberDistrictForPostcode(currentPostcode, currentValue, currentName);
                     } else {
-                        jQuery('[name="kiriof_destination_area_name"]').val('');
-                        jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
+                                    kiriofSyncBlockDistrictSourceField('', '');
                     }
             
                     return true;
@@ -426,6 +525,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                         if (kiriofLastDistrictResults.length && !jQuery('.kiriof-block-district-select').length) {
                             kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
                             kiriofRestoreSavedCheckoutState();
+                            return;
+                        }
+
+                        var selectValue = String(jQuery('.kiriof-block-district-select').val() || '');
+                        if (selectValue) {
+                            kiriofSyncBlockDistrictSourceField(
+                                selectValue,
+                                jQuery('.kiriof-block-district-select option:selected').text() || jQuery('[name="kiriof_destination_area_name"]').val() || ''
+                            );
                         }
                     });
                     kiriofDistrictObserver.observe(document.body, { childList: true, subtree: true });
@@ -704,10 +812,52 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
                 }
 
+                function kiriofCommitSelectedBlockDistrict() {
+                    var $districtSelect = jQuery('.kiriof-block-district-select').first();
+                    if (!$districtSelect.length) {
+                        return false;
+                    }
+
+                    var districtValue = String($districtSelect.val() || '');
+                    if (!districtValue) {
+                        return false;
+                    }
+
+                    var districtLabel = $districtSelect.find('option:selected').text() || jQuery('[name="kiriof_destination_area_name"]').val() || '';
+                    var postcode = kiriofGetCurrentPostcodeKey();
+
+                    kiriofSyncBlockDistrictSourceField(districtValue, districtLabel, { triggerChange: true });
+                    kiriofUpdateCheckoutAdditionalFields(districtValue);
+                    kiriofRememberDistrictForPostcode(postcode, districtValue, districtLabel);
+                    kiriofPendingDistrictRestore = false;
+                    kiriofDistrictResultsLoading = false;
+
+                    return true;
+                }
+
+                if (!window.kiriofBlockPlaceOrderCaptureBound) {
+                    document.addEventListener('click', function(event) {
+                        var target = event.target;
+                        if (!target || typeof target.closest !== 'function') {
+                            return;
+                        }
+
+                        var button = target.closest(kiriofGetPlaceOrderButtonSelector());
+                        if (!button) {
+                            return;
+                        }
+
+                        kiriofCommitSelectedBlockDistrict();
+                    }, true);
+                    window.kiriofBlockPlaceOrderCaptureBound = true;
+                }
+
                 jQuery(document)
                     .off('click.kiriofBlockPlaceOrder')
                     .on('click.kiriofBlockPlaceOrder', kiriofGetPlaceOrderButtonSelector(), function(event) {
                         var $button = jQuery(this);
+                        kiriofCommitSelectedBlockDistrict();
+
                         if ($button.attr('data-kiriof-disabled') !== 'true') {
                             return;
                         }
@@ -857,9 +1007,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $select.val(String(savedDistrict.destination_id));
                     }
 
-                    $sourceField.val(String(savedDistrict.destination_id)).trigger('input');
-                    jQuery('[name="kiriof_destination_area_name"]').val(savedDistrict.destination_name || '');
-                    jQuery('[name="kiriof_shipping_destination_area_name"]').val(savedDistrict.destination_name || '');
+                    kiriofSyncBlockDistrictSourceField(String(savedDistrict.destination_id), savedDistrict.destination_name || '');
                     kiriofUpdateCheckoutAdditionalFields(String(savedDistrict.destination_id));
                     kiriofPendingDistrictRestore = false;
                     kiriofSyncBlockDistrictWarningState();
@@ -888,11 +1036,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
                         var $sourceField = kiriofGetBlockDistrictField();
             
-                        $sourceField.val(val).trigger('input').trigger('change');
-                        jQuery('[name="kiriof_destination_area_name"]').val(label || '');
-                        if (differentAddress > 0) {
-                            jQuery('[name="kiriof_shipping_destination_area_name"]').val(label || '');
-                        }
+                        kiriofSyncBlockDistrictSourceField(val, label || '', { triggerChange: true });
             
                         kiriofUpdateCheckoutAdditionalFields(val);
                         kiriofRememberDistrictForPostcode(postcode, val, label);
