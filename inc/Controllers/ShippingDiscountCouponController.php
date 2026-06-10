@@ -119,6 +119,11 @@ class ShippingDiscountCouponController {
         }
 
         $service = new ShippingDiscountCouponService();
+        if ( ! $service->hasActiveShippingCouponInCart() ) {
+            $service->clearValidationNotices();
+            return;
+        }
+
         $removed = false;
         $is_running = true;
 

@@ -49,6 +49,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getPostedDestinationId', $serviceContent);
         $this->assertStringContainsString('getPostedDestinationName', $serviceContent);
         $this->assertStringContainsString('clearValidationNotices', $serviceContent);
+        $this->assertStringContainsString('hasActiveShippingCouponInCart', $serviceContent);
         $this->assertStringContainsString('getValidationMessages', $serviceContent);
         $this->assertStringContainsString('wc_set_notices', $serviceContent);
         $this->assertStringContainsString("'kiriof_shipping_destination_area'", $serviceContent);
@@ -99,6 +100,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
         $this->assertStringContainsString('clearValidationNotices', $couponController);
+        $this->assertStringContainsString('hasActiveShippingCouponInCart', $couponController);
         $this->assertStringContainsString('splitCouponCodesByScope', $metabox);
         $this->assertStringContainsString('splitCouponCodesByScope', $transactionProcess);
         $this->assertStringContainsString('splitCouponCodesByScope', $transactionProcessView);

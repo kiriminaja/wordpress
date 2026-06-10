@@ -15,10 +15,26 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
     public function scheduleRefresh( bool $force = false ): bool {
         if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh could not be scheduled because WordPress cron helpers were unavailable.',
+                array(
+                    'source' => 'kiriminaja_import',
+                    'force'  => $force,
+                )
+            );
             return false;
         }
 
         if ( ! $force && $this->isRefreshPending() ) {
+            kiriof_log(
+                'info',
+                'Region cache refresh scheduling was skipped because a refresh job is already pending.',
+                array(
+                    'source' => 'kiriminaja_import',
+                    'force'  => $force,
+                )
+            );
             return false;
         }
 
@@ -31,6 +47,15 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
         $this->updateStatus( 'scheduled' );
         wp_schedule_single_event( time(), self::CRON_HOOK );
+
+        kiriof_log(
+            'notice',
+            'Region cache refresh was scheduled.',
+            array(
+                'source' => 'kiriminaja_import',
+                'force'  => $force,
+            )
+        );
 
         return true;
     }
@@ -59,6 +84,13 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
     public function refreshAll() {
         $this->updateStatus( 'running' );
+        kiriof_log(
+            'notice',
+            'Region cache refresh started.',
+            array(
+                'source' => 'kiriminaja_import',
+            )
+        );
 
         // Allow enough time for sequential API calls across all provinces.
         if ( function_exists( 'set_time_limit' ) ) {
@@ -79,9 +111,26 @@ class ShippingDiscountRegionCacheService extends BaseService {
             $seeded = $this->seedFromBundledData( $regionRepo );
             if ( 200 === $seeded->status ) {
                 $this->updateStatus( 'ready' );
+                kiriof_log(
+                    'warning',
+                    'Region cache refresh fell back to bundled region data after the live province request failed.',
+                    array(
+                        'source'  => 'kiriminaja_import',
+                        'message' => $provinceService->message ?? '',
+                        'result'  => $seeded->data,
+                    )
+                );
                 return $seeded;
             }
             $this->updateStatus( 'error', $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
+            kiriof_log(
+                'error',
+                'Region cache refresh failed because province data could not be loaded.',
+                array(
+                    'source'  => 'kiriminaja_import',
+                    'message' => $provinceService->message ?? '',
+                )
+            );
             return self::error( array(), $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
         }
 
@@ -89,6 +138,13 @@ class ShippingDiscountRegionCacheService extends BaseService {
         if ( empty( $provinces ) ) {
             $message = __( 'Province data could not be normalized from the KiriminAja API response.', 'kiriminaja-official' );
             $this->updateStatus( 'error', $message );
+            kiriof_log(
+                'error',
+                'Region cache refresh failed because province data could not be normalized.',
+                array(
+                    'source' => 'kiriminaja_import',
+                )
+            );
             return self::error( array(), $message );
         }
 
@@ -97,6 +153,15 @@ class ShippingDiscountRegionCacheService extends BaseService {
             $dbErr   = ! empty( $wpdb->last_error ) ? ' DB: ' . $wpdb->last_error : '';
             $message = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
             $this->updateStatus( 'error', $message );
+            kiriof_log(
+                'error',
+                'Region cache refresh failed because province data could not be saved.',
+                array(
+                    'source'          => 'kiriminaja_import',
+                    'province_count'  => count( $provinces ),
+                    'database_error'  => $dbErr,
+                )
+            );
             return self::error( array(), $message );
         }
 
@@ -104,34 +169,81 @@ class ShippingDiscountRegionCacheService extends BaseService {
             $cityRefresh = $this->refreshProvinceCities( (int) $province['id'] );
             if ( 200 !== $cityRefresh->status ) {
                 $this->updateStatus( 'error', $cityRefresh->message ?? __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
+                kiriof_log(
+                    'error',
+                    'Region cache refresh failed while syncing city data for a province.',
+                    array(
+                        'source'      => 'kiriminaja_import',
+                        'province_id' => (int) $province['id'],
+                        'message'     => $cityRefresh->message ?? '',
+                    )
+                );
                 return $cityRefresh;
             }
         }
 
         $this->updateStatus( 'ready' );
 
+        $result = array(
+            'province_count' => $regionRepo->getProvinceCount(),
+            'city_count' => $regionRepo->getCityCount(),
+            'updated_at' => $regionRepo->getLatestUpdatedAt(),
+        );
+
+        kiriof_log(
+            'notice',
+            'Region cache refresh completed successfully.',
+            array_merge(
+                array(
+                    'source' => 'kiriminaja_import',
+                ),
+                $result
+            )
+        );
+
         return self::success(
-            array(
-                'province_count' => $regionRepo->getProvinceCount(),
-                'city_count' => $regionRepo->getCityCount(),
-                'updated_at' => $regionRepo->getLatestUpdatedAt(),
-            ),
+            $result,
             __( 'Region cache updated.', 'kiriminaja-official' )
         );
     }
 
     public function refreshProvinceCities( int $provinceId ) {
         if ( $provinceId < 1 ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh skipped a province because the province identifier was invalid.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                )
+            );
             return self::error( array(), __( 'Invalid province.', 'kiriminaja-official' ) );
         }
 
         $cityService = ( new KiriminajaApiService() )->getCitiesByProvinceId( $provinceId );
         if ( 200 !== $cityService->status ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh could not load city data for a province.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                    'message'     => $cityService->message ?? '',
+                )
+            );
             return self::error( array(), $cityService->message ?? __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
         }
 
         $cities = $this->normalizeRows( $cityService->data, 'city' );
         if ( empty( $cities ) ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh could not normalize city data for a province.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                )
+            );
             return self::error(
                 array(),
                 sprintf(
@@ -144,6 +256,15 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
         $repo = new ShippingDiscountRegionRepository();
         if ( ! $repo->upsertCities( $provinceId, $cities ) ) {
+            kiriof_log(
+                'error',
+                'Region cache refresh failed while saving city data for a province.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                    'city_count'  => count( $cities ),
+                )
+            );
             return self::error( array(), __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
         }
 
@@ -219,21 +340,53 @@ class ShippingDiscountRegionCacheService extends BaseService {
     public function seedFromBundledData( ShippingDiscountRegionRepository $regionRepo ): \KiriminAjaOfficial\Utils\ServiceResponse {
         $jsonPath = dirname( __DIR__ ) . '/Data/regions.json';
         if ( ! file_exists( $jsonPath ) ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because the regions file was missing.',
+                array(
+                    'source'    => 'kiriminaja_import',
+                    'json_path' => $jsonPath,
+                )
+            );
             return self::error( array(), __( 'Bundled region data file not found.', 'kiriminaja-official' ) );
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         $raw = file_get_contents( $jsonPath );
         if ( false === $raw ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because the regions file could not be read.',
+                array(
+                    'source'    => 'kiriminaja_import',
+                    'json_path' => $jsonPath,
+                )
+            );
             return self::error( array(), __( 'Failed to read bundled region data.', 'kiriminaja-official' ) );
         }
 
         $data = json_decode( $raw, true );
         if ( ! is_array( $data ) || empty( $data['provinces'] ) || empty( $data['cities'] ) ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because the JSON structure was invalid.',
+                array(
+                    'source'    => 'kiriminaja_import',
+                    'json_path' => $jsonPath,
+                )
+            );
             return self::error( array(), __( 'Bundled region data is invalid.', 'kiriminaja-official' ) );
         }
 
         if ( ! $regionRepo->upsertProvinces( $data['provinces'] ) ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because province records could not be saved.',
+                array(
+                    'source'         => 'kiriminaja_import',
+                    'province_count' => count( $data['provinces'] ),
+                )
+            );
             return self::error( array(), __( 'Failed to seed province data from bundle.', 'kiriminaja-official' ) );
         }
 
@@ -250,6 +403,16 @@ class ShippingDiscountRegionCacheService extends BaseService {
         foreach ( $citiesByProvince as $pid => $cities ) {
             $regionRepo->upsertCities( $pid, $cities );
         }
+
+        kiriof_log(
+            'notice',
+            'Bundled region data fallback loaded province and city records successfully.',
+            array(
+                'source'         => 'kiriminaja_import',
+                'province_count' => $regionRepo->getProvinceCount(),
+                'city_count'     => $regionRepo->getCityCount(),
+            )
+        );
 
         return self::success(
             array(

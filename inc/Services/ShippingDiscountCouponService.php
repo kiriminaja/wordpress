@@ -129,6 +129,10 @@ class ShippingDiscountCouponService {
         wc_set_notices( $notices );
     }
 
+    public function hasActiveShippingCouponInCart(): bool {
+        return ! empty( $this->getShippingCoupons() );
+    }
+
     private function isKiriminAjaShippingSelected(): bool {
         foreach ( $this->getChosenShippingMethods() as $method ) {
             if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
