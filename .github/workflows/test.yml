@@ -54,6 +54,12 @@ jobs:
         id: version
         run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
 
+      - name: Upload build artifact for integration tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-build
+          path: kiriminaja-official-${{ steps.version.outputs.version }}.zip
+
       - name: Unpack staged build for Plugin Check
         run: |
           mkdir -p /tmp/pcp
@@ -151,8 +157,10 @@ jobs:
 
       - name: Install plugin from clean build
         run: |
-          test -f /tmp/plugin-build/kiriminaja-official.zip || { echo "ERROR: build artifact not found"; exit 1; }
-          unzip -q /tmp/plugin-build/kiriminaja-official.zip -d /tmp/wordpress/wp-content/plugins/
+          ZIP_FILE=$(ls /tmp/plugin-build/kiriminaja-official-*.zip 2>/dev/null | head -1)
+          test -n "$ZIP_FILE" || { echo "ERROR: build artifact not found"; exit 1; }
+          echo "Found: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d /tmp/wordpress/wp-content/plugins/
 
       - name: Activate plugin
         run: |
