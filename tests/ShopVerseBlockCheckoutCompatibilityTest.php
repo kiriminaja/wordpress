@@ -582,6 +582,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $content,
             'District source-field sync must clear both shipping and billing validation error keys so checkout does not stay stuck after the field value is restored'
         );
+
+        $this->assertStringContainsString(
+            "Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')",
+            $content,
+            'District source-field sync must use the native input value setter so React-controlled hidden fields keep the selected District value instead of reverting to empty'
+        );
+
+        $this->assertStringContainsString(
+            'sourceField.required = false;',
+            $content,
+            'Block District source field must not keep the browser-required constraint after the custom select takes over, otherwise Place Order becomes a dead button'
+        );
     }
 
     #[Test]
@@ -635,6 +647,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'setShippingAddress',
             $content,
             'Required block checkout District field must be mirrored into the shipping address store so checkout submission does not fail validation silently'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofEnsureLegacyBlockDistrictMirror',
+            $content,
+            'Block checkout should maintain a classic kiriof_destination_area hidden mirror for legacy PHP validation paths that still read the non-namespaced POST key'
+        );
+
+        $this->assertStringContainsString(
+            'name="kiriof_destination_area"',
+            $content,
+            'Legacy block District mirror must submit the classic kiriof_destination_area field name so checkout validation and order persistence do not see an empty district'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofSetCheckoutTokenValue',
+            $content,
+            'Block checkout should explicitly manage kiriof_checkout_token because the classic changeDistrict Select2 flow is not responsible for the React District select'
         );
     }
 
@@ -1771,13 +1801,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "fee.key === 'insurance'",
+            'fee.key === "insurance"',
             $script,
             'Slot/fill should render the native Insurance cart fee from Store API data'
         );
 
         $this->assertStringContainsString(
-            "fee.name === 'COD Fee'",
+            'fee.name === "COD Fee"',
             $script,
             'Slot/fill should render the native COD Fee cart fee from Store API data'
         );

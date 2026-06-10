@@ -255,6 +255,25 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return $field;
                 }
 
+                function kiriofEnsureLegacyBlockDistrictMirror() {
+                    var $existing = jQuery('#kiriof-block-district-mirror');
+                    if ($existing.length) {
+                        return $existing;
+                    }
+
+                    var $container = jQuery('#kiriof_destination_area_group > div').first();
+                    if (!$container.length) {
+                        $container = jQuery('<div style="display: none"></div>').appendTo('#kiriof_destination_area_group');
+                    }
+
+                    return jQuery('<input type="hidden" id="kiriof-block-district-mirror" name="kiriof_destination_area" value="">')
+                        .appendTo($container);
+                }
+
+                function kiriofSetCheckoutTokenValue(isCompleted) {
+                    jQuery('[name="kiriof_checkout_token"]').val(isCompleted ? '1' : '');
+                }
+
                             function kiriofSyncBlockDistrictSourceField(destinationId, destinationName, options) {
                                 options = options || {};
 
@@ -273,12 +292,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                 var normalizedValue = String(destinationId || '');
                                 var currentValue = String($field.val() || '');
-                                if (currentValue !== normalizedValue) {
-                                    $field.val(normalizedValue).trigger('input');
-                                    if (options.triggerChange) {
-                                        $field.trigger('change');
+                                var sourceField = $field.get(0);
+                                if (sourceField) {
+                                    sourceField.removeAttribute('required');
+                                    sourceField.required = false;
+                                    sourceField.setAttribute('aria-invalid', normalizedValue ? 'false' : 'true');
+                                    if (normalizedValue && typeof sourceField.setCustomValidity === 'function') {
+                                        sourceField.setCustomValidity('');
                                     }
                                 }
+                                if (currentValue !== normalizedValue) {
+                                    if (sourceField) {
+                                        try {
+                                            var valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+                                            if (valueSetter && typeof valueSetter.set === 'function') {
+                                                valueSetter.set.call(sourceField, normalizedValue);
+                                            } else {
+                                                sourceField.value = normalizedValue;
+                                            }
+                                        } catch(e) {
+                                            sourceField.value = normalizedValue;
+                                        }
+
+                                        sourceField.setAttribute('value', normalizedValue);
+                                        sourceField.dispatchEvent(new Event('input', { bubbles: true }));
+                                        if (options.triggerChange) {
+                                            sourceField.dispatchEvent(new Event('change', { bubbles: true }));
+                                        }
+                                    }
+                                }
+
+                                kiriofEnsureLegacyBlockDistrictMirror().val(normalizedValue);
+                                kiriofSetCheckoutTokenValue(!!normalizedValue);
 
                                 if (typeof destinationName !== 'undefined') {
                                     jQuery('[name="kiriof_destination_area_name"]').val(destinationName || '');
@@ -901,6 +946,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $warning.hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
                         jQuery('body').removeClass('kiriof-no-district');
+                        kiriofSetCheckoutTokenValue(true);
                         kiriofSetPlaceOrderDisabled(false);
                         return;
                     }
@@ -914,6 +960,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         $warning.hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
                         jQuery('body').removeClass('kiriof-no-district');
+                        kiriofSetCheckoutTokenValue(false);
                         kiriofSetPlaceOrderDisabled(false);
                         return;
                     }
@@ -922,6 +969,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $warning.show();
                     $shippingOptions.addClass('kiriof-shipping-options-blocked');
                     jQuery('body').addClass('kiriof-no-district');
+                    kiriofSetCheckoutTokenValue(false);
                     kiriofSetPlaceOrderDisabled(true);
                 }
 
@@ -947,6 +995,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     jQuery('[name="kiriof_destination_area_name"]').val('');
                     jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
+                    kiriofEnsureLegacyBlockDistrictMirror().val('');
+                    kiriofSetCheckoutTokenValue(false);
                     kiriofUpdateCheckoutAdditionalFields('');
                     if (!options.skipStoreSync) {
                         kiriofBlockExtensionCartUpdate({
