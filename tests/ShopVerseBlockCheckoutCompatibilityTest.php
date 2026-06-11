@@ -881,9 +881,21 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'shippingAddress[kiriofFieldId] = String(districtId)',
+            $functionBody,
+            'Woo Store API update-customer persists address additional fields from shipping_address, not from top-level additional_fields'
+        );
+
+        $this->assertStringContainsString(
             'postData.billing_address = billingAddress',
             $functionBody,
             'Raw update-customer fallback should include billing address when available so Store API customer state remains complete'
+        );
+
+        $this->assertStringContainsString(
+            'billingAddress[kiriofFieldId] = String(districtId)',
+            $functionBody,
+            'Billing address payload should carry the District additional field too so Store API customer state remains complete'
         );
 
         $this->assertStringContainsString(
@@ -911,6 +923,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "jQuery('.kiriof-block-district-warning').hide();",
             $functionBody,
             'Woo Blocks can rerender the shipping step after District selection; hide all stale plugin warning nodes when a valid District is present'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_resyncs_all_district_source_fields_after_blocks_rerender(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'function kiriofGetBlockDistrictFields',
+            $content,
+            'Block checkout District sync must collect all matching Woo/Kiriof hidden fields, not only the first one'
+        );
+
+        $this->assertStringContainsString(
+            '$fields.each(function()',
+            $content,
+            'District source sync should write every matching hidden field because Woo Blocks can recreate its registered field with an empty value'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofResyncSelectedBlockDistrictSource',
+            $content,
+            'A selected visible District must be able to repopulate Woo hidden fields after a block rerender'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofResyncSelectedBlockDistrictSource();',
+            $content,
+            'MutationObserver and valid-state checks should resync Woo hidden fields when checkout blocks remount'
         );
     }
 

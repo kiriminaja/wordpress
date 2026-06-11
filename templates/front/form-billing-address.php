@@ -300,31 +300,31 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return postcode;
                 }
             
-                function kiriofGetBlockDistrictField() {
-                    function kiriofIsBlockDistrictSourceField($field) {
-                        var name = String($field.attr('name') || '');
-                        var id = String($field.attr('id') || '');
+                function kiriofIsBlockDistrictSourceField($field) {
+                    var name = String($field.attr('name') || '');
+                    var id = String($field.attr('id') || '');
 
-                        if (!name && !id) {
-                            return false;
-                        }
-
-                        if (
-                            name.indexOf('kiriof_destination_area_name') !== -1 ||
-                            name.indexOf('kiriof_shipping_destination_area_name') !== -1
-                        ) {
-                            return false;
-                        }
-
-                        return (
-                            name === kiriofFieldId ||
-                            name.slice(-kiriofFieldId.length) === kiriofFieldId ||
-                            name.indexOf('/kiriof_destination_area') !== -1 ||
-                            id.indexOf('kiriof_destination_area') !== -1 ||
-                            id.indexOf('kiriof-destination-area') !== -1
-                        );
+                    if (!name && !id) {
+                        return false;
                     }
 
+                    if (
+                        name.indexOf('kiriof_destination_area_name') !== -1 ||
+                        name.indexOf('kiriof_shipping_destination_area_name') !== -1
+                    ) {
+                        return false;
+                    }
+
+                    return (
+                        name === kiriofFieldId ||
+                        name.slice(-kiriofFieldId.length) === kiriofFieldId ||
+                        name.indexOf('/kiriof_destination_area') !== -1 ||
+                        id.indexOf('kiriof_destination_area') !== -1 ||
+                        id.indexOf('kiriof-destination-area') !== -1
+                    );
+                }
+
+                function kiriofGetBlockDistrictFields() {
                     var selectors = [
                         '.kiriof-block-district-source',
                         '[name="' + kiriofFieldId + '"]',
@@ -336,15 +336,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                         'textarea[id*="kiriof-destination-area"]'
                     ].join(',');
             
-                    var $field = jQuery(selectors).filter(function() {
+                    return jQuery(selectors).filter(function() {
                                     var $currentField = jQuery(this);
 
                                     return !$currentField.is('select')
                                         && !$currentField.hasClass('kiriof-block-district-select')
                                         && kiriofIsBlockDistrictSourceField($currentField);
-                    }).first();
-            
-                    return $field;
+                    });
+                }
+
+                function kiriofGetBlockDistrictField() {
+                    return kiriofGetBlockDistrictFields().first();
                 }
 
                 function kiriofEnsureLegacyBlockDistrictMirror() {
@@ -369,12 +371,22 @@ if ( ! defined( 'ABSPATH' ) ) {
                             function kiriofSyncBlockDistrictSourceField(destinationId, destinationName, options) {
                                 options = options || {};
 
-                                var $field = kiriofGetBlockDistrictField();
-                                if (!$field.length) {
+                                var $fields = kiriofGetBlockDistrictFields();
+                                if (!$fields.length) {
                                     return false;
                                 }
+                                var $field = $fields.first();
 
-                                $field.addClass('kiriof-block-district-source').attr('type', 'hidden').removeAttr('required').hide();
+                                $fields.each(function() {
+                                    var $currentField = jQuery(this);
+                                    $currentField.addClass('kiriof-block-district-source').attr('type', 'hidden').removeAttr('required').hide();
+
+                                    var $currentWrapper = $currentField.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
+                                    if (!$currentWrapper.length) {
+                                        $currentWrapper = $currentField.parent();
+                                    }
+                                    $currentWrapper.addClass('kiriof-block-district-source-wrapper').hide();
+                                });
 
                                 var $wrapper = $field.closest('.wc-block-components-text-input, .wc-block-components-address-form__input').first();
                                 if (!$wrapper.length) {
@@ -383,18 +395,21 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 $wrapper.addClass('kiriof-block-district-source-wrapper').hide();
 
                                 var normalizedValue = String(destinationId || '');
-                                var currentValue = String($field.val() || '');
-                                var sourceField = $field.get(0);
-                                if (sourceField) {
+                                $fields.each(function() {
+                                    var $currentField = jQuery(this);
+                                    var currentValue = String($currentField.val() || '');
+                                    var sourceField = $currentField.get(0);
+                                    if (!sourceField) {
+                                        return;
+                                    }
+
                                     sourceField.removeAttribute('required');
                                     sourceField.required = false;
                                     sourceField.setAttribute('aria-invalid', normalizedValue ? 'false' : 'true');
                                     if (normalizedValue && typeof sourceField.setCustomValidity === 'function') {
                                         sourceField.setCustomValidity('');
                                     }
-                                }
-                                if (currentValue !== normalizedValue) {
-                                    if (sourceField) {
+                                    if (currentValue !== normalizedValue) {
                                         try {
                                             var valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
                                             if (valueSetter && typeof valueSetter.set === 'function') {
@@ -414,7 +429,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             }
                                         }
                                     }
-                                }
+                                });
 
                                 kiriofEnsureLegacyBlockDistrictMirror().val(normalizedValue);
                                 kiriofSetCheckoutTokenValue(!!normalizedValue);
@@ -445,6 +460,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                 return true;
                             }
+
+                function kiriofResyncSelectedBlockDistrictSource() {
+                    var $select = jQuery('.kiriof-block-district-select').first();
+                    var districtValue = String(
+                        ($select.length ? ($select.val() || '') : '') ||
+                        (kiriofEnsureLegacyBlockDistrictMirror().val() || '')
+                    );
+
+                    if (!districtValue || districtValue === '0') {
+                        return false;
+                    }
+
+                    var districtLabel = $select.length
+                        ? ($select.find('option:selected').text() || '')
+                        : '';
+                    districtLabel = districtLabel || jQuery('[name="kiriof_destination_area_name"]').val() || '';
+
+                    kiriofSyncBlockDistrictSourceField(districtValue, districtLabel, { silentEvents: true });
+                    return true;
+                }
             
                 function kiriofUpdateCheckoutAdditionalFields(val) {
                     if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
@@ -664,9 +699,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                         var shippingAddress = kiriofBuildStoreApiAddressFromDom('shipping');
                         var billingAddress = kiriofBuildStoreApiAddressFromDom('billing');
                         if (kiriofAddressHasCheckoutValue(shippingAddress)) {
+                            shippingAddress[kiriofFieldId] = String(districtId);
                             postData.shipping_address = shippingAddress;
                         }
                         if (kiriofAddressHasCheckoutValue(billingAddress)) {
+                            billingAddress[kiriofFieldId] = String(districtId);
                             postData.billing_address = billingAddress;
                         } else if (postData.shipping_address) {
                             postData.billing_address = Object.assign({}, postData.shipping_address);
@@ -888,6 +925,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 kiriofRenderBlockDistrictSelect(kiriofLastDistrictResults);
                                 kiriofRestoreSavedCheckoutState();
                             }
+                            kiriofResyncSelectedBlockDistrictSource();
                         }, 200);
                     });
 
@@ -1259,6 +1297,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     if (hasValidDistrict) {
+                        kiriofResyncSelectedBlockDistrictSource();
                         jQuery('.kiriof-block-district-warning').hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
                         jQuery('body').removeClass('kiriof-no-district');
@@ -1301,10 +1340,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                 function kiriofResetBlockDistrictState(options) {
                     options = options || {};
-                    var $sourceField = kiriofGetBlockDistrictField();
+                    var $sourceFields = kiriofGetBlockDistrictFields();
                     var $select = jQuery('.kiriof-block-district-select');
 
-                    $sourceField.val('').trigger('input');
+                    $sourceFields.val('').trigger('input');
                     if ($select.length) {
                         $select.val('');
                     }
