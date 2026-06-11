@@ -1763,6 +1763,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'If WooCommerce enters the chosen-method filter without POST data, it should fall back to the prefixed plugin mirror before using the old/default method'
         );
 
+        $this->assertStringContainsString(
+            "array_key_exists( (string) \$method, \$available_methods )",
+            $methodBody,
+            'A valid Woo-selected shipping method must be authoritative; otherwise a stale plugin mirror can force the Order Summary back to the previous courier'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_chosen_shipping_methods', array( (string) \$method ) );",
+            $methodBody,
+            'When Woo has a valid current method, the plugin mirror should be updated to that method instead of overriding it'
+        );
+
         $this->assertStringNotContainsString(
             'checkout_kiriminaja_nonce_field',
             $methodBody,
@@ -1785,6 +1797,43 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "strlen( 'kiriminaja-official:' )",
             $content,
             'Block checkout may send colon-form rate IDs and those prefixes must be stripped too'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_fee_sync_prefers_store_selected_shipping_rate_over_stale_dom_radio(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofCodInsurance');
+        $this->assertNotFalse($start, 'Block checkout fee refresh helper must exist');
+        $methodBody = substr($content, $start, 2600);
+
+        $this->assertStringContainsString(
+            'function kiriofGetSelectedBlockShippingMethod',
+            $content,
+            'Block checkout should have a single helper for reading the selected Woo cart-store shipping rate'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofIsBlockCheckoutContext()',
+            $methodBody,
+            'Block checkout fee sync must branch away from classic DOM-first shipping method lookup'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetSelectedBlockShippingMethod()',
+            $methodBody,
+            'Block checkout fee sync should prefer the Woo cart store selected rate so stale checked DOM radios do not rewrite the previous courier into session'
+        );
+
+        $storePosition = strpos($methodBody, 'kiriofGetSelectedBlockShippingMethod()');
+        $domPosition = strpos($methodBody, "jQuery('#shipping_method .shipping_method:checked').val()");
+        $this->assertNotFalse($storePosition);
+        $this->assertNotFalse($domPosition);
+        $this->assertLessThan(
+            $domPosition,
+            $storePosition,
+            'The Woo Blocks selected shipping rate must be read before DOM radios, because React can leave stale checked inputs around after a courier switch'
         );
     }
 

@@ -1190,6 +1190,11 @@ class CheckoutController
             return $posted_method;
         }
 
+        if ( '' !== (string) $method && array_key_exists( (string) $method, $available_methods ) ) {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( (string) $method ) );
+            return $method;
+        }
+
         $kiriof_chosen_methods = WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
         if (
             is_array( $kiriof_chosen_methods )

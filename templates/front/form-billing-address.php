@@ -131,22 +131,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 var kiriofLastShippingMethod = '';
                 wp.data.subscribe(function() {
                     try {
-                        var store = wp.data.select('wc/store/cart');
-                        if (!store || typeof store.getShippingRates !== 'function') return;
-                        var allRates = store.getShippingRates();
-                        if (!allRates || !allRates.length) return;
-                        var currentMethod = '';
-                        for (var i = 0; i < allRates.length; i++) {
-                            var pkg = allRates[i];
-                            if (pkg && pkg.shipping_rates) {
-                                for (var j = 0; j < pkg.shipping_rates.length; j++) {
-                                    if (pkg.shipping_rates[j].selected) {
-                                        currentMethod = pkg.shipping_rates[j].rate_id;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+                        var currentMethod = kiriofGetSelectedBlockShippingMethod();
                         if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
                             kiriofLastShippingMethod = currentMethod;
                             // Delay to let the Store API update the cart first
@@ -1932,6 +1917,35 @@ if ( ! defined( 'ABSPATH' ) ) {
             return payment_method || '';
         }
 
+        function kiriofGetSelectedBlockShippingMethod() {
+            if (typeof wp === 'undefined' || !wp.data || !wp.data.select) {
+                return '';
+            }
+
+            try {
+                var cartStore = wp.data.select('wc/store/cart');
+                var rates = cartStore && typeof cartStore.getShippingRates === 'function'
+                    ? cartStore.getShippingRates()
+                    : [];
+
+                if (!rates || !rates.length) {
+                    return '';
+                }
+
+                for (var i = 0; i < rates.length; i++) {
+                    var pkg = rates[i];
+                    var packageRates = pkg && pkg.shipping_rates ? pkg.shipping_rates : [];
+                    for (var j = 0; j < packageRates.length; j++) {
+                        if (packageRates[j] && packageRates[j].selected) {
+                            return packageRates[j].rate_id || packageRates[j].id || '';
+                        }
+                    }
+                }
+            } catch(e) {}
+
+            return '';
+        }
+
         function kiriofBuildFeeRefreshKey(data) {
             return [
                 data.shipping_metode_id || '',
@@ -1949,27 +1963,12 @@ if ( ! defined( 'ABSPATH' ) ) {
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
             // Read shipping method: traditional, block radio, or block data store
-            let shipping_metode_id = jQuery('#shipping_method .shipping_method:checked').val()
+            let shipping_metode_id = kiriofIsBlockCheckoutContext()
+                ? kiriofGetSelectedBlockShippingMethod()
+                : '';
+            shipping_metode_id = shipping_metode_id
+                || jQuery('#shipping_method .shipping_method:checked').val()
                 || jQuery('.wc-block-components-radio-control__input:checked').val();
-            // Fallback: block checkout data store
-            if (!shipping_metode_id && typeof wp !== 'undefined' && wp.data && wp.data.select) {
-                try {
-                    var rates = wp.data.select('wc/store/cart').getShippingRates();
-                    if (rates && rates.length) {
-                        for (var i = 0; i < rates.length; i++) {
-                            var pkg = rates[i];
-                            if (pkg && pkg.shipping_rates) {
-                                for (var j = 0; j < pkg.shipping_rates.length; j++) {
-                                    if (pkg.shipping_rates[j].selected) {
-                                        shipping_metode_id = pkg.shipping_rates[j].rate_id;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch(e) {}
-            }
             shipping_metode_id = shipping_metode_id || '';
             
             let destination_id = kiriofGetDestinationId(different_address);

@@ -45,25 +45,27 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gettext
 
       - name: Build official zip
-        run: make zip
+        id: build
+        run: |
+          make zip
+          ZIP_FILE=$(ls kiriminaja-official*.zip 2>/dev/null | sort | head -1)
+          test -n "$ZIP_FILE" || { echo "ERROR: build zip not found"; exit 1; }
+          echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Run tests
         run: make test
-
-      - name: Resolve plugin version
-        id: version
-        run: echo "version=$(grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact for integration tests
         uses: actions/upload-artifact@v4
         with:
           name: plugin-build
-          path: kiriminaja-official-${{ steps.version.outputs.version }}.zip
+          path: ${{ steps.build.outputs.zip_file }}
+          if-no-files-found: error
 
       - name: Unpack staged build for Plugin Check
         run: |
           mkdir -p /tmp/pcp
-          unzip -q "kiriminaja-official-${{ steps.version.outputs.version }}.zip" -d /tmp/pcp
+          unzip -q "${{ steps.build.outputs.zip_file }}" -d /tmp/pcp
           ls -la /tmp/pcp/kiriminaja-official
 
       - name: Create wp-env config in plugin dir
@@ -157,7 +159,7 @@ jobs:
 
       - name: Install plugin from clean build
         run: |
-          ZIP_FILE=$(ls /tmp/plugin-build/kiriminaja-official-*.zip 2>/dev/null | head -1)
+          ZIP_FILE=$(ls /tmp/plugin-build/kiriminaja-official*.zip 2>/dev/null | head -1)
           test -n "$ZIP_FILE" || { echo "ERROR: build artifact not found"; exit 1; }
           echo "Found: $ZIP_FILE"
           unzip -q "$ZIP_FILE" -d /tmp/wordpress/wp-content/plugins/
