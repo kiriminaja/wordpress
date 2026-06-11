@@ -2338,9 +2338,49 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringNotContainsString(
+            'Ekspedisi',
+            $methodBody,
+            'Courier information should not be injected into the financial totals rows because Woo already renders a native Shipping total'
+        );
+
+        $this->assertStringNotContainsString(
+            'Tracking',
+            $methodBody,
+            'Tracking should be rendered as shipment information outside the order totals table'
+        );
+
+        $this->assertStringNotContainsString(
             '? $transactionKiriminaja->cod_fee : 0',
             $methodBody,
             'Missing transactions should not be displayed as a zero COD fee fallback row'
+        );
+    }
+
+    #[Test]
+    public function order_received_renders_courier_and_tracking_outside_financial_totals(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            "add_action( 'woocommerce_order_details_after_order_table', array(\$this,'kiriof_order_shipment_details') );",
+            $content,
+            'Courier/tracking information should render after the order details table, not inside the totals rows'
+        );
+
+        $start = strpos($content, 'public function kiriof_order_shipment_details');
+        $this->assertNotFalse($start, 'Shipment details renderer must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        $this->assertStringContainsString(
+            'Shipping Method',
+            $methodBody,
+            'Shipment details should show the selected shipping method as informational content'
+        );
+
+        $this->assertStringContainsString(
+            'Track Shipment',
+            $methodBody,
+            'Shipment details should use a clear buyer-facing tracking link label'
         );
     }
 

@@ -53,6 +53,7 @@ class CheckoutController
                         
             /** Custom Page Woocommerce Thankyou */
             add_action( 'woocommerce_order_details_after_order_table_items', array($this,'kiriof_order_details') );
+            add_action( 'woocommerce_order_details_after_order_table', array($this,'kiriof_order_shipment_details') );
             
             /** remove Cache Shipping triger update_checkout */
             add_filter( 'woocommerce_cart_shipping_packages', array($this,'kiriof_shipping_rate_cache_invalidation'), 100 );
@@ -870,15 +871,7 @@ class CheckoutController
         if( $shipping_method_id != 'kiriminaja-official' ){
             return false;
         }
-        $html = '
-            <tr>
-				<th scope="row">'.esc_html__('Ekspedisi','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total">'.esc_html($order->get_shipping_method()).'</td>
-			</tr>
-            <tr>
-				<th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total"><a class="kj-button" href="'.esc_url( home_url('/tracking?order_id='.$order->get_id()) ).'">'.esc_html__('Click','kiriminaja-official').'</a></td>
-			</tr>';
+        $html = '';
         $transaction_shipping_cost  = $transactionKiriminaja ? (float) $transactionKiriminaja->shipping_cost : 0;
         $transaction_insurance_cost = $transactionKiriminaja ? (float) $transactionKiriminaja->insurance_cost : 0;
         $transaction_cod_fee        = $transactionKiriminaja ? (float) $transactionKiriminaja->cod_fee : 0;
@@ -915,6 +908,37 @@ class CheckoutController
         }
         
         echo  wp_kses_post( $html );
+    }
+
+    public function kiriof_order_shipment_details($order){
+        $shipping_methods = $order->get_shipping_methods();
+        $shipping_method = array_shift( $shipping_methods );
+        $shipping_method_id = $shipping_method ? $shipping_method['method_id'] : '';
+        if( $shipping_method_id != 'kiriminaja-official' ){
+            return false;
+        }
+
+        $shipping_label = $order->get_shipping_method();
+        $tracking_url = home_url('/tracking?order_id=' . $order->get_id());
+
+        $html = '
+            <section class="kiriof-order-shipment-details" style="margin:1.5rem 0 0;">
+                <h2 class="woocommerce-order-details__title">'.esc_html__('Shipment','kiriminaja-official').'</h2>
+                <table class="woocommerce-table woocommerce-table--order-details shop_table order_details">
+                    <tbody>
+                        <tr>
+                            <th scope="row">'.esc_html__('Shipping Method','kiriminaja-official').':</th>
+                            <td>'.esc_html($shipping_label).'</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
+                            <td><a class="kj-button" href="'.esc_url( $tracking_url ).'">'.esc_html__('Track Shipment','kiriminaja-official').'</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>';
+
+        echo wp_kses_post( $html );
     }
 
     private function kiriof_order_has_fee_item($order, $feeName){
