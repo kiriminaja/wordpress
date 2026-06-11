@@ -53,7 +53,7 @@ class ShippingDiscountCouponService {
         return $coupon instanceof \WC_Coupon && in_array( $coupon->get_discount_type(), $this->getShippingCouponTypes(), true );
     }
 
-    public function validateCouponForCart( $coupon ): array {
+    public function validateCouponForCart( $coupon, bool $requireSelectedShipping = true, bool $requireSelectedCourier = true ): array {
         if ( ! $this->isShippingCoupon( $coupon ) ) {
             return array(
                 'valid' => true,
@@ -100,11 +100,11 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
         }
 
-        if ( ! $this->isKiriminAjaShippingSelected() ) {
+        if ( $requireSelectedShipping && ! $this->isKiriminAjaShippingSelected() ) {
             return $this->invalid( __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
         }
 
-        if ( ! $this->couponAllowsSelectedCourier( $coupon ) ) {
+        if ( $requireSelectedCourier && ! $this->couponAllowsSelectedCourier( $coupon ) ) {
             return $this->invalid( __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ) );
         }
 
@@ -218,7 +218,7 @@ class ShippingDiscountCouponService {
         $appliedCouponTypes = array();
 
         foreach ( $coupons as $coupon ) {
-            $validation = $this->validateCouponForCart( $coupon );
+            $validation = $this->validateCouponForCart( $coupon, false, false );
             if ( ! $validation['valid'] ) {
                 continue;
             }
