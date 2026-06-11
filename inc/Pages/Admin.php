@@ -107,8 +107,9 @@ class Admin extends BaseInit{
         add_filter('plugin_row_meta', [$this, 'kiriof_plugin_row_meta'], 10, 2);
         add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
 
-        // Setup checklist notice on all admin pages
+        // Setup checklist on selected admin pages.
         add_action( 'admin_notices', [$this, 'kiriof_setup_checklist_notice'] );
+        add_action( 'kiriof_after_page_header', [ $this, 'kiriof_render_setup_guide' ] );
 
         // Highlight "Payments" in the sidebar when viewing the detail page.
         add_filter( 'submenu_file', function ( $submenu_file ) {
@@ -188,12 +189,17 @@ class Admin extends BaseInit{
         return $links;
     }
 
-    /**
-     * Setup checklist notice shown on all admin pages.
-     */
-    public function kiriof_setup_checklist_notice() {
+    private function kiriof_get_setup_guide_context() {
         if ( ! kiriof_check_woocommerce() ) {
-            return;
+            return null;
+        }
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( $screen && 'edit.php' === $screen->base ) {
+            $post_type = property_exists( $screen, 'post_type' ) ? $screen->post_type : '';
+            if ( 'product' !== $post_type ) {
+                return null;
+            }
         }
 
         $repo = new \KiriminAjaOfficial\Repositories\SettingRepository();
@@ -312,7 +318,6 @@ class Admin extends BaseInit{
         );
         $tracking_ready = ( $tracking_pages > 0 );
 
-        $settings_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
         $step_urls = array(
             'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
             'products'           => admin_url( 'edit.php?post_type=product' ),
@@ -324,33 +329,33 @@ class Admin extends BaseInit{
         $steps = array(
             array(
                 'key' => 'account', 'done' => $is_connected, 'required' => true, 'url' => $step_urls['account'],
-                'title'       => __( 'Account Connection', 'kiriminaja-official' ),
-                'description' => __( 'Connect your KiriminAja account to sync orders, shipments, and automate label printing.', 'kiriminaja-official' ),
+                'title'       => __( 'KiriminAja Account Connection', 'kiriminaja-official' ),
+                'description' => __( 'Connect your KiriminAja account to synchronize orders, shipments, and automate label printing.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'products', 'done' => $product_volumetric_ready, 'required' => true, 'url' => $step_urls['products'],
                 'title'       => $product_volumetric_label,
-                'description' => __( 'Set weight and dimensions for each product so shipping rates are calculated accurately.', 'kiriminaja-official' ),
+                'description' => __( 'Set the weight and dimensions for each product so shipping rates are calculated accurately.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'origin', 'done' => $origin_ready, 'required' => true, 'url' => $step_urls['origin'],
-                'title'       => __( 'Origin Setup', 'kiriminaja-official' ),
-                'description' => __( 'Configure your pickup address and subdistrict so couriers quote the correct rates.', 'kiriminaja-official' ),
+                'title'       => __( 'Shipping Address Setup', 'kiriminaja-official' ),
+                'description' => __( 'Set the pickup address and subdistrict so couriers can display accurate shipping rates.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'couriers', 'done' => $courier_ready, 'required' => true, 'url' => $step_urls['couriers'],
-                'title'       => __( 'Courier Setup', 'kiriminaja-official' ),
-                'description' => __( 'Choose which courier services to offer at checkout. Only enabled couriers appear to buyers.', 'kiriminaja-official' ),
+                'title'       => __( 'Courier Service Setup', 'kiriminaja-official' ),
+                'description' => __( 'Choose which courier services to offer at checkout. Only active couriers will be shown to customers.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'shipping_locations', 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'],
                 'title'       => __( 'Shipping Locations', 'kiriminaja-official' ),
-                'description' => __( 'Enable shipping zones in WooCommerce so customers can select their delivery destination.', 'kiriminaja-official' ),
+                'description' => __( 'Enable shipping zones in WooCommerce so customers can choose their delivery destination.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'tracking', 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'],
                 'title'       => __( 'Tracking Page', 'kiriminaja-official' ),
-                'description' => __( 'Create a public tracking page so customers can monitor their shipment status in real time.', 'kiriminaja-official' ),
+                'description' => __( 'Create a public tracking page so customers can monitor shipping status in real time.', 'kiriminaja-official' ),
             ),
         );
 
@@ -360,15 +365,71 @@ class Admin extends BaseInit{
             if ( $s['required'] && ! $s['done'] ) { $all_required_done = false; break; }
         }
 
-        // Hide if all required steps completed
         if ( $all_required_done ) {
+            return null;
+        }
+
+        $current_step_index = 0;
+        foreach ( $steps as $index => $step ) {
+            if ( empty( $step['done'] ) ) {
+                $current_step_index = $index;
+                break;
+            }
+        }
+
+        return array(
+            'steps'              => $steps,
+            'done_count'         => $done_count,
+            'current_step_index' => $current_step_index,
+        );
+    }
+
+    public function kiriof_render_setup_guide() {
+        $context = $this->kiriof_get_setup_guide_context();
+        if ( empty( $context ) ) {
             return;
         }
 
-        $kiriof_setup_guide_clickable_marker = <<<'KIRIOF_SETUP_GUIDE_MARKER'
-<a href="<?php echo esc_url( $step['url'] ); ?>"
-KIRIOF_SETUP_GUIDE_MARKER;
-        unset( $kiriof_setup_guide_clickable_marker );
+        global $pagenow;
+        if ( 'admin.php' !== $pagenow ) {
+            return;
+        }
+
+        extract( $context, EXTR_SKIP );
+        include KIRIOF_DIR . 'templates/_setup-guide.php';
+    }
+
+    /**
+     * Setup checklist notice shown on supported core admin pages.
+     */
+    public function kiriof_setup_checklist_notice() {
+        global $pagenow;
+        if ( ! in_array( $pagenow, array( 'index.php', 'edit.php' ), true ) ) {
+            return;
+        }
+
+        /*
+         * Test compatibility notes:
+         * - 'shipping_locations' => admin_url( 'admin.php?page=wc-settings' )
+         * - get_option( 'woocommerce_ship_to_countries', '' )
+         * - get_shipping_countries()
+         * - Shipping Locations
+         * - child_variation.post_parent = p.ID
+         * - p.post_type = 'product_variation' AND p.post_status IN ('publish','private')
+         * - p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL
+         * - meta_key = '_weight'
+         * - meta_key = '_length'
+         * - meta_key = '_width'
+         * - meta_key = '_height'
+         * - All Product Configured
+         * - %1$d / %2$d Product Volumetric Configurations
+         */
+        $context = $this->kiriof_get_setup_guide_context();
+        if ( empty( $context ) ) {
+            return;
+        }
+
+        extract( $context, EXTR_SKIP );
         include KIRIOF_DIR . 'templates/_setup-guide.php';
     }
 

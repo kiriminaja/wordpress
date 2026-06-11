@@ -1670,6 +1670,82 @@ msgstr ""
 msgid "KiriminAja Setup Guide"
 msgstr ""
 
+#. translators: %1$d: configured products, %2$d: total products
+#: inc/Pages/Admin.php:285
+#, php-format
+msgid "Product Volumetric Configurations (%1$d/%2$d)"
+msgstr ""
+
+#: inc/Pages/Admin.php:332
+msgid "KiriminAja Account Connection"
+msgstr ""
+
+#: inc/Pages/Admin.php:333
+msgid "Connect your KiriminAja account to synchronize orders, shipments, and automate label printing."
+msgstr ""
+
+#: inc/Pages/Admin.php:338
+msgid "Set the weight and dimensions for each product so shipping rates are calculated accurately."
+msgstr ""
+
+#: inc/Pages/Admin.php:342
+msgid "Shipping Address Setup"
+msgstr ""
+
+#: inc/Pages/Admin.php:343
+msgid "Set the pickup address and subdistrict so couriers can display accurate shipping rates."
+msgstr ""
+
+#: inc/Pages/Admin.php:347
+msgid "Courier Service Setup"
+msgstr ""
+
+#: inc/Pages/Admin.php:348
+msgid "Choose which courier services to offer at checkout. Only active couriers will be shown to customers."
+msgstr ""
+
+#: inc/Pages/Admin.php:353
+msgid "Enable shipping zones in WooCommerce so customers can choose their delivery destination."
+msgstr ""
+
+#: inc/Pages/Admin.php:358
+msgid "Create a public tracking page so customers can monitor shipping status in real time."
+msgstr ""
+
+#: templates/_setup-guide.php:77
+msgid "Final Step"
+msgstr ""
+
+#. translators: %1$d: current step number, %2$d: total step count.
+#: templates/_setup-guide.php:80
+#, php-format
+msgid "Step %1$d of %2$d"
+msgstr ""
+
+#: templates/_setup-guide.php:92
+msgid "Optional"
+msgstr ""
+
+#: templates/_setup-guide.php:99
+msgid "View Settings"
+msgstr ""
+
+#: templates/_setup-guide.php:99
+msgid "Configure Now"
+msgstr ""
+
+#: templates/_setup-guide.php:103
+msgid "Skip"
+msgstr ""
+
+#: templates/_setup-guide.php:54
+msgid "Previous step"
+msgstr ""
+
+#: templates/_setup-guide.php:58
+msgid "Next step"
+msgstr ""
+
 #: templates/_setup-guide.php:58
 msgid "(Optional)"
 msgstr ""

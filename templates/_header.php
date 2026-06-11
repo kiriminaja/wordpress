@@ -33,3 +33,4 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div style="flex-shrink:0"><?php echo $kiriof_header_extra; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 <?php endif; ?>
 </div>
+<?php do_action( 'kiriof_after_page_header' ); ?>
