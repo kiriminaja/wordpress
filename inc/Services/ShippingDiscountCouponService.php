@@ -82,6 +82,10 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
         }
 
+        if ( $this->hasOtherActiveShippingCoupon( $coupon ) ) {
+            return $this->invalid( __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ) );
+        }
+
         $destination = $this->getDestinationContext();
         if ( $destination['id'] < 1 && '' === $destination['name'] ) {
             return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
@@ -512,6 +516,26 @@ class ShippingDiscountCouponService {
         return array();
     }
 
+    private function hasOtherActiveShippingCoupon( $coupon ): bool {
+        if ( ! $this->isShippingCoupon( $coupon ) ) {
+            return false;
+        }
+
+        foreach ( $this->getShippingCoupons() as $activeCoupon ) {
+            if ( ! $activeCoupon instanceof \WC_Coupon ) {
+                continue;
+            }
+
+            if ( (int) $activeCoupon->get_id() === (int) $coupon->get_id() ) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     private function couponAllowsSelectedCourier( $coupon ): bool {
         $couriers = $this->getCouponCouriers( $coupon );
         if ( empty( $couriers ) ) {
@@ -656,6 +680,7 @@ class ShippingDiscountCouponService {
             __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ),
             __( 'Shipping discount coupons are not available for your account type.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ),
+            __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ),
             __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ),
             __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ),
             __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ),

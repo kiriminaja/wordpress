@@ -257,6 +257,10 @@ msgstr ""
 msgid "Please enter your shipping address to check coupon eligibility."
 msgstr ""
 
+#: inc/Services/ShippingDiscountCouponService.php:85
+msgid "This coupon cannot be combined with another shipping discount coupon."
+msgstr ""
+
 #: inc/Services/ShippingDiscountCouponService.php:56
 msgid "This coupon is not valid for your shipping destination."
 msgstr ""

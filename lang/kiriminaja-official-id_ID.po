@@ -2592,5 +2592,9 @@ msgid "This coupon cannot be combined with a free shipping coupon."
 msgstr "Kupon ini tidak dapat digabungkan dengan kupon gratis ongkir."
 
 #: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon cannot be combined with another shipping discount coupon."
+msgstr "Kupon ini tidak dapat digabungkan dengan kupon diskon ongkir lain."
+
+#: inc/Services/ShippingDiscountCouponService.php
 msgid "Shipping discount coupon not applied — free shipping is active."
 msgstr "Kupon diskon ongkir tidak diterapkan — gratis ongkir sedang aktif."

@@ -36,6 +36,18 @@ final class ShippingDiscountCouponCombinationsTest extends TestCase
         // (registerDiscountType, clampPercentageAmount) but must not be combination options.
         $this->assertStringContainsString('ShippingDiscountCouponService::FIXED_COUPON_TYPE', $content);
         $this->assertStringContainsString('ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE', $content);
+        $this->assertStringNotContainsString("'shipping_discount' => array", $content);
+        $this->assertStringNotContainsString('"shipping_discount" => array', $content);
+    }
+
+    #[Test]
+    public function service_blocks_double_shipping_discount_coupons(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
+
+        $this->assertStringContainsString('hasOtherActiveShippingCoupon', $content);
+        $this->assertStringContainsString('This coupon cannot be combined with another shipping discount coupon.', $content);
+        $this->assertStringNotContainsString('COMBINATION_SHIPPING_DISCOUNT', $content);
     }
 
     #[Test]
