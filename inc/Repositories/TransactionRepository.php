@@ -220,9 +220,13 @@ class TransactionRepository{
                     `created_at`, 
                     `wp_wc_order_stat_order_id`,
                     `discount_amount`,
-                    `discount_percentage`
+                    `discount_percentage`,
+                    `woocommerce_discount_amount`,
+                    `woocommerce_discount_description`,
+                    `is_deficit`,
+                    `cod_minimum`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f)",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -241,7 +245,11 @@ class TransactionRepository{
                 $payload['created_at'],
                 $payload['wp_wc_order_stat_order_id'],
                 $payload['discount_amount'] ?? null,
-                $payload['discount_percentage'] ?? null
+                $payload['discount_percentage'] ?? null,
+                $payload['woocommerce_discount_amount'] ?? 0,
+                $payload['woocommerce_discount_description'] ?? null,
+                $payload['is_deficit'] ?? 0,
+                $payload['cod_minimum'] ?? null
             )
         );
         $this->invalidateCouriersCache();
@@ -381,6 +389,26 @@ class TransactionRepository{
         return $this->hasError() ? 0 : (int) $query;
     }
 
+    /**
+     * Count distinct orders flagged as COD deficit (is_deficit = 1).
+     */
+    public function getCountDeficit(): int {
+        $o = $this->getOrdersTable();
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $query = $this->wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.{$o['id']})
+            FROM {$o['table']} p
+            INNER JOIN {$this->table} t
+                ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+            WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                AND t.is_deficit = 1"
+        );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+        return $this->hasError() ? 0 : (int) $query;
+    }
+
     public function getDistinctCouriers() {
         $cache_key = 'kiriof_distinct_couriers';
         $cached    = get_transient($cache_key);
@@ -406,6 +434,36 @@ class TransactionRepository{
         delete_transient('kiriof_distinct_couriers');
     }
 
+    /**
+     * Update COD-related values for a transaction (used by COD adjustment flow).
+     *
+     * @param string $kaOrderId  KiriminAja order ID (order_id column).
+     * @param array  $values {
+     *   @type float $cod              New total COD amount.
+     *   @type float $cod_fee          New COD fee.
+     *   @type float $cod_minimum      New COD minimum.
+     *   @type int   $is_deficit       0 or 1.
+     * }
+     * @return bool
+     */
+    public function updateTransactionCodValues( string $kaOrderId, array $values ): bool {
+        $allowed = [ 'transaction_value', 'cod_fee', 'cod_minimum', 'is_deficit' ];
+        $updateData = array_intersect_key( $values, array_flip( $allowed ) );
+
+        if ( empty( $updateData ) ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $this->wpdb->update(
+            $this->table,
+            $updateData,
+            [ 'order_id' => $kaOrderId ]
+        );
+
+        return ! $this->hasError();
+    }
+
     public function updateTransaction($payload){
         $updateData = [
             'destination_sub_district_id' => $payload['destination_sub_district_id'],
@@ -423,6 +481,18 @@ class TransactionRepository{
         }
         if (isset($payload['discount_percentage'])) {
             $updateData['discount_percentage'] = $payload['discount_percentage'];
+        }
+        if (isset($payload['woocommerce_discount_amount'])) {
+            $updateData['woocommerce_discount_amount'] = $payload['woocommerce_discount_amount'];
+        }
+        if (isset($payload['woocommerce_discount_description'])) {
+            $updateData['woocommerce_discount_description'] = $payload['woocommerce_discount_description'];
+        }
+        if (isset($payload['is_deficit'])) {
+            $updateData['is_deficit'] = $payload['is_deficit'];
+        }
+        if (isset($payload['cod_minimum'])) {
+            $updateData['cod_minimum'] = $payload['cod_minimum'];
         }
         
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];

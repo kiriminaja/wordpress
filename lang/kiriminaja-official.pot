@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: KiriminAja Official 2.1.40\n"
+"Project-Id-Version: KiriminAja Official 2.1.41\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wordpress\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -77,6 +77,248 @@ msgstr ""
 #: inc/Base/Helper.php:37
 #: inc/Base/Helper.php:57
 msgid "Canceled"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:36
+msgid "Fixed shipping discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:37
+msgid "Percentage shipping discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:32
+msgid "Area Restrictions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:38
+msgid "Courier Restrictions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:48
+msgid "Allowed Regions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:50
+msgid "Refresh Region Data"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:52
+msgid "Leave empty to allow all shipping destinations."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:56
+msgid "All Indonesian Regions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:57
+msgid "Selected Regions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:61
+msgid "Search region, province, or city"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:75
+msgid "Coverage data is being prepared in the background. Please wait a moment, then reload this tab."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:77
+msgid "Region data is older than 24 hours. It will be refreshed automatically in the background."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:174
+msgid "Islands"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:175
+msgid "Provinces"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:176
+msgid "Cities"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:177
+msgid "No regions match your search."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:178
+msgid "Choose at least one city or switch back to all regions before saving this coupon."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:636
+msgid "Sumatra"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:637
+msgid "Java"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:638
+msgid "Bali & Nusa Tenggara"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:639
+msgid "Kalimantan"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:640
+msgid "Sulawesi"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:641
+msgid "Maluku"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:642
+msgid "Papua"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:643
+msgid "Other Regions"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:180
+#: inc/Controllers/ShippingDiscountCouponController.php:610
+msgid "All provinces in Indonesia"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:181
+#: inc/Controllers/ShippingDiscountCouponController.php:614
+#, php-format
+msgid "All cities in %s"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:152
+#: inc/Controllers/ShippingDiscountCouponController.php:250
+#, php-format
+msgid "%1$s, %2$s"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:153
+msgid "Please choose a province first."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:154
+msgid "Please choose at least one city."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:155
+msgid "Refreshing region data…"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:156
+msgid "Region data refreshed."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:157
+msgid "Failed to refresh region data."
+msgstr ""
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:16
+msgid "Failed to refresh province data."
+msgstr ""
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:30
+msgid "Invalid province."
+msgstr ""
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:35
+msgid "Failed to refresh city data."
+msgstr ""
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:27
+msgid "Region cache updated."
+msgstr ""
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:42
+msgid "City cache updated."
+msgstr ""
+
+#: inc/Services/KiriminajaApiService.php:58
+msgid "Failed to load provinces."
+msgstr ""
+
+#: inc/Services/KiriminajaApiService.php:67
+msgid "Failed to load cities."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:31
+#: inc/Services/ShippingDiscountCouponService.php:35
+msgid "Add items to your cart first."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:39
+msgid "This coupon requires a physical product with shipping."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:44
+msgid "Please enter your shipping address to check coupon eligibility."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:56
+msgid "This coupon is not valid for your shipping destination."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:64
+msgid "This coupon is not valid for the selected courier."
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Fixed shipping discount applied"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Percentage shipping discount applied"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Shipping discounts applied"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php:111
+msgid "Coupon not applicable"
+msgstr ""
+
+#: templates/woocommerce/cart/cart-totals.php:48
+#: templates/woocommerce/checkout/review-order.php:112
+msgid "Applied to shipping"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:64
+#: inc/Controllers/ShippingDiscountCouponController.php:76
+msgid "Combinations"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:79
+#, php-format
+msgid "Can combine with %s"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:80
+#, php-format
+msgid "Cannot combine with %s"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:143
+msgid "Allow Combinations"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:151
+msgid "Leave selected to allow this shipping discount coupon to stack with the checked discount types."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:366
+msgid "Fixed cart discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:370
+msgid "Percentage discount"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:374
+msgid "Fixed product discount"
 msgstr ""
 
 #: inc/Base/Helper.php:48
@@ -263,6 +505,15 @@ msgstr ""
 #: templates/transaction-process/view/index.php:693
 #: templates/transaction-process/view/modal-detail.php:109
 msgid "Insurance Fee"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php
+msgid "Actual Shipping"
+msgstr ""
+
+#: templates/order/metabox-shipping.php
+#: inc/Controllers/TransactionProcessController.php
+msgid "Discounted Shipping"
 msgstr ""
 
 #: inc/Controllers/GeneralAjaxController.php:44
@@ -810,21 +1061,21 @@ msgstr ""
 #: templates/request-pickup/view/modal-request-pickup.php:33
 #: templates/transaction-process/view/index.php:475
 #: templates/transaction-process/view/modal-request-pickup.php:34
-msgid "Tagihan Paket COD"
+msgid "COD Package Charges"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:532
 #: templates/request-pickup/view/modal-request-pickup.php:38
 #: templates/transaction-process/view/index.php:480
 #: templates/transaction-process/view/modal-request-pickup.php:39
-msgid "Tagihan Paket Non-COD"
+msgid "Non-COD Package Charges"
 msgstr ""
 
 #: templates/request-pickup/view/index.php:537
 #: templates/request-pickup/view/modal-request-pickup.php:43
 #: templates/transaction-process/view/index.php:485
 #: templates/transaction-process/view/modal-request-pickup.php:44
-msgid "Total Tagihan"
+msgid "Total Charges"
 msgstr ""
 
 #: templates/request-pickup/view/modal-payment.php:18
@@ -1046,6 +1297,14 @@ msgstr ""
 
 #: templates/setting/setuped/section-account.php:189
 msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:54
+msgid "Usage Combinations"
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php:261
+msgid "Powered by KiriminAja Discount Extension"
 msgstr ""
 
 #: templates/setting/setuped/section-account.php:203
@@ -1373,6 +1632,22 @@ msgstr ""
 #: templates/transaction-process/view/modal-cancel.php:18
 #: templates/transaction-process/view/modal-cancel.php:45
 msgid "Cancel Shipment"
+msgstr ""
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Close modal panel"
+msgstr ""
+
+msgid "Available Schedules"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "No pickup schedule is available."
+msgstr ""
+
+msgid "Please select a pickup schedule."
 msgstr ""
 
 #: templates/transaction-process/view/modal-cancel.php:33

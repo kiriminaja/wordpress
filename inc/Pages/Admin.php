@@ -83,7 +83,7 @@ class Admin extends BaseInit{
             ->addPages([
                 [
                     'page_title'=>'KiriminAja',
-                    'menu_title'=>'KiriminAja',
+                    'menu_title'=> 'KiriminAja' . ( defined('KIRIOF_ENV') && KIRIOF_ENV !== 'prd' ? ' [' . strtoupper(KIRIOF_ENV) . ']' : '' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function() use ($plugin_path){
@@ -95,6 +95,41 @@ class Admin extends BaseInit{
             ])
             ->addSubPages($subPages)
             ->register();
+
+        // Promotions sub-menu: links directly to the coupon list pre-filtered to KiriminAja extensions.
+        // Inserted before the Settings entry by reordering $submenu after all entries are registered.
+        if ( kiriof_check_woocommerce() ) {
+            add_action( 'admin_menu', function () {
+                global $submenu;
+                $slug = 'kiriminaja-konfigurasi';
+                if ( empty( $submenu[ $slug ] ) ) {
+                    return;
+                }
+
+                $promotions_entry = array(
+                    __( 'Promotions', 'kiriminaja-official' ),
+                    'manage_woocommerce',
+                    admin_url( 'edit.php?post_type=shop_coupon&legacy_coupon_menu=1&kiriof_extension=kiriminaja' ),
+                );
+
+                // Find the Settings entry (the one whose URL slug equals the parent slug)
+                // and insert Promotions just before it.
+                $reordered = array();
+                $inserted  = false;
+                foreach ( array_values( $submenu[ $slug ] ) as $entry ) {
+                    $entry_url = $entry[2] ?? '';
+                    if ( ! $inserted && $entry_url === $slug ) {
+                        $reordered[] = $promotions_entry;
+                        $inserted    = true;
+                    }
+                    $reordered[] = $entry;
+                }
+                if ( ! $inserted ) {
+                    $reordered[] = $promotions_entry;
+                }
+                $submenu[ $slug ] = $reordered;
+            }, 20 );
+        }
         
     
         /** Add pages link in plugin menu links*/
