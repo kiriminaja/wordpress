@@ -38,9 +38,13 @@ if ( ! defined( 'ABSPATH' ) ) {
         var kiriofCodInsuranceTimer = null;
         var kiriofBlockRatesRefreshTimer = null;
         var kiriofLastBlockCartUpdateKey = '';
+        var kiriofLastRawStoreCustomerUpdateKey = '';
+        var kiriofLastRawStoreCustomerUpdateAt = 0;
         var kiriofLastObservedBlockPostcode = '';
         var kiriofSavedDistrictByPostcode = <?php echo wp_json_encode( is_array( $kiriof_saved_destination_map ) ? $kiriof_saved_destination_map : array() ); ?>;
         var kiriofSavedCheckoutPostcode = <?php echo wp_json_encode( (string) $kiriof_saved_checkout_postcode ); ?>;
+        var kiriofStoreApiNonce = '<?php echo esc_js(wp_create_nonce('wc_store_api')); ?>';
+        var kiriofStoreApiUpdateCustomerUrl = '<?php echo esc_url_raw( rest_url( 'wc/store/v1/cart/update-customer' ) ); ?>';
 
         jQuery(document).ready(function($) {
             <?php if ( $kiriof_global_insurance ) : ?>
@@ -540,6 +544,76 @@ if ( ! defined( 'ABSPATH' ) ) {
                     } catch(e) {}
                 }
 
+                function kiriofDispatchWooBlocksCartRefresh() {
+                    try {
+                        document.body.dispatchEvent(new CustomEvent('wc-blocks_added_to_cart', {
+                            bubbles: true,
+                            detail: { preserveCartData: false }
+                        }));
+                    } catch(e) {}
+                }
+
+                function kiriofGetCheckoutFieldValue(addressType, field) {
+                    var selectors = [
+                        '#' + addressType + '-' + field,
+                        '#' + addressType + '_' + field,
+                        '[name="' + addressType + '_' + field + '"]',
+                        '[name="' + addressType + '-' + field + '"]'
+                    ];
+                    var value = '';
+
+                    for (var i = 0; i < selectors.length; i++) {
+                        var $field = jQuery(selectors[i]).first();
+                        if ($field.length) {
+                            value = $field.val();
+                            if (value) {
+                                return String(value);
+                            }
+                        }
+                    }
+
+                    return '';
+                }
+
+                function kiriofBuildStoreApiAddressFromDom(addressType) {
+                    var address = {
+                        first_name: kiriofGetCheckoutFieldValue(addressType, 'first_name'),
+                        last_name: kiriofGetCheckoutFieldValue(addressType, 'last_name'),
+                        company: kiriofGetCheckoutFieldValue(addressType, 'company'),
+                        address_1: kiriofGetCheckoutFieldValue(addressType, 'address_1'),
+                        address_2: kiriofGetCheckoutFieldValue(addressType, 'address_2'),
+                        city: kiriofGetCheckoutFieldValue(addressType, 'city'),
+                        state: kiriofGetCheckoutFieldValue(addressType, 'state'),
+                        postcode: kiriofGetCheckoutFieldValue(addressType, 'postcode'),
+                        country: kiriofGetCheckoutFieldValue(addressType, 'country') || 'ID',
+                        phone: kiriofGetCheckoutFieldValue(addressType, 'phone')
+                    };
+
+                    if (addressType === 'billing') {
+                        address.email = kiriofGetCheckoutFieldValue('billing', 'email')
+                            || kiriofGetCheckoutFieldValue('', 'email')
+                            || jQuery('input[type="email"]').first().val()
+                            || '';
+                    }
+
+                    return address;
+                }
+
+                function kiriofAddressHasCheckoutValue(address) {
+                    return !!(
+                        address &&
+                        (
+                            address.address_1 ||
+                            address.city ||
+                            address.state ||
+                            address.postcode ||
+                            address.country ||
+                            address.first_name ||
+                            address.last_name
+                        )
+                    );
+                }
+
                 function kiriofForceBlockCartUpdate(districtName, districtId) {
                     // Invalidate shipping rates through every available mechanism
                     try {
@@ -563,26 +637,76 @@ if ( ! defined( 'ABSPATH' ) ) {
                         }
                     } catch(e) {}
 
-                    // Direct Store API call as final fallback — bypasses @wordpress/data
-                    // isEqual checks that can skip the call when nothing appears to have changed.
-                    // Sends the full current address back unchanged; the server always recalculates
-                    // shipping when update-customer is called, using the updated session data.
-                    if (typeof wp !== 'undefined' && wp.apiFetch && wp.data && wp.data.select && districtId) {
-                        try {
-                            var cartStore = wp.data.select('wc/store/cart');
-                            if (!cartStore) return;
-                            var address = typeof cartStore.getShippingAddress === 'function'
-                                ? Object.assign({}, cartStore.getShippingAddress() || {})
-                                : {};
-                            if (address.postcode) {
-                                wp.apiFetch({
-                                    path: '/wc/store/v1/cart/update-customer',
-                                    method: 'POST',
-                                    data: { shipping_address: address }
-                                }).catch(function() {});
-                            }
-                        } catch(e) {}
+                    if (!districtId) return;
+                    var rawUpdateKey = [
+                        districtId || '',
+                        districtName || '',
+                        kiriofGetCurrentPostcodeKey() || ''
+                    ].join('|');
+                    var now = Date.now();
+                    if (rawUpdateKey === kiriofLastRawStoreCustomerUpdateKey && now - kiriofLastRawStoreCustomerUpdateAt < 1500) {
+                        kiriofSyncBlockDistrictWarningState();
+                        return;
                     }
+                    kiriofLastRawStoreCustomerUpdateKey = rawUpdateKey;
+                    kiriofLastRawStoreCustomerUpdateAt = now;
+
+                    // Use raw fetch + Store API nonce instead of wp.data dispatch / wp.apiFetch.
+                    // Some WooCommerce versions / themes do not expose wp.data on the
+                    // frontend, and wp.apiFetch may not be loaded either.  A plain POST to
+                    // the Store API update-customer endpoint is the most reliable approach.
+                    try {
+                        var postData = {
+                            additional_fields: {
+                                'kiriminaja-official/kiriof_destination_area': String(districtId)
+                            }
+                        };
+                        var shippingAddress = kiriofBuildStoreApiAddressFromDom('shipping');
+                        var billingAddress = kiriofBuildStoreApiAddressFromDom('billing');
+                        if (kiriofAddressHasCheckoutValue(shippingAddress)) {
+                            postData.shipping_address = shippingAddress;
+                        }
+                        if (kiriofAddressHasCheckoutValue(billingAddress)) {
+                            postData.billing_address = billingAddress;
+                        } else if (postData.shipping_address) {
+                            postData.billing_address = Object.assign({}, postData.shipping_address);
+                            postData.billing_address.email = jQuery('input[type="email"]').first().val() || '';
+                        }
+                        if (districtName) {
+                            postData.additional_fields['kiriminaja-official/kiriof_destination_area_name'] = String(districtName);
+                        }
+
+                        var nonce = kiriofStoreApiNonce
+                            || (window.wpApiSettings && window.wpApiSettings.nonce)
+                            || (window.wp && window.wp.apiFetch && window.wp.apiFetch.nonceMiddleware && window.wp.apiFetch.nonceMiddleware.nonce)
+                            || '';
+                        var headers = {
+                            'Accept': 'application/json, */*;q=0.1',
+                            'Content-Type': 'application/json'
+                        };
+                        if (nonce) {
+                            headers['Nonce'] = nonce;
+                        }
+
+                        if (window.console) console.log('[KiriminAja] POST update-customer district=' + districtId + ' nonce=' + (nonce ? 'yes' : 'no'));
+
+                        fetch(kiriofStoreApiUpdateCustomerUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: headers,
+                            body: JSON.stringify(postData)
+                        }).then(function(resp) {
+                            if (window.console) console.log('[KiriminAja] update-customer status=' + resp.status);
+                            if (resp.ok) {
+                                kiriofDispatchWooBlocksCartRefresh();
+                                setTimeout(kiriofSyncBlockDistrictWarningState, 80);
+                                setTimeout(kiriofSyncBlockDistrictWarningState, 600);
+                                setTimeout(kiriofRefreshBlockShippingRates, 700);
+                            }
+                        }).catch(function(err) {
+                            if (window.console) console.warn('[KiriminAja] update-customer error:', err);
+                        });
+                    } catch(e) {}
                 }
 
                 function kiriofBuildBlockCartUpdateKey(data) {
@@ -598,9 +722,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 function kiriofPersistBlockDistrictSelection(data) {
+                    if (window.console) console.log('[KiriminAja] Persist district selection', data);
                     var updateKey = kiriofBuildBlockCartUpdateKey(data);
                     if (updateKey && updateKey === kiriofLastBlockCartUpdateKey) {
+                        if (window.console) console.log('[KiriminAja] District already persisted (dedup), refreshing rates');
                         kiriofScheduleBlockShippingRatesRefresh(160);
+                        kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
                         return;
                     }
 
@@ -667,24 +794,33 @@ if ( ! defined( 'ABSPATH' ) ) {
                         // The delegated handler on `document` may not fire in WooCommerce
                         // blocks (React 18 captures native events before they reach document).
                         $select.on('change.kiriofBlockDistrictDirect', function() {
-                            var districtVal = jQuery(this).val();
-                            var districtLabel = jQuery(this).find('option:selected').text();
-                            var postcode = kiriofGetCurrentPostcodeKey();
+                            if (window.console) console.log('[KiriminAja] Select changed', jQuery(this).val());
+                            try {
+                                var districtVal = jQuery(this).val();
+                                var districtLabel = jQuery(this).find('option:selected').text();
+                                var postcode = kiriofGetCurrentPostcodeKey();
 
-                            kiriofSyncBlockDistrictSourceField(districtVal, districtLabel || '', { silentEvents: true });
-                            kiriofRememberDistrictForPostcode(postcode, districtVal, districtLabel);
-                            kiriofPendingDistrictRestore = false;
-                            kiriofDistrictResultsLoading = false;
-                            kiriofSyncBlockDistrictWarningState();
+                                kiriofSyncBlockDistrictSourceField(districtVal, districtLabel || '', { silentEvents: true });
+                                kiriofRememberDistrictForPostcode(postcode, districtVal, districtLabel);
+                                kiriofPendingDistrictRestore = false;
+                                kiriofDistrictResultsLoading = false;
+                                kiriofSyncBlockDistrictWarningState();
 
-                            kiriofPersistBlockDistrictSelection({
-                                destination_id: parseInt(districtVal) || 0,
-                                destination_name: districtLabel || '',
-                                postcode: postcode,
-                                payment_method: kiriofGetPaymentMethod(),
-                                insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
-                                force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
-                            });
+                                var persistData = {
+                                    destination_id: parseInt(districtVal) || 0,
+                                    destination_name: districtLabel || '',
+                                    postcode: postcode,
+                                    payment_method: kiriofGetPaymentMethod(),
+                                    insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                                    force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
+                                };
+
+                                kiriofPersistBlockDistrictSelection(persistData);
+                            } catch(e) {
+                                if (window.console) {
+                                    console.error('[KiriminAja] District change handler error:', e);
+                                }
+                            }
                         });
                     }
             
@@ -1123,7 +1259,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     if (hasValidDistrict) {
-                        $warning.hide();
+                        jQuery('.kiriof-block-district-warning').hide();
                         $shippingOptions.removeClass('kiriof-shipping-options-blocked');
                         jQuery('body').removeClass('kiriof-no-district');
                         kiriofSetCheckoutTokenValue(true);
@@ -1625,13 +1761,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         function kiriofBlockExtensionCartUpdate(data) {
             if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                if (window.console) console.warn('[KiriminAja] wp.data.dispatch not available');
                 return null;
             }
 
             try {
                 var cartDispatch = wp.data.dispatch('wc/store/cart');
                 if (cartDispatch && typeof cartDispatch.extensionCartUpdate === 'function') {
-                    return cartDispatch.extensionCartUpdate({
+                    if (window.console) console.log('[KiriminAja] Calling extensionCartUpdate', data);
+                    var result = cartDispatch.extensionCartUpdate({
                         namespace: 'kiriminaja-official',
                         data: {
                             shipping_metode_id: data.shipping_metode_id,
@@ -1643,12 +1781,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                             force_insurance: data.force_insurance
                         }
                     });
+                    return result;
                 }
 
                 if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
                     cartDispatch.invalidateResolutionForStore();
                 }
-            } catch(e) {}
+            } catch(e) {
+                if (window.console) console.error('[KiriminAja] extensionCartUpdate error:', e);
+            }
 
             return null;
         }

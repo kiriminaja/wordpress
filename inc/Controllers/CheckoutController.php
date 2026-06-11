@@ -1406,16 +1406,18 @@ class CheckoutController
         // shipping_address / billing_address additional_fields from customer
         // meta, NOT from WC()->session, so session-only storage leaves the
         // field empty in the cart response and can cause empty shipping rates.
-        if ( $destination_id > 0 ) {
-            WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
-            WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
-        } else {
-            WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', '' );
-            WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', '' );
+        if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
+            if ( $destination_id > 0 ) {
+                WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
+                WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
+            } else {
+                WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', '' );
+                WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', '' );
+            }
+            WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area_name', $destination_name );
+            WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area_name', $destination_name );
+            WC()->customer->save_meta_data();
         }
-        WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area_name', $destination_name );
-        WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area_name', $destination_name );
-        WC()->customer->save_meta_data();
 
         WC()->session->set( 'kiriof_insurance', $insurance );
         WC()->session->set( 'billing_insurance', $insurance );

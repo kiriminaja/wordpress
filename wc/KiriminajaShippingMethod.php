@@ -74,9 +74,11 @@ function kiriof_shipping_method(){
                 // session was not persisted between API requests.
                 if ( empty( $destination_id ) ) {
                     try {
-                        $dest = WC()->customer->get_meta( 'shipping_kiriminaja-official/kiriof_destination_area' );
-                        if ( ! empty( $dest ) ) {
-                            $destination_id = (int) $dest;
+                        if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
+                            $dest = WC()->customer->get_meta( 'shipping_kiriminaja-official/kiriof_destination_area' );
+                            if ( ! empty( $dest ) ) {
+                                $destination_id = (int) $dest;
+                            }
                         }
                     } catch ( \Exception $e ) {
                         // ignore

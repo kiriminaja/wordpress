@@ -705,6 +705,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'kiriofForceBlockCartUpdate(data.destination_name',
+            $content,
+            'When wc/store globals are unavailable or the extension update is deduped, District persistence still needs the raw Store API customer update fallback to trigger rates'
+        );
+
+        $this->assertStringContainsString(
             'function kiriofEnsureLegacyBlockDistrictMirror',
             $content,
             'Block checkout should maintain a classic kiriof_destination_area hidden mirror for legacy PHP validation paths that still read the non-namespaced POST key'
@@ -839,6 +845,72 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriofUpdateCheckoutAdditionalFields(districtValue)',
             $placeOrderBody,
             'Place-order handling should still push District into Woo checkout additional fields before submission'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_raw_update_customer_uses_store_api_nonce_header(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofForceBlockCartUpdate');
+        $this->assertNotFalse($start, 'Block checkout force cart update helper must exist');
+        $functionBody = substr($content, $start, 5200);
+
+        $this->assertStringContainsString(
+            "headers['Nonce'] = nonce",
+            $functionBody,
+            'Woo Store API update-customer requires the Nonce header; X-WP-Nonce is treated as missing and blocks pricing recalculation'
+        );
+
+        $this->assertStringNotContainsString(
+            "headers['X-WP-Nonce']",
+            $functionBody,
+            'The raw Store API update-customer fallback must not use the regular WP REST nonce header'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofStoreApiUpdateCustomerUrl',
+            $functionBody,
+            'The Store API endpoint should come from rest_url so installs in subdirectories do not hard-code /wp-json at the domain root'
+        );
+
+        $this->assertStringContainsString(
+            'postData.shipping_address = shippingAddress',
+            $functionBody,
+            'Raw update-customer fallback must include the visible shipping address, otherwise Woo may calculate rates against an incomplete server-side address'
+        );
+
+        $this->assertStringContainsString(
+            'postData.billing_address = billingAddress',
+            $functionBody,
+            'Raw update-customer fallback should include billing address when available so Store API customer state remains complete'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks_added_to_cart',
+            $content,
+            'After a raw Store API customer update, dispatch Woo Blocks cart refresh event so React checkout invalidates cart/rates even when wp.data is not available to our script'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofLastRawStoreCustomerUpdateKey',
+            $content,
+            'Raw Store API fallback needs a short throttle so refresh events do not create an update loop during checkout rerenders'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_valid_district_hides_all_stale_district_warnings(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'function kiriofSyncBlockDistrictWarningState');
+        $this->assertNotFalse($start, 'District warning sync helper must exist');
+        $functionBody = substr($content, $start, 1200);
+
+        $this->assertStringContainsString(
+            "jQuery('.kiriof-block-district-warning').hide();",
+            $functionBody,
+            'Woo Blocks can rerender the shipping step after District selection; hide all stale plugin warning nodes when a valid District is present'
         );
     }
 
