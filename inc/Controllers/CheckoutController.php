@@ -20,6 +20,58 @@ class CheckoutController
     //shipping checkout key
     private $field_shipping_destination_key  = 'kiriof_shipping_destination_area';
     private $field_shipping_insurance_key  = 'kiriof_shipping_insurance';
+
+    private function kiriof_cart_needs_shipping(): bool {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'needs_shipping' ) ) {
+            return true;
+        }
+
+        return WC()->cart->needs_shipping();
+    }
+
+    private function kiriof_order_needs_shipping( $order ): bool {
+        if ( ! $order instanceof \WC_Order ) {
+            return false;
+        }
+
+        foreach ( $order->get_items( 'line_item' ) as $item ) {
+            $product = method_exists( $item, 'get_product' ) ? $item->get_product() : false;
+            if ( $product && method_exists( $product, 'needs_shipping' ) && $product->needs_shipping() ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function kiriof_clear_logistics_session(): void {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return;
+        }
+
+        foreach ( array(
+            'kiriof_chosen_shipping_methods',
+            'chosen_shipping_methods',
+            'kiriof_expedition',
+            'destination_id',
+            'shipping_destination_id',
+            'destination_name',
+            'shipping_destination_name',
+            'kiriof_destination_area',
+            'kiriof_destination_area_name',
+            'kiriof_insurance',
+            'billing_insurance',
+            'force_insurance',
+            'kiriof_force_insurance',
+            'kiriof_cached_insurance_amt',
+            'kiriof_cached_cod_amt',
+            'kiriof_cached_fee_context',
+            'kiriof_shipping_coupon_rate_meta',
+        ) as $key ) {
+            WC()->session->set( $key, null );
+        }
+    }
+
     public function register()
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -84,6 +136,11 @@ class CheckoutController
         }
     }
     function kiriof_shipping_method_update() {
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            return;
+        }
+
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
         if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
@@ -379,6 +436,10 @@ class CheckoutController
     }
 
     function kiriof_filter_cart_needs_shipping( $needs_shipping ) {
+        if ( ! $needs_shipping ) {
+            $this->kiriof_clear_logistics_session();
+        }
+
         if ( is_cart() ) {
             if( $needs_shipping && get_option( 'woocommerce_enable_shipping_calc' ) === 'no' ){
                 WC()->session->set( 'destination_id', null );
@@ -446,6 +507,10 @@ class CheckoutController
 
     public function afterStoreApiCheckoutUpdateOrderFromRequest( $order, $request ){
         if ( ! $order instanceof \WC_Order ) {
+            return;
+        }
+        if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
+            $this->kiriof_clear_logistics_session();
             return;
         }
 
@@ -530,6 +595,10 @@ class CheckoutController
         /** Resolve the order object: WC may pass null in some flows */
         if ( ! $order instanceof \WC_Order ) {
             $order = wc_get_order( $order_id );
+        }
+        if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
+            $this->kiriof_clear_logistics_session();
+            return;
         }
 
         /**
@@ -637,6 +706,11 @@ class CheckoutController
     
     // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce checkout flow verifies nonce before this hook runs.
     function afterCheckoutBeforeCreated($order,$data ){
+        if ( $order instanceof \WC_Order && ! $this->kiriof_order_needs_shipping( $order ) ) {
+            $this->kiriof_clear_logistics_session();
+            return;
+        }
+
         /**
          * Classic checkout posts kiriof fields directly. Block checkout submits via
          * Store API, so those POST fields may be absent; use values persisted by
@@ -864,6 +938,9 @@ class CheckoutController
         
     }
     public function kiriof_order_details($order){
+        if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
+            return false;
+        }
         $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
         $shipping_methods = $order->get_shipping_methods();
         $shipping_method = array_shift( $shipping_methods );
@@ -911,6 +988,9 @@ class CheckoutController
     }
 
     public function kiriof_order_shipment_details($order){
+        if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
+            return false;
+        }
         $shipping_methods = $order->get_shipping_methods();
         $shipping_method = array_shift( $shipping_methods );
         $shipping_method_id = $shipping_method ? $shipping_method['method_id'] : '';
@@ -1381,6 +1461,10 @@ class CheckoutController
      */
     public function kiriof_store_api_update_checkout( $data ) {
         if ( ! is_array( $data ) ) {
+            return;
+        }
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
             return;
         }
 

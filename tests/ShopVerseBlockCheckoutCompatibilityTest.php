@@ -1709,6 +1709,48 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function virtual_cart_clears_stale_logistics_session_before_fee_or_store_api_sync(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'private function kiriof_clear_logistics_session',
+            $content,
+            'Virtual-only carts need a central cleanup path so stale courier/session values such as BIGPACK cannot leak into checkout'
+        );
+
+        $this->assertStringContainsString(
+            "'kiriof_chosen_shipping_methods'",
+            $content,
+            'Cleanup must clear the plugin-owned chosen shipping mirror'
+        );
+
+        $this->assertStringContainsString(
+            "'chosen_shipping_methods'",
+            $content,
+            'Cleanup must also clear WooCommerce chosen shipping methods for virtual-only carts'
+        );
+
+        $start = strpos($content, 'function kiriof_shipping_method_update()');
+        $this->assertNotFalse($start, 'Shipping method update hook must exist');
+        $methodBody = substr($content, $start, 500);
+        $this->assertStringContainsString(
+            '! $this->kiriof_cart_needs_shipping()',
+            $methodBody,
+            'Cart fee/session update must clear logistics state before reading stale posted or session shipping methods when cart is virtual-only'
+        );
+
+        $storeApiStart = strpos($content, 'public function kiriof_store_api_update_checkout');
+        $this->assertNotFalse($storeApiStart, 'Store API update callback must exist');
+        $storeApiBody = substr($content, $storeApiStart, 500);
+        $this->assertStringContainsString(
+            '! $this->kiriof_cart_needs_shipping()',
+            $storeApiBody,
+            'Block checkout Store API extension updates must ignore stale shipping method payloads for virtual-only carts'
+        );
+    }
+
+    #[Test]
     public function fee_cache_matcher_invalidates_non_cod_insurance_when_checkout_context_changes(): void
     {
         require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
@@ -2370,6 +2412,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $start = strpos($content, 'public function kiriof_order_shipment_details');
         $this->assertNotFalse($start, 'Shipment details renderer must exist');
         $methodBody = substr($content, $start, 1800);
+
+        $this->assertStringContainsString(
+            '! $this->kiriof_order_needs_shipping( $order )',
+            $methodBody,
+            'Virtual-only orders must not render stale shipment information from a previous physical checkout'
+        );
 
         $this->assertStringContainsString(
             'Shipping Method',
