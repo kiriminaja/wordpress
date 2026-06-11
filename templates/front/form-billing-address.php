@@ -772,7 +772,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     function kiriofAfterBlockDistrictPersist() {
                         kiriofScheduleBlockShippingRatesRefresh(80);
-                        kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
+
+                        // Save session data (insurance, payment_method, destination) via AJAX
+                        // as fallback when extensionCartUpdate is not available.
+                        var ajaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                            ? kiriofAjax.ajaxurl
+                            : '<?php echo esc_url( admin_url('admin-ajax.php') ); ?>';
+                        var ajaxNonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
+                            ? kiriofAjax.nonce
+                            : '<?php echo esc_js(wp_create_nonce(KIRIOF_NONCE)); ?>';
+
+                        var formData = new FormData();
+                        formData.append('action', 'kiriof-session-save');
+                        formData.append('nonce', ajaxNonce);
+                        formData.append('data', JSON.stringify({
+                            destination_id: data.destination_id || 0,
+                            destination_name: data.destination_name || '',
+                            postcode: data.postcode || '',
+                            payment_method: data.payment_method || '',
+                            insurance: data.insurance || 0,
+                            force_insurance: data.force_insurance || 0,
+                            shipping_metode_id: data.shipping_metode_id || ''
+                        }));
+
+                        fetch(ajaxUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            body: formData
+                        }).then(function() {
+                            kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
+                        }).catch(function() {
+                            kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
+                        });
                     }
 
                     var result = kiriofBlockExtensionCartUpdate(data);

@@ -48,6 +48,8 @@ class CheckoutController
             /** Expedition Ajax*/
             add_action('wp_ajax_kiriof-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
             add_action('wp_ajax_nopriv_kiriof-get-expedition-ajax', array($this,'getExpeditionOptionAjax'));
+            add_action('wp_ajax_kiriof-session-save', array($this,'kiriof_ajax_session_save'));
+            add_action('wp_ajax_nopriv_kiriof-session-save', array($this,'kiriof_ajax_session_save'));
                         
             /** Custom Page Woocommerce Thankyou */
             add_action( 'woocommerce_order_details_after_order_table_items', array($this,'kiriof_order_details') );
@@ -1446,5 +1448,79 @@ class CheckoutController
         ) {
             WC()->cart->calculate_totals();
         }
+    }
+
+    /**
+     * AJAX handler for saving checkout session data (destination, insurance, payment).
+     * Used as fallback when extensionCartUpdate is unavailable in block checkout.
+     */
+    public function kiriof_ajax_session_save() {
+        try {
+            check_ajax_referer( KIRIOF_NONCE, 'nonce' );
+
+            $raw  = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
+            $data = json_decode( $raw, true );
+            if ( ! is_array( $data ) ) {
+                wp_send_json_error( array( 'msg' => 'Invalid data' ) );
+                wp_die();
+            }
+
+            $shipping_method  = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( $data['shipping_metode_id'] ) : '';
+            $destination_id   = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
+            $destination_name = isset( $data['destination_name'] ) ? sanitize_text_field( $data['destination_name'] ) : '';
+            $payment_method   = isset( $data['payment_method'] ) ? sanitize_text_field( $data['payment_method'] ) : '';
+            $insurance        = ! empty( $data['insurance'] ) ? 1 : 0;
+            $force_insurance  = ! empty( $data['force_insurance'] ) ? 1 : 0;
+            $postcode         = isset( $data['postcode'] ) ? sanitize_text_field( $data['postcode'] ) : '';
+            $postcode         = trim( preg_replace( '/\s+/', '', (string) $postcode ) );
+
+            if ( 'cod' === $payment_method ) {
+                WC()->session->set( 'chosen_payment_method', $payment_method );
+                WC()->session->set( 'payment_method', $payment_method );
+                WC()->session->set( 'kiriof_payment_method', $payment_method );
+            } else {
+                WC()->session->set( 'chosen_payment_method', $payment_method );
+                WC()->session->set( 'payment_method', $payment_method );
+                WC()->session->set( 'kiriof_payment_method', '' );
+            }
+
+            if ( '' !== $shipping_method ) {
+                WC()->session->set( 'kiriof_chosen_shipping_methods', array( $shipping_method ) );
+                WC()->session->set( 'chosen_shipping_methods', array( $shipping_method ) );
+            }
+
+            if ( $destination_id > 0 ) {
+                WC()->session->set( 'destination_id', $destination_id );
+                WC()->session->set( 'shipping_destination_id', $destination_id );
+                WC()->session->set( 'kiriof_destination_area', $destination_id );
+                WC()->session->set( 'destination_name', $destination_name );
+                WC()->session->set( 'shipping_destination_name', $destination_name );
+                WC()->session->set( 'kiriof_destination_area_name', $destination_name );
+            }
+
+            WC()->session->set( 'kiriof_insurance', $insurance );
+            WC()->session->set( 'billing_insurance', $insurance );
+            WC()->session->set( 'force_insurance', $force_insurance );
+            WC()->session->set( 'kiriof_force_insurance', $force_insurance );
+            WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
+            WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+            WC()->session->set( 'kiriof_cached_fee_context', array() );
+            WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+            WC()->session->set( 'kiriof_checkout_postcode', $postcode );
+
+            if ( $destination_id > 0 && '' !== $postcode ) {
+                $saved_destination_map = (array) WC()->session->get( 'kiriof_destination_postcode_map', array() );
+                $saved_destination_map[ $postcode ] = array(
+                    'destination_id'   => $destination_id,
+                    'destination_name' => $destination_name,
+                );
+                WC()->session->set( 'kiriof_destination_postcode_map', $saved_destination_map );
+            }
+
+            wp_send_json_success( array( 'destination_id' => $destination_id ) );
+        } catch ( \Throwable $th ) {
+            wp_send_json_error( array( 'msg' => $th->getMessage() ) );
+        }
+        wp_die();
     }
 }
