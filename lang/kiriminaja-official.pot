@@ -261,6 +261,10 @@ msgstr ""
 msgid "This coupon cannot be combined with another shipping discount coupon."
 msgstr ""
 
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon cannot be combined with one or more active coupons."
+msgstr ""
+
 #: inc/Services/ShippingDiscountCouponService.php:56
 msgid "This coupon is not valid for your shipping destination."
 msgstr ""

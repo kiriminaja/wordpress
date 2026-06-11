@@ -11,6 +11,7 @@ class ShippingDiscountCouponService {
     public const PERCENTAGE_COUPON_TYPE = 'kiriof_percent_shipping_discount';
     public const META_REGIONS = '_kiriof_coupon_regions';
     public const META_COURIERS = '_kiriof_coupon_couriers';
+    public const META_COMBINATIONS = '_kiriof_coupon_combinations';
 
     public function getShippingCouponTypes(): array {
         return array(
@@ -84,6 +85,10 @@ class ShippingDiscountCouponService {
 
         if ( $this->hasOtherActiveShippingCoupon( $coupon ) ) {
             return $this->invalid( __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ) );
+        }
+
+        if ( ! $this->couponAllowsActiveNativeCoupons( $coupon ) ) {
+            return $this->invalid( __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ) );
         }
 
         $destination = $this->getDestinationContext();
@@ -516,6 +521,50 @@ class ShippingDiscountCouponService {
         return array();
     }
 
+    private function getCouponCombinations( $coupon ): array {
+        if ( ! $this->isShippingCoupon( $coupon ) ) {
+            return array();
+        }
+
+        $allowedTypes = array( 'fixed_cart', 'percent', 'fixed_product' );
+
+        if ( ! metadata_exists( 'post', $coupon->get_id(), self::META_COMBINATIONS ) ) {
+            return $allowedTypes;
+        }
+
+        $raw = get_post_meta( $coupon->get_id(), self::META_COMBINATIONS, true );
+        if ( is_array( $raw ) ) {
+            return array_values( array_intersect( $allowedTypes, array_map( 'sanitize_key', $raw ) ) );
+        }
+
+        if ( is_string( $raw ) && '' !== $raw ) {
+            return array_values( array_intersect( $allowedTypes, array_map( 'sanitize_key', explode( ',', $raw ) ) ) );
+        }
+
+        return array();
+    }
+
+    private function couponAllowsActiveNativeCoupons( $coupon ): bool {
+        if ( ! $this->isShippingCoupon( $coupon ) || ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return true;
+        }
+
+        $allowedTypes = $this->getCouponCombinations( $coupon );
+
+        foreach ( (array) WC()->cart->get_coupons() as $activeCoupon ) {
+            if ( ! $activeCoupon instanceof \WC_Coupon || $this->isShippingCoupon( $activeCoupon ) ) {
+                continue;
+            }
+
+            $activeType = sanitize_key( (string) $activeCoupon->get_discount_type() );
+            if ( ! in_array( $activeType, $allowedTypes, true ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private function hasOtherActiveShippingCoupon( $coupon ): bool {
         if ( ! $this->isShippingCoupon( $coupon ) ) {
             return false;
@@ -681,6 +730,7 @@ class ShippingDiscountCouponService {
             __( 'Shipping discount coupons are not available for your account type.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ),
+            __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ),
             __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ),
             __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ),
             __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ),

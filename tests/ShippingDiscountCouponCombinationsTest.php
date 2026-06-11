@@ -51,6 +51,18 @@ final class ShippingDiscountCouponCombinationsTest extends TestCase
     }
 
     #[Test]
+    public function service_enforces_disabled_native_coupon_combinations_at_checkout(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
+
+        $this->assertStringContainsString('META_COMBINATIONS', $content);
+        $this->assertStringContainsString('_kiriof_coupon_combinations', $content);
+        $this->assertStringContainsString('getCouponCombinations', $content);
+        $this->assertStringContainsString('couponAllowsActiveNativeCoupons', $content);
+        $this->assertStringContainsString('This coupon cannot be combined with one or more active coupons.', $content);
+    }
+
+    #[Test]
     public function controller_forces_individual_use_off_for_kiriminaja_types(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
