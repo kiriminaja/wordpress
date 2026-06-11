@@ -250,12 +250,19 @@ class Admin extends BaseInit{
             LEFT JOIN {$wpdb->posts} child_variation
                 ON child_variation.post_parent = p.ID
                AND child_variation.post_type = 'product_variation'
-               AND child_variation.post_status IN ('publish','private')";
+               AND child_variation.post_status IN ('publish','private')
+            LEFT JOIN {$wpdb->postmeta} virtual_meta
+                ON virtual_meta.post_id = p.ID
+               AND virtual_meta.meta_key = '_virtual'
+            LEFT JOIN {$wpdb->postmeta} parent_virtual_meta
+                ON parent_virtual_meta.post_id = p.post_parent
+               AND parent_virtual_meta.meta_key = '_virtual'";
         $product_volumetric_where_sql = "
             WHERE (
                   (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
                   OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
-              )";
+              )
+              AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
         $product_volumetric_ready_sql = "
             (
                 CAST(
@@ -313,7 +320,7 @@ class Admin extends BaseInit{
                AND {$product_volumetric_ready_sql}"
         );
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
+        $product_volumetric_ready = ( $product_volumetric_configured >= $product_volumetric_total );
         $product_volumetric_label = $product_volumetric_ready
             ? __( 'All Product Configured', 'kiriminaja-official' )
             : sprintf(
@@ -452,6 +459,8 @@ class Admin extends BaseInit{
          * - child_variation.post_parent = p.ID
          * - p.post_type = 'product_variation' AND p.post_status IN ('publish','private')
          * - p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL
+         * - virtual_meta.meta_key = '_virtual'
+         * - COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'
          * - meta_key = '_weight'
          * - meta_key = '_length'
          * - meta_key = '_width'

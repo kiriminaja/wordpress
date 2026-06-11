@@ -545,6 +545,10 @@ msgstr ""
 msgid "All Product Configured"
 msgstr ""
 
+#: inc/Controllers/ProductController.php
+msgid "Virtual Product"
+msgstr ""
+
 #. translators: %1$d: configured products, %2$d: total products
 #: inc/Controllers/ProductController.php:153
 #, php-format

@@ -1772,7 +1772,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $volumetricStart = strpos($productController, 'private function kiriof_product_has_volumetric_configuration');
         $this->assertNotFalse($volumetricStart, 'Product volumetric readiness helper must exist');
-        $volumetricBody = substr($productController, $volumetricStart, 700);
+        $volumetricBody = substr($productController, $volumetricStart, 1400);
         $this->assertStringContainsString(
             'needs_shipping',
             $volumetricBody,

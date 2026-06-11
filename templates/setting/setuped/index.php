@@ -42,12 +42,19 @@ $kiriof_product_volumetric_from_sql = "
     LEFT JOIN {$wpdb->posts} child_variation
         ON child_variation.post_parent = p.ID
        AND child_variation.post_type = 'product_variation'
-       AND child_variation.post_status IN ('publish','private')";
+       AND child_variation.post_status IN ('publish','private')
+    LEFT JOIN {$wpdb->postmeta} virtual_meta
+        ON virtual_meta.post_id = p.ID
+       AND virtual_meta.meta_key = '_virtual'
+    LEFT JOIN {$wpdb->postmeta} parent_virtual_meta
+        ON parent_virtual_meta.post_id = p.post_parent
+       AND parent_virtual_meta.meta_key = '_virtual'";
 $kiriof_product_volumetric_where_sql = "
     WHERE (
           (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
           OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
-      )";
+      )
+      AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
 $kiriof_product_volumetric_ready_sql = "
     (
         CAST(
@@ -105,7 +112,7 @@ $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
        AND {$kiriof_product_volumetric_ready_sql}"
 );
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-$kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_total > 0 && $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
+$kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
 $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
     ? __( 'All Product Configured', 'kiriminaja-official' )
     : sprintf(

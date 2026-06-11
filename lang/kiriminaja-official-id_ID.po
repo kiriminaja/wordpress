@@ -135,6 +135,10 @@ msgstr "Semua Tanggal"
 msgid "All Product Configured"
 msgstr "Semua Produk Terkonfigurasi"
 
+#: inc/Controllers/ProductController.php
+msgid "Virtual Product"
+msgstr "Produk Virtual"
+
 #: templates/setting/setuped/index.php:221
 msgid "Allow customers to pay when they receive their order."
 msgstr "Izinkan pelanggan membayar saat pesanan diterima."
