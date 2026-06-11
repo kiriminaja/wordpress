@@ -1751,6 +1751,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function virtual_products_skip_kiriminaja_weight_and_volumetric_requirements(): void
+    {
+        $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $productController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ProductController.php');
+
+        $validationStart = strpos($shippingMethod, 'function kiriof_add_date_validation');
+        $this->assertNotFalse($validationStart, 'Add-to-cart validation hook must exist');
+        $validationBody = substr($shippingMethod, $validationStart, 700);
+        $this->assertStringContainsString(
+            'needs_shipping',
+            $validationBody,
+            'KiriminAja add-to-cart weight/dimension validation must skip virtual/downloadable products that do not need shipping'
+        );
+        $this->assertStringContainsString(
+            'return $passed;',
+            $validationBody,
+            'Virtual products should pass through without requiring hidden shipping-tab fields'
+        );
+
+        $volumetricStart = strpos($productController, 'private function kiriof_product_has_volumetric_configuration');
+        $this->assertNotFalse($volumetricStart, 'Product volumetric readiness helper must exist');
+        $volumetricBody = substr($productController, $volumetricStart, 700);
+        $this->assertStringContainsString(
+            'needs_shipping',
+            $volumetricBody,
+            'Virtual products should be treated as volumetric-ready because WooCommerce hides shipping fields for them'
+        );
+    }
+
+    #[Test]
     public function fee_cache_matcher_invalidates_non_cod_insurance_when_checkout_context_changes(): void
     {
         require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';

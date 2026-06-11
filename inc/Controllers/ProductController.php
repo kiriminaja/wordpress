@@ -212,6 +212,13 @@ class ProductController{
     }
 
     private function kiriof_product_has_volumetric_configuration( $post_id ) {
+        if ( function_exists( 'wc_get_product' ) ) {
+            $product = wc_get_product( $post_id );
+            if ( $product && method_exists( $product, 'needs_shipping' ) && ! $product->needs_shipping() ) {
+                return true;
+            }
+        }
+
         $required_meta = array( '_weight', '_length', '_width', '_height' );
         $post_type = get_post_type( $post_id );
         $parent_id = ( 'product_variation' === $post_type ) ? (int) wp_get_post_parent_id( $post_id ) : 0;

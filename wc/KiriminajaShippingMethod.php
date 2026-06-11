@@ -365,9 +365,16 @@ function kiriof_add_shipping_method($methods){
 
 add_filter( 'woocommerce_add_to_cart_validation', 'kiriof_add_date_validation', 10, 5 );
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
-function kiriof_add_date_validation( $passed, $product_id ) { 
+function kiriof_add_date_validation( $passed, $product_id, $quantity = 1, $variation_id = 0 ) { 
     
-    $product = wc_get_product( $product_id );
+    $product = wc_get_product( $variation_id ?: $product_id );
+    if ( ! $product ) {
+        return $passed;
+    }
+
+    if ( method_exists( $product, 'needs_shipping' ) && ! $product->needs_shipping() ) {
+        return $passed;
+    }
 
     $length = $product->get_length();
     $width = $product->get_width();
