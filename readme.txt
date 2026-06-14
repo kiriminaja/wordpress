@@ -181,6 +181,8 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - Add translators comments to each sprintf/__() branch
 - Resolve WP Plugin Check warnings
 - Address Copilot PR review feedback (#198)
+- Feat(Onboarding): make the onboarding design more compact (#208)
+- Fix(request-pickup): send discount percentage with discounts
 
 = 2.1.40 =
 - Fix(PickupRequest): origin_name and destination_name not sanitized, causing the pickup request failed (#205)

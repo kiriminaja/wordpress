@@ -380,9 +380,21 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '(float) $value >= 1',
+            '(float) $value > 0',
             $content,
             'Pickup request payload must omit zero-value discount fields'
+        );
+
+        $this->assertStringContainsString(
+            "if (\$discountAmount > 0)",
+            $content,
+            'Pickup request payload must inspect the main discount amount before deciding whether to send discount_percentage'
+        );
+
+        $this->assertStringContainsString(
+            "\$payload['discount_percentage'] = round((\$discountAmount / \$shippingCost) * 100, 2);",
+            $content,
+            'Pickup request payload should derive discount_percentage from shipping_cost when the stored percentage is missing'
         );
     }
 
