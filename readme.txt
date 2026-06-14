@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.40
+Stable tag: 2.1.41
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,10 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.41 =
+- Feat(Onboarding): make the onboarding design more compact (#208)
+- Fix(request-pickup): send discount percentage with discounts
+
 = 2.1.40 =
 - Fix(PickupRequest): origin_name and destination_name not sanitized, causing the pickup request failed (#205)
 
