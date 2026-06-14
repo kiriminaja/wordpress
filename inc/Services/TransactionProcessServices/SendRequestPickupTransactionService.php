@@ -41,19 +41,34 @@ class SendRequestPickupTransactionService extends BaseService
 
     private function appendPickupDiscountFields(array $payload, $transaction)
     {
+        $discountAmount = (float) ($transaction->discount_amount ?? 0);
+        $shippingCost = (float) ($transaction->shipping_cost ?? 0);
+        $discountPercentage = $transaction->discount_percentage ?? null;
+
         $discountFields = [
             'discount_amount',
             'shipping_discount_amount',
             'woocommerce_discount_amount',
-            'discount_percentage',
         ];
 
         foreach ($discountFields as $field) {
             $value = $transaction->$field ?? null;
 
-            if ($value !== null && (float) $value >= 1) {
+            if ($value !== null && (float) $value > 0) {
                 $payload[$field] = $value;
             }
+        }
+
+        if ($discountAmount > 0) {
+            if ($discountPercentage !== null && (float) $discountPercentage > 0) {
+                $payload['discount_percentage'] = $discountPercentage;
+            } elseif ($shippingCost > 0) {
+                $payload['discount_percentage'] = round(($discountAmount / $shippingCost) * 100, 2);
+            } else {
+                $payload['discount_percentage'] = 0;
+            }
+        } elseif ($discountPercentage !== null && (float) $discountPercentage > 0) {
+            $payload['discount_percentage'] = $discountPercentage;
         }
 
         $description = trim((string) ($transaction->woocommerce_discount_description ?? ''));
