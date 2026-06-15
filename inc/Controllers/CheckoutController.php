@@ -999,11 +999,21 @@ class CheckoutController
      */
     // phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only checkout method selection during WooCommerce checkout request.
     public function kiriof_shipping_chosen_method($method, $available_methods) {
+        // Classic checkout: shipping_method[0] is POSTed explicitly.
         if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
             $posted_method = sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
             WC()->session->set( 'kiriof_chosen_shipping_methods', array( $posted_method ) );
             WC()->session->set( 'chosen_shipping_methods', array( $posted_method ) );
             return $posted_method;
+        }
+
+        // Block checkout / Store API: WooCommerce passes the buyer-selected rate as
+        // $method. Trust it and update the session so the cart reflects the real
+        // selection instead of our stale session cache.
+        if ( '' !== (string) $method && array_key_exists( (string) $method, $available_methods ) ) {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( (string) $method ) );
+            WC()->session->set( 'chosen_shipping_methods', array( (string) $method ) );
+            return $method;
         }
 
         $kiriof_chosen_methods = WC()->session->get( 'kiriof_chosen_shipping_methods', array() );

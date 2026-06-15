@@ -1168,6 +1168,37 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_shipping_chosen_method_filter_trusts_wc_resolved_method(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        // When WooCommerce Blocks calls selectShippingRate (no form POST), WC passes the
+        // newly chosen rate as $method. The filter must trust that value rather than
+        // overriding it with the stale session cache — otherwise the Order Summary always
+        // shows the first/cheapest courier.
+        $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
+        $this->assertNotFalse(
+            $methodCheckPosition,
+            'The filter must trust the $method parameter resolved by WooCommerce when it is a valid available method (blocks selectShippingRate path)'
+        );
+
+        // The session must be updated so subsequent cart/fee hooks see the correct value.
+        $sessionUpdateAfterMethodCheck = strpos($methodBody, "WC()->session->set( 'chosen_shipping_methods', array( (string) \$method ) );");
+        $this->assertNotFalse(
+            $sessionUpdateAfterMethodCheck,
+            'Accepting the WC-resolved $method must sync chosen_shipping_methods session so cart totals reflect the real selection'
+        );
+        $this->assertLessThan(
+            strpos($methodBody, "WC()->session->get( 'kiriof_chosen_shipping_methods'"),
+            $methodCheckPosition,
+            'The $method validity check must appear before the stale-session fallback to ensure block checkout selection is not overridden'
+        );
+    }
+
+    #[Test]
     public function block_checkout_fee_fallback_strips_shipping_method_prefix_before_calculation(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
