@@ -139,14 +139,24 @@ class TransactionRepository{
         
         return $this->hasError() ? false : $query;
     }
-    public function getTransactionByAWBforTracking($awb){
+    public function getTransactionByAWBforTracking($trackingNumber){
+        $trackingNumber = trim( (string) $trackingNumber );
+        if ( '' === $trackingNumber ) {
+            return false;
+        }
+
+        $normalizedTrackingNumber = preg_replace( '/[^A-Za-z0-9]/', '', $trackingNumber );
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $get_wc_orderid = $this->wpdb->get_row( 
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT wp_wc_order_stat_order_id FROM {$this->table} WHERE `awb` LIKE %s OR `wp_wc_order_stat_order_id` LIKE %s",
-                '%' . $this->wpdb->esc_like($awb) . '%',
-                '%' . $this->wpdb->esc_like($awb) . '%'
+                "SELECT wp_wc_order_stat_order_id FROM {$this->table} WHERE `awb` LIKE %s OR REPLACE(REPLACE(`awb`, '-', ''), ' ', '') LIKE %s OR `order_id` LIKE %s OR REPLACE(REPLACE(`order_id`, '-', ''), ' ', '') LIKE %s OR `wp_wc_order_stat_order_id` = %d",
+                '%' . $this->wpdb->esc_like($trackingNumber) . '%',
+                '%' . $this->wpdb->esc_like($normalizedTrackingNumber) . '%',
+                '%' . $this->wpdb->esc_like($trackingNumber) . '%',
+                '%' . $this->wpdb->esc_like($normalizedTrackingNumber) . '%',
+                absint( $trackingNumber )
             )
         );
         if ($this->hasError() || !$get_wc_orderid) {
