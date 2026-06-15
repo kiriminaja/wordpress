@@ -547,7 +547,10 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                     return;
                 }
 
-                window.location.href = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${resp?.data?.pickup_number}&open_payment=1`;
+                const pickupNumber = encodeURIComponent(resp?.data?.pickup_number || '')
+                const redirectBase = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${pickupNumber}`;
+                const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';
+                window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;
             }
         });
     };

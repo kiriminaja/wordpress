@@ -79,6 +79,17 @@ class SendRequestPickupTransactionService extends BaseService
         return $payload;
     }
 
+    private function hasNonCodPackage(array $packages): bool
+    {
+        foreach ($packages as $package) {
+            if ((float) ($package['cod'] ?? 0) <= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function call()
     {
         if (empty($this->orderIds)) {
@@ -94,6 +105,7 @@ class SendRequestPickupTransactionService extends BaseService
         if (empty($getPackageData)) {
             return self::error([], 'No valid packages found');
         }
+        $hasNonCodPackage = $this->hasNonCodPackage($getPackageData);
         
         $payload = [
             "address"       => $getOriginData['origin_address'] ?? '',
@@ -149,6 +161,7 @@ class SendRequestPickupTransactionService extends BaseService
         ]);
         return self::success([
             'pickup_number' => $pickupNumber,
+            'open_payment' => $hasNonCodPackage,
         ], 'success');
     }
     private function getOriginData()
