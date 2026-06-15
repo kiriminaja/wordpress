@@ -64,6 +64,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 kiriofChangeDifferentAddress();
 
                 jQuery(document.body).on( 'change', 'input.shipping_method', function() {
+                    localStorage.setItem('chosen_shipping_method', jQuery(this).val());
                     kiriofHandleCodInsurance();
                 });
 

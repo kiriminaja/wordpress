@@ -1033,6 +1033,22 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_shipping_radio_change_persists_selected_method_before_fee_refresh(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, "jQuery(document.body).on( 'change', 'input.shipping_method'");
+        $this->assertNotFalse($start, 'Classic shipping radio change handler must exist');
+        $handlerBody = substr($content, $start, 500);
+
+        $storePosition = strpos($handlerBody, "localStorage.setItem('chosen_shipping_method', jQuery(this).val());");
+        $feePosition = strpos($handlerBody, 'kiriofHandleCodInsurance();');
+
+        $this->assertNotFalse($storePosition, 'Changing from ID Express to JNE must persist the newly selected radio value immediately');
+        $this->assertNotFalse($feePosition, 'Shipping changes must still refresh KiriminAja fee data');
+        $this->assertLessThan($feePosition, $storePosition, 'The selected method should be stored before the KiriminAja fee refresh starts WooCommerce checkout recalculation');
+    }
+
+    #[Test]
     public function block_checkout_native_fee_detection_includes_store_api_requests(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
