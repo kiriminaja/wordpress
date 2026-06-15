@@ -1040,12 +1040,41 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($start, 'Classic shipping radio change handler must exist');
         $handlerBody = substr($content, $start, 500);
 
-        $storePosition = strpos($handlerBody, "localStorage.setItem('chosen_shipping_method', jQuery(this).val());");
+        $storePosition = strpos($handlerBody, 'kiriofRememberSelectedShippingMethod(jQuery(this).val());');
         $feePosition = strpos($handlerBody, 'kiriofHandleCodInsurance();');
 
         $this->assertNotFalse($storePosition, 'Changing from ID Express to JNE must persist the newly selected radio value immediately');
         $this->assertNotFalse($feePosition, 'Shipping changes must still refresh KiriminAja fee data');
         $this->assertLessThan($feePosition, $storePosition, 'The selected method should be stored before the KiriminAja fee refresh starts WooCommerce checkout recalculation');
+    }
+
+    #[Test]
+    public function block_checkout_shipping_radio_click_prefers_recent_user_selection_over_stale_store_rate(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'var kiriofPendingShippingMethod',
+            $template,
+            'Block checkout must keep the buyer-clicked shipping method while the Woo Blocks cart store is still updating'
+        );
+
+        $this->assertStringContainsString(
+            "jQuery(document).on('change click', 'input[type=\"radio\"]'",
+            $template,
+            'Woo Blocks shipping radios must be captured from the DOM immediately, before getShippingRates can report a stale first row'
+        );
+
+        $feeFunctionStart = strpos($template, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($feeFunctionStart, 'Fee refresh function must exist');
+        $feeFunctionBody = substr($template, $feeFunctionStart, 1700);
+
+        $pendingPosition = strpos($feeFunctionBody, 'let shipping_metode_id = kiriofGetPendingShippingMethod()');
+        $storePosition = strpos($feeFunctionBody, "wp.data.select('wc/store/cart').getShippingRates()");
+
+        $this->assertNotFalse($pendingPosition, 'Fee refresh must prefer the immediately clicked block shipping method');
+        $this->assertNotFalse($storePosition, 'Fee refresh may still fall back to the Woo Blocks cart store');
+        $this->assertLessThan($storePosition, $pendingPosition, 'The recent user selection must win over stale Store API selected-rate state');
     }
 
     #[Test]
