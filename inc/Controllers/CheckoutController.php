@@ -304,6 +304,42 @@ class CheckoutController
         return false !== strpos( $route, '/wc/store/' );
     }
 
+    private function kiriof_get_store_api_selected_shipping_rate() {
+        if ( ! $this->kiriof_is_store_api_request() ) {
+            return '';
+        }
+
+        $route = '';
+        if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+            $route = (string) $GLOBALS['wp']->query_vars['rest_route'];
+        }
+        if ( '' === $route && isset( $_SERVER['REQUEST_URI'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only used for route detection
+            $route = (string) wp_unslash( $_SERVER['REQUEST_URI'] );
+        }
+        if ( false === strpos( $route, '/cart/select-shipping-rate' ) ) {
+            return '';
+        }
+
+        if ( isset( $_POST['rate_id'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
+            return sanitize_text_field( wp_unslash( $_POST['rate_id'] ) );
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- php://input is required for JSON REST payloads.
+        $raw_body = file_get_contents( 'php://input' );
+        if ( empty( $raw_body ) ) {
+            return '';
+        }
+
+        $payload = json_decode( $raw_body, true );
+        if ( ! is_array( $payload ) || empty( $payload['rate_id'] ) ) {
+            return '';
+        }
+
+        return sanitize_text_field( (string) $payload['rate_id'] );
+    }
+
     private function kiriof_is_block_checkout_request() {
         if ( is_checkout() ) {
             $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
@@ -1007,13 +1043,28 @@ class CheckoutController
             return $posted_method;
         }
 
-        // Block checkout / Store API: WooCommerce passes the buyer-selected rate as
-        // $method. Trust it and update the session so the cart reflects the real
-        // selection instead of our stale session cache.
-        if ( '' !== (string) $method && array_key_exists( (string) $method, $available_methods ) ) {
-            WC()->session->set( 'kiriof_chosen_shipping_methods', array( (string) $method ) );
-            WC()->session->set( 'chosen_shipping_methods', array( (string) $method ) );
-            return $method;
+        // Plugin AJAX fee updates post shipping_metode_id, not Woo's classic
+        // shipping_method[0]. During the same request Woo recalculates totals and
+        // may pass the previous/default method as $method; keep the just-posted
+        // courier as the source of truth so the Store API cart GET reflects it.
+        if ( isset( $_POST['shipping_metode_id'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The AJAX handler validates kiriof-update-checkout before cart totals are calculated.
+            $posted_kiriof_method = sanitize_text_field( wp_unslash( $_POST['shipping_metode_id'] ) );
+            if ( array_key_exists( $posted_kiriof_method, $available_methods ) ) {
+                WC()->session->set( 'kiriof_chosen_shipping_methods', array( $posted_kiriof_method ) );
+                WC()->session->set( 'chosen_shipping_methods', array( $posted_kiriof_method ) );
+                return $posted_kiriof_method;
+            }
+        }
+
+        // Block checkout select-shipping-rate requests carry the buyer-selected
+        // rate_id in the Store API JSON body. Prefer it over the stale logged-in
+        // session method Woo may pass as $method while the cart is recalculating.
+        $store_api_method = $this->kiriof_get_store_api_selected_shipping_rate();
+        if ( '' !== $store_api_method && array_key_exists( $store_api_method, $available_methods ) ) {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( $store_api_method ) );
+            WC()->session->set( 'chosen_shipping_methods', array( $store_api_method ) );
+            return $store_api_method;
         }
 
         $kiriof_chosen_methods = WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
@@ -1022,7 +1073,17 @@ class CheckoutController
             && ! empty( $kiriof_chosen_methods[0] )
             && array_key_exists( $kiriof_chosen_methods[0], $available_methods )
         ) {
+            WC()->session->set( 'chosen_shipping_methods', array( $kiriof_chosen_methods[0] ) );
             return $kiriof_chosen_methods[0];
+        }
+
+        // Block checkout / Store API: WooCommerce passes the buyer-selected rate as
+        // $method. Trust it and update the session so the cart reflects the real
+        // selection instead of our stale session cache.
+        if ( '' !== (string) $method && array_key_exists( (string) $method, $available_methods ) ) {
+            WC()->session->set( 'kiriof_chosen_shipping_methods', array( (string) $method ) );
+            WC()->session->set( 'chosen_shipping_methods', array( (string) $method ) );
+            return $method;
         }
 
         return $method;
