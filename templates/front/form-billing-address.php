@@ -139,6 +139,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
 
                     kiriofRememberSelectedShippingMethod(selectedMethod);
+                    kiriofSelectBlockShippingRate(selectedMethod);
                     setTimeout(function() { kiriofCodInsurance(); }, 50);
                 });
 
@@ -827,7 +828,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 function kiriofNormalizePostcode(postcode) {
                     return String(postcode || '').replace(/\s+/g, '').trim();
                 }
-            
+	            
                 function kiriofRenderBlockDistrictSelect(results) {
                     if (!results || !results.length) return false;
                     kiriofLastDistrictResults = results;
@@ -1848,6 +1849,88 @@ if ( ! defined( 'ABSPATH' ) ) {
             return kiriofPendingShippingMethod;
         }
 
+        function kiriofRefreshBlockShippingRates() {
+            if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                return;
+            }
+
+            try {
+                var cartDispatch = wp.data.dispatch('wc/store/cart');
+                if (cartDispatch && typeof cartDispatch.invalidateResolutionForStoreSelector === 'function') {
+                    cartDispatch.invalidateResolutionForStoreSelector('getShippingRates');
+                }
+                if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                    cartDispatch.invalidateResolutionForStore();
+                }
+            } catch(e) {}
+
+            try {
+                var coreDataDispatch = wp.data.dispatch('core/data');
+                if (coreDataDispatch && typeof coreDataDispatch.invalidateResolution === 'function') {
+                    coreDataDispatch.invalidateResolution('wc/store/cart', 'getShippingRates', []);
+                }
+            } catch(e) {}
+        }
+
+        function kiriofIsBlockCheckoutContext() {
+            return jQuery('.wp-block-woocommerce-checkout, .wc-block-checkout, .wc-block-components-sidebar-layout').length > 0;
+        }
+
+        function kiriofFindBlockShippingPackageId(rateId) {
+            if (!rateId || typeof wp === 'undefined' || !wp.data || !wp.data.select) {
+                return null;
+            }
+
+            try {
+                var store = wp.data.select('wc/store/cart');
+                if (!store || typeof store.getShippingRates !== 'function') {
+                    return null;
+                }
+
+                var packages = store.getShippingRates() || [];
+                for (var i = 0; i < packages.length; i++) {
+                    var pkg = packages[i];
+                    var packageRates = pkg && pkg.shipping_rates ? pkg.shipping_rates : [];
+                    for (var j = 0; j < packageRates.length; j++) {
+                        if (packageRates[j] && packageRates[j].rate_id === rateId) {
+                            return pkg.package_id || pkg.packageId || pkg.key || i;
+                        }
+                    }
+                }
+            } catch(e) {}
+
+            if (kiriofIsBlockCheckoutContext() && jQuery('.wc-block-components-radio-control__input[value="' + rateId + '"]').length) {
+                return 0;
+            }
+
+            return null;
+        }
+
+        function kiriofSelectBlockShippingRate(rateId) {
+            if (!kiriofIsKiriminajaShippingMethod(rateId) || typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                return;
+            }
+
+            try {
+                var cartDispatch = wp.data.dispatch('wc/store/cart');
+                var packageId = kiriofFindBlockShippingPackageId(rateId);
+
+                if (cartDispatch && typeof cartDispatch.selectShippingRate === 'function') {
+                    if (packageId !== null && typeof packageId !== 'undefined') {
+                        cartDispatch.selectShippingRate(rateId, packageId);
+                    } else {
+                        cartDispatch.selectShippingRate(rateId);
+                    }
+                } else if (cartDispatch && typeof cartDispatch.setSelectedShippingRate === 'function') {
+                    cartDispatch.setSelectedShippingRate(rateId);
+                }
+            } catch(e) {}
+        }
+
+        function kiriofDispatchWooBlocksCartRefresh() {
+            kiriofRefreshBlockShippingRates();
+        }
+
         if (!jQuery('#kiriof-fee-skeleton-style').length) {
             jQuery('head').append('<style id="kiriof-fee-skeleton-style">#order_review.kiriof-fee-loading .shop_table{opacity:.65;position:relative}#order_review.kiriof-fee-loading .shop_table:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 100%);animation:kiriofFeeSkeletonShimmer 1.2s ease-in-out infinite}@keyframes kiriofFeeSkeletonShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>');
         }
@@ -2042,6 +2125,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 force_insurance : parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
             };
 
+            kiriofSelectBlockShippingRate(data.shipping_metode_id);
+
             let refreshKey = kiriofBuildFeeRefreshKey(data);
 
             if (kiriofUpdatingCheckoutLock) {
@@ -2085,6 +2170,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                             jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance);
                             if (!kiriofIsBlockCheckoutContext()) {
                                 jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
+                            }
+
+                            // Block checkout: the React sidebar (order summary) reads from the
+                            // Store API, not from classic checkout fragments. After the server
+                            // session is updated, tell WC blocks to re-fetch the cart so the
+                            // selected shipping method and fees appear in the summary sidebar.
+                            if (kiriofIsBlockCheckoutContext()) {
+                                kiriofRefreshBlockShippingRates();
+                                kiriofDispatchWooBlocksCartRefresh();
                             }
 
                         },

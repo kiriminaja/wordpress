@@ -1718,11 +1718,65 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $feeFunctionBody = substr($template, $feeFunctionStart, 1700);
 
         $pendingPosition = strpos($feeFunctionBody, 'let shipping_metode_id = kiriofGetPendingShippingMethod()');
-        $storePosition = strpos($feeFunctionBody, "wp.data.select('wc/store/cart').getShippingRates()");
+        $storePosition = strpos($feeFunctionBody, 'kiriofGetSelectedBlockShippingMethod()');
 
         $this->assertNotFalse($pendingPosition, 'Fee refresh must prefer the immediately clicked block shipping method');
-        $this->assertNotFalse($storePosition, 'Fee refresh may still fall back to the Woo Blocks cart store');
+        $this->assertNotFalse($storePosition, 'Fee refresh may still fall back to the Woo Blocks cart store helper');
         $this->assertLessThan($storePosition, $pendingPosition, 'The recent user selection must win over stale Store API selected-rate state');
+
+        $helperStart = strpos($template, 'function kiriofGetSelectedBlockShippingMethod()');
+        $this->assertNotFalse($helperStart, 'Block checkout selected-rate helper must exist');
+        $helperBody = substr($template, $helperStart, 1000);
+        $this->assertStringContainsString(
+            "wp.data.select('wc/store/cart')",
+            $helperBody,
+            'The helper must read the Woo Blocks cart store'
+        );
+        $this->assertStringContainsString(
+            'getShippingRates',
+            $helperBody,
+            'The helper must inspect Store API shipping rates'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_shipping_radio_click_syncs_wc_blocks_selected_rate_for_order_summary(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $handlerStart = strpos($template, "jQuery(document).on('change click', 'input[type=\"radio\"]'");
+        $this->assertNotFalse($handlerStart, 'Block checkout shipping radio listener must exist');
+        $handlerBody = substr($template, $handlerStart, 650);
+
+        $rememberPosition = strpos($handlerBody, 'kiriofRememberSelectedShippingMethod(selectedMethod);');
+        $selectPosition = strpos($handlerBody, 'kiriofSelectBlockShippingRate(selectedMethod);');
+        $feePosition = strpos($handlerBody, 'kiriofCodInsurance();');
+
+        $this->assertNotFalse($rememberPosition, 'The clicked shipping rate must be cached immediately');
+        $this->assertNotFalse($selectPosition, 'The clicked shipping rate must be pushed into Woo Blocks cart state so the order summary updates');
+        $this->assertNotFalse($feePosition, 'Shipping changes must still refresh KiriminAja fee data');
+        $this->assertLessThan($selectPosition, $rememberPosition, 'The rate should be remembered before selecting it in Woo Blocks');
+        $this->assertLessThan($feePosition, $selectPosition, 'Woo Blocks selected-rate state must be updated before fee recalculation reads the cart');
+
+        $helperStart = strpos($template, 'function kiriofSelectBlockShippingRate');
+        $this->assertNotFalse($helperStart, 'Block checkout must define a helper to sync selected rates into Woo Blocks');
+        $helperBody = substr($template, $helperStart, 1500);
+
+        $this->assertStringContainsString(
+            "wp.data.dispatch('wc/store/cart')",
+            $helperBody,
+            'Selected rate sync must use the same Woo cart data store consumed by the checkout order summary'
+        );
+        $this->assertStringContainsString(
+            'selectShippingRate',
+            $helperBody,
+            'Woo Blocks exposes selectShippingRate for changing the selected shipping rate in Store API state'
+        );
+        $this->assertStringContainsString(
+            'kiriofFindBlockShippingPackageId',
+            $helperBody,
+            'The selected-rate sync must pass the package id when Woo Blocks requires one'
+        );
     }
 
     #[Test]
@@ -1860,7 +1914,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_shipping_chosen_method');
         $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
-        $methodBody = substr($content, $start, 1800);
+        $methodBody = substr($content, $start, 3400);
 
         $this->assertStringContainsString(
             '$posted_method = sanitize_text_field',
@@ -1900,12 +1954,41 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function plugin_ajax_shipping_metode_id_wins_over_wc_default_method_during_recalculation(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 3400);
+
+        $pluginAjaxPosition = strpos($methodBody, "isset( \$_POST['shipping_metode_id'] )");
+        $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
+
+        $this->assertNotFalse(
+            $pluginAjaxPosition,
+            'Plugin AJAX posts shipping_metode_id, so the chosen-method filter must read it during WC cart recalculation'
+        );
+        $this->assertNotFalse($methodCheckPosition, 'WC-resolved method fallback must still exist');
+        $this->assertLessThan(
+            $methodCheckPosition,
+            $pluginAjaxPosition,
+            'shipping_metode_id from kiriof_get_data_after_update_checkout must win before Woo can reselect the default rate'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'chosen_shipping_methods', array( \$posted_kiriof_method ) );",
+            $methodBody,
+            'Plugin AJAX selection must sync the core Woo chosen_shipping_methods session key before Store API cart GET runs'
+        );
+    }
+
+    #[Test]
     public function block_checkout_shipping_chosen_method_filter_trusts_wc_resolved_method(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_shipping_chosen_method');
         $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
-        $methodBody = substr($content, $start, 1800);
+        $methodBody = substr($content, $start, 3600);
 
         // When WooCommerce Blocks calls selectShippingRate (no form POST), WC passes the
         // newly chosen rate as $method. The filter must trust that value rather than
@@ -1923,10 +2006,69 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $sessionUpdateAfterMethodCheck,
             'Accepting the WC-resolved $method must sync chosen_shipping_methods session so cart totals reflect the real selection'
         );
-        $this->assertLessThan(
+        $this->assertGreaterThan(
             strpos($methodBody, "WC()->session->get( 'kiriof_chosen_shipping_methods'"),
             $methodCheckPosition,
-            'The $method validity check must appear before the stale-session fallback to ensure block checkout selection is not overridden'
+            'The WC-resolved method remains a fallback after explicit plugin/session selections have been checked'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_select_shipping_rate_request_body_wins_over_logged_in_stale_session(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 3600);
+
+        $storeApiPosition = strpos($methodBody, '$store_api_method = $this->kiriof_get_store_api_selected_shipping_rate();');
+        $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
+
+        $this->assertNotFalse(
+            $storeApiPosition,
+            'Store API select-shipping-rate payload must be read before trusting WooCommerce session-derived $method'
+        );
+        $this->assertNotFalse($methodCheckPosition, 'WC-resolved method fallback must still exist');
+        $this->assertLessThan(
+            $methodCheckPosition,
+            $storeApiPosition,
+            'The request body rate_id must win when logged-in customer session still contains the previous courier'
+        );
+
+        $this->assertStringContainsString(
+            "'php://input'",
+            $content,
+            'Woo Blocks sends select-shipping-rate as JSON, so the filter must inspect the REST body'
+        );
+        $this->assertStringContainsString(
+            '/cart/select-shipping-rate',
+            $content,
+            'The request-body override must be limited to the Store API shipping selection endpoint'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_store_api_recalculation_prefers_plugin_session_mirror_before_wc_default(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 3600);
+
+        $mirrorPosition = strpos($methodBody, "WC()->session->get( 'kiriof_chosen_shipping_methods'");
+        $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
+
+        $this->assertNotFalse($mirrorPosition, 'Plugin selected-rate mirror must be read during chosen-method resolution');
+        $this->assertNotFalse($methodCheckPosition, 'Woo default method fallback must still exist');
+        $this->assertLessThan(
+            $methodCheckPosition,
+            $mirrorPosition,
+            'Store API extension/cart recalculations must not overwrite the plugin-selected courier with Woo default ID Express'
+        );
+        $this->assertStringContainsString(
+            "WC()->session->set( 'chosen_shipping_methods', array( \$kiriof_chosen_methods[0] ) );",
+            $methodBody,
+            'The plugin mirror must keep Woo chosen_shipping_methods synchronized for the next cart GET'
         );
     }
 
