@@ -808,6 +808,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     
                             jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance);
 
+                            // Block checkout: the React sidebar (order summary) reads from the
+                            // Store API, not from classic checkout fragments. After the server
+                            // session is updated, tell WC blocks to re-fetch the cart so the
+                            // selected shipping method and fees appear in the summary sidebar.
+                            if (kiriofIsBlockCheckoutContext()) {
+                                kiriofRefreshBlockShippingRates();
+                                kiriofDispatchWooBlocksCartRefresh();
+                            }
+
                             kiriofUpdatingCheckoutLock = true;
                             jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
 
