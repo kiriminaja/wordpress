@@ -12,10 +12,10 @@ final class TrackingShortcodeLookupTest extends TestCase
         $this->assertNotFalse($start, 'Tracking transaction lookup method must exist');
         $methodBody = substr($content, $start, 1600);
 
-        $this->assertStringContainsString('`awb` LIKE %s', $methodBody, 'Tracking lookup should accept AWB/resi input');
-        $this->assertStringContainsString("REPLACE(REPLACE(`awb`, '-', ''), ' ', '') LIKE %s", $methodBody, 'Tracking lookup should accept AWB input with or without dashes/spaces');
-        $this->assertStringContainsString('`order_id` LIKE %s', $methodBody, 'Tracking lookup should accept KiriminAja order_id input');
-        $this->assertStringContainsString("REPLACE(REPLACE(`order_id`, '-', ''), ' ', '') LIKE %s", $methodBody, 'Tracking lookup should accept KiriminAja order_id input with or without dashes/spaces');
+        $this->assertStringContainsString('`awb` = %s', $methodBody, 'Tracking lookup should accept AWB/resi input');
+        $this->assertStringContainsString("REPLACE(REPLACE(`awb`, '-', ''), ' ', '') = %s", $methodBody, 'Tracking lookup should accept AWB input with or without dashes/spaces');
+        $this->assertStringContainsString('`order_id` = %s', $methodBody, 'Tracking lookup should accept KiriminAja order_id input');
+        $this->assertStringContainsString("REPLACE(REPLACE(`order_id`, '-', ''), ' ', '') = %s", $methodBody, 'Tracking lookup should accept KiriminAja order_id input with or without dashes/spaces');
         $this->assertStringContainsString('`wp_wc_order_stat_order_id` = %d', $methodBody, 'Tracking lookup should accept WooCommerce order ID/order number input');
     }
 

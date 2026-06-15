@@ -617,11 +617,22 @@ if (page >= 1 && page <= max) {
     complete: function(response) {
     const resp=JSON.parse(response.responseText).data;
 
-    if (resp?.status !==200) {
-    kiriofSetModalState($modal, 'error' );
-    $modal.find('.kiriof-backbone-modal-error-text').text(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>' );
-    return;
-    }
+
+                if (resp?.status !== 200) {
+                    kiriofSetModalState($modal, 'error');
+                    $modal.find('.kiriof-backbone-modal-error-text').text(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>');
+                    return;
+                }
+
+                // If the API already assigned a pickup_number, redirect immediately
+                // instead of showing the schedule picker.
+                if (resp?.data?.pickup_number) {
+                    const pickupNumber = encodeURIComponent(resp?.data?.pickup_number || '');
+                    const redirectBase = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${pickupNumber}`;
+                    const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';
+                    window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;
+                    return;
+                }
 
     const schedules=resp?.data?.schedules ?? [];
     const transaction_summary=resp?.data?.transaction_summary ?? {};

@@ -1688,12 +1688,41 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($start, 'Classic shipping radio change handler must exist');
         $handlerBody = substr($content, $start, 500);
 
-        $storePosition = strpos($handlerBody, "localStorage.setItem('chosen_shipping_method', jQuery(this).val());");
+        $storePosition = strpos($handlerBody, 'kiriofRememberSelectedShippingMethod(jQuery(this).val());');
         $feePosition = strpos($handlerBody, 'kiriofHandleCodInsurance();');
 
         $this->assertNotFalse($storePosition, 'Changing from ID Express to JNE must persist the newly selected radio value immediately');
         $this->assertNotFalse($feePosition, 'Shipping changes must still refresh KiriminAja fee data');
         $this->assertLessThan($feePosition, $storePosition, 'The selected method should be stored before the KiriminAja fee refresh starts WooCommerce checkout recalculation');
+    }
+
+    #[Test]
+    public function block_checkout_shipping_radio_click_prefers_recent_user_selection_over_stale_store_rate(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'var kiriofPendingShippingMethod',
+            $template,
+            'Block checkout must keep the buyer-clicked shipping method while the Woo Blocks cart store is still updating'
+        );
+
+        $this->assertStringContainsString(
+            "jQuery(document).on('change click', 'input[type=\"radio\"]'",
+            $template,
+            'Woo Blocks shipping radios must be captured from the DOM immediately, before getShippingRates can report a stale first row'
+        );
+
+        $feeFunctionStart = strpos($template, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($feeFunctionStart, 'Fee refresh function must exist');
+        $feeFunctionBody = substr($template, $feeFunctionStart, 1700);
+
+        $pendingPosition = strpos($feeFunctionBody, 'let shipping_metode_id = kiriofGetPendingShippingMethod()');
+        $storePosition = strpos($feeFunctionBody, "wp.data.select('wc/store/cart').getShippingRates()");
+
+        $this->assertNotFalse($pendingPosition, 'Fee refresh must prefer the immediately clicked block shipping method');
+        $this->assertNotFalse($storePosition, 'Fee refresh may still fall back to the Woo Blocks cart store');
+        $this->assertLessThan($storePosition, $pendingPosition, 'The recent user selection must win over stale Store API selected-rate state');
     }
 
     #[Test]
@@ -1867,6 +1896,37 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'checkout_kiriminaja_nonce_field',
             $methodBody,
             'The chosen-method filter runs during WooCommerce AJAX fragment rendering where the plugin checkout nonce may not be available'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_shipping_chosen_method_filter_trusts_wc_resolved_method(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $start = strpos($content, 'public function kiriof_shipping_chosen_method');
+        $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
+        $methodBody = substr($content, $start, 1800);
+
+        // When WooCommerce Blocks calls selectShippingRate (no form POST), WC passes the
+        // newly chosen rate as $method. The filter must trust that value rather than
+        // overriding it with the stale session cache — otherwise the Order Summary always
+        // shows the first/cheapest courier.
+        $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
+        $this->assertNotFalse(
+            $methodCheckPosition,
+            'The filter must trust the $method parameter resolved by WooCommerce when it is a valid available method (blocks selectShippingRate path)'
+        );
+
+        // The session must be updated so subsequent cart/fee hooks see the correct value.
+        $sessionUpdateAfterMethodCheck = strpos($methodBody, "WC()->session->set( 'chosen_shipping_methods', array( (string) \$method ) );");
+        $this->assertNotFalse(
+            $sessionUpdateAfterMethodCheck,
+            'Accepting the WC-resolved $method must sync chosen_shipping_methods session so cart totals reflect the real selection'
+        );
+        $this->assertLessThan(
+            strpos($methodBody, "WC()->session->get( 'kiriof_chosen_shipping_methods'"),
+            $methodCheckPosition,
+            'The $method validity check must appear before the stale-session fallback to ensure block checkout selection is not overridden'
         );
     }
 

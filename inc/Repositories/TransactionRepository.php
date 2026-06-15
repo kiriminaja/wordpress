@@ -146,16 +146,19 @@ class TransactionRepository{
         }
 
         $normalizedTrackingNumber = preg_replace( '/[^A-Za-z0-9]/', '', $trackingNumber );
+        if ( '' === $normalizedTrackingNumber ) {
+            $normalizedTrackingNumber = $trackingNumber;
+        }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $get_wc_orderid = $this->wpdb->get_row( 
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT wp_wc_order_stat_order_id FROM {$this->table} WHERE `awb` LIKE %s OR REPLACE(REPLACE(`awb`, '-', ''), ' ', '') LIKE %s OR `order_id` LIKE %s OR REPLACE(REPLACE(`order_id`, '-', ''), ' ', '') LIKE %s OR `wp_wc_order_stat_order_id` = %d",
-                '%' . $this->wpdb->esc_like($trackingNumber) . '%',
-                '%' . $this->wpdb->esc_like($normalizedTrackingNumber) . '%',
-                '%' . $this->wpdb->esc_like($trackingNumber) . '%',
-                '%' . $this->wpdb->esc_like($normalizedTrackingNumber) . '%',
+                "SELECT wp_wc_order_stat_order_id FROM {$this->table} WHERE `awb` = %s OR REPLACE(REPLACE(`awb`, '-', ''), ' ', '') = %s OR `order_id` = %s OR REPLACE(REPLACE(`order_id`, '-', ''), ' ', '') = %s OR `wp_wc_order_stat_order_id` = %d",
+                $trackingNumber,
+                $normalizedTrackingNumber,
+                $trackingNumber,
+                $normalizedTrackingNumber,
                 absint( $trackingNumber )
             )
         );

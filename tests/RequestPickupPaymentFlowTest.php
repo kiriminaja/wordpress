@@ -63,4 +63,35 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'Detail page should not auto-open payment modal after redirect'
         );
     }
+
+    #[Test]
+    public function pick_schedule_redirect_adds_open_payment_only_when_backend_opt_in_exists(): void
+    {
+        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+
+        $this->assertStringContainsString(
+            "const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';",
+            $requestPickupContent,
+            'Request pickup flow should only append open_payment when backend marks payment modal as required'
+        );
+
+        $this->assertStringContainsString(
+            'window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;',
+            $requestPickupContent,
+            'Request pickup flow should avoid opening Scan to Pay automatically for COD-only pickups'
+        );
+
+        $this->assertStringContainsString(
+            "const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';",
+            $transactionProcessContent,
+            'Transaction process flow should only append open_payment when backend marks payment modal as required'
+        );
+
+        $this->assertStringContainsString(
+            'window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;',
+            $transactionProcessContent,
+            'Transaction process flow should avoid opening Scan to Pay automatically for COD-only pickups'
+        );
+    }
 }

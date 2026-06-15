@@ -45,6 +45,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         var kiriofSavedCheckoutPostcode = <?php echo wp_json_encode( (string) $kiriof_saved_checkout_postcode ); ?>;
         var kiriofStoreApiNonce = '<?php echo esc_js(wp_create_nonce('wc_store_api')); ?>';
         var kiriofStoreApiUpdateCustomerUrl = '<?php echo esc_url_raw( rest_url( 'wc/store/v1/cart/update-customer' ) ); ?>';
+        var kiriofPendingShippingMethod = '';
+        var kiriofPendingShippingMethodAt = 0;
 
         jQuery(document).ready(function($) {
             <?php if ( $kiriof_global_insurance ) : ?>
@@ -80,7 +82,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 kiriofChangeDifferentAddress();
 
                 jQuery(document.body).on( 'change', 'input.shipping_method', function() {
-                    localStorage.setItem('chosen_shipping_method', jQuery(this).val());
+                    kiriofRememberSelectedShippingMethod(jQuery(this).val());
                     kiriofHandleCodInsurance();
                 });
 
@@ -130,10 +132,23 @@ if ( ! defined( 'ABSPATH' ) ) {
             // React blocks don't use jQuery change events reliably.
             if (typeof wp !== 'undefined' && wp.data && wp.data.subscribe) {
                 var kiriofLastShippingMethod = '';
+                jQuery(document).on('change click', 'input[type="radio"]', function() {
+                    var selectedMethod = jQuery(this).val();
+                    if (!kiriofIsKiriminajaShippingMethod(selectedMethod)) {
+                        return;
+                    }
+
+                    kiriofRememberSelectedShippingMethod(selectedMethod);
+                    setTimeout(function() { kiriofCodInsurance(); }, 50);
+                });
+
                 wp.data.subscribe(function() {
                     try {
                         var currentMethod = kiriofGetSelectedBlockShippingMethod();
                         if (currentMethod && currentMethod !== kiriofLastShippingMethod && currentMethod.indexOf('kiriminaja-official') === 0) {
+                            if (kiriofGetPendingShippingMethod() && currentMethod !== kiriofGetPendingShippingMethod()) {
+                                return;
+                            }
                             kiriofLastShippingMethod = currentMethod;
                             // Delay to let the Store API update the cart first
                             kiriofScheduleCodInsurance(400);
@@ -1811,6 +1826,28 @@ if ( ! defined( 'ABSPATH' ) ) {
             jQuery('#order_review').toggleClass('kiriof-fee-loading', !!isLoading);
         }
 
+        function kiriofIsKiriminajaShippingMethod(method) {
+            return typeof method === 'string' && method.indexOf('kiriminaja-official') === 0;
+        }
+
+        function kiriofRememberSelectedShippingMethod(method) {
+            if (!kiriofIsKiriminajaShippingMethod(method)) {
+                return;
+            }
+
+            kiriofPendingShippingMethod = method;
+            kiriofPendingShippingMethodAt = Date.now();
+            localStorage.setItem('chosen_shipping_method', method);
+        }
+
+        function kiriofGetPendingShippingMethod() {
+            if (!kiriofPendingShippingMethod || Date.now() - kiriofPendingShippingMethodAt > 3000) {
+                return '';
+            }
+
+            return kiriofPendingShippingMethod;
+        }
+
         if (!jQuery('#kiriof-fee-skeleton-style').length) {
             jQuery('head').append('<style id="kiriof-fee-skeleton-style">#order_review.kiriof-fee-loading .shop_table{opacity:.65;position:relative}#order_review.kiriof-fee-loading .shop_table:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 100%);animation:kiriofFeeSkeletonShimmer 1.2s ease-in-out infinite}@keyframes kiriofFeeSkeletonShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>');
         }
@@ -1964,9 +2001,8 @@ if ( ! defined( 'ABSPATH' ) ) {
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             
             // Read shipping method: traditional, block radio, or block data store
-            let shipping_metode_id = kiriofIsBlockCheckoutContext()
-                ? kiriofGetSelectedBlockShippingMethod()
-                : '';
+            let shipping_metode_id = kiriofGetPendingShippingMethod()
+                || (kiriofIsBlockCheckoutContext() ? kiriofGetSelectedBlockShippingMethod() : '');
             shipping_metode_id = shipping_metode_id
                 || jQuery('#shipping_method .shipping_method:checked').val()
                 || jQuery('.wc-block-components-radio-control__input:checked').val();
