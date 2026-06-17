@@ -83,7 +83,7 @@ class Admin extends BaseInit{
             ->addPages([
                 [
                     'page_title'=>'KiriminAja',
-                    'menu_title'=>'KiriminAja',
+                    'menu_title'=> 'KiriminAja' . ( defined('KIRIOF_ENV') && KIRIOF_ENV !== 'prd' ? ' [' . strtoupper(KIRIOF_ENV) . ']' : '' ),
                     'capability'=>'manage_woocommerce',
                     'menu_slug'=>'kiriminaja-konfigurasi',
                     'callback'=> function() use ($plugin_path){
@@ -95,6 +95,41 @@ class Admin extends BaseInit{
             ])
             ->addSubPages($subPages)
             ->register();
+
+        // Promotions sub-menu: links directly to the coupon list pre-filtered to KiriminAja extensions.
+        // Inserted before the Settings entry by reordering $submenu after all entries are registered.
+        if ( kiriof_check_woocommerce() ) {
+            add_action( 'admin_menu', function () {
+                global $submenu;
+                $slug = 'kiriminaja-konfigurasi';
+                if ( empty( $submenu[ $slug ] ) ) {
+                    return;
+                }
+
+                $promotions_entry = array(
+                    __( 'Promotions', 'kiriminaja-official' ),
+                    'manage_woocommerce',
+                    admin_url( 'edit.php?post_type=shop_coupon&legacy_coupon_menu=1&kiriof_extension=kiriminaja' ),
+                );
+
+                // Find the Settings entry (the one whose URL slug equals the parent slug)
+                // and insert Promotions just before it.
+                $reordered = array();
+                $inserted  = false;
+                foreach ( array_values( $submenu[ $slug ] ) as $entry ) {
+                    $entry_url = $entry[2] ?? '';
+                    if ( ! $inserted && $entry_url === $slug ) {
+                        $reordered[] = $promotions_entry;
+                        $inserted    = true;
+                    }
+                    $reordered[] = $entry;
+                }
+                if ( ! $inserted ) {
+                    $reordered[] = $promotions_entry;
+                }
+                $submenu[ $slug ] = $reordered;
+            }, 20 );
+        }
         
     
         /** Add pages link in plugin menu links*/
@@ -215,12 +250,19 @@ class Admin extends BaseInit{
             LEFT JOIN {$wpdb->posts} child_variation
                 ON child_variation.post_parent = p.ID
                AND child_variation.post_type = 'product_variation'
-               AND child_variation.post_status IN ('publish','private')";
+               AND child_variation.post_status IN ('publish','private')
+            LEFT JOIN {$wpdb->postmeta} virtual_meta
+                ON virtual_meta.post_id = p.ID
+               AND virtual_meta.meta_key = '_virtual'
+            LEFT JOIN {$wpdb->postmeta} parent_virtual_meta
+                ON parent_virtual_meta.post_id = p.post_parent
+               AND parent_virtual_meta.meta_key = '_virtual'";
         $product_volumetric_where_sql = "
             WHERE (
                   (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
                   OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
-              )";
+              )
+              AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
         $product_volumetric_ready_sql = "
             (
                 CAST(
@@ -278,7 +320,7 @@ class Admin extends BaseInit{
                AND {$product_volumetric_ready_sql}"
         );
             // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $product_volumetric_ready = ( $product_volumetric_total > 0 && $product_volumetric_configured >= $product_volumetric_total );
+        $product_volumetric_ready = ( $product_volumetric_configured >= $product_volumetric_total );
         $product_volumetric_label = $product_volumetric_ready
             ? __( 'All Product Configured', 'kiriminaja-official' )
             : sprintf(
@@ -417,6 +459,8 @@ class Admin extends BaseInit{
          * - child_variation.post_parent = p.ID
          * - p.post_type = 'product_variation' AND p.post_status IN ('publish','private')
          * - p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL
+         * - virtual_meta.meta_key = '_virtual'
+         * - COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'
          * - meta_key = '_weight'
          * - meta_key = '_length'
          * - meta_key = '_width'

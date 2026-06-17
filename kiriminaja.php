@@ -27,6 +27,7 @@ define( 'KIRIOF_SLUG', plugin_basename( __DIR__ ) );
 define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_VERSION', '2.1.44' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
 
 if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
     require_once dirname( __FILE__ ) . '/vendor/autoload.php';
@@ -83,6 +84,71 @@ if ( ! function_exists( 'kiriof_sanitize_recursive' ) ) {
         }
         return null;
     }
+}
+
+if ( ! function_exists( 'kiriof_log' ) ) {
+    /**
+     * Helper to log messages via the WooCommerce logger.
+     *
+     * @param string       $level   emergency|alert|critical|error|warning|notice|info|debug.
+     * @param string       $message Log message in English, single line.
+     * @param array<mixed> $context Additional structured data.
+     * @param string|null  $source  Optional source override.
+     * @return bool
+     */
+    function kiriof_log( $level, $message, $context = array(), $source = null ) {
+        $level = strtolower( sanitize_key( (string) $level ) );
+
+        if ( ! is_array( $context ) ) {
+            $context = array(
+                'context_value' => $context,
+            );
+        }
+
+        if ( null !== $source && '' !== $source ) {
+            $context['source'] = $source;
+        }
+
+        if ( ! \KiriminAjaOfficial\Utils\Logger::isValidLevel( $level ) ) {
+            return false;
+        }
+
+        \KiriminAjaOfficial\Utils\Logger::{$level}( (string) $message, $context );
+        return true;
+    }
+}
+
+add_action( 'plugins_loaded', 'kiriof_bootstrap_logger', 5 );
+function kiriof_bootstrap_logger() {
+    add_filter( 'woocommerce_log_directory', 'kiriof_filter_woocommerce_log_directory' );
+    add_filter( 'woocommerce_logger_log_message', 'kiriof_filter_woocommerce_logger_message', 10, 4 );
+}
+
+function kiriof_filter_woocommerce_log_directory( $directory ) {
+    $custom_directory = apply_filters( 'kiriof_log_directory', '', $directory );
+
+    if ( ! is_string( $custom_directory ) || '' === trim( $custom_directory ) ) {
+        return $directory;
+    }
+
+    return trailingslashit( $custom_directory );
+}
+
+function kiriof_filter_woocommerce_logger_message( $message, $level, $context, $handler ) {
+    $source   = is_array( $context ) ? (string) ( $context['source'] ?? '' ) : '';
+    $patterns = apply_filters( 'kiriof_logger_suppressed_messages', array(), $level, $context, $handler );
+
+    if ( empty( $patterns ) || 0 !== strpos( $source, 'kiriminaja' ) ) {
+        return $message;
+    }
+
+    foreach ( (array) $patterns as $pattern ) {
+        if ( is_string( $pattern ) && '' !== $pattern && false !== strpos( (string) $message, $pattern ) ) {
+            return null;
+        }
+    }
+
+    return $message;
 }
 
 add_action( 'plugins_loaded', 'kiriof_load_textdomain' );

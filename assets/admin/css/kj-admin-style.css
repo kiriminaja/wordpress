@@ -277,6 +277,280 @@ body {
   vertical-align: middle;
 }
 
+.kj-wrap .kiriof-transaction-table {
+  table-layout: fixed;
+}
+
+.kj-wrap .kiriof-transaction-table th,
+.kj-wrap .kiriof-transaction-table td {
+  padding: 14px 12px;
+  vertical-align: top;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table thead th,
+.kj-wrap .kiriof-transaction-table tfoot th {
+  white-space: nowrap;
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-select {
+  width: 42px;
+  text-align: center;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order {
+  width: 18%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition {
+  width: 16%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill {
+  width: 16%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto {
+  width: 21%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages {
+  width: 18%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-action {
+  width: 110px;
+  min-width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order,
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages {
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table thead .kiriof-col-action,
+.kj-wrap .kiriof-transaction-table tfoot .kiriof-col-action {
+  text-align: right;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto *,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages * {
+  text-align: left;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-order a,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill span,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages div {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-expedition > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-packages > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-shipto > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-airwaybill > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-order > div,
+.kj-wrap .kiriof-transaction-table .kiriof-col-order > a {
+  max-width: 100%;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-shipto-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-shipto-line {
+  font-size: 12px;
+  color: #50575e;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+
+.kj-wrap .kiriof-transaction-table .kiriof-col-action .button,
+.kj-wrap .kiriof-transaction-table .kiriof-col-action button.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+.kj-wrap .kiriof-transaction-table td.kiriof-col-action {
+  text-align: right;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .wc-backbone-modal-main {
+  width: 100%;
+  max-width: none;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .wc-backbone-modal-header h1 {
+  padding-right: 56px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-body {
+  padding: 24px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-loader {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* WC order preview compact summary — override heavy WC table padding */
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-summary-wrap-cell {
+  border-top: 1px solid #eee !important;
+  border-bottom: 0 !important;
+}
+
+.kiriof-order-preview-compact-summary {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: auto;
+}
+
+/* Match WC specificity to override .wc-order-preview .wc-order-preview-table td */
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-compact-summary
+  td {
+  padding: 4px 0;
+  vertical-align: middle;
+  border: 0;
+  text-align: left;
+}
+
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-compact-summary
+  td:last-child {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.wc-order-preview
+  .wc-order-preview-table
+  .kiriof-order-preview-compact-summary
+  .kiriof-compact-separator-row
+  td {
+  border-top: 1px solid #dcdcde;
+  padding-top: 8px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary td {
+  padding: 3px 0;
+  vertical-align: middle;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal
+  .kiriof-backbone-summary-row
+  + .kiriof-backbone-summary-row {
+  border-top: 1px solid #dcdcde;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-section {
+  margin-top: 20px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-section-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-opt-list {
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal
+  .kiriof-schedule-option
+  + .kiriof-schedule-option {
+  margin-top: 10px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option-row input {
+  margin-top: 2px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-schedule-option-label label {
+  display: block;
+  font-weight: 500;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-field textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-counter {
+  margin-top: 6px;
+  text-align: right;
+  font-size: 12px;
+  color: #757575;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-inline-error,
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-error-text {
+  margin: 16px 0 0;
+  color: #d63638;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-button-danger {
+  background: #d63638;
+  border-color: #d63638;
+}
+
 .kj-badge {
   font-weight: 400;
   padding: 4px 8px;
@@ -334,6 +608,178 @@ body {
 .kj-badge.rose {
   background: #fce4ec;
   color: #8a2432;
+}
+
+.kj-badge.kiriof-badge--deficit-label {
+  background: #d63638;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* COD Adjustment Modal overlay */
+.kiriof-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kiriof-modal {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.28);
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 24px 28px 20px;
+  position: relative;
+}
+.kiriof-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kiriof-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+.kiriof-modal__subtitle {
+  font-size: 13px;
+  color: #50575e;
+  margin: 0;
+}
+.kiriof-modal__close {
+  background: none;
+  border: 1px solid #c3c4c7;
+  border-radius: 3px;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+.kiriof-modal__close:hover {
+  background: #f0f0f1;
+}
+.kiriof-modal__description {
+  font-size: 13px;
+  margin: 10px 0 16px;
+  color: #1e1e1e;
+}
+.kiriof-modal__field {
+  margin-bottom: 14px;
+}
+.kiriof-modal__label {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+.kiriof-modal__input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #8c8f94;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 200px;
+}
+.kiriof-modal__input-prefix {
+  padding: 6px 8px;
+  background: #f6f7f7;
+  border-right: 1px solid #8c8f94;
+  font-size: 13px;
+  color: #50575e;
+}
+.kiriof-modal__input {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 6px 8px !important;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+.kiriof-modal__hint {
+  font-size: 12px;
+  color: #d63638;
+  margin: 4px 0 0;
+  min-height: 16px;
+}
+.kiriof-modal__breakdown {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.kiriof-modal__breakdown td {
+  padding: 4px 0;
+  vertical-align: top;
+}
+.kiriof-modal__breakdown td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.kiriof-breakdown__row--parent > td:first-child {
+  font-weight: 600;
+}
+.kiriof-breakdown__row--child > td:first-child {
+  padding-left: 16px;
+  color: #50575e;
+}
+.kiriof-breakdown__row--strong > td {
+  font-weight: 600;
+  border-top: 1px solid #e2e4e7;
+  padding-top: 6px;
+}
+.kiriof-breakdown__row--payout > td {
+  font-weight: 700;
+  color: #007017;
+}
+.kiriof-breakdown__value--discount {
+  color: #d63638;
+}
+.kiriof-breakdown__value--payout {
+  color: inherit;
+}
+.kiriof-badge--discount {
+  background: #e5f3fb;
+  color: #0a4b78;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.kiriof-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #e2e4e7;
+  padding-top: 14px;
+}
+.kiriof-modal__btn--primary {
+  background: #2271b1;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kiriof-modal__btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kiriof-modal__btn--primary:not(:disabled):hover {
+  background: #135e96;
 }
 
 .inset-absolute {

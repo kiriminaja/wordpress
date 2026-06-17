@@ -30,18 +30,27 @@ class CallbackHandlerService extends BaseService{
     public function call(){
         
         if (!$this->headerValidation()){
+            $this->logWebhookEvent( 'warning', 'KiriminAja webhook authorization failed because the bearer token did not match the saved API key.' );
             return self::error([],'Authorization failed');
         }
         if (isset($this->body->data) && !empty($this->body->data)) {
             $this->packages = $this->body->data;
         }
-        $orderIds = array_column($this->packages, 'order_id') ?? [];
+        $orderIds = $this->getPackageOrderIds();
         if (empty($orderIds)) {
+            $this->logWebhookEvent( 'warning', 'KiriminAja webhook request was ignored because no order identifiers were present in the payload.' );
             return self::error([],'No Order ID Found');
         }
         /** check if transaction exists */
         $this->transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($orderIds);
         if(count($this->transactions)<1){
+            $this->logWebhookEvent(
+                'warning',
+                'KiriminAja webhook request was ignored because no matching plugin transactions were found.',
+                array(
+                    'order_ids' => $orderIds,
+                )
+            );
             return self::error([],'No Transaction Found');
         }
         /** Set Pickup Number*/
@@ -71,8 +80,25 @@ class CallbackHandlerService extends BaseService{
             case "canceled_packages":
                 $this->processing = $this->canceledPackages();
                 break;
+            default:
+                $this->logWebhookEvent(
+                    'warning',
+                    'KiriminAja webhook request used an unsupported callback method.',
+                    array(
+                        'order_ids' => $orderIds,
+                    )
+                );
+                return self::error([], 'Unsupported callback method');
         }
         if (!$this->processing['status']){
+            $this->logWebhookEvent(
+                'error',
+                'KiriminAja webhook processing failed while updating local transaction state.',
+                array(
+                    'order_ids' => $orderIds,
+                    'message'   => $this->processing['message'],
+                )
+            );
             return self::error([],$this->processing['message']);
         }
         
@@ -112,6 +138,13 @@ class CallbackHandlerService extends BaseService{
         
                 
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked packages as return finished.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
@@ -120,14 +153,8 @@ class CallbackHandlerService extends BaseService{
     
     public function processedPackages(){
         try {
-            
-            // save log
-            update_option( 'kiriof_processed_packages', $this->packages );
             /** Update AWB*/
             foreach ( $this->packages as $package ) {
-                // save log item packages
-                update_option( 'kiriof_item_processed_packages', $package );
-                
                 $payload = [];
                 $payload['changes']=[
                     'awb'   =>  $package->awb
@@ -146,6 +173,14 @@ class CallbackHandlerService extends BaseService{
                     'pickup_number'=>$this->transactionPickupNumber
                 ],
             ]);
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked processed packages as paid and stored their AWB numbers.',
+                array(
+                    'order_ids'      => $this->getPackageOrderIds(),
+                    'pickup_number'  => $this->transactionPickupNumber,
+                )
+            );
             
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
@@ -166,6 +201,13 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked packages as shipped.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
@@ -178,7 +220,6 @@ class CallbackHandlerService extends BaseService{
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
                 $theTransaction = @$this->transactions[$transactionArrKey];
-                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
                 
                 if ($theTransaction){
                     /** Update KJ Table*/
@@ -198,6 +239,13 @@ class CallbackHandlerService extends BaseService{
                 
                 
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked packages as finished and completed matching WooCommerce orders.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
@@ -218,6 +266,13 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked packages as returned.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
@@ -236,6 +291,13 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook updated validated package shipping costs.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
@@ -257,6 +319,13 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked packages as rejected.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
@@ -269,7 +338,6 @@ class CallbackHandlerService extends BaseService{
                 /** Check if wc transaction exist and get wc order id*/
                 $transactionArrKey = array_search($package->order_id, array_column($this->transactions, 'order_id'));
                 $theTransaction = @$this->transactions[$transactionArrKey];
-                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$theTransaction',[$theTransaction]);
                 
                 if ($theTransaction){
                     /** Update KJ Table*/
@@ -295,9 +363,44 @@ class CallbackHandlerService extends BaseService{
                 
                 
             }
+            $this->logWebhookEvent(
+                'notice',
+                'KiriminAja webhook marked packages as canceled and synced matching WooCommerce orders.',
+                array(
+                    'order_ids' => $this->getPackageOrderIds(),
+                )
+            );
             return ['status'=>true, 'message'=>'',];
         }catch (\Throwable $th){
             return ['status'=>false, 'message'=>$th->getMessage(),];
         }
+    }
+
+    private function getPackageOrderIds(): array {
+        $order_ids = array();
+
+        foreach ( (array) $this->packages as $package ) {
+            $order_id = is_object( $package ) ? ( $package->order_id ?? '' ) : ( is_array( $package ) ? ( $package['order_id'] ?? '' ) : '' );
+            if ( '' !== (string) $order_id ) {
+                $order_ids[] = (string) $order_id;
+            }
+        }
+
+        return $order_ids;
+    }
+
+    private function logWebhookEvent( string $level, string $message, array $context = array() ): void {
+        kiriof_log(
+            $level,
+            $message,
+            array_merge(
+                array(
+                    'source'        => 'kiriminaja_webhook',
+                    'callback_method' => is_object( $this->body ) ? (string) ( $this->body->method ?? '' ) : '',
+                    'package_count' => count( (array) $this->packages ),
+                ),
+                $context
+            )
+        );
     }
 }
