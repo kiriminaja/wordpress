@@ -49,4 +49,10 @@ jobs:
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
 
+      - name: Extract Zip to release
+        run: |
+          rm -rf /opt/wordpress/wp_dev/wp-content/plugins/kiriminaja-official
+          unzip -o kiriminaja-official.zip -d /opt/wordpress/wp_dev/wp-content/plugins/
+          rm -rf kiriminaja-official.zip
+
       
