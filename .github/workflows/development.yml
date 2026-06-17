@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     name: "Deploy to wp-dev"
-    runs-on: [self-hosted, kaj-devstag-runner]
+    runs-on: [self-hosted, kaj-devstag-wp-runner]
     defaults:
       run:
         shell: bash
