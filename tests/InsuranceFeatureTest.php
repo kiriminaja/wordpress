@@ -499,6 +499,18 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            "virtual_meta.meta_key = '_virtual'",
+            $content,
+            'Settings wizard must inspect WooCommerce virtual product metadata'
+        );
+
+        $this->assertStringContainsString(
+            "COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'",
+            $content,
+            'Settings wizard must exclude virtual products from product volumetric progress'
+        );
+
+        $this->assertStringContainsString(
             "meta_key = '_weight'",
             $content,
             'Settings wizard must require product weight'
@@ -595,6 +607,18 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            "virtual_meta.meta_key = '_virtual'",
+            $methodBody,
+            'Setup notice must inspect WooCommerce virtual product metadata'
+        );
+
+        $this->assertStringContainsString(
+            "COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'",
+            $methodBody,
+            'Setup notice must exclude virtual products from product volumetric progress'
+        );
+
+        $this->assertStringContainsString(
             "meta_key = '_weight'",
             $methodBody,
             'Setup notice must require product weight'
@@ -661,6 +685,18 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'Virtual Product',
+            $content,
+            'Product list must show a clear virtual-product label when volumetric configuration is not required'
+        );
+
+        $this->assertStringContainsString(
+            'is-virtual',
+            $content,
+            'Product list must style virtual products separately from configured shippable products'
+        );
+
+        $this->assertStringContainsString(
             '%1$d / %2$d Configured',
             $content,
             'Product list must show configured product and variation progress'
@@ -670,6 +706,12 @@ final class InsuranceFeatureTest extends TestCase
             '$product->get_children()',
             $content,
             'Product list must inspect variations when checking variable products'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_product_needs_volumetric_configuration',
+            $content,
+            'Product list must exclude virtual products and virtual variations from volumetric progress'
         );
 
         $this->assertStringContainsString(

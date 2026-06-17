@@ -57,17 +57,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                         
                         <div style="padding: 10px;border: 1px solid #c3c4c7;">
                             <div class="row">
-                                <div class="col">Tagihan Paket COD</div>
+                                <div class="col"><?php esc_html_e( 'COD Package Charges', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
-                                <div class="col">Tagihan Paket Non-COD</div>
+                                <div class="col"><?php esc_html_e( 'Non-COD Package Charges', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700"><span class="trx-pay-amount">Rp300.000</span></div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
-                                <div class="col">Total Tagihan</div>
+                                <div class="col"><?php esc_html_e( 'Total Charges', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700"><span class="trx-pay-amount">Rp300.000</span></div>
                             </div>
                         </div>
