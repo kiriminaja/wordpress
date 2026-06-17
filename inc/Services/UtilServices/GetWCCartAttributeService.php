@@ -118,10 +118,23 @@ class GetWCCartAttributeService extends BaseService{
             $weightSum += (float) $p_attr['weight'] * $quantity;
             $transactionValue   += $p_attr['cart_total'];
         }
+
+        $discountedTotal = $this->getCartTotalAfterDiscount($transactionValue);
+        $discountAmount = max(0, (float) $transactionValue - (float) $discountedTotal);
+        $pricingItemValue = (float) $discountedTotal;
+        if ($pricingItemValue <= 0) {
+            // Pricing API may reject zero-value item_value for fully discounted carts.
+            $pricingItemValue = 1000;
+        }
+
         return [
             'volumetric_items'  => $volumetricItems,
             'weight_sum'        => $weightSum,
-            'transaction_value' => (int) $transactionValue,
+            'transaction_value_before_discount' => (float) $transactionValue,
+            'transaction_value_after_discount' => (float) $discountedTotal,
+            'cart_discount_amount' => (float) $discountAmount,
+            'pricing_item_value' => (float) $pricingItemValue,
+            'cart_discount_description' => $this->getCouponDescription(),
         ];
     }
     
@@ -134,7 +147,11 @@ class GetWCCartAttributeService extends BaseService{
             'height'      => $volumetricDimensions['height'],
             'length'      => $volumetricDimensions['length'],
             'width'       => $volumetricDimensions['width'],
-            'item_value'  => $cartsProductAttributeCollection['transaction_value'],
+            'item_value'  => $cartsProductAttributeCollection['pricing_item_value'],
+            'cart_total_before_discount' => $cartsProductAttributeCollection['transaction_value_before_discount'],
+            'cart_total_after_discount' => $cartsProductAttributeCollection['transaction_value_after_discount'],
+            'cart_discount_amount' => $cartsProductAttributeCollection['cart_discount_amount'],
+            'cart_discount_description' => $cartsProductAttributeCollection['cart_discount_description'],
         ];
     }
     
@@ -186,6 +203,51 @@ class GetWCCartAttributeService extends BaseService{
             'length'      => $this->cartsProcessedAttribute['length'] * $dimensionMultiplier,
             'width'       => $this->cartsProcessedAttribute['width'] * $dimensionMultiplier,
             'item_value'  => $this->cartsProcessedAttribute['item_value'],
+            'cart_total_before_discount' => (float) ($this->cartsProcessedAttribute['cart_total_before_discount'] ?? 0),
+            'cart_total_after_discount' => (float) ($this->cartsProcessedAttribute['cart_total_after_discount'] ?? 0),
+            'cart_discount_amount' => (float) ($this->cartsProcessedAttribute['cart_discount_amount'] ?? 0),
+            'cart_discount_description' => (string) ($this->cartsProcessedAttribute['cart_discount_description'] ?? ''),
         ];
+    }
+
+    private function getCartTotalAfterDiscount($fallbackTotal){
+        $fallbackTotal = (float) $fallbackTotal;
+        if (!function_exists('WC')) {
+            return $fallbackTotal;
+        }
+
+        $wc = WC();
+        if (!$wc || !isset($wc->cart) || !$wc->cart) {
+            return $fallbackTotal;
+        }
+
+        // Use get_cart_contents_total() for items-only total after discounts,
+        // to avoid including shipping/fees/taxes in the pricing item_value.
+        $rawTotal = $wc->cart->get_cart_contents_total();
+        if ($rawTotal === '' || $rawTotal === null) {
+            return $fallbackTotal;
+        }
+
+        return (float) $rawTotal;
+    }
+
+    private function getCouponDescription(){
+        if (!function_exists('WC')) {
+            return '';
+        }
+
+        $wc = WC();
+        if (!$wc || !isset($wc->cart) || !$wc->cart) {
+            return '';
+        }
+
+        $coupons = $wc->cart->get_coupons();
+        $codes = is_array($coupons) ? array_keys($coupons) : [];
+        if (empty($codes)) {
+            return '';
+        }
+
+        $codes = array_filter(array_map('sanitize_text_field', $codes));
+        return implode(', ', $codes);
     }
 }

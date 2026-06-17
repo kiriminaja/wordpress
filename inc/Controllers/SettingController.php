@@ -355,6 +355,9 @@ class SettingController{
                 'origin_whitelist_expedition_name'=> $whitelist_names,
             ));
 
+            // Bust the couriers API cache so the updated whitelist is reflected immediately.
+            ( new \KiriminAjaOfficial\Services\KiriminajaApiService() )->invalidateCouriersCache();
+
             wp_send_json_success(['status' => 200, 'message' => 'Saved']);
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);

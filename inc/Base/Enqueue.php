@@ -163,13 +163,20 @@ class Enqueue extends BaseInit{
     }
     
     function enqueueAdmin(){
-        $page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
-        if ( ! in_array( $page, array(
+        $page   = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        $screen_id = $screen ? $screen->id : '';
+
+        $is_plugin_page = in_array( $page, array(
             'kiriminaja-konfigurasi',
             'kiriminaja-transaction-process',
             'kiriminaja-request-pickup',
             'kiriminaja-request-pickup-detail',
-        ), true ) ) {
+        ), true );
+
+        $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );
+
+        if ( ! $is_plugin_page && ! $is_order_screen ) {
             return;
         }
 
@@ -198,6 +205,13 @@ class Enqueue extends BaseInit{
         );
         
         wp_enqueue_style( 'kiriof-grid-style', $this->plugin_url . 'assets/admin/css/bootstrap-grid.css', array(), KIRIOF_VERSION );
+
+        if ( 'kiriminaja-transaction-process' === $page ) {
+            wp_enqueue_style( 'woocommerce_admin_styles' );
+            wp_enqueue_script( 'woocommerce_admin' );
+            wp_enqueue_script( 'wc-backbone-modal' );
+            wp_enqueue_script( 'wc-orders' );
+        }
 
         /** print */
         wp_enqueue_style( 'kiriof-print-style', $this->plugin_url . 'assets/admin/css/print.min.css', array(), KIRIOF_VERSION );
@@ -248,6 +262,35 @@ class Enqueue extends BaseInit{
          * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
          * for the "Scan to Pay" modal on the Request Pickup page.
          */
+        /**
+         * COD Adjustment JS — enqueued on the order edit screen and transaction process page.
+         */
+        if ( $is_order_screen || 'kiriminaja-transaction-process' === $page ) {
+            wp_enqueue_script(
+                'kiriof-cod-adjustment',
+                $this->plugin_url . 'assets/js/kiriof-cod-adjustment.js',
+                array( 'jquery', 'backbone', 'wc-backbone-modal' ),
+                KIRIOF_VERSION,
+                true
+            );
+            wp_localize_script(
+                'kiriof-cod-adjustment',
+                'kiriofCodAdj',
+                array(
+                    'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+                    'nonce'         => wp_create_nonce( KIRIOF_NONCE ),
+                    'hintMin'       => __( 'Minimum {min} to avoid COD Settlement deficit', 'kiriminaja-official' ),
+                    'hintMax'       => __( 'Must not exceed {max}', 'kiriminaja-official' ),
+                    'hintPayout'    => __( 'Estimated payout must not be negative', 'kiriminaja-official' ),
+                    'processing'    => __( 'Processing…', 'kiriminaja-official' ),
+                    'confirm'       => __( 'Confirm & Process', 'kiriminaja-official' ),
+                    'cancelConfirm' => __( 'Are you sure you want to cancel this deficit COD order? This cannot be undone.', 'kiriminaja-official' ),
+                    'hintCodInvalid' => __( 'Please correct the COD value.', 'kiriminaja-official' ),
+                    'errorGeneral'  => __( 'An error occurred.', 'kiriminaja-official' ),
+                )
+            );
+        }
+
         if ( 'kiriminaja-request-pickup' === $page || 'kiriminaja-request-pickup-detail' === $page ) {
             if ( ! wp_script_is( 'wc-qrcode', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
                 $wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;

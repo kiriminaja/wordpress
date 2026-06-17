@@ -11,9 +11,64 @@ class EditOrderController{
     public function register(){
         add_filter( 'wc_order_is_editable', array($this,'kiriof_custom_order_status_editable'), 9999, 2 );
         add_action( 'add_meta_boxes', array( $this, 'registerShippingMetaBox' ) );
+        add_filter( 'is_protected_meta', array( $this, 'protectKiriofMetaKeys' ), 10, 2 );
+        add_action( 'woocommerce_admin_order_totals_after_shipping', array( $this, 'showOriginalShippingBelowTotals' ) );
     }
+
     /**
-     * Register the KiriminAja Shipping metabox on the order edit screen.
+     * Hide KiriminAja internal meta keys from the Custom Fields metabox UI.
+     *
+     * @param bool   $protected Whether the key is protected.
+     * @param string $meta_key  The meta key.
+     * @return bool
+     */
+    public function protectKiriofMetaKeys( bool $protected, string $meta_key ): bool {
+        $protected_keys = [
+            'cod-deficit',
+            'kiriof_ka_order_id',
+        ];
+        if ( in_array( $meta_key, $protected_keys, true ) ) {
+            return true;
+        }
+        return $protected;
+    }
+
+    /**
+     * Inject a sub-row under the WC shipping total showing the original KA shipping price
+     * (with strikethrough) when a shipping coupon reduces it to Rp0.
+     *
+     * @param int $order_id WooCommerce order ID.
+     */
+    public function showOriginalShippingBelowTotals( $order_id ) {
+        $wc_order = wc_get_order( $order_id );
+        if ( ! $wc_order ) {
+            return;
+        }
+        // Only show when WC shipping total is 0 (fully discounted).
+        if ( (float) $wc_order->get_shipping_total() > 0 ) {
+            return;
+        }
+        $repo = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )
+            ->getTransactionByWCOrderNumber( $order_id );
+        if ( ! $repo || empty( $repo->shipping_cost ) || (float) $repo->shipping_cost <= 0 ) {
+            return;
+        }
+        $original  = (float) $repo->shipping_cost;
+        $formatted = wc_price( $original, array( 'currency' => $wc_order->get_currency() ) );
+        ?>
+        <tr style="color:#888; font-size:12px;">
+            <td class="label" style="padding-top:2px; padding-bottom:2px;">
+                <?php esc_html_e( 'Original Shipping:', 'kiriminaja-official' ); ?>
+            </td>
+            <td width="1%"></td>
+            <td class="total" style="padding-top:2px; padding-bottom:2px;">
+                <del><?php echo wp_kses_post( $formatted ); ?></del>
+            </td>
+        </tr>
+        <?php
+    }
+
+    /**
      * Supports both legacy (shop_order) and HPOS (woocommerce_page_wc-orders) screens.
      */
     public function registerShippingMetaBox() {
@@ -55,9 +110,23 @@ class EditOrderController{
             return;
         }
 
-        $data        = $service->data;
+        $data         = $service->data;
         $tracking_url = home_url( '/tracking?order_id=' . $order_id );
-        $detail_url  = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
+        $detail_url   = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
+
+        // Extra WC order data for the redesigned metabox.
+        $wc_order            = wc_get_order( $order_id );
+        $wc_subtotal         = $wc_order ? (float) $wc_order->get_subtotal()       : 0.0;
+        $wc_total            = $wc_order ? (float) $wc_order->get_total()          : 0.0;
+        $wc_discount_total   = $wc_order ? (float) $wc_order->get_discount_total() : 0.0;
+        $wc_coupon_codes     = $wc_order ? $wc_order->get_coupon_codes()           : array();
+        $wc_needs_payment    = $wc_order ? $wc_order->needs_payment()              : false;
+
+        // Shipping discount = difference between the KA raw rate (pre-discount) and what WC recorded.
+        $kiriof_shipping_raw_ctrl = (float) ( $data['shipping_cost_raw'] ?? 0 );
+        $wc_shipping_discount     = $wc_order
+            ? max( 0.0, $kiriof_shipping_raw_ctrl - (float) $wc_order->get_shipping_total() )
+            : 0.0;
 
         include KIRIOF_DIR . '/templates/order/metabox-shipping.php';
     }
@@ -108,7 +177,7 @@ class EditOrderController{
             'width'     => $width,
             'height'    => $height,
             'insurance' => 1,
-            'item_value'=> $order->get_subtotal(),
+            'item_value'=> $this->getOrderDiscountedProductTotal($order),
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
         $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
@@ -212,6 +281,7 @@ class EditOrderController{
         }
     
         $courier = explode('_',$payload['kiriof_expedition']);
+        $discountedProductTotal = $this->getOrderDiscountedProductTotal($order);
     
         $pricingPayload = [
             'subdistrict_origin'        => (int) $settingRepo->value,
@@ -221,7 +291,7 @@ class EditOrderController{
             "width"                     => (int) $width,
             "height"                    => (int) $height,
             'insurance'                 => (int) $insurance,
-            'item_value'                => $order->get_subtotal(),
+            'item_value'                => $discountedProductTotal,
             'courier'                   => [$courier[0]]
         ];
         $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
@@ -238,7 +308,7 @@ class EditOrderController{
             }
     
             $checkoutCalculation = $this->kiriof_checkoutCalculation(
-                $order->get_subtotal(),
+                $discountedProductTotal,
                 $data_shipping_selected,
                 $get_payment_method,
                 $insurance
@@ -350,6 +420,20 @@ class EditOrderController{
      
         return $billing_fields;
     }
+
+    private function getOrderDiscountedProductTotal($order){
+        if (!$order) {
+            return 0;
+        }
+
+        $total = (float) $order->get_total();
+        $shipping = (float) $order->get_shipping_total();
+        $tax = (float) $order->get_total_tax();
+
+        $productTotal = $total - $shipping - $tax;
+        return $productTotal > 0 ? $productTotal : 0;
+    }
+
     public function kiriof_admin_shipping_fields($shipping_fields){
         
         unset($shipping_fields['city']);
