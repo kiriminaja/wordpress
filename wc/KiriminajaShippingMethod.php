@@ -236,26 +236,34 @@ function kiriof_shipping_method(){
                 $options = $validate;
                 
                 $filteredOptions = [];
+                $allOptions = [];
                 foreach ($options as $option){
-                    if (!$is_cod || $is_cod && $option->cod){
-                        
-                        $shipping_cost = $option->cost - $option->discount_amount;
-                        $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
+                    $shipping_cost = $option->cost - $option->discount_amount;
+                    $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
 
-                        $filteredOptions[] = [
-                            'key'=>$option->service.'_'.$option->service_type,
-                            'value'=>$option->service_name,
-                            'cost'=>$shippingDiscountPricing['cost'],
-                            'meta_data'=>[
-                                'kiriof_shipping_coupon_original_cost' => (float) $shippingDiscountPricing['original_cost'],
-                                'kiriof_shipping_coupon_discount_amount' => (float) $shippingDiscountPricing['discount_amount'],
-                                'kiriof_shipping_coupon_notice' => (string) $shippingDiscountPricing['notice'],
-                                'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
-                                'kiriof_rate_eta' => $this->formatEta($option),
-                                'kiriof_rate_description' => $this->formatRateDescription($option, $kiriof_insurance),
-                            ],
-                        ];    
+                    $rateOption = [
+                        'key'=>$option->service.'_'.$option->service_type,
+                        'value'=>$option->service_name,
+                        'cost'=>$shippingDiscountPricing['cost'],
+                        'meta_data'=>[
+                            'kiriof_shipping_coupon_original_cost' => (float) $shippingDiscountPricing['original_cost'],
+                            'kiriof_shipping_coupon_discount_amount' => (float) $shippingDiscountPricing['discount_amount'],
+                            'kiriof_shipping_coupon_notice' => (string) $shippingDiscountPricing['notice'],
+                            'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
+                            'kiriof_rate_eta' => $this->formatEta($option),
+                            'kiriof_rate_description' => $this->formatRateDescription($option, $kiriof_insurance),
+                        ],
+                    ];
+
+                    $allOptions[] = $rateOption;
+
+                    if (!$is_cod || $this->isCodCapableOption($option)){
+                        $filteredOptions[] = $rateOption;
                     }
+                }
+
+                if ($is_cod && empty($filteredOptions) && !empty($allOptions)) {
+                    $filteredOptions = $allOptions;
                 }
 
                 // Sort by cost ascending to maintain consistent ordering across re-renders
@@ -264,6 +272,48 @@ function kiriof_shipping_method(){
                 });
                 
                 return $filteredOptions;
+            }
+
+            private function isCodCapableOption($option) {
+                $codValue = $option->cod ?? null;
+                if ($this->isTruthyCodValue($codValue)) {
+                    return true;
+                }
+
+                $setting = is_object($option) && isset($option->setting) && is_object($option->setting)
+                    ? $option->setting
+                    : null;
+                if (!$setting) {
+                    return false;
+                }
+
+                foreach (array('cod', 'is_cod', 'cod_enabled', 'cod_available') as $key) {
+                    if (isset($setting->{$key}) && $this->isTruthyCodValue($setting->{$key})) {
+                        return true;
+                    }
+                }
+
+                foreach (array('cod_fee_amount', 'minimum_cod_fee', 'cod_fee') as $key) {
+                    if (isset($setting->{$key}) && (float) $setting->{$key} > 0) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private function isTruthyCodValue($value) {
+                if (is_bool($value)) {
+                    return $value;
+                }
+                if (is_numeric($value)) {
+                    return (float) $value > 0;
+                }
+                if (is_string($value)) {
+                    return in_array(strtolower(trim($value)), array('1', 'true', 'yes', 'y', 'available', 'enabled'), true);
+                }
+
+                return false;
             }
 
             private function formatEta($option) {

@@ -356,6 +356,58 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function cod_shipping_filter_must_not_blank_all_rates_when_cod_metadata_is_missing(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $start = strpos($content, 'public function filterOptions');
+        $this->assertNotFalse($start, 'KiriminAja shipping rate filtering method must exist');
+        $methodBody = substr($content, $start, 3400);
+
+        $this->assertStringContainsString(
+            '$allOptions = [];',
+            $methodBody,
+            'COD filtering must keep a fallback copy of all rates so checkout does not show No shipping option'
+        );
+        $this->assertStringContainsString(
+            'if ($is_cod && empty($filteredOptions) && !empty($allOptions))',
+            $methodBody,
+            'When no COD-capable rows are detected, the shipping list should degrade to regular rates instead of emptying checkout'
+        );
+        $this->assertStringContainsString(
+            'isCodCapableOption',
+            $content,
+            'COD capability should be normalized instead of relying only on top-level option->cod'
+        );
+        $this->assertStringContainsString(
+            'cod_fee_amount',
+            $content,
+            'Some API responses expose COD support through fee settings rather than option->cod'
+        );
+    }
+
+    #[Test]
+    public function legacy_pricing_ajax_cod_filter_has_same_non_empty_fallback(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
+
+        $this->assertStringContainsString(
+            '$allOptions = [];',
+            $content,
+            'Legacy pricing AJAX must keep all rates available as a fallback'
+        );
+        $this->assertStringContainsString(
+            'if ($this->is_cod && empty($filteredOptions) && !empty($allOptions))',
+            $content,
+            'Legacy pricing AJAX should not return an empty option list just because COD metadata is missing'
+        );
+        $this->assertStringContainsString(
+            'isCodCapableOption',
+            $content,
+            'Legacy pricing AJAX should use normalized COD-capable detection too'
+        );
+    }
+
+    #[Test]
     public function legacy_pricing_ajax_must_use_available_money_formatter(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
@@ -1877,6 +1929,29 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             '! $this->kiriof_cart_needs_shipping()',
             $storeApiBody,
             'Block checkout Store API extension updates must ignore stale shipping method payloads for virtual-only carts'
+        );
+
+        $gatewayStart = strpos($content, 'public function kiriof_filter_cod_availability');
+        $this->assertNotFalse($gatewayStart, 'COD availability filter must exist');
+        $gatewayBody = substr($content, $gatewayStart, 900);
+        $virtualCartCheck = strpos($gatewayBody, '! $this->kiriof_cart_needs_shipping()');
+        $checkoutPageCheck = strpos($gatewayBody, 'if (!is_checkout())');
+        $this->assertNotFalse($virtualCartCheck, 'COD availability must check virtual-only carts');
+        $this->assertNotFalse($checkoutPageCheck, 'COD availability should still limit KiriminAja shipping-method rules to checkout pages');
+        $this->assertLessThan(
+            $checkoutPageCheck,
+            $virtualCartCheck,
+            'Virtual-only carts must remove COD before is_checkout() because block checkout payment options can be fetched through Store API requests'
+        );
+        $this->assertStringContainsString(
+            '! $this->kiriof_cart_needs_shipping()',
+            $gatewayBody,
+            'COD gateway must be removed for virtual-only carts even if stale KiriminAja shipping session data exists'
+        );
+        $this->assertStringContainsString(
+            "unset( \$gateways['cod'] );",
+            $gatewayBody,
+            'Virtual-only carts must not offer Cash on Delivery'
         );
     }
 

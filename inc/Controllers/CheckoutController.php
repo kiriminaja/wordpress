@@ -1388,7 +1388,15 @@ class CheckoutController
      * @return array
      */
     public function kiriof_filter_cod_availability($gateways) {
-        // Only affect the checkout page
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            if ( isset( $gateways['cod'] ) ) {
+                unset( $gateways['cod'] );
+            }
+            return $gateways;
+        }
+
+        // Only affect the checkout page after virtual carts have removed COD.
         if (!is_checkout()) {
             return $gateways;
         }
