@@ -18,6 +18,11 @@ jobs:
         shell: bash
 
     steps:
+      - id: "auth"
+        uses: "google-github-actions/auth@v3"
+        with:
+          credentials_json: "${{ secrets.GCP_CICD }}"
+      
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -45,6 +50,7 @@ jobs:
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
+          
 
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
