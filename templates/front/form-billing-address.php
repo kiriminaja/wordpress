@@ -1322,9 +1322,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                         // If we already know the district is valid (e.g. from the WC cart store
                         // for a logged-in user), keep shipping options visible so there is no
                         // blank gap while the district select is being fetched and restored.
-                        if (!hasValidDistrict) {
+                        if (hasValidDistrict) {
+                            $shippingOptions.removeClass('kiriof-shipping-options-blocked');
+                            jQuery('body').removeClass('kiriof-no-district');
+                            kiriofSetCheckoutTokenValue(true);
+                            kiriofSetPlaceOrderDisabled(false);
+                        } else {
                             $shippingOptions.addClass('kiriof-shipping-options-blocked');
                             jQuery('body').addClass('kiriof-no-district');
+                            kiriofSetCheckoutTokenValue(false);
+                            kiriofSetPlaceOrderDisabled(true);
                         }
                         return;
                     }

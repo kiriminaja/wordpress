@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.41
+Stable tag: 2.1.42
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,15 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.1.42 =
+- Handling process and shipping logic
+- Persistent select courier issue
+- Order summary not sync with selected courier extended
+- Order summary not sync with selected courier
+- Fix(checkout): trust WC-resolved shipping method in block checkout
+- Fix(checkout): preserve selected block shipping method
+- Fix(tracking): resolve shortcode lookup by shipment identifiers
+
 = 2.1.41 =
 - Implement block district management for shipping address in checkout process
 - Enhance block checkout functionality to manage district validation and button behavior

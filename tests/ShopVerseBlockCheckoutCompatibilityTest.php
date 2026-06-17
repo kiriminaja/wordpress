@@ -136,6 +136,37 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_valid_district_during_restore_must_reenable_place_order(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $start = strpos($content, 'if (kiriofDistrictResultsLoading || kiriofPendingDistrictRestore)');
+        $this->assertNotFalse($start, 'District loading/restore branch must exist');
+        $branchBody = substr($content, $start, 1600);
+
+        $validPosition = strpos($branchBody, 'if (hasValidDistrict)');
+        $enablePosition = strpos($branchBody, 'kiriofSetPlaceOrderDisabled(false);');
+        $disablePosition = strpos($branchBody, 'kiriofSetPlaceOrderDisabled(true);');
+
+        $this->assertNotFalse(
+            $validPosition,
+            'Loading/restore state must explicitly handle already-valid districts'
+        );
+        $this->assertNotFalse(
+            $enablePosition,
+            'A valid District during async restore must clear the soft-disabled Place Order state'
+        );
+        $this->assertNotFalse(
+            $disablePosition,
+            'Missing District during async restore should still soft-disable Place Order'
+        );
+        $this->assertLessThan(
+            $disablePosition,
+            $enablePosition,
+            'The valid-District path should re-enable Place Order before the invalid-District branch can disable it'
+        );
+    }
+
+    #[Test]
     public function checkout_pricing_must_use_variation_dimensions_when_cart_item_is_variable(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php');
@@ -917,7 +948,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
         $start = strpos($content, 'function kiriofSyncBlockDistrictWarningState');
         $this->assertNotFalse($start, 'District warning sync helper must exist');
-        $functionBody = substr($content, $start, 1200);
+        $functionBody = substr($content, $start, 1800);
 
         $this->assertStringContainsString(
             "jQuery('.kiriof-block-district-warning').hide();",
