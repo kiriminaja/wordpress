@@ -1,9 +1,9 @@
-name: Publish TO WP-STG
+name: Publish TO WP-PRD
 
 on:
   push:
-    branches:
-      - "staging"
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -16,7 +16,7 @@ jobs:
       run:
         shell: bash
 
-    steps:      
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
