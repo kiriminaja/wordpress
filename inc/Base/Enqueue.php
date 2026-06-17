@@ -33,14 +33,7 @@ class Enqueue extends BaseInit{
         // (or its legacy alias [wp-tracking-front-page]) renders inside
         // the_content. wp_add_inline_style from the shortcode handler runs after
         // wp_head and would be silently dropped.
-        global $post;
-        if (
-            $post instanceof \WP_Post
-            && (
-                has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' )
-                || has_shortcode( (string) $post->post_content, 'wp-tracking-front-page' )
-            )
-        ) {
+        if ( $this->isTrackingPage() ) {
             wp_enqueue_style(
                 'kiriof-tracking-style',
                 $this->plugin_url . 'assets/wp/css/kj-tracking.css',
@@ -73,6 +66,29 @@ class Enqueue extends BaseInit{
             )
         );
 
+        if ( $this->isTrackingPage() ) {
+            wp_enqueue_script(
+                'kiriof-tracking-script',
+                $this->plugin_url . 'assets/wp/js/kj-tracking.js',
+                array( 'jquery', 'kiriof-script' ),
+                KIRIOF_VERSION,
+                array( 'in_footer' => true )
+            );
+
+            wp_localize_script(
+                'kiriof-tracking-script',
+                'kiriofTracking',
+                array(
+                    'i18n' => array(
+                        'orderNumber' => __( 'Nomor Order', 'kiriminaja-official' ),
+                        'awbNumber'   => __( 'Nomor Resi', 'kiriminaja-official' ),
+                        'courier'     => __( 'Kurir', 'kiriminaja-official' ),
+                        'notFound'    => __( 'Order tidak ditemukan', 'kiriminaja-official' ),
+                    ),
+                )
+            );
+        }
+
         if ( $this->isBlockCheckoutPage() ) {
             wp_enqueue_script(
                 'kiriof-block-checkout',
@@ -100,6 +116,21 @@ class Enqueue extends BaseInit{
         return false;
     }
 
+    private function isTrackingPage() {
+        global $post;
+        if (
+            $post instanceof \WP_Post
+            && (
+                has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' )
+                || has_shortcode( (string) $post->post_content, 'wp-tracking-front-page' )
+            )
+        ) {
+            return true;
+        }
+
+        return is_page( 'tracking' );
+    }
+
     /**
      * Whether the frontend assets should be enqueued on the current request.
      * Restricts output to WooCommerce commerce pages and tracking shortcode pages
@@ -116,20 +147,7 @@ class Enqueue extends BaseInit{
         // Tracking shortcode page (used by the public tracking front page).
         // Accepts the legacy [wp-tracking-front-page] alias for backward
         // compatibility with pages created by older plugin versions.
-        global $post;
-        if (
-            $post instanceof \WP_Post
-            && (
-                has_shortcode( (string) $post->post_content, 'kiriminaja-tracking-front-page' )
-                || has_shortcode( (string) $post->post_content, 'wp-tracking-front-page' )
-            )
-        ) {
-            return true;
-        }
-
-        // Fallback: match by page slug in case $post is not set yet or the
-        // shortcode is nested inside a block wrapper that bypasses has_shortcode.
-        if ( is_page( 'tracking' ) ) {
+        if ( $this->isTrackingPage() ) {
             return true;
         }
 
