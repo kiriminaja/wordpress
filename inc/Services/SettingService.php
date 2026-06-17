@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 use \KiriminAjaOfficial\Base\BaseService;
 class SettingService extends BaseService
 {
+    private function getDefaultCallbackUrl(): string {
+        return esc_url_raw( add_query_arg( 'feed', 'kiriminaja-callback', home_url( '/' ) ) );
+    }
+
     public function getIntegrationData()
     {
         try {
@@ -35,7 +39,7 @@ class SettingService extends BaseService
             //custom url validation when local set to dev kj only development test
             $setupPayload = [
                 'setup_key' => $setupKey,
-                'callback_url' => add_query_arg( 'feed', 'kiriminaja-callback', home_url( '/' ) )
+                'callback_url' => $this->getDefaultCallbackUrl(),
             ];
             $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
             $arrayRepo = (array) $repo;

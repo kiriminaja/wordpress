@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: KiriminAja Official 2.1.42\n"
+"Project-Id-Version: KiriminAja Official 2.1.44\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
