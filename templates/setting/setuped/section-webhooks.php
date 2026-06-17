@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php ob_start(); ?>
     <?php include '_section-js-shared.php'; ?>
-    jQuery('body').on('click','.kj-detail .kj-submit-btn',function(e){var $b=jQuery(this);$b.prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_call_back_data',data:{callback_url:jQuery('[name="callback_url"]').val(),nonce:kiriofAjax.nonce}},error:function(){$b.prop('disabled',false);alert('<?php echo esc_js(__('Network error.', 'kiriminaja-official')); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);$b.prop('disabled',false);if(p&&p.status===200){alert('<?php echo esc_js(__('Saved.', 'kiriminaja-official')); ?>')}else{alert((p&&p.message)?p.message:'<?php echo esc_js(__('Save failed.', 'kiriminaja-official')); ?>')}}});
+    jQuery('body').on('click','.kj-detail .kj-submit-btn',function(e){var $b=jQuery(this);$b.prop('disabled',true);jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_call_back_data',data:{callback_url:jQuery('[name="callback_url"]').val(),nonce:kiriofAjax.nonce}},error:function(){$b.prop('disabled',false);alert('<?php echo esc_js(__('Network error.', 'kiriminaja-official')); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);$b.prop('disabled',false);if(p&&p.status===200){alert('<?php echo esc_js(__('Saved.', 'kiriminaja-official')); ?>')}else{alert((p&&p.message)?p.message:'<?php echo esc_js(__('Save failed.', 'kiriminaja-official')); ?>')}}});});
 <?php
 $kiriof_inline_script = ob_get_clean();
 wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );

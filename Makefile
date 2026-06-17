@@ -55,7 +55,7 @@ else ifeq ($(KIRIOF_ENV),stg)
   ZIP_FILE     := $(PLUGIN_SLUG)-$(VERSION)-stg.zip
 else
   ENV_VAR_NAME := API_BASE_URL_PRD
-  ZIP_FILE     := $(PLUGIN_SLUG)-$(VERSION).zip
+  ZIP_FILE     := $(PLUGIN_SLUG).zip
 endif
 
 # plain: output kiriminaja-official.zip regardless of env/version.
@@ -110,7 +110,7 @@ publish: release
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
 
-zip: clean
+zip:
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
 	@if command -v msgfmt >/dev/null 2>&1; then \
 		msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo; \
@@ -120,6 +120,7 @@ zip: clean
 		echo "Error: msgfmt not found and lang/kiriminaja-official-id_ID.mo is missing"; \
 		exit 127; \
 	fi
+	rm -rf $(STAGE_DIR) $(ZIP_FILE)
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
