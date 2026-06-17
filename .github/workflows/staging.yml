@@ -16,12 +16,7 @@ jobs:
       run:
         shell: bash
 
-    steps:
-      - id: "auth"
-        uses: "google-github-actions/auth@v3"
-        with:
-          credentials_json: "${{ secrets.GCP_CICD }}"
-      
+    steps:      
       - name: Checkout
         uses: actions/checkout@v4
         with:
