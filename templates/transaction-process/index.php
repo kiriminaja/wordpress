@@ -146,7 +146,7 @@ class Kiriof_TransactionProcessIndex
 
         $courier_clause = '';
         if ('' !== $courier) {
-            $courier_clause = "AND kiriminaja_transactions.service = '" . esc_sql($courier) . "'";
+            $courier_clause = $wpdb->prepare( "AND kiriminaja_transactions.service = %s", $courier );
         }
 
         /**

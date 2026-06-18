@@ -55,8 +55,8 @@ class TransactionRepository{
     }
 
     public function getShippableOrderExistsSql( string $orderIdExpression ): string {
-        $product_lookup_table = esc_sql( $this->wpdb->prefix . 'wc_order_product_lookup' );
-        $postmeta_table       = esc_sql( $this->wpdb->postmeta );
+        $product_lookup_table = $this->wpdb->prefix . 'wc_order_product_lookup';
+        $postmeta_table       = $this->wpdb->postmeta;
 
         return "AND EXISTS (
             SELECT 1
@@ -134,9 +134,9 @@ class TransactionRepository{
             return false;
         }
 
-        $transactions_table = esc_sql( $this->table );
-        $wc_stats_table     = esc_sql( $this->wpdb->prefix . 'wc_order_stats' );
-        $posts_table        = esc_sql( $this->wpdb->posts );
+        $transactions_table = $this->table;
+        $wc_stats_table     = $this->wpdb->prefix . 'wc_order_stats';
+        $posts_table        = $this->wpdb->posts;
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $this->wpdb->get_row(
