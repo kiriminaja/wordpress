@@ -189,7 +189,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                     $kiriof_statusBadgeClass = $kiriof_isKAOrder
                                                         ? $kiriof_helper->transactionStatusClass($kiriof_row->status)
                                                         : $kiriof_helper->wcStatusClass($kiriof_postStatus);
-                                                    $kiriof_serviceName = strtoupper(trim($kiriof_row->service . ' ' . ($kiriof_row->service_name ?? '')));
+                                                    $kiriof_serviceName = $kiriof_helper->formatServiceName($kiriof_row->service, $kiriof_row->service_name ?? '');
                                                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
 
                                                     $kiriof_isProcessedFilter = ( 'processed' === $kiriof_status_filter );

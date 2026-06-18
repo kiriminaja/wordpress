@@ -148,4 +148,61 @@ class Helper extends  BaseInit {
     
         return $date->format("Y-m-d H:i:s");
     }
+
+    const COURIER_NAME_MAP = array(
+        'jne'          => 'JNE Express',
+        'tiki'         => 'Tiki',
+        'sicepat'      => 'Sicepat Express',
+        'jnt'          => 'J&T Express',
+        'jtcargo'      => 'J&T Cargo',
+        'anteraja'     => 'AnterAja',
+        'pos'          => 'Pos Indonesia',
+        'posindonesia' => 'Pos Indonesia',
+        'rpx'          => 'RPX Logistics',
+        'lion'         => 'Lion Parcel',
+        'paxel'        => 'Paxel',
+        'sap'          => 'SAPX Express',
+        'ninja'        => 'Ninja',
+        'idexpress'    => 'ID Express',
+        'idx'          => 'ID Express',
+        'ncs'          => 'NCS Courier',
+        'borzo'        => 'Borzo',
+        'grab'         => 'Grab Express',
+        'grab_express' => 'Grab Express',
+        'gosend'       => 'GoSend',
+        'sentral'      => 'Sentral Cargo',
+        'spx'          => 'SPX Express',
+    );
+
+    public function getCourierDisplayName( $serviceCode ) {
+        $serviceCode = strtolower( trim( (string) $serviceCode ) );
+        if ( isset( self::COURIER_NAME_MAP[ $serviceCode ] ) ) {
+            return self::COURIER_NAME_MAP[ $serviceCode ];
+        }
+        return strtoupper( $serviceCode );
+    }
+
+    public function formatServiceName( $service, $serviceName ) {
+        $service     = strtolower( trim( (string) $service ) );
+        $serviceName = trim( (string) $serviceName );
+
+        if ( '' === $serviceName ) {
+            return $this->getCourierDisplayName( $service );
+        }
+
+        $courierName = $this->getCourierDisplayName( $service );
+        $needle      = strtolower( $courierName );
+
+        // If service_name already contains the courier display name or the raw
+        // service code, the API has already formatted it (e.g. "JNE Express Flat").
+        // Use it as-is.
+        $serviceNameLower = strtolower( $serviceName );
+        if ( strpos( $serviceNameLower, $needle ) !== false
+            || strpos( $serviceNameLower, $service ) !== false
+        ) {
+            return $serviceName;
+        }
+
+        return $courierName . ' ' . $serviceName;
+    }
 }

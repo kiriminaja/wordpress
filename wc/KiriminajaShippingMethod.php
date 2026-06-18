@@ -137,7 +137,7 @@ function kiriof_shipping_method(){
 
                         $filteredOptions[] = [
                             'key'=>$option->service.'_'.$option->service_type,
-                            'value'=>$option->service_name,
+                            'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name),
                             'cost'=>$shipping_cost
                         ];    
                     }
