@@ -24,7 +24,7 @@ class ShippingInfoServices extends BaseService{
             'awb'               =>  @$repo->awb ? $repo->awb : '-' , 
             'status'            =>  kiriof_helper()->transactionStatusLabel(@$repo->status), 
             'status_classes'    =>  kiriof_helper()->transactionStatusClass(@$repo->status),
-            'service'           =>  @$repo->service ? ((strtoupper($repo->service)).' '.(strtoupper($repo->service_name))) : '-', 
+            'service'           =>  @$repo->service ? kiriof_helper()->formatServiceName($repo->service, $repo->service_name) : '-', 
             'order_id'          =>  @$repo->order_id ? $repo->order_id : '-', 
             'pickup_id'         =>  @$repo->pickup_number ? $repo->pickup_number : '-', 
             'payment_type'      =>  @$repo->cod_fee && $repo->cod_fee > 0 ? 'COD' : 'Non COD', 

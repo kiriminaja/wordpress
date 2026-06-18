@@ -200,7 +200,7 @@ class EditOrderController{
             if (!$is_cod || $is_cod && $option->cod){
                 $filteredOptions[] = [
                     'key'=>$option->service.'_'.$option->service_type,
-                    'value'=>$option->service_name.' (Rp'.(kiriof_money_format($option->cost)).')',
+                    'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name).' (Rp'.(kiriof_money_format($option->cost)).')',
                     'cost'=>$option->cost
                 ];    
             }

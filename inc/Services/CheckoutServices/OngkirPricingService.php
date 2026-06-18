@@ -64,6 +64,7 @@ class OngkirPricingService extends BaseService{
         $filteredOptions = [];
         $allOptions = [];
         foreach ($options as $option){
+<<<<<<< HEAD
             $rateOption = [
                 'key'=>$option->service.'_'.$option->service_type,
                 'value'=>$option->service_name.' (Rp'.(kiriof_money_format($option->cost-$option->discount_amount)).')'
@@ -72,6 +73,13 @@ class OngkirPricingService extends BaseService{
 
             if (!$this->is_cod || $this->isCodCapableOption($option)){
                 $filteredOptions[] = $rateOption;
+=======
+            if (!$this->is_cod || $this->is_cod && $option->cod){
+                $filteredOptions[] = [
+                    'key'=>$option->service.'_'.$option->service_type,
+                    'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name).' (Rp'.(kiriof_money_format($option->cost-$option->discount_amount)).')'
+                ];                
+>>>>>>> origin/main
             }
         }
         if ($this->is_cod && empty($filteredOptions) && !empty($allOptions)) {
