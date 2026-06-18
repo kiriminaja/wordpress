@@ -30,7 +30,7 @@ class GetTransactionDetailSummary extends BaseService{
         return self::success([
             'checkout_data'         => json_decode($transactionRepo->shipping_info),
             'payment'               => intval($transactionRepo->cod_fee) > 0 ? 'COD' : 'Transfer', 
-            'expedition_service'    => strtoupper($transactionRepo->service).' '.strtoupper($transactionRepo->service_name),
+            'expedition_service'    => kiriof_helper()->formatServiceName($transactionRepo->service, $transactionRepo->service_name),
             'cart_data'             => $cartProductRepo,
             'transaction_data'      => $transactionRepo,
             'status_label'          => kiriof_helper()->transactionStatusLabel(@$transactionRepo->status),

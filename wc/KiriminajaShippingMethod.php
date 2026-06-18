@@ -137,15 +137,19 @@ function kiriof_shipping_method(){
 
                         $filteredOptions[] = [
                             'key'=>$option->service.'_'.$option->service_type,
-                            'value'=>$option->service_name,
+                            'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name),
                             'cost'=>$shipping_cost
                         ];    
                     }
                 }
 
-                // Sort by cost ascending to maintain consistent ordering across re-renders
+                // Sort by cost ascending, then by name for stable ordering
                 usort($filteredOptions, function($a, $b) {
-                    return $a['cost'] <=> $b['cost'];
+                    $costCmp = $a['cost'] <=> $b['cost'];
+                    if ( 0 !== $costCmp ) {
+                        return $costCmp;
+                    }
+                    return strcasecmp($a['value'], $b['value']);
                 });
                 
                 return $filteredOptions;
