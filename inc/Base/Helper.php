@@ -149,35 +149,38 @@ class Helper extends  BaseInit {
         return $date->format("Y-m-d H:i:s");
     }
 
-    const COURIER_NAME_MAP = array(
-        'jne'          => 'JNE Express',
-        'tiki'         => 'Tiki',
-        'sicepat'      => 'Sicepat Express',
-        'jnt'          => 'J&T Express',
-        'jtcargo'      => 'J&T Cargo',
-        'anteraja'     => 'AnterAja',
-        'pos'          => 'Pos Indonesia',
-        'posindonesia' => 'Pos Indonesia',
-        'rpx'          => 'RPX Logistics',
-        'lion'         => 'Lion Parcel',
-        'paxel'        => 'Paxel',
-        'sap'          => 'SAPX Express',
-        'ninja'        => 'Ninja',
-        'idexpress'    => 'ID Express',
-        'idx'          => 'ID Express',
-        'ncs'          => 'NCS Courier',
-        'borzo'        => 'Borzo',
-        'grab'         => 'Grab Express',
-        'grab_express' => 'Grab Express',
-        'gosend'       => 'GoSend',
-        'sentral'      => 'Sentral Cargo',
-        'spx'          => 'SPX Express',
-    );
+    private function getCourierNameMap() {
+        return array(
+            'jne'          => __( 'JNE Express', 'kiriminaja-official' ),
+            'tiki'         => __( 'Tiki', 'kiriminaja-official' ),
+            'sicepat'      => __( 'Sicepat Express', 'kiriminaja-official' ),
+            'jnt'          => __( 'J&T Express', 'kiriminaja-official' ),
+            'jtcargo'      => __( 'J&T Cargo', 'kiriminaja-official' ),
+            'anteraja'     => __( 'AnterAja', 'kiriminaja-official' ),
+            'pos'          => __( 'Pos Indonesia', 'kiriminaja-official' ),
+            'posindonesia' => __( 'Pos Indonesia', 'kiriminaja-official' ),
+            'rpx'          => __( 'RPX Logistics', 'kiriminaja-official' ),
+            'lion'         => __( 'Lion Parcel', 'kiriminaja-official' ),
+            'paxel'        => __( 'Paxel', 'kiriminaja-official' ),
+            'sap'          => __( 'SAPX Express', 'kiriminaja-official' ),
+            'ninja'        => __( 'Ninja', 'kiriminaja-official' ),
+            'idexpress'    => __( 'ID Express', 'kiriminaja-official' ),
+            'idx'          => __( 'ID Express', 'kiriminaja-official' ),
+            'ncs'          => __( 'NCS Courier', 'kiriminaja-official' ),
+            'borzo'        => __( 'Borzo', 'kiriminaja-official' ),
+            'grab'         => __( 'Grab Express', 'kiriminaja-official' ),
+            'grab_express' => __( 'Grab Express', 'kiriminaja-official' ),
+            'gosend'       => __( 'GoSend', 'kiriminaja-official' ),
+            'sentral'      => __( 'Sentral Cargo', 'kiriminaja-official' ),
+            'spx'          => __( 'SPX Express', 'kiriminaja-official' ),
+        );
+    }
 
     public function getCourierDisplayName( $serviceCode ) {
         $serviceCode = strtolower( trim( (string) $serviceCode ) );
-        if ( isset( self::COURIER_NAME_MAP[ $serviceCode ] ) ) {
-            return self::COURIER_NAME_MAP[ $serviceCode ];
+        $map         = $this->getCourierNameMap();
+        if ( isset( $map[ $serviceCode ] ) ) {
+            return $map[ $serviceCode ];
         }
         return strtoupper( $serviceCode );
     }
