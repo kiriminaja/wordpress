@@ -1858,3 +1858,79 @@ msgstr "Kode"
 #: templates/request-pickup/view/modal-payment.php:78
 msgid "QR will expire at"
 msgstr "QR akan kedaluwarsa pada"
+
+#: inc/Base/Helper.php
+msgid "JNE Express"
+msgstr "JNE Express"
+
+#: inc/Base/Helper.php
+msgid "Tiki"
+msgstr "Tiki"
+
+#: inc/Base/Helper.php
+msgid "Sicepat Express"
+msgstr "Sicepat Express"
+
+#: inc/Base/Helper.php
+msgid "J&T Express"
+msgstr "J&T Express"
+
+#: inc/Base/Helper.php
+msgid "J&T Cargo"
+msgstr "J&T Cargo"
+
+#: inc/Base/Helper.php
+msgid "AnterAja"
+msgstr "AnterAja"
+
+#: inc/Base/Helper.php
+msgid "Pos Indonesia"
+msgstr "Pos Indonesia"
+
+#: inc/Base/Helper.php
+msgid "RPX Logistics"
+msgstr "RPX Logistics"
+
+#: inc/Base/Helper.php
+msgid "Lion Parcel"
+msgstr "Lion Parcel"
+
+#: inc/Base/Helper.php
+msgid "Paxel"
+msgstr "Paxel"
+
+#: inc/Base/Helper.php
+msgid "SAPX Express"
+msgstr "SAPX Express"
+
+#: inc/Base/Helper.php
+msgid "Ninja"
+msgstr "Ninja"
+
+#: inc/Base/Helper.php
+msgid "ID Express"
+msgstr "ID Express"
+
+#: inc/Base/Helper.php
+msgid "NCS Courier"
+msgstr "NCS Courier"
+
+#: inc/Base/Helper.php
+msgid "Borzo"
+msgstr "Borzo"
+
+#: inc/Base/Helper.php
+msgid "Grab Express"
+msgstr "Grab Express"
+
+#: inc/Base/Helper.php
+msgid "GoSend"
+msgstr "GoSend"
+
+#: inc/Base/Helper.php
+msgid "Sentral Cargo"
+msgstr "Sentral Cargo"
+
+#: inc/Base/Helper.php
+msgid "SPX Express"
+msgstr "SPX Express"
