@@ -206,6 +206,19 @@ class Helper extends  BaseInit {
             return $serviceName;
         }
 
+        // Check for partial word overlap between courier name and service name.
+        // This catches cases like "J&T EZ" where "J&T" is common with
+        // "J&T Express", or "POS REGULER" where "POS" overlaps with
+        // "Pos Indonesia". Words of 3+ characters avoid matching noise like
+        // "of", "ID", etc.
+        $courierWords = explode( ' ', $needle );
+        foreach ( $courierWords as $word ) {
+            $word = trim( $word );
+            if ( strlen( $word ) > 2 && strpos( $serviceNameLower, $word ) !== false ) {
+                return $serviceName;
+            }
+        }
+
         return $courierName . ' ' . $serviceName;
     }
 }
