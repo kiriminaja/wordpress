@@ -451,6 +451,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block select options become a fixed Store API enum and reject AJAX-loaded district IDs'
         );
 
+        $this->assertStringContainsString(
+            "'required'     => false",
+            $methodBody,
+            'Blocks District schema must stay optional because the field can be registered before Woo has cart state; plugin validation/UI enforce it only for shippable carts'
+        );
+
         $this->assertStringNotContainsString(
             "'before' => 'address_2'",
             $methodBody,
@@ -1956,6 +1962,56 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function virtual_cart_skips_district_field_script_registration_and_validation(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        foreach (array(
+            'function add_custom_select_options_field_and_script' => 'Virtual-only carts must not print the District field/script template',
+            'public function kiriof_billing_fields' => 'Virtual-only carts must not add classic checkout District or insurance fields',
+            'public function kiriof_register_block_checkout_fields' => 'Virtual-only carts must not register the Blocks District additional field when the cart is available',
+            'function kiriof_checkout_field_validation' => 'Virtual-only carts must not require District during classic checkout validation',
+            'public function kiriof_validateOrder' => 'Virtual-only carts must not require District, shipping, or checkout calculation validation',
+            'public function kiriof_ajax_session_save' => 'Virtual-only carts must not persist stale District session data through AJAX fallback',
+        ) as $needle => $message) {
+            $start = strpos($content, $needle);
+            $this->assertNotFalse($start, $message);
+            $body = substr($content, $start, 700);
+            $this->assertStringContainsString(
+                '! $this->kiriof_cart_needs_shipping()',
+                $body,
+                $message
+            );
+            $this->assertStringContainsString(
+                'kiriof_clear_logistics_session',
+                $body,
+                $message
+            );
+        }
+
+        $this->assertStringContainsString(
+            'private function kiriof_render_virtual_cart_district_cleanup',
+            $content,
+            'Virtual-only block checkouts need a small cleanup script because Woo Blocks can render the registered District field before cart state is available'
+        );
+        $this->assertStringContainsString(
+            'kiriof-virtual-cart-checkout',
+            $content,
+            'Virtual-only cleanup must add a page marker class for hiding District UI created by Woo Blocks'
+        );
+        $this->assertStringContainsString(
+            '[name*="kiriof_destination_area"]',
+            $content,
+            'Virtual-only cleanup must target raw registered District fields by name'
+        );
+        $this->assertStringContainsString(
+            'MutationObserver',
+            $content,
+            'Virtual-only cleanup must survive Woo Blocks React rerenders'
+        );
+    }
+
+    #[Test]
     public function virtual_products_skip_kiriminaja_weight_and_volumetric_requirements(): void
     {
         $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
@@ -2553,6 +2609,49 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $shippingInfoPosition,
             $wooPaymentPosition,
             'Woo order payment method must be preferred over stored shipping_info so BACS orders do not display as COD from stale checkout metadata'
+        );
+    }
+
+    #[Test]
+    public function transaction_process_page_only_lists_orders_with_shippable_products(): void
+    {
+        $index = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/TransactionRepository.php');
+
+        $this->assertStringContainsString(
+            'public function getShippableOrderExistsSql',
+            $repository,
+            'Transaction queries need one shared SQL clause for detecting orders with at least one shippable line item'
+        );
+        $this->assertStringContainsString(
+            'wc_order_product_lookup',
+            $repository,
+            'Shippable-order detection should inspect WooCommerce order line items, not only transaction rows'
+        );
+        $this->assertStringContainsString(
+            "meta_key = '_virtual'",
+            $repository,
+            'Shippable-order detection must exclude orders whose products/variations are virtual only'
+        );
+        $this->assertStringContainsString(
+            "COALESCE(NULLIF(kiriof_variation_virtual_meta.meta_value, ''), kiriof_product_virtual_meta.meta_value, 'no') <> 'yes'",
+            $repository,
+            'Variation virtual metadata should override product metadata, with non-virtual as the default'
+        );
+        $this->assertStringContainsString(
+            '$shippable_order_clause = $transactionRepository->getShippableOrderExistsSql',
+            $index,
+            'The transaction-process page must apply the shippable-order filter to its paginated SQL'
+        );
+        $this->assertGreaterThanOrEqual(
+            10,
+            substr_count($index, '{$shippable_order_clause}'),
+            'Every transaction-process filter branch must apply the shippable-order clause to both totals and rows'
+        );
+        $this->assertStringContainsString(
+            '$shippable_order_clause = $this->getShippableOrderExistsSql',
+            $repository,
+            'Status counts, courier filters, and month filters must use the same shippable-order filter as the page query'
         );
     }
 

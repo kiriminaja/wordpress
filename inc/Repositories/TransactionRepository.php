@@ -54,6 +54,24 @@ class TransactionRepository{
         ];
     }
 
+    public function getShippableOrderExistsSql( string $orderIdExpression ): string {
+        $product_lookup_table = esc_sql( $this->wpdb->prefix . 'wc_order_product_lookup' );
+        $postmeta_table       = esc_sql( $this->wpdb->postmeta );
+
+        return "AND EXISTS (
+            SELECT 1
+            FROM {$product_lookup_table} kiriof_product_lookup
+            LEFT JOIN {$postmeta_table} kiriof_product_virtual_meta
+                ON kiriof_product_virtual_meta.post_id = kiriof_product_lookup.product_id
+                AND kiriof_product_virtual_meta.meta_key = '_virtual'
+            LEFT JOIN {$postmeta_table} kiriof_variation_virtual_meta
+                ON kiriof_variation_virtual_meta.post_id = kiriof_product_lookup.variation_id
+                AND kiriof_variation_virtual_meta.meta_key = '_virtual'
+            WHERE kiriof_product_lookup.order_id = {$orderIdExpression}
+                AND COALESCE(NULLIF(kiriof_variation_virtual_meta.meta_value, ''), kiriof_product_virtual_meta.meta_value, 'no') <> 'yes'
+        )";
+    }
+
     /**
      * Check for database errors and log them
      * @return bool
@@ -269,9 +287,10 @@ class TransactionRepository{
         return !$this->hasError();
     }
     public function getTransactionByOldestDate(){
+        $shippable_order_clause = $this->getShippableOrderExistsSql( 'wp_wc_order_stat_order_id' );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $this->wpdb->get_row(
-            "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1"
+            "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL {$shippable_order_clause} ORDER BY created_at ASC LIMIT 1"
         );
         
         return $this->hasError() ? false : $query;
@@ -320,6 +339,7 @@ class TransactionRepository{
      */
     public function getCountByPostStatus( $postStatus ){
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         if ( null === $postStatus || '' === $postStatus || 'all' === $postStatus ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -330,7 +350,8 @@ class TransactionRepository{
                     INNER JOIN {$this->table} t
                         ON p.{$o['id']} = t.wp_wc_order_stat_order_id
                     WHERE p.{$o['type_col']} = %s
-                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')",
+                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        {$shippable_order_clause}",
                     $o['type_value']
                 )
             );
@@ -344,7 +365,8 @@ class TransactionRepository{
                     INNER JOIN {$this->table} t
                         ON p.{$o['id']} = t.wp_wc_order_stat_order_id
                     WHERE p.{$o['status']} = %s
-                        AND t.status = %s",
+                        AND t.status = %s
+                        {$shippable_order_clause}",
                     $postStatus,
                     'new'
                 )
@@ -362,6 +384,7 @@ class TransactionRepository{
      */
     public function getCountProcessed() {
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->get_var(
@@ -372,7 +395,8 @@ class TransactionRepository{
             INNER JOIN {$this->wpdb->prefix}kiriminaja_payments pay
                 ON t.pickup_number = pay.pickup_number
             WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                AND t.status != 'canceled'"
+                AND t.status != 'canceled'
+                {$shippable_order_clause}"
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
@@ -385,6 +409,7 @@ class TransactionRepository{
      */
     public function getCountCancelled() {
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->get_var(
@@ -393,7 +418,8 @@ class TransactionRepository{
                 FROM {$o['table']} p
                 INNER JOIN {$this->table} t
                     ON p.{$o['id']} = t.wp_wc_order_stat_order_id
-                WHERE p.{$o['status']} = %s",
+                WHERE p.{$o['status']} = %s
+                    {$shippable_order_clause}",
                 'wc-cancelled'
             )
         );
@@ -407,6 +433,7 @@ class TransactionRepository{
      */
     public function getCountDeficit(): int {
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->get_var(
@@ -415,7 +442,8 @@ class TransactionRepository{
             INNER JOIN {$this->table} t
                 ON p.{$o['id']} = t.wp_wc_order_stat_order_id
             WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                AND t.is_deficit = 1"
+                AND t.is_deficit = 1
+                {$shippable_order_clause}"
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
@@ -429,9 +457,11 @@ class TransactionRepository{
             return $cached;
         }
 
+        $shippable_order_clause = $this->getShippableOrderExistsSql( 't.wp_wc_order_stat_order_id' );
+
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $results = $this->wpdb->get_results(
-            "SELECT DISTINCT service FROM {$this->table} WHERE service IS NOT NULL AND service != '' ORDER BY service ASC"
+            "SELECT DISTINCT service FROM {$this->table} t WHERE service IS NOT NULL AND service != '' {$shippable_order_clause} ORDER BY service ASC"
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
