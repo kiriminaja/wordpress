@@ -69,7 +69,7 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
         }
 
-        if ( ! WC()->cart->needs_shipping() ) {
+        if ( ! $this->cartHasShippableProduct() ) {
             return $this->invalid( __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
         }
 
@@ -563,6 +563,32 @@ class ShippingDiscountCouponService {
         }
 
         return true;
+    }
+
+    private function cartHasShippableProduct(): bool {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_cart' ) ) {
+            return false;
+        }
+
+        foreach ( (array) WC()->cart->get_cart() as $cartItem ) {
+            $product = is_array( $cartItem ) && isset( $cartItem['data'] ) ? $cartItem['data'] : null;
+            if ( ! $product || ! is_object( $product ) ) {
+                continue;
+            }
+
+            if ( method_exists( $product, 'needs_shipping' ) ) {
+                if ( $product->needs_shipping() ) {
+                    return true;
+                }
+                continue;
+            }
+
+            if ( method_exists( $product, 'is_virtual' ) && ! $product->is_virtual() ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function hasOtherActiveShippingCoupon( $coupon ): bool {

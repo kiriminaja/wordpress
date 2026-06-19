@@ -63,6 +63,42 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function shipping_coupon_physical_product_check_ignores_virtual_items_and_discounted_totals(): void
+    {
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
+
+        $this->assertStringContainsString(
+            'private function cartHasShippableProduct',
+            $serviceContent,
+            'Shipping discount eligibility must inspect cart products directly'
+        );
+        $this->assertStringContainsString(
+            "isset( \$cartItem['data'] )",
+            $serviceContent,
+            'Mixed carts need eligibility based on each cart item product object'
+        );
+        $this->assertStringContainsString(
+            '$product->needs_shipping()',
+            $serviceContent,
+            'A cart with one non-virtual item must remain eligible even when another virtual item is fully discounted'
+        );
+
+        $validationStart = strpos($serviceContent, 'public function validateCouponForCart');
+        $this->assertNotFalse($validationStart, 'Shipping coupon cart validation must exist');
+        $validationBody = substr($serviceContent, $validationStart, 1200);
+        $this->assertStringContainsString(
+            '! $this->cartHasShippableProduct()',
+            $validationBody,
+            'Physical-product validation should use cartHasShippableProduct instead of Woo shipping state'
+        );
+        $this->assertStringNotContainsString(
+            '! WC()->cart->needs_shipping()',
+            $validationBody,
+            'Woo can temporarily report no shipping during coupon recalculation with mixed virtual/physical carts and 100% item discounts'
+        );
+    }
+
+    #[Test]
     public function cart_and_checkout_templates_render_shipping_coupon_rows_as_shipping_scoped(): void
     {
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
