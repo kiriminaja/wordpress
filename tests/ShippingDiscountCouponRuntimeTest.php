@@ -49,6 +49,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('validateCouponForCart( $coupon, false, false )', $serviceContent);
         $this->assertStringContainsString('couponAllowsSelectedCourier', $serviceContent);
         $this->assertStringContainsString('getChosenShippingMethods', $serviceContent);
+        $this->assertStringContainsString('getAvailableShippingRateIds', $serviceContent);
         $this->assertStringContainsString("'kiriof_chosen_shipping_methods'", $serviceContent);
         $this->assertStringContainsString("isset( \$_POST['shipping_method'] )", $serviceContent);
         $this->assertStringContainsString('getChosenKiriminAjaCourierCode', $serviceContent);
@@ -131,6 +132,31 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             'allNativeCouponCombinationsAllowed',
             $serviceContent,
             'When all native combination boxes are checked, unknown non-shipping coupon types should not be rejected automatically'
+        );
+    }
+
+    #[Test]
+    public function store_api_shipping_coupon_validation_allows_all_region_coupons_without_posted_district(): void
+    {
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
+        $validationStart = strpos($serviceContent, 'public function validateCouponForCart');
+        $this->assertNotFalse($validationStart, 'Shipping coupon cart validation must exist');
+        $validationBody = substr($serviceContent, $validationStart, 2600);
+
+        $this->assertStringContainsString(
+            'couponHasRegionRestrictions',
+            $validationBody,
+            'All-region shipping coupons should not require a posted District during Store API apply-coupon'
+        );
+        $this->assertStringContainsString(
+            'getAvailableShippingRateIds',
+            $serviceContent,
+            'Store API coupon validation should recognize KiriminAja from available package rates when chosen_shipping_methods is temporarily empty'
+        );
+        $this->assertStringContainsString(
+            "strpos( \$method, 'kiriminaja-official' ) === 0",
+            $serviceContent,
+            'KiriminAja shipping detection must still use the KiriminAja method prefix'
         );
     }
 

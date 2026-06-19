@@ -91,13 +91,15 @@ class ShippingDiscountCouponService {
             return $this->invalid( __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ) );
         }
 
-        $destination = $this->getDestinationContext();
-        if ( $destination['id'] < 1 && '' === $destination['name'] ) {
-            return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
-        }
+        if ( $this->couponHasRegionRestrictions( $coupon ) ) {
+            $destination = $this->getDestinationContext();
+            if ( $destination['id'] < 1 && '' === $destination['name'] ) {
+                return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
+            }
 
-        if ( ! $this->couponMatchesDestination( $coupon, $destination ) ) {
-            return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
+            if ( ! $this->couponMatchesDestination( $coupon, $destination ) ) {
+                return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
+            }
         }
 
         if ( $requireSelectedShipping && ! $this->isKiriminAjaShippingSelected() ) {
@@ -149,7 +151,39 @@ class ShippingDiscountCouponService {
             }
         }
 
+        foreach ( $this->getAvailableShippingRateIds() as $method ) {
+            if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    private function getAvailableShippingRateIds(): array {
+        $packages = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'get_packages' ) ) {
+            $packages = (array) WC()->shipping()->get_packages();
+        } elseif ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_shipping_packages' ) ) {
+            $packages = (array) WC()->cart->get_shipping_packages();
+        }
+
+        $rateIds = array();
+        foreach ( $packages as $package ) {
+            foreach ( (array) ( $package['rates'] ?? array() ) as $rateKey => $rate ) {
+                if ( is_object( $rate ) && isset( $rate->id ) ) {
+                    $rateIds[] = (string) $rate->id;
+                    continue;
+                }
+                if ( is_object( $rate ) && method_exists( $rate, 'get_id' ) ) {
+                    $rateIds[] = (string) $rate->get_id();
+                    continue;
+                }
+                $rateIds[] = (string) $rateKey;
+            }
+        }
+
+        return array_values( array_filter( array_unique( $rateIds ) ) );
     }
 
     private function getChosenShippingMethods(): array {
@@ -402,6 +436,10 @@ class ShippingDiscountCouponService {
         }
 
         return false;
+    }
+
+    private function couponHasRegionRestrictions( $coupon ): bool {
+        return ! empty( $this->getCouponRegions( $coupon ) );
     }
 
     private function getCouponRegions( $coupon ): array {
