@@ -1,14 +1,5 @@
 (function (wp, wc) {
-  if (!wp || !wp.plugins || !wp.element || !wc || !wc.blocksCheckout) {
-    return;
-  }
-
-  const { registerPlugin } = wp.plugins;
-  const { createElement, Fragment, useEffect, useMemo, useRef, useState } =
-    wp.element;
-  const { ExperimentalOrderMeta } = wc.blocksCheckout;
-
-  if (!ExperimentalOrderMeta) {
+  if (!window || !document) {
     return;
   }
 
@@ -65,18 +56,17 @@
   // Injects a strikethrough original price into the Order Summary shipping totals row.
   // Scoped only to the totals section — does NOT touch the shipping options list.
   function syncShippingTotalsStrikethrough(discount) {
-    document
-      .querySelectorAll(".kiriof-shipping-totals-original")
-      .forEach(function (n) {
-        n.remove();
-      });
-
     if (
       !discount ||
       parseFloat(discount.amount || 0) <= 0 ||
       !discount.formatted_original_cost ||
       !discount.formatted_current_cost
     ) {
+      document
+        .querySelectorAll(".kiriof-shipping-totals-original")
+        .forEach(function (n) {
+          n.remove();
+        });
       return;
     }
 
@@ -96,10 +86,95 @@
       return;
     }
 
-    const del = document.createElement("del");
-    del.className = "kiriof-shipping-totals-original";
-    del.textContent = discount.formatted_original_cost;
-    priceNode.parentNode.insertBefore(del, priceNode);
+    let del = priceNode.parentNode.querySelector(
+      ".kiriof-shipping-totals-original",
+    );
+    if (!del) {
+      del = document.createElement("del");
+      del.className = "kiriof-shipping-totals-original";
+      priceNode.parentNode.insertBefore(del, priceNode);
+    }
+    if (del.textContent !== discount.formatted_original_cost) {
+      del.textContent = discount.formatted_original_cost;
+    }
+  }
+
+  function syncShippingDiscountTotalsRow(discount) {
+    if (
+      !discount ||
+      parseFloat(discount.amount || 0) <= 0 ||
+      !discount.formatted
+    ) {
+      document
+        .querySelectorAll(".kiriof-block-shipping-discount__fallback-row")
+        .forEach(function (n) {
+          n.remove();
+        });
+      return;
+    }
+
+    const shippingRow = document.querySelector(
+      ".wc-block-components-totals-shipping",
+    );
+    if (!shippingRow || shippingRow.closest(".wp-block-woocommerce-checkout")) {
+      return;
+    }
+
+    let row = document.querySelector(
+      ".kiriof-block-shipping-discount__fallback-row",
+    );
+    if (!row) {
+      row = document.createElement("div");
+      row.className =
+        "wc-block-components-totals-item kiriof-block-shipping-discount__row kiriof-block-shipping-discount__fallback-row";
+      row.appendChild(document.createElement("span"));
+      row.appendChild(document.createElement("strong"));
+      shippingRow.parentNode.insertBefore(row, shippingRow.nextSibling);
+    }
+
+    const label = row.querySelector("span");
+    const value = row.querySelector("strong");
+    const labelText = discount.label || "Shipping Discount";
+    const valueText = "-" + discount.formatted;
+    if (label && label.textContent !== labelText) {
+      label.textContent = labelText;
+    }
+    if (value && value.textContent !== valueText) {
+      value.textContent = valueText;
+    }
+  }
+
+  function bootDomShippingDiscountSummary() {
+    const retryDelays = [0, 400, 1000, 2000];
+
+    function refresh() {
+      fetchCurrentShippingDiscount(function (discount) {
+        syncShippingTotalsStrikethrough(discount);
+        syncShippingDiscountTotalsRow(discount);
+      });
+    }
+
+    retryDelays.forEach(function (delay) {
+      window.setTimeout(refresh, delay);
+    });
+
+    if (window.MutationObserver && document.body) {
+      let pending = false;
+      const observer = new MutationObserver(function () {
+        if (pending) {
+          return;
+        }
+        pending = true;
+        window.setTimeout(function () {
+          pending = false;
+          refresh();
+        }, 250);
+      });
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
   }
 
   function invalidateBlockShippingRates() {
@@ -137,6 +212,24 @@
       }
     } catch (e) {}
   }
+
+  const hasCheckoutSlotFill =
+    wp &&
+    wp.plugins &&
+    wp.element &&
+    wc &&
+    wc.blocksCheckout &&
+    wc.blocksCheckout.ExperimentalOrderMeta;
+
+  if (!hasCheckoutSlotFill) {
+    bootDomShippingDiscountSummary();
+    return;
+  }
+
+  const { registerPlugin } = wp.plugins;
+  const { createElement, Fragment, useEffect, useMemo, useRef, useState } =
+    wp.element;
+  const { ExperimentalOrderMeta } = wc.blocksCheckout;
 
   function KiriofOrderMetaFill(props) {
     const cart = props && props.cart ? props.cart : {};
@@ -245,7 +338,10 @@
       [shippingDiscount],
     );
 
-    if (!kiriofFees.length) {
+    const hasShippingDiscount =
+      shippingDiscount && parseFloat(shippingDiscount.amount || 0) > 0;
+
+    if (!kiriofFees.length && !hasShippingDiscount) {
       return null;
     }
 
@@ -255,6 +351,25 @@
       createElement(
         Fragment,
         null,
+        hasShippingDiscount &&
+          createElement(
+            "div",
+            {
+              key: "kiriof-shipping-discount",
+              className:
+                "wc-block-components-totals-item kiriof-block-shipping-discount__row",
+            },
+            createElement(
+              "span",
+              null,
+              shippingDiscount.label || "Shipping Discount",
+            ),
+            createElement(
+              "strong",
+              null,
+              "-" + (shippingDiscount.formatted || ""),
+            ),
+          ),
         kiriofFees.map(function (fee) {
           return createElement(
             "div",

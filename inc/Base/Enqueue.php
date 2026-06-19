@@ -89,7 +89,7 @@ class Enqueue extends BaseInit{
             );
         }
 
-        if ( $this->isBlockCheckoutPage() ) {
+        if ( $this->isBlockCartOrCheckoutPage() ) {
             wp_enqueue_script(
                 'kiriof-block-checkout',
                 $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
@@ -100,13 +100,22 @@ class Enqueue extends BaseInit{
         }
     }
 
-    private function isBlockCheckoutPage() {
+    private function isBlockCartOrCheckoutPage() {
         $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
         if ( $checkout_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
             return true;
         }
+        $cart_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'cart' ) : 0;
+        if ( $cart_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/cart', $cart_page_id ) ) {
+            return true;
+        }
         if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_checkout_block_default' ) ) {
             if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_checkout_block_default() ) {
+                return true;
+            }
+        }
+        if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_cart_block_default' ) ) {
+            if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_cart_block_default() ) {
                 return true;
             }
         }

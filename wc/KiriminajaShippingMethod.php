@@ -210,6 +210,29 @@ function kiriof_shipping_method(){
                     WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array_merge( $existingRateMetaMap, $kiriofRateMetaMap ) );
                 }
 
+                if ( function_exists( 'kiriof_log' ) ) {
+                    $discountedRates = array_filter(
+                        $kiriofRateMetaMap,
+                        static function ( $rateMeta ) {
+                            return isset( $rateMeta['discount_amount'] ) && (float) $rateMeta['discount_amount'] > 0;
+                        }
+                    );
+
+                    kiriof_log(
+                        'info',
+                        'Shipping discount rate metadata refreshed.',
+                        array(
+                            'rate_count' => count( $kiriofRateMetaMap ),
+                            'discounted_rate_count' => count( $discountedRates ),
+                            'discounted_rate_ids' => array_keys( $discountedRates ),
+                            'applied_coupons' => function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_applied_coupons' )
+                                ? array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) )
+                                : array(),
+                        ),
+                        'shipping_discount_coupon'
+                    );
+                }
+
             }
 
             public function filterOptions($pricingData, $quantity, $kiriof_insurance = null){

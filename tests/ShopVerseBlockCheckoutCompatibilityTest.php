@@ -2660,6 +2660,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+        $style = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
@@ -2673,6 +2674,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'wc-blocks-checkout',
             $enqueue,
             'Slot/fill script must depend on Woo Blocks checkout APIs'
+        );
+
+        $this->assertStringContainsString(
+            'isBlockCartOrCheckoutPage',
+            $enqueue,
+            'Shipping discount totals script must load on both Cart Block and Checkout Block pages'
+        );
+
+        $this->assertStringContainsString(
+            "has_block( 'woocommerce/cart'",
+            $enqueue,
+            'Cart Block pages need the shipping discount totals script too'
+        );
+
+        $this->assertStringContainsString(
+            'is_cart_block_default',
+            $enqueue,
+            'Default Woo Cart Block pages need the shipping discount totals script too'
         );
 
         $this->assertStringContainsString(
@@ -2748,6 +2767,42 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'getCurrentShippingDiscountSummary',
             $couponController,
             'Block checkout AJAX should use the shipping discount summary so buyers can see the shipping method name plus original and discounted shipping prices'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-block-shipping-discount__row',
+            $script,
+            'Block checkout order summary should render an explicit shipping discount row when a shipping coupon changes the selected rate'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-block-shipping-discount__fallback-row',
+            $script,
+            'Cart Block should receive a DOM fallback shipping discount row because checkout Slot/Fills are not available there'
+        );
+
+        $this->assertStringContainsString(
+            'bootDomShippingDiscountSummary',
+            $script,
+            'Cart Block should fetch the shipping discount summary and sync the totals DOM without checkout Slot/Fills'
+        );
+
+        $this->assertStringContainsString(
+            'shippingDiscount.label || "Shipping Discount"',
+            $script,
+            'The block checkout shipping discount row should include the active shipping coupon label/code'
+        );
+
+        $this->assertStringContainsString(
+            '.kiriof-block-shipping-discount__row',
+            $style,
+            'Injected shipping discount row should style the actual block checkout/cart class'
+        );
+
+        $this->assertStringContainsString(
+            'padding: 24px 32px !important;',
+            $style,
+            'Injected shipping discount row needs horizontal padding so it aligns with Woo block totals content'
         );
 
         $this->assertStringNotContainsString(

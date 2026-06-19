@@ -106,6 +106,11 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             $validationBody,
             'Woo can temporarily report no shipping during coupon recalculation with mixed virtual/physical carts and 100% item discounts'
         );
+        $this->assertStringNotContainsString(
+            'Shipping discount coupons are not available for your account type.',
+            $serviceContent,
+            'Shipping coupons should remain usable for TOP/published-rate merchants when the merchant explicitly creates a shipping discount coupon'
+        );
         $this->assertStringContainsString(
             'return true;',
             substr($controllerContent, strpos($controllerContent, 'public function validateShippingCouponForProduct'), 500),
@@ -196,6 +201,16 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             'invalidateShippingRatesAfterCouponChange',
             $controllerContent,
             'Store API coupon apply/remove must invalidate shipping rates because zero-item shipping coupons may not appear in the Blocks coupon signature'
+        );
+        $this->assertStringContainsString(
+            "add_action( 'woocommerce_applied_coupon', array( \$this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );",
+            $controllerContent,
+            'Shipping cache must be invalidated before WooCommerce recalculates totals on coupon apply'
+        );
+        $this->assertStringContainsString(
+            "add_action( 'woocommerce_removed_coupon', array( \$this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );",
+            $controllerContent,
+            'Shipping cache must be invalidated before WooCommerce recalculates totals on coupon removal'
         );
         $this->assertStringContainsString(
             "WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );",

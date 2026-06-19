@@ -23,6 +23,8 @@ class ShippingDiscountCouponController {
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
         add_filter( 'woocommerce_coupon_is_valid_for_product', array( $this, 'validateShippingCouponForProduct' ), 20, 4 );
         add_filter( 'woocommerce_coupon_get_discount_amount', array( $this, 'zeroItemDiscountForShippingCoupon' ), 20, 5 );
+        add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
+        add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'handleAppliedShippingCoupon' ), 20, 1 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
         add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
@@ -67,16 +69,41 @@ class ShippingDiscountCouponController {
         }
 
         if ( ! $valid ) {
+            $this->logShippingCouponEvent(
+                'warning',
+                'Shipping discount coupon rejected before KiriminAja validation.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                )
+            );
             return false;
         }
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
+            $this->logShippingCouponEvent(
+                'info',
+                'Shipping discount coupon passed cart validation.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                )
+            );
             $service->clearValidationNotices();
             return true;
         }
 
         $message = $validation['message'] ?? '';
+        $this->logShippingCouponEvent(
+            'warning',
+            'Shipping discount coupon failed cart validation.',
+            $coupon,
+            array(
+                'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                'validation_message' => $message,
+            )
+        );
         if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
             if ( ! function_exists( 'wc_has_notice' ) || ! wc_has_notice( $message, 'error' ) ) {
                 wc_add_notice( $message, 'error' );
@@ -127,6 +154,14 @@ class ShippingDiscountCouponController {
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
+            $this->logShippingCouponEvent(
+                'info',
+                'Applied shipping discount coupon remains valid.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_applied_coupon',
+                )
+            );
             $service->clearValidationNotices();
             return;
         }
@@ -134,6 +169,15 @@ class ShippingDiscountCouponController {
         WC()->cart->remove_coupon( $coupon_code );
 
         $message = $validation['message'] ?? '';
+        $this->logShippingCouponEvent(
+            'warning',
+            'Applied shipping discount coupon removed after validation.',
+            $coupon,
+            array(
+                'hook' => 'woocommerce_applied_coupon',
+                'validation_message' => $message,
+            )
+        );
         if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
             if ( function_exists( 'wc_clear_notices' ) ) {
                 wc_clear_notices();
@@ -167,6 +211,17 @@ class ShippingDiscountCouponController {
         if ( isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'reset_shipping' ) ) {
             WC()->shipping()->reset_shipping();
         }
+
+        $this->logShippingCouponEvent(
+            'info',
+            'Shipping rates invalidated after coupon change.',
+            null,
+            array(
+                'hook' => current_filter(),
+                'package_count' => count( $packages ),
+                'applied_coupons' => $this->getAppliedCouponCodesForLog(),
+            )
+        );
     }
 
     public function enforceShippingCouponRestrictions( $cart ) {
@@ -192,6 +247,14 @@ class ShippingDiscountCouponController {
 
             $validation = $service->validateCouponForCart( $coupon );
             if ( $validation['valid'] ) {
+                $this->logShippingCouponEvent(
+                    'info',
+                    'Active shipping discount coupon remains valid during totals calculation.',
+                    $coupon,
+                    array(
+                        'hook' => 'woocommerce_before_calculate_totals',
+                    )
+                );
                 $service->clearValidationNotices();
                 continue;
             }
@@ -200,6 +263,15 @@ class ShippingDiscountCouponController {
             $removed = true;
 
             $message = $validation['message'] ?? '';
+            $this->logShippingCouponEvent(
+                'warning',
+                'Active shipping discount coupon removed during totals calculation.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_before_calculate_totals',
+                    'validation_message' => $message,
+                )
+            );
             if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
                 if ( ! function_exists( 'wc_has_notice' ) || ! wc_has_notice( $message, 'error' ) ) {
                     wc_add_notice( $message, 'error' );
@@ -212,6 +284,39 @@ class ShippingDiscountCouponController {
         if ( $removed && method_exists( $cart, 'calculate_totals' ) ) {
             $cart->calculate_totals();
         }
+    }
+
+    private function logShippingCouponEvent( string $level, string $message, $coupon = null, array $context = array() ): void {
+        if ( ! function_exists( 'kiriof_log' ) ) {
+            return;
+        }
+
+        if ( $coupon instanceof \WC_Coupon ) {
+            $context['coupon_code'] = (string) $coupon->get_code();
+            $context['discount_type'] = (string) $coupon->get_discount_type();
+            $context['coupon_amount'] = (float) $coupon->get_amount();
+        }
+
+        if ( ! isset( $context['applied_coupons'] ) ) {
+            $context['applied_coupons'] = $this->getAppliedCouponCodesForLog();
+        }
+
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $context['chosen_shipping_methods'] = (array) WC()->session->get( 'chosen_shipping_methods', array() );
+            $context['kiriof_chosen_shipping_methods'] = (array) WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
+            $context['destination_id'] = (int) ( WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' ) ?: 0 );
+            $context['payment_method'] = (string) ( WC()->session->get( 'chosen_payment_method' ) ?: WC()->session->get( 'kiriof_payment_method' ) ?: '' );
+        }
+
+        kiriof_log( $level, $message, $context, 'shipping_discount_coupon' );
+    }
+
+    private function getAppliedCouponCodesForLog(): array {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_applied_coupons' ) ) {
+            return array();
+        }
+
+        return array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) );
     }
 
     public function getCurrentShippingDiscountAjax() {

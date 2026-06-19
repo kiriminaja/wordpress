@@ -184,8 +184,30 @@ tr.woocommerce-shipping-totals {
   margin-bottom: 12px !important;
 }
 
-.kiriof-block-shipping-discount-row strong {
+.kiriof-block-shipping-discount__row {
+  order: 6 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 24px 32px !important;
+}
+
+.kiriof-block-shipping-discount__row span {
+  min-width: 0;
+}
+
+.kiriof-block-shipping-discount__row strong {
+  white-space: nowrap;
   color: #0f766e;
+}
+
+@media (max-width: 600px) {
+  .kiriof-block-shipping-discount__row {
+    padding-right: 24px !important;
+    padding-left: 24px !important;
+  }
 }
 
 .kiriof-block-shipping-rate-details {

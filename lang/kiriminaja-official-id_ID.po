@@ -2588,10 +2588,6 @@ msgid "Item"
 msgstr "Item"
 
 #: inc/Services/ShippingDiscountCouponService.php
-msgid "Shipping discount coupons are not available for your account type."
-msgstr "Kupon diskon ongkir tidak tersedia untuk tipe akun Anda."
-
-#: inc/Services/ShippingDiscountCouponService.php
 msgid "This coupon cannot be combined with a free shipping coupon."
 msgstr "Kupon ini tidak dapat digabungkan dengan kupon gratis ongkir."
 
