@@ -556,13 +556,37 @@ class ShippingDiscountCouponService {
                 continue;
             }
 
-            $activeType = sanitize_key( (string) $activeCoupon->get_discount_type() );
-            if ( ! in_array( $activeType, $allowedTypes, true ) ) {
+            $activeTypes = $this->getNativeCouponCombinationAliases( $activeCoupon );
+            if ( empty( array_intersect( $activeTypes, $allowedTypes ) ) && ! $this->allNativeCouponCombinationsAllowed( $allowedTypes ) ) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private function getNativeCouponCombinationAliases( \WC_Coupon $coupon ): array {
+        $type = sanitize_key( (string) $coupon->get_discount_type() );
+        $aliases = array( $type );
+
+        if ( str_contains( $type, 'percent' ) || str_contains( $type, 'percentage' ) ) {
+            $aliases[] = 'percent';
+        }
+
+        if ( str_contains( $type, 'product' ) ) {
+            $aliases[] = 'fixed_product';
+        }
+
+        if ( str_contains( $type, 'cart' ) ) {
+            $aliases[] = 'fixed_cart';
+        }
+
+        return array_values( array_unique( array_filter( $aliases ) ) );
+    }
+
+    private function allNativeCouponCombinationsAllowed( array $allowedTypes ): bool {
+        $nativeTypes = array( 'fixed_cart', 'percent', 'fixed_product' );
+        return empty( array_diff( $nativeTypes, $allowedTypes ) );
     }
 
     private function cartHasShippableProduct(): bool {

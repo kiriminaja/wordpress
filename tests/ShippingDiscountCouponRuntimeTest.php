@@ -13,9 +13,17 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString('woocommerce_coupon_is_valid_for_cart', $content);
+        $this->assertStringContainsString('woocommerce_cart_coupon_types', $content);
+        $this->assertStringContainsString('woocommerce_coupon_is_valid_for_product', $content);
+        $this->assertStringContainsString('woocommerce_coupon_get_discount_amount', $content);
         $this->assertStringContainsString('woocommerce_applied_coupon', $content);
+        $this->assertStringContainsString('woocommerce_removed_coupon', $content);
         $this->assertStringContainsString('woocommerce_before_calculate_totals', $content);
         $this->assertStringContainsString('validateShippingCouponForCart', $content);
+        $this->assertStringContainsString('registerRuntimeCartCouponTypes', $content);
+        $this->assertStringContainsString('validateShippingCouponForProduct', $content);
+        $this->assertStringContainsString('zeroItemDiscountForShippingCoupon', $content);
+        $this->assertStringContainsString('invalidateShippingRatesAfterCouponChange', $content);
         $this->assertStringContainsString('handleAppliedShippingCoupon', $content);
         $this->assertStringContainsString('enforceShippingCouponRestrictions', $content);
         // Shipping label injection removed — janky on block checkout themes (ShopVerse)
@@ -66,6 +74,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
     public function shipping_coupon_physical_product_check_ignores_virtual_items_and_discounted_totals(): void
     {
         $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
+        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
         $this->assertStringContainsString(
             'private function cartHasShippableProduct',
@@ -95,6 +104,87 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             '! WC()->cart->needs_shipping()',
             $validationBody,
             'Woo can temporarily report no shipping during coupon recalculation with mixed virtual/physical carts and 100% item discounts'
+        );
+        $this->assertStringContainsString(
+            'return true;',
+            substr($controllerContent, strpos($controllerContent, 'public function validateShippingCouponForProduct'), 500),
+            'KiriminAja shipping coupons discount shipping rates, so Woo product-scope coupon validation must not reject them when the cart also contains virtual products'
+        );
+    }
+
+    #[Test]
+    public function shipping_coupon_combinations_accept_percentage_like_smart_coupon_types(): void
+    {
+        $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
+
+        $this->assertStringContainsString(
+            'getNativeCouponCombinationAliases',
+            $serviceContent,
+            'Shipping coupon combinations must normalize third-party coupon discount type aliases'
+        );
+        $this->assertStringContainsString(
+            "str_contains( \$type, 'percent' )",
+            $serviceContent,
+            'Smart Coupon percentage-like types should match the Percentage discount combination checkbox'
+        );
+        $this->assertStringContainsString(
+            'allNativeCouponCombinationsAllowed',
+            $serviceContent,
+            'When all native combination boxes are checked, unknown non-shipping coupon types should not be rejected automatically'
+        );
+    }
+
+    #[Test]
+    public function shipping_coupon_registers_as_runtime_cart_coupon_without_item_discount(): void
+    {
+        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
+
+        $this->assertStringContainsString(
+            'registerRuntimeCartCouponTypes',
+            $controllerContent,
+            'Store API apply-coupon must treat KiriminAja shipping coupon types as runtime cart coupon types so they can stay applied'
+        );
+        $this->assertStringContainsString(
+            'array_merge( (array) $types, $this->getShippingCouponTypes() )',
+            $controllerContent,
+            'Runtime cart coupon type registration must include fixed and percentage shipping coupons'
+        );
+        $this->assertStringContainsString(
+            'zeroItemDiscountForShippingCoupon',
+            $controllerContent,
+            'Shipping coupons must not discount product line items after being registered as cart coupon types'
+        );
+        $this->assertStringContainsString(
+            'return 0;',
+            substr($controllerContent, strpos($controllerContent, 'public function zeroItemDiscountForShippingCoupon'), 600),
+            'KiriminAja shipping coupon amount should be applied only to shipping rates, not Woo item/cart discount totals'
+        );
+    }
+
+    #[Test]
+    public function coupon_changes_invalidate_cached_shipping_rates_for_store_api(): void
+    {
+        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
+
+        $this->assertStringContainsString(
+            'invalidateShippingRatesAfterCouponChange',
+            $controllerContent,
+            'Store API coupon apply/remove must invalidate shipping rates because zero-item shipping coupons may not appear in the Blocks coupon signature'
+        );
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );",
+            $controllerContent,
+            'Cached KiriminAja shipping coupon metadata must be cleared when coupons change'
+        );
+        $this->assertStringContainsString(
+            "'shipping_for_package_' . \$package_index",
+            $controllerContent,
+            'WooCommerce shipping package cache must be cleared so rates recalculate with the new shipping coupon'
+        );
+        $this->assertStringContainsString(
+            'reset_shipping',
+            $controllerContent,
+            'WooCommerce shipping object should be reset after coupon changes'
         );
     }
 

@@ -18,9 +18,14 @@ class ShippingDiscountCouponController {
 
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
+        add_filter( 'woocommerce_cart_coupon_types', array( $this, 'registerRuntimeCartCouponTypes' ) );
         add_filter( 'woocommerce_coupon_data_tabs', array( $this, 'registerCouponDataTabs' ) );
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
+        add_filter( 'woocommerce_coupon_is_valid_for_product', array( $this, 'validateShippingCouponForProduct' ), 20, 4 );
+        add_filter( 'woocommerce_coupon_get_discount_amount', array( $this, 'zeroItemDiscountForShippingCoupon' ), 20, 5 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'handleAppliedShippingCoupon' ), 20, 1 );
+        add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
+        add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
         add_action( 'woocommerce_before_calculate_totals', array( $this, 'enforceShippingCouponRestrictions' ), 20, 1 );
         add_filter( 'manage_edit-shop_coupon_columns', array( $this, 'registerCouponListColumns' ) );
         add_action( 'manage_shop_coupon_posts_custom_column', array( $this, 'renderCouponListColumn' ), 10, 2 );
@@ -45,6 +50,10 @@ class ShippingDiscountCouponController {
         $types[ ShippingDiscountCouponService::FIXED_COUPON_TYPE ] = __( 'Fixed shipping discount', 'kiriminaja-official' );
         $types[ ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE ] = __( 'Percentage shipping discount', 'kiriminaja-official' );
         return $types;
+    }
+
+    public function registerRuntimeCartCouponTypes( $types ) {
+        return array_values( array_unique( array_merge( (array) $types, $this->getShippingCouponTypes() ) ) );
     }
 
     public function registerCouponDataTabs( $tabs ) {
@@ -75,6 +84,28 @@ class ShippingDiscountCouponController {
         }
 
         return false;
+    }
+
+    public function validateShippingCouponForProduct( $valid, $product, $coupon, $values ) {
+        unset( $product, $values );
+
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $valid;
+        }
+
+        return true;
+    }
+
+    public function zeroItemDiscountForShippingCoupon( $discount, $discounting_amount, $cart_item, $single, $coupon ) {
+        unset( $discounting_amount, $cart_item, $single );
+
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $discount;
+        }
+
+        return 0;
     }
 
     public function handleAppliedShippingCoupon( $coupon_code ) {
@@ -108,6 +139,33 @@ class ShippingDiscountCouponController {
                 wc_clear_notices();
             }
             wc_add_notice( $message, 'error' );
+        }
+    }
+
+    public function invalidateShippingRatesAfterCouponChange( $coupon_code = '' ): void {
+        unset( $coupon_code );
+
+        if ( ! function_exists( 'WC' ) || ! WC() ) {
+            return;
+        }
+
+        if ( isset( WC()->session ) && WC()->session ) {
+            WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+        }
+
+        $packages = array();
+        if ( isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_shipping_packages' ) ) {
+            $packages = (array) WC()->cart->get_shipping_packages();
+        }
+
+        if ( isset( WC()->session ) && WC()->session ) {
+            foreach ( array_keys( $packages ) as $package_index ) {
+                WC()->session->set( 'shipping_for_package_' . $package_index, false );
+            }
+        }
+
+        if ( isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'reset_shipping' ) ) {
+            WC()->shipping()->reset_shipping();
         }
     }
 
