@@ -33,7 +33,7 @@ final class ShippingDiscountCouponCombinationsTest extends TestCase
         $this->assertStringContainsString('Fixed product discount', $content);
 
         // KiriminAja types must NOT appear in getCombinationTypes — they appear elsewhere in the file
-        // (registerDiscountType, clampPercentageAmount) but must not be combination options.
+        // (registerDiscountType, normalizeCouponAmount) but must not be combination options.
         $this->assertStringContainsString('ShippingDiscountCouponService::FIXED_COUPON_TYPE', $content);
         $this->assertStringContainsString('ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE', $content);
         $this->assertStringNotContainsString("'shipping_discount' => array", $content);

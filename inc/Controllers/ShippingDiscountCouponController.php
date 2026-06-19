@@ -34,7 +34,7 @@ class ShippingDiscountCouponController {
         add_action( 'woocommerce_coupon_data_panels', array( $this, 'renderCouponDataPanels' ) );
         add_action( 'woocommerce_coupon_options_usage_restriction', array( $this, 'renderUsageRestrictionFields' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
-        add_action( 'woocommerce_coupon_options_save', array( $this, 'clampPercentageAmount' ), 5, 2 );
+        add_action( 'woocommerce_coupon_options_save', array( $this, 'normalizeCouponAmount' ), 5, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
         add_action( 'add_meta_boxes', array( $this, 'registerAreaRestrictionsMetabox' ) );
         add_action( 'restrict_manage_posts', array( $this, 'renderCouponExtensionFilter' ) );
@@ -624,20 +624,57 @@ class ShippingDiscountCouponController {
         echo '</div>';
     }
 
-    public function clampPercentageAmount( $post_id, $coupon ) {
+    public function normalizeCouponAmount( $post_id, $coupon ) {
+        unset( $post_id );
+
         if ( ! $coupon instanceof \WC_Coupon ) {
             return;
         }
 
-        if ( ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE !== $coupon->get_discount_type() ) {
-            return;
+        $amount = $this->normalizeCouponAmountValue( $coupon->get_amount() );
+
+        if ( ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE === $coupon->get_discount_type() && (float) $amount > 100 ) {
+            $amount = '100';
         }
 
-        $amount = (float) $coupon->get_amount();
-        if ( $amount > 100 ) {
-            $coupon->set_amount( 100 );
+        if ( '' !== $amount && (string) $coupon->get_amount() !== $amount ) {
+            $coupon->set_amount( $amount );
             $coupon->save();
         }
+    }
+
+    private function normalizeCouponAmountValue( $amount ): string {
+        $raw = trim( (string) $amount );
+        if ( '' === $raw ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/\s+/', '', $raw );
+        $normalized = str_replace( ',', '.', (string) $normalized );
+        if ( ! is_numeric( $normalized ) ) {
+            return $raw;
+        }
+
+        $negative = 0 === strpos( $normalized, '-' );
+        if ( $negative ) {
+            $normalized = substr( $normalized, 1 );
+        }
+
+        $parts = explode( '.', $normalized, 2 );
+        $integer = ltrim( (string) ( $parts[0] ?? '' ), '0' );
+        if ( '' === $integer ) {
+            $integer = '0';
+        }
+
+        if ( $negative && '0' !== $integer ) {
+            $integer = '-' . $integer;
+        }
+
+        if ( array_key_exists( 1, $parts ) ) {
+            return $integer . '.' . $parts[1];
+        }
+
+        return $integer;
     }
 
     public function saveCouponOptions( $post_id, $coupon ) {

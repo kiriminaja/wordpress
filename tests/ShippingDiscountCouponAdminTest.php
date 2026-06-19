@@ -81,6 +81,9 @@ final class ShippingDiscountCouponAdminTest extends TestCase
         $this->assertStringContainsString('_kiriof_coupon_regions', $content);
         $this->assertStringContainsString('_kiriof_coupon_couriers', $content);
         $this->assertStringContainsString('_kiriof_coupon_combinations', $content);
+        $this->assertStringContainsString('normalizeCouponAmount', $content);
+        $this->assertStringContainsString('normalizeCouponAmountValue', $content);
+        $this->assertStringContainsString("ltrim( (string) ( \$parts[0] ?? '' ), '0' )", $content);
     }
 
     #[Test]
@@ -107,5 +110,16 @@ final class ShippingDiscountCouponAdminTest extends TestCase
 
         $this->assertStringContainsString('xhr.responseJSON.data.message', $content);
         $this->assertStringContainsString('window.alert(message)', $content);
+    }
+
+    #[Test]
+    public function coupon_admin_normalizes_leading_zero_amounts(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
+
+        $this->assertStringContainsString('normalizeCouponAmountValue', $content);
+        $this->assertStringContainsString('normalizeCouponAmountField', $content);
+        $this->assertStringContainsString('replace(/^0+(?=\\d)/, "")', $content);
+        $this->assertStringContainsString('parseFloat(normalizeCouponAmountField())', $content);
     }
 }

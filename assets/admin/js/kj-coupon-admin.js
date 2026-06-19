@@ -282,6 +282,46 @@
     return { islands: islands, provinces: provinces, cities: cities };
   }
 
+  function normalizeCouponAmountValue(value) {
+    var raw = String(value || "").trim();
+    if (!raw) {
+      return raw;
+    }
+
+    var normalized = raw.replace(/\s+/g, "").replace(",", ".");
+    if (
+      !/^-?\d*(?:\.\d*)?$/.test(normalized) ||
+      isNaN(parseFloat(normalized))
+    ) {
+      return raw;
+    }
+
+    var negative = normalized.charAt(0) === "-";
+    if (negative) {
+      normalized = normalized.slice(1);
+    }
+
+    var parts = normalized.split(".");
+    var integer = (parts[0] || "").replace(/^0+(?=\d)/, "");
+    if (!integer) {
+      integer = "0";
+    }
+    if (negative && integer !== "0") {
+      integer = "-" + integer;
+    }
+
+    return parts.length > 1 ? integer + "." + parts.slice(1).join(".") : integer;
+  }
+
+  function normalizeCouponAmountField() {
+    var $amount = $("#coupon_amount");
+    var normalized = normalizeCouponAmountValue($amount.val());
+    if ($amount.val() !== normalized) {
+      $amount.val(normalized);
+    }
+    return normalized;
+  }
+
   function updateStats() {
     var strings = getStrings();
     var selected = selectedTotals();
@@ -692,7 +732,7 @@
         shippingTypes.indexOf(currentType) !== -1 &&
         currentType.indexOf("percent") !== -1
       ) {
-        var amount = parseFloat($("#coupon_amount").val());
+        var amount = parseFloat(normalizeCouponAmountField());
         if (!isNaN(amount) && amount > 100) {
           event.preventDefault();
           window.alert(
@@ -715,8 +755,9 @@
       }
     });
 
-    // Real-time cap: clamp coupon_amount to 100 for percentage shipping discounts.
+    // Normalize coupon_amount for every coupon and cap percentage shipping discounts at 100.
     $(document).on("change blur", "#coupon_amount", function () {
+      var normalizedAmount = normalizeCouponAmountField();
       var config = getConfig();
       var shippingTypes =
         Array.isArray(config.discountTypes) ? config.discountTypes : [];
@@ -725,7 +766,7 @@
         shippingTypes.indexOf(currentType) !== -1 &&
         currentType.indexOf("percent") !== -1
       ) {
-        var val = parseFloat($(this).val());
+        var val = parseFloat(normalizedAmount);
         if (!isNaN(val) && val > 100) {
           $(this).val("100");
         }
