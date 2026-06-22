@@ -18,6 +18,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter( 'wc_get_template_part', 'kiriof_override_woocommerce_template_part', 10, 3 );
 // Override Template's.
 add_filter( 'woocommerce_locate_template', 'kiriof_override_woocommerce_template', 10, 3 );
+
+// Keep this list narrow. Overriding passive WooCommerce templates causes
+// outdated-template warnings whenever WooCommerce bumps core templates.
+function kiriof_allowed_woocommerce_template_overrides() {
+    return array(
+        'cart/cart.php',
+        'cart/cart-shipping.php',
+        'cart/cart-totals.php',
+        'cart/shipping-calculator.php',
+        'checkout/review-order.php',
+    );
+}
 /**
  * Template Part's
  *
@@ -28,6 +40,11 @@ add_filter( 'woocommerce_locate_template', 'kiriof_override_woocommerce_template
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kiriof_override_woocommerce_template_part( $template, $slug, $name ) {
+    $template_name = $name ? "{$slug}-{$name}.php" : "{$slug}.php";
+    if ( ! in_array( $template_name, kiriof_allowed_woocommerce_template_overrides(), true ) ) {
+        return $template;
+    }
+
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/templates/woocommerce/
     $template_directory = str_replace('\\','/',untrailingslashit( str_replace( 'wc/','',plugin_dir_path( __FILE__ ) ) ) . '/templates/woocommerce/');
@@ -48,6 +65,10 @@ function kiriof_override_woocommerce_template_part( $template, $slug, $name ) {
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kiriof_override_woocommerce_template( $template, $template_name, $template_path ) {
+    if ( ! in_array( $template_name, kiriof_allowed_woocommerce_template_overrides(), true ) ) {
+        return $template;
+    }
+
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/woocommerce/
     $template_directory = str_replace('\\','/',untrailingslashit( str_replace( 'wc/','',plugin_dir_path( __FILE__ ) ) ) . '/templates/woocommerce/');

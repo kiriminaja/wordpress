@@ -419,8 +419,8 @@ class CheckoutController
             return '';
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
         if ( isset( $_POST['rate_id'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
             return sanitize_text_field( wp_unslash( $_POST['rate_id'] ) );
         }
 
@@ -1747,7 +1747,7 @@ class CheckoutController
         try {
             check_ajax_referer( KIRIOF_NONCE, 'nonce' );
 
-            $raw  = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
+            $raw  = isset( $_POST['data'] ) ? sanitize_textarea_field( wp_unslash( $_POST['data'] ) ) : '';
             $data = json_decode( $raw, true );
             if ( ! is_array( $data ) ) {
                 wp_send_json_error( array( 'msg' => 'Invalid data' ) );

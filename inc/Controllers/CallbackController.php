@@ -23,7 +23,7 @@ class CallbackController{
                     'KiriminAja webhook request was rejected because it used an unsupported HTTP method.',
                     array(
                         'source'         => 'kiriminaja_webhook',
-                        'request_method' => sanitize_text_field( (string) $_SERVER['REQUEST_METHOD'] ),
+                        'request_method' => sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ),
                     )
                 );
 

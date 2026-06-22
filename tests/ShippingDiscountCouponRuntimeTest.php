@@ -72,6 +72,64 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function woocommerce_template_overrides_are_limited_to_kiriminaja_custom_templates(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/OverwriteWoocommercePlugin.php');
+
+        $this->assertStringContainsString(
+            'kiriof_allowed_woocommerce_template_overrides',
+            $content,
+            'WooCommerce template overrides must be allowlisted to avoid stale passive template warnings'
+        );
+
+        $this->assertStringContainsString("'cart/cart.php'", $content);
+        $this->assertStringContainsString("'cart/cart-shipping.php'", $content);
+        $this->assertStringContainsString("'cart/cart-totals.php'", $content);
+        $this->assertStringContainsString("'cart/shipping-calculator.php'", $content);
+        $this->assertStringContainsString("'checkout/review-order.php'", $content);
+
+        $this->assertStringContainsString(
+            'if ( ! in_array( $template_name, kiriof_allowed_woocommerce_template_overrides(), true ) )',
+            $content,
+            'Template loader must return the WooCommerce core template for non-allowlisted files'
+        );
+
+        $this->assertStringNotContainsString(
+            "'checkout/form-checkout.php'",
+            $content,
+            'Passive checkout templates must not be overridden by the plugin'
+        );
+    }
+
+    #[Test]
+    public function kiriminaja_custom_cart_templates_have_current_woocommerce_versions(): void
+    {
+        $this->assertStringContainsString(
+            '@version 10.8.0',
+            file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart.php'),
+            'Custom cart template must match the installed WooCommerce core version header'
+        );
+
+        $this->assertStringContainsString(
+            '@version 10.8.0',
+            file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php'),
+            'Custom cart totals template must match the installed WooCommerce core version header'
+        );
+
+        $this->assertStringContainsString(
+            '@version 10.8.0',
+            file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php'),
+            'Custom cart shipping template must match the installed WooCommerce core version header'
+        );
+
+        $this->assertStringContainsString(
+            '@version 9.7.0',
+            file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/shipping-calculator.php'),
+            'Custom shipping calculator template must match the installed WooCommerce core version header'
+        );
+    }
+
+    #[Test]
     public function kiriminaja_shipping_method_is_available_in_shipping_zones(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');

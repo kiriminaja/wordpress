@@ -482,7 +482,7 @@ class SettingController{
             <th scope="row" class="titledesc">
                 <label for="<?php echo esc_attr( $field_id ); ?>">
                     <?php echo esc_html( $value['title'] ?? __( 'Tracking page', 'kiriminaja-official' ) ); ?>
-                    <?php echo wc_help_tip( __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ) ); ?>
+                    <?php echo wp_kses_post( wc_help_tip( __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ) ) ); ?>
                 </label>
             </th>
             <td class="forminp">
@@ -492,7 +492,7 @@ class SettingController{
                     class="<?php echo esc_attr( $class ); ?>"
                     style="<?php echo esc_attr( $css ); ?>"
                 >
-                    <option value=""><?php echo esc_html__( 'Select a page&hellip;', 'woocommerce' ); ?></option>
+                    <option value=""><?php echo esc_html__( 'Select a page&hellip;', 'kiriminaja-official' ); ?></option>
                     <?php foreach ( $tracking_pages as $tracking_page ) : ?>
                         <option value="<?php echo esc_attr( $tracking_page->ID ); ?>" <?php selected( $selected_id, (int) $tracking_page->ID ); ?>>
                             <?php echo esc_html( $tracking_page->post_title ); ?>
@@ -631,7 +631,7 @@ JS;
             <th scope="row" class="titledesc">
                 <label>
                     <?php echo esc_html( $value['title'] ?? __( 'Pin Location', 'kiriminaja-official' ) ); ?>
-                    <?php echo wc_help_tip( __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ) ); ?>
+                    <?php echo wp_kses_post( wc_help_tip( __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ) ) ); ?>
                 </label>
             </th>
             <td class="forminp">
@@ -709,6 +709,9 @@ JS;
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
+        if ( ! $this->verifyWooCommerceSettingsNonce() ) {
+            return;
+        }
 
         $posted_area_name = isset( $_POST['kiriof_wc_origin_area_name'] )
             ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_area_name'] ) )
@@ -737,6 +740,9 @@ JS;
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
+        if ( ! $this->verifyWooCommerceSettingsNonce() ) {
+            return;
+        }
 
         $page_id = isset( $_POST['kiriof_tracking_page_id'] ) ? absint( $_POST['kiriof_tracking_page_id'] ) : 0;
         if ( $page_id > 0 && ! $this->pageHasTrackingShortcode( $page_id ) ) {
@@ -744,6 +750,11 @@ JS;
         }
 
         update_option( 'kiriof_tracking_page_id', $page_id );
+    }
+
+    private function verifyWooCommerceSettingsNonce() {
+        $nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+        return '' !== $nonce && wp_verify_nonce( $nonce, 'woocommerce-settings' );
     }
 
     private function getOriginSettingValues() {

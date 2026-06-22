@@ -2619,6 +2619,10 @@ msgstr "Halaman pelacakan"
 msgid "Page contents: [kiriminaja-tracking-front-page]"
 msgstr "Isi halaman: [kiriminaja-tracking-front-page]"
 
+#: inc/Controllers/SettingController.php
+msgid "Select a page&hellip;"
+msgstr "Pilih halaman&hellip;"
+
 #: inc/Base/Helper.php
 msgid "JNE Express"
 msgstr "JNE Express"

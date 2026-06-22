@@ -127,7 +127,7 @@ function kiriof_shipping_method(){
                     }
                 }
 
-                kiriof_log( 'info', 'calculate_shipping destination_id=' . var_export( $destination_id, true ) );
+                kiriof_log( 'info', 'calculate_shipping destination_id=' . ( is_scalar( $destination_id ) ? (string) $destination_id : wp_json_encode( $destination_id ) ) );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
 
                 if ( empty( $destination_id ) ) {
@@ -176,7 +176,7 @@ function kiriof_shipping_method(){
                 $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 kiriof_log( 'info', 'getPricing result keys=' . ( is_array( $kiriofPricing ) ? implode( ',', array_keys( $kiriofPricing ) ) : gettype( $kiriofPricing ) ) );
                 if ( isset( $kiriofPricing['status'] ) ) {
-                    kiriof_log( 'info', 'getPricing status=' . var_export( $kiriofPricing['status'], true ) );
+                    kiriof_log( 'info', 'getPricing status=' . ( is_scalar( $kiriofPricing['status'] ) ? (string) $kiriofPricing['status'] : wp_json_encode( $kiriofPricing['status'] ) ) );
                 }
                 if ( isset( $kiriofPricing['data'] ) && is_array( $kiriofPricing['data'] ) ) {
                     kiriof_log( 'info', 'getPricing data count=' . count( $kiriofPricing['data'] ) );

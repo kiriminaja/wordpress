@@ -134,9 +134,9 @@ class TransactionRepository{
             return false;
         }
 
-        $transactions_table = $this->table;
-        $wc_stats_table     = $this->wpdb->prefix . 'wc_order_stats';
-        $posts_table        = $this->wpdb->posts;
+        $transactions_table = esc_sql( $this->table );
+        $wc_stats_table     = esc_sql( $this->wpdb->prefix . 'wc_order_stats' );
+        $posts_table        = esc_sql( $this->wpdb->posts );
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $this->wpdb->get_row(
@@ -288,7 +288,7 @@ class TransactionRepository{
     }
     public function getTransactionByOldestDate(){
         $shippable_order_clause = $this->getShippableOrderExistsSql( 'wp_wc_order_stat_order_id' );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $shippable_order_clause is built from controlled internal SQL fragments only.
         $query = $this->wpdb->get_row(
             "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL {$shippable_order_clause} ORDER BY created_at ASC LIMIT 1"
         );
@@ -459,11 +459,11 @@ class TransactionRepository{
 
         $shippable_order_clause = $this->getShippableOrderExistsSql( 't.wp_wc_order_stat_order_id' );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $shippable_order_clause is built from controlled internal SQL fragments only.
         $results = $this->wpdb->get_results(
             "SELECT DISTINCT service FROM {$this->table} t WHERE service IS NOT NULL AND service != '' {$shippable_order_clause} ORDER BY service ASC"
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if ($this->hasError()) {
             return [];
