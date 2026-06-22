@@ -16,15 +16,21 @@ function kiriof_shipping_method(){
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- WooCommerce shipping method class
         class Kiriof_Shipping_Method_Controller extends WC_Shipping_Method
         {
-            public function __construct(){
+            public function __construct( $instance_id = 0 ){
                 
                 $this->id = 'kiriminaja-official';
-                $this->method_title = __('Kiriminaja', 'kiriminaja-official');
-                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'kiriminaja-official');
+                $this->instance_id = absint( $instance_id );
+                $this->method_title = __('KiriminAja', 'kiriminaja-official');
+                $this->method_description = __('KiriminAja real-time shipping rates for this shipping zone.', 'kiriminaja-official');
+                $this->supports = array(
+                    'shipping-zones',
+                    'instance-settings',
+                    'instance-settings-modal',
+                );
                 
                 $this->init();
                 $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
-                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'kiriminaja-official');
+                $this->title = $this->get_option( 'title', __('KiriminAja', 'kiriminaja-official') );
             }
     
             /**
@@ -32,6 +38,7 @@ function kiriof_shipping_method(){
             */
             function init(){
                 $this->initFormFields();
+                $this->initInstanceFormFields();
                 $this->init_settings();
                 add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
             }
@@ -46,7 +53,19 @@ function kiriof_shipping_method(){
                     'title' => array(
                         'title' => __('Title', 'kiriminaja-official'),
                         'type' => 'text',
-                        'default' => __('Kiriminaja Shipping', 'kiriminaja-official')
+                        'default' => __('KiriminAja', 'kiriminaja-official')
+                    ),
+                );
+            }
+
+            function initInstanceFormFields(){
+                $this->instance_form_fields = array(
+                    'title' => array(
+                        'title'       => __('Title', 'kiriminaja-official'),
+                        'type'        => 'text',
+                        'description' => __('This controls the title shown to customers during checkout.', 'kiriminaja-official'),
+                        'default'     => __('KiriminAja', 'kiriminaja-official'),
+                        'desc_tip'    => true,
                     ),
                 );
             }
@@ -436,7 +455,7 @@ function kiriof_shipping_method(){
 add_filter('woocommerce_shipping_methods', 'kiriof_add_shipping_method');
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kiriof_add_shipping_method($methods){
-    $methods[] =  'Kiriof_Shipping_Method_Controller';
+    $methods['kiriminaja-official'] = 'Kiriof_Shipping_Method_Controller';
     return $methods;
 }
 

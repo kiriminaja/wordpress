@@ -50,6 +50,56 @@ if ( ! function_exists( 'kiriof_helper' ) ) {
         return ( new \KiriminAjaOfficial\Base\Helper() );
     }
 }
+if ( ! function_exists( 'kiriof_get_tracking_page_id' ) ) {
+    function kiriof_get_tracking_page_id() {
+        $page_id = absint( get_option( 'kiriof_tracking_page_id', 0 ) );
+        if ( $page_id > 0 && 'page' === get_post_type( $page_id ) && 'trash' !== get_post_status( $page_id ) ) {
+            return $page_id;
+        }
+
+        $shortcode_page_id = kiriof_find_tracking_shortcode_page_id();
+        if ( $shortcode_page_id > 0 ) {
+            return $shortcode_page_id;
+        }
+
+        $tracking_page = get_page_by_path( 'tracking' );
+        if ( $tracking_page instanceof \WP_Post ) {
+            return (int) $tracking_page->ID;
+        }
+
+        return 0;
+    }
+}
+if ( ! function_exists( 'kiriof_find_tracking_shortcode_page_id' ) ) {
+    function kiriof_find_tracking_shortcode_page_id() {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return (int) $wpdb->get_var(
+            "SELECT ID FROM {$wpdb->posts}
+             WHERE post_type = 'page'
+               AND post_status NOT IN ('trash', 'auto-draft')
+               AND (
+                   post_content LIKE '%[kiriminaja-tracking-front-page%'
+                   OR post_content LIKE '%[wp-tracking-front-page%'
+               )
+             ORDER BY post_status = 'publish' DESC, ID ASC
+             LIMIT 1"
+        );
+    }
+}
+if ( ! function_exists( 'kiriof_get_tracking_page_url' ) ) {
+    function kiriof_get_tracking_page_url( $query_args = array() ) {
+        $page_id = kiriof_get_tracking_page_id();
+        $url     = $page_id > 0 ? get_permalink( $page_id ) : home_url( '/tracking' );
+
+        if ( ! is_array( $query_args ) || empty( $query_args ) ) {
+            return $url;
+        }
+
+        return add_query_arg( array_map( 'sanitize_text_field', $query_args ), $url );
+    }
+}
 /**
  * Recursively sanitize a value coming from a request superglobal.
  *

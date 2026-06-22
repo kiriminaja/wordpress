@@ -72,6 +72,48 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function kiriminaja_shipping_method_is_available_in_shipping_zones(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+
+        $this->assertStringContainsString(
+            '$this->instance_id = absint( $instance_id );',
+            $content,
+            'KiriminAja shipping method must accept a WooCommerce zone instance ID'
+        );
+
+        $this->assertStringContainsString(
+            "'shipping-zones'",
+            $content,
+            'KiriminAja shipping method must support WooCommerce shipping zones'
+        );
+
+        $this->assertStringContainsString(
+            "'instance-settings'",
+            $content,
+            'KiriminAja shipping method must expose instance settings for shipping zones'
+        );
+
+        $this->assertStringContainsString(
+            "'instance-settings-modal'",
+            $content,
+            'KiriminAja shipping method must be addable from the zone shipping-method modal'
+        );
+
+        $this->assertStringContainsString(
+            'function initInstanceFormFields',
+            $content,
+            'KiriminAja shipping method must define instance form fields for zone configuration'
+        );
+
+        $this->assertStringContainsString(
+            "\$methods['kiriminaja-official'] = 'Kiriof_Shipping_Method_Controller';",
+            $content,
+            'KiriminAja shipping method must be registered by method ID so WooCommerce can list it in zones'
+        );
+    }
+
+    #[Test]
     public function shipping_coupon_physical_product_check_ignores_virtual_items_and_discounted_totals(): void
     {
         $serviceContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');

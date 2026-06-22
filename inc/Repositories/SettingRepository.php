@@ -143,6 +143,52 @@ class SettingRepository{
         
         return true;
     }
+
+    public function storeOriginMirrorData( array $payload ) {
+        global $wpdb;
+
+        $allowed_keys = array(
+            'origin_name',
+            'origin_phone',
+            'origin_address',
+            'origin_latitude',
+            'origin_longitude',
+            'origin_sub_district_id',
+            'origin_sub_district_name',
+            'origin_zip_code',
+        );
+
+        foreach ( $allowed_keys as $key ) {
+            if ( ! array_key_exists( $key, $payload ) ) {
+                continue;
+            }
+
+            $value = 'origin_address' === $key
+                ? sanitize_textarea_field( (string) $payload[ $key ] )
+                : sanitize_text_field( (string) $payload[ $key ] );
+
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE `key` = %s", $key ) );
+
+            if ( empty( $existing ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $wpdb->insert(
+                    $this->table,
+                    array(
+                        'key'   => $key,
+                        'value' => $value,
+                    ),
+                    array( '%s', '%s' )
+                );
+                continue;
+            }
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update( $this->table, array( 'value' => $value ), array( 'key' => $key ) );
+        }
+
+        return true;
+    }
     public function getCallbackData(){
         global $wpdb;
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

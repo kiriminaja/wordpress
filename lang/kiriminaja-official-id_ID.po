@@ -31,8 +31,8 @@ msgstr "%1$d / %2$d Terkonfigurasi"
 #: inc/Pages/Admin.php:280
 #: templates/setting/setuped/index.php:113
 #, php-format
-msgid "%1$d / %2$d Product Volumetric Configurations"
-msgstr "%1$d / %2$d Konfigurasi Volumetrik Produk"
+msgid "%1$d / %2$d Need Action"
+msgstr "%1$d / %2$d Perlu Tindakan"
 
 #. translators: %1$s: Plugin name, %2$s: WooCommerce.
 #: kiriminaja.php:133
@@ -389,8 +389,12 @@ msgid "Current Page"
 msgstr "Halaman Saat Ini"
 
 #: wc/KiriminajaShippingMethod.php:23
-msgid "Custom Shipping Method for Kiriminaja"
-msgstr "Metode Pengiriman Khusus untuk KiriminAja"
+msgid "KiriminAja real-time shipping rates for this shipping zone."
+msgstr "Tarif pengiriman real-time KiriminAja untuk zona pengiriman ini."
+
+#: wc/KiriminajaShippingMethod.php
+msgid "This controls the title shown to customers during checkout."
+msgstr "Ini mengatur judul yang ditampilkan kepada pelanggan saat checkout."
 
 #: inc/Controllers/CheckoutController.php:754
 msgid "Date"
@@ -2602,6 +2606,18 @@ msgstr "Kupon ini tidak dapat digabungkan dengan satu atau lebih kupon aktif."
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Shipping discount coupon not applied — free shipping is active."
 msgstr "Kupon diskon ongkir tidak diterapkan — gratis ongkir sedang aktif."
+
+#: inc/Controllers/SettingController.php
+msgid "Required by KiriminAja Official Plugin"
+msgstr "Diperlukan oleh Plugin KiriminAja Official"
+
+#: inc/Controllers/SettingController.php
+msgid "Tracking page"
+msgstr "Halaman pelacakan"
+
+#: inc/Controllers/SettingController.php
+msgid "Page contents: [kiriminaja-tracking-front-page]"
+msgstr "Isi halaman: [kiriminaja-tracking-front-page]"
 
 #: inc/Base/Helper.php
 msgid "JNE Express"

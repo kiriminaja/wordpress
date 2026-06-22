@@ -111,7 +111,7 @@ class EditOrderController{
         }
 
         $data         = $service->data;
-        $tracking_url = home_url( '/tracking?order_id=' . $order_id );
+        $tracking_url = kiriof_get_tracking_page_url( array( 'order_id' => $order_id ) );
         $detail_url   = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
 
         // Extra WC order data for the redesigned metabox.
@@ -135,7 +135,7 @@ class EditOrderController{
         if ($service->status !== 200){return;}
         
         $orderId = esc_html($order);
-        $trackingUrl = esc_url( home_url().'/tracking?order_id='.$order);
+        $trackingUrl = esc_url( kiriof_get_tracking_page_url( array( 'order_id' => $order ) ) );
         $kiriofOrderData = wp_json_encode($service->data);
     
         include_once KIRIOF_DIR .'/templates/order/edit.php';

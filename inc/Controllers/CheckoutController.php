@@ -1052,7 +1052,7 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( __( 'Tracking', 'kiriminaja-official' ) ).'</th>
-                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.$transaction->wp_wc_order_stat_order_id ).'" target="_blank">CLICK</a></th>
+                            <th class="" style="text-align: right"><a href="'.esc_url( kiriof_get_tracking_page_url( array( 'order_id' => $transaction->wp_wc_order_stat_order_id ) ) ).'" target="_blank">CLICK</a></th>
                         </tr>
                     </thead>
                 </table>            
@@ -1122,7 +1122,7 @@ class CheckoutController
         }
 
         $shipping_label = $order->get_shipping_method();
-        $tracking_url = home_url('/tracking?order_id=' . $order->get_id());
+        $tracking_url = kiriof_get_tracking_page_url( array( 'order_id' => $order->get_id() ) );
 
         $html = '
             <section class="kiriof-order-shipment-details" style="margin:1.5rem 0 0;">

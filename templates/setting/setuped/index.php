@@ -117,7 +117,7 @@ $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
     ? __( 'All Product Configured', 'kiriminaja-official' )
     : sprintf(
         /* translators: %1$d: configured products, %2$d: total products */
-        __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
+        __( '%1$d / %2$d Need Action', 'kiriminaja-official' ),
         $kiriof_product_volumetric_configured,
         $kiriof_product_volumetric_total
     );

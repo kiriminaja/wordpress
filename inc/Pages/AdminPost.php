@@ -22,9 +22,7 @@ class AdminPost
                 self::updatePage(self::checkPageExist('checkout')->ID,'[woocommerce_checkout]');
                 self::setPageCheckoutWoocommerce(self::checkPageExist('checkout')->ID);
             }
-            if( empty(self::checkPageExist('tracking')) ){
-                self::createPageKiriminajaTracking();
-            }
+            self::ensureTrackingPage();
             if( empty(self::checkPageExist('cart')) ){
                 self::createPageCartKiriminaja();
             }else{
@@ -61,6 +59,9 @@ class AdminPost
         
         #create page ID
         $pageID = wp_insert_post( $kiriof_page );
+        if ( ! is_wp_error( $pageID ) && $pageID ) {
+            self::setPageTrackingKiriminaja( $pageID );
+        }
     }
     private function createPageCartKiriminaja(){
         $kiriof_page = array(
@@ -86,6 +87,9 @@ class AdminPost
         #set Cart Page Woocommerce
         update_option( 'woocommerce_cart_page_id', $pageID );
     }
+    private function setPageTrackingKiriminaja($pageID){
+        update_option( 'kiriof_tracking_page_id', absint( $pageID ) );
+    }
     private function setShippingCodEnabled(){
         $key_woo_cod = 'woocommerce_cod_settings';
         $arr_cod = get_option($key_woo_cod, []); //array
@@ -103,6 +107,38 @@ class AdminPost
      */
     private function checkPageExist($slug){
         return get_page_by_path($slug);
+    }
+    private function getTrackingPageByShortcode(){
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_row(
+            "SELECT ID FROM {$wpdb->posts}
+             WHERE post_type = 'page'
+               AND post_status NOT IN ('trash', 'auto-draft')
+               AND (
+                   post_content LIKE '%[kiriminaja-tracking-front-page%'
+                   OR post_content LIKE '%[wp-tracking-front-page%'
+               )
+             ORDER BY post_status = 'publish' DESC, ID ASC
+             LIMIT 1"
+        );
+    }
+    private function ensureTrackingPage(){
+        $tracking_page = self::getTrackingPageByShortcode();
+        if ( ! empty( $tracking_page->ID ) ) {
+            self::setPageTrackingKiriminaja( $tracking_page->ID );
+            return;
+        }
+
+        $tracking_slug_page = self::checkPageExist( 'tracking' );
+        if ( ! empty( $tracking_slug_page->ID ) ) {
+            self::updatePage( $tracking_slug_page->ID, '[kiriminaja-tracking-front-page]' );
+            self::setPageTrackingKiriminaja( $tracking_slug_page->ID );
+            return;
+        }
+
+        self::createPageKiriminajaTracking();
     }
     private function updatePage($pageID,$content){
         $args = array(

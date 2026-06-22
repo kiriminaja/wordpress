@@ -137,7 +137,12 @@ class Enqueue extends BaseInit{
             return true;
         }
 
-        return is_page( 'tracking' );
+        $tracking_page_id = function_exists( 'kiriof_get_tracking_page_id' ) ? kiriof_get_tracking_page_id() : 0;
+        if ( $tracking_page_id > 0 && is_page( $tracking_page_id ) ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -185,7 +190,10 @@ class Enqueue extends BaseInit{
 
         $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );
 
-        if ( ! $is_plugin_page && ! $is_order_screen ) {
+        $tab = filter_input( INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS );
+        $is_wc_general_settings = 'woocommerce_page_wc-settings' === $screen_id && ( empty( $tab ) || 'general' === $tab );
+
+        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_general_settings ) {
             return;
         }
 
@@ -262,7 +270,7 @@ class Enqueue extends BaseInit{
          * Leaflet - bundled locally for the store-address map picker on
          * the Settings page. Only loaded on kiriminaja-konfigurasi.
          */
-        if ( 'kiriminaja-konfigurasi' === $page ) {
+        if ( 'kiriminaja-konfigurasi' === $page || $is_wc_general_settings ) {
             wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
             wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
         }
