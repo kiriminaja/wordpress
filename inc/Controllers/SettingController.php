@@ -713,6 +713,7 @@ JS;
             return;
         }
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce settings nonce verified above.
         $posted_area_name = isset( $_POST['kiriof_wc_origin_area_name'] )
             ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_area_name'] ) )
             : '';
@@ -734,6 +735,7 @@ JS;
         update_option( 'kiriof_wc_origin_area', $payload['origin_sub_district_id'] );
 
         ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
     }
 
     public function syncWooCommerceAdvancedSettings() {
@@ -744,17 +746,22 @@ JS;
             return;
         }
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce settings nonce verified above.
         $page_id = isset( $_POST['kiriof_tracking_page_id'] ) ? absint( $_POST['kiriof_tracking_page_id'] ) : 0;
         if ( $page_id > 0 && ! $this->pageHasTrackingShortcode( $page_id ) ) {
             return;
         }
 
         update_option( 'kiriof_tracking_page_id', $page_id );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
     }
 
     private function verifyWooCommerceSettingsNonce() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- This method performs the WooCommerce settings nonce verification.
         $nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
-        return '' !== $nonce && wp_verify_nonce( $nonce, 'woocommerce-settings' );
+        $verified = '' !== $nonce && wp_verify_nonce( $nonce, 'woocommerce-settings' );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+        return $verified;
     }
 
     private function getOriginSettingValues() {
