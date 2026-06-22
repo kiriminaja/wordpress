@@ -567,7 +567,44 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'kiriofUpdateBlockCheckoutPostcode(kiriofLastTypedPostcode)',
             $content,
-            'Postcode input handler must update the Woo stores as soon as the buyer types a new postcode'
+            'Postcode input handler must update checkout editing state as soon as the buyer types a new postcode'
+        );
+
+        $postcodeUpdaterStart = strpos($content, 'function kiriofUpdateBlockCheckoutPostcode');
+        $this->assertNotFalse($postcodeUpdaterStart, 'Block checkout postcode updater must exist');
+        $postcodeUpdaterBody = substr($content, $postcodeUpdaterStart, 1800);
+        $this->assertStringNotContainsString(
+            "wp.data.dispatch('wc/store/cart')",
+            $postcodeUpdaterBody,
+            'Postcode updater must not write cart billing/shipping address stores because Woo Blocks can rehydrate stale session postcodes over buyer input'
+        );
+        $this->assertStringNotContainsString(
+            'setShippingAddress',
+            $postcodeUpdaterBody,
+            'Postcode updater must not dispatch cart shipping address mutations'
+        );
+        $this->assertStringNotContainsString(
+            'setBillingAddress',
+            $postcodeUpdaterBody,
+            'Postcode updater must not dispatch cart billing address mutations'
+        );
+
+        $currentPostcodeStart = strpos($content, 'function kiriofGetCurrentPostcodeKey');
+        $this->assertNotFalse($currentPostcodeStart, 'Current postcode resolver must exist');
+        $currentPostcodeBody = substr($content, $currentPostcodeStart, 900);
+        $this->assertStringContainsString(
+            'recentlyTyped && kiriofLastTypedPostcode',
+            $currentPostcodeBody,
+            'Current postcode resolver must prefer recent buyer input over stale session/store values while Woo Blocks re-renders'
+        );
+
+        $restorePostcodeStart = strpos($content, 'function kiriofRestoreSavedPostcodeField');
+        $this->assertNotFalse($restorePostcodeStart, 'Saved postcode restore helper must exist');
+        $restorePostcodeBody = substr($content, $restorePostcodeStart, 600);
+        $this->assertStringContainsString(
+            'Date.now() - kiriofLastTypedPostcodeAt',
+            $restorePostcodeBody,
+            'Saved postcode restore must not run immediately after buyer typing'
         );
     }
 

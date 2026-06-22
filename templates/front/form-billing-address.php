@@ -208,6 +208,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 function kiriofRestoreSavedPostcodeField() {
+                    if (kiriofLastTypedPostcodeAt && (Date.now() - kiriofLastTypedPostcodeAt) < 5000) {
+                        return false;
+                    }
+
                     var savedPostcode = kiriofNormalizePostcode(kiriofSavedCheckoutPostcode);
                     if (!savedPostcode) {
                         return false;
@@ -259,28 +263,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                         if (checkoutDispatch && typeof checkoutDispatch.setEditingBillingAddress === 'function') {
                             checkoutDispatch.setEditingBillingAddress(editingBillingAddress);
-                        }
-                    } catch(e) {}
-
-                    try {
-                        var cartStore = wp.data.select('wc/store/cart');
-                        var cartDispatch = wp.data.dispatch('wc/store/cart');
-                        if (!cartStore || !cartDispatch) {
-                            return;
-                        }
-
-                        var billingAddress = cartStore.getBillingAddress ? (cartStore.getBillingAddress() || {}) : {};
-                        var shippingAddress = cartStore.getShippingAddress ? (cartStore.getShippingAddress() || {}) : {};
-
-                        billingAddress = Object.assign({}, billingAddress, { postcode: postcode });
-                        shippingAddress = Object.assign({}, shippingAddress, { postcode: postcode });
-
-                        if (typeof cartDispatch.setBillingAddress === 'function') {
-                            cartDispatch.setBillingAddress(billingAddress);
-                        }
-
-                        if (typeof cartDispatch.setShippingAddress === 'function') {
-                            cartDispatch.setShippingAddress(shippingAddress);
                         }
                     } catch(e) {}
                 }
@@ -1026,6 +1008,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                 }
 
                 function kiriofGetCurrentPostcodeKey() {
+                    var recentlyTyped = kiriofLastTypedPostcodeAt && (Date.now() - kiriofLastTypedPostcodeAt) < 5000;
+                    if (recentlyTyped && kiriofLastTypedPostcode) {
+                        return kiriofNormalizePostcode(kiriofLastTypedPostcode);
+                    }
+
                     var postcode = kiriofGetCheckoutPostcodeFromDom();
                     if (!postcode && kiriofSavedCheckoutPostcode) {
                         postcode = kiriofSavedCheckoutPostcode;
