@@ -481,8 +481,12 @@
   }
 
   function getSelectedRateDiscount(discount, shippingRateSignature) {
-    if (!discount || !discount.rates || !shippingRateSignature) {
+    if (!discount || parseFloat(discount.amount || 0) <= 0) {
       return null;
+    }
+
+    if (!discount.rates || !shippingRateSignature) {
+      return discount;
     }
 
     const selectedRateId = String(shippingRateSignature)
@@ -491,7 +495,11 @@
       .split(",")
       .filter(Boolean)[0];
 
-    if (!selectedRateId || !discount.rates[selectedRateId]) {
+    if (!selectedRateId) {
+      return discount;
+    }
+
+    if (!discount.rates[selectedRateId]) {
       return null;
     }
 
