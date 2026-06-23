@@ -652,12 +652,14 @@
         }
 
         let pending = false;
+        let syncTimer = null;
         const observer = new MutationObserver(function () {
           if (pending) {
             return;
           }
           pending = true;
-          setTimeout(function () {
+          syncTimer = setTimeout(function () {
+            syncTimer = null;
             pending = false;
             syncShippingTotalsStrikethrough(activeShippingDiscount);
             syncShippingOptionStrikethrough(shippingDiscount);
@@ -671,6 +673,9 @@
 
         return function () {
           observer.disconnect();
+          if (syncTimer) {
+            clearTimeout(syncTimer);
+          }
         };
       },
       [activeShippingDiscount, shippingDiscount],
