@@ -2825,9 +2825,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'shippingDiscount.label || "Shipping Discount"',
+            'syncShippingDiscountTotalsRow',
             $script,
-            'The block checkout shipping discount row should include the active shipping coupon label/code'
+            'Cart block should still render a DOM fallback shipping discount row outside of checkout Slot/Fills'
         );
 
         $this->assertStringContainsString(

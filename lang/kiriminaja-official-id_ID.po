@@ -2607,6 +2607,18 @@ msgstr "Kupon ini tidak dapat digabungkan dengan satu atau lebih kupon aktif."
 msgid "Shipping discount coupon not applied — free shipping is active."
 msgstr "Kupon diskon ongkir tidak diterapkan — gratis ongkir sedang aktif."
 
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Coupon \"%1$s\" cannot be applied. %2$s"
+msgstr "Kupon \"%1$s\" tidak dapat diterapkan. %2$s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Shipping discount \"%1$s\" applied and combined with: %2$s."
+msgstr "Diskon ongkir \"%1$s\" diterapkan dan digabungkan dengan: %2$s."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Shipping discount \"%s\" applied to your cart."
+msgstr "Diskon ongkir \"%s\" diterapkan ke keranjang kamu."
+
 #: inc/Controllers/SettingController.php
 msgid "Required by KiriminAja Official Plugin"
 msgstr "Diperlukan oleh Plugin KiriminAja Official"
