@@ -536,6 +536,20 @@
     );
     const previousCouponsRef = useRef("");
     const [shippingDiscount, setShippingDiscount] = useState(null);
+    const fees = Array.isArray(cart.fees) ? cart.fees : [];
+    var kiriofFeeKeys = {};
+    var kiriofFees = fees.filter(function (fee) {
+      if (
+        fee &&
+        (fee.key === "insurance" ||
+          fee.name === "Insurance" ||
+          fee.name === "COD Fee")
+      ) {
+        kiriofFeeKeys[fee.key || fee.name] = true;
+        return true;
+      }
+      return false;
+    });
 
     const couponSignature = useMemo(
       function () {
@@ -672,7 +686,42 @@
       [activeShippingDiscount, shippingDiscount],
     );
 
-    return null;
+    // Hide WC's native fee rows for items we render via SlotFill to prevent duplication.
+    useEffect(function () {
+      document.querySelectorAll(".wc-block-components-totals-fees").forEach(function (el) {
+        el.style.display = "none";
+      });
+      return function () {
+        document.querySelectorAll(".wc-block-components-totals-fees").forEach(function (el) {
+          el.style.display = "";
+        });
+      };
+    }, [kiriofFees.length]);
+
+    if (!kiriofFees.length) {
+      return null;
+    }
+
+    return createElement(
+      ExperimentalOrderMeta,
+      null,
+      createElement(
+        Fragment,
+        null,
+        kiriofFees.map(function (fee) {
+          return createElement(
+            "div",
+            {
+              key: fee.key || fee.name,
+              className:
+                "wc-block-components-totals-item kiriof-block-fee-breakdown__row",
+            },
+            createElement("span", null, fee.name),
+            createElement("strong", null, formatFeeTotal(fee)),
+          );
+        }),
+      ),
+    );
   }
 
   registerPlugin("kiriminaja-official-order-meta", {
