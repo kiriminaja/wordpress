@@ -528,7 +528,12 @@
   const { ExperimentalOrderMeta } = wc.blocksCheckout;
 
   function KiriofOrderMetaFill(props) {
-    const cart = props && props.cart ? props.cart : {};
+    const cart = wp.data.useSelect(
+      function (select) {
+        return select("wc/store/cart").getCartData() || {};
+      },
+      [],
+    );
     const previousCouponsRef = useRef("");
     const [shippingDiscount, setShippingDiscount] = useState(null);
     const fees = Array.isArray(cart.fees) ? cart.fees : [];
