@@ -50,71 +50,6 @@ jobs:
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
 
-      - name: Extract changelog from readme.txt
-        id: changelog
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          {
-            echo "body<<__EOF__"
-            php -r '
-              $version = $argv[1];
-              $readme = file_get_contents("readme.txt");
-              if (preg_match("/^= " . preg_quote($version, "/") . " =\s*\n(.*?)(?=^= |\z)/ms", $readme, $m)) {
-                  $lines = array_filter(array_map("trim", explode("\n", trim($m[1]))));
-                  foreach ($lines as $line) {
-                      echo str_starts_with($line, "* ") ? "- " . substr($line, 2) . "\n" : $line . "\n";
-                  }
-              }
-            ' "$VERSION"
-            echo "__EOF__"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Extract contributors from commits
-        id: contributors
-        run: |
-          # Get the previous tag to scope the range
-          PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
-          if [ -n "$PREV_TAG" ]; then
-            RANGE="${PREV_TAG}..HEAD"
-          else
-            RANGE="HEAD"
-          fi
-          # Resolve GitHub usernames from commit author emails via ungh.cc
-          CONTRIBUTORS=$(git log "$RANGE" --format="%aE" --no-merges | sort -u | while read -r email; do
-            [ -z "$email" ] && continue
-            ENCODED_EMAIL=$(php -r 'echo rawurlencode($argv[1]);' "$email")
-            USERNAME=$(php -r '
-              $url = $argv[1];
-              $json = @file_get_contents($url);
-              if ($json === false) {
-                  exit(0);
-              }
-              $data = json_decode($json, true);
-              if (!is_array($data)) {
-                  exit(0);
-              }
-              $candidate = $data["user"]["username"] ?? $data["user"]["login"] ?? $data["username"] ?? $data["login"] ?? "";
-              if (is_string($candidate) && $candidate !== "") {
-                  echo $candidate;
-              }
-            ' "https://ungh.cc/users/find/${ENCODED_EMAIL}")
-
-            if [ -n "$USERNAME" ]; then
-              echo "- @${USERNAME}"
-            else
-              echo "- ${email}"
-            fi
-          done | sort -u)
-
-          if [ -z "$CONTRIBUTORS" ]; then
-            CONTRIBUTORS="- No contributors detected"
-          fi
-          {
-            echo "list<<__EOF__"
-            echo "$CONTRIBUTORS"
-            echo "__EOF__"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -122,14 +57,6 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
           body: |
-            ## What's Changed
-
-            ${{ steps.changelog.outputs.body }}
-
-            ### Contributors
-
-            ${{ steps.contributors.outputs.list }}
-
             ### Assets
 
             - `kiriminaja-official.zip` — WP.org-ready build (v${{ steps.version.outputs.version }}).

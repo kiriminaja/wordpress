@@ -173,7 +173,7 @@ if ( $from_ref ) {
 }
 
 $log_cmd = sprintf(
-    'cd %s && git log %s --format="%%s" --no-merges -- kiriminaja.php inc/ wc/ templates/ assets/ lang/ frontend/ uninstall.php',
+    'cd %s && git log %s --format="%%s" --merges -- kiriminaja.php inc/ wc/ templates/ assets/ lang/ frontend/ uninstall.php',
     escapeshellarg( $root_dir ),
     $since_arg
 );
@@ -186,7 +186,7 @@ if ( $ret !== 0 ) {
     exit( 1 );
 }
 
-// --- Filter commits by keywords ---
+// --- Parse merge commits (PR merges) ---
 $features = [];
 $fixes    = [];
 
@@ -196,8 +196,29 @@ foreach ( $output as $line ) {
         continue;
     }
 
-    // Clean up common prefixes (AB#xxxxx, feat:, fix:, chore:, etc.)
-    $clean = preg_replace( '/^(AB#\d+\s*)?/', '', $line );
+    // Parse "Merge pull request #123 from org/branch-name" style
+    if ( preg_match( '/^Merge pull request #(\d+)\s+from\s+\S+\/(.+?)(?:\s|$)/i', $line, $m ) ) {
+        $pr     = ' (#' . $m[1] . ')';
+        $branch = str_replace( '-', ' ', $m[2] );
+        $desc   = ucfirst( $branch );
+        $lower  = strtolower( $desc );
+
+        if ( preg_match( '/\bfeature|feat\b/i', $lower ) ) {
+            $clean = preg_replace( '/^\s*feature\s*[-:]?\s*/i', '', $desc );
+            $features[] = ucfirst( $clean ) . $pr;
+        } elseif ( preg_match( '/\bfixing|fix\b/i', $lower ) ) {
+            $clean = preg_replace( '/^\s*fix(?:ing)?\s*[-:]?\s*/i', '', $desc );
+            $fixes[] = ucfirst( $clean ) . $pr;
+        } else {
+            $features[] = $desc . $pr;
+        }
+        continue;
+    }
+
+    // Fallback: non-standard merge messages, try keyword matching
+    $clean = $line;
+    $clean = preg_replace( '/^(AB#\d+\s*)?/', '', $clean );
+    $clean = preg_replace( '/^(Merge branch|Merge pull request).*$/i', '', $clean );
     $clean = preg_replace( '/^(feat|fix|chore|refactor|docs|style|test|ci|build|perf):\s*/i', '', $clean );
     $clean = trim( $clean );
 
@@ -211,6 +232,8 @@ foreach ( $output as $line ) {
         $features[] = ucfirst( $clean );
     } elseif ( preg_match( '/\bfixing|fix\b/i', $lower ) ) {
         $fixes[] = ucfirst( $clean );
+    } else {
+        $features[] = ucfirst( $clean );
     }
 }
 
