@@ -21,6 +21,7 @@ class ShippingDiscountCouponController {
         add_filter( 'woocommerce_cart_coupon_types', array( $this, 'registerRuntimeCartCouponTypes' ) );
         add_filter( 'woocommerce_coupon_data_tabs', array( $this, 'registerCouponDataTabs' ) );
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
+        add_filter( 'woocommerce_coupon_message', array( $this, 'customizeCouponSuccessMessage' ), 10, 3 );
         add_filter( 'woocommerce_coupon_is_valid_for_product', array( $this, 'validateShippingCouponForProduct' ), 20, 4 );
         add_filter( 'woocommerce_coupon_get_discount_amount', array( $this, 'zeroItemDiscountForShippingCoupon' ), 20, 5 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
@@ -45,6 +46,8 @@ class ShippingDiscountCouponController {
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
         add_action( 'wp_ajax_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
         add_action( 'wp_ajax_nopriv_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
+        add_action( 'wp_ajax_kiriof_get_applied_coupon_scopes', array( $this, 'getAppliedCouponScopesAjax' ) );
+        add_action( 'wp_ajax_nopriv_kiriof_get_applied_coupon_scopes', array( $this, 'getAppliedCouponScopesAjax' ) );
         add_action( ShippingDiscountRegionCacheService::CRON_HOOK, array( $this, 'refreshRegionCacheCron' ) );
     }
 
@@ -184,6 +187,48 @@ class ShippingDiscountCouponController {
             }
             wc_add_notice( $message, 'error' );
         }
+    }
+
+    public function customizeCouponSuccessMessage( $msg, $msg_code, $coupon ) {
+        if ( 200 !== $msg_code || ! $coupon instanceof \WC_Coupon ) {
+            return $msg;
+        }
+
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $msg;
+        }
+
+        $code = $coupon->get_code();
+        if ( '' === $code ) {
+            return $msg;
+        }
+
+        $nativeCodes = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_coupons' ) ) {
+            foreach ( WC()->cart->get_coupons() as $activeCoupon ) {
+                if ( ! $activeCoupon instanceof \WC_Coupon || $service->isShippingCoupon( $activeCoupon ) ) {
+                    continue;
+                }
+                $nativeCodes[] = $activeCoupon->get_code();
+            }
+        }
+
+        if ( ! empty( $nativeCodes ) ) {
+            $list = implode( ', ', $nativeCodes );
+            return sprintf(
+                /* translators: 1: shipping coupon code, 2: comma-separated list of active cart coupons */
+                __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
+                $code,
+                $list
+            );
+        }
+
+        return sprintf(
+            /* translators: %s: coupon code */
+            __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
+            $code
+        );
     }
 
     public function invalidateShippingRatesAfterCouponChange( $coupon_code = '' ): void {
@@ -341,6 +386,36 @@ class ShippingDiscountCouponController {
             'original_cost' => (float) ( $summary['original_cost'] ?? 0 ),
             'formatted_current_cost' => ! empty( $summary['current_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['current_cost'] ) ) : '',
             'formatted_original_cost' => ! empty( $summary['original_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['original_cost'] ) ) : '',
+        ) );
+    }
+
+    public function getAppliedCouponScopesAjax() {
+        if ( isset( $_POST['nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
+            if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'message' => __( 'Security check failed.', 'kiriminaja-official' ) ), 403 );
+            }
+        }
+
+        $requestedCode = isset( $_POST['coupon_code'] ) ? wc_format_coupon_code( wp_unslash( $_POST['coupon_code'] ) ) : '';
+        $codes = array();
+
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_applied_coupons' ) ) {
+            $codes = array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) );
+        }
+
+        if ( '' !== $requestedCode && ! in_array( $requestedCode, $codes, true ) ) {
+            $codes[] = $requestedCode;
+        }
+
+        $service = new ShippingDiscountCouponService();
+        $scopes  = $service->splitCouponCodesByScope( $codes );
+
+        wp_send_json_success( array(
+            'requested' => $requestedCode,
+            'is_shipping' => '' !== $requestedCode && in_array( strtoupper( $requestedCode ), $scopes['shipping'], true ),
+            'shipping' => $scopes['shipping'],
+            'native' => $scopes['item'],
         ) );
     }
 

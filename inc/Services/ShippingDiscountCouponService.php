@@ -62,47 +62,47 @@ class ShippingDiscountCouponService {
         }
 
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
-            return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'Add items to your cart first.', 'kiriminaja-official' ) );
         }
 
         if ( empty( WC()->cart->get_cart() ) ) {
-            return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'Add items to your cart first.', 'kiriminaja-official' ) );
         }
 
         if ( ! $this->cartHasShippableProduct() ) {
-            return $this->invalid( __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
         }
 
         // Free shipping and a shipping discount coupon cannot both reduce the same shipping cost.
         if ( $this->hasActiveFreeShippingCoupon() ) {
-            return $this->invalid( __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
         }
 
         if ( $this->hasOtherActiveShippingCoupon( $coupon ) ) {
-            return $this->invalid( __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ) );
         }
 
         if ( ! $this->couponAllowsActiveNativeCoupons( $coupon ) ) {
-            return $this->invalid( __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ) );
         }
 
         if ( $this->couponHasRegionRestrictions( $coupon ) ) {
             $destination = $this->getDestinationContext();
             if ( $destination['id'] < 1 && '' === $destination['name'] ) {
-                return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
+                return $this->invalidForCoupon( $coupon, __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
             }
 
             if ( ! $this->couponMatchesDestination( $coupon, $destination ) ) {
-                return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
+                return $this->invalidForCoupon( $coupon, __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
             }
         }
 
         if ( $requireSelectedShipping && ! $this->isKiriminAjaShippingSelected() ) {
-            return $this->invalid( __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
         }
 
         if ( $requireSelectedCourier && ! $this->couponAllowsSelectedCourier( $coupon ) ) {
-            return $this->invalid( __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ) );
         }
 
         return array(
@@ -127,7 +127,17 @@ class ShippingDiscountCouponService {
                 $notices['error'],
                 static function ( $notice ) use ( $validationMessages ) {
                     $message = isset( $notice['notice'] ) ? wp_strip_all_tags( (string) $notice['notice'] ) : '';
-                    return ! in_array( $message, $validationMessages, true );
+                    if ( in_array( $message, $validationMessages, true ) ) {
+                        return false;
+                    }
+
+                    foreach ( $validationMessages as $validationMessage ) {
+                        if ( '' !== $validationMessage && str_contains( $message, $validationMessage ) ) {
+                            return false;
+                        }
+                    }
+
+                    return true;
                 }
             )
         );
@@ -941,6 +951,22 @@ class ShippingDiscountCouponService {
         }
 
         return __( 'Shipping discounts applied', 'kiriminaja-official' );
+    }
+
+    private function invalidForCoupon( $coupon, string $reason ): array {
+        $code = $coupon instanceof \WC_Coupon ? $coupon->get_code() : '';
+        if ( '' === $code ) {
+            return $this->invalid( $reason );
+        }
+
+        return $this->invalid(
+            sprintf(
+                /* translators: 1: coupon code, 2: validation reason */
+                __( 'Coupon "%1$s" cannot be applied. %2$s', 'kiriminaja-official' ),
+                $code,
+                $reason
+            )
+        );
     }
 
     private function invalid( string $message ): array {

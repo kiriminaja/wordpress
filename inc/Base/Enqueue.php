@@ -93,7 +93,7 @@ class Enqueue extends BaseInit{
             wp_enqueue_script(
                 'kiriof-block-checkout',
                 $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
-                array( 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout' ),
+                array( 'kiriof-script', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
