@@ -104,6 +104,9 @@ class CheckoutController
             add_action('wp_ajax_kiriof-session-save', array($this,'kiriof_ajax_session_save'));
             add_action('wp_ajax_nopriv_kiriof-session-save', array($this,'kiriof_ajax_session_save'));
                         
+            /** Tag fee items with _kiriof_fee_type meta so duplicate detection works reliably */
+            add_action( 'woocommerce_checkout_create_order_fee_item', array($this,'kiriof_tag_fee_item_meta'), 10, 4 );
+
             /** Custom Page Woocommerce Thankyou */
             add_action( 'woocommerce_order_details_after_order_table_items', array($this,'kiriof_order_details') );
             add_action( 'woocommerce_order_details_after_order_table', array($this,'kiriof_order_shipment_details') );
@@ -1060,6 +1063,15 @@ class CheckoutController
         ' );
         
     }
+    public function kiriof_tag_fee_item_meta( $fee, $fee_key, $order, $coupons ) {
+        $name = $fee->get_name();
+        if ( false !== stripos( $name, 'COD Fee' ) || false !== stripos( $name, 'Biaya COD' ) ) {
+            $fee->add_meta_data( '_kiriof_fee_type', 'cod_fee', true );
+        } elseif ( false !== stripos( $name, 'Insurance' ) || false !== stripos( $name, 'Asuransi' ) ) {
+            $fee->add_meta_data( '_kiriof_fee_type', 'insurance', true );
+        }
+    }
+
     public function kiriof_order_details($order){
         if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
             return false;
@@ -1145,29 +1157,20 @@ class CheckoutController
     }
 
     private function kiriof_order_has_fee_item($order, $feeName){
-        $aliases = $this->kiriof_get_fee_name_aliases( $feeName );
+        $expected_meta = ( 'Insurance' === $feeName ) ? 'insurance' : 'cod_fee';
 
         foreach ($order->get_items('fee') as $feeItem) {
+            if ( $feeItem->get_meta( '_kiriof_fee_type' ) === $expected_meta ) {
+                return true;
+            }
+
             $itemName = trim( (string) $feeItem->get_name() );
-            if ( in_array( $itemName, $aliases, true ) ) {
+            if ( false !== stripos( $itemName, $feeName ) ) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    private function kiriof_get_fee_name_aliases($feeName){
-        $feeName = trim( (string) $feeName );
-        $aliases = array( $feeName );
-
-        if ( 'Insurance' === $feeName ) {
-            $aliases[] = trim( (string) __( 'Insurance', 'kiriminaja-official' ) );
-        } elseif ( 'COD Fee' === $feeName ) {
-            $aliases[] = trim( (string) __( 'COD Fee', 'kiriminaja-official' ) );
-        }
-
-        return array_values( array_unique( array_filter( $aliases, 'strlen' ) ) );
     }
     public function kiriof_shipping_rate_cache_invalidation( $packages ) {
         foreach ( $packages as &$package ) {

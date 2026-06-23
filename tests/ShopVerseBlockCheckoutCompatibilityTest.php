@@ -2785,9 +2785,14 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Transaction queries need one shared SQL clause for detecting orders with at least one shippable line item'
         );
         $this->assertStringContainsString(
-            'wc_order_product_lookup',
+            'woocommerce_order_items',
             $repository,
             'Shippable-order detection should inspect WooCommerce order line items, not only transaction rows'
+        );
+        $this->assertStringContainsString(
+            'woocommerce_order_itemmeta',
+            $repository,
+            'Shippable-order detection must join order itemmeta to resolve product/variation IDs'
         );
         $this->assertStringContainsString(
             "meta_key = '_virtual'",
@@ -2795,7 +2800,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Shippable-order detection must exclude orders whose products/variations are virtual only'
         );
         $this->assertStringContainsString(
-            "COALESCE(NULLIF(kiriof_variation_virtual_meta.meta_value, ''), kiriof_product_virtual_meta.meta_value, 'no') <> 'yes'",
+            "COALESCE(NULLIF(pm_var.meta_value, ''), pm_prod.meta_value, 'no') <> 'yes'",
             $repository,
             'Variation virtual metadata should override product metadata, with non-virtual as the default'
         );
@@ -3010,9 +3015,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'getFeeNameAliases',
+            '_kiriof_fee_type',
             $service,
-            'CreateTransactionService must treat translated fee labels as the same logical fee to avoid doubling COD Fee and Insurance on localized stores'
+            'CreateTransactionService must tag fee items with _kiriof_fee_type meta to avoid doubling COD Fee and Insurance on localized stores'
         );
     }
 

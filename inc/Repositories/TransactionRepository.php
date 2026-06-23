@@ -55,20 +55,28 @@ class TransactionRepository{
     }
 
     public function getShippableOrderExistsSql( string $orderIdExpression ): string {
-        $product_lookup_table = $this->wpdb->prefix . 'wc_order_product_lookup';
-        $postmeta_table       = $this->wpdb->postmeta;
+        $order_items_table     = $this->wpdb->prefix . 'woocommerce_order_items';
+        $order_itemmeta_table  = $this->wpdb->prefix . 'woocommerce_order_itemmeta';
+        $postmeta_table        = $this->wpdb->postmeta;
 
         return "AND EXISTS (
             SELECT 1
-            FROM {$product_lookup_table} kiriof_product_lookup
-            LEFT JOIN {$postmeta_table} kiriof_product_virtual_meta
-                ON kiriof_product_virtual_meta.post_id = kiriof_product_lookup.product_id
-                AND kiriof_product_virtual_meta.meta_key = '_virtual'
-            LEFT JOIN {$postmeta_table} kiriof_variation_virtual_meta
-                ON kiriof_variation_virtual_meta.post_id = kiriof_product_lookup.variation_id
-                AND kiriof_variation_virtual_meta.meta_key = '_virtual'
-            WHERE kiriof_product_lookup.order_id = {$orderIdExpression}
-                AND COALESCE(NULLIF(kiriof_variation_virtual_meta.meta_value, ''), kiriof_product_virtual_meta.meta_value, 'no') <> 'yes'
+            FROM {$order_items_table} oi
+            LEFT JOIN {$order_itemmeta_table} oim_var
+                ON oim_var.order_item_id = oi.order_item_id
+                AND oim_var.meta_key = '_variation_id'
+            LEFT JOIN {$postmeta_table} pm_var
+                ON pm_var.post_id = oim_var.meta_value
+                AND pm_var.meta_key = '_virtual'
+            LEFT JOIN {$order_itemmeta_table} oim_prod
+                ON oim_prod.order_item_id = oi.order_item_id
+                AND oim_prod.meta_key = '_product_id'
+            LEFT JOIN {$postmeta_table} pm_prod
+                ON pm_prod.post_id = oim_prod.meta_value
+                AND pm_prod.meta_key = '_virtual'
+            WHERE oi.order_id = {$orderIdExpression}
+                AND oi.order_item_type = 'line_item'
+                AND COALESCE(NULLIF(pm_var.meta_value, ''), pm_prod.meta_value, 'no') <> 'yes'
         )";
     }
 
