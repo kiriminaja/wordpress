@@ -273,8 +273,7 @@
     if (
       !discount ||
       parseFloat(discount.amount || 0) <= 0 ||
-      !discount.formatted_original_cost ||
-      !discount.formatted_current_cost
+      !discount.formatted_original_cost
     ) {
       document
         .querySelectorAll(".kiriof-shipping-totals-original")
@@ -311,6 +310,52 @@
     if (del.textContent !== discount.formatted_original_cost) {
       del.textContent = discount.formatted_original_cost;
     }
+  }
+
+  function syncShippingOptionStrikethrough(discount) {
+    if (
+      !discount ||
+      parseFloat(discount.amount || 0) <= 0 ||
+      !discount.formatted_original_cost
+    ) {
+      document
+        .querySelectorAll(".kiriof-shipping-option-original")
+        .forEach(function (n) {
+          n.remove();
+        });
+      return;
+    }
+
+    const selectedOptions = document.querySelectorAll(
+      ".wc-block-components-radio-control__option-checked",
+    );
+
+    selectedOptions.forEach(function (option) {
+      if (
+        discount.rate_label &&
+        option.textContent &&
+        option.textContent.indexOf(discount.rate_label) === -1
+      ) {
+        return;
+      }
+
+      const priceContainer = option.querySelector(
+        ".wc-block-components-radio-control__secondary-label",
+      );
+      if (!priceContainer) {
+        return;
+      }
+
+      let del = priceContainer.querySelector(".kiriof-shipping-option-original");
+      if (!del) {
+        del = document.createElement("del");
+        del.className = "kiriof-shipping-option-original";
+        priceContainer.insertBefore(del, priceContainer.firstChild);
+      }
+      if (del.textContent !== discount.formatted_original_cost) {
+        del.textContent = discount.formatted_original_cost;
+      }
+    });
   }
 
   function syncShippingDiscountTotalsRow(discount) {
@@ -364,6 +409,7 @@
     function refresh() {
       fetchCurrentShippingDiscount(function (discount) {
         syncShippingTotalsStrikethrough(discount);
+        syncShippingOptionStrikethrough(discount);
         syncShippingDiscountTotalsRow(discount);
       });
     }
@@ -548,6 +594,7 @@
     useEffect(
       function () {
         syncShippingTotalsStrikethrough(shippingDiscount);
+        syncShippingOptionStrikethrough(shippingDiscount);
       },
       [shippingDiscount],
     );

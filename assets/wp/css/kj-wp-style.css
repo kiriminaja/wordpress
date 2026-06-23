@@ -184,6 +184,12 @@ tr.woocommerce-shipping-totals {
   margin-bottom: 12px !important;
 }
 
+.kiriof-shipping-totals-original,
+.kiriof-shipping-option-original {
+  opacity: 0.6;
+  margin-right: 6px;
+}
+
 .kiriof-block-shipping-discount__row {
   order: 6 !important;
   display: flex !important;
