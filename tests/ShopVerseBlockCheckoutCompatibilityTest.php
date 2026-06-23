@@ -356,6 +356,58 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function cod_shipping_filter_must_not_blank_all_rates_when_cod_metadata_is_missing(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $start = strpos($content, 'public function filterOptions');
+        $this->assertNotFalse($start, 'KiriminAja shipping rate filtering method must exist');
+        $methodBody = substr($content, $start, 3400);
+
+        $this->assertStringContainsString(
+            '$allOptions = [];',
+            $methodBody,
+            'COD filtering must keep a fallback copy of all rates so checkout does not show No shipping option'
+        );
+        $this->assertStringContainsString(
+            'if ($is_cod && empty($filteredOptions) && !empty($allOptions))',
+            $methodBody,
+            'When no COD-capable rows are detected, the shipping list should degrade to regular rates instead of emptying checkout'
+        );
+        $this->assertStringContainsString(
+            'isCodCapableOption',
+            $content,
+            'COD capability should be normalized instead of relying only on top-level option->cod'
+        );
+        $this->assertStringContainsString(
+            'cod_fee_amount',
+            $content,
+            'Some API responses expose COD support through fee settings rather than option->cod'
+        );
+    }
+
+    #[Test]
+    public function legacy_pricing_ajax_cod_filter_has_same_non_empty_fallback(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
+
+        $this->assertStringContainsString(
+            '$allOptions = [];',
+            $content,
+            'Legacy pricing AJAX must keep all rates available as a fallback'
+        );
+        $this->assertStringContainsString(
+            'if ($this->is_cod && empty($filteredOptions) && !empty($allOptions))',
+            $content,
+            'Legacy pricing AJAX should not return an empty option list just because COD metadata is missing'
+        );
+        $this->assertStringContainsString(
+            'isCodCapableOption',
+            $content,
+            'Legacy pricing AJAX should use normalized COD-capable detection too'
+        );
+    }
+
+    #[Test]
     public function legacy_pricing_ajax_must_use_available_money_formatter(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
@@ -397,6 +449,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "'options'      => \$options",
             $methodBody,
             'Block select options become a fixed Store API enum and reject AJAX-loaded district IDs'
+        );
+
+        $this->assertStringContainsString(
+            "'required'     => false",
+            $methodBody,
+            'Blocks District schema must stay optional because the field can be registered before Woo has cart state; plugin validation/UI enforce it only for shippable carts'
         );
 
         $this->assertStringNotContainsString(
@@ -494,6 +552,20 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout needs a DOM postcode fallback when cart data store postcode is not populated yet'
         );
 
+        $domPostcodeStart = strpos($content, 'function kiriofGetCheckoutPostcodeFromDom');
+        $this->assertNotFalse($domPostcodeStart, 'DOM postcode resolver must exist');
+        $domPostcodeBody = substr($content, $domPostcodeStart, 700);
+        $this->assertStringContainsString(
+            'if (val) {',
+            $domPostcodeBody,
+            'DOM postcode resolver must trust partial visible input like 5 so it does not fall back to a stale saved postcode during edits'
+        );
+        $this->assertStringNotContainsString(
+            'String(val).length >= 3',
+            $domPostcodeBody,
+            'DOM postcode resolver must not ignore partial buyer input and then restore the old postcode from session/store'
+        );
+
         $this->assertStringContainsString(
             'currentValue === savedPostcode || currentValue',
             $content,
@@ -509,7 +581,142 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'kiriofUpdateBlockCheckoutPostcode(kiriofLastTypedPostcode)',
             $content,
-            'Postcode input handler must update the Woo stores as soon as the buyer types a new postcode'
+            'Postcode input handler must update checkout editing state as soon as the buyer types a new postcode'
+        );
+
+        $postcodeUpdaterStart = strpos($content, 'function kiriofUpdateBlockCheckoutPostcode');
+        $this->assertNotFalse($postcodeUpdaterStart, 'Block checkout postcode updater must exist');
+	        $postcodeUpdaterBody = substr($content, $postcodeUpdaterStart, 1800);
+	        $this->assertStringContainsString(
+	            'setEditingShippingAddress',
+	            $postcodeUpdaterBody,
+	            'Postcode updater must mirror the typed shipping postcode into wc/store/checkout editing state so Woo Blocks cannot rerender the old postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'setEditingBillingAddress',
+	            $postcodeUpdaterBody,
+	            'Postcode updater must mirror billing postcode edits into wc/store/checkout editing state when the billing postcode field is edited'
+	        );
+	        $this->assertStringContainsString(
+	            'Object.assign({}, editingShippingAddress, {',
+	            $postcodeUpdaterBody,
+	            'Postcode updater should match main branch behavior by writing the new postcode into checkout editing shipping address'
+	        );
+	        $this->assertStringContainsString(
+	            'Object.assign({}, editingBillingAddress, {',
+	            $postcodeUpdaterBody,
+	            'Postcode updater should match main branch behavior by writing the new postcode into checkout editing billing address so the other address group cannot rehydrate the stale postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'function kiriofSchedulePostcodeReapply(postcode)',
+	            $content,
+	            'Postcode edits must schedule guarded re-application so Woo Blocks rerenders cannot restore the old session postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, \'value\')',
+	            $content,
+	            'Postcode re-application must use the native input value setter so React-controlled postcode fields accept the typed value'
+	        );
+	        $this->assertStringContainsString(
+	            'kiriofNormalizePostcode(kiriofLastTypedPostcode) !== postcode',
+	            $content,
+	            'Scheduled postcode re-application must ignore stale timers after the buyer types a newer postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'kiriofSchedulePostcodeReapply(kiriofLastTypedPostcode)',
+	            $content,
+	            'Postcode input handler must schedule re-application after every non-empty edit'
+	        );
+	        $this->assertStringNotContainsString(
+	            "wp.data.dispatch('wc/store/cart')",
+	            $postcodeUpdaterBody,
+            'Postcode updater must not write cart billing/shipping address stores because Woo Blocks can rehydrate stale session postcodes over buyer input'
+        );
+        $this->assertStringNotContainsString(
+            'setShippingAddress',
+            $postcodeUpdaterBody,
+            'Postcode updater must not dispatch cart shipping address mutations'
+        );
+        $this->assertStringNotContainsString(
+            'setBillingAddress',
+            $postcodeUpdaterBody,
+            'Postcode updater must not dispatch cart billing address mutations'
+        );
+
+        $currentPostcodeStart = strpos($content, 'function kiriofGetCurrentPostcodeKey');
+        $this->assertNotFalse($currentPostcodeStart, 'Current postcode resolver must exist');
+	        $currentPostcodeBody = substr($content, $currentPostcodeStart, 900);
+	        $this->assertStringContainsString(
+	            'if (recentlyTyped) {',
+	            $currentPostcodeBody,
+	            'Current postcode resolver must prefer recent buyer edits, including clearing the field, over stale session/store values while Woo Blocks re-renders'
+	        );
+
+        $restorePostcodeStart = strpos($content, 'function kiriofRestoreSavedPostcodeField');
+        $this->assertNotFalse($restorePostcodeStart, 'Saved postcode restore helper must exist');
+        $restorePostcodeBody = substr($content, $restorePostcodeStart, 600);
+        $this->assertStringContainsString(
+            'Date.now() - kiriofLastTypedPostcodeAt',
+            $restorePostcodeBody,
+            'Saved postcode restore must not run immediately after buyer typing'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofScheduleFetchDistricts(postcode, delay)',
+            $content,
+            'Direct postcode typing should debounce district lookup so partial values like 555 or 5558 do not race the final postcode'
+        );
+
+	        $this->assertStringContainsString(
+	            'requestId !== kiriofDistrictLookupRequestId || currentPostcode !== postcode',
+	            $content,
+	            'District lookup responses must be ignored when they no longer match the currently edited postcode'
+	        );
+	        $fetchStart = strpos($content, 'function kiriofFetchDistricts(postcode)');
+	        $this->assertNotFalse($fetchStart, 'District lookup helper must exist');
+	        $fetchBody = substr($content, $fetchStart, 1800);
+	        $this->assertStringContainsString(
+	            'skipCheckoutSync: true',
+	            $fetchBody,
+	            'Starting a district lookup should clear stale District locally without dispatching checkout field updates that can rerender postcode from old state'
+	        );
+
+	        $postcodeHandlerStart = strpos($content, 'input.kiriofBlockPostcode change.kiriofBlockPostcode');
+        $this->assertNotFalse($postcodeHandlerStart, 'Block checkout postcode input handler must exist');
+        $postcodeHandlerBody = substr($content, $postcodeHandlerStart, 2200);
+        $this->assertStringContainsString(
+            'kiriofResetBlockDistrictState({',
+            $postcodeHandlerBody,
+            'Any buyer postcode edit, including partial input, must clear the stale selected District immediately'
+        );
+        $this->assertStringContainsString(
+            'skipStoreSync: true',
+            $postcodeHandlerBody,
+            'Clearing stale District while typing must stay local so Woo Blocks does not rehydrate the previous address postcode'
+        );
+	        $this->assertStringContainsString(
+	            'skipCheckoutSync: true',
+	            $postcodeHandlerBody,
+	            'Clearing stale District while typing must not dispatch checkout additional-field updates that can rerender the postcode input from old state'
+	        );
+	        $this->assertStringContainsString(
+	            'kiriofLastTypedPostcodeAt  = Date.now();',
+	            $postcodeHandlerBody,
+	            'Clearing postcode must mark the field as recently edited so the resolver does not fall back to stale store/session postcode'
+	        );
+	        $this->assertStringContainsString(
+	            "kiriofSchedulePostcodeReapply('');",
+	            $postcodeHandlerBody,
+	            'Clearing postcode must also be re-applied after Woo Blocks rerenders so the old session postcode does not return'
+	        );
+
+        $resetStart = strpos($content, 'function kiriofResetBlockDistrictState');
+        $this->assertNotFalse($resetStart, 'Block checkout district reset helper must exist');
+        $resetBody = substr($content, $resetStart, 1200);
+        $this->assertStringContainsString(
+            'if (!options.skipCheckoutSync)',
+            $resetBody,
+            'District reset must support a local-only path while the buyer is editing postcode'
         );
     }
 
@@ -927,6 +1134,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'billingAddress[kiriofFieldId] = String(districtId)',
             $functionBody,
             'Billing address payload should carry the District additional field too so Store API customer state remains complete'
+        );
+
+        $this->assertStringContainsString(
+            'var currentPostcode = kiriofGetCurrentPostcodeKey();',
+            $functionBody,
+            'Raw update-customer fallback must capture the currently edited postcode before building address payloads'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofApplyCurrentPostcodeToStoreApiAddress(',
+            $functionBody,
+            'Raw update-customer fallback must force the visible/current postcode onto Store API addresses so stale session postcodes do not rehydrate over buyer input'
         );
 
         $this->assertStringContainsString(
@@ -1878,6 +2097,79 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $storeApiBody,
             'Block checkout Store API extension updates must ignore stale shipping method payloads for virtual-only carts'
         );
+
+        $gatewayStart = strpos($content, 'public function kiriof_filter_cod_availability');
+        $this->assertNotFalse($gatewayStart, 'COD availability filter must exist');
+        $gatewayBody = substr($content, $gatewayStart, 900);
+        $virtualCartCheck = strpos($gatewayBody, '! $this->kiriof_cart_needs_shipping()');
+        $checkoutPageCheck = strpos($gatewayBody, 'if (!is_checkout())');
+        $this->assertNotFalse($virtualCartCheck, 'COD availability must check virtual-only carts');
+        $this->assertNotFalse($checkoutPageCheck, 'COD availability should still limit KiriminAja shipping-method rules to checkout pages');
+        $this->assertLessThan(
+            $checkoutPageCheck,
+            $virtualCartCheck,
+            'Virtual-only carts must remove COD before is_checkout() because block checkout payment options can be fetched through Store API requests'
+        );
+        $this->assertStringContainsString(
+            '! $this->kiriof_cart_needs_shipping()',
+            $gatewayBody,
+            'COD gateway must be removed for virtual-only carts even if stale KiriminAja shipping session data exists'
+        );
+        $this->assertStringContainsString(
+            "unset( \$gateways['cod'] );",
+            $gatewayBody,
+            'Virtual-only carts must not offer Cash on Delivery'
+        );
+    }
+
+    #[Test]
+    public function virtual_cart_skips_district_field_script_registration_and_validation(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        foreach (array(
+            'function add_custom_select_options_field_and_script' => 'Virtual-only carts must not print the District field/script template',
+            'public function kiriof_billing_fields' => 'Virtual-only carts must not add classic checkout District or insurance fields',
+            'public function kiriof_register_block_checkout_fields' => 'Virtual-only carts must not register the Blocks District additional field when the cart is available',
+            'function kiriof_checkout_field_validation' => 'Virtual-only carts must not require District during classic checkout validation',
+            'public function kiriof_validateOrder' => 'Virtual-only carts must not require District, shipping, or checkout calculation validation',
+            'public function kiriof_ajax_session_save' => 'Virtual-only carts must not persist stale District session data through AJAX fallback',
+        ) as $needle => $message) {
+            $start = strpos($content, $needle);
+            $this->assertNotFalse($start, $message);
+            $body = substr($content, $start, 700);
+            $this->assertStringContainsString(
+                '! $this->kiriof_cart_needs_shipping()',
+                $body,
+                $message
+            );
+            $this->assertStringContainsString(
+                'kiriof_clear_logistics_session',
+                $body,
+                $message
+            );
+        }
+
+        $this->assertStringContainsString(
+            'private function kiriof_render_virtual_cart_district_cleanup',
+            $content,
+            'Virtual-only block checkouts need a small cleanup script because Woo Blocks can render the registered District field before cart state is available'
+        );
+        $this->assertStringContainsString(
+            'kiriof-virtual-cart-checkout',
+            $content,
+            'Virtual-only cleanup must add a page marker class for hiding District UI created by Woo Blocks'
+        );
+        $this->assertStringContainsString(
+            '[name*="kiriof_destination_area"]',
+            $content,
+            'Virtual-only cleanup must target raw registered District fields by name'
+        );
+        $this->assertStringContainsString(
+            'MutationObserver',
+            $content,
+            'Virtual-only cleanup must survive Woo Blocks React rerenders'
+        );
     }
 
     #[Test]
@@ -2482,10 +2774,54 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function transaction_process_page_only_lists_orders_with_shippable_products(): void
+    {
+        $index = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/TransactionRepository.php');
+
+        $this->assertStringContainsString(
+            'public function getShippableOrderExistsSql',
+            $repository,
+            'Transaction queries need one shared SQL clause for detecting orders with at least one shippable line item'
+        );
+        $this->assertStringContainsString(
+            'wc_order_product_lookup',
+            $repository,
+            'Shippable-order detection should inspect WooCommerce order line items, not only transaction rows'
+        );
+        $this->assertStringContainsString(
+            "meta_key = '_virtual'",
+            $repository,
+            'Shippable-order detection must exclude orders whose products/variations are virtual only'
+        );
+        $this->assertStringContainsString(
+            "COALESCE(NULLIF(kiriof_variation_virtual_meta.meta_value, ''), kiriof_product_virtual_meta.meta_value, 'no') <> 'yes'",
+            $repository,
+            'Variation virtual metadata should override product metadata, with non-virtual as the default'
+        );
+        $this->assertStringContainsString(
+            '$shippable_order_clause = $transactionRepository->getShippableOrderExistsSql',
+            $index,
+            'The transaction-process page must apply the shippable-order filter to its paginated SQL'
+        );
+        $this->assertGreaterThanOrEqual(
+            10,
+            substr_count($index, '{$shippable_order_clause}'),
+            'Every transaction-process filter branch must apply the shippable-order clause to both totals and rows'
+        );
+        $this->assertStringContainsString(
+            '$shippable_order_clause = $this->getShippableOrderExistsSql',
+            $repository,
+            'Status counts, courier filters, and month filters must use the same shippable-order filter as the page query'
+        );
+    }
+
+    #[Test]
     public function block_checkout_slot_fill_script_is_enqueued_for_order_summary_fee_breakdown(): void
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+        $style = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
@@ -2499,6 +2835,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'wc-blocks-checkout',
             $enqueue,
             'Slot/fill script must depend on Woo Blocks checkout APIs'
+        );
+
+        $this->assertStringContainsString(
+            'isBlockCartOrCheckoutPage',
+            $enqueue,
+            'Shipping discount totals script must load on both Cart Block and Checkout Block pages'
+        );
+
+        $this->assertStringContainsString(
+            "has_block( 'woocommerce/cart'",
+            $enqueue,
+            'Cart Block pages need the shipping discount totals script too'
+        );
+
+        $this->assertStringContainsString(
+            'is_cart_block_default',
+            $enqueue,
+            'Default Woo Cart Block pages need the shipping discount totals script too'
         );
 
         $this->assertStringContainsString(
@@ -2574,6 +2928,42 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'getCurrentShippingDiscountSummary',
             $couponController,
             'Block checkout AJAX should use the shipping discount summary so buyers can see the shipping method name plus original and discounted shipping prices'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-block-shipping-discount__row',
+            $script,
+            'Block checkout order summary should render an explicit shipping discount row when a shipping coupon changes the selected rate'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-block-shipping-discount__fallback-row',
+            $script,
+            'Cart Block should receive a DOM fallback shipping discount row because checkout Slot/Fills are not available there'
+        );
+
+        $this->assertStringContainsString(
+            'bootDomShippingDiscountSummary',
+            $script,
+            'Cart Block should fetch the shipping discount summary and sync the totals DOM without checkout Slot/Fills'
+        );
+
+        $this->assertStringContainsString(
+            'syncShippingDiscountTotalsRow',
+            $script,
+            'Cart block should still render a DOM fallback shipping discount row outside of checkout Slot/Fills'
+        );
+
+        $this->assertStringContainsString(
+            '.kiriof-block-shipping-discount__row',
+            $style,
+            'Injected shipping discount row should style the actual block checkout/cart class'
+        );
+
+        $this->assertStringContainsString(
+            'padding: 24px 32px !important;',
+            $style,
+            'Injected shipping discount row needs horizontal padding so it aligns with Woo block totals content'
         );
 
         $this->assertStringNotContainsString(

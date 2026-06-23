@@ -17,13 +17,14 @@ class CallbackController{
     function kiriminAjaCallback()
     {
         try {
-            if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+            $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ) : '';
+            if ( '' !== $request_method && 'POST' !== $request_method ) {
                 kiriof_log(
                     'warning',
                     'KiriminAja webhook request was rejected because it used an unsupported HTTP method.',
                     array(
                         'source'         => 'kiriminaja_webhook',
-                        'request_method' => sanitize_text_field( (string) $_SERVER['REQUEST_METHOD'] ),
+                        'request_method' => $request_method,
                     )
                 );
 

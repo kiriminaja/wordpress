@@ -20,6 +20,7 @@ class CheckoutController
     //shipping checkout key
     private $field_shipping_destination_key  = 'kiriof_shipping_destination_area';
     private $field_shipping_insurance_key  = 'kiriof_shipping_insurance';
+    private $kiriof_virtual_cart_cleanup_printed = false;
 
     private function kiriof_cart_needs_shipping(): bool {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'needs_shipping' ) ) {
@@ -418,8 +419,8 @@ class CheckoutController
             return '';
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
         if ( isset( $_POST['rate_id'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
             return sanitize_text_field( wp_unslash( $_POST['rate_id'] ) );
         }
 
@@ -487,7 +488,13 @@ class CheckoutController
         wp_nonce_field(KIRIOF_NONCE, 'checkout_kiriminaja_nonce_field');
     }
     function add_custom_select_options_field_and_script($checkout)
-    {        
+    {
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            $this->kiriof_render_virtual_cart_district_cleanup();
+            return;
+        }
+
         $field_key = $this->field_destination_key;
         $destination_id = WC()->session->get($this->key_destination_id);
         $destination_name = WC()->session->get($this->key_destination_name);
@@ -501,10 +508,90 @@ class CheckoutController
         $kiriof_checkout_token     = empty($destination_id) ? false : true;
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-billing-address.php');
     }
+
+    private function kiriof_render_virtual_cart_district_cleanup(): void {
+        if ( $this->kiriof_virtual_cart_cleanup_printed ) {
+            return;
+        }
+        $this->kiriof_virtual_cart_cleanup_printed = true;
+        ?>
+        <style>
+            .kiriof-virtual-cart-checkout .kiriof-block-district-field-wrapper,
+            .kiriof-virtual-cart-checkout .kiriof-block-district-source-wrapper,
+            .kiriof-virtual-cart-checkout .kiriof-block-district-select-wrapper,
+            .kiriof-virtual-cart-checkout .kiriof-block-district-warning {
+                display: none !important;
+            }
+        </style>
+        <script>
+        (function() {
+            document.documentElement.classList.add('kiriof-virtual-cart-checkout');
+
+            function kiriofHideVirtualCartDistrictFields() {
+                var selectors = [
+                    '[name*="kiriof_destination_area"]',
+                    '[id*="kiriof_destination_area"]',
+                    '.kiriof-block-district-source',
+                    '.kiriof-block-district-select'
+                ].join(',');
+
+                document.querySelectorAll(selectors).forEach(function(field) {
+                    if (!field || field.id === 'kiriof-block-district-mirror') {
+                        return;
+                    }
+
+                    field.removeAttribute('required');
+                    field.setAttribute('aria-required', 'false');
+                    if ('value' in field) {
+                        field.value = '';
+                    }
+
+                    var wrapper = field.closest(
+                        '.kiriof-block-district-field-wrapper,' +
+                        '.kiriof-block-district-source-wrapper,' +
+                        '.kiriof-block-district-select-wrapper,' +
+                        '.wc-block-components-text-input,' +
+                        '.wc-block-components-address-form__state,' +
+                        '.wc-block-components-combobox,' +
+                        '.form-row,' +
+                        'p'
+                    );
+
+                    if (wrapper && wrapper !== document.body) {
+                        wrapper.style.display = 'none';
+                        wrapper.setAttribute('hidden', 'hidden');
+                    } else {
+                        field.style.display = 'none';
+                        field.setAttribute('hidden', 'hidden');
+                    }
+                });
+
+                document.querySelectorAll('.kiriof-block-district-warning').forEach(function(warning) {
+                    warning.style.display = 'none';
+                    warning.setAttribute('hidden', 'hidden');
+                });
+            }
+
+            kiriofHideVirtualCartDistrictFields();
+            if (document.body && window.MutationObserver) {
+                new MutationObserver(kiriofHideVirtualCartDistrictFields).observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+        })();
+        </script>
+        <?php
+    }
     function kiriof_checkout_field_validation() {
         try {
              // Verify Nonce - fail early if missing or invalid
             if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
+                return;
+            }
+
+            if ( ! $this->kiriof_cart_needs_shipping() ) {
+                $this->kiriof_clear_logistics_session();
                 return;
             }
                 
@@ -965,7 +1052,7 @@ class CheckoutController
                         </tr>
                         <tr>
                             <th class="" style="text-align: left">'.esc_html( __( 'Tracking', 'kiriminaja-official' ) ).'</th>
-                            <th class="" style="text-align: right"><a href="'.esc_url( home_url().'/tracking?order_id='.$transaction->wp_wc_order_stat_order_id ).'" target="_blank">CLICK</a></th>
+                            <th class="" style="text-align: right"><a href="'.esc_url( kiriof_get_tracking_page_url( array( 'order_id' => $transaction->wp_wc_order_stat_order_id ) ) ).'" target="_blank">CLICK</a></th>
                         </tr>
                     </thead>
                 </table>            
@@ -1035,7 +1122,7 @@ class CheckoutController
         }
 
         $shipping_label = $order->get_shipping_method();
-        $tracking_url = home_url('/tracking?order_id=' . $order->get_id());
+        $tracking_url = kiriof_get_tracking_page_url( array( 'order_id' => $order->get_id() ) );
 
         $html = '
             <section class="kiriof-order-shipment-details" style="margin:1.5rem 0 0;">
@@ -1096,6 +1183,11 @@ class CheckoutController
         if ( ! isset( $_POST['checkout_kiriminaja_nonce_field'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['checkout_kiriminaja_nonce_field'] ) ), KIRIOF_NONCE ) ) {
             return;
         }
+
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            return;
+        }
         
             if( isset($_POST['billing_country']) ){
                 
@@ -1145,6 +1237,11 @@ class CheckoutController
             }
     }
     public function kiriof_billing_fields($fields){
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            return $fields;
+        }
+
         $fields_selected = array( 
             'city',
             'company', 
@@ -1388,7 +1485,15 @@ class CheckoutController
      * @return array
      */
     public function kiriof_filter_cod_availability($gateways) {
-        // Only affect the checkout page
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            if ( isset( $gateways['cod'] ) ) {
+                unset( $gateways['cod'] );
+            }
+            return $gateways;
+        }
+
+        // Only affect the checkout page after virtual carts have removed COD.
         if (!is_checkout()) {
             return $gateways;
         }
@@ -1461,6 +1566,11 @@ class CheckoutController
             return;
         }
 
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            return;
+        }
+
         $options = array(
             array( 'value' => '', 'label' => __( 'Select Option', 'kiriminaja-official' ) ),
         );
@@ -1483,7 +1593,7 @@ class CheckoutController
                 'label'        => __( 'District', 'kiriminaja-official' ),
                 'location'     => 'address',
                 'type'         => 'text',
-                'required'     => true,
+                'required'     => false,
                 'address_type' => array( 'shipping' ),
             ));
         } else {
@@ -1493,7 +1603,7 @@ class CheckoutController
                     'label'    => __( 'District', 'kiriminaja-official' ),
                     'location' => 'address',
                     'type'     => 'select',
-                    'required' => true,
+                    'required' => false,
                     'options'  => $options,
                 ),
                 array( 'address_type' => array( 'shipping' ) )
@@ -1637,10 +1747,16 @@ class CheckoutController
         try {
             check_ajax_referer( KIRIOF_NONCE, 'nonce' );
 
-            $raw  = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
+            $raw  = isset( $_POST['data'] ) ? sanitize_textarea_field( wp_unslash( $_POST['data'] ) ) : '';
             $data = json_decode( $raw, true );
             if ( ! is_array( $data ) ) {
                 wp_send_json_error( array( 'msg' => 'Invalid data' ) );
+                wp_die();
+            }
+
+            if ( ! $this->kiriof_cart_needs_shipping() ) {
+                $this->kiriof_clear_logistics_session();
+                wp_send_json_success( array( 'destination_id' => 0 ) );
                 wp_die();
             }
 

@@ -427,11 +427,11 @@ final class CodDeficitFeatureTest extends TestCase
     }
 
     #[Test]
-    public function shipping_discount_coupon_service_gates_top_merchants(): void
+    public function shipping_discount_coupon_service_does_not_gate_top_merchants(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountCouponService.php');
-        $this->assertStringContainsString('isMerchantTop()', $content);
-        $this->assertStringContainsString('private function isMerchantTop()', $content);
+        $this->assertStringNotContainsString('isMerchantTop()', $content);
+        $this->assertStringNotContainsString('Shipping discount coupons are not available for your account type.', $content);
     }
 
     #[Test]

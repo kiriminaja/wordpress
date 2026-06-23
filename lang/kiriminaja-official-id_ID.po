@@ -31,8 +31,8 @@ msgstr "%1$d / %2$d Terkonfigurasi"
 #: inc/Pages/Admin.php:280
 #: templates/setting/setuped/index.php:113
 #, php-format
-msgid "%1$d / %2$d Product Volumetric Configurations"
-msgstr "%1$d / %2$d Konfigurasi Volumetrik Produk"
+msgid "%1$d / %2$d Need Action"
+msgstr "%1$d / %2$d Perlu Tindakan"
 
 #. translators: %1$s: Plugin name, %2$s: WooCommerce.
 #: kiriminaja.php:133
@@ -389,8 +389,12 @@ msgid "Current Page"
 msgstr "Halaman Saat Ini"
 
 #: wc/KiriminajaShippingMethod.php:23
-msgid "Custom Shipping Method for Kiriminaja"
-msgstr "Metode Pengiriman Khusus untuk KiriminAja"
+msgid "KiriminAja real-time shipping rates for this shipping zone."
+msgstr "Tarif pengiriman real-time KiriminAja untuk zona pengiriman ini."
+
+#: wc/KiriminajaShippingMethod.php
+msgid "This controls the title shown to customers during checkout."
+msgstr "Ini mengatur judul yang ditampilkan kepada pelanggan saat checkout."
 
 #: inc/Controllers/CheckoutController.php:754
 msgid "Date"
@@ -2588,10 +2592,6 @@ msgid "Item"
 msgstr "Item"
 
 #: inc/Services/ShippingDiscountCouponService.php
-msgid "Shipping discount coupons are not available for your account type."
-msgstr "Kupon diskon ongkir tidak tersedia untuk tipe akun Anda."
-
-#: inc/Services/ShippingDiscountCouponService.php
 msgid "This coupon cannot be combined with a free shipping coupon."
 msgstr "Kupon ini tidak dapat digabungkan dengan kupon gratis ongkir."
 
@@ -2606,3 +2606,107 @@ msgstr "Kupon ini tidak dapat digabungkan dengan satu atau lebih kupon aktif."
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Shipping discount coupon not applied — free shipping is active."
 msgstr "Kupon diskon ongkir tidak diterapkan — gratis ongkir sedang aktif."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Coupon \"%1$s\" cannot be applied. %2$s"
+msgstr "Kupon \"%1$s\" tidak dapat diterapkan. %2$s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Shipping discount \"%1$s\" applied and combined with: %2$s."
+msgstr "Diskon ongkir \"%1$s\" diterapkan dan digabungkan dengan: %2$s."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Shipping discount \"%s\" applied to your cart."
+msgstr "Diskon ongkir \"%s\" diterapkan ke keranjang kamu."
+
+#: inc/Controllers/SettingController.php
+msgid "Required by KiriminAja Official Plugin"
+msgstr "Diperlukan oleh Plugin KiriminAja Official"
+
+#: inc/Controllers/SettingController.php
+msgid "Tracking page"
+msgstr "Halaman pelacakan"
+
+#: inc/Controllers/SettingController.php
+msgid "Page contents: [kiriminaja-tracking-front-page]"
+msgstr "Isi halaman: [kiriminaja-tracking-front-page]"
+
+#: inc/Controllers/SettingController.php
+msgid "Select a page&hellip;"
+msgstr "Pilih halaman&hellip;"
+
+#: inc/Base/Helper.php
+msgid "JNE Express"
+msgstr "JNE Express"
+
+#: inc/Base/Helper.php
+msgid "Tiki"
+msgstr "Tiki"
+
+#: inc/Base/Helper.php
+msgid "Sicepat Express"
+msgstr "Sicepat Express"
+
+#: inc/Base/Helper.php
+msgid "J&T Express"
+msgstr "J&T Express"
+
+#: inc/Base/Helper.php
+msgid "J&T Cargo"
+msgstr "J&T Cargo"
+
+#: inc/Base/Helper.php
+msgid "AnterAja"
+msgstr "AnterAja"
+
+#: inc/Base/Helper.php
+msgid "Pos Indonesia"
+msgstr "Pos Indonesia"
+
+#: inc/Base/Helper.php
+msgid "RPX Logistics"
+msgstr "RPX Logistics"
+
+#: inc/Base/Helper.php
+msgid "Lion Parcel"
+msgstr "Lion Parcel"
+
+#: inc/Base/Helper.php
+msgid "Paxel"
+msgstr "Paxel"
+
+#: inc/Base/Helper.php
+msgid "SAPX Express"
+msgstr "SAPX Express"
+
+#: inc/Base/Helper.php
+msgid "Ninja"
+msgstr "Ninja"
+
+#: inc/Base/Helper.php
+msgid "ID Express"
+msgstr "ID Express"
+
+#: inc/Base/Helper.php
+msgid "NCS Courier"
+msgstr "NCS Courier"
+
+#: inc/Base/Helper.php
+msgid "Borzo"
+msgstr "Borzo"
+
+#: inc/Base/Helper.php
+msgid "Grab Express"
+msgstr "Grab Express"
+
+#: inc/Base/Helper.php
+msgid "GoSend"
+msgstr "GoSend"
+
+#: inc/Base/Helper.php
+msgid "Sentral Cargo"
+msgstr "Sentral Cargo"
+
+#: inc/Base/Helper.php
+msgid "SPX Express"
+msgstr "SPX Express"

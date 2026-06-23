@@ -146,7 +146,7 @@ class Kiriof_TransactionProcessIndex
 
         $courier_clause = '';
         if ('' !== $courier) {
-            $courier_clause = "AND kiriminaja_transactions.service = '" . esc_sql($courier) . "'";
+            $courier_clause = $wpdb->prepare( "AND kiriminaja_transactions.service = %s", $courier );
         }
 
         /**
@@ -156,7 +156,9 @@ class Kiriof_TransactionProcessIndex
          * (wp_wc_orders custom table). The helper on TransactionRepository
          * returns the correct table name and column aliases.
          */
-        $o = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getOrdersTable();
+        $transactionRepository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $o = $transactionRepository->getOrdersTable();
+        $shippable_order_clause = $transactionRepository->getShippableOrderExistsSql( "orders_tbl.{$o['id']}" );
 
         $key_clause = '';
         if ('' !== $key) {
@@ -194,6 +196,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $month,
                     $month_like
@@ -215,6 +218,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
@@ -241,6 +245,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $month,
                     $month_like
@@ -264,6 +269,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
@@ -287,6 +293,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     'wc-cancelled',
                     $month,
@@ -308,6 +315,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
@@ -332,6 +340,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $month,
                     $month_like
@@ -352,6 +361,7 @@ class Kiriof_TransactionProcessIndex
                     {$cod_clause}
                     {$courier_clause}
                     {$key_clause}
+                    {$shippable_order_clause}
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC
@@ -376,6 +386,7 @@ class Kiriof_TransactionProcessIndex
                         {$cod_clause}
                         {$courier_clause}
                         {$key_clause}
+                        {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $status,
                     'new',
@@ -399,6 +410,7 @@ class Kiriof_TransactionProcessIndex
                     {$cod_clause}
                     {$courier_clause}
                     {$key_clause}
+                    {$shippable_order_clause}
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC

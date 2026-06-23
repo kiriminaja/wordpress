@@ -470,6 +470,228 @@ final class InsuranceFeatureTest extends TestCase
     }
 
     #[Test]
+    public function woocommerce_general_settings_include_kiriminaja_origin_mirror_fields(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
+
+        $this->assertStringContainsString(
+            "add_filter( 'woocommerce_general_settings'",
+            $controller,
+            'KiriminAja must inject origin mirror fields into WooCommerce General settings'
+        );
+
+        $this->assertStringContainsString(
+            "add_action( 'woocommerce_admin_field_kiriof_area_select'",
+            $controller,
+            'KiriminAja must render a custom Area select field for WooCommerce General settings'
+        );
+
+        $this->assertStringContainsString(
+            "add_action( 'woocommerce_admin_field_kiriof_pin_location'",
+            $controller,
+            'KiriminAja must render a custom Pin Location field for WooCommerce General settings'
+        );
+
+        $this->assertStringContainsString(
+            "add_action( 'woocommerce_update_options_general'",
+            $controller,
+            'KiriminAja must sync WooCommerce General settings back into KiriminAja origin settings'
+        );
+
+        $this->assertStringContainsString(
+            "insertSettingsBeforeId( \$settings, 'woocommerce_store_address'",
+            $controller,
+            'Sender Name and Sender Phone must appear before WooCommerce Address line 1'
+        );
+
+        $this->assertStringContainsString(
+            "insertSettingsAfterId( \$settings, 'woocommerce_default_country'",
+            $controller,
+            'Area must appear below WooCommerce Country / State'
+        );
+
+        $this->assertStringContainsString(
+            "insertSettingsAfterId( \$settings, 'woocommerce_store_address'",
+            $controller,
+            'Pin Location must appear near WooCommerce Address line 1'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-wc-origin-map',
+            $controller,
+            'Pin Location mirror field must render a Leaflet map in WooCommerce General settings'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_wc_origin_latitude',
+            $controller,
+            'Pin Location mirror field must submit latitude'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_wc_origin_longitude',
+            $controller,
+            'Pin Location mirror field must submit longitude'
+        );
+
+        $this->assertStringContainsString(
+            'wc_help_tip( __( \'Required by KiriminAja Official Plugin\'',
+            $controller,
+            'Pin Location required copy should use a WooCommerce help tooltip'
+        );
+
+        $this->assertStringContainsString(
+            '$coords.attr(\'data-tip\'',
+            $controller,
+            'Pin Location coordinates should be exposed as tooltip text instead of visible description text'
+        );
+
+        $this->assertStringContainsString(
+            'kiriminaja_subdistrict_search',
+            $controller,
+            'Area mirror field must reuse the KiriminAja area search endpoint'
+        );
+
+        $this->assertStringContainsString(
+            'wc-enhanced-select kiriof-wc-origin-area-select',
+            $controller,
+            'Area mirror field should use WooCommerce enhanced select styling in admin'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofExtractPostcode',
+            $controller,
+            'Area mirror field must extract postcode from the selected KiriminAja area'
+        );
+
+        $this->assertStringContainsString(
+            '#woocommerce_store_postcode, [name="woocommerce_store_postcode"]',
+            $controller,
+            'Selecting a KiriminAja Area must update WooCommerce Postcode / ZIP automatically'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSelectedCountryIsIndonesia',
+            $controller,
+            'Area mirror field must only show when WooCommerce Country / State is Indonesia'
+        );
+
+        $this->assertStringContainsString(
+            "value === 'ID' || value.indexOf('ID:') === 0",
+            $controller,
+            'Area visibility must support WooCommerce default country values like ID and ID:province'
+        );
+
+        $this->assertStringContainsString(
+            'storeOriginMirrorData',
+            $controller,
+            'WooCommerce settings save must persist the mirror values into KiriminAja origin settings'
+        );
+    }
+
+    #[Test]
+    public function kiriminaja_origin_address_syncs_with_woocommerce_store_options(): void
+    {
+        $service = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingService.php');
+
+        $this->assertStringContainsString(
+            "update_option( 'woocommerce_store_address'",
+            $service,
+            'Saving KiriminAja origin address must sync WooCommerce Address line 1'
+        );
+
+        $this->assertStringContainsString(
+            "update_option( 'woocommerce_store_postcode'",
+            $service,
+            'Saving KiriminAja origin zipcode must sync WooCommerce postcode'
+        );
+    }
+
+    #[Test]
+    public function origin_mirror_repository_updates_partial_origin_fields(): void
+    {
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/SettingRepository.php');
+
+        $this->assertStringContainsString(
+            'function storeOriginMirrorData',
+            $repository,
+            'Repository must expose a partial mirror save path for WooCommerce settings'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_name'",
+            $repository,
+            'Partial mirror save must include sender name'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_phone'",
+            $repository,
+            'Partial mirror save must include sender phone'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_address'",
+            $repository,
+            'Partial mirror save must include origin address'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_zip_code'",
+            $repository,
+            'Partial mirror save must include origin zipcode'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_latitude'",
+            $repository,
+            'Partial mirror save must include origin latitude'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_longitude'",
+            $repository,
+            'Partial mirror save must include origin longitude'
+        );
+
+        $this->assertStringContainsString(
+            "'origin_sub_district_id'",
+            $repository,
+            'Partial mirror save must include origin area id'
+        );
+    }
+
+    #[Test]
+    public function admin_assets_load_on_woocommerce_general_settings_for_origin_mirror(): void
+    {
+        $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+
+        $this->assertStringContainsString(
+            '$is_wc_general_settings',
+            $enqueue,
+            'WooCommerce General settings must load KiriminAja admin assets for the mirror Area field'
+        );
+
+        $this->assertStringContainsString(
+            "'woocommerce_page_wc-settings' === \$screen_id",
+            $enqueue,
+            'Admin enqueue must detect the WooCommerce settings screen'
+        );
+
+        $this->assertStringContainsString(
+            "'general' === \$tab",
+            $enqueue,
+            'Admin enqueue must scope the mirror assets to the WooCommerce General tab'
+        );
+
+        $this->assertStringContainsString(
+            "'kiriminaja-konfigurasi' === \$page || \$is_wc_general_settings",
+            $enqueue,
+            'WooCommerce General settings must load Leaflet for the Pin Location mirror field'
+        );
+    }
+
+    #[Test]
     public function settings_list_checks_product_volumetric_configuration_progress(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
@@ -478,6 +700,12 @@ final class InsuranceFeatureTest extends TestCase
             'Product Volumetric Configurations',
             $content,
             'Settings wizard must surface product volumetric configuration progress'
+        );
+
+        $this->assertStringContainsString(
+            '%1$d / %2$d Need Action',
+            $content,
+            'Settings wizard product volumetric status should keep the pill copy concise'
         );
 
         $this->assertStringContainsString(
@@ -649,7 +877,7 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '%1$d / %2$d Product Volumetric Configurations',
+            '%1$d / %2$d Need Action',
             $methodBody,
             'Setup notice must show configured product progress'
         );

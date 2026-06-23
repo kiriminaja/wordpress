@@ -113,7 +113,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             <div style="margin-top: 4px"><span style="font-size: 11px; color: #8c8f94; border: 1px solid #dcdcde; border-radius: 4px; padding: 1px 6px"><?php echo $kiriof_is_cod ? 'COD' : 'Non-COD'; ?></span></div>
                                         </td>
                                         <td class="manage-column column-thumb">
-                                            <div style="font-weight: 600"><?php echo esc_html( strtoupper( $kiriof_txn->service . ' ' . ( $kiriof_txn->service_name ?? '' ) ) ); ?></div>
+                                            <div style="font-weight: 600"><?php echo esc_html( kiriof_helper()->formatServiceName( $kiriof_txn->service, $kiriof_txn->service_name ?? '' ) ); ?></div>
                                             <?php /* translators: %s: pickup schedule date/time. */ ?>
                                             <div style="font-size: 12px; color: #50575e; margin-top: 4px"><?php echo esc_html( sprintf( __( 'Pickup: %s', 'kiriminaja-official' ), $kiriof_payment_data['schedule'] ) ); ?></div>
                                         </td>

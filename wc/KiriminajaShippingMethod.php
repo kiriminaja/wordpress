@@ -16,15 +16,21 @@ function kiriof_shipping_method(){
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- WooCommerce shipping method class
         class Kiriof_Shipping_Method_Controller extends WC_Shipping_Method
         {
-            public function __construct(){
+            public function __construct( $instance_id = 0 ){
                 
                 $this->id = 'kiriminaja-official';
-                $this->method_title = __('Kiriminaja', 'kiriminaja-official');
-                $this->method_description = __('Custom Shipping Method for Kiriminaja', 'kiriminaja-official');
+                $this->instance_id = absint( $instance_id );
+                $this->method_title = __('KiriminAja', 'kiriminaja-official');
+                $this->method_description = __('KiriminAja real-time shipping rates for this shipping zone.', 'kiriminaja-official');
+                $this->supports = array(
+                    'shipping-zones',
+                    'instance-settings',
+                    'instance-settings-modal',
+                );
                 
                 $this->init();
                 $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
-                $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Kiriminaja Shipping', 'kiriminaja-official');
+                $this->title = $this->get_option( 'title', __('KiriminAja', 'kiriminaja-official') );
             }
     
             /**
@@ -32,6 +38,7 @@ function kiriof_shipping_method(){
             */
             function init(){
                 $this->initFormFields();
+                $this->initInstanceFormFields();
                 $this->init_settings();
                 add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
             }
@@ -46,7 +53,19 @@ function kiriof_shipping_method(){
                     'title' => array(
                         'title' => __('Title', 'kiriminaja-official'),
                         'type' => 'text',
-                        'default' => __('Kiriminaja Shipping', 'kiriminaja-official')
+                        'default' => __('KiriminAja', 'kiriminaja-official')
+                    ),
+                );
+            }
+
+            function initInstanceFormFields(){
+                $this->instance_form_fields = array(
+                    'title' => array(
+                        'title'       => __('Title', 'kiriminaja-official'),
+                        'type'        => 'text',
+                        'description' => __('This controls the title shown to customers during checkout.', 'kiriminaja-official'),
+                        'default'     => __('KiriminAja', 'kiriminaja-official'),
+                        'desc_tip'    => true,
                     ),
                 );
             }
@@ -108,7 +127,7 @@ function kiriof_shipping_method(){
                     }
                 }
 
-                kiriof_log( 'info', 'calculate_shipping destination_id=' . var_export( $destination_id, true ) );
+                kiriof_log( 'info', 'calculate_shipping destination_id=' . ( is_scalar( $destination_id ) ? (string) $destination_id : wp_json_encode( $destination_id ) ) );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
 
                 if ( empty( $destination_id ) ) {
@@ -157,7 +176,7 @@ function kiriof_shipping_method(){
                 $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
                 kiriof_log( 'info', 'getPricing result keys=' . ( is_array( $kiriofPricing ) ? implode( ',', array_keys( $kiriofPricing ) ) : gettype( $kiriofPricing ) ) );
                 if ( isset( $kiriofPricing['status'] ) ) {
-                    kiriof_log( 'info', 'getPricing status=' . var_export( $kiriofPricing['status'], true ) );
+                    kiriof_log( 'info', 'getPricing status=' . ( is_scalar( $kiriofPricing['status'] ) ? (string) $kiriofPricing['status'] : wp_json_encode( $kiriofPricing['status'] ) ) );
                 }
                 if ( isset( $kiriofPricing['data'] ) && is_array( $kiriofPricing['data'] ) ) {
                     kiriof_log( 'info', 'getPricing data count=' . count( $kiriofPricing['data'] ) );
@@ -184,8 +203,11 @@ function kiriof_shipping_method(){
                         'label'     => $row['value'],
                         'cost'      => $row['cost'],
                         'meta_data' => array(
-                            'kiriof_rate_eta'         => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
-                            'kiriof_rate_description' => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                            'kiriof_rate_eta'           => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
+                            'kiriof_rate_description'   => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                            'kiriof_rate_service'       => (string) ( $rowMeta['kiriof_rate_service'] ?? '' ),
+                            'kiriof_rate_service_type'  => (string) ( $rowMeta['kiriof_rate_service_type'] ?? '' ),
+                            'kiriof_rate_cod_available' => (string) ( $rowMeta['kiriof_rate_cod_available'] ?? '' ),
                         ),
                     );
 
@@ -198,11 +220,19 @@ function kiriof_shipping_method(){
                         'badge'                   => $badge,
                         'eta'                     => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
                         'description'             => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                        'service'                 => (string) ( $rowMeta['kiriof_rate_service'] ?? '' ),
+                        'service_type'            => (string) ( $rowMeta['kiriof_rate_service_type'] ?? '' ),
+                        'cod_available'           => (string) ( $rowMeta['kiriof_rate_cod_available'] ?? '' ),
                         'formatted_cost'          => wp_strip_all_tags( wc_price( (float) $rate['cost'] ) ),
                         'formatted_original_cost' => wp_strip_all_tags( wc_price( $origCost ) ),
                     );
 
                     $this->add_rate($rate);
+                    $this->applyRateDisplayMetadata(
+                        $rate['id'],
+                        (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                        (string) ( $rowMeta['kiriof_rate_eta'] ?? '' )
+                    );
                 }
 
                 if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
@@ -210,6 +240,43 @@ function kiriof_shipping_method(){
                     WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array_merge( $existingRateMetaMap, $kiriofRateMetaMap ) );
                 }
 
+                if ( function_exists( 'kiriof_log' ) ) {
+                    $discountedRates = array_filter(
+                        $kiriofRateMetaMap,
+                        static function ( $rateMeta ) {
+                            return isset( $rateMeta['discount_amount'] ) && (float) $rateMeta['discount_amount'] > 0;
+                        }
+                    );
+
+                    kiriof_log(
+                        'info',
+                        'Shipping discount rate metadata refreshed.',
+                        array(
+                            'rate_count' => count( $kiriofRateMetaMap ),
+                            'discounted_rate_count' => count( $discountedRates ),
+                            'discounted_rate_ids' => array_keys( $discountedRates ),
+                            'applied_coupons' => function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_applied_coupons' )
+                                ? array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) )
+                                : array(),
+                        ),
+                        'shipping_discount_coupon'
+                    );
+                }
+
+            }
+
+            private function applyRateDisplayMetadata($rate_id, $description, $delivery_time) {
+                if ( ! isset( $this->rates[ $rate_id ] ) || ! $this->rates[ $rate_id ] instanceof \WC_Shipping_Rate ) {
+                    return;
+                }
+
+                if ( '' !== $description && method_exists( $this->rates[ $rate_id ], 'set_description' ) ) {
+                    $this->rates[ $rate_id ]->set_description( $description );
+                }
+
+                if ( '' !== $delivery_time && method_exists( $this->rates[ $rate_id ], 'set_delivery_time' ) ) {
+                    $this->rates[ $rate_id ]->set_delivery_time( $delivery_time );
+                }
             }
 
             public function filterOptions($pricingData, $quantity, $kiriof_insurance = null){
@@ -236,34 +303,91 @@ function kiriof_shipping_method(){
                 $options = $validate;
                 
                 $filteredOptions = [];
+                $allOptions = [];
                 foreach ($options as $option){
-                    if (!$is_cod || $is_cod && $option->cod){
-                        
-                        $shipping_cost = $option->cost - $option->discount_amount;
-                        $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
+                    $shipping_cost = $option->cost - $option->discount_amount;
+                    $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
 
-                        $filteredOptions[] = [
-                            'key'=>$option->service.'_'.$option->service_type,
-                            'value'=>$option->service_name,
-                            'cost'=>$shippingDiscountPricing['cost'],
-                            'meta_data'=>[
-                                'kiriof_shipping_coupon_original_cost' => (float) $shippingDiscountPricing['original_cost'],
-                                'kiriof_shipping_coupon_discount_amount' => (float) $shippingDiscountPricing['discount_amount'],
-                                'kiriof_shipping_coupon_notice' => (string) $shippingDiscountPricing['notice'],
-                                'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
-                                'kiriof_rate_eta' => $this->formatEta($option),
-                                'kiriof_rate_description' => $this->formatRateDescription($option, $kiriof_insurance),
-                            ],
-                        ];    
+                    $rateOption = [
+                        'key'=>$option->service.'_'.$option->service_type,
+                        'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name),
+                        'cost'=>$shippingDiscountPricing['cost'],
+                        'meta_data'=>[
+                            'kiriof_shipping_coupon_original_cost' => (float) $shippingDiscountPricing['original_cost'],
+                            'kiriof_shipping_coupon_discount_amount' => (float) $shippingDiscountPricing['discount_amount'],
+                            'kiriof_shipping_coupon_notice' => (string) $shippingDiscountPricing['notice'],
+                            'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
+                            'kiriof_rate_eta' => $this->formatEta($option),
+                            'kiriof_rate_description' => $this->formatRateDescription($option, $kiriof_insurance),
+                            'kiriof_rate_service' => isset( $option->service ) ? (string) $option->service : '',
+                            'kiriof_rate_service_type' => isset( $option->service_type ) ? (string) $option->service_type : '',
+                            'kiriof_rate_cod_available' => $this->isCodCapableOption($option) ? 'yes' : 'no',
+                        ],
+                    ];
+
+                    $allOptions[] = $rateOption;
+
+                    if (!$is_cod || $this->isCodCapableOption($option)){
+                        $filteredOptions[] = $rateOption;
                     }
                 }
 
-                // Sort by cost ascending to maintain consistent ordering across re-renders
+                if ($is_cod && empty($filteredOptions) && !empty($allOptions)) {
+                    $filteredOptions = $allOptions;
+                }
+
+                // Sort by cost ascending, then by name for stable ordering
                 usort($filteredOptions, function($a, $b) {
-                    return $a['cost'] <=> $b['cost'];
+                    $costCmp = $a['cost'] <=> $b['cost'];
+                    if ( 0 !== $costCmp ) {
+                        return $costCmp;
+                    }
+                    return strcasecmp($a['value'], $b['value']);
                 });
                 
                 return $filteredOptions;
+            }
+
+            private function isCodCapableOption($option) {
+                $codValue = $option->cod ?? null;
+                if ($this->isTruthyCodValue($codValue)) {
+                    return true;
+                }
+
+                $setting = is_object($option) && isset($option->setting) && is_object($option->setting)
+                    ? $option->setting
+                    : null;
+                if (!$setting) {
+                    return false;
+                }
+
+                foreach (array('cod', 'is_cod', 'cod_enabled', 'cod_available') as $key) {
+                    if (isset($setting->{$key}) && $this->isTruthyCodValue($setting->{$key})) {
+                        return true;
+                    }
+                }
+
+                foreach (array('cod_fee_amount', 'minimum_cod_fee', 'cod_fee') as $key) {
+                    if (isset($setting->{$key}) && (float) $setting->{$key} > 0) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private function isTruthyCodValue($value) {
+                if (is_bool($value)) {
+                    return $value;
+                }
+                if (is_numeric($value)) {
+                    return (float) $value > 0;
+                }
+                if (is_string($value)) {
+                    return in_array(strtolower(trim($value)), array('1', 'true', 'yes', 'y', 'available', 'enabled'), true);
+                }
+
+                return false;
             }
 
             private function formatEta($option) {
@@ -359,7 +483,7 @@ function kiriof_shipping_method(){
 add_filter('woocommerce_shipping_methods', 'kiriof_add_shipping_method');
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required for WooCommerce filter callback
 function kiriof_add_shipping_method($methods){
-    $methods[] =  'Kiriof_Shipping_Method_Controller';
+    $methods['kiriminaja-official'] = 'Kiriof_Shipping_Method_Controller';
     return $methods;
 }
 

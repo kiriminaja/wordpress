@@ -148,4 +148,77 @@ class Helper extends  BaseInit {
     
         return $date->format("Y-m-d H:i:s");
     }
+
+    private function getCourierNameMap() {
+        return array(
+            'jne'          => __( 'JNE Express', 'kiriminaja-official' ),
+            'tiki'         => __( 'Tiki', 'kiriminaja-official' ),
+            'sicepat'      => __( 'Sicepat Express', 'kiriminaja-official' ),
+            'jnt'          => __( 'J&T Express', 'kiriminaja-official' ),
+            'jtcargo'      => __( 'J&T Cargo', 'kiriminaja-official' ),
+            'anteraja'     => __( 'AnterAja', 'kiriminaja-official' ),
+            'pos'          => __( 'Pos Indonesia', 'kiriminaja-official' ),
+            'posindonesia' => __( 'Pos Indonesia', 'kiriminaja-official' ),
+            'rpx'          => __( 'RPX Logistics', 'kiriminaja-official' ),
+            'lion'         => __( 'Lion Parcel', 'kiriminaja-official' ),
+            'paxel'        => __( 'Paxel', 'kiriminaja-official' ),
+            'sap'          => __( 'SAPX Express', 'kiriminaja-official' ),
+            'ninja'        => __( 'Ninja', 'kiriminaja-official' ),
+            'idexpress'    => __( 'ID Express', 'kiriminaja-official' ),
+            'idx'          => __( 'ID Express', 'kiriminaja-official' ),
+            'ncs'          => __( 'NCS Courier', 'kiriminaja-official' ),
+            'borzo'        => __( 'Borzo', 'kiriminaja-official' ),
+            'grab'         => __( 'Grab Express', 'kiriminaja-official' ),
+            'grab_express' => __( 'Grab Express', 'kiriminaja-official' ),
+            'gosend'       => __( 'GoSend', 'kiriminaja-official' ),
+            'sentral'      => __( 'Sentral Cargo', 'kiriminaja-official' ),
+            'spx'          => __( 'SPX Express', 'kiriminaja-official' ),
+        );
+    }
+
+    public function getCourierDisplayName( $serviceCode ) {
+        $serviceCode = strtolower( trim( (string) $serviceCode ) );
+        $map         = $this->getCourierNameMap();
+        if ( isset( $map[ $serviceCode ] ) ) {
+            return $map[ $serviceCode ];
+        }
+        return strtoupper( $serviceCode );
+    }
+
+    public function formatServiceName( $service, $serviceName ) {
+        $service     = strtolower( trim( (string) $service ) );
+        $serviceName = trim( (string) $serviceName );
+
+        if ( '' === $serviceName ) {
+            return $this->getCourierDisplayName( $service );
+        }
+
+        $courierName = $this->getCourierDisplayName( $service );
+        $needle      = strtolower( $courierName );
+
+        // If service_name already contains the courier display name or the raw
+        // service code, the API has already formatted it (e.g. "JNE Express Flat").
+        // Use it as-is.
+        $serviceNameLower = strtolower( $serviceName );
+        if ( strpos( $serviceNameLower, $needle ) !== false
+            || strpos( $serviceNameLower, $service ) !== false
+        ) {
+            return $serviceName;
+        }
+
+        // Check for partial word overlap between courier name and service name.
+        // This catches cases like "J&T EZ" where "J&T" is common with
+        // "J&T Express", or "POS REGULER" where "POS" overlaps with
+        // "Pos Indonesia". Words of 3+ characters avoid matching noise like
+        // "of", "ID", etc.
+        $courierWords = explode( ' ', $needle );
+        foreach ( $courierWords as $word ) {
+            $word = trim( $word );
+            if ( strlen( $word ) > 2 && strpos( $serviceNameLower, $word ) !== false ) {
+                return $serviceName;
+            }
+        }
+
+        return $courierName . ' ' . $serviceName;
+    }
 }

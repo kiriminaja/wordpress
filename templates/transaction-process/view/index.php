@@ -219,7 +219,7 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                         : ($kiriof_isKAOrder
                             ? $kiriof_helper->transactionStatusClass($kiriof_row->status)
                             : $kiriof_helper->wcStatusClass($kiriof_postStatus));
-                    $kiriof_serviceName = strtoupper(trim($kiriof_row->service . ' ' . ($kiriof_row->service_name ?? '')));
+                    $kiriof_serviceName = $kiriof_helper->formatServiceName($kiriof_row->service, $kiriof_row->service_name ?? '');
                     $kiriof_statusUpper = strtoupper($kiriof_row->status);
                     $kiriof_shippingAddressLineTwo = $kiriof_shippingAddress2;
                     $kiriof_shippingAddressLineThree = implode(

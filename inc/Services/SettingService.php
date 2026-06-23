@@ -168,6 +168,12 @@ class SettingService extends BaseService
                 'origin_whitelist_expedition_id'    => ! empty( $whitelist_ids ) ? implode( ',', $whitelist_ids ) : null,
                 'origin_whitelist_expedition_name'  => ! empty( $whitelist_names ) ? implode( ',', $whitelist_names ) : null,
             ]);
+
+            update_option( 'kiriof_wc_origin_name', sanitize_text_field( (string) $payloads['origin_name'] ) );
+            update_option( 'kiriof_wc_origin_phone', sanitize_text_field( (string) $payloads['origin_phone'] ) );
+            update_option( 'kiriof_wc_origin_area', sanitize_text_field( (string) $payloads['origin_sub_district_id'] ) );
+            update_option( 'woocommerce_store_address', sanitize_textarea_field( (string) $payloads['origin_address'] ) );
+            update_option( 'woocommerce_store_postcode', sanitize_text_field( (string) $payloads['origin_zip_code'] ) );
         } catch (\Throwable $th) {
             kiriof_log(
                 'error',

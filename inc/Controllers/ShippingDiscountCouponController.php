@@ -18,16 +18,24 @@ class ShippingDiscountCouponController {
 
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
+        add_filter( 'woocommerce_cart_coupon_types', array( $this, 'registerRuntimeCartCouponTypes' ) );
         add_filter( 'woocommerce_coupon_data_tabs', array( $this, 'registerCouponDataTabs' ) );
         add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
+        add_filter( 'woocommerce_coupon_message', array( $this, 'customizeCouponSuccessMessage' ), 10, 3 );
+        add_filter( 'woocommerce_coupon_is_valid_for_product', array( $this, 'validateShippingCouponForProduct' ), 20, 4 );
+        add_filter( 'woocommerce_coupon_get_discount_amount', array( $this, 'zeroItemDiscountForShippingCoupon' ), 20, 5 );
+        add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
+        add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'handleAppliedShippingCoupon' ), 20, 1 );
+        add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
+        add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
         add_action( 'woocommerce_before_calculate_totals', array( $this, 'enforceShippingCouponRestrictions' ), 20, 1 );
         add_filter( 'manage_edit-shop_coupon_columns', array( $this, 'registerCouponListColumns' ) );
         add_action( 'manage_shop_coupon_posts_custom_column', array( $this, 'renderCouponListColumn' ), 10, 2 );
         add_action( 'woocommerce_coupon_data_panels', array( $this, 'renderCouponDataPanels' ) );
         add_action( 'woocommerce_coupon_options_usage_restriction', array( $this, 'renderUsageRestrictionFields' ), 20, 2 );
         add_action( 'woocommerce_coupon_options_save', array( $this, 'saveCouponOptions' ), 10, 2 );
-        add_action( 'woocommerce_coupon_options_save', array( $this, 'clampPercentageAmount' ), 5, 2 );
+        add_action( 'woocommerce_coupon_options_save', array( $this, 'normalizeCouponAmount' ), 5, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueCouponAdminAssets' ) );
         add_action( 'add_meta_boxes', array( $this, 'registerAreaRestrictionsMetabox' ) );
         add_action( 'restrict_manage_posts', array( $this, 'renderCouponExtensionFilter' ) );
@@ -38,6 +46,8 @@ class ShippingDiscountCouponController {
         add_action( 'wp_ajax_kiriof_get_coupon_region_cities', array( $this, 'getCitiesByProvinceAjax' ) );
         add_action( 'wp_ajax_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
         add_action( 'wp_ajax_nopriv_kiriof_get_current_shipping_discount', array( $this, 'getCurrentShippingDiscountAjax' ) );
+        add_action( 'wp_ajax_kiriof_get_applied_coupon_scopes', array( $this, 'getAppliedCouponScopesAjax' ) );
+        add_action( 'wp_ajax_nopriv_kiriof_get_applied_coupon_scopes', array( $this, 'getAppliedCouponScopesAjax' ) );
         add_action( ShippingDiscountRegionCacheService::CRON_HOOK, array( $this, 'refreshRegionCacheCron' ) );
     }
 
@@ -45,6 +55,10 @@ class ShippingDiscountCouponController {
         $types[ ShippingDiscountCouponService::FIXED_COUPON_TYPE ] = __( 'Fixed shipping discount', 'kiriminaja-official' );
         $types[ ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE ] = __( 'Percentage shipping discount', 'kiriminaja-official' );
         return $types;
+    }
+
+    public function registerRuntimeCartCouponTypes( $types ) {
+        return array_values( array_unique( array_merge( (array) $types, $this->getShippingCouponTypes() ) ) );
     }
 
     public function registerCouponDataTabs( $tabs ) {
@@ -58,16 +72,41 @@ class ShippingDiscountCouponController {
         }
 
         if ( ! $valid ) {
+            $this->logShippingCouponEvent(
+                'warning',
+                'Shipping discount coupon rejected before KiriminAja validation.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                )
+            );
             return false;
         }
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
+            $this->logShippingCouponEvent(
+                'info',
+                'Shipping discount coupon passed cart validation.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                )
+            );
             $service->clearValidationNotices();
             return true;
         }
 
         $message = $validation['message'] ?? '';
+        $this->logShippingCouponEvent(
+            'warning',
+            'Shipping discount coupon failed cart validation.',
+            $coupon,
+            array(
+                'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                'validation_message' => $message,
+            )
+        );
         if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
             if ( ! function_exists( 'wc_has_notice' ) || ! wc_has_notice( $message, 'error' ) ) {
                 wc_add_notice( $message, 'error' );
@@ -75,6 +114,28 @@ class ShippingDiscountCouponController {
         }
 
         return false;
+    }
+
+    public function validateShippingCouponForProduct( $valid, $product, $coupon, $values ) {
+        unset( $product, $values );
+
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $valid;
+        }
+
+        return true;
+    }
+
+    public function zeroItemDiscountForShippingCoupon( $discount, $discounting_amount, $cart_item, $single, $coupon ) {
+        unset( $discounting_amount, $cart_item, $single );
+
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $discount;
+        }
+
+        return 0;
     }
 
     public function handleAppliedShippingCoupon( $coupon_code ) {
@@ -96,6 +157,14 @@ class ShippingDiscountCouponController {
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
+            $this->logShippingCouponEvent(
+                'info',
+                'Applied shipping discount coupon remains valid.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_applied_coupon',
+                )
+            );
             $service->clearValidationNotices();
             return;
         }
@@ -103,12 +172,101 @@ class ShippingDiscountCouponController {
         WC()->cart->remove_coupon( $coupon_code );
 
         $message = $validation['message'] ?? '';
+        $this->logShippingCouponEvent(
+            'warning',
+            'Applied shipping discount coupon removed after validation.',
+            $coupon,
+            array(
+                'hook' => 'woocommerce_applied_coupon',
+                'validation_message' => $message,
+            )
+        );
         if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
             if ( function_exists( 'wc_clear_notices' ) ) {
                 wc_clear_notices();
             }
             wc_add_notice( $message, 'error' );
         }
+    }
+
+    public function customizeCouponSuccessMessage( $msg, $msg_code, $coupon ) {
+        if ( 200 !== $msg_code || ! $coupon instanceof \WC_Coupon ) {
+            return $msg;
+        }
+
+        $service = new ShippingDiscountCouponService();
+        if ( ! $service->isShippingCoupon( $coupon ) ) {
+            return $msg;
+        }
+
+        $code = $coupon->get_code();
+        if ( '' === $code ) {
+            return $msg;
+        }
+
+        $nativeCodes = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_coupons' ) ) {
+            foreach ( WC()->cart->get_coupons() as $activeCoupon ) {
+                if ( ! $activeCoupon instanceof \WC_Coupon || $service->isShippingCoupon( $activeCoupon ) ) {
+                    continue;
+                }
+                $nativeCodes[] = $activeCoupon->get_code();
+            }
+        }
+
+        if ( ! empty( $nativeCodes ) ) {
+            $list = implode( ', ', $nativeCodes );
+            return sprintf(
+                /* translators: 1: shipping coupon code, 2: comma-separated list of active cart coupons */
+                __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
+                $code,
+                $list
+            );
+        }
+
+        return sprintf(
+            /* translators: %s: coupon code */
+            __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
+            $code
+        );
+    }
+
+    public function invalidateShippingRatesAfterCouponChange( $coupon_code = '' ): void {
+        unset( $coupon_code );
+
+        if ( ! function_exists( 'WC' ) || ! WC() ) {
+            return;
+        }
+
+        if ( isset( WC()->session ) && WC()->session ) {
+            WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+        }
+
+        $packages = array();
+        if ( isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_shipping_packages' ) ) {
+            $packages = (array) WC()->cart->get_shipping_packages();
+        }
+
+        if ( isset( WC()->session ) && WC()->session ) {
+            foreach ( array_keys( $packages ) as $package_index ) {
+                WC()->session->set( 'shipping_for_package_' . $package_index, false );
+            }
+        }
+
+        if ( isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'reset_shipping' ) ) {
+            WC()->shipping()->reset_shipping();
+        }
+
+        $this->logShippingCouponEvent(
+            'info',
+            'Shipping rates invalidated after coupon change.',
+            null,
+            array(
+                'hook' => current_filter(),
+                'package_count' => count( $packages ),
+                'applied_coupons' => $this->getAppliedCouponCodesForLog(),
+            )
+        );
     }
 
     public function enforceShippingCouponRestrictions( $cart ) {
@@ -134,6 +292,14 @@ class ShippingDiscountCouponController {
 
             $validation = $service->validateCouponForCart( $coupon );
             if ( $validation['valid'] ) {
+                $this->logShippingCouponEvent(
+                    'info',
+                    'Active shipping discount coupon remains valid during totals calculation.',
+                    $coupon,
+                    array(
+                        'hook' => 'woocommerce_before_calculate_totals',
+                    )
+                );
                 $service->clearValidationNotices();
                 continue;
             }
@@ -142,6 +308,15 @@ class ShippingDiscountCouponController {
             $removed = true;
 
             $message = $validation['message'] ?? '';
+            $this->logShippingCouponEvent(
+                'warning',
+                'Active shipping discount coupon removed during totals calculation.',
+                $coupon,
+                array(
+                    'hook' => 'woocommerce_before_calculate_totals',
+                    'validation_message' => $message,
+                )
+            );
             if ( '' !== $message && function_exists( 'wc_add_notice' ) ) {
                 if ( ! function_exists( 'wc_has_notice' ) || ! wc_has_notice( $message, 'error' ) ) {
                     wc_add_notice( $message, 'error' );
@@ -156,6 +331,39 @@ class ShippingDiscountCouponController {
         }
     }
 
+    private function logShippingCouponEvent( string $level, string $message, $coupon = null, array $context = array() ): void {
+        if ( ! function_exists( 'kiriof_log' ) ) {
+            return;
+        }
+
+        if ( $coupon instanceof \WC_Coupon ) {
+            $context['coupon_code'] = (string) $coupon->get_code();
+            $context['discount_type'] = (string) $coupon->get_discount_type();
+            $context['coupon_amount'] = (float) $coupon->get_amount();
+        }
+
+        if ( ! isset( $context['applied_coupons'] ) ) {
+            $context['applied_coupons'] = $this->getAppliedCouponCodesForLog();
+        }
+
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $context['chosen_shipping_methods'] = (array) WC()->session->get( 'chosen_shipping_methods', array() );
+            $context['kiriof_chosen_shipping_methods'] = (array) WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
+            $context['destination_id'] = (int) ( WC()->session->get( 'shipping_destination_id' ) ?: WC()->session->get( 'destination_id' ) ?: 0 );
+            $context['payment_method'] = (string) ( WC()->session->get( 'chosen_payment_method' ) ?: WC()->session->get( 'kiriof_payment_method' ) ?: '' );
+        }
+
+        kiriof_log( $level, $message, $context, 'shipping_discount_coupon' );
+    }
+
+    private function getAppliedCouponCodesForLog(): array {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_applied_coupons' ) ) {
+            return array();
+        }
+
+        return array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) );
+    }
+
     public function getCurrentShippingDiscountAjax() {
         if ( isset( $_POST['nonce'] ) ) {
             $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
@@ -168,6 +376,31 @@ class ShippingDiscountCouponController {
         $summary = $service->getCurrentShippingDiscountSummary();
         $amount  = (float) $summary['amount'];
 
+        $rateMap = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $sessionRateMap = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+            foreach ( $sessionRateMap as $rateId => $rateMeta ) {
+                if ( ! is_array( $rateMeta ) || empty( $rateMeta['discount_amount'] ) || (float) $rateMeta['discount_amount'] <= 0 ) {
+                    continue;
+                }
+
+                $currentCost  = (float) ( $rateMeta['cost'] ?? 0 );
+                $originalCost = (float) ( $rateMeta['original_cost'] ?? 0 );
+                if ( $originalCost <= $currentCost ) {
+                    continue;
+                }
+
+                $rateMap[ (string) $rateId ] = array(
+                    'amount'                  => (float) $rateMeta['discount_amount'],
+                    'formatted'               => wp_strip_all_tags( wc_price( (float) $rateMeta['discount_amount'] ) ),
+                    'current_cost'            => $currentCost,
+                    'original_cost'           => $originalCost,
+                    'formatted_current_cost'  => wp_strip_all_tags( wc_price( $currentCost ) ),
+                    'formatted_original_cost' => wp_strip_all_tags( wc_price( $originalCost ) ),
+                );
+            }
+        }
+
         wp_send_json_success( array(
             'amount'    => $amount,
             'formatted' => $amount > 0 ? wp_strip_all_tags( wc_price( $amount ) ) : '',
@@ -178,6 +411,37 @@ class ShippingDiscountCouponController {
             'original_cost' => (float) ( $summary['original_cost'] ?? 0 ),
             'formatted_current_cost' => ! empty( $summary['current_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['current_cost'] ) ) : '',
             'formatted_original_cost' => ! empty( $summary['original_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['original_cost'] ) ) : '',
+            'rates' => $rateMap,
+        ) );
+    }
+
+    public function getAppliedCouponScopesAjax() {
+        if ( isset( $_POST['nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
+            if ( ! wp_verify_nonce( $nonce, KIRIOF_NONCE ) ) {
+                wp_send_json_error( array( 'message' => __( 'Security check failed.', 'kiriminaja-official' ) ), 403 );
+            }
+        }
+
+        $requestedCode = isset( $_POST['coupon_code'] ) ? wc_format_coupon_code( wp_unslash( $_POST['coupon_code'] ) ) : '';
+        $codes = array();
+
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_applied_coupons' ) ) {
+            $codes = array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) );
+        }
+
+        if ( '' !== $requestedCode && ! in_array( $requestedCode, $codes, true ) ) {
+            $codes[] = $requestedCode;
+        }
+
+        $service = new ShippingDiscountCouponService();
+        $scopes  = $service->splitCouponCodesByScope( $codes );
+
+        wp_send_json_success( array(
+            'requested' => $requestedCode,
+            'is_shipping' => '' !== $requestedCode && in_array( strtoupper( $requestedCode ), $scopes['shipping'], true ),
+            'shipping' => $scopes['shipping'],
+            'native' => $scopes['item'],
         ) );
     }
 
@@ -461,20 +725,57 @@ class ShippingDiscountCouponController {
         echo '</div>';
     }
 
-    public function clampPercentageAmount( $post_id, $coupon ) {
+    public function normalizeCouponAmount( $post_id, $coupon ) {
+        unset( $post_id );
+
         if ( ! $coupon instanceof \WC_Coupon ) {
             return;
         }
 
-        if ( ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE !== $coupon->get_discount_type() ) {
-            return;
+        $amount = $this->normalizeCouponAmountValue( $coupon->get_amount() );
+
+        if ( ShippingDiscountCouponService::PERCENTAGE_COUPON_TYPE === $coupon->get_discount_type() && (float) $amount > 100 ) {
+            $amount = '100';
         }
 
-        $amount = (float) $coupon->get_amount();
-        if ( $amount > 100 ) {
-            $coupon->set_amount( 100 );
+        if ( '' !== $amount && (string) $coupon->get_amount() !== $amount ) {
+            $coupon->set_amount( $amount );
             $coupon->save();
         }
+    }
+
+    private function normalizeCouponAmountValue( $amount ): string {
+        $raw = trim( (string) $amount );
+        if ( '' === $raw ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/\s+/', '', $raw );
+        $normalized = str_replace( ',', '.', (string) $normalized );
+        if ( ! is_numeric( $normalized ) ) {
+            return $raw;
+        }
+
+        $negative = 0 === strpos( $normalized, '-' );
+        if ( $negative ) {
+            $normalized = substr( $normalized, 1 );
+        }
+
+        $parts = explode( '.', $normalized, 2 );
+        $integer = ltrim( (string) ( $parts[0] ?? '' ), '0' );
+        if ( '' === $integer ) {
+            $integer = '0';
+        }
+
+        if ( $negative && '0' !== $integer ) {
+            $integer = '-' . $integer;
+        }
+
+        if ( array_key_exists( 1, $parts ) ) {
+            return $integer . '.' . $parts[1];
+        }
+
+        return $integer;
     }
 
     public function saveCouponOptions( $post_id, $coupon ) {

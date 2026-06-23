@@ -62,50 +62,47 @@ class ShippingDiscountCouponService {
         }
 
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
-            return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'Add items to your cart first.', 'kiriminaja-official' ) );
         }
 
         if ( empty( WC()->cart->get_cart() ) ) {
-            return $this->invalid( __( 'Add items to your cart first.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'Add items to your cart first.', 'kiriminaja-official' ) );
         }
 
-        if ( ! WC()->cart->needs_shipping() ) {
-            return $this->invalid( __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
-        }
-
-        // TOP merchants see published rates — custom shipping discount coupons do not apply.
-        if ( $this->isMerchantTop() ) {
-            return $this->invalid( __( 'Shipping discount coupons are not available for your account type.', 'kiriminaja-official' ) );
+        if ( ! $this->cartHasShippableProduct() ) {
+            return $this->invalidForCoupon( $coupon, __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
         }
 
         // Free shipping and a shipping discount coupon cannot both reduce the same shipping cost.
         if ( $this->hasActiveFreeShippingCoupon() ) {
-            return $this->invalid( __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
         }
 
         if ( $this->hasOtherActiveShippingCoupon( $coupon ) ) {
-            return $this->invalid( __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ) );
         }
 
         if ( ! $this->couponAllowsActiveNativeCoupons( $coupon ) ) {
-            return $this->invalid( __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ) );
         }
 
-        $destination = $this->getDestinationContext();
-        if ( $destination['id'] < 1 && '' === $destination['name'] ) {
-            return $this->invalid( __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
-        }
+        if ( $this->couponHasRegionRestrictions( $coupon ) ) {
+            $destination = $this->getDestinationContext();
+            if ( $destination['id'] < 1 && '' === $destination['name'] ) {
+                return $this->invalidForCoupon( $coupon, __( 'Please enter your shipping address to check coupon eligibility.', 'kiriminaja-official' ) );
+            }
 
-        if ( ! $this->couponMatchesDestination( $coupon, $destination ) ) {
-            return $this->invalid( __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
+            if ( ! $this->couponMatchesDestination( $coupon, $destination ) ) {
+                return $this->invalidForCoupon( $coupon, __( 'This coupon is not valid for your shipping destination.', 'kiriminaja-official' ) );
+            }
         }
 
         if ( $requireSelectedShipping && ! $this->isKiriminAjaShippingSelected() ) {
-            return $this->invalid( __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon is only valid when KiriminAja shipping is selected.', 'kiriminaja-official' ) );
         }
 
         if ( $requireSelectedCourier && ! $this->couponAllowsSelectedCourier( $coupon ) ) {
-            return $this->invalid( __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ) );
+            return $this->invalidForCoupon( $coupon, __( 'This coupon is not valid for the selected courier.', 'kiriminaja-official' ) );
         }
 
         return array(
@@ -130,7 +127,17 @@ class ShippingDiscountCouponService {
                 $notices['error'],
                 static function ( $notice ) use ( $validationMessages ) {
                     $message = isset( $notice['notice'] ) ? wp_strip_all_tags( (string) $notice['notice'] ) : '';
-                    return ! in_array( $message, $validationMessages, true );
+                    if ( in_array( $message, $validationMessages, true ) ) {
+                        return false;
+                    }
+
+                    foreach ( $validationMessages as $validationMessage ) {
+                        if ( '' !== $validationMessage && str_contains( $message, $validationMessage ) ) {
+                            return false;
+                        }
+                    }
+
+                    return true;
                 }
             )
         );
@@ -149,7 +156,39 @@ class ShippingDiscountCouponService {
             }
         }
 
+        foreach ( $this->getAvailableShippingRateIds() as $method ) {
+            if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    private function getAvailableShippingRateIds(): array {
+        $packages = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'get_packages' ) ) {
+            $packages = (array) WC()->shipping()->get_packages();
+        } elseif ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_shipping_packages' ) ) {
+            $packages = (array) WC()->cart->get_shipping_packages();
+        }
+
+        $rateIds = array();
+        foreach ( $packages as $package ) {
+            foreach ( (array) ( $package['rates'] ?? array() ) as $rateKey => $rate ) {
+                if ( is_object( $rate ) && isset( $rate->id ) ) {
+                    $rateIds[] = (string) $rate->id;
+                    continue;
+                }
+                if ( is_object( $rate ) && method_exists( $rate, 'get_id' ) ) {
+                    $rateIds[] = (string) $rate->get_id();
+                    continue;
+                }
+                $rateIds[] = (string) $rateKey;
+            }
+        }
+
+        return array_values( array_filter( array_unique( $rateIds ) ) );
     }
 
     private function getChosenShippingMethods(): array {
@@ -200,13 +239,16 @@ class ShippingDiscountCouponService {
             return $result;
         }
 
-        // TOP merchants see published rates only — custom coupons do not apply.
-        if ( $this->isMerchantTop() ) {
-            return $result;
-        }
-
         $coupons = $this->getShippingCoupons();
         if ( empty( $coupons ) ) {
+            $this->logPricingDiagnostic(
+                'Shipping discount pricing skipped because no shipping coupon is active.',
+                array(
+                    'base_cost' => $baseCost,
+                    'active_coupon_codes' => $this->getAppliedCouponCodesForLog(),
+                    'chosen_shipping_methods' => $this->getChosenShippingMethods(),
+                )
+            );
             return $result;
         }
 
@@ -220,28 +262,75 @@ class ShippingDiscountCouponService {
         foreach ( $coupons as $coupon ) {
             $validation = $this->validateCouponForCart( $coupon, false, false );
             if ( ! $validation['valid'] ) {
+                $this->logPricingDiagnostic(
+                    'Shipping discount pricing skipped coupon because validation failed.',
+                    array(
+                        'coupon_code' => (string) $coupon->get_code(),
+                        'discount_type' => (string) $coupon->get_discount_type(),
+                        'validation_message' => (string) ( $validation['message'] ?? '' ),
+                        'rate_courier' => $courierCode,
+                        'base_cost' => $baseCost,
+                    )
+                );
                 continue;
             }
 
             $matchedDestination = true;
             if ( ! $this->couponAllowsCourier( $coupon, $courierCode ) ) {
+                $this->logPricingDiagnostic(
+                    'Shipping discount pricing skipped coupon because courier does not match.',
+                    array(
+                        'coupon_code' => (string) $coupon->get_code(),
+                        'rate_courier' => $courierCode,
+                        'coupon_couriers' => $this->getCouponCouriers( $coupon ),
+                    )
+                );
                 continue;
             }
 
             $matchedCourier = true;
             $couponAmount = max( 0, (float) $coupon->get_amount() );
             if ( $couponAmount <= 0 ) {
+                $this->logPricingDiagnostic(
+                    'Shipping discount pricing skipped coupon because amount is zero.',
+                    array(
+                        'coupon_code' => (string) $coupon->get_code(),
+                        'discount_type' => (string) $coupon->get_discount_type(),
+                        'rate_courier' => $courierCode,
+                    )
+                );
                 continue;
             }
 
             $applied = $this->calculateCouponDiscount( $coupon, $remainingCost, $couponAmount );
             if ( $applied <= 0 ) {
+                $this->logPricingDiagnostic(
+                    'Shipping discount pricing calculated zero discount.',
+                    array(
+                        'coupon_code' => (string) $coupon->get_code(),
+                        'discount_type' => (string) $coupon->get_discount_type(),
+                        'rate_courier' => $courierCode,
+                        'remaining_cost' => $remainingCost,
+                        'coupon_amount' => $couponAmount,
+                    )
+                );
                 continue;
             }
 
             $discountTotal += $applied;
             $remainingCost -= $applied;
             $appliedCouponTypes[] = $coupon->get_discount_type();
+            $this->logPricingDiagnostic(
+                'Shipping discount pricing applied coupon to rate.',
+                array(
+                    'coupon_code' => (string) $coupon->get_code(),
+                    'discount_type' => (string) $coupon->get_discount_type(),
+                    'rate_courier' => $courierCode,
+                    'base_cost' => $baseCost,
+                    'discount_amount' => $applied,
+                    'remaining_cost' => $remainingCost,
+                )
+            );
         }
 
         if ( $discountTotal > 0 ) {
@@ -257,6 +346,14 @@ class ShippingDiscountCouponService {
         }
 
         return $result;
+    }
+
+    private function logPricingDiagnostic( string $message, array $context = array() ): void {
+        if ( ! function_exists( 'kiriof_log' ) ) {
+            return;
+        }
+
+        kiriof_log( 'info', $message, $context, 'shipping_discount_coupon' );
     }
 
     public function getDestinationContext(): array {
@@ -385,6 +482,14 @@ class ShippingDiscountCouponService {
         );
     }
 
+    private function getAppliedCouponCodesForLog(): array {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_applied_coupons' ) ) {
+            return array();
+        }
+
+        return array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) );
+    }
+
     private function couponMatchesDestination( $coupon, array $destination ): bool {
         $regions = $this->getCouponRegions( $coupon );
         if ( empty( $regions ) ) {
@@ -402,6 +507,10 @@ class ShippingDiscountCouponService {
         }
 
         return false;
+    }
+
+    private function couponHasRegionRestrictions( $coupon ): bool {
+        return ! empty( $this->getCouponRegions( $coupon ) );
     }
 
     private function getCouponRegions( $coupon ): array {
@@ -556,13 +665,63 @@ class ShippingDiscountCouponService {
                 continue;
             }
 
-            $activeType = sanitize_key( (string) $activeCoupon->get_discount_type() );
-            if ( ! in_array( $activeType, $allowedTypes, true ) ) {
+            $activeTypes = $this->getNativeCouponCombinationAliases( $activeCoupon );
+            if ( empty( array_intersect( $activeTypes, $allowedTypes ) ) && ! $this->allNativeCouponCombinationsAllowed( $allowedTypes ) ) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private function getNativeCouponCombinationAliases( \WC_Coupon $coupon ): array {
+        $type = sanitize_key( (string) $coupon->get_discount_type() );
+        $aliases = array( $type );
+
+        if ( str_contains( $type, 'percent' ) || str_contains( $type, 'percentage' ) ) {
+            $aliases[] = 'percent';
+        }
+
+        if ( str_contains( $type, 'product' ) ) {
+            $aliases[] = 'fixed_product';
+        }
+
+        if ( str_contains( $type, 'cart' ) ) {
+            $aliases[] = 'fixed_cart';
+        }
+
+        return array_values( array_unique( array_filter( $aliases ) ) );
+    }
+
+    private function allNativeCouponCombinationsAllowed( array $allowedTypes ): bool {
+        $nativeTypes = array( 'fixed_cart', 'percent', 'fixed_product' );
+        return empty( array_diff( $nativeTypes, $allowedTypes ) );
+    }
+
+    private function cartHasShippableProduct(): bool {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_cart' ) ) {
+            return false;
+        }
+
+        foreach ( (array) WC()->cart->get_cart() as $cartItem ) {
+            $product = is_array( $cartItem ) && isset( $cartItem['data'] ) ? $cartItem['data'] : null;
+            if ( ! $product || ! is_object( $product ) ) {
+                continue;
+            }
+
+            if ( method_exists( $product, 'needs_shipping' ) ) {
+                if ( $product->needs_shipping() ) {
+                    return true;
+                }
+                continue;
+            }
+
+            if ( method_exists( $product, 'is_virtual' ) && ! $product->is_virtual() ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function hasOtherActiveShippingCoupon( $coupon ): bool {
@@ -727,7 +886,6 @@ class ShippingDiscountCouponService {
         return array(
             __( 'Add items to your cart first.', 'kiriminaja-official' ),
             __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ),
-            __( 'Shipping discount coupons are not available for your account type.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with another shipping discount coupon.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with one or more active coupons.', 'kiriminaja-official' ),
@@ -750,16 +908,6 @@ class ShippingDiscountCouponService {
         }
 
         return false;
-    }
-
-    /**
-     * Returns true if the authenticated merchant is a TOP (published rate) account.
-     * TOP merchants see published shipping rates — custom shipping discount coupons do not apply.
-     * is_top is stored during setup key integration (from API response) and reset on disconnect.
-     */
-    private function isMerchantTop(): bool {
-        $setting = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'is_top' );
-        return $setting && 'yes' === (string) ( $setting->value ?? 'no' );
     }
 
     private function normalizeText( string $value ): string {
@@ -803,6 +951,22 @@ class ShippingDiscountCouponService {
         }
 
         return __( 'Shipping discounts applied', 'kiriminaja-official' );
+    }
+
+    private function invalidForCoupon( $coupon, string $reason ): array {
+        $code = $coupon instanceof \WC_Coupon ? $coupon->get_code() : '';
+        if ( '' === $code ) {
+            return $this->invalid( $reason );
+        }
+
+        return $this->invalid(
+            sprintf(
+                /* translators: 1: coupon code, 2: validation reason */
+                __( 'Coupon "%1$s" cannot be applied. %2$s', 'kiriminaja-official' ),
+                $code,
+                $reason
+            )
+        );
     }
 
     private function invalid( string $message ): array {

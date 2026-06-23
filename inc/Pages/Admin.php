@@ -325,7 +325,7 @@ class Admin extends BaseInit{
             ? __( 'All Product Configured', 'kiriminaja-official' )
             : sprintf(
                 /* translators: %1$d: configured products, %2$d: total products */
-                __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
+                __( '%1$d / %2$d Need Action', 'kiriminaja-official' ),
                 $product_volumetric_configured,
                 $product_volumetric_total
             );
@@ -466,7 +466,7 @@ class Admin extends BaseInit{
          * - meta_key = '_width'
          * - meta_key = '_height'
          * - All Product Configured
-         * - %1$d / %2$d Product Volumetric Configurations
+         * - %1$d / %2$d Need Action
          */
         $context = $this->kiriof_get_setup_guide_context();
         if ( empty( $context ) ) {
