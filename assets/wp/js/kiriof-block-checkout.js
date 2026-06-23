@@ -482,25 +482,17 @@
 
   function getSelectedRateDiscount(discount, shippingRateSignature) {
     if (!discount || !discount.rates || !shippingRateSignature) {
-      return discount;
+      return null;
     }
 
-    const selectedRateId = String(shippingRateSignature || "")
+    const selectedRateId = String(shippingRateSignature)
       .split("|")
       .join(",")
       .split(",")
       .filter(Boolean)[0];
 
-    if (!selectedRateId) {
-      return discount;
-    }
-
-    if (!discount.rates[selectedRateId]) {
-      return Object.assign({}, discount, {
-        amount: 0,
-        formatted: "",
-        rate_id: selectedRateId,
-      });
+    if (!selectedRateId || !discount.rates[selectedRateId]) {
+      return null;
     }
 
     const rateDiscount = discount.rates[selectedRateId];
