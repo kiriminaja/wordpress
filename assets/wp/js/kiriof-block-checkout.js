@@ -411,7 +411,7 @@
   }
 
   function bootDomShippingDiscountSummary() {
-    const retryDelays = [0, 400, 1000, 2000];
+    const retryDelays = [300, 900, 2000];
 
     function refresh() {
       fetchCurrentShippingDiscount(function (discount) {
@@ -598,7 +598,7 @@
     // strikethrough appears as soon as the user (or autoload) picks a courier.
     useEffect(
       function () {
-        const retryDelays = [0, 400, 1000, 2000];
+        const retryDelays = [300, 900, 2000];
         const timers = [];
         let cancelled = false;
         let cancelFetch = function () {};
@@ -657,11 +657,11 @@
             return;
           }
           pending = true;
-          requestAnimationFrame(function () {
+          setTimeout(function () {
             pending = false;
             syncShippingTotalsStrikethrough(activeShippingDiscount);
             syncShippingOptionStrikethrough(shippingDiscount);
-          });
+          }, 50);
         });
 
         observer.observe(shippingRow, {
