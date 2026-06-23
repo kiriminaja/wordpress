@@ -192,6 +192,7 @@ class CreateTransactionService extends BaseService{
             $cod_fee->set_name('COD Fee');
             $cod_fee->set_amount($cod_amt);
             $cod_fee->set_total($cod_amt);
+            $cod_fee->add_meta_data( '_kiriof_fee_type', 'cod_fee', true );
             $order->add_item($cod_fee); 
         }
         if ($is_insurance && ! $this->orderHasFeeItem($order, 'Insurance')) {
@@ -200,6 +201,7 @@ class CreateTransactionService extends BaseService{
             $insurance_fee->set_name('Insurance');
             $insurance_fee->set_amount($insurance_amt);
             $insurance_fee->set_total($insurance_amt);
+            $insurance_fee->add_meta_data( '_kiriof_fee_type', 'insurance', true );
             $order->add_item($insurance_fee);
         }
         
@@ -208,29 +210,20 @@ class CreateTransactionService extends BaseService{
     }
 
     private function orderHasFeeItem($order, $feeName){
-        $aliases = $this->getFeeNameAliases( $feeName );
+        $expected_meta = ( 'Insurance' === $feeName ) ? 'insurance' : 'cod_fee';
 
         foreach ($order->get_items('fee') as $feeItem) {
+            if ( $feeItem->get_meta( '_kiriof_fee_type' ) === $expected_meta ) {
+                return true;
+            }
+
             $itemName = trim( (string) $feeItem->get_name() );
-            if ( in_array( $itemName, $aliases, true ) ) {
+            if ( false !== stripos( $itemName, $feeName ) ) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    private function getFeeNameAliases($feeName){
-        $feeName = trim( (string) $feeName );
-        $aliases = array( $feeName );
-
-        if ( 'Insurance' === $feeName ) {
-            $aliases[] = trim( (string) __( 'Insurance', 'kiriminaja-official' ) );
-        } elseif ( 'COD Fee' === $feeName ) {
-            $aliases[] = trim( (string) __( 'COD Fee', 'kiriminaja-official' ) );
-        }
-
-        return array_values( array_unique( array_filter( $aliases, 'strlen' ) ) );
     }
 
     private function isInsuranceRequested($forceInsurance = 0){

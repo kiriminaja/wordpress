@@ -35,6 +35,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         var kiriofInFlightFeeRefreshKey = '';
         var kiriofPendingFeeRefresh = false;
         var kiriofPendingFeeRefreshKey = '';
+        var kiriofLastCompletedFeeRefreshKey = '';
+        var kiriofLastCompletedFeeRefreshAt = 0;
         var kiriofCodInsuranceTimer = null;
         var kiriofBlockRatesRefreshTimer = null;
         var kiriofLastBlockCartUpdateKey = '';
@@ -2245,9 +2247,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                 force_insurance : parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
             };
 
-            kiriofSelectBlockShippingRate(data.shipping_metode_id);
-
             let refreshKey = kiriofBuildFeeRefreshKey(data);
+            let isBlockCheckout = kiriofIsBlockCheckoutContext();
+
+            if (
+                isBlockCheckout
+                && refreshKey === kiriofLastCompletedFeeRefreshKey
+                && Date.now() - kiriofLastCompletedFeeRefreshAt < 1200
+            ) {
+                return;
+            }
 
             if (kiriofUpdatingCheckoutLock) {
                 if (refreshKey === kiriofInFlightFeeRefreshKey) {
@@ -2271,11 +2280,31 @@ if ( ! defined( 'ABSPATH' ) ) {
             kiriofPendingFeeRefresh = false;
             kiriofPendingFeeRefreshKey = '';
 
-            // Persist the block-checkout selections immediately through Store API.
-            // The legacy admin-ajax fee request below can finish after the buyer
-            // submits the order; if we wait for that success callback, the final
-            // Store API checkout hook may not have kiriminaja session context yet.
-            kiriofBlockExtensionCartUpdate(data);
+            if (isBlockCheckout) {
+                var blockResult = kiriofBlockExtensionCartUpdate(data);
+                var completeBlockRefresh = function() {
+                    kiriofUpdatingCheckoutLock = false;
+                    kiriofInFlightFeeRefreshKey = '';
+                    kiriofLastCompletedFeeRefreshKey = refreshKey;
+                    kiriofLastCompletedFeeRefreshAt = Date.now();
+
+                    if (kiriofPendingFeeRefresh && kiriofPendingFeeRefreshKey && kiriofPendingFeeRefreshKey !== refreshKey) {
+                        kiriofPendingFeeRefresh = false;
+                        kiriofPendingFeeRefreshKey = '';
+                        window.setTimeout(kiriofCodInsurance, 150);
+                    } else {
+                        kiriofPendingFeeRefresh = false;
+                        kiriofPendingFeeRefreshKey = '';
+                    }
+                };
+
+                if (blockResult && typeof blockResult.then === 'function') {
+                    blockResult.then(completeBlockRefresh).catch(completeBlockRefresh);
+                } else {
+                    completeBlockRefresh();
+                }
+                return;
+            }
 
             kiriofFeeRefreshRequest = jQuery.ajax({
                         url:"<?php echo esc_url( admin_url('admin-ajax.php') ); ?>",
@@ -2314,17 +2343,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                             kiriofUpdatingCheckoutLock = false;
                             kiriofFeeRefreshRequest = null;
                             kiriofInFlightFeeRefreshKey = '';
+                            kiriofLastCompletedFeeRefreshKey = refreshKey;
+                            kiriofLastCompletedFeeRefreshAt = Date.now();
 
                             if (kiriofPendingFeeRefresh) {
                                 var pendingKey = kiriofPendingFeeRefreshKey;
                                 kiriofPendingFeeRefresh = false;
                                 kiriofPendingFeeRefreshKey = '';
 
-                                window.setTimeout(function() {
-                                    if (!kiriofUpdatingCheckoutLock && (!pendingKey || pendingKey !== kiriofInFlightFeeRefreshKey)) {
-                                        kiriofCodInsurance();
-                                    }
-                                }, 0);
+                                if (!pendingKey || pendingKey !== refreshKey) {
+                                    window.setTimeout(kiriofCodInsurance, 150);
+                                }
                             }
                          }
             });

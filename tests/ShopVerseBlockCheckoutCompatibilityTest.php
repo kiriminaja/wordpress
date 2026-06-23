@@ -3010,9 +3010,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'getFeeNameAliases',
+            '_kiriof_fee_type',
             $service,
-            'CreateTransactionService must treat translated fee labels as the same logical fee to avoid doubling COD Fee and Insurance on localized stores'
+            'CreateTransactionService must tag fee items with _kiriof_fee_type meta to avoid doubling COD Fee and Insurance on localized stores'
         );
     }
 
