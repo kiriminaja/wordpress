@@ -17,7 +17,17 @@ class CallbackController{
     function kiriminAjaCallback()
     {
         try {
-            if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+            $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ) : '';
+            if ( '' !== $request_method && 'POST' !== $request_method ) {
+                kiriof_log(
+                    'warning',
+                    'KiriminAja webhook request was rejected because it used an unsupported HTTP method.',
+                    array(
+                        'source'         => 'kiriminaja_webhook',
+                        'request_method' => $request_method,
+                    )
+                );
+
                 wp_send_json_error(
                     array(
                         'status' => false,
@@ -48,6 +58,15 @@ class CallbackController{
             
             // Validate and sanitize the decoded body
             if (json_last_error() !== JSON_ERROR_NONE) {
+                kiriof_log(
+                    'warning',
+                    'KiriminAja webhook request was rejected because the JSON body was invalid.',
+                    array(
+                        'source'     => 'kiriminaja_webhook',
+                        'json_error' => json_last_error_msg(),
+                    )
+                );
+
                 wp_send_json_error([
                     'status'=>false,
                     'text'=>'Invalid JSON input',
@@ -66,10 +85,18 @@ class CallbackController{
             }
             $header = $sanitized_header;
 
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriminAjaCallback',[$body]);
-            
             $service = (new \KiriminAjaOfficial\Services\CallbackHandlerService())->header($header)->body($body)->call();
             if ($service->status!==200){
+                kiriof_log(
+                    'warning',
+                    'KiriminAja webhook dispatch completed with an application error.',
+                    array(
+                        'source'         => 'kiriminaja_webhook',
+                        'callback_method' => is_object( $body ) ? (string) ( $body->method ?? '' ) : '',
+                        'message'        => $service->message,
+                    )
+                );
+
                 wp_send_json_error([
                     'status'=>false,
                     'text'=>$service->message,
@@ -84,6 +111,15 @@ class CallbackController{
             ]);
             wp_die();
         }catch (\Throwable $th){
+            kiriof_log(
+                'error',
+                'KiriminAja webhook controller failed before the request could be completed.',
+                array(
+                    'source'  => 'kiriminaja_webhook',
+                    'message' => $th->getMessage(),
+                )
+            );
+
             wp_send_json_error([
                 'status'=>false,
                 'text'=>$th->getMessage(),

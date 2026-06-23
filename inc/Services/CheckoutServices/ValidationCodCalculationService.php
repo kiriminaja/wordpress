@@ -7,10 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+
 class ValidationCodCalculationService extends BaseService{
     public  $payload;
-    private $minCodValue = 10000; //10.000
-    private $maxCodValue = 3000000; //3.000.000
     public function __construct($payload){
         $this->payload = $payload;
     }
@@ -28,16 +28,27 @@ class ValidationCodCalculationService extends BaseService{
             return $this->error([],$th->getMessage());
         }
     }
+    private function getMinCodValue(): float {
+        $setting = SettingRepository::getValue( 'min_cod_threshold' );
+        return $setting !== null && $setting > 0 ? (float) $setting : 10000.0;
+    }
+    private function getMaxCodValue(): float {
+        $setting = SettingRepository::getValue( 'max_cod_threshold' );
+        $default = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? (float) KIRIOF_MAX_COD_AMOUNT : 3000000.0;
+        return $setting !== null && $setting > 0 ? (float) $setting : $default;
+    }
     private function validateMinimumCodValue(){
-        if( $this->payload['cart_total'] < $this->minCodValue ){
+        $minCodValue = $this->getMinCodValue();
+        if( $this->payload['cart_total'] < $minCodValue ){
             // Translators: %s is the minimum COD amount formatted as a price.
-            wc_add_notice( sprintf( esc_html__( 'Minimum COD is %s', 'kiriminaja-official' ), wc_price( $this->minCodValue ) ), 'error' );
+            wc_add_notice( sprintf( esc_html__( 'Minimum COD is %s', 'kiriminaja-official' ), wc_price( $minCodValue ) ), 'error' );
         }
     }
     private function validateMaximumCodValue(){
-        if( $this->payload['cart_total'] > $this->maxCodValue ){
+        $maxCodValue = $this->getMaxCodValue();
+        if( $this->payload['cart_total'] > $maxCodValue ){
             // Translators: %s is the maximum COD amount formatted as a price.
-            wc_add_notice( sprintf( esc_html__( 'Maximum COD is %s', 'kiriminaja-official' ), wc_price($this->maxCodValue) ), 'error' );
+            wc_add_notice( sprintf( esc_html__( 'Maximum COD is %s', 'kiriminaja-official' ), wc_price($maxCodValue) ), 'error' );
         }
     }
 }

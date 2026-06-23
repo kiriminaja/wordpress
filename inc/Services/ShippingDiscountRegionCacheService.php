@@ -1,0 +1,426 @@
+<?php
+namespace KiriminAjaOfficial\Services;
+
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\ShippingDiscountRegionRepository;
+
+class ShippingDiscountRegionCacheService extends BaseService {
+    public const CRON_HOOK = 'kiriof_refresh_coupon_regions_cache';
+    private const STATUS_OPTION = 'kiriof_region_cache_status';
+
+    public function scheduleRefresh( bool $force = false ): bool {
+        if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh could not be scheduled because WordPress cron helpers were unavailable.',
+                array(
+                    'source' => 'kiriminaja_import',
+                    'force'  => $force,
+                )
+            );
+            return false;
+        }
+
+        if ( ! $force && $this->isRefreshPending() ) {
+            kiriof_log(
+                'info',
+                'Region cache refresh scheduling was skipped because a refresh job is already pending.',
+                array(
+                    'source' => 'kiriminaja_import',
+                    'force'  => $force,
+                )
+            );
+            return false;
+        }
+
+        if ( $force && function_exists( 'wp_next_scheduled' ) && function_exists( 'wp_unschedule_event' ) ) {
+            $timestamp = wp_next_scheduled( self::CRON_HOOK );
+            if ( $timestamp ) {
+                wp_unschedule_event( $timestamp, self::CRON_HOOK );
+            }
+        }
+
+        $this->updateStatus( 'scheduled' );
+        wp_schedule_single_event( time(), self::CRON_HOOK );
+
+        kiriof_log(
+            'notice',
+            'Region cache refresh was scheduled.',
+            array(
+                'source' => 'kiriminaja_import',
+                'force'  => $force,
+            )
+        );
+
+        return true;
+    }
+
+    public function isRefreshPending(): bool {
+        $status = $this->getStatus();
+        if ( in_array( $status['state'], array( 'scheduled', 'running' ), true ) ) {
+            return true;
+        }
+
+        return function_exists( 'wp_next_scheduled' ) && (bool) wp_next_scheduled( self::CRON_HOOK );
+    }
+
+    public function getStatus(): array {
+        $status = get_option( self::STATUS_OPTION, array() );
+
+        return wp_parse_args(
+            is_array( $status ) ? $status : array(),
+            array(
+                'state' => 'idle',
+                'last_error' => '',
+                'last_completed_at' => '',
+            )
+        );
+    }
+
+    public function refreshAll() {
+        $this->updateStatus( 'running' );
+        kiriof_log(
+            'notice',
+            'Region cache refresh started.',
+            array(
+                'source' => 'kiriminaja_import',
+            )
+        );
+
+        // Allow enough time for sequential API calls across all provinces.
+        if ( function_exists( 'set_time_limit' ) ) {
+            set_time_limit( 300 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- needed to allow sufficient time for sequential per-province API calls
+        }
+
+        // Ensure the cache tables exist before writing (handles cases where
+        // the plugin was updated without re-running the activation hook).
+        if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
+            ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
+        }
+
+        $regionRepo      = new ShippingDiscountRegionRepository();
+        $provinceService = ( new KiriminajaApiService() )->getProvinces();
+
+        if ( 200 !== $provinceService->status ) {
+            // API failed — try seeding from bundled JSON as fallback.
+            $seeded = $this->seedFromBundledData( $regionRepo );
+            if ( 200 === $seeded->status ) {
+                $this->updateStatus( 'ready' );
+                kiriof_log(
+                    'warning',
+                    'Region cache refresh fell back to bundled region data after the live province request failed.',
+                    array(
+                        'source'  => 'kiriminaja_import',
+                        'message' => $provinceService->message ?? '',
+                        'result'  => $seeded->data,
+                    )
+                );
+                return $seeded;
+            }
+            $this->updateStatus( 'error', $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
+            kiriof_log(
+                'error',
+                'Region cache refresh failed because province data could not be loaded.',
+                array(
+                    'source'  => 'kiriminaja_import',
+                    'message' => $provinceService->message ?? '',
+                )
+            );
+            return self::error( array(), $provinceService->message ?? __( 'Failed to refresh province data.', 'kiriminaja-official' ) );
+        }
+
+        $provinces = $this->normalizeRows( $provinceService->data, 'province' );
+        if ( empty( $provinces ) ) {
+            $message = __( 'Province data could not be normalized from the KiriminAja API response.', 'kiriminaja-official' );
+            $this->updateStatus( 'error', $message );
+            kiriof_log(
+                'error',
+                'Region cache refresh failed because province data could not be normalized.',
+                array(
+                    'source' => 'kiriminaja_import',
+                )
+            );
+            return self::error( array(), $message );
+        }
+
+        if ( ! $regionRepo->upsertProvinces( $provinces ) || $regionRepo->getProvinceCount() < 1 ) {
+            global $wpdb;
+            $dbErr   = ! empty( $wpdb->last_error ) ? ' DB: ' . $wpdb->last_error : '';
+            $message = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
+            $this->updateStatus( 'error', $message );
+            kiriof_log(
+                'error',
+                'Region cache refresh failed because province data could not be saved.',
+                array(
+                    'source'          => 'kiriminaja_import',
+                    'province_count'  => count( $provinces ),
+                    'database_error'  => $dbErr,
+                )
+            );
+            return self::error( array(), $message );
+        }
+
+        foreach ( $provinces as $province ) {
+            $cityRefresh = $this->refreshProvinceCities( (int) $province['id'] );
+            if ( 200 !== $cityRefresh->status ) {
+                $this->updateStatus( 'error', $cityRefresh->message ?? __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
+                kiriof_log(
+                    'error',
+                    'Region cache refresh failed while syncing city data for a province.',
+                    array(
+                        'source'      => 'kiriminaja_import',
+                        'province_id' => (int) $province['id'],
+                        'message'     => $cityRefresh->message ?? '',
+                    )
+                );
+                return $cityRefresh;
+            }
+        }
+
+        $this->updateStatus( 'ready' );
+
+        $result = array(
+            'province_count' => $regionRepo->getProvinceCount(),
+            'city_count' => $regionRepo->getCityCount(),
+            'updated_at' => $regionRepo->getLatestUpdatedAt(),
+        );
+
+        kiriof_log(
+            'notice',
+            'Region cache refresh completed successfully.',
+            array_merge(
+                array(
+                    'source' => 'kiriminaja_import',
+                ),
+                $result
+            )
+        );
+
+        return self::success(
+            $result,
+            __( 'Region cache updated.', 'kiriminaja-official' )
+        );
+    }
+
+    public function refreshProvinceCities( int $provinceId ) {
+        if ( $provinceId < 1 ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh skipped a province because the province identifier was invalid.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                )
+            );
+            return self::error( array(), __( 'Invalid province.', 'kiriminaja-official' ) );
+        }
+
+        $cityService = ( new KiriminajaApiService() )->getCitiesByProvinceId( $provinceId );
+        if ( 200 !== $cityService->status ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh could not load city data for a province.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                    'message'     => $cityService->message ?? '',
+                )
+            );
+            return self::error( array(), $cityService->message ?? __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
+        }
+
+        $cities = $this->normalizeRows( $cityService->data, 'city' );
+        if ( empty( $cities ) ) {
+            kiriof_log(
+                'warning',
+                'Region cache refresh could not normalize city data for a province.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                )
+            );
+            return self::error(
+                array(),
+                sprintf(
+                    // translators: %d is the province ID number.
+                    __( 'City data for province %d could not be normalized from the KiriminAja API response.', 'kiriminaja-official' ),
+                    $provinceId
+                )
+            );
+        }
+
+        $repo = new ShippingDiscountRegionRepository();
+        if ( ! $repo->upsertCities( $provinceId, $cities ) ) {
+            kiriof_log(
+                'error',
+                'Region cache refresh failed while saving city data for a province.',
+                array(
+                    'source'      => 'kiriminaja_import',
+                    'province_id' => $provinceId,
+                    'city_count'  => count( $cities ),
+                )
+            );
+            return self::error( array(), __( 'Failed to refresh city data.', 'kiriminaja-official' ) );
+        }
+
+        return self::success( array( 'city_count' => count( $cities ) ), __( 'City cache updated.', 'kiriminaja-official' ) );
+    }
+
+    private function updateStatus( string $state, string $lastError = '' ): void {
+        update_option(
+            self::STATUS_OPTION,
+            array(
+                'state' => $state,
+                'last_error' => $lastError,
+                'last_completed_at' => in_array( $state, array( 'ready', 'error' ), true ) ? gmdate( 'Y-m-d H:i:s' ) : '',
+            ),
+            false
+        );
+    }
+
+    private function normalizeRows( $rows, string $kind ): array {
+        $normalized = array();
+        foreach ( (array) $rows as $row ) {
+            $row = (object) $row;
+            $idCandidates = array(
+                $row->id ?? null,
+                $row->{$kind . '_id'} ?? null,
+                $row->province_id ?? null,
+                $row->provinsi_id ?? null,
+                $row->city_id ?? null,
+                $row->kabupaten_id ?? null,
+            );
+            $id = 0;
+
+            foreach ( $idCandidates as $candidate ) {
+                if ( is_numeric( $candidate ) && (int) $candidate > 0 ) {
+                    $id = (int) $candidate;
+                    break;
+                }
+            }
+
+            $nameCandidates = array(
+                $row->name ?? null,
+                $row->{$kind . '_name'} ?? null,
+                $row->provinsi_name ?? null,
+                $row->kabupaten_name ?? null,
+                $row->text ?? null,
+            );
+            $name = '';
+
+            foreach ( $nameCandidates as $candidate ) {
+                if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
+                    $name = $candidate;
+                    break;
+                }
+            }
+
+            if ( $id < 1 || '' === $name ) {
+                continue;
+            }
+
+            $normalized[] = array(
+                'id' => $id,
+                'name' => $name,
+            );
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Seed provinces and cities from the bundled regions.json file.
+     * Used as a fallback when the live API is unreachable.
+     */
+    public function seedFromBundledData( ShippingDiscountRegionRepository $regionRepo ): \KiriminAjaOfficial\Utils\ServiceResponse {
+        $jsonPath = dirname( __DIR__ ) . '/Data/regions.json';
+        if ( ! file_exists( $jsonPath ) ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because the regions file was missing.',
+                array(
+                    'source'    => 'kiriminaja_import',
+                    'json_path' => $jsonPath,
+                )
+            );
+            return self::error( array(), __( 'Bundled region data file not found.', 'kiriminaja-official' ) );
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $raw = file_get_contents( $jsonPath );
+        if ( false === $raw ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because the regions file could not be read.',
+                array(
+                    'source'    => 'kiriminaja_import',
+                    'json_path' => $jsonPath,
+                )
+            );
+            return self::error( array(), __( 'Failed to read bundled region data.', 'kiriminaja-official' ) );
+        }
+
+        $data = json_decode( $raw, true );
+        if ( ! is_array( $data ) || empty( $data['provinces'] ) || empty( $data['cities'] ) ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because the JSON structure was invalid.',
+                array(
+                    'source'    => 'kiriminaja_import',
+                    'json_path' => $jsonPath,
+                )
+            );
+            return self::error( array(), __( 'Bundled region data is invalid.', 'kiriminaja-official' ) );
+        }
+
+        if ( ! $regionRepo->upsertProvinces( $data['provinces'] ) ) {
+            kiriof_log(
+                'error',
+                'Bundled region data fallback failed because province records could not be saved.',
+                array(
+                    'source'         => 'kiriminaja_import',
+                    'province_count' => count( $data['provinces'] ),
+                )
+            );
+            return self::error( array(), __( 'Failed to seed province data from bundle.', 'kiriminaja-official' ) );
+        }
+
+        // Group cities by province and upsert.
+        $citiesByProvince = array();
+        foreach ( $data['cities'] as $city ) {
+            $pid = (int) ( $city['province_id'] ?? 0 );
+            if ( $pid < 1 ) {
+                continue;
+            }
+            $citiesByProvince[ $pid ][] = $city;
+        }
+
+        foreach ( $citiesByProvince as $pid => $cities ) {
+            $regionRepo->upsertCities( $pid, $cities );
+        }
+
+        kiriof_log(
+            'notice',
+            'Bundled region data fallback loaded province and city records successfully.',
+            array(
+                'source'         => 'kiriminaja_import',
+                'province_count' => $regionRepo->getProvinceCount(),
+                'city_count'     => $regionRepo->getCityCount(),
+            )
+        );
+
+        return self::success(
+            array(
+                'province_count' => $regionRepo->getProvinceCount(),
+                'city_count'     => $regionRepo->getCityCount(),
+                'source'         => 'bundled',
+            ),
+            __( 'Region data loaded from bundled file.', 'kiriminaja-official' )
+        );
+    }
+}

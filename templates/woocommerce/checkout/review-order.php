@@ -16,6 +16,9 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+$kiriof_shipping_discount_service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+$kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurrentShippingDiscountTotal();
 ?>
 <table class="shop_table woocommerce-checkout-review-order-table">
 	<thead>
@@ -98,12 +101,27 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php endif; ?>
 
+		<?php if ( $kiriof_current_shipping_discount > 0 ) : ?>
+			<tr class="kiriof-shipping-discount-total">
+				<th><?php esc_html_e( 'Shipping Discount', 'kiriminaja-official' ); ?></th>
+				<td>-<?php echo wp_kses_post( wc_price( $kiriof_current_shipping_discount ) ); ?></td>
+			</tr>
+		<?php endif; ?>
+
 		<?php
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
 		foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
 			<tr class="cart-discount coupon-<?php echo esc_attr( sanitize_title( $code ) ); ?>">
 				<th><?php wc_cart_totals_coupon_label( $coupon ); ?></th>
-				<td><?php wc_cart_totals_coupon_html( $coupon ); ?></td>
+				<td>
+					<?php
+					if ( $kiriof_shipping_discount_service->isShippingCoupon( $coupon ) ) {
+						echo esc_html__( 'Applied to shipping', 'kiriminaja-official' );
+					} else {
+						wc_cart_totals_coupon_html( $coupon );
+					}
+					?>
+				</td>
 			</tr>
 		<?php endforeach; ?>
 

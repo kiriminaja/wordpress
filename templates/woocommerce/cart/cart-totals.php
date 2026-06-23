@@ -12,12 +12,15 @@
  *
  * @see     https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
- * @version 8.0.0
+ * @version 10.8.0
  *
  * phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variables
  */
 
 defined( 'ABSPATH' ) || exit;
+
+$kiriof_shipping_discount_service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+$kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurrentShippingDiscountTotal();
 
 ?>
 <div class="kj-cart-total cart_totals <?php echo ( WC()->customer->has_calculated_shipping() ) ? 'calculated_shipping' : ''; ?>">
@@ -40,7 +43,15 @@ defined( 'ABSPATH' ) || exit;
 	foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
 			<tr class="cart-discount coupon-<?php echo esc_attr( sanitize_title( $code ) ); ?>">
 				<th><?php wc_cart_totals_coupon_label( $coupon ); ?></th>
-				<td data-title="<?php echo esc_attr( wc_cart_totals_coupon_label( $coupon, false ) ); ?>"><?php wc_cart_totals_coupon_html( $coupon ); ?></td>
+				<td data-title="<?php echo esc_attr( wc_cart_totals_coupon_label( $coupon, false ) ); ?>">
+					<?php
+					if ( $kiriof_shipping_discount_service->isShippingCoupon( $coupon ) ) {
+						echo esc_html__( 'Applied to shipping', 'kiriminaja-official' );
+					} else {
+						wc_cart_totals_coupon_html( $coupon );
+					}
+					?>
+				</td>
 			</tr>
 		<?php endforeach; ?>
 
@@ -63,6 +74,15 @@ defined( 'ABSPATH' ) || exit;
 				<td data-title="<?php esc_attr_e( 'Shipping', 'kiriminaja-official' ); ?>"><?php woocommerce_shipping_calculator(); ?></td>
 			</tr>
 
+		<?php endif; ?>
+
+		<?php if ( $kiriof_current_shipping_discount > 0 ) : ?>
+			<tr class="kiriof-shipping-discount-total">
+				<th><?php esc_html_e( 'Shipping Discount', 'kiriminaja-official' ); ?></th>
+				<td data-title="<?php esc_attr_e( 'Shipping Discount', 'kiriminaja-official' ); ?>">
+					-<?php echo wp_kses_post( wc_price( $kiriof_current_shipping_discount ) ); ?>
+				</td>
+			</tr>
 		<?php endif; ?>
 
 	<?php

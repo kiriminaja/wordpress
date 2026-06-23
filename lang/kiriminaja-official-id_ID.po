@@ -31,8 +31,8 @@ msgstr "%1$d / %2$d Terkonfigurasi"
 #: inc/Pages/Admin.php:280
 #: templates/setting/setuped/index.php:113
 #, php-format
-msgid "%1$d / %2$d Product Volumetric Configurations"
-msgstr "%1$d / %2$d Konfigurasi Volumetrik Produk"
+msgid "%1$d / %2$d Need Action"
+msgstr "%1$d / %2$d Perlu Tindakan"
 
 #. translators: %1$s: Plugin name, %2$s: WooCommerce.
 #: kiriminaja.php:133
@@ -135,6 +135,10 @@ msgstr "Semua Tanggal"
 msgid "All Product Configured"
 msgstr "Semua Produk Terkonfigurasi"
 
+#: inc/Controllers/ProductController.php
+msgid "Virtual Product"
+msgstr "Produk Virtual"
+
 #: templates/setting/setuped/index.php:221
 msgid "Allow customers to pay when they receive their order."
 msgstr "Izinkan pelanggan membayar saat pesanan diterima."
@@ -213,6 +217,22 @@ msgstr "Batalkan"
 #: templates/transaction-process/view/modal-cancel.php:45
 msgid "Cancel Shipment"
 msgstr "Batalkan Pengiriman"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Close modal panel"
+msgstr "Tutup panel modal"
+
+msgid "Available Schedules"
+msgstr "Jadwal Tersedia"
+
+msgid "Close"
+msgstr "Tutup"
+
+msgid "No pickup schedule is available."
+msgstr "Tidak ada jadwal pickup yang tersedia."
+
+msgid "Please select a pickup schedule."
+msgstr "Silakan pilih jadwal pickup."
 
 #: inc/Base/Helper.php:37
 #: inc/Base/Helper.php:57
@@ -369,8 +389,12 @@ msgid "Current Page"
 msgstr "Halaman Saat Ini"
 
 #: wc/KiriminajaShippingMethod.php:23
-msgid "Custom Shipping Method for Kiriminaja"
-msgstr "Metode Pengiriman Khusus untuk KiriminAja"
+msgid "KiriminAja real-time shipping rates for this shipping zone."
+msgstr "Tarif pengiriman real-time KiriminAja untuk zona pengiriman ini."
+
+#: wc/KiriminajaShippingMethod.php
+msgid "This controls the title shown to customers during checkout."
+msgstr "Ini mengatur judul yang ditampilkan kepada pelanggan saat checkout."
 
 #: inc/Controllers/CheckoutController.php:754
 msgid "Date"
@@ -1394,6 +1418,261 @@ msgid "This order has already been processed."
 msgstr "Pesanan ini sudah diproses."
 
 #: templates/woocommerce/cart/cart.php:31
+
+#: inc/Controllers/ShippingDiscountCouponController.php:36
+msgid "Fixed shipping discount"
+msgstr "Diskon ongkir tetap"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:37
+msgid "Percentage shipping discount"
+msgstr "Diskon ongkir persentase"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:32
+msgid "Area Restrictions"
+msgstr "Batasan Area"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:38
+msgid "Courier Restrictions"
+msgstr "Batasan Kurir"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:48
+msgid "Allowed Regions"
+msgstr "Wilayah yang Diizinkan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:50
+msgid "Refresh Region Data"
+msgstr "Segarkan Data Wilayah"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:52
+msgid "Leave empty to allow all shipping destinations."
+msgstr "Kosongkan untuk mengizinkan semua tujuan pengiriman."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:56
+msgid "All Indonesian Regions"
+msgstr "Semua Wilayah Indonesia"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:57
+msgid "Selected Regions"
+msgstr "Wilayah Terpilih"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:61
+msgid "Search region, province, or city"
+msgstr "Cari pulau, provinsi, atau kota"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:75
+msgid "Coverage data is being prepared in the background. Please wait a moment, then reload this tab."
+msgstr "Data cakupan sedang disiapkan di latar belakang. Tunggu sebentar, lalu muat ulang tab ini."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:77
+msgid "Region data is older than 24 hours. It will be refreshed automatically in the background."
+msgstr "Data wilayah lebih lama dari 24 jam. Data akan diperbarui otomatis di latar belakang."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:174
+msgid "Islands"
+msgstr "Pulau"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:175
+msgid "Provinces"
+msgstr "Provinsi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:176
+msgid "Cities"
+msgstr "Kota"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:177
+msgid "No regions match your search."
+msgstr "Tidak ada wilayah yang cocok dengan pencarian Anda."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:178
+msgid "Choose at least one city or switch back to all regions before saving this coupon."
+msgstr "Pilih setidaknya satu kota atau kembali ke semua wilayah sebelum menyimpan kupon ini."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:95
+msgid "Allowed Couriers"
+msgstr "Kurir yang Diizinkan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:101
+msgid "Leave empty to apply this shipping coupon to all couriers."
+msgstr "Kosongkan untuk menerapkan kupon ongkir ini ke semua kurir."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:636
+msgid "Sumatra"
+msgstr "Sumatra"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:637
+msgid "Java"
+msgstr "Jawa"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:638
+msgid "Bali & Nusa Tenggara"
+msgstr "Bali & Nusa Tenggara"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:639
+msgid "Kalimantan"
+msgstr "Kalimantan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:640
+msgid "Sulawesi"
+msgstr "Sulawesi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:641
+msgid "Maluku"
+msgstr "Maluku"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:642
+msgid "Papua"
+msgstr "Papua"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:643
+msgid "Other Regions"
+msgstr "Wilayah Lainnya"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:180
+#: inc/Controllers/ShippingDiscountCouponController.php:610
+msgid "All provinces in Indonesia"
+msgstr "Semua provinsi di Indonesia"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:181
+#: inc/Controllers/ShippingDiscountCouponController.php:614
+#, php-format
+msgid "All cities in %s"
+msgstr "Semua kota di %s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:152
+#: inc/Controllers/ShippingDiscountCouponController.php:250
+#, php-format
+msgid "%1$s, %2$s"
+msgstr "%1$s, %2$s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:153
+msgid "Please choose a province first."
+msgstr "Silakan pilih provinsi terlebih dahulu."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:154
+msgid "Please choose at least one city."
+msgstr "Silakan pilih setidaknya satu kota."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:155
+msgid "Refreshing region data…"
+msgstr "Sedang menyegarkan data wilayah…"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:156
+msgid "Region data refreshed."
+msgstr "Data wilayah berhasil diperbarui."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:157
+msgid "Failed to refresh region data."
+msgstr "Gagal memperbarui data wilayah."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:16
+msgid "Failed to refresh province data."
+msgstr "Gagal memuat data provinsi."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:30
+msgid "Invalid province."
+msgstr "Provinsi tidak valid."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:35
+msgid "Failed to refresh city data."
+msgstr "Gagal memuat data kota."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:27
+msgid "Region cache updated."
+msgstr "Cache wilayah berhasil diperbarui."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php:42
+msgid "City cache updated."
+msgstr "Cache kota berhasil diperbarui."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Failed to save province data to database."
+msgstr "Gagal menyimpan data provinsi ke database."
+
+#: inc/Services/KiriminajaApiService.php:58
+msgid "Failed to load provinces."
+msgstr "Gagal memuat daftar provinsi."
+
+#: inc/Services/KiriminajaApiService.php:67
+msgid "Failed to load cities."
+msgstr "Gagal memuat daftar kota."
+
+#: inc/Services/ShippingDiscountCouponService.php:31
+#: inc/Services/ShippingDiscountCouponService.php:35
+msgid "Add items to your cart first."
+msgstr "Tambahkan produk ke keranjang terlebih dahulu."
+
+#: inc/Services/ShippingDiscountCouponService.php:39
+msgid "This coupon requires a physical product with shipping."
+msgstr "Kupon ini membutuhkan produk fisik yang memerlukan pengiriman."
+
+#: inc/Services/ShippingDiscountCouponService.php:44
+msgid "Please enter your shipping address to check coupon eligibility."
+msgstr "Silakan masukkan alamat pengiriman untuk memeriksa kelayakan kupon."
+
+#: inc/Services/ShippingDiscountCouponService.php:48
+msgid "This coupon is not valid for the selected courier."
+msgstr "Kupon ini tidak berlaku untuk kurir yang dipilih."
+
+#: inc/Services/ShippingDiscountCouponService.php:56
+msgid "This coupon is not valid for your shipping destination."
+msgstr "Kupon ini tidak berlaku untuk tujuan pengiriman Anda."
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Fixed shipping discount applied"
+msgstr "Diskon ongkir tetap diterapkan"
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Percentage shipping discount applied"
+msgstr "Diskon ongkir persentase diterapkan"
+
+#: inc/Services/ShippingDiscountCouponService.php:106
+msgid "Shipping discounts applied"
+msgstr "Diskon ongkir diterapkan"
+
+#: inc/Services/ShippingDiscountCouponService.php:111
+msgid "Coupon not applicable"
+msgstr "Kupon tidak berlaku"
+
+#: templates/woocommerce/cart/cart-totals.php:48
+#: templates/woocommerce/checkout/review-order.php:112
+msgid "Applied to shipping"
+msgstr "Diterapkan ke ongkir"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:64
+#: inc/Controllers/ShippingDiscountCouponController.php:76
+msgid "Combinations"
+msgstr "Kombinasi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:79
+#, php-format
+msgid "Can combine with %s"
+msgstr "Dapat digabungkan dengan %s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:80
+#, php-format
+msgid "Cannot combine with %s"
+msgstr "Tidak dapat digabungkan dengan %s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:143
+msgid "Allow Combinations"
+msgstr "Izinkan Kombinasi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:151
+msgid "Leave selected to allow this shipping discount coupon to stack with the checked discount types."
+msgstr "Biarkan terpilih agar kupon diskon ongkir ini bisa digabungkan dengan tipe diskon yang dicentang."
+
+#: inc/Controllers/ShippingDiscountCouponController.php:366
+msgid "Fixed cart discount"
+msgstr "Diskon keranjang tetap"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:370
+msgid "Percentage discount"
+msgstr "Diskon persentase"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:374
+msgid "Fixed product discount"
+msgstr "Diskon produk tetap"
+
 msgid "Thumbnail image"
 msgstr "Gambar thumbnail"
 
@@ -1608,6 +1887,14 @@ msgstr "syarat dan ketentuan"
 msgid "© 2025 PT Selalu Siap Solusi. All rights reserved."
 msgstr "© 2025 PT Selalu Siap Solusi. Hak cipta dilindungi undang-undang."
 
+#: inc/Controllers/ShippingDiscountCouponController.php:54
+msgid "Usage Combinations"
+msgstr "Kombinasi Penggunaan"
+
+#: inc/Controllers/ShippingDiscountCouponController.php:261
+msgid "Powered by KiriminAja Discount Extension"
+msgstr "Didukung oleh Ekstensi Diskon KiriminAja"
+
 #. Plugin Name of the plugin
 #: kiriminaja.php
 msgid "KiriminAja Official"
@@ -1684,21 +1971,21 @@ msgstr "Order"
 #: templates/request-pickup/view/modal-request-pickup.php:33
 #: templates/transaction-process/view/index.php:475
 #: templates/transaction-process/view/modal-request-pickup.php:34
-msgid "Tagihan Paket COD"
+msgid "COD Package Charges"
 msgstr "Tagihan Paket COD"
 
 #: templates/request-pickup/view/index.php:532
 #: templates/request-pickup/view/modal-request-pickup.php:38
 #: templates/transaction-process/view/index.php:480
 #: templates/transaction-process/view/modal-request-pickup.php:39
-msgid "Tagihan Paket Non-COD"
+msgid "Non-COD Package Charges"
 msgstr "Tagihan Paket Non-COD"
 
 #: templates/request-pickup/view/index.php:537
 #: templates/request-pickup/view/modal-request-pickup.php:43
 #: templates/transaction-process/view/index.php:485
 #: templates/transaction-process/view/modal-request-pickup.php:44
-msgid "Total Tagihan"
+msgid "Total Charges"
 msgstr "Total Tagihan"
 
 #: templates/request-pickup/view/modal-request-pickup.php:18
@@ -1858,6 +2145,495 @@ msgstr "Kode"
 #: templates/request-pickup/view/modal-payment.php:78
 msgid "QR will expire at"
 msgstr "QR akan kedaluwarsa pada"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Item Discount"
+msgstr "Diskon Produk"
+
+msgid "Shipping Discount"
+msgstr "Diskon Ongkir"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Shipping Discount (%s)"
+msgstr "Diskon Ongkir (%s)"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Shipping Discounts"
+msgstr "Diskon Ongkir"
+
+#: inc/Controllers/CheckoutController.php
+msgid "Actual Shipping"
+msgstr "Ongkir Aktual"
+
+#: templates/order/metabox-shipping.php
+#: inc/Controllers/TransactionProcessController.php
+msgid "Discounted Shipping"
+msgstr "Ongkir Terdiskon"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Save %s"
+msgstr "Hemat %s"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Regular service"
+msgstr "Layanan Reguler"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Economy service"
+msgstr "Layanan Ekonomi"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Same-day service"
+msgstr "Layanan Hari yang Sama"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Next-day service"
+msgstr "Layanan Keesokan Hari"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Overnight service"
+msgstr "Layanan Semalaman"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Cargo service"
+msgstr "Layanan Kargo"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "service"
+msgstr "layanan"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Includes insurance"
+msgstr "Termasuk asuransi"
+
+#: templates/front/form-billing-address.php
+msgid "District required"
+msgstr "Kelurahan wajib diisi"
+
+#: templates/front/form-billing-address.php
+msgid "Please select your District to view shipping options."
+msgstr "Silakan pilih Kelurahan Anda untuk melihat opsi pengiriman."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Security check failed."
+msgstr "Pemeriksaan keamanan gagal."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Province data could not be normalized from the KiriminAja API response."
+msgstr "Data provinsi tidak dapat dinormalisasi dari respons API KiriminAja."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "City data for province %d could not be normalized from the KiriminAja API response."
+msgstr "Data kota untuk provinsi %d tidak dapat dinormalisasi dari respons API KiriminAja."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Bundled region data file not found."
+msgstr "File data wilayah bawaan tidak ditemukan."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Failed to read bundled region data."
+msgstr "Gagal membaca data wilayah bawaan."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Bundled region data is invalid."
+msgstr "Data wilayah bawaan tidak valid."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Failed to seed province data from bundle."
+msgstr "Gagal memuat data provinsi dari file bawaan."
+
+#: inc/Services/ShippingDiscountRegionCacheService.php
+msgid "Region data loaded from bundled file."
+msgstr "Data wilayah dimuat dari file bawaan."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Leave empty (All Indonesian Regions) to allow all shipping destinations. Only applies to shipping discount coupon types."
+msgstr "Kosongkan (Semua Wilayah Indonesia) untuk mengizinkan semua tujuan pengiriman. Hanya berlaku untuk tipe kupon diskon ongkir."
+
+#: templates/cache/index.php inc/Pages/Admin.php
+msgid "Cache"
+msgstr "Cache"
+
+#: templates/cache/index.php
+msgid "Cache Management"
+msgstr "Manajemen Cache"
+
+#: templates/cache/index.php
+msgid "Region Coverage Cache"
+msgstr "Cache Data Wilayah"
+
+#: templates/cache/index.php
+msgid "This cache stores the province and city coverage data used for coupon area restrictions. Re-validate to fetch the latest data from the KiriminAja API."
+msgstr "Cache ini menyimpan data provinsi dan kota yang digunakan untuk pembatasan area kupon. Re-validasi untuk mengambil data terbaru dari API KiriminAja."
+
+#: templates/cache/index.php
+msgid "Last Updated"
+msgstr "Terakhir Diperbarui"
+
+#: templates/cache/index.php
+msgid "Re-validate Region Cache"
+msgstr "Re-validasi Cache Wilayah"
+
+#: templates/cache/index.php
+msgid "Cache updated successfully."
+msgstr "Cache berhasil diperbarui."
+
+#: templates/cache/index.php
+msgid "Re-validate failed."
+msgstr "Re-validasi gagal."
+
+#: templates/cache/index.php
+msgid "Refreshing\xe2\x80\xa6"
+msgstr "Sedang memperbarui\xe2\x80\xa6"
+
+#: templates/cache/index.php
+msgid "Scheduling\xe2\x80\xa6"
+msgstr "Menjadwalkan\xe2\x80\xa6"
+
+#: templates/cache/index.php
+msgid "Request failed. Please try again."
+msgstr "Permintaan gagal. Silakan coba lagi."
+
+#: templates/setting/setuped/index.php
+msgid "Manage cached data such as region coverage used for coupon restrictions."
+msgstr "Kelola data cache seperti data wilayah yang digunakan untuk pembatasan kupon."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Province and city data used for coupon area restrictions. Re-validate to fetch the latest data from the KiriminAja API."
+msgstr "Data provinsi dan kota yang digunakan untuk pembatasan area kupon. Re-validasi untuk mengambil data terbaru dari API KiriminAja."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Restrict this coupon to specific couriers. Leave as \"All Couriers\" to apply to every courier."
+msgstr "Batasi kupon ini ke kurir tertentu. Biarkan \"Semua Kurir\" untuk berlaku di semua kurir."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Selected Couriers"
+msgstr "Kurir Terpilih"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "No couriers available. Please check your KiriminAja account settings."
+msgstr "Tidak ada kurir tersedia. Periksa pengaturan akun KiriminAja Anda."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Extension"
+msgstr "Ekstensi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Default"
+msgstr "Default"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "All Extensions"
+msgstr "Semua Ekstensi"
+
+#: inc/Pages/Admin.php
+msgid "Promotions"
+msgstr "Promosi"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Discount amount cannot exceed 100% for a percentage shipping discount."
+msgstr "Jumlah diskon tidak boleh melebihi 100% untuk diskon ongkir persentase."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Allow Combinations is not available because \"Individual use only\" is enabled. Uncheck it above to configure combinations."
+msgstr "Izinkan Kombinasi tidak tersedia karena \"Hanya penggunaan individu\" diaktifkan. Hapus centang di atas untuk mengonfigurasi kombinasi."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Individual use only — cannot combine with other coupons"
+msgstr "Hanya penggunaan individu — tidak bisa digabungkan dengan kupon lain"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Individual use"
+msgstr "Penggunaan individu"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon is only valid when KiriminAja shipping is selected."
+msgstr "Kupon ini hanya berlaku ketika pengiriman KiriminAja dipilih."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Courier List Cache"
+msgstr "Cache Daftar Kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Courier names and types fetched from the KiriminAja API. Used for proper labelling in the transactions filter and coupon courier restrictions. Cached for 24 hours."
+msgstr "Nama dan jenis kurir yang diambil dari API KiriminAja. Digunakan untuk penamaan yang tepat pada filter transaksi dan pembatasan kurir kupon. Di-cache selama 24 jam."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Couriers"
+msgstr "Kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Flush &amp; Re-fetch Couriers"
+msgstr "Hapus &amp; Ambil Ulang Kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Flushing\xe2\x80\xa6"
+msgstr "Menghapus\xe2\x80\xa6"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Cache refreshed."
+msgstr "Cache diperbarui."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Flushed, but could not re-fetch from API. Will retry on next page load."
+msgstr "Cache dihapus, tetapi gagal mengambil ulang dari API. Akan dicoba lagi saat halaman dimuat berikutnya."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Flush failed. Please try again."
+msgstr "Penghapusan cache gagal. Silakan coba lagi."
+
+#: templates/setting/setuped/section-cache.php
+msgid "Not cached"
+msgstr "Tidak di-cache"
+
+#: templates/setting/setuped/section-cache.php
+msgid "couriers"
+msgstr "kurir"
+
+#: templates/setting/setuped/section-cache.php
+msgid "Cached"
+msgstr "Sudah di-cache"
+
+#: wc/KiriminajaShippingMethod.php
+msgid "Free shipping"
+msgstr "Gratis ongkir"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Invalid parameters"
+msgstr "Parameter tidak valid"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Transaction not found"
+msgstr "Transaksi tidak ditemukan"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Order is not flagged as deficit"
+msgstr "Pesanan tidak ditandai sebagai defisit"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Must not be less than Rp%s to avoid deficit"
+msgstr "Tidak boleh kurang dari Rp%s untuk menghindari defisit"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Must not exceed Rp%s"
+msgstr "Tidak boleh melebihi Rp%s"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "COD Adjustment"
+msgstr "Penyesuaian COD"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "COD value adjusted to Rp%s by merchant."
+msgstr "Nilai COD disesuaikan menjadi Rp%s oleh penjual."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "AWB not found for this transaction"
+msgstr "AWB tidak ditemukan untuk transaksi ini"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Deficit COD order cancelled by merchant"
+msgstr "Pesanan COD defisit dibatalkan oleh penjual"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Failed to cancel shipment"
+msgstr "Gagal membatalkan pengiriman"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Deficit COD order cancelled by merchant via KiriminAja."
+msgstr "Pesanan COD defisit dibatalkan oleh penjual melalui KiriminAja."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Failed to update transaction"
+msgstr "Gagal memperbarui transaksi"
+
+#: templates/transaction-process/view/index.php
+msgid "Ins"
+msgstr "Asuransi"
+
+#: templates/order/metabox-shipping.php
+msgid "FREE"
+msgstr "GRATIS"
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Order cancelled successfully"
+msgstr "Pesanan berhasil dibatalkan"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "COD Issue Information"
+msgstr "Informasi Masalah COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Please change the COD Value information"
+msgstr "Silakan ubah informasi Nilai COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Adjust your COD value to the applicable terms and conditions to continue the shipping process with order id: %s."
+msgstr "Sesuaikan nilai COD Anda sesuai syarat dan ketentuan yang berlaku untuk melanjutkan proses pengiriman dengan id pesanan: %s."
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Total Shipping"
+msgstr "Total Ongkir"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Discount Code"
+msgstr "Kode Diskon"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "COD Paid By Buyer"
+msgstr "COD Dibayar Pembeli"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Estimated COD Payout"
+msgstr "Estimasi Pencairan COD"
+
+#: templates/order/partials/cod-adjustment-modal.php
+msgid "Confirm & Process"
+msgstr "Konfirmasi & Proses"
+
+#: inc/Base/Enqueue.php
+msgid "Minimum {min} to avoid COD Settlement deficit"
+msgstr "Minimal {min} untuk menghindari defisit Penyelesaian COD"
+
+#: inc/Base/Enqueue.php
+msgid "Must not exceed {max}"
+msgstr "Tidak boleh melebihi {max}"
+
+#: inc/Base/Enqueue.php
+msgid "Estimated payout must not be negative"
+msgstr "Estimasi pencairan tidak boleh negatif"
+
+#: inc/Base/Enqueue.php
+msgid "Processing…"
+msgstr "Memproses…"
+
+#: inc/Base/Enqueue.php
+msgid "Are you sure you want to cancel this deficit COD order? This cannot be undone."
+msgstr "Apakah Anda yakin ingin membatalkan pesanan COD defisit ini? Tindakan ini tidak dapat dibatalkan."
+
+#: templates/order/metabox-shipping.php
+msgid "COD Deficit"
+msgstr "Defisit COD"
+
+#: templates/order/metabox-shipping.php
+msgid "Adjust COD"
+msgstr "Sesuaikan COD"
+
+#: templates/order/metabox-shipping.php
+msgid "Cancel Deficit Order"
+msgstr "Batalkan Pesanan Defisit"
+
+#: templates/transaction-process/view/index.php
+msgid "Deficit"
+msgstr "Defisit"
+
+#: inc/Services/CheckoutServices/CreateTransactionService.php
+msgid "COD order flagged as deficit — total COD below minimum threshold."
+msgstr "Pesanan COD ditandai sebagai defisit — total COD di bawah ambang minimum."
+
+#: templates/transaction-process/view/index.php
+msgid "Order Issue"
+msgstr "Masalah Pesanan"
+
+#: templates/transaction-process/view/index.php
+msgid "Adjust Deficit"
+msgstr "Sesuaikan Defisit"
+
+#: templates/transaction-process/view/index.php
+msgid "Resolve the COD deficit before proceeding."
+msgstr "Selesaikan defisit COD sebelum melanjutkan."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Adjust COD Deficit Order"
+msgstr "Sesuaikan Order Defisit COD"
+
+#: inc/Base/Enqueue.php
+msgid "Please correct the COD value."
+msgstr "Mohon perbaiki nilai COD."
+
+#: templates/transaction-process/view/index.php
+msgid "Minimum COD: Rp%s (to avoid deficit)"
+msgstr "Minimum COD: Rp%s (untuk menghindari defisit)"
+
+#: templates/order/metabox-shipping.php
+msgid "Shipment"
+msgstr "Pengiriman"
+
+#: templates/order/metabox-shipping.php
+msgid "Pickup"
+msgstr "Penjemputan"
+
+#: templates/order/metabox-shipping.php
+msgid "Unpaid"
+msgstr "Belum Dibayar"
+
+#: templates/order/metabox-shipping.php
+msgid "Value less than the provisions"
+msgstr "Nilai di bawah ketentuan"
+
+#: templates/order/metabox-shipping.php
+msgid "Items with a minimum value of %s cannot proceed."
+msgstr "Item dengan nilai minimum %s tidak dapat diproses."
+
+#: templates/order/metabox-shipping.php
+msgid "COD value is below the minimum required to avoid a deficit."
+msgstr "Nilai COD di bawah minimum yang diperlukan untuk menghindari defisit."
+
+#: templates/order/metabox-shipping.php
+msgid "MINUS"
+msgstr "MINUS"
+
+
+#: inc/Controllers/EditOrderController.php
+msgid "Original Shipping:"
+msgstr "Harga Ongkir Asli:"
+
+#: templates/order/metabox-shipping.php
+msgid "Item"
+msgstr "Item"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon cannot be combined with a free shipping coupon."
+msgstr "Kupon ini tidak dapat digabungkan dengan kupon gratis ongkir."
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon cannot be combined with another shipping discount coupon."
+msgstr "Kupon ini tidak dapat digabungkan dengan kupon diskon ongkir lain."
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "This coupon cannot be combined with one or more active coupons."
+msgstr "Kupon ini tidak dapat digabungkan dengan satu atau lebih kupon aktif."
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Shipping discount coupon not applied — free shipping is active."
+msgstr "Kupon diskon ongkir tidak diterapkan — gratis ongkir sedang aktif."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Coupon \"%1$s\" cannot be applied. %2$s"
+msgstr "Kupon \"%1$s\" tidak dapat diterapkan. %2$s"
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Shipping discount \"%1$s\" applied and combined with: %2$s."
+msgstr "Diskon ongkir \"%1$s\" diterapkan dan digabungkan dengan: %2$s."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Shipping discount \"%s\" applied to your cart."
+msgstr "Diskon ongkir \"%s\" diterapkan ke keranjang kamu."
+
+#: inc/Controllers/SettingController.php
+msgid "Required by KiriminAja Official Plugin"
+msgstr "Diperlukan oleh Plugin KiriminAja Official"
+
+#: inc/Controllers/SettingController.php
+msgid "Tracking page"
+msgstr "Halaman pelacakan"
+
+#: inc/Controllers/SettingController.php
+msgid "Page contents: [kiriminaja-tracking-front-page]"
+msgstr "Isi halaman: [kiriminaja-tracking-front-page]"
+
+#: inc/Controllers/SettingController.php
+msgid "Select a page&hellip;"
+msgstr "Pilih halaman&hellip;"
 
 #: inc/Base/Helper.php
 msgid "JNE Express"

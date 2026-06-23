@@ -439,79 +439,72 @@ final class CancelTransactionFeatureTest extends TestCase
     // ------------------------------------------------------------------
 
     #[Test]
-    public function cancel_modal_template_exists(): void
-    {
-        $this->assertFileExists(
-            PLUGIN_DIR . '/templates/transaction-process/view/modal-cancel.php'
-        );
-    }
-
-    #[Test]
-    public function cancel_modal_has_abspath_check(): void
+    public function cancel_modal_template_is_rendered_from_controller(): void
     {
         $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/modal-cancel.php'
-        );
-
-        $this->assertTrue(
-            str_contains($content, "defined( 'ABSPATH' )") || str_contains($content, "defined('ABSPATH')"),
-            'Cancel modal template must have ABSPATH check'
-        );
-    }
-
-    #[Test]
-    public function cancel_modal_has_reason_input(): void
-    {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/modal-cancel.php'
+            PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
         );
 
         $this->assertStringContainsString(
-            'cancel-reason',
+            'tmpl-kiriof-modal-cancel-transaction',
             $content,
-            'Cancel modal must have a reason textarea (id="cancel-reason")'
+            'TransactionProcessController must render the cancel shipment backbone modal template'
         );
     }
 
     #[Test]
-    public function cancel_modal_has_order_id_hidden_field(): void
+    public function cancel_modal_template_has_reason_input(): void
     {
         $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/modal-cancel.php'
+            PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
         );
 
         $this->assertStringContainsString(
-            'cancel-order-id',
+            'kiriof-cancel-reason',
             $content,
-            'Cancel modal must have a hidden order ID field'
+            'Cancel modal template must have a reason textarea'
         );
     }
 
     #[Test]
-    public function cancel_modal_has_character_counter(): void
+    public function cancel_modal_template_has_order_id_hidden_field(): void
     {
         $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/modal-cancel.php'
+            PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
         );
 
         $this->assertStringContainsString(
-            'cancel-reason-count',
+            'name="order_id"',
             $content,
-            'Cancel modal must have a character counter element'
+            'Cancel modal template must have a hidden order ID field'
         );
     }
 
     #[Test]
-    public function cancel_modal_has_submit_button(): void
+    public function cancel_modal_template_has_character_counter(): void
     {
         $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/modal-cancel.php'
+            PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-cancel-reason-count',
+            $content,
+            'Cancel modal template must have a character counter element'
+        );
+    }
+
+    #[Test]
+    public function cancel_modal_template_has_submit_button(): void
+    {
+        $content = file_get_contents(
+            PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php'
         );
 
         $this->assertStringContainsString(
             'Cancel Shipment',
             $content,
-            'Cancel modal must have a submit button labelled Cancel Shipment'
+            'Cancel modal template must have a submit button labelled Cancel Shipment'
         );
     }
 
@@ -520,16 +513,16 @@ final class CancelTransactionFeatureTest extends TestCase
     // ------------------------------------------------------------------
 
     #[Test]
-    public function transaction_list_includes_cancel_modal(): void
+    public function transaction_list_no_longer_includes_legacy_cancel_modal_partial(): void
     {
         $content = file_get_contents(
             PLUGIN_DIR . '/templates/transaction-process/view/index.php'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             "include 'modal-cancel.php'",
             $content,
-            'Transaction list must include the cancel modal template'
+            'Transaction list should no longer include the legacy cancel modal partial'
         );
     }
 
@@ -576,16 +569,16 @@ final class CancelTransactionFeatureTest extends TestCase
     }
 
     #[Test]
-    public function transaction_list_js_has_cancel_process_function(): void
+    public function transaction_list_js_handles_cancel_with_backbone_modal_event(): void
     {
         $content = file_get_contents(
             PLUGIN_DIR . '/templates/transaction-process/view/index.php'
         );
 
         $this->assertStringContainsString(
-            'window.kjCancelTransactionProcess',
+            "target === 'kiriof-modal-cancel-transaction'",
             $content,
-            'Transaction list JS must define kjCancelTransactionProcess function'
+            'Transaction list JS must handle cancel flow through the Woo backbone modal event'
         );
     }
 
@@ -610,9 +603,8 @@ final class CancelTransactionFeatureTest extends TestCase
             PLUGIN_DIR . '/templates/transaction-process/view/index.php'
         );
 
-        // Look specifically in the cancel AJAX section
-        preg_match('/kjCancelTransactionProcess.*?ajax\s*\(\s*\{(.*?)\}\s*\)/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'kjCancelTransactionProcess AJAX call not found');
+        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?ajax\s*\(\s*\{(.*?)\}\s*\)/s', $content, $matches);
+        $this->assertNotEmpty($matches, 'Cancel backbone modal AJAX call not found');
 
         $this->assertStringContainsString(
             'nonce: kiriofAjax.nonce',
@@ -628,9 +620,8 @@ final class CancelTransactionFeatureTest extends TestCase
             PLUGIN_DIR . '/templates/transaction-process/view/index.php'
         );
 
-        // Look in the kjCancelTransactionProcess function
-        preg_match('/window\.kjCancelTransactionProcess\s*=\s*function.*?\n\s*\};/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'kjCancelTransactionProcess function not found');
+        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?if \(reason.length < 5\).*?ajax/s', $content, $matches);
+        $this->assertNotEmpty($matches, 'Cancel backbone modal handler not found');
 
         $this->assertStringContainsString(
             'reason.length < 5',
@@ -646,8 +637,8 @@ final class CancelTransactionFeatureTest extends TestCase
             PLUGIN_DIR . '/templates/transaction-process/view/index.php'
         );
 
-        preg_match('/window\.kjCancelTransactionProcess\s*=\s*function.*?\n\s*\};/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'kjCancelTransactionProcess function not found');
+        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?confirm\(.*?ajax/s', $content, $matches);
+        $this->assertNotEmpty($matches, 'Cancel backbone modal handler not found');
 
         $this->assertStringContainsString(
             'confirm(',

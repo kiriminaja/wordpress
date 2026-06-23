@@ -54,9 +54,25 @@ class SettingService extends BaseService
                 'oid_prefix' => sanitize_text_field($arrayRepoDataData['oid_prefix']),
                 'setup_key' => sanitize_text_field($setupPayload['setup_key']),
                 'callback_url' => $setupPayload['callback_url'],
+                'is_top' => self::resolveIsTop(),
             ]);
+            kiriof_log(
+                'notice',
+                'KiriminAja setup key was processed successfully.',
+                array(
+                    'source'       => 'kiriminaja_settings',
+                    'callback_url' => $setupPayload['callback_url'],
+                )
+            );
         } catch (\Throwable $th) {
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('processingSetupKey errr', $th->getMessage());
+            kiriof_log(
+                'error',
+                'KiriminAja setup key processing failed.',
+                array(
+                    'source'  => 'kiriminaja_settings',
+                    'message' => $th->getMessage(),
+                )
+            );
             return self::error([], $th->getMessage());
         }
         return self::success([]);
@@ -65,7 +81,22 @@ class SettingService extends BaseService
     {
         try {
             $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->disconnectIntegration();
+            kiriof_log(
+                'notice',
+                'KiriminAja integration settings were disconnected.',
+                array(
+                    'source' => 'kiriminaja_settings',
+                )
+            );
         } catch (\Throwable $th) {
+            kiriof_log(
+                'error',
+                'KiriminAja integration disconnect failed.',
+                array(
+                    'source'  => 'kiriminaja_settings',
+                    'message' => $th->getMessage(),
+                )
+            );
             return self::error([], $th->getMessage());
         }
         return self::success([]);
@@ -137,17 +168,39 @@ class SettingService extends BaseService
                 'origin_whitelist_expedition_id'    => ! empty( $whitelist_ids ) ? implode( ',', $whitelist_ids ) : null,
                 'origin_whitelist_expedition_name'  => ! empty( $whitelist_names ) ? implode( ',', $whitelist_names ) : null,
             ]);
+
+            update_option( 'kiriof_wc_origin_name', sanitize_text_field( (string) $payloads['origin_name'] ) );
+            update_option( 'kiriof_wc_origin_phone', sanitize_text_field( (string) $payloads['origin_phone'] ) );
+            update_option( 'kiriof_wc_origin_area', sanitize_text_field( (string) $payloads['origin_sub_district_id'] ) );
+            update_option( 'woocommerce_store_address', sanitize_textarea_field( (string) $payloads['origin_address'] ) );
+            update_option( 'woocommerce_store_postcode', sanitize_text_field( (string) $payloads['origin_zip_code'] ) );
         } catch (\Throwable $th) {
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeOriginData errr', $th->getMessage());
+            kiriof_log(
+                'error',
+                'Origin shipping settings update failed.',
+                array(
+                    'source'  => 'kiriminaja_settings',
+                    'message' => $th->getMessage(),
+                )
+            );
             return self::error([], $th->getMessage());
         }
+        kiriof_log(
+            'notice',
+            'Origin shipping settings were updated.',
+            array(
+                'source'               => 'kiriminaja_settings',
+                'origin_sub_district'  => sanitize_text_field( (string) ( $payloads['origin_sub_district_id'] ?? '' ) ),
+                'whitelist_ids_count'  => count( $whitelist_ids ),
+                'whitelist_names_count' => count( $whitelist_names ),
+            )
+        );
         return self::success([]);
     }
     public function getCallbackData()
     {
         try {
             $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getCallbackData();
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo', [$repo]);
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -173,7 +226,15 @@ class SettingService extends BaseService
             /** Store to KJ*/
             $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->setCallback($callback_url);
             if (!@$repo['status'] || !@$repo['data']->status) {
-                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $repo);
+                kiriof_log(
+                    'warning',
+                    'Callback URL update was rejected by the KiriminAja API.',
+                    array(
+                        'source'       => 'kiriminaja_settings',
+                        'callback_url' => $callback_url,
+                        'response'     => $repo,
+                    )
+                );
                 return self::error([], @$repo['data'] ?? 'Something is wrong');
             }
             /** Storing to DB*/
@@ -181,9 +242,25 @@ class SettingService extends BaseService
                 'callback_url' => $callback_url,
             ]);
         } catch (\Throwable $th) {
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeCallbackData errr', $th->getMessage());
+            kiriof_log(
+                'error',
+                'Callback URL update failed.',
+                array(
+                    'source'       => 'kiriminaja_settings',
+                    'callback_url' => $callback_url,
+                    'message'      => $th->getMessage(),
+                )
+            );
             return self::error([], $th->getMessage());
         }
+        kiriof_log(
+            'notice',
+            'Callback URL was updated successfully.',
+            array(
+                'source'       => 'kiriminaja_settings',
+                'callback_url' => $callback_url,
+            )
+        );
         return self::success([]);
     }
     public function storeConfigData(array $payloads)
@@ -230,9 +307,24 @@ class SettingService extends BaseService
 
             update_option( 'woocommerce_cod_settings', $cod_settings );
         } catch (\Throwable $th) {
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeConfigData errr', $th->getMessage());
+            kiriof_log(
+                'error',
+                'COD configuration update failed.',
+                array(
+                    'source'  => 'kiriminaja_settings',
+                    'message' => $th->getMessage(),
+                )
+            );
             return self::error([], $th->getMessage());
         }
+        kiriof_log(
+            'notice',
+            'COD configuration was updated.',
+            array(
+                'source'     => 'kiriminaja_settings',
+                'enable_cod' => $enable_cod,
+            )
+        );
         return self::success([]);
     }
     public function storeInsuranceData(array $payloads)
@@ -247,9 +339,58 @@ class SettingService extends BaseService
             }
             (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeInsuranceData($enable_insurance);
         } catch (\Throwable $th) {
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('storeInsuranceData errr', $th->getMessage());
+            kiriof_log(
+                'error',
+                'Insurance configuration update failed.',
+                array(
+                    'source'  => 'kiriminaja_settings',
+                    'message' => $th->getMessage(),
+                )
+            );
             return self::error([], $th->getMessage());
         }
+        kiriof_log(
+            'notice',
+            'Insurance configuration was updated.',
+            array(
+                'source'            => 'kiriminaja_settings',
+                'enable_insurance'  => $enable_insurance,
+            )
+        );
         return self::success([]);
+    }
+
+    /**
+     * Resolve merchant TOP status by calling /api/mitra/v6.2/profile.
+     * Returns true when metadata.payment_method === "TOP".
+     * Falls back to false if the profile call fails (non-blocking).
+     */
+    private static function resolveIsTop(): bool {
+        try {
+            $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            if ( 200 !== $profile->status || empty( $profile->data ) ) {
+                kiriof_log(
+                    'warning',
+                    'Merchant TOP status fallback returned false because the profile request did not succeed.',
+                    array(
+                        'source' => 'kiriminaja_settings',
+                        'status' => $profile->status,
+                    )
+                );
+                return false;
+            }
+            $paymentMethod = (string) ( $profile->data->metadata->payment_method ?? '' );
+            return strtoupper( $paymentMethod ) === 'TOP';
+        } catch ( \Throwable $th ) {
+            kiriof_log(
+                'warning',
+                'Merchant TOP status fallback returned false because the profile request threw an exception.',
+                array(
+                    'source'  => 'kiriminaja_settings',
+                    'message' => $th->getMessage(),
+                )
+            );
+            return false;
+        }
     }
 }

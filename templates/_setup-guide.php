@@ -75,7 +75,7 @@ $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
                         echo esc_html__( 'Final Step', 'kiriminaja-official' );
                     } else {
                         printf(
-                            /* translators: %1$d: current step number, %2$d: total steps. */                            
+                            /* translators: %1$d: current step number, %2$d: total steps. */
                             esc_html__( 'Step %1$d of %2$d', 'kiriminaja-official' ),
                             absint( $kiriof_index + 1 ),
                             absint( $kiriof_total_steps )

@@ -54,6 +54,24 @@ class TransactionRepository{
         ];
     }
 
+    public function getShippableOrderExistsSql( string $orderIdExpression ): string {
+        $product_lookup_table = $this->wpdb->prefix . 'wc_order_product_lookup';
+        $postmeta_table       = $this->wpdb->postmeta;
+
+        return "AND EXISTS (
+            SELECT 1
+            FROM {$product_lookup_table} kiriof_product_lookup
+            LEFT JOIN {$postmeta_table} kiriof_product_virtual_meta
+                ON kiriof_product_virtual_meta.post_id = kiriof_product_lookup.product_id
+                AND kiriof_product_virtual_meta.meta_key = '_virtual'
+            LEFT JOIN {$postmeta_table} kiriof_variation_virtual_meta
+                ON kiriof_variation_virtual_meta.post_id = kiriof_product_lookup.variation_id
+                AND kiriof_variation_virtual_meta.meta_key = '_virtual'
+            WHERE kiriof_product_lookup.order_id = {$orderIdExpression}
+                AND COALESCE(NULLIF(kiriof_variation_virtual_meta.meta_value, ''), kiriof_product_virtual_meta.meta_value, 'no') <> 'yes'
+        )";
+    }
+
     /**
      * Check for database errors and log them
      * @return bool
@@ -233,9 +251,13 @@ class TransactionRepository{
                     `created_at`, 
                     `wp_wc_order_stat_order_id`,
                     `discount_amount`,
-                    `discount_percentage`
+                    `discount_percentage`,
+                    `woocommerce_discount_amount`,
+                    `woocommerce_discount_description`,
+                    `is_deficit`,
+                    `cod_minimum`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f)",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -254,16 +276,21 @@ class TransactionRepository{
                 $payload['created_at'],
                 $payload['wp_wc_order_stat_order_id'],
                 $payload['discount_amount'] ?? null,
-                $payload['discount_percentage'] ?? null
+                $payload['discount_percentage'] ?? null,
+                $payload['woocommerce_discount_amount'] ?? 0,
+                $payload['woocommerce_discount_description'] ?? null,
+                $payload['is_deficit'] ?? 0,
+                $payload['cod_minimum'] ?? null
             )
         );
         $this->invalidateCouriersCache();
         return !$this->hasError();
     }
     public function getTransactionByOldestDate(){
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $shippable_order_clause = $this->getShippableOrderExistsSql( 'wp_wc_order_stat_order_id' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $shippable_order_clause is built from controlled internal SQL fragments only.
         $query = $this->wpdb->get_row(
-            "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1"
+            "SELECT * FROM {$this->table} WHERE created_at IS NOT NULL {$shippable_order_clause} ORDER BY created_at ASC LIMIT 1"
         );
         
         return $this->hasError() ? false : $query;
@@ -312,6 +339,7 @@ class TransactionRepository{
      */
     public function getCountByPostStatus( $postStatus ){
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         if ( null === $postStatus || '' === $postStatus || 'all' === $postStatus ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -322,7 +350,8 @@ class TransactionRepository{
                     INNER JOIN {$this->table} t
                         ON p.{$o['id']} = t.wp_wc_order_stat_order_id
                     WHERE p.{$o['type_col']} = %s
-                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')",
+                        AND p.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        {$shippable_order_clause}",
                     $o['type_value']
                 )
             );
@@ -336,7 +365,8 @@ class TransactionRepository{
                     INNER JOIN {$this->table} t
                         ON p.{$o['id']} = t.wp_wc_order_stat_order_id
                     WHERE p.{$o['status']} = %s
-                        AND t.status = %s",
+                        AND t.status = %s
+                        {$shippable_order_clause}",
                     $postStatus,
                     'new'
                 )
@@ -354,6 +384,7 @@ class TransactionRepository{
      */
     public function getCountProcessed() {
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->get_var(
@@ -364,7 +395,8 @@ class TransactionRepository{
             INNER JOIN {$this->wpdb->prefix}kiriminaja_payments pay
                 ON t.pickup_number = pay.pickup_number
             WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                AND t.status != 'canceled'"
+                AND t.status != 'canceled'
+                {$shippable_order_clause}"
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
@@ -377,6 +409,7 @@ class TransactionRepository{
      */
     public function getCountCancelled() {
         $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->get_var(
@@ -385,9 +418,32 @@ class TransactionRepository{
                 FROM {$o['table']} p
                 INNER JOIN {$this->table} t
                     ON p.{$o['id']} = t.wp_wc_order_stat_order_id
-                WHERE p.{$o['status']} = %s",
+                WHERE p.{$o['status']} = %s
+                    {$shippable_order_clause}",
                 'wc-cancelled'
             )
+        );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+        return $this->hasError() ? 0 : (int) $query;
+    }
+
+    /**
+     * Count distinct orders flagged as COD deficit (is_deficit = 1).
+     */
+    public function getCountDeficit(): int {
+        $o = $this->getOrdersTable();
+        $shippable_order_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $query = $this->wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.{$o['id']})
+            FROM {$o['table']} p
+            INNER JOIN {$this->table} t
+                ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+            WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                AND t.is_deficit = 1
+                {$shippable_order_clause}"
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
@@ -401,11 +457,13 @@ class TransactionRepository{
             return $cached;
         }
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $shippable_order_clause = $this->getShippableOrderExistsSql( 't.wp_wc_order_stat_order_id' );
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $shippable_order_clause is built from controlled internal SQL fragments only.
         $results = $this->wpdb->get_results(
-            "SELECT DISTINCT service FROM {$this->table} WHERE service IS NOT NULL AND service != '' ORDER BY service ASC"
+            "SELECT DISTINCT service FROM {$this->table} t WHERE service IS NOT NULL AND service != '' {$shippable_order_clause} ORDER BY service ASC"
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if ($this->hasError()) {
             return [];
@@ -417,6 +475,36 @@ class TransactionRepository{
 
     public function invalidateCouriersCache() {
         delete_transient('kiriof_distinct_couriers');
+    }
+
+    /**
+     * Update COD-related values for a transaction (used by COD adjustment flow).
+     *
+     * @param string $kaOrderId  KiriminAja order ID (order_id column).
+     * @param array  $values {
+     *   @type float $cod              New total COD amount.
+     *   @type float $cod_fee          New COD fee.
+     *   @type float $cod_minimum      New COD minimum.
+     *   @type int   $is_deficit       0 or 1.
+     * }
+     * @return bool
+     */
+    public function updateTransactionCodValues( string $kaOrderId, array $values ): bool {
+        $allowed = [ 'transaction_value', 'cod_fee', 'cod_minimum', 'is_deficit' ];
+        $updateData = array_intersect_key( $values, array_flip( $allowed ) );
+
+        if ( empty( $updateData ) ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $this->wpdb->update(
+            $this->table,
+            $updateData,
+            [ 'order_id' => $kaOrderId ]
+        );
+
+        return ! $this->hasError();
     }
 
     public function updateTransaction($payload){
@@ -436,6 +524,18 @@ class TransactionRepository{
         }
         if (isset($payload['discount_percentage'])) {
             $updateData['discount_percentage'] = $payload['discount_percentage'];
+        }
+        if (isset($payload['woocommerce_discount_amount'])) {
+            $updateData['woocommerce_discount_amount'] = $payload['woocommerce_discount_amount'];
+        }
+        if (isset($payload['woocommerce_discount_description'])) {
+            $updateData['woocommerce_discount_description'] = $payload['woocommerce_discount_description'];
+        }
+        if (isset($payload['is_deficit'])) {
+            $updateData['is_deficit'] = $payload['is_deficit'];
+        }
+        if (isset($payload['cod_minimum'])) {
+            $updateData['cod_minimum'] = $payload['cod_minimum'];
         }
         
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];

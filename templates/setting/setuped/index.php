@@ -42,12 +42,19 @@ $kiriof_product_volumetric_from_sql = "
     LEFT JOIN {$wpdb->posts} child_variation
         ON child_variation.post_parent = p.ID
        AND child_variation.post_type = 'product_variation'
-       AND child_variation.post_status IN ('publish','private')";
+       AND child_variation.post_status IN ('publish','private')
+    LEFT JOIN {$wpdb->postmeta} virtual_meta
+        ON virtual_meta.post_id = p.ID
+       AND virtual_meta.meta_key = '_virtual'
+    LEFT JOIN {$wpdb->postmeta} parent_virtual_meta
+        ON parent_virtual_meta.post_id = p.post_parent
+       AND parent_virtual_meta.meta_key = '_virtual'";
 $kiriof_product_volumetric_where_sql = "
     WHERE (
           (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
           OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
-      )";
+      )
+      AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
 $kiriof_product_volumetric_ready_sql = "
     (
         CAST(
@@ -105,12 +112,12 @@ $kiriof_product_volumetric_configured = (int) $wpdb->get_var(
        AND {$kiriof_product_volumetric_ready_sql}"
 );
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-$kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_total > 0 && $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
+$kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
 $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
     ? __( 'All Product Configured', 'kiriminaja-official' )
     : sprintf(
         /* translators: %1$d: configured products, %2$d: total products */
-        __( '%1$d / %2$d Product Volumetric Configurations', 'kiriminaja-official' ),
+        __( '%1$d / %2$d Need Action', 'kiriminaja-official' ),
         $kiriof_product_volumetric_configured,
         $kiriof_product_volumetric_total
     );
@@ -247,6 +254,17 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
                 <div class="kj-setting-row-text">
                     <span class="kj-setting-row-label"><?php echo esc_html( __( 'Webhooks', 'kiriminaja-official' ) ); ?></span>
                     <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Configure callback URL for shipment status updates.', 'kiriminaja-official' ) ); ?></span>
+                </div>
+                <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </a>
+
+        <a href="<?php echo esc_url( $kiriof_base_url . '&section=cache' ); ?>" class="kj-setting-row">
+            <div class="kj-setting-row-inner">
+                <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="#50575e" stroke-width="1.5"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" stroke="#50575e" stroke-width="1.5"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke="#50575e" stroke-width="1.5"/></svg>
+                <div class="kj-setting-row-text">
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Cache', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Manage cached data such as region coverage used for coupon restrictions.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>

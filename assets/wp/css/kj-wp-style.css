@@ -93,6 +93,52 @@ tr.woocommerce-shipping-totals {
   font-weight: 700;
 }
 
+.kiriof-shipping-rate-pricing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex-wrap: wrap;
+}
+
+.kiriof-shipping-rate-original {
+  color: #8b97a7;
+}
+
+.kiriof-shipping-rate-discounted {
+  color: #0f4f86;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.kiriof-shipping-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: #e8f5ec;
+  color: #1d6b39;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kiriof-shipping-rate-note {
+  display: inline-flex;
+  margin-left: 8px;
+  color: #9a5d00;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kiriof-shipping-rate-savings {
+  display: inline-flex;
+  margin-left: 8px;
+  color: #1d6b39;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .kj-cart-total
   .woocommerce-shipping-methods
   .kiriof-shipping-method-input:checked
@@ -136,4 +182,185 @@ tr.woocommerce-shipping-totals {
   justify-content: space-between !important;
   width: 100% !important;
   margin-bottom: 12px !important;
+}
+
+.kiriof-shipping-totals-original,
+.kiriof-shipping-option-original {
+  opacity: 0.6;
+  margin-right: 6px;
+}
+
+.kiriof-block-shipping-discount__row {
+  order: 6 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 24px 32px !important;
+}
+
+.kiriof-block-shipping-discount__row span {
+  min-width: 0;
+}
+
+.kiriof-block-shipping-discount__row strong {
+  white-space: nowrap;
+  color: #0f766e;
+}
+
+@media (max-width: 600px) {
+  .kiriof-block-shipping-discount__row {
+    padding-right: 24px !important;
+    padding-left: 24px !important;
+  }
+}
+
+.kiriof-block-shipping-rate-details {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-right: 12px;
+}
+
+.kiriof-block-shipping-rate-pricing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.kiriof-block-shipping-rate-pricing del {
+  color: #6b7280;
+}
+
+.kiriof-block-shipping-option-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 20px 18px 56px;
+  max-width: none;
+  padding-top: 12px;
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.kiriof-block-shipping-option-eta {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #111827;
+  font-weight: 500;
+}
+
+.kiriof-block-shipping-option-description {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+.kiriof-block-shipping-option-pricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.kiriof-block-shipping-option-pricing del {
+  color: #6b7280;
+}
+
+.kiriof-block-shipping-option-pricing ins {
+  color: #111827;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.kiriof-block-shipping-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.kiriof-block-shipping-option-card
+  .wc-block-components-radio-control__option-layout,
+.kiriof-block-shipping-option-card
+  .wc-block-components-shipping-rates-control__package-list-item {
+  align-items: flex-start;
+  width: 100%;
+}
+
+.kiriof-block-shipping-option-card:not(.kiriof-block-shipping-option-selected)
+  .kiriof-block-shipping-option-meta {
+  display: none;
+}
+
+@media (max-width: 781px) {
+  .kiriof-block-shipping-option-meta {
+    margin-left: 48px;
+    margin-right: 16px;
+  }
+}
+
+.kiriof-block-district-warning {
+  margin-top: 16px;
+}
+
+/* When district is missing, keep the fieldset + step content visible so the
+   native-styled "select district" message is shown inline where rates appear.
+   Hide the WC rates control but NOT our own injected warning (which also uses
+   that class to inherit native WC styling). */
+.kiriof-shipping-options-blocked
+  .wc-block-components-shipping-rates-control:not(
+    .kiriof-block-district-warning
+  ) {
+  display: none !important;
+}
+
+/* Transition for heading opacity when district state changes */
+.wc-block-components-checkout-step--shipping-method
+  .wc-block-components-checkout-step__heading {
+  transition: opacity 0.2s ease;
+}
+
+/*
+ * No-district state — applied via body.kiriof-no-district class so these
+ * rules survive React re-renders (React doesn't manage <body> class).
+ */
+body.kiriof-no-district .wc-block-components-totals-shipping {
+  display: none !important;
+}
+
+body.kiriof-no-district .wp-block-woocommerce-checkout-payment-block,
+body.kiriof-no-district .wc-block-components-checkout-step--payment-method,
+body.kiriof-no-district .wc-block-checkout__payment {
+  display: none !important;
+}
+
+body.kiriof-no-district
+  .wc-block-components-checkout-step--shipping-method
+  .wc-block-components-checkout-step__heading {
+  display: none !important;
+}
+
+/* Collapse the shipping step content area (rates list + loading spinner) */
+body.kiriof-no-district
+  .wc-block-components-checkout-step--shipping-method
+  .wc-block-components-checkout-step__content {
+  display: none !important;
+}
+
+/* Shrink the shipping step container so it leaves no whitespace gap */
+body.kiriof-no-district .wc-block-components-checkout-step--shipping-method {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  min-height: 0 !important;
+}
+
+body.kiriof-no-district .wc-block-components-checkout-place-order-button,
+body.kiriof-no-district .wc-block-components-checkout-place-order button,
+body.kiriof-no-district .wp-block-woocommerce-checkout-place-order button {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }

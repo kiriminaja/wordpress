@@ -30,17 +30,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div style="margin-top: .75rem"></div>
                         <div id="schedule-transaction-summary" style="padding: 10px;border: 1px solid #c3c4c7;background-color: #ffffff">
                             <div class="row">
-                                <div class="col"><?php esc_html_e( 'Tagihan Paket COD', 'kiriminaja-official' ); ?></div>
+                                <div class="col"><?php esc_html_e( 'COD Package Charges', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
-                                <div class="col"><?php esc_html_e( 'Tagihan Paket Non-COD', 'kiriminaja-official' ); ?></div>
+                                <div class="col"><?php esc_html_e( 'Non-COD Package Charges', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp300.000</div>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
                             <div class="row">
-                                <div class="col"><?php esc_html_e( 'Total Tagihan', 'kiriminaja-official' ); ?></div>
+                                <div class="col"><?php esc_html_e( 'Total Charges', 'kiriminaja-official' ); ?></div>
                                 <div class="col" style="text-align: right; font-weight: 700">Rp300.000</div>
                             </div>
                         </div>

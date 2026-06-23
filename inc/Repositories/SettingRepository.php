@@ -46,6 +46,10 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['oid_prefix']), array('key' => 'oid_prefix')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['setup_key']), array('key' => 'setup_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['callback_url']), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+        // Store merchant type from API response. is_top = 'yes' means TOP merchant (published rate, no discount).
+        $isTop = isset( $payload['is_top'] ) ? ( $payload['is_top'] ? 'yes' : 'no' ) : 'no';
+        $wpdb->update( $this->table, array( 'value' => $isTop ), array( 'key' => 'is_top' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     
         return true;
     }
@@ -57,6 +61,7 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => null), array('key' => 'oid_prefix')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => null), array('key' => 'setup_key')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => null), array('key' => 'callback_url')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update( $this->table, array( 'value' => 'no' ), array( 'key' => 'is_top' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return true;
     }
     public function getOriginData(){
@@ -136,6 +141,52 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_id']), array('key' => 'origin_whitelist_expedition_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_name']), array('key' => 'origin_whitelist_expedition_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         
+        return true;
+    }
+
+    public function storeOriginMirrorData( array $payload ) {
+        global $wpdb;
+
+        $allowed_keys = array(
+            'origin_name',
+            'origin_phone',
+            'origin_address',
+            'origin_latitude',
+            'origin_longitude',
+            'origin_sub_district_id',
+            'origin_sub_district_name',
+            'origin_zip_code',
+        );
+
+        foreach ( $allowed_keys as $key ) {
+            if ( ! array_key_exists( $key, $payload ) ) {
+                continue;
+            }
+
+            $value = 'origin_address' === $key
+                ? sanitize_textarea_field( (string) $payload[ $key ] )
+                : sanitize_text_field( (string) $payload[ $key ] );
+
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE `key` = %s", $key ) );
+
+            if ( empty( $existing ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $wpdb->insert(
+                    $this->table,
+                    array(
+                        'key'   => $key,
+                        'value' => $value,
+                    ),
+                    array( '%s', '%s' )
+                );
+                continue;
+            }
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update( $this->table, array( 'value' => $value ), array( 'key' => $key ) );
+        }
+
         return true;
     }
     public function getCallbackData(){
@@ -282,6 +333,20 @@ class SettingRepository{
         
         return $datas;
         
+    }
+
+    /**
+     * Convenience static method: return the raw value for a setting key, or null if not found.
+     *
+     * @param string $key Setting key.
+     * @return string|null
+     */
+    public static function getValue( string $key ): ?string {
+        $row = ( new self() )->getSettingByKey( $key );
+        if ( $row && isset( $row->value ) ) {
+            return $row->value;
+        }
+        return null;
     }
 
     /**

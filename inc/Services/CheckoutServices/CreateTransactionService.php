@@ -55,8 +55,36 @@ class CreateTransactionService extends BaseService{
             $insurance_cost = $is_insurance
                 ? $calcResult['insurance_amt'] 
                 : 0;
-            // Cache expedition split to avoid duplicate explode
+            $transactionValue = (float) ($calcResult['cart_total_after_discount'] ?? $calcResult['cart_total_amt'] ?? 0);
+            $shippingCostRaw = (float) ($calcResult['ongkir_fee_raw'] ?? 0);
+            $codFee = (float) ($calcResult['cod_amt'] ?? 0);
+            $isCod = !empty($this->payload['is_cod']);
+
+            // Determine deficit status via CodDeficitService.
             $expeditionParts = $this->payload['kiriof_expedition'] ? explode('_', $this->payload['kiriof_expedition'], 2) : ['', ''];
+            $deficitResult = (new \KiriminAjaOfficial\Services\CheckoutServices\CodDeficitService())->detect([
+                'is_cod'               => $isCod,
+                'total_cod'            => $transactionValue,
+                'shipping_cost'        => $shippingCostRaw,
+                'insurance_fee'        => (float) $insurance_cost,
+                'cod_fee'              => $codFee,
+                'admin_fee'            => 0,
+                'item_price'           => $transactionValue,
+                'courier_code'         => $expeditionParts[0],
+                'courier_service_code' => $expeditionParts[1] ?? '',
+                'discount_amount'      => (float) ($calcResult['discount_amt'] ?? 0),
+            ]);
+            $isDeficit  = $deficitResult['isDeficit'] ? 1 : 0;
+            $codMinimum = $deficitResult['codMinimum'];
+            $wooDiscountAmount = (float) ($calcResult['woo_discount_amount'] ?? 0);
+            if ($wooDiscountAmount <= 0 && !empty($this->payload['woo_discount_amount'])) {
+                $wooDiscountAmount = (float) $this->payload['woo_discount_amount'];
+            }
+            $wooDiscountDescription = (string) ($calcResult['woo_discount_description'] ?? '');
+            if ($wooDiscountDescription === '' && !empty($this->payload['woo_discount_description'])) {
+                $wooDiscountDescription = (string) $this->payload['woo_discount_description'];
+            }
+            // $expeditionParts already computed above for deficit detection.
             $payload = [
                 'order_id'                      => (new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId())->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
@@ -69,14 +97,18 @@ class CreateTransactionService extends BaseService{
                 "length"                        => $cartsAttr['length'],
                 "width"                         => $cartsAttr['width'],
                 "height"                        => $cartsAttr['height'],
-                'shipping_cost'                 => $calcResult['ongkir_fee_raw'],
+                'shipping_cost'                 => $shippingCostRaw,
                 'insurance_cost'                => $insurance_cost,
-                'cod_fee'                       => $calcResult['cod_amt'],
-                'transaction_value'             => $calcResult['cart_total_amt'],
+                'cod_fee'                       => $codFee,
+                'transaction_value'             => $transactionValue,
                 'created_at'                    => gmdate('Y-m-d H:i:s'),
                 'wp_wc_order_stat_order_id'     => $this->payload['order_id'],
                 'discount_amount'               => $calcResult['discount_amt'] ?? null,
                 'discount_percentage'           => $calcResult['discount_percentage'] ?? null,
+                'woocommerce_discount_amount'   => $wooDiscountAmount,
+                'woocommerce_discount_description' => $wooDiscountDescription,
+                'is_deficit'                    => $isDeficit,
+                'cod_minimum'                   => $isCod ? $codMinimum : null,
             ];
             
             /** Update WC Total Order */
@@ -90,6 +122,19 @@ class CreateTransactionService extends BaseService{
             if (!$createTransactionRepo){
                 return self::error([],'fail creating transaction');
             }
+
+            // Add WC order note and meta when deficit is detected.
+            if ( $isDeficit ) {
+                $wcOrder = wc_get_order( $this->payload['order_id'] );
+                if ( $wcOrder ) {
+                    $wcOrder->add_order_note(
+                        __( 'COD order flagged as deficit — total COD below minimum threshold.', 'kiriminaja-official' )
+                    );
+                    $wcOrder->update_meta_data( 'cod-deficit', '1' );
+                    $wcOrder->save();
+                }
+            }
+
             return self::success([],'success');
         }catch (\Throwable $th){
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('err',[$th->getMessage()]);
@@ -163,12 +208,29 @@ class CreateTransactionService extends BaseService{
     }
 
     private function orderHasFeeItem($order, $feeName){
+        $aliases = $this->getFeeNameAliases( $feeName );
+
         foreach ($order->get_items('fee') as $feeItem) {
-            if ($feeItem->get_name() === $feeName) {
+            $itemName = trim( (string) $feeItem->get_name() );
+            if ( in_array( $itemName, $aliases, true ) ) {
                 return true;
             }
         }
+
         return false;
+    }
+
+    private function getFeeNameAliases($feeName){
+        $feeName = trim( (string) $feeName );
+        $aliases = array( $feeName );
+
+        if ( 'Insurance' === $feeName ) {
+            $aliases[] = trim( (string) __( 'Insurance', 'kiriminaja-official' ) );
+        } elseif ( 'COD Fee' === $feeName ) {
+            $aliases[] = trim( (string) __( 'COD Fee', 'kiriminaja-official' ) );
+        }
+
+        return array_values( array_unique( array_filter( $aliases, 'strlen' ) ) );
     }
 
     private function isInsuranceRequested($forceInsurance = 0){

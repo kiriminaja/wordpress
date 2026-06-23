@@ -37,6 +37,16 @@ class ShippingInfoServices extends BaseService{
             'destination_phone'  => $this->getDestinationPhone($repo),
             'destination_address' => $repo->destination_sub_district ?? '',
             'weight_grams'       => @$repo->weight ? number_format_i18n((float) $repo->weight, 0) . ' g' : '-',
+            // Deficit-related fields for metabox.
+            'is_deficit'         => (int) ( $repo->is_deficit ?? 0 ),
+            'cod_minimum'        => (float) ( $repo->cod_minimum ?? 0 ),
+            'shipping_cost_raw'  => (float) ( $repo->shipping_cost ?? 0 ),
+            'insurance_cost_raw' => (float) ( $repo->insurance_cost ?? 0 ),
+            'cod_fee_raw'        => (float) ( $repo->cod_fee ?? 0 ),
+            'transaction_value_raw' => (float) ( $repo->transaction_value ?? 0 ),
+            'discount_amount_raw'   => (float) ( $repo->discount_amount ?? 0 ),
+            'ka_order_id'        => $repo->order_id ?? '',
+            'wc_order_id'        => (int) ( $repo->wp_wc_order_stat_order_id ?? 0 ),
         ],'success');
     }
     

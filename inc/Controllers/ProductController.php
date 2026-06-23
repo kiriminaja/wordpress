@@ -145,19 +145,25 @@ class ProductController{
             }
         }
 
-        $is_ready = ( $total > 0 && $configured >= $total );
-        $label    = $is_ready
-            ? __( 'All Product Configured', 'kiriminaja-official' )
-            : sprintf(
-                /* translators: %1$d: configured products, %2$d: total products */
-                __( '%1$d / %2$d Configured', 'kiriminaja-official' ),
-                $configured,
-                $total
+        $is_virtual = ( 0 === $total );
+        $is_ready   = ( $configured >= $total );
+        $label      = $is_virtual
+            ? __( 'Virtual Product', 'kiriminaja-official' )
+            : (
+                $is_ready
+                    ? __( 'All Product Configured', 'kiriminaja-official' )
+                    : sprintf(
+                        /* translators: %1$d: configured products, %2$d: total products */
+                        __( '%1$d / %2$d Configured', 'kiriminaja-official' ),
+                        $configured,
+                        $total
+                    )
             );
+        $class_name = $is_virtual ? 'is-virtual' : ( $is_ready ? 'is-ready' : 'is-warning' );
 
         printf(
             '<span class="kiriof-volumetric-label %1$s">%2$s</span>',
-            esc_attr( $is_ready ? 'is-ready' : 'is-warning' ),
+            esc_attr( $class_name ),
             esc_html( $label )
         );
     }
@@ -193,6 +199,11 @@ class ProductController{
                 color: #8a2424;
                 border: 1px solid #f4cccc;
             }
+            .kiriof-volumetric-label.is-virtual {
+                background: #f0f6fc;
+                color: #1d4f73;
+                border: 1px solid #b8d6ec;
+            }
         </style>
         <?php
     }
@@ -208,10 +219,19 @@ class ProductController{
             }
         }
 
-        return array_values( array_unique( array_filter( $product_ids ) ) );
+        return array_values(
+            array_filter(
+                array_unique( array_filter( $product_ids ) ),
+                array( $this, 'kiriof_product_needs_volumetric_configuration' )
+            )
+        );
     }
 
     private function kiriof_product_has_volumetric_configuration( $post_id ) {
+        if ( ! $this->kiriof_product_needs_volumetric_configuration( $post_id ) ) {
+            return true;
+        }
+
         $required_meta = array( '_weight', '_length', '_width', '_height' );
         $post_type = get_post_type( $post_id );
         $parent_id = ( 'product_variation' === $post_type ) ? (int) wp_get_post_parent_id( $post_id ) : 0;
@@ -222,6 +242,17 @@ class ProductController{
                 $value = (float) get_post_meta( $parent_id, $meta_key, true );
             }
             if ( $value <= 0 ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function kiriof_product_needs_volumetric_configuration( $post_id ) {
+        if ( function_exists( 'wc_get_product' ) ) {
+            $product = wc_get_product( $post_id );
+            if ( $product && method_exists( $product, 'needs_shipping' ) && ! $product->needs_shipping() ) {
                 return false;
             }
         }
