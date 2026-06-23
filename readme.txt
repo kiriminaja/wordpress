@@ -13,16 +13,17 @@ Easily integrate with multiple couriers across Indonesia
 
 == Description ==
 
-KiriminAja is a platform that makes it easy to send packages and find expeditions according to people's needs, with COD and Non-COD delivery methods developed by PT Selalu Siap Solusi.
+KiriminAja helps WooCommerce store owners streamline shipping operations, reduce manual fulfillment work, and offer more flexible delivery options for customers across Indonesia. Built by PT Selalu Siap Solusi, KiriminAja supports COD and Non-COD shipping workflows so online businesses can manage deliveries, pickups, and tracking from one connected platform.
 
-**Key Features:**
-- Ease of sending packages with various expedition options.
-- COD (Cash On Delivery) delivery service with daily fund disbursement and package pickup system at home by the expedition.
-- Non-COD package delivery service with package pickup system at home by the expedition.
-- Platform that can help online business people control and manage their business better.
-- With the services and innovations offered, KiriminAja is committed to contributing to the Indonesian economy, by providing solutions and convenience for online business people so that their business continues to grow.
+**Key Business Benefits:**
+- Offer customers more courier choices with real-time shipping rates directly at checkout.
+- Support COD (Cash On Delivery) orders with pickup handling and faster fund disbursement workflows.
+- Process Non-COD shipments more efficiently with courier pickup from your store location.
+- Reduce manual order fulfillment by creating shipments, tracking packages, and managing pickup requests from WooCommerce.
+- Improve operational visibility so store owners can control shipping activity, delivery status, and customer fulfillment more effectively.
+- Help online businesses scale their logistics process with integrated shipping tools designed for Indonesian eCommerce needs.
 
-This plugin is perfect for eCommerce store owners looking for a hassle-free shipping solution.
+This plugin is ideal for WooCommerce merchants who want a reliable shipping integration that improves checkout experience, simplifies fulfillment, and supports business growth.
 
 == External Services ==
 
