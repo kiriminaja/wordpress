@@ -647,11 +647,7 @@
       [activeShippingDiscount, shippingDiscount],
     );
 
-    const hasShippingDiscount =
-      activeShippingDiscount &&
-      parseFloat(activeShippingDiscount.amount || 0) > 0;
-
-    if (!kiriofFees.length && !hasShippingDiscount) {
+    if (!kiriofFees.length) {
       return null;
     }
 
@@ -661,25 +657,6 @@
       createElement(
         Fragment,
         null,
-        hasShippingDiscount &&
-          createElement(
-            "div",
-            {
-              key: "kiriof-shipping-discount",
-              className:
-                "wc-block-components-totals-item kiriof-block-shipping-discount__row",
-            },
-            createElement(
-              "span",
-              null,
-              activeShippingDiscount.label || "Shipping Discount",
-            ),
-            createElement(
-              "strong",
-              null,
-              "-" + (activeShippingDiscount.formatted || ""),
-            ),
-          ),
         kiriofFees.map(function (fee) {
           return createElement(
             "div",
