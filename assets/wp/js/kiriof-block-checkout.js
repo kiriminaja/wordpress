@@ -643,6 +643,35 @@
       function () {
         syncShippingTotalsStrikethrough(activeShippingDiscount);
         syncShippingOptionStrikethrough(shippingDiscount);
+
+        const shippingRow = document.querySelector(
+          ".wc-block-components-totals-shipping",
+        );
+        if (!shippingRow) {
+          return;
+        }
+
+        let pending = false;
+        const observer = new MutationObserver(function () {
+          if (pending) {
+            return;
+          }
+          pending = true;
+          requestAnimationFrame(function () {
+            pending = false;
+            syncShippingTotalsStrikethrough(activeShippingDiscount);
+            syncShippingOptionStrikethrough(shippingDiscount);
+          });
+        });
+
+        observer.observe(shippingRow, {
+          childList: true,
+          subtree: true,
+        });
+
+        return function () {
+          observer.disconnect();
+        };
       },
       [activeShippingDiscount, shippingDiscount],
     );
