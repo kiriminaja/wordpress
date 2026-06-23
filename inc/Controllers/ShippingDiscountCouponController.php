@@ -376,6 +376,24 @@ class ShippingDiscountCouponController {
         $summary = $service->getCurrentShippingDiscountSummary();
         $amount  = (float) $summary['amount'];
 
+        $rateMap = array();
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+            $sessionRateMap = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+            foreach ( $sessionRateMap as $rateId => $rateMeta ) {
+                if ( ! is_array( $rateMeta ) || empty( $rateMeta['discount_amount'] ) || (float) $rateMeta['discount_amount'] <= 0 ) {
+                    continue;
+                }
+
+                $rateMap[ (string) $rateId ] = array(
+                    'amount'                  => (float) $rateMeta['discount_amount'],
+                    'current_cost'            => (float) ( $rateMeta['cost'] ?? 0 ),
+                    'original_cost'           => (float) ( $rateMeta['original_cost'] ?? 0 ),
+                    'formatted_current_cost'  => wp_strip_all_tags( wc_price( (float) ( $rateMeta['cost'] ?? 0 ) ) ),
+                    'formatted_original_cost' => wp_strip_all_tags( wc_price( (float) ( $rateMeta['original_cost'] ?? 0 ) ) ),
+                );
+            }
+        }
+
         wp_send_json_success( array(
             'amount'    => $amount,
             'formatted' => $amount > 0 ? wp_strip_all_tags( wc_price( $amount ) ) : '',
@@ -386,6 +404,7 @@ class ShippingDiscountCouponController {
             'original_cost' => (float) ( $summary['original_cost'] ?? 0 ),
             'formatted_current_cost' => ! empty( $summary['current_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['current_cost'] ) ) : '',
             'formatted_original_cost' => ! empty( $summary['original_cost'] ) ? wp_strip_all_tags( wc_price( (float) $summary['original_cost'] ) ) : '',
+            'rates' => $rateMap,
         ) );
     }
 

@@ -313,11 +313,10 @@
   }
 
   function syncShippingOptionStrikethrough(discount) {
-    if (
-      !discount ||
-      parseFloat(discount.amount || 0) <= 0 ||
-      !discount.formatted_original_cost
-    ) {
+    const rates = discount && discount.rates ? discount.rates : {};
+    const rateIds = Object.keys(rates);
+
+    if (!rateIds.length) {
       document
         .querySelectorAll(".kiriof-shipping-option-original")
         .forEach(function (n) {
@@ -326,36 +325,42 @@
       return;
     }
 
-    const selectedOptions = document.querySelectorAll(
-      ".wc-block-components-radio-control__option-checked",
-    );
+    document
+      .querySelectorAll(".wc-block-components-radio-control__option")
+      .forEach(function (option) {
+        const input = option.querySelector("input[type='radio']");
+        const rateId = input ? String(input.value || "") : "";
+        const rateDiscount = rateId ? rates[rateId] : null;
+        const existing = option.querySelector(".kiriof-shipping-option-original");
 
-    selectedOptions.forEach(function (option) {
-      if (
-        discount.rate_label &&
-        option.textContent &&
-        option.textContent.indexOf(discount.rate_label) === -1
-      ) {
-        return;
-      }
+        if (
+          !rateDiscount ||
+          parseFloat(rateDiscount.amount || 0) <= 0 ||
+          !rateDiscount.formatted_original_cost
+        ) {
+          if (existing) {
+            existing.remove();
+          }
+          return;
+        }
 
-      const priceContainer = option.querySelector(
-        ".wc-block-components-radio-control__secondary-label",
-      );
-      if (!priceContainer) {
-        return;
-      }
+        const priceContainer = option.querySelector(
+          ".wc-block-components-radio-control__secondary-label",
+        );
+        if (!priceContainer) {
+          return;
+        }
 
-      let del = priceContainer.querySelector(".kiriof-shipping-option-original");
-      if (!del) {
-        del = document.createElement("del");
-        del.className = "kiriof-shipping-option-original";
-        priceContainer.insertBefore(del, priceContainer.firstChild);
-      }
-      if (del.textContent !== discount.formatted_original_cost) {
-        del.textContent = discount.formatted_original_cost;
-      }
-    });
+        let del = existing;
+        if (!del) {
+          del = document.createElement("del");
+          del.className = "kiriof-shipping-option-original";
+          priceContainer.insertBefore(del, priceContainer.firstChild);
+        }
+        if (del.textContent !== rateDiscount.formatted_original_cost) {
+          del.textContent = rateDiscount.formatted_original_cost;
+        }
+      });
   }
 
   function syncShippingDiscountTotalsRow(discount) {
