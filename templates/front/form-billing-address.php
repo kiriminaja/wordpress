@@ -2288,6 +2288,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofLastCompletedFeeRefreshKey = refreshKey;
                     kiriofLastCompletedFeeRefreshAt = Date.now();
 
+                    kiriofScheduleBlockShippingRatesRefresh(180);
+
                     if (kiriofPendingFeeRefresh && kiriofPendingFeeRefreshKey && kiriofPendingFeeRefreshKey !== refreshKey) {
                         kiriofPendingFeeRefresh = false;
                         kiriofPendingFeeRefreshKey = '';
