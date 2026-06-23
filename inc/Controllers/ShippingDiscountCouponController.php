@@ -384,13 +384,19 @@ class ShippingDiscountCouponController {
                     continue;
                 }
 
+                $currentCost  = (float) ( $rateMeta['cost'] ?? 0 );
+                $originalCost = (float) ( $rateMeta['original_cost'] ?? 0 );
+                if ( $originalCost <= $currentCost ) {
+                    continue;
+                }
+
                 $rateMap[ (string) $rateId ] = array(
                     'amount'                  => (float) $rateMeta['discount_amount'],
                     'formatted'               => wp_strip_all_tags( wc_price( (float) $rateMeta['discount_amount'] ) ),
-                    'current_cost'            => (float) ( $rateMeta['cost'] ?? 0 ),
-                    'original_cost'           => (float) ( $rateMeta['original_cost'] ?? 0 ),
-                    'formatted_current_cost'  => wp_strip_all_tags( wc_price( (float) ( $rateMeta['cost'] ?? 0 ) ) ),
-                    'formatted_original_cost' => wp_strip_all_tags( wc_price( (float) ( $rateMeta['original_cost'] ?? 0 ) ) ),
+                    'current_cost'            => $currentCost,
+                    'original_cost'           => $originalCost,
+                    'formatted_current_cost'  => wp_strip_all_tags( wc_price( $currentCost ) ),
+                    'formatted_original_cost' => wp_strip_all_tags( wc_price( $originalCost ) ),
                 );
             }
         }

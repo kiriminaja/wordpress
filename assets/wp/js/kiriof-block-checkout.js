@@ -267,14 +267,20 @@
     };
   }
 
+  function shouldShowOriginalShippingCost(discount) {
+    return (
+      discount &&
+      parseFloat(discount.amount || 0) > 0 &&
+      parseFloat(discount.original_cost || 0) >
+        parseFloat(discount.current_cost || 0) &&
+      discount.formatted_original_cost
+    );
+  }
+
   // Injects a strikethrough original price into the Order Summary shipping totals row.
   // Scoped only to the totals section — does NOT touch the shipping options list.
   function syncShippingTotalsStrikethrough(discount) {
-    if (
-      !discount ||
-      parseFloat(discount.amount || 0) <= 0 ||
-      !discount.formatted_original_cost
-    ) {
+    if (!shouldShowOriginalShippingCost(discount)) {
       document
         .querySelectorAll(".kiriof-shipping-totals-original")
         .forEach(function (n) {
@@ -333,11 +339,7 @@
         const rateDiscount = rateId ? rates[rateId] : null;
         const existing = option.querySelector(".kiriof-shipping-option-original");
 
-        if (
-          !rateDiscount ||
-          parseFloat(rateDiscount.amount || 0) <= 0 ||
-          !rateDiscount.formatted_original_cost
-        ) {
+        if (!shouldShowOriginalShippingCost(rateDiscount)) {
           if (existing) {
             existing.remove();
           }
