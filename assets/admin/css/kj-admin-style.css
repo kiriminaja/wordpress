@@ -1,4 +1,4 @@
-.select2 {
+.kj-wrap .select2 {
   min-width: 400px;
 }
 
@@ -6,9 +6,7 @@
   display: none;
 }
 
-body {
-  margin: 0;
-}
+/* body margin override removed — was globally targeting .wp-admin body */
 
 .mt {
   font-family: "Lato", sans-serif;
@@ -196,7 +194,7 @@ body {
 }
 
 /** Modal - END */
-.wp-core-ui select {
+.kj-wrap .wp-core-ui select {
   width: 100%;
 }
 
