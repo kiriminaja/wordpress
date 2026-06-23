@@ -552,6 +552,20 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout needs a DOM postcode fallback when cart data store postcode is not populated yet'
         );
 
+        $domPostcodeStart = strpos($content, 'function kiriofGetCheckoutPostcodeFromDom');
+        $this->assertNotFalse($domPostcodeStart, 'DOM postcode resolver must exist');
+        $domPostcodeBody = substr($content, $domPostcodeStart, 700);
+        $this->assertStringContainsString(
+            'if (val) {',
+            $domPostcodeBody,
+            'DOM postcode resolver must trust partial visible input like 5 so it does not fall back to a stale saved postcode during edits'
+        );
+        $this->assertStringNotContainsString(
+            'String(val).length >= 3',
+            $domPostcodeBody,
+            'DOM postcode resolver must not ignore partial buyer input and then restore the old postcode from session/store'
+        );
+
         $this->assertStringContainsString(
             'currentValue === savedPostcode || currentValue',
             $content,
@@ -572,10 +586,50 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $postcodeUpdaterStart = strpos($content, 'function kiriofUpdateBlockCheckoutPostcode');
         $this->assertNotFalse($postcodeUpdaterStart, 'Block checkout postcode updater must exist');
-        $postcodeUpdaterBody = substr($content, $postcodeUpdaterStart, 1800);
-        $this->assertStringNotContainsString(
-            "wp.data.dispatch('wc/store/cart')",
-            $postcodeUpdaterBody,
+	        $postcodeUpdaterBody = substr($content, $postcodeUpdaterStart, 1800);
+	        $this->assertStringContainsString(
+	            'setEditingShippingAddress',
+	            $postcodeUpdaterBody,
+	            'Postcode updater must mirror the typed shipping postcode into wc/store/checkout editing state so Woo Blocks cannot rerender the old postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'setEditingBillingAddress',
+	            $postcodeUpdaterBody,
+	            'Postcode updater must mirror billing postcode edits into wc/store/checkout editing state when the billing postcode field is edited'
+	        );
+	        $this->assertStringContainsString(
+	            'Object.assign({}, editingShippingAddress, {',
+	            $postcodeUpdaterBody,
+	            'Postcode updater should match main branch behavior by writing the new postcode into checkout editing shipping address'
+	        );
+	        $this->assertStringContainsString(
+	            'Object.assign({}, editingBillingAddress, {',
+	            $postcodeUpdaterBody,
+	            'Postcode updater should match main branch behavior by writing the new postcode into checkout editing billing address so the other address group cannot rehydrate the stale postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'function kiriofSchedulePostcodeReapply(postcode)',
+	            $content,
+	            'Postcode edits must schedule guarded re-application so Woo Blocks rerenders cannot restore the old session postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, \'value\')',
+	            $content,
+	            'Postcode re-application must use the native input value setter so React-controlled postcode fields accept the typed value'
+	        );
+	        $this->assertStringContainsString(
+	            'kiriofNormalizePostcode(kiriofLastTypedPostcode) !== postcode',
+	            $content,
+	            'Scheduled postcode re-application must ignore stale timers after the buyer types a newer postcode'
+	        );
+	        $this->assertStringContainsString(
+	            'kiriofSchedulePostcodeReapply(kiriofLastTypedPostcode)',
+	            $content,
+	            'Postcode input handler must schedule re-application after every non-empty edit'
+	        );
+	        $this->assertStringNotContainsString(
+	            "wp.data.dispatch('wc/store/cart')",
+	            $postcodeUpdaterBody,
             'Postcode updater must not write cart billing/shipping address stores because Woo Blocks can rehydrate stale session postcodes over buyer input'
         );
         $this->assertStringNotContainsString(
@@ -591,12 +645,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $currentPostcodeStart = strpos($content, 'function kiriofGetCurrentPostcodeKey');
         $this->assertNotFalse($currentPostcodeStart, 'Current postcode resolver must exist');
-        $currentPostcodeBody = substr($content, $currentPostcodeStart, 900);
-        $this->assertStringContainsString(
-            'recentlyTyped && kiriofLastTypedPostcode',
-            $currentPostcodeBody,
-            'Current postcode resolver must prefer recent buyer input over stale session/store values while Woo Blocks re-renders'
-        );
+	        $currentPostcodeBody = substr($content, $currentPostcodeStart, 900);
+	        $this->assertStringContainsString(
+	            'if (recentlyTyped) {',
+	            $currentPostcodeBody,
+	            'Current postcode resolver must prefer recent buyer edits, including clearing the field, over stale session/store values while Woo Blocks re-renders'
+	        );
 
         $restorePostcodeStart = strpos($content, 'function kiriofRestoreSavedPostcodeField');
         $this->assertNotFalse($restorePostcodeStart, 'Saved postcode restore helper must exist');
@@ -605,6 +659,64 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Date.now() - kiriofLastTypedPostcodeAt',
             $restorePostcodeBody,
             'Saved postcode restore must not run immediately after buyer typing'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofScheduleFetchDistricts(postcode, delay)',
+            $content,
+            'Direct postcode typing should debounce district lookup so partial values like 555 or 5558 do not race the final postcode'
+        );
+
+	        $this->assertStringContainsString(
+	            'requestId !== kiriofDistrictLookupRequestId || currentPostcode !== postcode',
+	            $content,
+	            'District lookup responses must be ignored when they no longer match the currently edited postcode'
+	        );
+	        $fetchStart = strpos($content, 'function kiriofFetchDistricts(postcode)');
+	        $this->assertNotFalse($fetchStart, 'District lookup helper must exist');
+	        $fetchBody = substr($content, $fetchStart, 1800);
+	        $this->assertStringContainsString(
+	            'skipCheckoutSync: true',
+	            $fetchBody,
+	            'Starting a district lookup should clear stale District locally without dispatching checkout field updates that can rerender postcode from old state'
+	        );
+
+	        $postcodeHandlerStart = strpos($content, 'input.kiriofBlockPostcode change.kiriofBlockPostcode');
+        $this->assertNotFalse($postcodeHandlerStart, 'Block checkout postcode input handler must exist');
+        $postcodeHandlerBody = substr($content, $postcodeHandlerStart, 2200);
+        $this->assertStringContainsString(
+            'kiriofResetBlockDistrictState({',
+            $postcodeHandlerBody,
+            'Any buyer postcode edit, including partial input, must clear the stale selected District immediately'
+        );
+        $this->assertStringContainsString(
+            'skipStoreSync: true',
+            $postcodeHandlerBody,
+            'Clearing stale District while typing must stay local so Woo Blocks does not rehydrate the previous address postcode'
+        );
+	        $this->assertStringContainsString(
+	            'skipCheckoutSync: true',
+	            $postcodeHandlerBody,
+	            'Clearing stale District while typing must not dispatch checkout additional-field updates that can rerender the postcode input from old state'
+	        );
+	        $this->assertStringContainsString(
+	            'kiriofLastTypedPostcodeAt  = Date.now();',
+	            $postcodeHandlerBody,
+	            'Clearing postcode must mark the field as recently edited so the resolver does not fall back to stale store/session postcode'
+	        );
+	        $this->assertStringContainsString(
+	            "kiriofSchedulePostcodeReapply('');",
+	            $postcodeHandlerBody,
+	            'Clearing postcode must also be re-applied after Woo Blocks rerenders so the old session postcode does not return'
+	        );
+
+        $resetStart = strpos($content, 'function kiriofResetBlockDistrictState');
+        $this->assertNotFalse($resetStart, 'Block checkout district reset helper must exist');
+        $resetBody = substr($content, $resetStart, 1200);
+        $this->assertStringContainsString(
+            'if (!options.skipCheckoutSync)',
+            $resetBody,
+            'District reset must support a local-only path while the buyer is editing postcode'
         );
     }
 
@@ -1022,6 +1134,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'billingAddress[kiriofFieldId] = String(districtId)',
             $functionBody,
             'Billing address payload should carry the District additional field too so Store API customer state remains complete'
+        );
+
+        $this->assertStringContainsString(
+            'var currentPostcode = kiriofGetCurrentPostcodeKey();',
+            $functionBody,
+            'Raw update-customer fallback must capture the currently edited postcode before building address payloads'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofApplyCurrentPostcodeToStoreApiAddress(',
+            $functionBody,
+            'Raw update-customer fallback must force the visible/current postcode onto Store API addresses so stale session postcodes do not rehydrate over buyer input'
         );
 
         $this->assertStringContainsString(

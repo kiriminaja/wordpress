@@ -170,10 +170,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                 });
             
                 // Dynamic District options from postcode
-                var kiriofLastPostcode = '';
-                var kiriofLastTypedPostcode = '';
-                var kiriofLastTypedPostcodeAt = 0;
-                var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
+	                var kiriofLastPostcode = '';
+	                var kiriofLastTypedPostcode = '';
+	                var kiriofLastTypedPostcodeAt = 0;
+	                var kiriofPostcodeReapplyTimers = [];
+	                var kiriofFieldId = 'kiriminaja-official/kiriof_destination_area';
                 var kiriofBlockPostcodeSelectors = [
                     'input#billing-postcode',
                     'input#shipping-postcode',
@@ -237,36 +238,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return restored;
                 }
 
-                function kiriofUpdateBlockCheckoutPostcode(postcode) {
-                    postcode = kiriofNormalizePostcode(postcode);
 
-                    if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
-                        return;
-                    }
-
-                    try {
-                        var checkoutStore = wp.data.select('wc/store/checkout');
-                        var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
-                        var editingShippingAddress = checkoutStore && typeof checkoutStore.getEditingShippingAddress === 'function'
-                            ? (checkoutStore.getEditingShippingAddress() || {})
-                            : {};
-                        var editingBillingAddress = checkoutStore && typeof checkoutStore.getEditingBillingAddress === 'function'
-                            ? (checkoutStore.getEditingBillingAddress() || {})
-                            : {};
-
-                        editingShippingAddress = Object.assign({}, editingShippingAddress, { postcode: postcode });
-                        editingBillingAddress = Object.assign({}, editingBillingAddress, { postcode: postcode });
-
-                        if (checkoutDispatch && typeof checkoutDispatch.setEditingShippingAddress === 'function') {
-                            checkoutDispatch.setEditingShippingAddress(editingShippingAddress);
-                        }
-
-                        if (checkoutDispatch && typeof checkoutDispatch.setEditingBillingAddress === 'function') {
-                            checkoutDispatch.setEditingBillingAddress(editingBillingAddress);
-                        }
-                    } catch(e) {}
-                }
-            
                 function kiriofGetCheckoutPostcodeFromDom() {
                     var postcode = '';
                     var $focused = kiriofGetFocusedPostcodeInput();
@@ -276,7 +248,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     kiriofGetRelevantPostcodeInputs().each(function() {
                         var val = jQuery(this).val();
-                        if (val && String(val).length >= 3) {
+                        if (val) {
                             postcode = String(val);
                             return false;
                         }
@@ -445,7 +417,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 return true;
                             }
 
-                function kiriofResyncSelectedBlockDistrictSource() {
+	                function kiriofResyncSelectedBlockDistrictSource() {
                     var $select = jQuery('.kiriof-block-district-select').first();
                     var districtValue = String(
                         ($select.length ? ($select.val() || '') : '') ||
@@ -462,10 +434,103 @@ if ( ! defined( 'ABSPATH' ) ) {
                     districtLabel = districtLabel || jQuery('[name="kiriof_destination_area_name"]').val() || '';
 
                     kiriofSyncBlockDistrictSourceField(districtValue, districtLabel, { silentEvents: true });
-                    return true;
-                }
-            
-                function kiriofUpdateCheckoutAdditionalFields(val) {
+	                    return true;
+	                }
+
+	                function kiriofUpdateBlockCheckoutPostcode(postcode) {
+	                    postcode = kiriofNormalizePostcode(postcode);
+	                    kiriofSavedCheckoutPostcode = postcode;
+
+	                    if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
+	                        return;
+	                    }
+
+	                    try {
+	                        var checkoutStore = wp.data.select('wc/store/checkout');
+	                        var checkoutDispatch = wp.data.dispatch('wc/store/checkout');
+	                        var editingShippingAddress = checkoutStore && typeof checkoutStore.getEditingShippingAddress === 'function'
+	                            ? (checkoutStore.getEditingShippingAddress() || {})
+	                            : {};
+	                        var editingBillingAddress = checkoutStore && typeof checkoutStore.getEditingBillingAddress === 'function'
+	                            ? (checkoutStore.getEditingBillingAddress() || {})
+	                            : {};
+
+	                        if (
+	                            checkoutDispatch &&
+	                            typeof checkoutDispatch.setEditingShippingAddress === 'function'
+	                        ) {
+	                            checkoutDispatch.setEditingShippingAddress(Object.assign({}, editingShippingAddress, {
+	                                postcode: postcode
+	                            }));
+	                        }
+
+	                        if (
+	                            checkoutDispatch &&
+	                            typeof checkoutDispatch.setEditingBillingAddress === 'function'
+	                        ) {
+	                            checkoutDispatch.setEditingBillingAddress(Object.assign({}, editingBillingAddress, {
+	                                postcode: postcode
+	                            }));
+	                        }
+	                    } catch(e) {}
+	                }
+
+	                function kiriofSetPostcodeInputValue($input, postcode) {
+	                    var input = $input.get(0);
+	                    if (!input) {
+	                        return false;
+	                    }
+
+	                    var currentValue = kiriofNormalizePostcode($input.val());
+	                    if (currentValue === postcode) {
+	                        return false;
+	                    }
+
+	                    try {
+	                        var valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+	                        if (valueSetter && typeof valueSetter.set === 'function') {
+	                            valueSetter.set.call(input, postcode);
+	                        } else {
+	                            input.value = postcode;
+	                        }
+	                    } catch(e) {
+	                        input.value = postcode;
+	                    }
+
+	                    input.setAttribute('value', postcode);
+	                    input.dispatchEvent(new Event('input', { bubbles: true }));
+	                    return true;
+	                }
+
+	                function kiriofReapplyTypedPostcode(postcode) {
+	                    postcode = kiriofNormalizePostcode(postcode);
+	                    var recentlyTyped = kiriofLastTypedPostcodeAt && (Date.now() - kiriofLastTypedPostcodeAt) < 5000;
+	                    if (!recentlyTyped || kiriofNormalizePostcode(kiriofLastTypedPostcode) !== postcode) {
+	                        return;
+	                    }
+
+	                    kiriofUpdateBlockCheckoutPostcode(postcode);
+	                    kiriofGetRelevantPostcodeInputs().each(function() {
+	                        kiriofSetPostcodeInputValue(jQuery(this), postcode);
+	                    });
+	                }
+
+	                function kiriofSchedulePostcodeReapply(postcode) {
+	                    postcode = kiriofNormalizePostcode(postcode);
+	                    kiriofPostcodeReapplyTimers.forEach(function(timer) {
+	                        clearTimeout(timer);
+	                    });
+	                    kiriofPostcodeReapplyTimers = [];
+
+	                    [50, 150, 350, 700, 1200, 2200].forEach(function(delay) {
+	                        var timer = setTimeout(function() {
+	                            kiriofReapplyTypedPostcode(postcode);
+	                        }, delay);
+	                        kiriofPostcodeReapplyTimers.push(timer);
+	                    });
+	                }
+
+	                function kiriofUpdateCheckoutAdditionalFields(val) {
                     if (typeof wp === 'undefined' || !wp.data || !wp.data.select || !wp.data.dispatch) {
                         return;
                     }
@@ -618,6 +683,16 @@ if ( ! defined( 'ABSPATH' ) ) {
                     return address;
                 }
 
+                function kiriofApplyCurrentPostcodeToStoreApiAddress(address, postcode) {
+                    postcode = kiriofNormalizePostcode(postcode);
+                    if (!address || !postcode) {
+                        return address;
+                    }
+
+                    address.postcode = postcode;
+                    return address;
+                }
+
                 function kiriofAddressHasCheckoutValue(address) {
                     return !!(
                         address &&
@@ -657,10 +732,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                     } catch(e) {}
 
                     if (!districtId) return;
+                    var currentPostcode = kiriofGetCurrentPostcodeKey();
                     var rawUpdateKey = [
                         districtId || '',
                         districtName || '',
-                        kiriofGetCurrentPostcodeKey() || ''
+                        currentPostcode || ''
                     ].join('|');
                     var now = Date.now();
                     if (rawUpdateKey === kiriofLastRawStoreCustomerUpdateKey && now - kiriofLastRawStoreCustomerUpdateAt < 1500) {
@@ -680,8 +756,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 'kiriminaja-official/kiriof_destination_area': String(districtId)
                             }
                         };
-                        var shippingAddress = kiriofBuildStoreApiAddressFromDom('shipping');
-                        var billingAddress = kiriofBuildStoreApiAddressFromDom('billing');
+                        var shippingAddress = kiriofApplyCurrentPostcodeToStoreApiAddress(
+                            kiriofBuildStoreApiAddressFromDom('shipping'),
+                            currentPostcode
+                        );
+                        var billingAddress = kiriofApplyCurrentPostcodeToStoreApiAddress(
+                            kiriofBuildStoreApiAddressFromDom('billing'),
+                            currentPostcode
+                        );
                         if (kiriofAddressHasCheckoutValue(shippingAddress)) {
                             shippingAddress[kiriofFieldId] = String(districtId);
                             postData.shipping_address = shippingAddress;
@@ -806,6 +888,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 var kiriofLastDistrictResults = [];
                 var kiriofPendingDistrictRestore = false;
                 var kiriofDistrictResultsLoading = false;
+                var kiriofDistrictLookupRequestId = 0;
+                var kiriofPostcodeLookupTimer = null;
 
                 function kiriofNormalizePostcode(postcode) {
                     return String(postcode || '').replace(/\s+/g, '').trim();
@@ -953,7 +1037,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
                 }
             
-                function kiriofFetchDistricts(postcode) {
+                function kiriofScheduleFetchDistricts(postcode, delay) {
+                    if (kiriofPostcodeLookupTimer) {
+                        clearTimeout(kiriofPostcodeLookupTimer);
+                    }
+                    kiriofPostcodeLookupTimer = setTimeout(function() {
+                        kiriofPostcodeLookupTimer = null;
+                        kiriofFetchDistricts(postcode);
+                    }, typeof delay === 'number' ? delay : 250);
+                }
+
+	                function kiriofFetchDistricts(postcode) {
                     postcode = kiriofNormalizePostcode(postcode);
                     var activePostcode = kiriofNormalizePostcode(kiriofGetCheckoutPostcodeFromDom());
                     if (activePostcode && postcode && activePostcode !== postcode) {
@@ -964,12 +1058,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
                     if (!postcode || postcode === kiriofLastPostcode || postcode.length < 3) return;
                     kiriofLastPostcode = postcode;
+                    var requestId = ++kiriofDistrictLookupRequestId;
                     // Also check WC store so the "loading" state is shown for logged-in users
                     // whose district is saved in customer meta but not yet in kiriofSavedDistrictByPostcode.
                     kiriofPendingDistrictRestore = !!kiriofGetSavedDistrictForPostcode(postcode) || !!kiriofGetStoredDistrictIdFromWcStore();
                     kiriofDistrictResultsLoading = true;
                     kiriofResetBlockDistrictState({
                         silentWarning: kiriofPendingDistrictRestore,
+                        skipCheckoutSync: true,
                         skipStoreSync: true
                     });
             
@@ -989,6 +1085,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                             nonce: kiriofAjaxNonce
                         },
                         success: function(response) {
+                            var currentPostcode = kiriofNormalizePostcode(kiriofGetCurrentPostcodeKey());
+                            if (requestId !== kiriofDistrictLookupRequestId || currentPostcode !== postcode) {
+                                return;
+                            }
                             kiriofDistrictResultsLoading = false;
                             if (!response || !response.data || !response.data.length) {
                                 kiriofPendingDistrictRestore = false;
@@ -1000,6 +1100,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                             kiriofSyncBlockDistrictWarningState();
                         },
                         error: function() {
+                            var currentPostcode = kiriofNormalizePostcode(kiriofGetCurrentPostcodeKey());
+                            if (requestId !== kiriofDistrictLookupRequestId || currentPostcode !== postcode) {
+                                return;
+                            }
                             kiriofDistrictResultsLoading = false;
                             kiriofPendingDistrictRestore = false;
                             kiriofSyncBlockDistrictWarningState();
@@ -1009,7 +1113,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                 function kiriofGetCurrentPostcodeKey() {
                     var recentlyTyped = kiriofLastTypedPostcodeAt && (Date.now() - kiriofLastTypedPostcodeAt) < 5000;
-                    if (recentlyTyped && kiriofLastTypedPostcode) {
+                    if (recentlyTyped) {
                         return kiriofNormalizePostcode(kiriofLastTypedPostcode);
                     }
 
@@ -1370,7 +1474,10 @@ if ( ! defined( 'ABSPATH' ) ) {
                     var $sourceFields = kiriofGetBlockDistrictFields();
                     var $select = jQuery('.kiriof-block-district-select');
 
-                    $sourceFields.val('').trigger('input');
+                    $sourceFields.val('');
+                    if (!options.skipCheckoutSync) {
+                        $sourceFields.trigger('input');
+                    }
                     if ($select.length) {
                         $select.val('');
                     }
@@ -1379,7 +1486,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                     jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
                     kiriofEnsureLegacyBlockDistrictMirror().val('');
                     kiriofSetCheckoutTokenValue(false);
-                    kiriofUpdateCheckoutAdditionalFields('');
+                    if (!options.skipCheckoutSync) {
+                        kiriofUpdateCheckoutAdditionalFields('');
+                    }
                     if (!options.skipStoreSync) {
                         kiriofBlockExtensionCartUpdate({
                             shipping_metode_id: '',
@@ -1484,20 +1593,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                         // When postcode is cleared, reset all district state immediately so
                         // the shipping options section is blocked until a new district is chosen.
-                        if (!newPostcode) {
-                            kiriofLastTypedPostcode    = '';
-                            kiriofSavedCheckoutPostcode = '';
-                            kiriofLastPostcode          = ''; // allow re-fetch when user types again
-                            kiriofResetBlockDistrictState();
-                            kiriofSyncBlockDistrictWarningStateWithClear();
+	                        if (!newPostcode) {
+	                            kiriofLastTypedPostcode    = '';
+	                            kiriofLastTypedPostcodeAt  = Date.now();
+	                            kiriofSavedCheckoutPostcode = '';
+	                            kiriofLastPostcode          = ''; // allow re-fetch when user types again
+	                            kiriofSchedulePostcodeReapply('');
+	                            kiriofDistrictLookupRequestId++;
+                            if (kiriofPostcodeLookupTimer) {
+                                clearTimeout(kiriofPostcodeLookupTimer);
+                                kiriofPostcodeLookupTimer = null;
+                            }
+                            kiriofResetBlockDistrictState({
+                                skipCheckoutSync: true,
+                                skipStoreSync: true
+                            });
+                            kiriofSyncBlockDistrictWarningState();
                             return;
                         }
 
                         kiriofLastTypedPostcode = newPostcode;
                         kiriofLastTypedPostcodeAt = Date.now();
-                        kiriofSavedCheckoutPostcode = kiriofLastTypedPostcode;
-                        kiriofUpdateBlockCheckoutPostcode(kiriofLastTypedPostcode);
-                        kiriofFetchDistricts(kiriofLastTypedPostcode);
+	                        kiriofSavedCheckoutPostcode = kiriofLastTypedPostcode;
+	                        kiriofUpdateBlockCheckoutPostcode(kiriofLastTypedPostcode);
+	                        kiriofSchedulePostcodeReapply(kiriofLastTypedPostcode);
+	                        kiriofResetBlockDistrictState({
+                            silentWarning: newPostcode.length < 3,
+                            skipCheckoutSync: true,
+                            skipStoreSync: true
+                        });
+                        kiriofSyncBlockDistrictWarningState();
+                        kiriofScheduleFetchDistricts(kiriofLastTypedPostcode);
                     });
                 setTimeout(function() {
                     kiriofRestoreSavedCheckoutState();
