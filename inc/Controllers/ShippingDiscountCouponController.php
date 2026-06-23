@@ -386,6 +386,7 @@ class ShippingDiscountCouponController {
 
                 $rateMap[ (string) $rateId ] = array(
                     'amount'                  => (float) $rateMeta['discount_amount'],
+                    'formatted'               => wp_strip_all_tags( wc_price( (float) $rateMeta['discount_amount'] ) ),
                     'current_cost'            => (float) ( $rateMeta['cost'] ?? 0 ),
                     'original_cost'           => (float) ( $rateMeta['original_cost'] ?? 0 ),
                     'formatted_current_cost'  => wp_strip_all_tags( wc_price( (float) ( $rateMeta['cost'] ?? 0 ) ) ),

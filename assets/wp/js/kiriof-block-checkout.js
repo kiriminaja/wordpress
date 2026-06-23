@@ -478,6 +478,35 @@
     } catch (e) {}
   }
 
+  function getSelectedRateDiscount(discount, shippingRateSignature) {
+    if (!discount || !discount.rates || !shippingRateSignature) {
+      return discount;
+    }
+
+    const selectedRateId = String(shippingRateSignature || "")
+      .split("|")
+      .join(",")
+      .split(",")
+      .filter(Boolean)[0];
+
+    if (!selectedRateId) {
+      return discount;
+    }
+
+    if (!discount.rates[selectedRateId]) {
+      return Object.assign({}, discount, {
+        amount: 0,
+        formatted: "",
+        rate_id: selectedRateId,
+      });
+    }
+
+    const rateDiscount = discount.rates[selectedRateId];
+    return Object.assign({}, discount, rateDiscount, {
+      rate_id: selectedRateId,
+    });
+  }
+
   const hasCheckoutSlotFill =
     wp &&
     wp.plugins &&
@@ -596,16 +625,24 @@
       [couponSignature, shippingRateSignature],
     );
 
+    const activeShippingDiscount = useMemo(
+      function () {
+        return getSelectedRateDiscount(shippingDiscount, shippingRateSignature);
+      },
+      [shippingDiscount, shippingRateSignature],
+    );
+
     useEffect(
       function () {
-        syncShippingTotalsStrikethrough(shippingDiscount);
+        syncShippingTotalsStrikethrough(activeShippingDiscount);
         syncShippingOptionStrikethrough(shippingDiscount);
       },
-      [shippingDiscount],
+      [activeShippingDiscount, shippingDiscount],
     );
 
     const hasShippingDiscount =
-      shippingDiscount && parseFloat(shippingDiscount.amount || 0) > 0;
+      activeShippingDiscount &&
+      parseFloat(activeShippingDiscount.amount || 0) > 0;
 
     if (!kiriofFees.length && !hasShippingDiscount) {
       return null;
@@ -628,12 +665,12 @@
             createElement(
               "span",
               null,
-              shippingDiscount.label || "Shipping Discount",
+              activeShippingDiscount.label || "Shipping Discount",
             ),
             createElement(
               "strong",
               null,
-              "-" + (shippingDiscount.formatted || ""),
+              "-" + (activeShippingDiscount.formatted || ""),
             ),
           ),
         kiriofFees.map(function (fee) {
