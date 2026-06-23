@@ -173,15 +173,14 @@ if ( $from_ref ) {
 }
 
 $log_cmd = sprintf(
-    'cd %s && git log %s --format="%%s" --merges -- kiriminaja.php inc/ wc/ templates/ assets/ lang/ frontend/ uninstall.php',
+    'cd %s && git log %s --format="@@COMMIT@@%%n%%s%%n%%b" --merges -- kiriminaja.php inc/ wc/ templates/ assets/ lang/ frontend/ uninstall.php',
     escapeshellarg( $root_dir ),
     $since_arg
 );
 
-$output = [];
-exec( $log_cmd, $output, $ret );
+$raw_output = shell_exec( $log_cmd );
 
-if ( $ret !== 0 ) {
+if ( $raw_output === null ) {
     fwrite( STDERR, "Error: git log failed.\n" );
     exit( 1 );
 }
@@ -189,51 +188,50 @@ if ( $ret !== 0 ) {
 // --- Parse merge commits (PR merges) ---
 $features = [];
 $fixes    = [];
+$commits  = array_filter( explode( '@@COMMIT@@', $raw_output ) );
 
-foreach ( $output as $line ) {
-    $line = trim( $line );
-    if ( empty( $line ) ) {
+foreach ( $commits as $commit ) {
+    $lines = array_values(
+        array_filter(
+            array_map( 'trim', explode( "\n", trim( $commit ) ) ),
+            static function ( $line ) {
+                return $line !== '';
+            }
+        )
+    );
+
+    if ( empty( $lines ) ) {
         continue;
     }
 
-    // Parse "Merge pull request #123 from org/branch-name" style
-    if ( preg_match( '/^Merge pull request #(\d+)\s+from\s+\S+\/(.+?)(?:\s|$)/i', $line, $m ) ) {
-        $pr     = ' (#' . $m[1] . ')';
-        $branch = str_replace( '-', ' ', $m[2] );
-        $desc   = ucfirst( $branch );
-        $lower  = strtolower( $desc );
+    $subject = $lines[0];
+    $title   = $lines[1] ?? '';
+    $pr      = '';
 
-        if ( preg_match( '/\bfeature|feat\b/i', $lower ) ) {
-            $clean = preg_replace( '/^\s*feature\s*[-:]?\s*/i', '', $desc );
-            $features[] = ucfirst( $clean ) . $pr;
-        } elseif ( preg_match( '/\bfixing|fix\b/i', $lower ) ) {
-            $clean = preg_replace( '/^\s*fix(?:ing)?\s*[-:]?\s*/i', '', $desc );
-            $fixes[] = ucfirst( $clean ) . $pr;
-        } else {
-            $features[] = $desc . $pr;
+    if ( preg_match( '/^Merge pull request #(\d+)\s+from\s+\S+\/(.+?)(?:\s|$)/i', $subject, $m ) ) {
+        $pr = ' (#' . $m[1] . ')';
+
+        if ( empty( $title ) || preg_match( '/^(Merge|Signed-off-by|Co-authored-by|Reviewed-by)/i', $title ) ) {
+            $title = ucfirst( str_replace( '-', ' ', $m[2] ) );
         }
-        continue;
     }
 
-    // Fallback: non-standard merge messages, try keyword matching
-    $clean = $line;
-    $clean = preg_replace( '/^(AB#\d+\s*)?/', '', $clean );
-    $clean = preg_replace( '/^(Merge branch|Merge pull request).*$/i', '', $clean );
-    $clean = preg_replace( '/^(feat|fix|chore|refactor|docs|style|test|ci|build|perf):\s*/i', '', $clean );
+    $clean = preg_replace( '/^(AB#\d+\s*)?/', '', $title ?: $subject );
+    $clean = preg_replace( '/^(feat|fix|chore|refactor|docs|style|test|ci|build|perf)(\([^)]*\))?:\s*/i', '', $clean );
     $clean = trim( $clean );
 
-    if ( empty( $clean ) ) {
+    if ( empty( $clean ) || preg_match( '/^Merge (branch|pull request)/i', $clean ) ) {
         continue;
     }
 
-    $lower = strtolower( $line );
+    $lower = strtolower( $title ?: $subject );
 
     if ( preg_match( '/\bfeature|feat\b/i', $lower ) ) {
-        $features[] = ucfirst( $clean );
+        $features[] = ucfirst( $clean ) . $pr;
     } elseif ( preg_match( '/\bfixing|fix\b/i', $lower ) ) {
-        $fixes[] = ucfirst( $clean );
+        $fixes[] = ucfirst( $clean ) . $pr;
     } else {
-        $features[] = ucfirst( $clean );
+        $features[] = ucfirst( $clean ) . $pr;
     }
 }
 
