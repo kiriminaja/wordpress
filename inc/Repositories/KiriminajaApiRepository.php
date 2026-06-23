@@ -185,4 +185,27 @@ class KiriminajaApiRepository extends KiriminAjaApi{
             'operation' => 'get_profile',
         ));
     }
+
+    public function getCreditBalance(){
+        return $this->get('/api/mitra/v6.2/credit/balance', array(), array(
+            'source'    => 'kiriminaja_api',
+            'operation' => 'get_credit_balance',
+        ));
+    }
+
+    public function pinValidate($pin){
+        return $this->post('/api/mitra/v6.2/pin/validate', array(
+            'pin' => $pin,
+        ), array(
+            'source'    => 'kiriminaja_api',
+            'operation' => 'pin_validate',
+        ));
+    }
+
+    public function sendPickupRequestV2($payload){
+        return $this->post('/api/mitra/v6.2/request_pickup', $payload, array(
+            'source'    => 'kiriminaja_shipping',
+            'operation' => 'send_pickup_request_v2',
+        ));
+    }
 }

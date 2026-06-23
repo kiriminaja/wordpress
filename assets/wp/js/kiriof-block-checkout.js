@@ -536,15 +536,6 @@
     );
     const previousCouponsRef = useRef("");
     const [shippingDiscount, setShippingDiscount] = useState(null);
-    const fees = Array.isArray(cart.fees) ? cart.fees : [];
-    const kiriofFees = fees.filter(function (fee) {
-      return (
-        fee &&
-        (fee.key === "insurance" ||
-          fee.name === "Insurance" ||
-          fee.name === "COD Fee")
-      );
-    });
 
     const couponSignature = useMemo(
       function () {
@@ -681,30 +672,7 @@
       [activeShippingDiscount, shippingDiscount],
     );
 
-    if (!kiriofFees.length) {
-      return null;
-    }
-
-    return createElement(
-      ExperimentalOrderMeta,
-      null,
-      createElement(
-        Fragment,
-        null,
-        kiriofFees.map(function (fee) {
-          return createElement(
-            "div",
-            {
-              key: fee.key || fee.name,
-              className:
-                "wc-block-components-totals-item kiriof-block-fee-breakdown__row",
-            },
-            createElement("span", null, fee.name),
-            createElement("strong", null, formatFeeTotal(fee)),
-          );
-        }),
-      ),
-    );
+    return null;
   }
 
   registerPlugin("kiriminaja-official-order-meta", {

@@ -9,6 +9,8 @@ if (! defined('ABSPATH')) {
 
 use KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService;
 use KiriminAjaOfficial\Services\TransactionProcessServices\CancelTransactionService;
+use KiriminAjaOfficial\Services\TransactionProcessServices\GetCreditBalanceService;
+use KiriminAjaOfficial\Services\TransactionProcessServices\ValidatePinService;
 
 class TransactionProcessController
 {
@@ -18,6 +20,9 @@ class TransactionProcessController
         add_action('wp_ajax_kiriof_request_pickup_schedule', array($this, 'getRequestPickupSchedule'));
         add_action('wp_ajax_kiriof_request_pickup_transaction', array($this, 'sendRequestPickupTransaction'));
         add_action('wp_ajax_kiriof_cancel_transaction', array($this, 'cancelTransaction'));
+        add_action('wp_ajax_kiriof_get_credit_balance', array($this, 'getCreditBalance'));
+        add_action('wp_ajax_kiriof_validate_pin', array($this, 'validatePin'));
+        add_action('wp_ajax_kiriof_get_payment_method_config', array($this, 'getPaymentMethodConfig'));
         add_filter('woocommerce_admin_order_preview_get_order_details', array($this, 'extendWooOrderPreviewDetails'), 10, 2);
         add_action('woocommerce_admin_order_preview_end', array($this, 'renderWooOrderPreviewKiriminajaDetails'));
         add_action('admin_footer', array($this, 'renderWooOrderPreviewKiriminajaRelocatorScript'));
@@ -69,9 +74,19 @@ class TransactionProcessController
                 ? sanitize_text_field(wp_unslash($_POST['data']['schedule']))
                 : ''
             );
+            $payment_method = (isset($_POST['data']['payment_method']) && !empty($_POST['data']['payment_method'])
+                ? sanitize_text_field(wp_unslash($_POST['data']['payment_method']))
+                : ''
+            );
+            $pin = (isset($_POST['data']['pin']) && !empty($_POST['data']['pin'])
+                ? sanitize_text_field(wp_unslash($_POST['data']['pin']))
+                : ''
+            );
             $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService())
                 ->orderIds($order_ids)
                 ->schedule($schedule)
+                ->paymentMethod($payment_method)
+                ->pin($pin)
                 ->call();
             wp_send_json_success($service);
         } catch (\Throwable $th) {
@@ -141,6 +156,71 @@ class TransactionProcessController
         } catch (\Throwable $th) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('handleWcOrderCancelled error', [$th->getMessage()]);
         }
+    }
+
+    public function getCreditBalance()
+    {
+        if (! current_user_can( 'manage_woocommerce' )) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
+            wp_die();
+        }
+        if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Security check failed', 'kiriminaja-official')));
+            wp_die();
+        }
+
+        $service = (new GetCreditBalanceService())->call();
+        wp_send_json_success($service);
+    }
+
+    public function validatePin()
+    {
+        if (! current_user_can( 'manage_woocommerce' )) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
+            wp_die();
+        }
+        if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Security check failed', 'kiriminaja-official')));
+            wp_die();
+        }
+
+        $pin = isset($_POST['pin']) ? sanitize_text_field(wp_unslash($_POST['pin'])) : '';
+        $service = (new ValidatePinService())->pin($pin)->call();
+        wp_send_json_success($service);
+    }
+
+    public function getPaymentMethodConfig()
+    {
+        if (! current_user_can( 'manage_woocommerce' )) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
+            wp_die();
+        }
+        if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Security check failed', 'kiriminaja-official')));
+            wp_die();
+        }
+
+        $settingService = new \KiriminAjaOfficial\Services\SettingService();
+        $isTop = $settingService->isTopPaymentMethod();
+
+        $hasPin = false;
+        try {
+            $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            if (! empty($profile->data)) {
+                $hasPin = (bool) ($profile->data->metadata->has_pin ?? false);
+            }
+        } catch (\Throwable $th) {
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('getPaymentMethodConfig profile error', [$th->getMessage()]);
+        }
+
+        wp_send_json_success([
+            'status'  => 200,
+            'message' => 'success',
+            'data'    => [
+                'is_top'   => $isTop,
+                'has_pin'  => $hasPin,
+            ],
+        ]);
     }
 
     public function extendWooOrderPreviewDetails($order_details, $order)
@@ -563,6 +643,38 @@ class TransactionProcessController
                                         <div class="kiriof-backbone-summary-row">
                                             <span><?php esc_html_e('Total Charges', 'kiriminaja-official'); ?></span>
                                             <strong class="kiriof-summary-total">Rp0</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="kiriof-backbone-section kiriof-payment-method-section" style="display:none;">
+                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Payment Method', 'kiriminaja-official'); ?> <span class="required">*</span></h2>
+                                        <div class="kiriof-payment-methods">
+                                            <div class="kiriof-payment-method-option" data-method="credit">
+                                                <div class="kiriof-payment-method-radio">
+                                                    <input type="radio" id="kiriof-pm-credit" name="payment_method" value="credit">
+                                                    <label for="kiriof-pm-credit">
+                                                        <strong><?php esc_html_e('KA Credit', 'kiriminaja-official'); ?></strong>
+                                                        <span class="kiriof-pm-balance"><?php esc_html_e('Loading balance...', 'kiriminaja-official'); ?></span>
+                                                    </label>
+                                                </div>
+                                                <div class="kiriof-pm-warning kiriof-pm-credit-warning" style="display:none;"></div>
+                                            </div>
+                                            <div class="kiriof-payment-method-option" data-method="qris">
+                                                <div class="kiriof-payment-method-radio">
+                                                    <input type="radio" id="kiriof-pm-qris" name="payment_method" value="qris">
+                                                    <label for="kiriof-pm-qris">
+                                                        <strong><?php esc_html_e('QRIS', 'kiriminaja-official'); ?></strong>
+                                                        <span class="kiriof-pm-max"><?php esc_html_e('Max Rp10.000.000', 'kiriminaja-official'); ?></span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="kiriof-pin-section" style="display:none;">
+                                            <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Enter PIN', 'kiriminaja-official'); ?></h2>
+                                            <p style="font-size:12px;color:#50575e;margin:0 0 8px;"><?php esc_html_e('Enter the 6-digit PIN that was set on your profile page.', 'kiriminaja-official'); ?></p>
+                                            <input type="password" id="kiriof-pin-input" class="kiriof-pin-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="off" style="width:120px;font-size:20px;letter-spacing:8px;text-align:center;">
+                                            <p class="kiriof-pin-error err_msg" style="display:none;"></p>
                                         </div>
                                     </div>
 

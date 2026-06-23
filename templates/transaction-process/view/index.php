@@ -583,40 +583,38 @@ if (page >= 1 && page <= max) {
     $modal.find('.kiriof-cancel-reason-count').text(($modal.find('.kiriof-cancel-reason').val() || '' ).length);
     }
 
-    window.kjRequestPickupSchedule=function() {
-    /** Reset orderIds*/
-    orderIds=[];
-    $('input[name="transaction_id[]" ]:checked').each(function() {
-    orderIds.push($(this).val());
-    });
+    window.kjRequestPickupSchedule = function() {
+        orderIds = [];
+        $('input[name="transaction_id[]"]:checked').each(function() {
+            orderIds.push($(this).val());
+        });
 
-    if (orderIds.length===0) {
-    alert('<?php echo esc_js(__('There is no selected transaction.', 'kiriminaja-official')); ?>');
-    return;
-    }
+        if (orderIds.length === 0) {
+            alert('<?php echo esc_js(__('There is no selected transaction.', 'kiriminaja-official')); ?>');
+            return;
+        }
 
-    $(document.body).WCBackboneModal({
-    template: 'kiriof-modal-request-pickup' ,
-    variable: {}
-    });
+        $(document.body).WCBackboneModal({
+            template: 'kiriof-modal-request-pickup',
+            variable: {}
+        });
 
-    const $modal=kiriofGetRequestPickupModal();
-    kiriofSetModalState($modal, 'loading' );
-    $modal.find('#btn-next').prop('disabled', true);
+        const $modal = kiriofGetRequestPickupModal();
+        kiriofSetModalState($modal, 'loading');
+        $modal.find('#btn-next').prop('disabled', true);
 
-    $.ajax({
-    type: "post" ,
-    url: kiriofAjaxRoute(),
-    data: {
-    action: "kiriof_request_pickup_schedule" ,
-    data: {
-    order_ids: orderIds,
-    nonce: kiriofAjax.nonce
-    }
-    },
-    complete: function(response) {
-    const resp=JSON.parse(response.responseText).data;
-
+        $.ajax({
+            type: "post",
+            url: kiriofAjaxRoute(),
+            data: {
+                action: "kiriof_request_pickup_schedule",
+                data: {
+                    order_ids: orderIds,
+                    nonce: kiriofAjax.nonce
+                }
+            },
+            complete: function(response) {
+                const resp = JSON.parse(response.responseText).data;
 
                 if (resp?.status !== 200) {
                     kiriofSetModalState($modal, 'error');
@@ -624,164 +622,326 @@ if (page >= 1 && page <= max) {
                     return;
                 }
 
-                // If the API already assigned a pickup_number, redirect immediately
-                // instead of showing the schedule picker.
                 if (resp?.data?.pickup_number) {
                     const pickupNumber = encodeURIComponent(resp?.data?.pickup_number || '');
-                    const redirectBase = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${pickupNumber}`;
+                    const redirectBase = `<?php echo esc_url(admin_url('admin.php?page=kiriminaja-request-pickup')); ?>&pickup_number=${pickupNumber}`;
                     const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';
                     window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;
                     return;
                 }
 
-    const schedules=resp?.data?.schedules ?? [];
-    const transaction_summary=resp?.data?.transaction_summary ?? {};
-    const sum_cod_fee=transaction_summary?.sum_fee_cod ?? 0;
-    const sum_non_cod_fee=transaction_summary?.sum_fee_non_cod ?? 0;
-    const total_fee=parseInt(sum_cod_fee || 0, 10) + parseInt(sum_non_cod_fee || 0, 10);
+                const schedules = resp?.data?.schedules ?? [];
+                const transaction_summary = resp?.data?.transaction_summary ?? {};
+                const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
+                const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
+                const total_fee = parseInt(sum_cod_fee || 0, 10) + parseInt(sum_non_cod_fee || 0, 10);
 
-    /** transaction_summary*/
-    $modal.find('.kiriof-summary-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_cod ?? 0)}`);
-    $modal.find('.kiriof-summary-non-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_non_cod ?? 0)}`);
-    $modal.find('.kiriof-summary-total').text(`Rp${kiriofMoneyFormat(total_fee)}`);
+                $modal.find('.kiriof-summary-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_cod ?? 0)}`);
+                $modal.find('.kiriof-summary-non-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_non_cod ?? 0)}`);
+                $modal.find('.kiriof-summary-total').text(`Rp${kiriofMoneyFormat(total_fee)}`);
 
-    /** schedules*/
-    const $scheduleList=$modal.find('.kiriof-schedule-opt-list');
-    $scheduleList.empty();
-    $.each(schedules, function(idx, schedule) {
-    $scheduleList.append(`
-    <div class="kiriof-schedule-option">
-    <div class="kiriof-schedule-option-row">
-        <input id="opt_${schedule?.clock}" value="${schedule?.clock}" type="radio" name="schedule_opt">
-        <span class="kiriof-schedule-option-label">
-            <label for="opt_${schedule?.clock}">${schedule?.label}</label>
-        </span>
-    </div>
-    </div>
-    `)
-    });
+                const $scheduleList = $modal.find('.kiriof-schedule-opt-list');
+                $scheduleList.empty();
+                $.each(schedules, function(idx, schedule) {
+                    $scheduleList.append(`
+                        <div class="kiriof-schedule-option">
+                            <div class="kiriof-schedule-option-row">
+                                <input id="opt_${schedule?.clock}" value="${schedule?.clock}" type="radio" name="schedule_opt">
+                                <span class="kiriof-schedule-option-label">
+                                    <label for="opt_${schedule?.clock}">${schedule?.label}</label>
+                                </span>
+                            </div>
+                        </div>
+                    `);
+                });
 
-    kiriofSetModalState($modal, 'content');
-    $modal.find('#btn-next').prop('disabled', schedules.length === 0);
-    if (schedules.length === 0) {
-    $modal.find('.err_msg').text('*<?php echo esc_js(__('No pickup schedule is available.', 'kiriminaja-official')); ?>').show();
-    }
-    }
-    });
+                kiriofSetModalState($modal, 'content');
+                $modal.find('#btn-next').prop('disabled', schedules.length === 0);
+                if (schedules.length === 0) {
+                    $modal.find('.err_msg').text('*<?php echo esc_js(__('No pickup schedule is available.', 'kiriminaja-official')); ?>').show();
+                }
+
+                kjLoadPaymentMethodConfig($modal, parseInt(total_fee || 0, 10));
+            }
+        });
     };
 
-    window.kjShowCancelModal = function(orderId) {
-    $(document.body).WCBackboneModal({
-    template: 'kiriof-modal-cancel-transaction',
-    variable: {
-    order_id: orderId
+    function kjLoadPaymentMethodConfig($modal, totalFee) {
+        $.ajax({
+            type: "post",
+            url: kiriofAjaxRoute(),
+            data: {
+                action: "kiriof_get_payment_method_config",
+                nonce: kiriofAjax.nonce
+            },
+            complete: function(response) {
+                const resp = JSON.parse(response.responseText).data;
+                if (resp?.status !== 200) {
+                    return;
+                }
+
+                const isTop = resp?.data?.is_top === true;
+                const hasPin = resp?.data?.has_pin === true;
+
+                if (isTop) {
+                    $modal.find('.kiriof-payment-method-section').hide();
+                    return;
+                }
+
+                $modal.find('.kiriof-payment-method-section').show();
+
+                const $creditOpt = $modal.find('.kiriof-payment-method-option[data-method="credit"]');
+                const $creditWarning = $modal.find('.kiriof-pm-credit-warning');
+                const $balanceLabel = $modal.find('.kiriof-pm-balance');
+
+                if (!hasPin) {
+                    $creditOpt.addClass('kiriof-pm-disabled');
+                    $modal.find('#kiriof-pm-credit').prop('disabled', true);
+                    $creditWarning.html('<?php echo esc_js(__('PIN is not configured.', 'kiriminaja-official')); ?> <a href="https://app.kiriminaja.com/settings/profile?tab=keamanan&action=pin" target="_blank"><?php echo esc_js(__('Configure PIN', 'kiriminaja-official')); ?></a>').show();
+                }
+
+                $.ajax({
+                    type: "post",
+                    url: kiriofAjaxRoute(),
+                    data: {
+                        action: "kiriof_get_credit_balance",
+                        nonce: kiriofAjax.nonce
+                    },
+                    complete: function(balanceResp) {
+                        const bResp = JSON.parse(balanceResp.responseText).data;
+                        const balance = bResp?.data?.balance ?? 0;
+                        $balanceLabel.text('Rp' + kiriofMoneyFormat(balance));
+
+                        if (balance < totalFee) {
+                            $creditOpt.addClass('kiriof-pm-disabled');
+                            $modal.find('#kiriof-pm-credit').prop('disabled', true);
+                            if (hasPin) {
+                                $creditWarning.html('<?php echo esc_js(__('Insufficient credit.', 'kiriminaja-official')); ?> <a href="https://app.kiriminaja.com/credit/top-up" target="_blank"><?php echo esc_js(__('Top Up Now', 'kiriminaja-official')); ?></a>').show();
+                            }
+                        } else if (hasPin) {
+                            $creditWarning.hide();
+                        }
+
+                        if (totalFee > 10000000) {
+                            $modal.find('.kiriof-payment-method-option[data-method="qris"]').addClass('kiriof-pm-disabled');
+                            $modal.find('#kiriof-pm-qris').prop('disabled', true);
+                        }
+                    }
+                });
+            }
+        });
+
+        $modal.on('change', 'input[name="payment_method"]', function() {
+            const method = $(this).val();
+            const $pinSection = $modal.find('.kiriof-pin-section');
+            if (method === 'credit') {
+                $pinSection.show();
+                $modal.find('#kiriof-pin-input').focus();
+            } else {
+                $pinSection.hide();
+                $modal.find('.kiriof-pin-error').hide().text('');
+            }
+            kjUpdatePickupButton($modal);
+        });
+
+        $modal.on('input', '#kiriof-pin-input', function() {
+            $(this).val($(this).val().replace(/\D/g, '').substring(0, 6));
+            kjUpdatePickupButton($modal);
+        });
     }
-    });
-    kiriofUpdateCancelReasonCounter();
+
+    function kjUpdatePickupButton($modal) {
+        const method = $modal.find('input[name="payment_method"]:checked').val();
+        const scheduleSelected = $modal.find('input[name="schedule_opt"]:checked').length > 0;
+        const pmSectionVisible = $modal.find('.kiriof-payment-method-section').is(':visible');
+        const pin = $modal.find('#kiriof-pin-input').val();
+
+        let enabled = scheduleSelected;
+        if (pmSectionVisible) {
+            if (!method) {
+                enabled = false;
+            } else if (method === 'credit' && (!pin || pin.length !== 6)) {
+                enabled = false;
+            }
+        }
+        $modal.find('#btn-next').prop('disabled', !enabled);
+    }
+
+    function kjSubmitPickup($modal, ids, schedule, paymentMethod, pin, closeModal) {
+        const $errMsg = $modal.find('.err_msg');
+        $.ajax({
+            type: "post",
+            url: kiriofAjaxRoute(),
+            data: {
+                action: "kiriof_request_pickup_transaction",
+                data: {
+                    schedule: schedule,
+                    order_ids: ids,
+                    payment_method: paymentMethod,
+                    pin: pin,
+                    nonce: kiriofAjax.nonce
+                }
+            },
+            complete: function(response) {
+                const resp = JSON.parse(response.responseText).data;
+                if (resp?.status !== 200) {
+                    kiriofSetModalState($modal, 'content');
+                    $modal.find('#btn-next').prop('disabled', false);
+
+                    const errCode = resp?.data?.error_code;
+                    if (errCode === 'BALANCE_NOT_ENOUGH') {
+                        $errMsg.text('*<?php echo esc_js(__('Insufficient credit balance. Please top up or use QRIS.', 'kiriminaja-official')); ?>').show();
+                    } else if (errCode === 'PIN_INVALID' || errCode === 'PIN_MAX_ATTEMPT_REACHED') {
+                        $modal.find('.kiriof-pin-error').text('*' + (resp?.message || errCode)).show();
+                        $errMsg.text('*' + (resp?.message || errCode)).show();
+                    } else {
+                        $errMsg.text('*' + (resp?.message || '<?php echo esc_js(__('Something went wrong.', 'kiriminaja-official')); ?>')).show();
+                    }
+                    return;
+                }
+
+                closeModal();
+                const pickupNumber = resp?.data?.pickup_number;
+                const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1;
+                const redirectBase = `<?php echo esc_url(admin_url('admin.php?page=kiriminaja-request-pickup')); ?>&pickup_number=${pickupNumber}`;
+                window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;
+            }
+        });
+    }
+
+    window.kjShowCancelModal = function(orderId) {
+        $(document.body).WCBackboneModal({
+            template: 'kiriof-modal-cancel-transaction',
+            variable: {
+                order_id: orderId
+            }
+        });
+        kiriofUpdateCancelReasonCounter();
     };
 
     $(document).on('input', '.kiriof-cancel-reason', function() {
-    kiriofUpdateCancelReasonCounter();
+        kiriofUpdateCancelReasonCounter();
     });
 
     $(document.body).on('wc_backbone_modal_next_response', function(event, target, data, closeModal) {
-    if (target === 'kiriof-modal-request-pickup') {
-    const $modal = kiriofGetRequestPickupModal();
-    const $errMsg = $modal.find('.err_msg');
-    const schedule = data?.schedule_opt;
+        if (target === 'kiriof-modal-request-pickup') {
+            const $modal = kiriofGetRequestPickupModal();
+            const $errMsg = $modal.find('.err_msg');
+            const schedule = data?.schedule_opt;
+            const pmSectionVisible = $modal.find('.kiriof-payment-method-section').is(':visible');
+            const paymentMethod = pmSectionVisible ? ($modal.find('input[name="payment_method"]:checked').val() || '') : '';
+            const pin = $modal.find('#kiriof-pin-input').val() || '';
 
-    if (!schedule) {
-    $errMsg.text('*<?php echo esc_js(__('Please select a pickup schedule.', 'kiriminaja-official')); ?>').show();
-    return;
-    }
+            if (!schedule) {
+                $errMsg.text('*<?php echo esc_js(__('Please select a pickup schedule.', 'kiriminaja-official')); ?>').show();
+                return;
+            }
 
-    $errMsg.hide().text('');
-    kiriofSetModalState($modal, 'loading');
-    $modal.find('#btn-next').prop('disabled', true);
+            if (pmSectionVisible && !paymentMethod) {
+                $errMsg.text('*<?php echo esc_js(__('Please select a payment method.', 'kiriminaja-official')); ?>').show();
+                return;
+            }
 
-    $.ajax({
-    type: "post",
-    url: kiriofAjaxRoute(),
-    data: {
-    action: "kiriof_request_pickup_transaction",
-    data: {
-    schedule: schedule,
-    order_ids: orderIds,
-    nonce: kiriofAjax.nonce
-    }
-    },
-    complete: function(response) {
-    const resp = JSON.parse(response.responseText).data;
-    if (resp?.status !== 200) {
-    kiriofSetModalState($modal, 'content');
-    $modal.find('#btn-next').prop('disabled', false);
-    $errMsg.text('*' + resp?.message).show();
-    return;
-    }
+            if (paymentMethod === 'credit' && (!pin || pin.length !== 6)) {
+                $modal.find('.kiriof-pin-error').text('*<?php echo esc_js(__('Please enter a 6-digit PIN.', 'kiriminaja-official')); ?>').show();
+                return;
+            }
 
-    closeModal();
-    window.location.href = `<?php echo esc_url(admin_url('admin.php?page=kiriminaja-request-pickup')); ?>&pickup_number=${resp?.data?.pickup_number}&open_payment=1`;
-    }
+            $errMsg.hide().text('');
+            $modal.find('.kiriof-pin-error').hide().text('');
+            kiriofSetModalState($modal, 'loading');
+            $modal.find('#btn-next').prop('disabled', true);
+
+            if (paymentMethod === 'credit') {
+                $.ajax({
+                    type: "post",
+                    url: kiriofAjaxRoute(),
+                    data: {
+                        action: "kiriof_validate_pin",
+                        nonce: kiriofAjax.nonce,
+                        pin: pin
+                    },
+                    complete: function(pinResp) {
+                        const pinData = JSON.parse(pinResp.responseText).data;
+                        if (pinData?.status !== 200) {
+                            kiriofSetModalState($modal, 'content');
+                            $modal.find('#btn-next').prop('disabled', false);
+                            const pinErr = pinData?.data;
+                            if (pinErr?.error === 'PIN_MAX_ATTEMPT_REACHED') {
+                                $modal.find('.kiriof-pin-error').text('*' + (pinData?.message || '<?php echo esc_js(__('PIN max attempts reached. Please try again later.', 'kiriminaja-official')); ?>')).show();
+                                $modal.find('#kiriof-pm-credit').prop('disabled', true);
+                            } else {
+                                const remaining = (pinErr?.max_attempt ?? 3) - (pinErr?.attempt ?? 0);
+                                $modal.find('.kiriof-pin-error').text('*' + (pinData?.message || '<?php echo esc_js(__('Incorrect PIN.', 'kiriminaja-official')); ?>') + ' ' + remaining + ' <?php echo esc_js(__('chances remaining.', 'kiriminaja-official')); ?>').show();
+                            }
+                            return;
+                        }
+                        kjSubmitPickup($modal, orderIds, schedule, paymentMethod, pin, closeModal);
+                    }
+                });
+                return;
+            }
+
+            kjSubmitPickup($modal, orderIds, schedule, paymentMethod, pin, closeModal);
+            return;
+        }
+
+        if (target === 'kiriof-modal-cancel-transaction') {
+            const $modal = kiriofGetCancelModal();
+            const $errMsg = $modal.find('.err_msg');
+            const $loader = $modal.find('.kiriof-modal-state-loading');
+            const reason = (data?.reason || '').trim();
+            const orderId = data?.order_id || '';
+
+            if (reason.length < 5) {
+                $errMsg.text('<?php echo esc_js(__('*Alasan minimal 5 karakter', 'kiriminaja-official')); ?>').show();
+                return;
+            }
+            if (reason.length > 200) {
+                $errMsg.text('<?php echo esc_js(__('*Alasan maksimal 200 karakter', 'kiriminaja-official')); ?>').show();
+                return;
+            }
+
+            if (!confirm('<?php echo esc_js(__('Are you sure you want to cancel this transaction?', 'kiriminaja-official')); ?>')) {
+                return;
+            }
+
+            $errMsg.hide().text('');
+            $loader.show();
+            $modal.find('form').css('opacity', 0.45);
+            $modal.find('#btn-next').prop('disabled', true);
+
+            $.ajax({
+                type: "post",
+                url: kiriofAjaxRoute(),
+                data: {
+                    action: "kiriof_cancel_transaction",
+                    data: {
+                        order_id: orderId,
+                        reason: reason,
+                        nonce: kiriofAjax.nonce
+                    }
+                },
+                complete: function(response) {
+                    const resp = JSON.parse(response.responseText).data;
+
+                    if (resp?.status !== 200) {
+                        $loader.hide();
+                        $modal.find('form').css('opacity', 1);
+                        $modal.find('#btn-next').prop('disabled', false);
+                        $errMsg.text('*' + (resp?.message ?? '<?php echo esc_js(__('Terjadi kesalahan', 'kiriminaja-official')); ?>')).show();
+                        return;
+                    }
+
+                    closeModal();
+                    alert(resp?.message ?? '<?php echo esc_js(__('Transaction cancelled successfully.', 'kiriminaja-official')); ?>');
+                    window.location.reload();
+                }
+            });
+        }
     });
-    return;
-    }
 
-    if (target === 'kiriof-modal-cancel-transaction') {
-    const $modal = kiriofGetCancelModal();
-    const $errMsg = $modal.find('.err_msg');
-    const $loader = $modal.find('.kiriof-modal-state-loading');
-    const reason = (data?.reason || '').trim();
-    const orderId = data?.order_id || '';
-
-    if (reason.length < 5) {
-        $errMsg.text('<?php echo esc_js(__('*Alasan minimal 5 karakter', 'kiriminaja-official')); ?>').show();
-        return;
-        }
-        if (reason.length> 200) {
-        $errMsg.text('<?php echo esc_js(__('*Alasan maksimal 200 karakter', 'kiriminaja-official')); ?>').show();
-        return;
-        }
-
-        if (!confirm('<?php echo esc_js(__('Are you sure you want to cancel this transaction?', 'kiriminaja-official')); ?>')) {
-        return;
-        }
-
-        $errMsg.hide().text('');
-        $loader.show();
-        $modal.find('form').css('opacity', 0.45);
-        $modal.find('#btn-next').prop('disabled', true);
-
-        $.ajax({
-        type: "post",
-        url: kiriofAjaxRoute(),
-        data: {
-        action: "kiriof_cancel_transaction",
-        data: {
-        order_id: orderId,
-        reason: reason,
-        nonce: kiriofAjax.nonce
-        }
-        },
-        complete: function(response) {
-        const resp = JSON.parse(response.responseText).data;
-
-        if (resp?.status !== 200) {
-        $loader.hide();
-        $modal.find('form').css('opacity', 1);
-        $modal.find('#btn-next').prop('disabled', false);
-        $errMsg.text('*' + (resp?.message ?? '<?php echo esc_js(__('Terjadi kesalahan', 'kiriminaja-official')); ?>')).show();
-        return;
-        }
-
-        closeModal();
-        alert(resp?.message ?? '<?php echo esc_js(__('Transaction cancelled successfully.', 'kiriminaja-official')); ?>');
-        window.location.reload();
-        }
-        });
-        }
-        });
-
-        })(jQuery);
+    })(jQuery);
 
         <?php
         $kiriof_inline_script = ob_get_clean();

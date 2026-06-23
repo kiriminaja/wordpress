@@ -98,6 +98,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Schedule', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Fees', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Orders', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Payment Method', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Payment Status', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( __( 'Action', 'kiriminaja-official' )); ?></span></th>
                                         </tr>
@@ -185,6 +186,41 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 
                                                 
 
+                                                $kiriof_method = strtolower(trim((string) ($kiriof_row->method ?? '')));
+                                                if ($kiriof_method === 'credit') {
+                                                    $kiriof_methodContent = '
+                                                        <div class="kj-badge info">
+                                                            <span>' . esc_html__('KA Credit', 'kiriminaja-official') . '</span>
+                                                        </div>
+                                                    ';
+                                                } elseif ($kiriof_method === 'qris') {
+                                                    $kiriof_methodContent = '
+                                                        <div class="kj-badge primary">
+                                                            <span>QRIS</span>
+                                                        </div>
+                                                    ';
+                                                } elseif ($kiriof_method === 'top') {
+                                                    $kiriof_methodContent = '
+                                                        <div class="kj-badge" style="background:#f0f0f1;color:#50575e;">
+                                                            <span>' . esc_html__('TOP', 'kiriminaja-official') . '</span>
+                                                        </div>
+                                                    ';
+                                                } else {
+                                                    $kiriof_methodContent = '
+                                                        <div class="kj-badge" style="background:#f0f0f1;color:#50575e;">
+                                                            <span>' . esc_html__('QRIS', 'kiriminaja-official') . '</span>
+                                                        </div>
+                                                    ';
+                                                }
+
+                                                $kiriof_allowed_method_content = [
+                                                    'div' => [
+                                                        'class' => [],
+                                                        'style' => [],
+                                                    ],
+                                                    'span' => []
+                                                ];
+
                                                 echo '
                                                 <tr class="">
                                                     <td style="font-weight: 700;" class="thumb column-thumb">'.esc_html($id)+(($page-1)*$items_per_page+1).'</td>
@@ -197,6 +233,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <div style="font-weight: 700">Rp. '.esc_html(kiriof_money_format($kiriof_row->cost ?? 0)).'</div>
                                                     </td>
                                                     <td class="manage-column column-thumb">'.esc_html($kiriof_row->order_amt).' ' . esc_html__( 'Order', 'kiriminaja-official' ) . '</td>
+                                                    <td class="manage-column column-thumb">'.wp_kses($kiriof_methodContent, $kiriof_allowed_method_content).'</td>
                                                     <td class="manage-column column-thumb">'.wp_kses($kiriof_statusContent, $kiriof_allowed_status_content).'</td>
                                                     <td class="manage-column column-thumb">
                                                         <div style="display: flex;justify-content: end;gap: 4px; flex-wrap: wrap">'.wp_kses($kiriof_btnGroup, $kiriof_allowed_html).'</div>
@@ -205,7 +242,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 ';
                                                 }
                                             } else {
-                                            echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">'.esc_html( __( 'Not Found', 'kiriminaja-official' )).'</td></tr>';
+                                            echo '<tr><td colspan="8" style="text-align: center" class="manage-column column-thumb">'.esc_html( __( 'Not Found', 'kiriminaja-official' )).'</td></tr>';
                                         }
                                         ?>
                                         </tbody>
@@ -216,6 +253,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Schedule', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Fees', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Orders', 'kiriminaja-official' )); ?></th>
+                                            <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Payment Method', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><?php echo esc_html( __( 'Payment Status', 'kiriminaja-official' )); ?></th>
                                             <th scope="col" class="manage-column column-thumb"><span style="float: right"><?php echo esc_html( __( 'Action', 'kiriminaja-official' )); ?></span></th>
                                         </tr>

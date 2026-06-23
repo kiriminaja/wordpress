@@ -2710,3 +2710,79 @@ msgstr "Sentral Cargo"
 #: inc/Base/Helper.php
 msgid "SPX Express"
 msgstr "SPX Express"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "KA Credit"
+msgstr "KA Credit"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Loading balance..."
+msgstr "Memuat saldo..."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Max Rp10.000.000"
+msgstr "Maks Rp10.000.000"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "QRIS"
+msgstr "QRIS"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Enter PIN"
+msgstr "Masukkan PIN"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Enter the 6-digit PIN that was set on your profile page."
+msgstr "Masukkan PIN 6 digit yang telah disetel di halaman profil."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "PIN is not configured."
+msgstr "PIN belum dikonfigurasi."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Configure PIN"
+msgstr "Konfigurasi PIN"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Insufficient credit."
+msgstr "Saldo kredit tidak cukup."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Top Up Now"
+msgstr "Top Up Sekarang"
+
+#: inc/Services/TransactionProcessServices/ValidatePinService.php
+msgid "PIN must be 6 digits"
+msgstr "PIN harus 6 digit"
+
+#: templates/transaction-process/view/index.php
+msgid "Please select a payment method."
+msgstr "Silakan pilih metode pembayaran."
+
+#: templates/transaction-process/view/index.php
+msgid "Please enter a 6-digit PIN."
+msgstr "Silakan masukkan PIN 6 digit."
+
+#: templates/transaction-process/view/index.php
+msgid "PIN max attempts reached. Please try again later."
+msgstr "Percobaan PIN mencapai batas maksimum. Silakan coba lagi nanti."
+
+#: templates/transaction-process/view/index.php
+msgid "Incorrect PIN."
+msgstr "PIN salah."
+
+#: templates/transaction-process/view/index.php
+msgid "chances remaining."
+msgstr "kesempatan tersisa."
+
+#: templates/transaction-process/view/index.php
+msgid "Insufficient credit balance. Please top up or use QRIS."
+msgstr "Saldo kredit tidak cukup. Silakan top up atau gunakan QRIS."
+
+#: templates/transaction-process/view/index.php
+msgid "Something went wrong."
+msgstr "Terjadi kesalahan."
+
+#: templates/request-pickup/view/index.php
+msgid "TOP"
+msgstr "TOP"

@@ -11,6 +11,8 @@ class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
     public string $schedule = '';
+    public string $paymentMethod = '';
+    public string $pin = '';
     private $originDataCache = null;
     private $helperCache = null;
     public function orderIds($orderIds)
@@ -21,6 +23,16 @@ class SendRequestPickupTransactionService extends BaseService
     public function schedule($schedule)
     {
         $this->schedule = $schedule;
+        return $this;
+    }
+    public function paymentMethod($paymentMethod)
+    {
+        $this->paymentMethod = $paymentMethod;
+        return $this;
+    }
+    public function pin($pin)
+    {
+        $this->pin = $pin;
         return $this;
     }
     
@@ -115,6 +127,7 @@ class SendRequestPickupTransactionService extends BaseService
             "name"          => $this->sanitizeApiName($getOriginData['origin_name'] ?? ''),
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
             "schedule"      => $this->schedule,
+            "platform_name" => 'wordpress',
             "dropoff"        => false,
         ];
         /** 
@@ -126,11 +139,33 @@ class SendRequestPickupTransactionService extends BaseService
             $payload['latitude'] = $getOriginData['origin_latitude'] ?? '';
             $payload['longitude'] = $getOriginData['origin_longitude'] ?? '';
         }
-        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
+
+        if (!empty($this->paymentMethod)) {
+            $payload['payment_method'] = $this->paymentMethod;
+        }
+        if ($this->paymentMethod === 'credit' && !empty($this->pin)) {
+            $payload['pin'] = $this->pin;
+        }
+
+        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequestV2($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
         
         if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
-            return self::error([], $pickupRequest['data']->text ?? $pickupRequest['data'] ?? 'Something is wrong');
+            $apiData = $pickupRequest['data'] ?? null;
+            $errorResult = $apiData->results ?? null;
+            $errorCode = $errorResult->error ?? '';
+
+            if (in_array($errorCode, ['PIN_INVALID', 'PIN_MAX_ATTEMPT_REACHED', 'BALANCE_NOT_ENOUGH'], true)) {
+                return self::error(
+                    [
+                        'error_code'     => $errorCode,
+                        'error_metafield' => $errorResult->error_metafield ?? null,
+                    ],
+                    $apiData->text ?? $errorCode
+                );
+            }
+
+            return self::error([], $apiData->text ?? $apiData ?? 'Something is wrong');
         }
         $pickupNumber = $pickupRequest['data']->pickup_number ?? '';
         $currentTime = gmdate('Y-m-d H:i:s');
@@ -151,17 +186,24 @@ class SendRequestPickupTransactionService extends BaseService
             $transactionRepo->updateTransactionByCallback($payload);
         }
         /** Create Payment*/
+        $paymentMethod = $this->paymentMethod;
+        if (empty($paymentMethod)) {
+            $isTop = (new \KiriminAjaOfficial\Services\SettingService())->isTopPaymentMethod();
+            $paymentMethod = $isTop ? 'TOP' : 'qris';
+        }
         (new \KiriminAjaOfficial\Repositories\PaymentRepository())->createPayment([
             'pickup_number'     => $pickupNumber,
             'status'            => ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid',
-            'method'            => '',
+            'method'            => $paymentMethod,
             'order_amt'         => count($getPackageData),
             'pickup_schedule'   => $this->schedule,
             'created_at'        => $currentTime,
         ]);
         return self::success([
-            'pickup_number' => $pickupNumber,
-            'open_payment' => $hasNonCodPackage,
+            'pickup_number'  => $pickupNumber,
+            'open_payment'   => $hasNonCodPackage && $paymentMethod !== 'credit',
+            'payment_method' => $paymentMethod,
+            'payment_status' => $pickupRequest['data']->payment_status ?? '',
         ], 'success');
     }
     private function getOriginData()
