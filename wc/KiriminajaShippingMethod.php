@@ -203,8 +203,11 @@ function kiriof_shipping_method(){
                         'label'     => $row['value'],
                         'cost'      => $row['cost'],
                         'meta_data' => array(
-                            'kiriof_rate_eta'         => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
-                            'kiriof_rate_description' => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                            'kiriof_rate_eta'           => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
+                            'kiriof_rate_description'   => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                            'kiriof_rate_service'       => (string) ( $rowMeta['kiriof_rate_service'] ?? '' ),
+                            'kiriof_rate_service_type'  => (string) ( $rowMeta['kiriof_rate_service_type'] ?? '' ),
+                            'kiriof_rate_cod_available' => (string) ( $rowMeta['kiriof_rate_cod_available'] ?? '' ),
                         ),
                     );
 
@@ -217,11 +220,19 @@ function kiriof_shipping_method(){
                         'badge'                   => $badge,
                         'eta'                     => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
                         'description'             => (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                        'service'                 => (string) ( $rowMeta['kiriof_rate_service'] ?? '' ),
+                        'service_type'            => (string) ( $rowMeta['kiriof_rate_service_type'] ?? '' ),
+                        'cod_available'           => (string) ( $rowMeta['kiriof_rate_cod_available'] ?? '' ),
                         'formatted_cost'          => wp_strip_all_tags( wc_price( (float) $rate['cost'] ) ),
                         'formatted_original_cost' => wp_strip_all_tags( wc_price( $origCost ) ),
                     );
 
                     $this->add_rate($rate);
+                    $this->applyRateDisplayMetadata(
+                        $rate['id'],
+                        (string) ( $rowMeta['kiriof_rate_description'] ?? '' ),
+                        (string) ( $rowMeta['kiriof_rate_eta'] ?? '' )
+                    );
                 }
 
                 if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
@@ -252,6 +263,20 @@ function kiriof_shipping_method(){
                     );
                 }
 
+            }
+
+            private function applyRateDisplayMetadata($rate_id, $description, $delivery_time) {
+                if ( ! isset( $this->rates[ $rate_id ] ) || ! $this->rates[ $rate_id ] instanceof \WC_Shipping_Rate ) {
+                    return;
+                }
+
+                if ( '' !== $description && method_exists( $this->rates[ $rate_id ], 'set_description' ) ) {
+                    $this->rates[ $rate_id ]->set_description( $description );
+                }
+
+                if ( '' !== $delivery_time && method_exists( $this->rates[ $rate_id ], 'set_delivery_time' ) ) {
+                    $this->rates[ $rate_id ]->set_delivery_time( $delivery_time );
+                }
             }
 
             public function filterOptions($pricingData, $quantity, $kiriof_insurance = null){
@@ -294,6 +319,9 @@ function kiriof_shipping_method(){
                             'kiriof_shipping_coupon_badge' => (string) $shippingDiscountPricing['badge'],
                             'kiriof_rate_eta' => $this->formatEta($option),
                             'kiriof_rate_description' => $this->formatRateDescription($option, $kiriof_insurance),
+                            'kiriof_rate_service' => isset( $option->service ) ? (string) $option->service : '',
+                            'kiriof_rate_service_type' => isset( $option->service_type ) ? (string) $option->service_type : '',
+                            'kiriof_rate_cod_available' => $this->isCodCapableOption($option) ? 'yes' : 'no',
                         ],
                     ];
 
