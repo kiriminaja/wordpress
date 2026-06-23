@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.44
+Stable tag: 2.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,146 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.2.0 =
+- Expose shipping rate metadata to Store API
+- Seamless integration of settings to woocommmerce plugin settings page
+- Handle number that lead by zero
+- Update coupon validation to allow optional shipping and courier requirements
+- Add support for active coupon combination validation and update related tests
+- Enhance virtual product handling in volumetric configuration and update related tests
+- Skip weight and volumetric requirements for virtual products in shipping validation
+- Add validation to prevent combining multiple shipping discount coupons
+- Implement logistics session cleanup for virtual carts in checkout process
+- Add shipment details display after order table in checkout process
+- Enhance shipping method handling in block checkout and improve test coverage
+- Handling COD Fee label
+- Form billing not render select
+- Enhance customer meta handling for shipping and billing addresses in checkout process
+- Enhance district management by persisting selected district in customer meta and updating shipping rates on changes
+- Implement block district management for shipping address in checkout process
+- Enhance block checkout functionality to manage district validation and button behavior
+- Implement structured logging across the plugin
+- Feat(setup-guide): make step titles clickable links for improved navigation
+- Feat(onboarding): reduce size of icons and simplify step navigation in setup guide
+- Feat(onboarding): enhance setup guide design for improved user experience
+- Ignore the lang generated binary
+- Add discounted shipping display and update localization for shipping breakdown
+- Add actual shipping display and update localization files
+- Add shipping discount calculation and update fee name alias handling
+- Discount cod deficit handler (#202)
+- Feat(discount-coupon): courier restriction validation and auto-removal
+- Feat(block-checkout): disable Place Order button when district not selected
+- Feat(checkout): make phone field mandatory when plugin is active
+- Feat(admin): use WooCommerce order preview for transactions
+- Courier cache management, proper labels, and filter instant/international
+- Feat(coupon): improve combinations, individual use, and UI polish
+- Feat(coupon-ui): redesign region picker with card grid layout
+- Feat(coupon-ui): move Area Restrictions into a full-width metabox postbox
+- Feat(coupon-ui): improve region scope radio buttons styling and visibility
+- Feat(region-cache): bundle pre-fetched regions.json as offline fallback
+- Show strikethrough shipping price in block checkout Order Summary
+- Enhance shipping discount and rate metadata handling in checkout process
+- Implement shipping discount management feature with AJAX support, including display in checkout and cart, session handling for saved districts, and enhanced error handling
+- Implement shipping discount feature with display in cart and checkout, including calculations and metadata handling
+- Enhance API integration by adding flexible base URL resolution, improving province and city retrieval methods, and updating error handling in region cache service
+- Update API methods to use POST for province and city retrieval, enhance error handling in region cache service, and improve test coverage for AJAX error messages
+- Enhance Shipping Discount Features and Error Handling
+- Feat(coupon): add shipping coupon combinations UI
+- Feat(coupon): apply shipping discount coupons to rates
+- Feat(coupon): add shipping discount admin foundations
+- Implement discount management feature with WooCommerce integration
+- Fix(checkout): clear shipping sync timer
+- Fix(checkout): delay block shipping discount sync
+- Fix(checkout): prevent block postcode fallback
+- Re-apply shipping strikethrough after React DOM re-render
+- Use wp.data.useSelect for cart data in order meta fill
+- Fallback to global summary when rate-specific discount unavailable
+- Hide discount row when selected rate signature is unknown
+- Hide original price when equal to current cost and add WP/PHP version headers
+- Update shipping discount when rate changes
+- Show original price for all discounted rates
+- Show original price in block shipping options
+- Simplify shipping discount checkout integration
+- Comply plugin check on warning notice
+- Comply plugin check
+- Postal code forced fallback
+- Shipping discount not show on top member account. and handling shipping information on cart too
+- Fix(checkout): relax Store API shipping coupon validation
+- Fix(checkout): keep shipping coupons applied in Store API
+- Product comibined with virtual can't use shipping discount
+- Sync with development branch fixing
+- Fix(i18n): add missing translators comment in _setup-guide.php
+- Fix(i18n): add Bahasa translations for 19 courier name strings
+- Fix(plugin-check): wrap courier name strings in __() for i18n
+- Fix(shipping): stable sort with secondary name comparison
+- Fix(shipping): courier name mapping and display formatting
+- Plugin check fails
+- Transaction process
+- Fix(checkout): hide COD for virtual carts
+- Update district handling in block checkout to prevent premature field updates and ensure proper order submission
+- Preserve typed postcode in block checkout
+- Sync block checkout district field before submit
+- Adjust shipping rates control visibility for district warning display
+- Clear shipping coupon notices when no shipping coupons exist
+- Clear stale shipping coupon validation notices
+- Classify shipping discount coupons by scope
+- Read posted district during shipping coupon validation
+- Fix(test): satisfy setup guide validation
+- Fix(i18n): localize setup guide strings
+- Fix(admin): compact KiriminAja setup guide
+- Fix(pickup): use recipient name for destination
+- Fix(pickup): omit zero-value discount fields
+- Rename variables for consistency in COD adjustment modal and transaction process
+- Fix(tracking): restore front page autofill and submit
+- Update Makefile for environment-specific ZIP file handling and add .env.example
+- Fix(pickup): sanitize origin and destination names
+- Fix(pickup): use saved destination area name
+- Adjust spacing in user capability checks and update test for order details method length
+- Remove unnecessary class from discounted shipping row in metabox
+- Add padding to dialog modal
+- Shipping discount can't saved
+- TrackOrder ReferenceError — output script tag directly from shortcode
+- Tracking page autofill and button not working
+- Use feed URL for callback registration instead of pretty permalink
+- Plugin check errors — translators comment + install from clean build
+- Fix(plugin-check): fix text domain mismatch and nonce warning in TransactionProcessController
+- Fix(i18n): update Bahasa translations for changed/new strings
+- Fix(block-checkout): show district warning message when shipping options blocked
+- Fix(block-checkout): block shipping options when postcode is cleared
+- Fix(block-checkout): hide Shipment package card when district not selected
+- Fix(block-checkout): use native WC styling for district required message
+- Fix(block-checkout): show district warning below Shipping options heading
+- Fix(block-checkout): fully hide shipping options section when no district selected
+- Fix(block-checkout): suppress district warning on fresh non-logged-in load
+- Fix(block-checkout): remove whitespace gap under Shipping options on first load
+- Fix(block-checkout): eliminate shipping rate jank on initial page load
+- Fix(block-checkout): restore district on page refresh for logged-in users
+- Fix(i18n): add pickup modal translations
+- Fix(admin): size Woo action modals inline
+- Fix(cart): read shipping discount meta from session or rate
+- Add translators comments to each sprintf/__() branch
+- Resolve WP Plugin Check warnings
+- Address Copilot PR review feedback (#198)
+- Fix(coupon-ui): force inline styles + version bump to bust CSS cache
+- Fix(coupon-ui): tree hidden on init, 3-column province grid
+- Fix(coupon-ui): use native radio inputs, hide tree in All Regions mode
+- Fix(coupon-ui): replace radio inputs with button toggles, fix search disabled bug
+- Fix(coupon-ui): stats show selected count, hidden in All Regions mode
+- Fix(coupon-ui): replace :has() with JS-driven .is-active class for radio buttons
+- Fix(region-cache): seed bundled data in enqueueCouponAdminAssets before localize_script
+- Fix(region-cache): run migration before DB upsert to ensure tables exist
+- Fix(region-cache): use background cron for region data refresh
+- Update fee key checks and improve payment method session handling
+- Read shipping discount from session rate meta, not WC_Shipping_Rate meta_data
+- Persist district to postcode map on selection and restore
+- Re-fetch shipping discount when selected rate changes
+- Collapse shipping step whitespace when no district selected
+- Use CSS body class for React-proof no-district state hiding
+- Prevent infinite loop in block checkout district warning sync
+- Hide shipping+payment sections and validate district for logged-in users
+- Clear stale shipping rates from Order Summary when district not selected
+- Remove shipping injection, fix district autoload & unused vars
+
 = 2.1.44 =
 - Fix(callback): register feed query callback URL
 
