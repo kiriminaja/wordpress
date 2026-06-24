@@ -16,6 +16,7 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
  * @var string $kiriof_status_filter
  * @var string $kiriof_cod_filter
  * @var string $kiriof_courier_filter
+ * @var string $kiriof_print_status_filter
  * @var int $kiriof_total_pages
  * @var int $kiriof_total
  * @var int $kiriof_per_page    
@@ -98,6 +99,12 @@ class Kiriof_TransactionProcessIndex
             $kiriof_status_filter = 'all';
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
+        $kiriof_print_status_filter = sanitize_text_field(wp_unslash($_GET['print_status'] ?? ''));
+        if (! in_array($kiriof_print_status_filter, ['0', '1'], true)) {
+            $kiriof_print_status_filter = '';
+        }
+
         /** Return vars and view */
         include 'view/index.php';
     }
@@ -124,6 +131,8 @@ class Kiriof_TransactionProcessIndex
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $courier = sanitize_text_field(wp_unslash($_GET['courier'] ?? ''));
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
+        $print_status = sanitize_text_field(wp_unslash($_GET['print_status'] ?? ''));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query parameter for filtering
         $search_by = sanitize_text_field(wp_unslash($_GET['search_by'] ?? 'wc_order_id'));
 
         // Whitelist of post_status values exposed by the pill row in the view.
@@ -147,6 +156,13 @@ class Kiriof_TransactionProcessIndex
         $courier_clause = '';
         if ('' !== $courier) {
             $courier_clause = $wpdb->prepare( "AND kiriminaja_transactions.service = %s", $courier );
+        }
+
+        $print_status_clause = '';
+        if ('1' === $print_status) {
+            $print_status_clause = $wpdb->prepare('AND kiriminaja_transactions.is_printed = %d', 1);
+        } elseif ('0' === $print_status) {
+            $print_status_clause = $wpdb->prepare('AND kiriminaja_transactions.is_printed = %d', 0);
         }
 
         /**
@@ -195,6 +211,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.is_deficit = 1
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
@@ -217,6 +234,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.is_deficit = 1
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
@@ -244,6 +262,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.status != 'canceled'
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
@@ -268,6 +287,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.status != 'canceled'
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
@@ -292,6 +312,7 @@ class Kiriof_TransactionProcessIndex
                     WHERE orders_tbl.{$o['status']} = %s
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
@@ -314,6 +335,7 @@ class Kiriof_TransactionProcessIndex
                     WHERE orders_tbl.{$o['status']} = %s
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
@@ -339,6 +361,7 @@ class Kiriof_TransactionProcessIndex
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
@@ -360,6 +383,7 @@ class Kiriof_TransactionProcessIndex
                 WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                     {$cod_clause}
                     {$courier_clause}
+                    {$print_status_clause}
                     {$key_clause}
                     {$shippable_order_clause}
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
@@ -385,6 +409,7 @@ class Kiriof_TransactionProcessIndex
                         AND kiriminaja_transactions.status = %s
                         {$cod_clause}
                         {$courier_clause}
+                        {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
                         AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
@@ -409,6 +434,7 @@ class Kiriof_TransactionProcessIndex
                     AND kiriminaja_transactions.status = %s
                     {$cod_clause}
                     {$courier_clause}
+                    {$print_status_clause}
                     {$key_clause}
                     {$shippable_order_clause}
                     AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
