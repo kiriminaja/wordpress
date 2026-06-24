@@ -82,11 +82,104 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         $kiriof_print_base_url = admin_url( 'admin-post.php?action=kiriof_resi_print' );
                                         foreach ( $kiriof_transactions_data as $kiriof_idx => $kiriof_txn ) :
                                             $kiriof_shipping_info = json_decode( $kiriof_txn->shipping_info ?? '{}' );
+                                            $kiriof_wc_order       = function_exists( 'wc_get_order' ) ? wc_get_order( (int) ( $kiriof_txn->wp_wc_order_stat_order_id ?? 0 ) ) : false;
 
-                                            $kiriof_billing_name    = trim( ( $kiriof_shipping_info->_billing_first_name ?? '' ) . ' ' . ( $kiriof_shipping_info->_billing_last_name ?? '' ) );
-                                            $kiriof_shipping_name   = trim( ( $kiriof_shipping_info->_shipping_first_name ?? $kiriof_shipping_info->_billing_first_name ?? '' ) . ' ' . ( $kiriof_shipping_info->_shipping_last_name ?? $kiriof_shipping_info->_billing_last_name ?? '' ) );
-                                            $kiriof_shipping_addr   = trim( ( $kiriof_shipping_info->_shipping_address_1 ?? $kiriof_shipping_info->_billing_address_1 ?? '' ) . ', ' . ( $kiriof_txn->destination_sub_district ?? '' ) . ', ' . ( $kiriof_shipping_info->_shipping_postcode ?? $kiriof_shipping_info->_billing_postcode ?? '' ), ', ' );
-                                            $kiriof_phone           = $kiriof_shipping_info->_shipping_phone ?? $kiriof_shipping_info->_billing_phone ?? '';
+                                            $kiriof_billing_first_name = (string) ( $kiriof_shipping_info->_billing_first_name ?? '' );
+                                            $kiriof_billing_last_name  = (string) ( $kiriof_shipping_info->_billing_last_name ?? '' );
+                                            $kiriof_billing_postcode   = (string) ( $kiriof_shipping_info->_billing_postcode ?? '' );
+                                            $kiriof_billing_phone      = (string) ( $kiriof_shipping_info->_billing_phone ?? '' );
+                                            $kiriof_shipping_first_name = (string) ( $kiriof_shipping_info->_shipping_first_name ?? $kiriof_billing_first_name );
+                                            $kiriof_shipping_last_name  = (string) ( $kiriof_shipping_info->_shipping_last_name ?? $kiriof_billing_last_name );
+                                            $kiriof_shipping_address_1  = (string) ( $kiriof_shipping_info->_shipping_address_1 ?? $kiriof_shipping_info->_billing_address_1 ?? '' );
+                                            $kiriof_shipping_address_2  = (string) ( $kiriof_shipping_info->_shipping_address_2 ?? $kiriof_shipping_info->_billing_address_2 ?? '' );
+                                            $kiriof_shipping_city       = (string) ( $kiriof_shipping_info->_shipping_city ?? '' );
+                                            $kiriof_shipping_state      = (string) ( $kiriof_shipping_info->_shipping_state ?? '' );
+                                            $kiriof_shipping_country    = (string) ( $kiriof_shipping_info->_shipping_country ?? '' );
+                                            $kiriof_shipping_postcode   = (string) ( $kiriof_shipping_info->_shipping_postcode ?? $kiriof_billing_postcode );
+                                            $kiriof_phone               = (string) ( $kiriof_shipping_info->_shipping_phone ?? $kiriof_billing_phone );
+
+                                            if ( $kiriof_wc_order ) {
+                                                if ( '' === $kiriof_billing_first_name ) {
+                                                    $kiriof_billing_first_name = (string) $kiriof_wc_order->get_billing_first_name();
+                                                }
+                                                if ( '' === $kiriof_billing_last_name ) {
+                                                    $kiriof_billing_last_name = (string) $kiriof_wc_order->get_billing_last_name();
+                                                }
+                                                if ( '' === $kiriof_billing_postcode ) {
+                                                    $kiriof_billing_postcode = (string) $kiriof_wc_order->get_billing_postcode();
+                                                }
+                                                if ( '' === $kiriof_billing_phone ) {
+                                                    $kiriof_billing_phone = (string) $kiriof_wc_order->get_billing_phone();
+                                                }
+                                                if ( '' === $kiriof_shipping_first_name ) {
+                                                    $kiriof_shipping_first_name = (string) $kiriof_wc_order->get_shipping_first_name();
+                                                }
+                                                if ( '' === $kiriof_shipping_last_name ) {
+                                                    $kiriof_shipping_last_name = (string) $kiriof_wc_order->get_shipping_last_name();
+                                                }
+                                                if ( '' === $kiriof_shipping_address_1 ) {
+                                                    $kiriof_shipping_address_1 = (string) $kiriof_wc_order->get_shipping_address_1();
+                                                }
+                                                if ( '' === $kiriof_shipping_address_2 ) {
+                                                    $kiriof_shipping_address_2 = (string) $kiriof_wc_order->get_shipping_address_2();
+                                                }
+                                                if ( '' === $kiriof_shipping_city ) {
+                                                    $kiriof_shipping_city = (string) $kiriof_wc_order->get_shipping_city();
+                                                }
+                                                if ( '' === $kiriof_shipping_state ) {
+                                                    $kiriof_shipping_state = (string) $kiriof_wc_order->get_shipping_state();
+                                                }
+                                                if ( '' === $kiriof_shipping_country ) {
+                                                    $kiriof_shipping_country = (string) $kiriof_wc_order->get_shipping_country();
+                                                }
+                                                if ( '' === $kiriof_shipping_postcode ) {
+                                                    $kiriof_shipping_postcode = (string) $kiriof_wc_order->get_shipping_postcode();
+                                                }
+                                                if ( '' === $kiriof_phone ) {
+                                                    $kiriof_phone = method_exists( $kiriof_wc_order, 'get_shipping_phone' )
+                                                        ? (string) $kiriof_wc_order->get_shipping_phone()
+                                                        : '';
+                                                }
+                                            }
+
+                                            if ( '' === $kiriof_shipping_first_name ) {
+                                                $kiriof_shipping_first_name = $kiriof_billing_first_name;
+                                            }
+                                            if ( '' === $kiriof_shipping_last_name ) {
+                                                $kiriof_shipping_last_name = $kiriof_billing_last_name;
+                                            }
+                                            if ( '' === $kiriof_shipping_postcode ) {
+                                                $kiriof_shipping_postcode = $kiriof_billing_postcode;
+                                            }
+                                            if ( '' === $kiriof_phone ) {
+                                                $kiriof_phone = $kiriof_billing_phone;
+                                            }
+
+                                            $kiriof_billing_name = trim( $kiriof_billing_first_name . ' ' . $kiriof_billing_last_name );
+                                            if ( '' === $kiriof_billing_name ) {
+                                                $kiriof_billing_name = trim( $kiriof_shipping_first_name . ' ' . $kiriof_shipping_last_name );
+                                            }
+
+                                            $kiriof_shipping_name = trim( $kiriof_shipping_first_name . ' ' . $kiriof_shipping_last_name );
+                                            $kiriof_shipping_addr_line_three = implode(
+                                                ', ',
+                                                array_filter(
+                                                    array(
+                                                        $kiriof_txn->destination_sub_district ?? '',
+                                                        $kiriof_shipping_city,
+                                                        $kiriof_shipping_state,
+                                                    )
+                                                )
+                                            );
+                                            $kiriof_shipping_addr_line_four = implode(
+                                                ', ',
+                                                array_filter(
+                                                    array(
+                                                        $kiriof_shipping_postcode,
+                                                        $kiriof_shipping_country,
+                                                    )
+                                                )
+                                            );
                                             $kiriof_is_cod          = (float) ( $kiriof_txn->cod_fee ?? 0 ) > 0;
                                             $kiriof_weight          = (float) ( $kiriof_txn->weight ?? 0 );
                                             $kiriof_shipping_cost   = (float) ( $kiriof_txn->shipping_cost ?? 0 );
@@ -123,11 +216,22 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             <?php else : ?>
                                             <div style="color: #8c8f94">AWB: —</div>
                                             <?php endif; ?>
-                                            <div style="font-size: 12px; color: #50575e">KA: <?php echo esc_html( $kiriof_txn->order_id ); ?></div>
+                                            <div style="font-size: 12px; color: #50575e">Order ID: <?php echo esc_html( $kiriof_txn->order_id ); ?></div>
                                         </td>
                                         <td class="manage-column column-thumb">
                                             <div><?php echo esc_html( $kiriof_shipping_name ); ?></div>
-                                            <div style="font-size: 12px; color: #50575e"><?php echo esc_html( $kiriof_shipping_addr ); ?></div>
+                                            <?php if ( '' !== $kiriof_shipping_address_1 ) : ?>
+                                            <div style="font-size: 12px; color: #50575e"><?php echo esc_html( $kiriof_shipping_address_1 ); ?></div>
+                                            <?php endif; ?>
+                                            <?php if ( '' !== $kiriof_shipping_address_2 ) : ?>
+                                            <div style="font-size: 12px; color: #50575e"><?php echo esc_html( $kiriof_shipping_address_2 ); ?></div>
+                                            <?php endif; ?>
+                                            <?php if ( '' !== $kiriof_shipping_addr_line_three ) : ?>
+                                            <div style="font-size: 12px; color: #50575e"><?php echo esc_html( $kiriof_shipping_addr_line_three ); ?></div>
+                                            <?php endif; ?>
+                                            <?php if ( '' !== $kiriof_shipping_addr_line_four ) : ?>
+                                            <div style="font-size: 12px; color: #50575e"><?php echo esc_html( $kiriof_shipping_addr_line_four ); ?></div>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="manage-column column-thumb">
                                             <?php if ( $kiriof_weight > 0 ) : ?>
