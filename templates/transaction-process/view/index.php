@@ -434,7 +434,15 @@ $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
                                                              </div>
                                                             <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px">
                                                                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><g opacity="0.6"><path d="M5.3998 5.40005V1.80005H1.7998V5.40005H5.3998ZM10.1998 5.40005V1.80005H6.5998V5.40005H10.1998ZM5.3998 10.2V6.60005H1.7998V10.2H5.3998ZM10.1998 10.2V6.60005H6.5998V10.2H10.1998Z" fill="black"/></g></svg>
-                                                                ' . $kiriof_printStatusBadge . '
+                                                                ' . wp_kses(
+                            $kiriof_printStatusBadge,
+                            array(
+                                'span' => array(
+                                    'class' => true,
+                                    'style' => true,
+                                ),
+                            )
+                        ) . '
                                                             </div>
                                                         </td>
                                                         <td class="manage-column column-thumb kiriof-col-airwaybill">'
