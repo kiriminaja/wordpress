@@ -156,11 +156,32 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             }
 
                                             $kiriof_billing_name = trim( $kiriof_billing_first_name . ' ' . $kiriof_billing_last_name );
+                                            if ( '' === $kiriof_billing_name && $kiriof_wc_order && method_exists( $kiriof_wc_order, 'get_formatted_billing_full_name' ) ) {
+                                                $kiriof_billing_name = trim( (string) $kiriof_wc_order->get_formatted_billing_full_name() );
+                                            }
                                             if ( '' === $kiriof_billing_name ) {
                                                 $kiriof_billing_name = trim( $kiriof_shipping_first_name . ' ' . $kiriof_shipping_last_name );
                                             }
+                                            if ( '' === $kiriof_billing_name && $kiriof_wc_order && method_exists( $kiriof_wc_order, 'get_formatted_shipping_full_name' ) ) {
+                                                $kiriof_billing_name = trim( (string) $kiriof_wc_order->get_formatted_shipping_full_name() );
+                                            }
 
                                             $kiriof_shipping_name = trim( $kiriof_shipping_first_name . ' ' . $kiriof_shipping_last_name );
+                                            if ( '' === $kiriof_shipping_name && $kiriof_wc_order && method_exists( $kiriof_wc_order, 'get_formatted_shipping_full_name' ) ) {
+                                                $kiriof_shipping_name = trim( (string) $kiriof_wc_order->get_formatted_shipping_full_name() );
+                                            }
+                                            if ( '' === $kiriof_shipping_name ) {
+                                                $kiriof_shipping_name = $kiriof_billing_name;
+                                            }
+                                            if ( '' === $kiriof_phone && $kiriof_wc_order ) {
+                                                $kiriof_phone = (string) $kiriof_wc_order->get_billing_phone();
+                                            }
+                                            if ( '' === $kiriof_phone && $kiriof_wc_order ) {
+                                                $kiriof_phone = (string) $kiriof_wc_order->get_meta( '_billing_phone', true );
+                                            }
+                                            if ( '' === $kiriof_phone && $kiriof_wc_order ) {
+                                                $kiriof_phone = (string) $kiriof_wc_order->get_meta( '_shipping_phone', true );
+                                            }
                                             $kiriof_shipping_addr_line_three = implode(
                                                 ', ',
                                                 array_filter(
