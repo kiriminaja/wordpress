@@ -308,15 +308,33 @@ final class InsuranceFeatureTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
 
         $this->assertStringContainsString(
-            "\$firstName = \$shipping_info->_shipping_first_name ?? \$shipping_info->_billing_first_name ?? '';",
+            'private function buildDestinationData($shippingInfo, $order, $transaction): array',
             $content,
-            'SendRequestPickupTransactionService must source destination_name from the shipping recipient first name with billing fallback'
+            'SendRequestPickupTransactionService must centralize destination recipient resolution before building the pickup payload'
         );
 
         $this->assertStringContainsString(
-            "\$lastName = \$shipping_info->_shipping_last_name ?? \$shipping_info->_billing_last_name ?? '';",
+            "\$shippingFirstName = \$this->readShippingInfoValue(\$shippingInfo, ['_shipping_first_name', 'shipping_first_name']);",
             $content,
-            'SendRequestPickupTransactionService must source destination_name from the shipping recipient last name with billing fallback'
+            'SendRequestPickupTransactionService must source destination_name from the shipping recipient first name before falling back elsewhere'
+        );
+
+        $this->assertStringContainsString(
+            "\$shippingLastName  = \$this->readShippingInfoValue(\$shippingInfo, ['_shipping_last_name', 'shipping_last_name']);",
+            $content,
+            'SendRequestPickupTransactionService must source destination_name from the shipping recipient last name before falling back elsewhere'
+        );
+
+        $this->assertStringContainsString(
+            "\$shippingFirstName = \$billingFirstName;",
+            $content,
+            'SendRequestPickupTransactionService must fall back to the billing first name when shipping recipient data is blank'
+        );
+
+        $this->assertStringContainsString(
+            "\$shippingLastName = \$billingLastName;",
+            $content,
+            'SendRequestPickupTransactionService must fall back to the billing last name when shipping recipient data is blank'
         );
     }
 
@@ -344,9 +362,15 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '"destination_name"          => $this->sanitizeApiName($destinationName)',
+            "'name' => \$this->sanitizeApiName(\$destinationName),",
             $content,
-            'Pickup request payload must sanitize destination_name before sending it'
+            'Destination data builder must sanitize destination_name before handing it back to the pickup payload'
+        );
+
+        $this->assertStringContainsString(
+            '"destination_name"          => $destinationData[\'name\']',
+            $content,
+            'Pickup request payload must use the sanitized destination_name from the destination data builder'
         );
     }
 
