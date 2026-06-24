@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $kiriof_month_filter
  * @var string $kiriof_cod_filter
  * @var string $kiriof_courier_filter
+ * @var string $kiriof_print_status_filter
  * @var array  $kiriof_monthOptions
  * @var array  $kiriof_couriers
  */
@@ -49,6 +50,12 @@ $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash
         }
     }
     ?>
+</select>
+
+<select id="print_status_search<?php echo esc_attr( $kiriof_filter_suffix ); ?>">
+    <option value="" <?php echo empty($kiriof_print_status_filter) ? 'selected' : ''; ?>><?php esc_html_e( 'All Prints', 'kiriminaja-official' ); ?></option>
+    <option value="1" <?php echo $kiriof_print_status_filter === '1' ? 'selected' : ''; ?>><?php esc_html_e( 'Printed', 'kiriminaja-official' ); ?></option>
+    <option value="0" <?php echo $kiriof_print_status_filter === '0' ? 'selected' : ''; ?>><?php esc_html_e( 'Unprinted', 'kiriminaja-official' ); ?></option>
 </select>
 
 <?php if ( $kiriof_show_apply ) : ?>

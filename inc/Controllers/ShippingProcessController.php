@@ -24,6 +24,7 @@ class ShippingProcessController
             add_feed('transaction-resi-print', array($this, 'resiPrint'));
         });
         add_action('admin_post_kiriof_resi_print', array($this, 'handleResiPrintAdminPost'));
+        add_action('admin_post_kiriof_resi_print_bulk', array($this, 'handleResiPrintBulkAdminPost'));
     }
 
     private function sanitizeResiPrintOrderIds( $raw_oids )
@@ -53,9 +54,14 @@ class ShippingProcessController
     {
         // Verify nonce before accessing request data.
         if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'kiriof_resi_print' ) ) {
+            $this->logResiPrintFailure( 'invalid_nonce', array(
+                'has_nonce' => isset( $_REQUEST['_wpnonce'] ),
+            ) );
             wp_safe_redirect( home_url( '/404' ) );
             exit;
         }
+
+        $_REQUEST['_kiriof_resi_print_nonce_checked'] = '1';
 
         if ( isset( $_REQUEST['oids'] ) ) {
             $_REQUEST['oids'] = $this->sanitizeResiPrintOrderIds( sanitize_text_field( wp_unslash( $_REQUEST['oids'] ) ) );
@@ -64,6 +70,156 @@ class ShippingProcessController
         }
 
         $this->resiPrint();
+    }
+
+    public function handleResiPrintBulkAdminPost()
+    {
+        if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'kiriof_resi_print_bulk' ) ) {
+            $this->logResiPrintFailure( 'invalid_bulk_nonce', array(
+                'has_nonce' => isset( $_POST['_wpnonce'] ),
+            ) );
+            wp_safe_redirect( home_url( '/404' ) );
+            exit;
+        }
+
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitizeResiPrintOrderIds
+        $orderIds = $this->sanitizeResiPrintOrderIds( isset( $_POST['oids'] ) ? wp_unslash( $_POST['oids'] ) : array() );
+        $this->outputResiPrint( $orderIds );
+    }
+
+    private function markTransactionsPrinted( array $orderIds )
+    {
+        if ( empty( $orderIds ) ) {
+            return;
+        }
+
+        global $wpdb;
+        $placeholders = implode( ',', array_fill( 0, count( $orderIds ), '%s' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Print status is updated immediately after successful label fetch.
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$wpdb->prefix}kiriminaja_transactions
+                SET is_printed = %d, printed_at = %s
+                WHERE order_id IN ({$placeholders})",
+                1,
+                current_time( 'mysql' ),
+                ...$orderIds
+            )
+        );
+    }
+
+    private function logResiPrintFailure( string $reason, array $context = array() ): void
+    {
+        kiriof_log(
+            'warning',
+            'KiriminAja resi print failed before label redirect.',
+            array_merge(
+                array(
+                    'source' => 'kiriminaja_print',
+                    'reason' => $reason,
+                ),
+                $context
+            )
+        );
+    }
+
+    private function resolvePrintAwbUrl( $response ): string
+    {
+        $data = is_array( $response ) ? ( $response['data'] ?? null ) : null;
+        $candidates = array(
+            is_string( $data ) ? $data : null,
+            $data->data->url ?? null,
+            $data->url ?? null,
+            $data->data->link ?? null,
+            $data->link ?? null,
+            $response['url'] ?? null,
+        );
+
+        foreach ( $candidates as $candidate ) {
+            $candidate = is_string( $candidate ) ? trim( $candidate ) : '';
+            if ( '' !== $candidate && preg_match( '#^https?://#i', $candidate ) ) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    private function outputResiPrint( array $orderIds )
+    {
+        if ( ! is_user_logged_in() || ! current_user_can( 'manage_woocommerce' ) ) {
+            $this->logResiPrintFailure( 'unauthorized', array(
+                'is_logged_in' => is_user_logged_in(),
+                'user_id'      => get_current_user_id(),
+            ) );
+            wp_safe_redirect( home_url( '/404' ) );
+            exit;
+        }
+
+        if ( count( $orderIds ) < 1 ) {
+            $this->logResiPrintFailure( 'empty_order_ids' );
+            wp_safe_redirect(home_url('/404'));
+            exit;
+        }
+
+        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
+        if ( empty( $transactions ) ) {
+            $this->logResiPrintFailure( 'transactions_not_found', array(
+                'order_ids' => $orderIds,
+            ) );
+            wp_safe_redirect(home_url('/404'));
+            exit;
+        }
+
+        $awbs = [];
+        $printedOrderIds = [];
+        $filename = '';
+        foreach ($transactions as $transaction) {
+            if (isset($transaction->awb) && !empty($transaction->awb)) {
+                $awbs[] = $transaction->awb;
+                $printedOrderIds[] = $transaction->order_id;
+            }
+            if (isset($transaction->pickup_number) && !empty($transaction->pickup_number)) {
+                $filename = $transaction->pickup_number;
+            }
+        }
+
+        if (count($awbs) < 1) {
+            $this->logResiPrintFailure( 'empty_awb', array(
+                'order_ids'          => $orderIds,
+                'transaction_count'  => count( $transactions ),
+                'transaction_status' => array_values( array_map(
+                    static function ( $transaction ) {
+                        return (string) ( $transaction->status ?? '' );
+                    },
+                    $transactions
+                ) ),
+            ) );
+            wp_safe_redirect(home_url('/404'));
+            exit;
+        }
+
+        if (count($awbs) == 1) {
+            $filename = $awbs[0] ?? 'resi';
+        }
+        $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
+        $printAwbUrl = $this->resolvePrintAwbUrl( $getAwbData );
+        if ( '' === $printAwbUrl ) {
+            $this->logResiPrintFailure( 'print_awb_url_missing', array(
+                'order_ids'     => $orderIds,
+                'awbs'          => $awbs,
+                'api_status'    => $getAwbData['status'] ?? null,
+                'api_response'  => is_scalar( $getAwbData['data'] ?? null ) ? substr( (string) $getAwbData['data'], 0, 300 ) : '',
+                'api_attempts'  => $getAwbData['attempts'] ?? array(),
+                'response_type' => is_object( $getAwbData['data'] ?? null ) ? get_class( $getAwbData['data'] ) : gettype( $getAwbData['data'] ?? null ),
+            ) );
+            wp_safe_redirect(home_url('/404'));
+            exit;
+        }
+        $this->markTransactionsPrinted( $printedOrderIds );
+
+        wp_redirect( esc_url_raw( $printAwbUrl ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Trusted label URL returned by KiriminAja API.
+        exit;
     }
 
     function getShippingReschedulePickup()
@@ -140,12 +296,19 @@ class ShippingProcessController
     {
         try {
             if ( ! is_user_logged_in() || ! current_user_can( 'manage_woocommerce' ) ) {
+                $this->logResiPrintFailure( 'unauthorized_direct', array(
+                    'is_logged_in' => is_user_logged_in(),
+                    'user_id'      => get_current_user_id(),
+                ) );
                 wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
             // Verify nonce to prevent CSRF on this privileged label download endpoint.
             $kiriof_nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
-            if ( ! wp_verify_nonce( $kiriof_nonce, 'kiriof_resi_print' ) ) {
+            if ( empty( $_REQUEST['_kiriof_resi_print_nonce_checked'] ) && ! wp_verify_nonce( $kiriof_nonce, 'kiriof_resi_print' ) ) {
+                $this->logResiPrintFailure( 'invalid_nonce_direct', array(
+                    'has_nonce' => '' !== $kiriof_nonce,
+                ) );
                 wp_safe_redirect( home_url( '/404' ) );
                 exit;
             }
@@ -155,57 +318,11 @@ class ShippingProcessController
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitizeResiPrintOrderIds
             $rawOrderIds = isset( $_REQUEST['oids'] ) ? wp_unslash( $_REQUEST['oids'] ) : array();
             $orderIds = $this->sanitizeResiPrintOrderIds( $rawOrderIds );
-            if (count($orderIds) < 1) {
-                wp_safe_redirect(home_url('/404'));
-                exit;
-            }
-            $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
-            $awbs = [];
-            $filename = '';
-            foreach ($transactions as $transaction) {
-                if (isset($transaction->awb) && !empty($transaction->awb)) {
-                    $awbs[] = $transaction->awb;
-                }
-                if (isset($transaction->pickup_number) && !empty($transaction->pickup_number)) {
-                    $filename = $transaction->pickup_number;
-                }
-            }
-            if (count($awbs) == 1) {
-                $filename = $awbs[0] ?? 'resi';
-            }
-            $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
-            if (
-                !isset($getAwbData['data']->data->url) ||
-                empty($getAwbData['data']->data->url)
-            ) {
-                wp_safe_redirect(home_url('/404'));
-                exit;
-            }
-            $pdfUrl = $getAwbData['data']->data->url;
-            
-            // Use WordPress HTTP API instead of file_get_contents
-            $response = wp_remote_get( $pdfUrl, array(
-                'timeout' => 30,
-                'sslverify' => true,
-            ) );
-            
-            if ( is_wp_error( $response ) ) {
-                wp_safe_redirect( home_url( '/404' ) );
-                exit;
-            }
-            
-            $pdfContent = wp_remote_retrieve_body( $response );
-            if ( empty( $pdfContent ) ) {
-                wp_safe_redirect( home_url( '/404' ) );
-                exit;
-            }
-            
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="print-resi-' . sanitize_file_name( $filename ) . '.pdf"');
-            header('Content-Length: ' . strlen($pdfContent));
-            echo $pdfContent; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            exit;
+            $this->outputResiPrint( $orderIds );
         } catch (\Throwable $e) {
+            $this->logResiPrintFailure( 'exception', array(
+                'message' => $e->getMessage(),
+            ) );
             wp_safe_redirect(home_url('/404'));
             exit;
         }
