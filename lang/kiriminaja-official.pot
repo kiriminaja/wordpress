@@ -1682,6 +1682,28 @@ msgstr ""
 msgid "All Couriers"
 msgstr ""
 
+#: templates/transaction-process/view/_filters.php:56
+msgid "All Prints"
+msgstr ""
+
+#: templates/transaction-process/view/_filters.php:57
+#: templates/transaction-process/view/index.php:405
+msgid "Printed"
+msgstr ""
+
+#: templates/transaction-process/view/_filters.php:58
+#: templates/transaction-process/view/index.php:406
+msgid "Unprinted"
+msgstr ""
+
+#: templates/transaction-process/view/index.php:401
+msgid "Order must have an AWB and request pickup status before it can be printed."
+msgstr ""
+
+#: templates/transaction-process/view/index.php:813
+msgid "Please select at least one order to print."
+msgstr ""
+
 #: templates/woocommerce/cart/cart-shipping.php:50
 msgid "Shipping costs are calculated during checkout."
 msgstr ""

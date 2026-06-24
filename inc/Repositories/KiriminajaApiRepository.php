@@ -163,12 +163,57 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function getPrintAwb($awb){
-        return $this->post('/api/mitra/v6.1/awb/print',[
-            'awb' => $awb,
-        ], array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'get_print_awb',
-        ));
+        $awbs = is_array( $awb )
+            ? array_values( array_filter( array_map( 'strval', $awb ) ) )
+            : array_values( array_filter( array( (string) $awb ) ) );
+
+        $payloads = array();
+        if ( ! empty( $awbs ) ) {
+            $payloads[] = array( 'awb' => $awbs );
+        }
+        if ( 1 === count( $awbs ) ) {
+            $payloads[] = array( 'awb' => $awbs[0] );
+            $payloads[] = array( 'awbs' => $awbs );
+            $payloads[] = array( 'tracking_number' => $awbs[0] );
+        } else {
+            $payloads[] = array( 'awbs' => $awbs );
+            $payloads[] = array( 'awb' => implode( ',', $awbs ) );
+        }
+
+        $attempts = array();
+        $response = array(
+            'status' => false,
+            'data'   => 'AWB is empty',
+        );
+        $payloads = array_values( array_unique( $payloads, SORT_REGULAR ) );
+        foreach ( $payloads as $attempt => $payload ) {
+            $previousBaseUrl = $this->base_url;
+            // Match the known-good print flow before API base URL overrides were introduced.
+            $this->base_url = 'https://client.kiriminaja.com';
+            try {
+                $response = $this->post('/api/mitra/v6.1/awb/print', $payload, array(
+                    'source'    => 'kiriminaja_shipping',
+                    'operation' => 'get_print_awb',
+                    'attempt'   => $attempt + 1,
+                ));
+            } finally {
+                $this->base_url = $previousBaseUrl;
+            }
+            $attempts[] = array(
+                'payload_keys'  => array_keys( $payload ),
+                'payload_shape' => is_array( reset( $payload ) ) ? 'array' : 'scalar',
+                'status'        => $response['status'] ?? null,
+                'message'       => is_scalar( $response['data'] ?? null ) ? substr( (string) $response['data'], 0, 200 ) : '',
+            );
+
+            if ( ! empty( $response['status'] ) ) {
+                $response['attempts'] = $attempts;
+                return $response;
+            }
+        }
+
+        $response['attempts'] = $attempts;
+        return $response;
     }
     public function cancelShipment($awb, $reason){
         return $this->post('/api/mitra/v3/cancel_shipment',[

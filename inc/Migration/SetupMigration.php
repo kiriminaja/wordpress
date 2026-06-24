@@ -127,6 +127,8 @@ class SetupMigration {
                 `woocommerce_discount_amount` decimal(15,2) NOT NULL DEFAULT 0,
                 `woocommerce_discount_description` varchar(255) DEFAULT NULL,
                 `is_deficit` tinyint(1) NOT NULL DEFAULT 0,
+                `is_printed` tinyint(1) NOT NULL DEFAULT 0,
+                `printed_at` timestamp NULL DEFAULT NULL,
                 `cod_minimum` decimal(15,2) DEFAULT NULL,
                 `created_at` timestamp NULL DEFAULT NULL,
                 `request_pickup_at` timestamp NULL DEFAULT NULL,
@@ -181,6 +183,14 @@ class SetupMigration {
             if (!in_array('cod_minimum', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE `$table_name` ADD cod_minimum decimal(15,2) DEFAULT NULL");
+            }
+            if (!in_array('is_printed', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD is_printed tinyint(1) NOT NULL DEFAULT 0");
+            }
+            if (!in_array('printed_at', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD printed_at timestamp NULL DEFAULT NULL");
             }
             
         }
