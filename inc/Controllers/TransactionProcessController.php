@@ -75,7 +75,15 @@ class TransactionProcessController
                 ->call();
             wp_send_json_success($service);
         } catch (\Throwable $th) {
-            wp_send_json_success([
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(
+                'sendRequestPickupTransaction exception',
+                [
+                    'message' => $th->getMessage(),
+                    'order_ids' => $order_ids ?? [],
+                    'schedule' => $schedule ?? '',
+                ]
+            );
+            wp_send_json_error([
                 'status'    => 400,
                 'message'   => $th->getMessage(),
             ]);

@@ -39,6 +39,115 @@ class SendRequestPickupTransactionService extends BaseService
         return preg_replace('/[^a-zA-Z\d\s]/', '', $decodedValue);
     }
 
+    private function buildDestinationData($shippingInfo, $order, $transaction): array
+    {
+        $billingFirstName = (string) ($shippingInfo->_billing_first_name ?? '');
+        $billingLastName  = (string) ($shippingInfo->_billing_last_name ?? '');
+        $billingAddress1  = (string) ($shippingInfo->_billing_address_1 ?? '');
+        $billingAddress2  = (string) ($shippingInfo->_billing_address_2 ?? '');
+        $billingPostcode  = (string) ($shippingInfo->_billing_postcode ?? '');
+        $billingPhone     = (string) ($shippingInfo->_billing_phone ?? '');
+
+        $shippingFirstName = (string) ($shippingInfo->_shipping_first_name ?? $billingFirstName);
+        $shippingLastName  = (string) ($shippingInfo->_shipping_last_name ?? $billingLastName);
+        $shippingAddress1  = (string) ($shippingInfo->_shipping_address_1 ?? $billingAddress1);
+        $shippingAddress2  = (string) ($shippingInfo->_shipping_address_2 ?? $billingAddress2);
+        $shippingCity      = (string) ($shippingInfo->_shipping_city ?? '');
+        $shippingState     = (string) ($shippingInfo->_shipping_state ?? '');
+        $shippingCountry   = (string) ($shippingInfo->_shipping_country ?? '');
+        $shippingPostcode  = (string) ($shippingInfo->_shipping_postcode ?? $billingPostcode);
+        $shippingPhone     = (string) ($shippingInfo->_shipping_phone ?? $billingPhone);
+
+        if ($order) {
+            if ('' === $billingFirstName) {
+                $billingFirstName = (string) $order->get_billing_first_name();
+            }
+            if ('' === $billingLastName) {
+                $billingLastName = (string) $order->get_billing_last_name();
+            }
+            if ('' === $billingAddress1) {
+                $billingAddress1 = (string) $order->get_billing_address_1();
+            }
+            if ('' === $billingAddress2) {
+                $billingAddress2 = (string) $order->get_billing_address_2();
+            }
+            if ('' === $billingPostcode) {
+                $billingPostcode = (string) $order->get_billing_postcode();
+            }
+            if ('' === $billingPhone) {
+                $billingPhone = (string) $order->get_billing_phone();
+            }
+            if ('' === $shippingFirstName) {
+                $shippingFirstName = (string) $order->get_shipping_first_name();
+            }
+            if ('' === $shippingLastName) {
+                $shippingLastName = (string) $order->get_shipping_last_name();
+            }
+            if ('' === $shippingAddress1) {
+                $shippingAddress1 = (string) $order->get_shipping_address_1();
+            }
+            if ('' === $shippingAddress2) {
+                $shippingAddress2 = (string) $order->get_shipping_address_2();
+            }
+            if ('' === $shippingCity) {
+                $shippingCity = (string) $order->get_shipping_city();
+            }
+            if ('' === $shippingState) {
+                $shippingState = (string) $order->get_shipping_state();
+            }
+            if ('' === $shippingCountry) {
+                $shippingCountry = (string) $order->get_shipping_country();
+            }
+            if ('' === $shippingPostcode) {
+                $shippingPostcode = (string) $order->get_shipping_postcode();
+            }
+            if ('' === $shippingPhone && method_exists($order, 'get_shipping_phone')) {
+                $shippingPhone = (string) $order->get_shipping_phone();
+            }
+        }
+
+        if ('' === $shippingFirstName) {
+            $shippingFirstName = $billingFirstName;
+        }
+        if ('' === $shippingLastName) {
+            $shippingLastName = $billingLastName;
+        }
+        if ('' === $shippingAddress1) {
+            $shippingAddress1 = $billingAddress1;
+        }
+        if ('' === $shippingAddress2) {
+            $shippingAddress2 = $billingAddress2;
+        }
+        if ('' === $shippingPostcode) {
+            $shippingPostcode = $billingPostcode;
+        }
+        if ('' === $shippingPhone) {
+            $shippingPhone = $billingPhone;
+        }
+
+        $destinationName = trim($shippingFirstName . ' ' . $shippingLastName);
+        $destinationAddressParts = array_filter([
+            trim($shippingAddress1 . ' ' . $shippingAddress2),
+            $transaction->destination_sub_district ?? '',
+            $shippingCity,
+            $shippingState,
+            $shippingCountry,
+        ]);
+
+        return [
+            'name' => $this->sanitizeApiName($destinationName),
+            'phone' => $shippingPhone,
+            'address' => implode(', ', $destinationAddressParts),
+            'zipcode' => $shippingPostcode,
+            'summary' => [
+                'name_present' => '' !== $destinationName,
+                'phone_present' => '' !== $shippingPhone,
+                'address_present' => !empty($destinationAddressParts),
+                'zipcode_present' => '' !== $shippingPostcode,
+            ],
+        ];
+    }
+
     private function appendPickupDiscountFields(array $payload, $transaction)
     {
         $discountAmount = (float) ($transaction->discount_amount ?? 0);
@@ -106,12 +215,22 @@ class SendRequestPickupTransactionService extends BaseService
             return self::error([], 'No valid packages found');
         }
         $hasNonCodPackage = $this->hasNonCodPackage($getPackageData);
+        $apiPackages = array_map(
+            static function ($package) {
+                if (isset($package['destination_summary'])) {
+                    unset($package['destination_summary']);
+                }
+
+                return $package;
+            },
+            $getPackageData
+        );
         
         $payload = [
             "address"       => $getOriginData['origin_address'] ?? '',
             "phone"         => $getOriginData['origin_phone'] ?? '',
             "kelurahan_id"  => $getOriginData['origin_sub_district_id'] ?? '',
-            "packages"      => $getPackageData,
+            "packages"      => $apiPackages,
             "name"          => $this->sanitizeApiName($getOriginData['origin_name'] ?? ''),
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
             "schedule"      => $this->schedule,
@@ -126,10 +245,40 @@ class SendRequestPickupTransactionService extends BaseService
             $payload['latitude'] = $getOriginData['origin_latitude'] ?? '';
             $payload['longitude'] = $getOriginData['origin_longitude'] ?? '';
         }
+
+        (new \KiriminAjaOfficial\Base\BaseInit())->logThis(
+            'send_request_pickup_payload',
+            [
+                'order_ids' => $this->orderIds,
+                'schedule' => $this->schedule,
+                'package_count' => count($apiPackages),
+                'packages' => array_map(
+                    static function ($package) {
+                        return [
+                            'order_id' => $package['order_id'] ?? '',
+                            'service' => $package['service'] ?? '',
+                            'service_type' => $package['service_type'] ?? '',
+                            'destination_summary' => $package['destination_summary'] ?? [],
+                            'cod' => $package['cod'] ?? 0,
+                        ];
+                    },
+                    $getPackageData
+                ),
+            ]
+        );
+
         $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
         
         if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(
+                'send_request_pickup_failed',
+                [
+                    'order_ids' => $this->orderIds,
+                    'schedule' => $this->schedule,
+                    'api_response' => $pickupRequest,
+                ]
+            );
             return self::error([], $pickupRequest['data']->text ?? $pickupRequest['data'] ?? 'Something is wrong');
         }
         $pickupNumber = $pickupRequest['data']->pickup_number ?? '';
@@ -198,11 +347,18 @@ class SendRequestPickupTransactionService extends BaseService
         $weightConverter = new \KiriminAjaOfficial\Utils\WeightConverter();
         $homeUrl = get_home_url();
         
-        return array_map(function ($transaction) use ($helper, $weightConverter, $homeUrl) {
-            $shipping_info = json_decode($transaction->shipping_info);
+        $packages = array_map(function ($transaction) use ($helper, $weightConverter, $homeUrl) {
+            $shipping_info = json_decode($transaction->shipping_info ?? '{}');
             $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
             
             if (!$order) {
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis(
+                    'send_request_pickup_skip_missing_order',
+                    [
+                        'order_id' => $transaction->order_id ?? '',
+                        'wc_order_id' => $transaction->wp_wc_order_stat_order_id ?? 0,
+                    ]
+                );
                 return null;
             }
             
@@ -240,21 +396,15 @@ class SendRequestPickupTransactionService extends BaseService
             
             $note = "Order No : " . $transaction->wp_wc_order_stat_order_id . " | " . $homeUrl;
             $note = preg_replace('/[^a-zA-Z\d.\/:,\+\-()\'\"_&;?\s]/', '', $note);
-            
-            // Get shipping/billing info with fallbacks
-            $firstName = $shipping_info->_shipping_first_name ?? $shipping_info->_billing_first_name ?? '';
-            $lastName = $shipping_info->_shipping_last_name ?? $shipping_info->_billing_last_name ?? '';
-            $address1 = $shipping_info->_shipping_address_1 ?? $shipping_info->_billing_address_1 ?? '';
-            $address2 = $shipping_info->_shipping_address_2 ?? $shipping_info->_billing_address_2 ?? '';
-            $destinationName = trim($firstName . ' ' . $lastName);
+            $destinationData = $this->buildDestinationData($shipping_info, $order, $transaction);
             
             $result = [
                 "order_id"                  => $transaction->order_id,
-                "destination_name"          => $this->sanitizeApiName($destinationName),
-                "destination_phone"         => $shipping_info->_billing_phone ?? '',
-                "destination_address"       => trim($address1 . ' ' . $address2 . ', ' . ($transaction->destination_sub_district ?? '')),
+                "destination_name"          => $destinationData['name'],
+                "destination_phone"         => $destinationData['phone'],
+                "destination_address"       => $destinationData['address'],
                 "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
-                "destination_zipcode"       => $shipping_info->_shipping_postcode ?? '',
+                "destination_zipcode"       => $destinationData['zipcode'],
                 "weight"                    => $helper->minAmount($transaction->weight),
                 "width"                     => $helper->minAmount($transaction->width),
                 "height"                    => $helper->minAmount($transaction->height),
@@ -275,6 +425,7 @@ class SendRequestPickupTransactionService extends BaseService
                     $transaction->cod_fee) : 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
+                "destination_summary" => $destinationData['summary'],
             ];
 
             $result = $this->appendPickupDiscountFields($result, $transaction);
@@ -285,5 +436,14 @@ class SendRequestPickupTransactionService extends BaseService
             
             return $result;
         }, $repo);
+
+        return array_values(
+            array_filter(
+                $packages,
+                static function ($package) {
+                    return is_array($package) && !empty($package);
+                }
+            )
+        );
     }
 }
