@@ -39,67 +39,128 @@ class SendRequestPickupTransactionService extends BaseService
         return preg_replace('/[^a-zA-Z\d\s]/', '', $decodedValue);
     }
 
+    private function readShippingInfoValue($shippingInfo, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (isset($shippingInfo->$key)) {
+                $value = trim((string) $shippingInfo->$key);
+                if ('' !== $value) {
+                    return $value;
+                }
+            }
+        }
+
+        return '';
+    }
+
     private function buildDestinationData($shippingInfo, $order, $transaction): array
     {
-        $billingFirstName = (string) ($shippingInfo->_billing_first_name ?? '');
-        $billingLastName  = (string) ($shippingInfo->_billing_last_name ?? '');
-        $billingAddress1  = (string) ($shippingInfo->_billing_address_1 ?? '');
-        $billingAddress2  = (string) ($shippingInfo->_billing_address_2 ?? '');
-        $billingPostcode  = (string) ($shippingInfo->_billing_postcode ?? '');
-        $billingPhone     = (string) ($shippingInfo->_billing_phone ?? '');
+        $billingFirstName = $this->readShippingInfoValue($shippingInfo, ['_billing_first_name', 'billing_first_name', 'first_name']);
+        $billingLastName  = $this->readShippingInfoValue($shippingInfo, ['_billing_last_name', 'billing_last_name', 'last_name']);
+        $billingAddress1  = $this->readShippingInfoValue($shippingInfo, ['_billing_address_1', 'billing_address_1', 'address_1']);
+        $billingAddress2  = $this->readShippingInfoValue($shippingInfo, ['_billing_address_2', 'billing_address_2', 'address_2']);
+        $billingPostcode  = $this->readShippingInfoValue($shippingInfo, ['_billing_postcode', 'billing_postcode', 'postcode']);
+        $billingPhone     = $this->readShippingInfoValue($shippingInfo, ['_billing_phone', 'billing_phone', 'phone']);
 
-        $shippingFirstName = (string) ($shippingInfo->_shipping_first_name ?? $billingFirstName);
-        $shippingLastName  = (string) ($shippingInfo->_shipping_last_name ?? $billingLastName);
-        $shippingAddress1  = (string) ($shippingInfo->_shipping_address_1 ?? $billingAddress1);
-        $shippingAddress2  = (string) ($shippingInfo->_shipping_address_2 ?? $billingAddress2);
-        $shippingCity      = (string) ($shippingInfo->_shipping_city ?? '');
-        $shippingState     = (string) ($shippingInfo->_shipping_state ?? '');
-        $shippingCountry   = (string) ($shippingInfo->_shipping_country ?? '');
-        $shippingPostcode  = (string) ($shippingInfo->_shipping_postcode ?? $billingPostcode);
-        $shippingPhone     = (string) ($shippingInfo->_shipping_phone ?? $billingPhone);
+        $shippingFirstName = $this->readShippingInfoValue($shippingInfo, ['_shipping_first_name', 'shipping_first_name']);
+        $shippingLastName  = $this->readShippingInfoValue($shippingInfo, ['_shipping_last_name', 'shipping_last_name']);
+        $shippingAddress1  = $this->readShippingInfoValue($shippingInfo, ['_shipping_address_1', 'shipping_address_1', '_billing_address_1', 'billing_address_1', 'address_1']);
+        $shippingAddress2  = $this->readShippingInfoValue($shippingInfo, ['_shipping_address_2', 'shipping_address_2', '_billing_address_2', 'billing_address_2', 'address_2']);
+        $shippingCity      = $this->readShippingInfoValue($shippingInfo, ['_shipping_city', 'shipping_city', '_billing_city', 'billing_city', 'city']);
+        $shippingState     = $this->readShippingInfoValue($shippingInfo, ['_shipping_state', 'shipping_state', '_billing_state', 'billing_state', 'state']);
+        $shippingCountry   = $this->readShippingInfoValue($shippingInfo, ['_shipping_country', 'shipping_country', '_billing_country', 'billing_country', 'country']);
+        $shippingPostcode  = $this->readShippingInfoValue($shippingInfo, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', 'postcode']);
+        $shippingPhone     = $this->readShippingInfoValue($shippingInfo, ['_shipping_phone', 'shipping_phone', '_billing_phone', 'billing_phone', 'phone']);
+        $billingAddressData = $order && method_exists($order, 'get_address') ? (array) $order->get_address('billing') : [];
+        $shippingAddressData = $order && method_exists($order, 'get_address') ? (array) $order->get_address('shipping') : [];
 
         if ($order) {
             if ('' === $billingFirstName) {
+                $billingFirstName = trim((string) ($billingAddressData['first_name'] ?? ''));
+            }
+            if ('' === $billingFirstName) {
                 $billingFirstName = (string) $order->get_billing_first_name();
+            }
+            if ('' === $billingLastName) {
+                $billingLastName = trim((string) ($billingAddressData['last_name'] ?? ''));
             }
             if ('' === $billingLastName) {
                 $billingLastName = (string) $order->get_billing_last_name();
             }
             if ('' === $billingAddress1) {
+                $billingAddress1 = trim((string) ($billingAddressData['address_1'] ?? ''));
+            }
+            if ('' === $billingAddress1) {
                 $billingAddress1 = (string) $order->get_billing_address_1();
+            }
+            if ('' === $billingAddress2) {
+                $billingAddress2 = trim((string) ($billingAddressData['address_2'] ?? ''));
             }
             if ('' === $billingAddress2) {
                 $billingAddress2 = (string) $order->get_billing_address_2();
             }
             if ('' === $billingPostcode) {
+                $billingPostcode = trim((string) ($billingAddressData['postcode'] ?? ''));
+            }
+            if ('' === $billingPostcode) {
                 $billingPostcode = (string) $order->get_billing_postcode();
+            }
+            if ('' === $billingPhone) {
+                $billingPhone = trim((string) ($billingAddressData['phone'] ?? ''));
             }
             if ('' === $billingPhone) {
                 $billingPhone = (string) $order->get_billing_phone();
             }
             if ('' === $shippingFirstName) {
+                $shippingFirstName = trim((string) ($shippingAddressData['first_name'] ?? ''));
+            }
+            if ('' === $shippingFirstName) {
                 $shippingFirstName = (string) $order->get_shipping_first_name();
+            }
+            if ('' === $shippingLastName) {
+                $shippingLastName = trim((string) ($shippingAddressData['last_name'] ?? ''));
             }
             if ('' === $shippingLastName) {
                 $shippingLastName = (string) $order->get_shipping_last_name();
             }
             if ('' === $shippingAddress1) {
+                $shippingAddress1 = trim((string) ($shippingAddressData['address_1'] ?? ''));
+            }
+            if ('' === $shippingAddress1) {
                 $shippingAddress1 = (string) $order->get_shipping_address_1();
+            }
+            if ('' === $shippingAddress2) {
+                $shippingAddress2 = trim((string) ($shippingAddressData['address_2'] ?? ''));
             }
             if ('' === $shippingAddress2) {
                 $shippingAddress2 = (string) $order->get_shipping_address_2();
             }
             if ('' === $shippingCity) {
+                $shippingCity = trim((string) ($shippingAddressData['city'] ?? ''));
+            }
+            if ('' === $shippingCity) {
                 $shippingCity = (string) $order->get_shipping_city();
+            }
+            if ('' === $shippingState) {
+                $shippingState = trim((string) ($shippingAddressData['state'] ?? ''));
             }
             if ('' === $shippingState) {
                 $shippingState = (string) $order->get_shipping_state();
             }
             if ('' === $shippingCountry) {
+                $shippingCountry = trim((string) ($shippingAddressData['country'] ?? ''));
+            }
+            if ('' === $shippingCountry) {
                 $shippingCountry = (string) $order->get_shipping_country();
             }
             if ('' === $shippingPostcode) {
+                $shippingPostcode = trim((string) ($shippingAddressData['postcode'] ?? ''));
+            }
+            if ('' === $shippingPostcode) {
                 $shippingPostcode = (string) $order->get_shipping_postcode();
+            }
+            if ('' === $shippingPhone) {
+                $shippingPhone = trim((string) ($shippingAddressData['phone'] ?? ''));
             }
             if ('' === $shippingPhone && method_exists($order, 'get_shipping_phone')) {
                 $shippingPhone = (string) $order->get_shipping_phone();
