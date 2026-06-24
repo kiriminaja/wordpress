@@ -5,7 +5,7 @@ Tags: shipping, ecommerce, WooCommerce, logistics
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.2.1
+Stable tag: 2.2.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,10 @@ This plugin requires WooCommerce. Install and activate WooCommerce first, then a
 - [Developer](https://developer.kiriminaja.com)
 
 == Changelog ==
+= 2.2.2 =
+- - Add margin: 0 auto to center the card wrapper
+- Transients kiriof_profile_cache and kiriof_profile_last_success_cache
+
 = 2.2.1 =
 - Use order items instead of analytics lookup for shippable check (#227)
 
