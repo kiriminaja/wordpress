@@ -73,6 +73,11 @@ class KiriminajaApiService extends BaseService{
         delete_transient( self::KIRIOF_COURIERS_CACHE_KEY );
     }
 
+    public function invalidateProfileCache(): void {
+        delete_transient( self::KIRIOF_PROFILE_CACHE_KEY );
+        delete_transient( self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY );
+    }
+
     /**
      * Returns a map of courier_code => label built from the API list.
      *
