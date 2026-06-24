@@ -49,6 +49,7 @@ class SettingService extends BaseService
             }
             /** Storing result to DB*/
             $arrayRepoDataData = (array) $arrayRepoData['result'];
+            (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateProfileCache();
             (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeIntegrationData([
                 'api_key' => sanitize_text_field($arrayRepoDataData['api_key']),
                 'oid_prefix' => sanitize_text_field($arrayRepoDataData['oid_prefix']),
@@ -80,6 +81,7 @@ class SettingService extends BaseService
     public function disconnectIntegration()
     {
         try {
+            (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateProfileCache();
             $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->disconnectIntegration();
             kiriof_log(
                 'notice',
