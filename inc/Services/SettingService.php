@@ -363,6 +363,28 @@ class SettingService extends BaseService
     }
 
     /**
+     * Returns true when the connected merchant is a TOP (Term of Payment) member.
+     * Reads the stored is_top flag from the settings table, which is set during
+     * the initial setup via resolveIsTop().
+     *
+     * @return bool
+     */
+    public function isTopPaymentMethod(): bool
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'kiriminaja_settings';
+        $result = $wpdb->get_var(
+            $wpdb->prepare("SELECT `value` FROM {$table} WHERE `key` = %s", 'is_top')
+        );
+
+        if ($result === null) {
+            return self::resolveIsTop();
+        }
+
+        return $result === 'yes';
+    }
+
+    /**
      * Resolve merchant TOP status by calling /api/mitra/v6.2/profile.
      * Returns true when metadata.payment_method === "TOP".
      * Falls back to false if the profile call fails (non-blocking).

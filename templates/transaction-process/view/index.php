@@ -640,19 +640,12 @@ if (page >= 1 && page <= max) {
                 $modal.find('.kiriof-summary-non-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_non_cod ?? 0)}`);
                 $modal.find('.kiriof-summary-total').text(`Rp${kiriofMoneyFormat(total_fee)}`);
 
-                const $scheduleList = $modal.find('.kiriof-schedule-opt-list');
-                $scheduleList.empty();
+                const $scheduleSelect = $modal.find('.kiriof-schedule-select');
+                $scheduleSelect.find('option:not(:first)').remove();
                 $.each(schedules, function(idx, schedule) {
-                    $scheduleList.append(`
-                        <div class="kiriof-schedule-option">
-                            <div class="kiriof-schedule-option-row">
-                                <input id="opt_${schedule?.clock}" value="${schedule?.clock}" type="radio" name="schedule_opt">
-                                <span class="kiriof-schedule-option-label">
-                                    <label for="opt_${schedule?.clock}">${schedule?.label}</label>
-                                </span>
-                            </div>
-                        </div>
-                    `);
+                    $scheduleSelect.append(
+                        $('<option>', { value: schedule?.clock, text: schedule?.label })
+                    );
                 });
 
                 kiriofSetModalState($modal, 'content');
@@ -710,7 +703,7 @@ if (page >= 1 && page <= max) {
                     complete: function(balanceResp) {
                         const bResp = JSON.parse(balanceResp.responseText).data;
                         const balance = bResp?.data?.balance ?? 0;
-                        $balanceLabel.text('Rp' + kiriofMoneyFormat(balance));
+                        $balanceLabel.text(kiriofMoneyFormat(balance));
 
                         if (balance < totalFee) {
                             $creditOpt.addClass('kiriof-pm-disabled');
@@ -748,11 +741,15 @@ if (page >= 1 && page <= max) {
             $(this).val($(this).val().replace(/\D/g, '').substring(0, 6));
             kjUpdatePickupButton($modal);
         });
+
+        $modal.on('change', 'select[name="schedule_opt"]', function() {
+            kjUpdatePickupButton($modal);
+        });
     }
 
     function kjUpdatePickupButton($modal) {
         const method = $modal.find('input[name="payment_method"]:checked').val();
-        const scheduleSelected = $modal.find('input[name="schedule_opt"]:checked').length > 0;
+        const scheduleSelected = !!$modal.find('select[name="schedule_opt"]').val();
         const pmSectionVisible = $modal.find('.kiriof-payment-method-section').is(':visible');
         const pin = $modal.find('#kiriof-pin-input').val();
 

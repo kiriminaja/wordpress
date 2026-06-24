@@ -225,6 +225,9 @@ msgstr "Tutup panel modal"
 msgid "Available Schedules"
 msgstr "Jadwal Tersedia"
 
+msgid "-- Select schedule --"
+msgstr "-- Pilih jadwal --"
+
 msgid "Close"
 msgstr "Tutup"
 

@@ -680,7 +680,9 @@ class TransactionProcessController
 
                                     <div class="kiriof-backbone-section">
                                         <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Available Schedules', 'kiriminaja-official'); ?></h2>
-                                        <div class="kiriof-schedule-opt-list"></div>
+                                        <select class="kiriof-schedule-select" name="schedule_opt" style="width:100%;">
+                                            <option value=""><?php esc_html_e('-- Select schedule --', 'kiriminaja-official'); ?></option>
+                                        </select>
                                     </div>
 
                                     <p class="kiriof-backbone-inline-error err_msg" style="display:none;"></p>
