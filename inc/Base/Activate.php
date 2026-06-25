@@ -13,6 +13,9 @@ class Activate {
             if ( class_exists( '\\KiriminAjaOfficial\\Services\\ShippingDiscountRegionCacheService' ) ) {
                 ( new \KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService() )->scheduleRefresh( true );
             }
+            if ( class_exists( '\\KiriminAjaOfficial\\Services\\WooCommerceShippingMethodRegistrationService' ) ) {
+                ( new \KiriminAjaOfficial\Services\WooCommerceShippingMethodRegistrationService() )->register();
+            }
         }catch (\Throwable $th){}
     }
 }

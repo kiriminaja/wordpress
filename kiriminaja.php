@@ -272,7 +272,6 @@ function kiriof_activate_plugin() {
     (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
     (new \KiriminAjaOfficial\Base\Activate())->activate();
     (new \KiriminAjaOfficial\Pages\AdminPost())->register();
-    kiriof_delete_shipping_zone();
 
 }
 /** Deactivation*/
