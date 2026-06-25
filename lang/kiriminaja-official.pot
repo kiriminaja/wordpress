@@ -658,6 +658,14 @@ msgstr ""
 msgid "Enable shipping zones in WooCommerce so customers can select their delivery destination."
 msgstr ""
 
+#: inc/Pages/Admin.php:396
+msgid "KiriminAja Shipping Option"
+msgstr ""
+
+#: inc/Pages/Admin.php:397
+msgid "KiriminAja is auto-added to the Indonesia shipping zone on activation. If needed, open WooCommerce Shipping Zones and make sure KiriminAja is enabled as a shipping method."
+msgstr ""
+
 #: inc/Pages/Admin.php:352
 #: templates/setting/setuped/index.php:153
 #: templates/setting/setuped/section-tracking.php:58
@@ -2167,4 +2175,8 @@ msgstr ""
 
 #: templates/request-pickup/view/modal-payment.php:78
 msgid "QR will expire at"
+msgstr ""
+
+#: inc/Services/WooCommerceShippingMethodRegistrationService.php:76
+msgid "Indonesia"
 msgstr ""

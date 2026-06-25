@@ -97,6 +97,22 @@ final class ShippingDiscountCouponAdminTest extends TestCase
     }
 
     #[Test]
+    public function activation_registers_kiriminaja_shipping_method_without_deleting_zones(): void
+    {
+        $activation = file_get_contents(PLUGIN_DIR . '/inc/Base/Activate.php');
+        $plugin = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
+        $service = file_get_contents(PLUGIN_DIR . '/inc/Services/WooCommerceShippingMethodRegistrationService.php');
+
+        $this->assertStringContainsString('WooCommerceShippingMethodRegistrationService', $activation);
+        $this->assertStringContainsString('add_shipping_method( self::METHOD_ID )', $service);
+        $this->assertStringContainsString("add_location( 'ID', 'country' )", $service);
+        $this->assertStringContainsString("'enabled'] = 'yes'", $service);
+        $this->assertStringContainsString('woocommerce_shipping_zone_methods', $service);
+        $this->assertStringContainsString("'is_enabled' => 1", $service);
+        $this->assertStringNotContainsString('kiriof_delete_shipping_zone();', $plugin);
+    }
+
+    #[Test]
     public function coupon_admin_assets_exist(): void
     {
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');

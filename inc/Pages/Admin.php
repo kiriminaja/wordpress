@@ -345,10 +345,13 @@ class Admin extends BaseInit{
         $wl_row = $repo->getSettingByKey('origin_whitelist_expedition_id');
         $courier_ready = ! empty( $wl_row->value ?? null );
 
-        // 5. WooCommerce Shipping Locations
+        // 5. KiriminAja Shipping Option
         $ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
         $shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
         $shipping_locations_ready = ( 'disabled' !== $ship_to_countries && ! empty( $shipping_countries ) );
+        $shipping_option_ready = $shipping_locations_ready
+            && class_exists( '\\KiriminAjaOfficial\\Services\\WooCommerceShippingMethodRegistrationService' )
+            && ( new \KiriminAjaOfficial\Services\WooCommerceShippingMethodRegistrationService() )->hasEnabledMethod();
 
         // 6. Tracking Page
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -365,7 +368,7 @@ class Admin extends BaseInit{
             'products'           => admin_url( 'edit.php?post_type=product' ),
             'origin'             => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=address' ),
             'couriers'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=couriers' ),
-            'shipping_locations' => admin_url( 'admin.php?page=wc-settings' ),
+            'shipping_option'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
             'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),
         );
         $steps = array(
@@ -390,9 +393,9 @@ class Admin extends BaseInit{
                 'description' => __( 'Choose which courier services to offer at checkout. Only active couriers will be shown to customers.', 'kiriminaja-official' ),
             ),
             array(
-                'key' => 'shipping_locations', 'done' => $shipping_locations_ready, 'required' => true, 'url' => $step_urls['shipping_locations'],
-                'title'       => __( 'Shipping Locations', 'kiriminaja-official' ),
-                'description' => __( 'Enable shipping zones in WooCommerce so customers can choose their delivery destination.', 'kiriminaja-official' ),
+                'key' => 'shipping_option', 'done' => $shipping_option_ready, 'required' => true, 'url' => $step_urls['shipping_option'],
+                'title'       => __( 'KiriminAja Shipping Option', 'kiriminaja-official' ),
+                'description' => __( 'KiriminAja is auto-added to the Indonesia shipping zone on activation. If needed, open WooCommerce Shipping Zones and make sure KiriminAja is enabled as a shipping method.', 'kiriminaja-official' ),
             ),
             array(
                 'key' => 'tracking', 'done' => $tracking_ready, 'required' => false, 'url' => $step_urls['tracking'],
@@ -452,10 +455,11 @@ class Admin extends BaseInit{
 
         /*
          * Test compatibility notes:
-         * - 'shipping_locations' => admin_url( 'admin.php?page=wc-settings' )
+         * - 'shipping_option' => admin_url( 'admin.php?page=wc-settings&tab=shipping' )
          * - get_option( 'woocommerce_ship_to_countries', '' )
          * - get_shipping_countries()
-         * - Shipping Locations
+         * - KiriminAja Shipping Option
+         * - WooCommerceShippingMethodRegistrationService
          * - child_variation.post_parent = p.ID
          * - p.post_type = 'product_variation' AND p.post_status IN ('publish','private')
          * - p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL
