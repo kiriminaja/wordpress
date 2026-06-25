@@ -245,7 +245,7 @@ class SendRequestPickupTransactionService extends BaseService
             if ($discountPercentage !== null && (float) $discountPercentage > 0) {
                 $payload['discount_percentage'] = (float) $discountPercentage;
             } elseif ($shippingCost > 0) {
-                $payload['discount_percentage'] = (float) round(($discountAmount / $shippingCost) * 100, 2);
+                $payload['discount_percentage'] = round(($discountAmount / $shippingCost) * 100, 2);
             } else {
                 $payload['discount_percentage'] = 0.0;
             }

@@ -2811,3 +2811,51 @@ msgstr "Terjadi kesalahan."
 #: templates/request-pickup/view/index.php
 msgid "TOP"
 msgstr "TOP"
+
+#: templates/transaction-process/view/index.php
+msgid "Back"
+msgstr "Kembali"
+
+#: templates/transaction-process/view/index.php
+msgid "Confirm PIN"
+msgstr "Konfirmasi PIN"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Enter 6-digit PIN"
+msgstr "Masukkan PIN 6 digit"
+
+#: templates/transaction-process/view/index.php
+msgid "Incorrect PIN"
+msgstr "PIN salah"
+
+#: templates/transaction-process/view/index.php
+msgid "Please check the PIN code you entered again."
+msgstr "Silakan periksa kembali kode PIN yang Anda masukkan."
+
+#: templates/transaction-process/view/index.php
+msgid "Too Many Attempts"
+msgstr "Terlalu Banyak Percobaan"
+
+#: templates/transaction-process/view/index.php
+msgid "Validate"
+msgstr "Validasi"
+
+#: templates/transaction-process/view/index.php
+msgid "You have entered the wrong code three times. Please wait"
+msgstr "Anda telah salah memasukkan kode tiga kali. Silakan tunggu"
+
+#: templates/transaction-process/view/index.php
+msgid "You have entered the wrong code too many times. Please try again later."
+msgstr "Anda terlalu sering memasukkan kode yang salah. Silakan coba lagi nanti."
+
+#: templates/transaction-process/view/index.php
+msgid "You still have"
+msgstr "Anda masih memiliki"
+
+#: templates/transaction-process/view/index.php
+msgid "chances to enter the PIN."
+msgstr "kesempatan untuk memasukkan PIN."
+
+#: templates/transaction-process/view/index.php
+msgid "to try again."
+msgstr "untuk mencoba lagi."
