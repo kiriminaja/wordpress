@@ -620,6 +620,9 @@ const $requestPickupBtn = $('#kj-request-pickup-btn');
 const $printBtn = $('#kj-print-btn');
 const kjRequestPickupLabel = '<?php echo esc_js(__('Request Pickup', 'kiriminaja-official')); ?>';
 const kjPrintLabel = '<?php echo esc_js(__('Print', 'kiriminaja-official')); ?>';
+const kjPickScheduleLabel = '<?php echo esc_js(__('Pick Schedule', 'kiriminaja-official')); ?>';
+const kjConfirmPinLabel = '<?php echo esc_js(__('Confirm PIN', 'kiriminaja-official')); ?>';
+const kjValidateLabel = '<?php echo esc_js(__('Validate', 'kiriminaja-official')); ?>';
 const kjUpdateRequestPickupCount = () => {
 const pickupCount = $transactionCheckboxes().filter(':checked:not(:disabled)[data-can-pickup="1"]').length;
 const printCount = $transactionCheckboxes().filter(':checked:not(:disabled)[data-can-print="1"]').length;
@@ -714,11 +717,16 @@ if (page >= 1 && page <= max) {
     function kiriofSetModalState($modal, state) {
     $modal.find('.kiriof-modal-state').hide();
     $modal.find('.err_msg').hide().text('');
+    $modal.data('kiriofStep', state);
 
     if (state==='loading' ) {
     $modal.find('.kiriof-modal-state-loading').show();
     } else if (state==='error' ) {
     $modal.find('.kiriof-modal-state-error').show();
+    } else if (state==='pin' ) {
+    $modal.find('.kiriof-modal-state-pin').show();
+    $modal.find('#btn-next').text(kjValidateLabel);
+    kjFocusPinInput($modal);
     } else {
     $modal.find('.kiriof-modal-state-content').show();
     }
@@ -727,6 +735,86 @@ if (page >= 1 && page <= max) {
     function kiriofUpdateCancelReasonCounter() {
     const $modal=kiriofGetCancelModal();
     $modal.find('.kiriof-cancel-reason-count').text(($modal.find('.kiriof-cancel-reason').val() || '' ).length);
+    }
+
+    function kjEnsurePinInputReady($modal) {
+    const widget = $modal.find('#kiriof-pin-widget').get(0);
+    const $fallback = $modal.find('#kiriof-pin-fallback');
+    const hasRenderedWidget = !!(widget && widget.shadowRoot && widget.shadowRoot.childNodes.length > 0);
+
+    if (hasRenderedWidget) {
+    $modal.find('#kiriof-pin-widget').show();
+    $fallback.hide();
+    return 'widget';
+    }
+
+    $modal.find('#kiriof-pin-widget').hide();
+    $fallback.show();
+    return 'fallback';
+    }
+
+    function kjFocusPinInput($modal) {
+    const mode = kjEnsurePinInputReady($modal);
+    if ('widget' === mode) {
+    $modal.find('#kiriof-pin-widget').trigger('focus');
+    return;
+    }
+
+    $modal.find('#kiriof-pin-fallback').trigger('focus');
+    }
+
+    function kjSetPinValue($modal, value) {
+    const normalizedValue = (value || '').toString().replace(/\D/g, '').substring(0, 6);
+    $modal.find('#kiriof-pin-input').val(normalizedValue);
+    $modal.find('#kiriof-pin-fallback').val(normalizedValue);
+    $modal.find('#kiriof-pin-widget').attr('value', normalizedValue);
+    }
+
+    function kjGetPinValue($modal) {
+    return ($modal.find('#kiriof-pin-input').val() || '').toString();
+    }
+
+    function kjResetPinRetryState($modal) {
+    const timer = $modal.data('kiriofPinCooldownTimer');
+    if (timer) {
+    clearInterval(timer);
+    }
+    $modal.data('kiriofPinAttempts', 0);
+    $modal.data('kiriofPinMaxAttempts', 3);
+    $modal.data('kiriofPinLockUntil', '');
+    $modal.data('kiriofPinCooldownTimer', null);
+    }
+
+    function kjNormalizePinErrorData($modal, data) {
+    const normalized = Object.assign({}, data || {});
+    const error = normalized.error || '';
+    const maxAttempts = Math.max(parseInt(normalized.max_attempt || $modal.data('kiriofPinMaxAttempts') || 3, 10) || 3, 1);
+    const localAttempts = parseInt($modal.data('kiriofPinAttempts') || 0, 10) || 0;
+    let attempts = parseInt(normalized.attempt || 0, 10) || 0;
+
+    if ('PIN_INVALID' === error || normalized.valid === false) {
+    attempts = Math.max(attempts, localAttempts + 1);
+    }
+
+    if ('PIN_MAX_ATTEMPT_REACHED' === error) {
+    attempts = Math.max(attempts, maxAttempts);
+    }
+
+    normalized.attempt = Math.min(attempts, maxAttempts);
+    normalized.max_attempt = maxAttempts;
+
+    let lockUntil = normalized.lock_until || '';
+    if (!lockUntil && normalized.attempt >= maxAttempts) {
+    lockUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    normalized.error = 'PIN_MAX_ATTEMPT_REACHED';
+    }
+
+    normalized.lock_until = lockUntil;
+    $modal.data('kiriofPinAttempts', normalized.attempt);
+    $modal.data('kiriofPinMaxAttempts', normalized.max_attempt);
+    $modal.data('kiriofPinLockUntil', lockUntil);
+
+    return normalized;
     }
 
     window.kjRequestPickupSchedule = function() {
@@ -746,6 +834,7 @@ if (page >= 1 && page <= max) {
         });
 
         const $modal = kiriofGetRequestPickupModal();
+        kjResetPinRetryState($modal);
         kiriofSetModalState($modal, 'loading');
         $modal.find('#btn-next').prop('disabled', true);
 
@@ -795,7 +884,9 @@ if (page >= 1 && page <= max) {
                 });
 
                 kiriofSetModalState($modal, 'content');
-                $modal.find('#btn-next').prop('disabled', schedules.length === 0);
+                $modal.data('kiriofPaymentConfigLoaded', false);
+                $modal.data('kiriofPaymentRequired', true);
+                $modal.find('#btn-next').prop('disabled', true);
                 if (schedules.length === 0) {
                     $modal.find('.err_msg').text('*<?php echo esc_js(__('No pickup schedule is available.', 'kiriminaja-official')); ?>').show();
                 }
@@ -824,10 +915,15 @@ if (page >= 1 && page <= max) {
 
                 if (isTop) {
                     $modal.find('.kiriof-payment-method-section').hide();
+                    $modal.data('kiriofPaymentConfigLoaded', true);
+                    $modal.data('kiriofPaymentRequired', false);
+                    kjUpdatePickupButton($modal);
                     return;
                 }
 
                 $modal.find('.kiriof-payment-method-section').show();
+                $modal.data('kiriofPaymentConfigLoaded', true);
+                $modal.data('kiriofPaymentRequired', true);
 
                 const $creditOpt = $modal.find('.kiriof-payment-method-option[data-method="credit"]');
                 const $creditWarning = $modal.find('.kiriof-pm-credit-warning');
@@ -865,26 +961,50 @@ if (page >= 1 && page <= max) {
                             $modal.find('.kiriof-payment-method-option[data-method="qris"]').addClass('kiriof-pm-disabled');
                             $modal.find('#kiriof-pm-qris').prop('disabled', true);
                         }
+
+                        kjUpdatePickupButton($modal);
                     }
                 });
+
+                kjUpdatePickupButton($modal);
             }
         });
 
         $modal.on('change', 'input[name="payment_method"]', function() {
             const method = $(this).val();
-            const $pinSection = $modal.find('.kiriof-pin-section');
-            if (method === 'credit') {
-                $pinSection.show();
-                $modal.find('#kiriof-pin-input').focus();
-            } else {
-                $pinSection.hide();
+            $modal.data('kiriofSelectedPaymentMethod', method || '');
+            if (method !== 'credit') {
+                kjSetPinValue($modal, '');
+                kjResetPinRetryState($modal);
+                $modal.find('#kiriof-pin-widget').removeAttr('invalid');
                 $modal.find('.kiriof-pin-error').hide().text('');
             }
             kjUpdatePickupButton($modal);
         });
 
-        $modal.on('input', '#kiriof-pin-input', function() {
-            $(this).val($(this).val().replace(/\D/g, '').substring(0, 6));
+        $modal.on('click', '.kiriof-payment-method-option', function(event) {
+            if ($(this).hasClass('kiriof-pm-disabled') || $(event.target).is('a')) {
+                return;
+            }
+
+            const $input = $(this).find('input[name="payment_method"]:not(:disabled)');
+            if ($input.length) {
+                $input.prop('checked', true).trigger('change');
+            }
+        });
+
+        $modal.on('pin-change pin-complete', '#kiriof-pin-widget', function(event) {
+            const value = (event.originalEvent?.detail?.value || '').replace(/\D/g, '').substring(0, 6);
+            kjSetPinValue($modal, value);
+            $(this).removeAttr('invalid');
+            $modal.find('.kiriof-pin-error').hide().text('');
+            kjUpdatePickupButton($modal);
+        });
+
+        $modal.on('input', '#kiriof-pin-fallback', function() {
+            kjSetPinValue($modal, $(this).val());
+            $modal.find('#kiriof-pin-widget').removeAttr('invalid');
+            $modal.find('.kiriof-pin-error').hide().text('');
             kjUpdatePickupButton($modal);
         });
 
@@ -913,20 +1033,91 @@ if (page >= 1 && page <= max) {
     };
 
     function kjUpdatePickupButton($modal) {
-        const method = $modal.find('input[name="payment_method"]:checked').val();
+        const step = $modal.data('kiriofStep') || 'content';
+        const paymentConfigLoaded = $modal.data('kiriofPaymentConfigLoaded') === true;
+        const paymentRequired = $modal.data('kiriofPaymentRequired') === true;
+        const method = $modal.find('input[name="payment_method"]:checked:not(:disabled)').val();
         const scheduleSelected = !!$modal.find('select[name="schedule_opt"]').val();
-        const pmSectionVisible = $modal.find('.kiriof-payment-method-section').is(':visible');
-        const pin = $modal.find('#kiriof-pin-input').val();
+        const pin = kjGetPinValue($modal);
 
-        let enabled = scheduleSelected;
-        if (pmSectionVisible) {
+        if (step === 'pin') {
+            $modal.find('#btn-next').text(kjValidateLabel).prop('disabled', !pin || pin.length !== 6);
+            return;
+        }
+
+        let enabled = scheduleSelected && paymentConfigLoaded;
+        if (paymentRequired) {
             if (!method) {
-                enabled = false;
-            } else if (method === 'credit' && (!pin || pin.length !== 6)) {
                 enabled = false;
             }
         }
-        $modal.find('#btn-next').prop('disabled', !enabled);
+        $modal.find('#btn-next').text(method === 'credit' ? kjConfirmPinLabel : kjPickScheduleLabel).prop('disabled', !enabled);
+    }
+
+    function kjFormatPinLockCountdown(lockUntil) {
+        if (!lockUntil) {
+            return '';
+        }
+
+        const remainingSeconds = Math.max(0, Math.floor((new Date(lockUntil).getTime() - Date.now()) / 1000));
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        return `${minutes}m ${seconds}s`;
+    }
+
+    function kjRenderPinLockError($modal, lockUntil, message) {
+        const cooldown = kjFormatPinLockCountdown(lockUntil);
+        const description = cooldown
+            ? `<?php echo esc_js(__('You have entered the wrong code three times. Please wait', 'kiriminaja-official')); ?> <span class="kiriof-pin-cooldown">${cooldown}</span> <?php echo esc_js(__('to try again.', 'kiriminaja-official')); ?>`
+            : (message || '<?php echo esc_js(__('You have entered the wrong code too many times. Please try again later.', 'kiriminaja-official')); ?>');
+
+        $modal.find('.kiriof-pin-error').attr('data-tone', 'critical').html('<strong><?php echo esc_js(__('Too Many Attempts', 'kiriminaja-official')); ?></strong><br>' + description).show();
+    }
+
+    function kjStartPinCooldown($modal, lockUntil, message) {
+        const existingTimer = $modal.data('kiriofPinCooldownTimer');
+        if (existingTimer) {
+            clearInterval(existingTimer);
+        }
+
+        $modal.find('#kiriof-pin-widget, #kiriof-pin-fallback').hide();
+        $modal.find('#btn-next').text('<?php echo esc_js(__('Back', 'kiriminaja-official')); ?>').prop('disabled', false);
+        kjRenderPinLockError($modal, lockUntil, message);
+
+        const timer = setInterval(function() {
+            const remainingSeconds = Math.max(0, Math.floor((new Date(lockUntil).getTime() - Date.now()) / 1000));
+            if (remainingSeconds <= 0) {
+                clearInterval(timer);
+                kjResetPinRetryState($modal);
+                $modal.find('.kiriof-pin-error').hide().text('').removeAttr('data-tone');
+                kjFocusPinInput($modal);
+                kjUpdatePickupButton($modal);
+                return;
+            }
+            kjRenderPinLockError($modal, lockUntil, message);
+        }, 1000);
+
+        $modal.data('kiriofPinCooldownTimer', timer);
+    }
+
+    function kjShowPinError($modal, data, message) {
+        const normalizedData = kjNormalizePinErrorData($modal, data);
+        const error = normalizedData?.error || '';
+        if (error === 'PIN_MAX_ATTEMPT_REACHED') {
+            kjStartPinCooldown($modal, normalizedData?.lock_until, message);
+            $modal.find('#kiriof-pin-widget').attr('invalid', '');
+            return;
+        }
+
+        const attempt = parseInt(normalizedData?.attempt || 0, 10);
+        const maxAttempt = parseInt(normalizedData?.max_attempt || 0, 10);
+        const remaining = Math.max(0, maxAttempt - attempt);
+        const retryText = attempt > 0 && maxAttempt > 0
+            ? '<div class="kiriof-pin-retry-text"><?php echo esc_js(__('You still have', 'kiriminaja-official')); ?> <strong>' + remaining + '</strong> <?php echo esc_js(__('chances to enter the PIN.', 'kiriminaja-official')); ?></div>'
+            : '';
+
+        $modal.find('.kiriof-pin-error').attr('data-tone', 'critical').html('<strong><?php echo esc_js(__('Incorrect PIN', 'kiriminaja-official')); ?></strong><br>' + (message || '<?php echo esc_js(__('Please check the PIN code you entered again.', 'kiriminaja-official')); ?>') + retryText).show();
+        $modal.find('#kiriof-pin-widget').attr('invalid', '');
     }
 
     function kjSubmitPickup($modal, ids, schedule, paymentMethod, pin, closeModal) {
@@ -947,18 +1138,18 @@ if (page >= 1 && page <= max) {
             complete: function(response) {
                 const resp = JSON.parse(response.responseText).data;
                 if (resp?.status !== 200) {
-                    kiriofSetModalState($modal, 'content');
-                    $modal.find('#btn-next').prop('disabled', false);
-
                     const errCode = resp?.data?.error_code;
                     if (errCode === 'BALANCE_NOT_ENOUGH') {
+                        kiriofSetModalState($modal, 'content');
                         $errMsg.text('*<?php echo esc_js(__('Insufficient credit balance. Please top up or use QRIS.', 'kiriminaja-official')); ?>').show();
                     } else if (errCode === 'PIN_INVALID' || errCode === 'PIN_MAX_ATTEMPT_REACHED') {
-                        $modal.find('.kiriof-pin-error').text('*' + (resp?.message || errCode)).show();
-                        $errMsg.text('*' + (resp?.message || errCode)).show();
+                        kiriofSetModalState($modal, 'pin');
+                        kjShowPinError($modal, resp?.data || {}, resp?.message || errCode);
                     } else {
+                        kiriofSetModalState($modal, 'content');
                         $errMsg.text('*' + (resp?.message || '<?php echo esc_js(__('Something went wrong.', 'kiriminaja-official')); ?>')).show();
                     }
+                    kjUpdatePickupButton($modal);
                     return;
                 }
 
@@ -989,23 +1180,36 @@ if (page >= 1 && page <= max) {
         if (target === 'kiriof-modal-request-pickup') {
             const $modal = kiriofGetRequestPickupModal();
             const $errMsg = $modal.find('.err_msg');
+            const step = $modal.data('kiriofStep') || 'content';
             const schedule = data?.schedule_opt;
-            const pmSectionVisible = $modal.find('.kiriof-payment-method-section').is(':visible');
-            const paymentMethod = pmSectionVisible ? ($modal.find('input[name="payment_method"]:checked').val() || '') : '';
-            const pin = $modal.find('#kiriof-pin-input').val() || '';
+            const paymentMethod = $modal.find('input[name="payment_method"]:checked').val() || $modal.data('kiriofSelectedPaymentMethod') || '';
+            const pin = kjGetPinValue($modal);
 
             if (!schedule) {
                 $errMsg.text('*<?php echo esc_js(__('Please select a pickup schedule.', 'kiriminaja-official')); ?>').show();
                 return;
             }
 
-            if (pmSectionVisible && !paymentMethod) {
+            if ($modal.data('kiriofPaymentRequired') === true && !paymentMethod) {
                 $errMsg.text('*<?php echo esc_js(__('Please select a payment method.', 'kiriminaja-official')); ?>').show();
+                return;
+            }
+
+            if (paymentMethod === 'credit' && step !== 'pin') {
+                kiriofSetModalState($modal, 'pin');
+                kjUpdatePickupButton($modal);
+                return;
+            }
+
+            if (paymentMethod === 'credit' && step === 'pin' && $modal.data('kiriofPinLockUntil')) {
+                kiriofSetModalState($modal, 'content');
+                kjUpdatePickupButton($modal);
                 return;
             }
 
             if (paymentMethod === 'credit' && (!pin || pin.length !== 6)) {
                 $modal.find('.kiriof-pin-error').text('*<?php echo esc_js(__('Please enter a 6-digit PIN.', 'kiriminaja-official')); ?>').show();
+                kjUpdatePickupButton($modal);
                 return;
             }
 
@@ -1026,18 +1230,18 @@ if (page >= 1 && page <= max) {
                     complete: function(pinResp) {
                         const pinData = JSON.parse(pinResp.responseText).data;
                         if (pinData?.status !== 200) {
-                            kiriofSetModalState($modal, 'content');
-                            $modal.find('#btn-next').prop('disabled', false);
+                            kiriofSetModalState($modal, 'pin');
                             const pinErr = pinData?.data;
                             if (pinErr?.error === 'PIN_MAX_ATTEMPT_REACHED') {
-                                $modal.find('.kiriof-pin-error').text('*' + (pinData?.message || '<?php echo esc_js(__('PIN max attempts reached. Please try again later.', 'kiriminaja-official')); ?>')).show();
+                                kjShowPinError($modal, pinErr || {}, pinData?.message || '<?php echo esc_js(__('PIN max attempts reached. Please try again later.', 'kiriminaja-official')); ?>');
                                 $modal.find('#kiriof-pm-credit').prop('disabled', true);
                             } else {
-                                const remaining = (pinErr?.max_attempt ?? 3) - (pinErr?.attempt ?? 0);
-                                $modal.find('.kiriof-pin-error').text('*' + (pinData?.message || '<?php echo esc_js(__('Incorrect PIN.', 'kiriminaja-official')); ?>') + ' ' + remaining + ' <?php echo esc_js(__('chances remaining.', 'kiriminaja-official')); ?>').show();
+                                kjShowPinError($modal, pinErr || {}, pinData?.message || '<?php echo esc_js(__('Incorrect PIN.', 'kiriminaja-official')); ?>');
                             }
+                            kjUpdatePickupButton($modal);
                             return;
                         }
+                        kjResetPinRetryState($modal);
                         kjSubmitPickup($modal, orderIds, schedule, paymentMethod, pin, closeModal);
                     }
                 });

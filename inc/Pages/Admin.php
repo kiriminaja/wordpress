@@ -199,11 +199,11 @@ class Admin extends BaseInit{
 
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
                 if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], __( 'Transactions', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
                 if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], __( 'Payments', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
             }

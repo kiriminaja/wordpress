@@ -82,6 +82,15 @@ class TransactionProcessController
                 ? sanitize_text_field(wp_unslash($_POST['data']['pin']))
                 : ''
             );
+
+            if ($payment_method === 'credit') {
+                $pinValidation = (new ValidatePinService())->pin($pin)->call();
+                if ($pinValidation->status !== 200 || empty($pinValidation->data['valid'])) {
+                    wp_send_json_success($pinValidation);
+                    return;
+                }
+            }
+
             $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService())
                 ->orderIds($order_ids)
                 ->schedule($schedule)
@@ -678,12 +687,6 @@ class TransactionProcessController
                                             </div>
                                         </div>
 
-                                        <div class="kiriof-pin-section" style="display:none;">
-                                            <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Enter PIN', 'kiriminaja-official'); ?></h2>
-                                            <p style="font-size:12px;color:#50575e;margin:0 0 8px;"><?php esc_html_e('Enter the 6-digit PIN that was set on your profile page.', 'kiriminaja-official'); ?></p>
-                                            <input type="password" id="kiriof-pin-input" class="kiriof-pin-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="off" style="width:120px;font-size:20px;letter-spacing:8px;text-align:center;">
-                                            <p class="kiriof-pin-error err_msg" style="display:none;"></p>
-                                        </div>
                                     </div>
 
                                     <div class="kiriof-backbone-section">
@@ -694,6 +697,17 @@ class TransactionProcessController
                                     </div>
 
                                     <p class="kiriof-backbone-inline-error err_msg" style="display:none;"></p>
+                                </div>
+
+                                <div class="kiriof-modal-state kiriof-modal-state-pin" style="display:none;">
+                                    <div class="kiriof-backbone-section kiriof-pin-section">
+                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Enter PIN', 'kiriminaja-official'); ?></h2>
+                                        <p style="font-size:12px;color:#50575e;margin:0 0 8px;"><?php esc_html_e('Enter the 6-digit PIN that was set on your profile page.', 'kiriminaja-official'); ?></p>
+                                        <pin-input id="kiriof-pin-widget" class="kiriof-pin-widget" length="6" pattern="[0-9]" autocomplete="one-time-code" inputmode="numeric" mask aria-label="<?php esc_attr_e('Enter 6-digit PIN', 'kiriminaja-official'); ?>"></pin-input>
+                                        <input type="password" id="kiriof-pin-fallback" class="kiriof-pin-fallback" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="one-time-code" style="display:none;">
+                                        <input type="hidden" id="kiriof-pin-input" name="pin" value="">
+                                        <p class="kiriof-pin-error err_msg" style="display:none;"></p>
+                                    </div>
                                 </div>
                             </form>
                         </article>

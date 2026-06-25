@@ -237,20 +237,20 @@ class SendRequestPickupTransactionService extends BaseService
             $value = $transaction->$field ?? null;
 
             if ($value !== null && (float) $value > 0) {
-                $payload[$field] = $value;
+                $payload[$field] = (int) round((float) $value);
             }
         }
 
         if ($discountAmount > 0) {
             if ($discountPercentage !== null && (float) $discountPercentage > 0) {
-                $payload['discount_percentage'] = $discountPercentage;
+                $payload['discount_percentage'] = (float) $discountPercentage;
             } elseif ($shippingCost > 0) {
-                $payload['discount_percentage'] = round(($discountAmount / $shippingCost) * 100, 2);
+                $payload['discount_percentage'] = (float) round(($discountAmount / $shippingCost) * 100, 2);
             } else {
-                $payload['discount_percentage'] = 0;
+                $payload['discount_percentage'] = 0.0;
             }
         } elseif ($discountPercentage !== null && (float) $discountPercentage > 0) {
-            $payload['discount_percentage'] = $discountPercentage;
+            $payload['discount_percentage'] = (float) $discountPercentage;
         }
 
         $description = trim((string) ($transaction->woocommerce_discount_description ?? ''));
@@ -302,7 +302,7 @@ class SendRequestPickupTransactionService extends BaseService
         $payload = [
             "address"       => $getOriginData['origin_address'] ?? '',
             "phone"         => $getOriginData['origin_phone'] ?? '',
-            "kelurahan_id"  => $getOriginData['origin_sub_district_id'] ?? '',
+            "kelurahan_id"  => (int) ($getOriginData['origin_sub_district_id'] ?? 0),
             "packages"      => $apiPackages,
             "name"          => $this->sanitizeApiName($getOriginData['origin_name'] ?? ''),
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
@@ -316,8 +316,8 @@ class SendRequestPickupTransactionService extends BaseService
          **/
         $firstService = $getPackageData[0]['service'] ?? '';
         if (in_array($firstService, ['lion', 'posindonesia'], true)) {
-            $payload['latitude'] = $getOriginData['origin_latitude'] ?? '';
-            $payload['longitude'] = $getOriginData['origin_longitude'] ?? '';
+            $payload['latitude'] = (float) ($getOriginData['origin_latitude'] ?? 0);
+            $payload['longitude'] = (float) ($getOriginData['origin_longitude'] ?? 0);
         }
 
         if (!empty($this->paymentMethod)) {
@@ -478,13 +478,13 @@ class SendRequestPickupTransactionService extends BaseService
                 if ($product) {
                     $weight = $weightConverter->toGram($product->get_weight());
                     $itemsPayload[] = [
-                        "qty" => $item->get_quantity(),
-                        "weight" => $weight,
-                        "length" => $product->get_length() ?: 0,
-                        "width" => $product->get_width() ?: 0,
-                        "height" => $product->get_height() ?: 0,
+                        "qty" => (int) $item->get_quantity(),
+                        "weight" => (int) $helper->minAmount($weight),
+                        "length" => (int) $helper->minAmount($product->get_length() ?: 0),
+                        "width" => (int) $helper->minAmount($product->get_width() ?: 0),
+                        "height" => (int) $helper->minAmount($product->get_height() ?: 0),
                         "name" => $itemName,
-                        "price" => $product->get_price() ?: 0,
+                        "price" => (int) round((float) ($product->get_price() ?: 0)),
                     ];
                 }
             }
@@ -508,26 +508,26 @@ class SendRequestPickupTransactionService extends BaseService
                 "destination_name"          => $destinationData['name'],
                 "destination_phone"         => $destinationData['phone'],
                 "destination_address"       => $destinationData['address'],
-                "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
+                "destination_kelurahan_id"  => (int) ($transaction->destination_sub_district_id ?? 0),
                 "destination_zipcode"       => $destinationData['zipcode'],
-                "weight"                    => $helper->minAmount($transaction->weight),
-                "width"                     => $helper->minAmount($transaction->width),
-                "height"                    => $helper->minAmount($transaction->height),
-                "length"                    => $helper->minAmount($transaction->length),
-                "item_value"                => $transaction->transaction_value,
-                "insurance_amount"          => $transaction->insurance_cost,
-                "shipping_cost"             => $transaction->shipping_cost,
+                "weight"                    => (int) $helper->minAmount($transaction->weight),
+                "width"                     => (int) $helper->minAmount($transaction->width),
+                "height"                    => (int) $helper->minAmount($transaction->height),
+                "length"                    => (int) $helper->minAmount($transaction->length),
+                "item_value"                => (int) round((float) ($transaction->transaction_value ?? 0)),
+                "insurance_amount"          => (int) round((float) ($transaction->insurance_cost ?? 0)),
+                "shipping_cost"             => (int) round((float) ($transaction->shipping_cost ?? 0)),
                 "service"                   => $transaction->service,
                 "service_type"              => $transaction->service_name,
                 "item_name"                 => $combinedItemNames,
                 "note"                      => $note,
                 "package_type_id"           => 7,
-                "cod" => $transaction->cod_fee > 0 ? 
+                "cod" => (int) round($transaction->cod_fee > 0 ?
                     ($transaction->transaction_value +
                     $transaction->shipping_cost -
                     $transaction->discount_amount +
                     $transaction->insurance_cost +
-                    $transaction->cod_fee) : 0,
+                    $transaction->cod_fee) : 0),
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
                 "destination_summary" => $destinationData['summary'],

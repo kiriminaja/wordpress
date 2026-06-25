@@ -889,6 +889,7 @@ button.select2-selection__clear {
   border-radius: 6px;
   padding: 12px;
   cursor: pointer;
+  user-select: none;
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -914,6 +915,7 @@ button.select2-selection__clear {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  width: 100%;
 }
 
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-payment-method-radio input {
@@ -924,6 +926,8 @@ button.select2-selection__clear {
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  flex: 1;
+  min-width: 0;
 }
 
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-payment-method-radio label span {
@@ -945,17 +949,96 @@ button.select2-selection__clear {
 }
 
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-section {
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
-.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-input:focus {
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-fallback {
+  display: block;
+  width: 148px;
+  margin: 18px auto 0;
+  font-size: 18px;
+  letter-spacing: 7px;
+  text-align: center;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-fallback:focus {
   border-color: #2271b1;
   box-shadow: 0 0 0 1px #2271b1;
   outline: none;
 }
 
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(wrapper) {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(slot) {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 8px;
+  color: #1d2327;
+  display: flex;
+  font-size: 18px;
+  font-weight: 600;
+  height: 42px;
+  justify-content: center;
+  width: 36px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(slot active) {
+  border-color: #2271b1;
+  box-shadow: 0 0 0 1px #2271b1;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(slot filled) {
+  border-color: #8c8f94;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(slot error) {
+  border-color: #d63638;
+  box-shadow: 0 0 0 1px #d63638;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(cursor) {
+  animation: kiriof-pin-cursor 1s step-end infinite;
+  background: #2271b1;
+  height: 20px;
+  width: 2px;
+}
+
+@keyframes kiriof-pin-cursor {
+  50% {
+    opacity: 0;
+  }
+}
+
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-error {
+  background: #fcf0f1;
+  border-left: 4px solid #d63638;
+  border-radius: 0 6px 6px 0;
+  color: #1d2327;
+  font-size: 13px;
+  margin: 18px 0 0;
+  padding: 10px 12px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-error strong {
   color: #d63638;
-  font-size: 12px;
-  margin: 6px 0 0;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-retry-text {
+  color: #50575e;
+  margin-top: 6px;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-cooldown {
+  font-weight: 600;
 }
