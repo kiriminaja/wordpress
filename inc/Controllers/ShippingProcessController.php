@@ -50,6 +50,21 @@ class ShippingProcessController
         return array_values( $order_ids );
     }
 
+    private function buildResiPrintErrorRedirectUrl( $message = '' )
+    {
+        $url = admin_url( 'admin.php?page=kiriminaja-request-pickup' );
+        if ( '' !== $message ) {
+            $url = add_query_arg( 'kiriof_print_error', rawurlencode( $message ), $url );
+        }
+        return $url;
+    }
+
+    private function redirectResiPrintFailure( $message = '' )
+    {
+        wp_safe_redirect( $this->buildResiPrintErrorRedirectUrl( $message ) );
+        exit;
+    }
+
     public function handleResiPrintAdminPost()
     {
         // Verify nonce before accessing request data.
@@ -57,8 +72,7 @@ class ShippingProcessController
             $this->logResiPrintFailure( 'invalid_nonce', array(
                 'has_nonce' => isset( $_REQUEST['_wpnonce'] ),
             ) );
-            wp_safe_redirect( home_url( '/404' ) );
-            exit;
+            $this->redirectResiPrintFailure( __( 'Unable to print resi because the request is not authorized.', 'kiriminaja-official' ) );
         }
 
         $_REQUEST['_kiriof_resi_print_nonce_checked'] = '1';
@@ -78,8 +92,7 @@ class ShippingProcessController
             $this->logResiPrintFailure( 'invalid_bulk_nonce', array(
                 'has_nonce' => isset( $_POST['_wpnonce'] ),
             ) );
-            wp_safe_redirect( home_url( '/404' ) );
-            exit;
+            $this->redirectResiPrintFailure( __( 'Unable to print resi because the request is not authorized.', 'kiriminaja-official' ) );
         }
 
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitizeResiPrintOrderIds
@@ -152,14 +165,12 @@ class ShippingProcessController
                 'is_logged_in' => is_user_logged_in(),
                 'user_id'      => get_current_user_id(),
             ) );
-            wp_safe_redirect( home_url( '/404' ) );
-            exit;
+            $this->redirectResiPrintFailure( __( 'Unable to print resi because the request is not authorized.', 'kiriminaja-official' ) );
         }
 
         if ( count( $orderIds ) < 1 ) {
             $this->logResiPrintFailure( 'empty_order_ids' );
-            wp_safe_redirect(home_url('/404'));
-            exit;
+            $this->redirectResiPrintFailure( __( 'Unable to print resi because no order was selected.', 'kiriminaja-official' ) );
         }
 
         $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
@@ -167,8 +178,7 @@ class ShippingProcessController
             $this->logResiPrintFailure( 'transactions_not_found', array(
                 'order_ids' => $orderIds,
             ) );
-            wp_safe_redirect(home_url('/404'));
-            exit;
+            $this->redirectResiPrintFailure( __( 'Unable to print resi because the shipment record was not found.', 'kiriminaja-official' ) );
         }
 
         $awbs = [];
@@ -195,8 +205,7 @@ class ShippingProcessController
                     $transactions
                 ) ),
             ) );
-            wp_safe_redirect(home_url('/404'));
-            exit;
+            $this->redirectResiPrintFailure( __( 'Unable to print resi because the shipment does not have an AWB yet.', 'kiriminaja-official' ) );
         }
 
         if (count($awbs) == 1) {
@@ -205,6 +214,7 @@ class ShippingProcessController
         $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
         $printAwbUrl = $this->resolvePrintAwbUrl( $getAwbData );
         if ( '' === $printAwbUrl ) {
+            $apiMessage = is_scalar( $getAwbData['data'] ?? null ) ? trim( (string) $getAwbData['data'] ) : '';
             $this->logResiPrintFailure( 'print_awb_url_missing', array(
                 'order_ids'     => $orderIds,
                 'awbs'          => $awbs,
@@ -213,8 +223,7 @@ class ShippingProcessController
                 'api_attempts'  => $getAwbData['attempts'] ?? array(),
                 'response_type' => is_object( $getAwbData['data'] ?? null ) ? get_class( $getAwbData['data'] ) : gettype( $getAwbData['data'] ?? null ),
             ) );
-            wp_safe_redirect(home_url('/404'));
-            exit;
+            $this->redirectResiPrintFailure( $apiMessage !== '' ? sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $apiMessage ) : __( 'Unable to print resi because the AWB print URL was not returned by KiriminAja.', 'kiriminaja-official' ) );
         }
         $this->markTransactionsPrinted( $printedOrderIds );
 
@@ -309,8 +318,7 @@ class ShippingProcessController
                 $this->logResiPrintFailure( 'invalid_nonce_direct', array(
                     'has_nonce' => '' !== $kiriof_nonce,
                 ) );
-                wp_safe_redirect( home_url( '/404' ) );
-                exit;
+                $this->redirectResiPrintFailure( __( 'Unable to print resi because the security token is invalid.', 'kiriminaja-official' ) );
             }
             // Keep raw oids as string/array and normalize in one place so
             // admin_post pre-processing (array) and direct requests (string)
@@ -323,8 +331,7 @@ class ShippingProcessController
             $this->logResiPrintFailure( 'exception', array(
                 'message' => $e->getMessage(),
             ) );
-            wp_safe_redirect(home_url('/404'));
-            exit;
+            $this->redirectResiPrintFailure( sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $e->getMessage() ) );
         }
     }
 }

@@ -225,6 +225,10 @@ class TransactionProcessController
             $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
             if (! empty($profile->data)) {
                 $hasPin = (bool) ($profile->data->metadata->has_pin ?? false);
+                $profilePaymentMethod = strtoupper((string) ($profile->data->metadata->payment_method ?? ''));
+                if ($profilePaymentMethod !== '') {
+                    $isTop = $profilePaymentMethod === 'TOP';
+                }
             }
         } catch (\Throwable $th) {
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('getPaymentMethodConfig profile error', [$th->getMessage()]);

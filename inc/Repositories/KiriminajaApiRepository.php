@@ -187,18 +187,11 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         );
         $payloads = array_values( array_unique( $payloads, SORT_REGULAR ) );
         foreach ( $payloads as $attempt => $payload ) {
-            $previousBaseUrl = $this->base_url;
-            // Match the known-good print flow before API base URL overrides were introduced.
-            $this->base_url = 'https://client.kiriminaja.com';
-            try {
-                $response = $this->post('/api/mitra/v6.1/awb/print', $payload, array(
-                    'source'    => 'kiriminaja_shipping',
-                    'operation' => 'get_print_awb',
-                    'attempt'   => $attempt + 1,
-                ));
-            } finally {
-                $this->base_url = $previousBaseUrl;
-            }
+            $response = $this->post('/api/mitra/v6.1/awb/print', $payload, array(
+                'source'    => 'kiriminaja_shipping',
+                'operation' => 'get_print_awb',
+                'attempt'   => $attempt + 1,
+            ));
             $attempts[] = array(
                 'payload_keys'  => array_keys( $payload ),
                 'payload_shape' => is_array( reset( $payload ) ) ? 'array' : 'scalar',

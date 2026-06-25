@@ -21,6 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <?php $kiriof_title = __('Payments','kiriminaja-official'); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
+    <?php
+    $kiriof_print_error = isset( $_GET['kiriof_print_error'] ) ? sanitize_text_field( wp_unslash( $_GET['kiriof_print_error'] ) ) : '';
+    if ( '' !== $kiriof_print_error ) :
+        ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $kiriof_print_error ); ?></p></div>
+    <?php endif; ?>
 
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
@@ -444,13 +450,10 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     return
                 }
                 
-                /** cek jika payment sudah dibayar tampilkan detail (if available) */
-                if (
-                    resp?.data?.payment_in_wc_data?.status === "paid" &&
-                    typeof showDetail === "function"
-                ){
+                /** cek jika payment sudah dibayar lalu reload list supaya status ikut berubah */
+                if (resp?.data?.payment_in_wc_data?.status === "paid"){
                     modalElem.addClass('kj-hidden')
-                    showDetail(showPaymentFormPaymentId)
+                    window.location.reload()
                     return
                 }
                 

@@ -31,6 +31,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     include KIRIOF_DIR . 'templates/_header.php';
     ?>
     <hr class="wp-header-end">
+    <?php
+    $kiriof_print_error = isset( $_GET['kiriof_print_error'] ) ? sanitize_text_field( wp_unslash( $_GET['kiriof_print_error'] ) ) : '';
+    if ( '' !== $kiriof_print_error ) :
+        ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $kiriof_print_error ); ?></p></div>
+    <?php endif; ?>
 
                                 <div style="margin-bottom: .75rem;">
 

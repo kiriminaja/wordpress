@@ -30,10 +30,27 @@ class GetShippingProcessPayment extends BaseService{
         ]);
         if (!$getKiriofPayment['status']){ return  self::error([],@$getKiriofPayment['data'] ?? 'Terjadi Kesalahan');}
         
-        $getPayment = (new \KiriminAjaOfficial\Repositories\PaymentRepository())->getPaymentByPaymentId($this->payment_id);
+        $paymentRepo = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+        $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
+        $remotePayment = @$getKiriofPayment['data']->data;
+        $remoteStatusCode = (int) ($remotePayment->status_code ?? 0);
+        $remotePayTime = (string) ($remotePayment->pay_time ?? '');
+
+        if ($getPayment && ($remoteStatusCode >= 100 || $remotePayTime !== '') && ($getPayment->status ?? '') !== 'paid') {
+            $paymentRepo->updatePaymentByCallback([
+                'changes' => [
+                    'status' => 'paid',
+                ],
+                'condition' => [
+                    'pickup_number' => $this->payment_id,
+                ],
+            ]);
+            $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
+        }
+
         self::transactionsSummaryProccess();
         return self::success([
-            'payment_data'          =>  @$getKiriofPayment['data']->data,
+            'payment_data'          =>  $remotePayment,
             'payment_in_wc_data'    =>  @$getPayment,
             'count_cod'             =>  @$this->transactionsSummary['count_cod'],
             'sum_fee_cod'           =>  @$this->transactionsSummary['sum_fee_cod'],
