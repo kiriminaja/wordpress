@@ -2859,3 +2859,11 @@ msgstr "kesempatan untuk memasukkan PIN."
 #: templates/transaction-process/view/index.php
 msgid "to try again."
 msgstr "untuk mencoba lagi."
+
+#: templates/transaction-process/view/index.php
+msgid "COD-only pickups do not require a payment method."
+msgstr "Pickup khusus COD tidak memerlukan metode pembayaran."
+
+#: templates/transaction-process/view/index.php
+msgid "TOP merchant uses published rates. Payment method is not required for this pickup."
+msgstr "Merchant TOP menggunakan tarif publish. Metode pembayaran tidak diperlukan untuk pickup ini."

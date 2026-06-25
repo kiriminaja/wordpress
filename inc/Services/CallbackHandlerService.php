@@ -11,7 +11,7 @@ class CallbackHandlerService extends BaseService{
     
     public $header;
     public $body;
-    public array $packages;
+    public array $packages = [];
     public $processing;
     public $transactionPickupNumber;
     private $transactions;
@@ -34,7 +34,9 @@ class CallbackHandlerService extends BaseService{
             return self::error([],'Authorization failed');
         }
         if (isset($this->body->data) && !empty($this->body->data)) {
-            $this->packages = $this->body->data;
+            $this->packages = (array) $this->body->data;
+        } elseif (isset($this->body->packages) && !empty($this->body->packages)) {
+            $this->packages = (array) $this->body->packages;
         }
         $orderIds = $this->getPackageOrderIds();
         if (empty($orderIds)) {

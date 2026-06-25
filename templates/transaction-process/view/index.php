@@ -869,6 +869,7 @@ if (page >= 1 && page <= max) {
                 const transaction_summary = resp?.data?.transaction_summary ?? {};
                 const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
                 const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
+                const count_non_cod = parseInt(transaction_summary?.count_non_cod ?? 0, 10);
                 const total_fee = parseInt(sum_cod_fee || 0, 10) + parseInt(sum_non_cod_fee || 0, 10);
 
                 $modal.find('.kiriof-summary-cod').text(`Rp${kiriofMoneyFormat(transaction_summary?.sum_fee_cod ?? 0)}`);
@@ -886,6 +887,7 @@ if (page >= 1 && page <= max) {
                 kiriofSetModalState($modal, 'content');
                 $modal.data('kiriofPaymentConfigLoaded', false);
                 $modal.data('kiriofPaymentRequired', true);
+                $modal.data('kiriofCountNonCod', count_non_cod);
                 $modal.find('#btn-next').prop('disabled', true);
                 if (schedules.length === 0) {
                     $modal.find('.err_msg').text('*<?php echo esc_js(__('No pickup schedule is available.', 'kiriminaja-official')); ?>').show();
@@ -912,11 +914,25 @@ if (page >= 1 && page <= max) {
 
                 const isTop = resp?.data?.is_top === true;
                 const hasPin = resp?.data?.has_pin === true;
+                const countNonCod = parseInt($modal.data('kiriofCountNonCod') || 0, 10);
+                const $stateBanner = $modal.find('.kiriof-pm-state-banner');
+
+                $stateBanner.hide().text('');
+
+                if (countNonCod <= 0) {
+                    $modal.find('.kiriof-payment-method-section').hide();
+                    $modal.data('kiriofPaymentConfigLoaded', true);
+                    $modal.data('kiriofPaymentRequired', false);
+                    $stateBanner.text('<?php echo esc_js(__('COD-only pickups do not require a payment method.', 'kiriminaja-official')); ?>').show();
+                    kjUpdatePickupButton($modal);
+                    return;
+                }
 
                 if (isTop) {
                     $modal.find('.kiriof-payment-method-section').hide();
                     $modal.data('kiriofPaymentConfigLoaded', true);
                     $modal.data('kiriofPaymentRequired', false);
+                    $stateBanner.text('<?php echo esc_js(__('TOP merchant uses published rates. Payment method is not required for this pickup.', 'kiriminaja-official')); ?>').show();
                     kjUpdatePickupButton($modal);
                     return;
                 }

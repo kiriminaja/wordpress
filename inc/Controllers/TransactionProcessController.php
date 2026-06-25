@@ -663,6 +663,8 @@ class TransactionProcessController
                                         </div>
                                     </div>
 
+                                    <div class="kiriof-pm-warning kiriof-pm-state-banner" style="display:none;"></div>
+
                                     <div class="kiriof-backbone-section kiriof-payment-method-section" style="display:none;">
                                         <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Payment Method', 'kiriminaja-official'); ?> <span class="required">*</span></h2>
                                         <div class="kiriof-payment-methods">
