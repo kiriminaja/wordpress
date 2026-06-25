@@ -108,11 +108,29 @@ class CallbackHandlerService extends BaseService{
     }
     
     private function headerValidation(){
-        $authorization = @$this->header['Authorization'] ?? '';
-        $authorizationExploded = explode(' ',$authorization);
-        $authorizationToken = @$authorizationExploded[1] ?? '$authorizationToken';
-        $token = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? 'noToken';
-        return $authorizationToken === $token;
+        $authorization = '';
+        foreach ((array) $this->header as $key => $value) {
+            if (strtolower((string) $key) === 'authorization') {
+                $authorization = trim((string) $value);
+                break;
+            }
+        }
+
+        if ($authorization === '') {
+            return false;
+        }
+
+        if (stripos($authorization, 'Bearer ') === 0) {
+            $authorization = trim(substr($authorization, 7));
+        }
+
+        $token = trim((string) ((new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? ''));
+
+        if ($authorization === '' || $token === '') {
+            return false;
+        }
+
+        return hash_equals($token, $authorization);
     }
     
     public function returnFinishedPackages(){
@@ -166,10 +184,21 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+            $paymentRepository = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+            $paymentRecord = $paymentRepository->getPaymentByPaymentId($this->transactionPickupNumber);
+            $paymentMethod = strtolower((string) ($paymentRecord->method ?? ''));
+            $paymentPayload = is_object($this->body) && isset($this->body->payment) ? $this->body->payment : null;
+            $paymentStatusCode = (int) ($paymentPayload->status_code ?? 0);
+            $paymentPayTime = (string) ($paymentPayload->pay_time ?? '');
+            $resolvedPaymentStatus = 'paid';
+
+            if ($paymentMethod === 'qris') {
+                $resolvedPaymentStatus = ($paymentStatusCode >= 100 || $paymentPayTime !== '') ? 'paid' : 'unpaid';
+            }
             /** Update Payment Status*/
-            (new \KiriminAjaOfficial\Repositories\PaymentRepository())->updatePaymentByCallback([
+            $paymentRepository->updatePaymentByCallback([
                 'changes'=>[
-                    'status'=>'paid'
+                    'status'=>$resolvedPaymentStatus
                 ],
                 'condition'=>[
                     'pickup_number'=>$this->transactionPickupNumber
@@ -177,10 +206,12 @@ class CallbackHandlerService extends BaseService{
             ]);
             $this->logWebhookEvent(
                 'notice',
-                'KiriminAja webhook marked processed packages as paid and stored their AWB numbers.',
+                'KiriminAja webhook stored AWB numbers and synchronized payment status for processed packages.',
                 array(
                     'order_ids'      => $this->getPackageOrderIds(),
                     'pickup_number'  => $this->transactionPickupNumber,
+                    'payment_method' => $paymentMethod,
+                    'payment_status' => $resolvedPaymentStatus,
                 )
             );
             
