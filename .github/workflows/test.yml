@@ -45,7 +45,13 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Install gettext
-        run: sudo apt-get update && sudo apt-get install -y gettext
+        run: |
+          if command -v msgfmt >/dev/null 2>&1; then
+            exit 0
+          fi
+          sudo rm -f /etc/apt/sources.list.d/azure-cli.sources /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
+          sudo apt-get install -y gettext
 
       - name: Build official zip
         id: build
