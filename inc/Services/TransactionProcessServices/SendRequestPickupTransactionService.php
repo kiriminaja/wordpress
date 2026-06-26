@@ -405,6 +405,9 @@ class SendRequestPickupTransactionService extends BaseService
         }
         $normalizedPaymentMethod = strtolower((string) $paymentMethod);
         $localPaymentStatus = ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid';
+        if ($normalizedPaymentMethod === 'top') {
+            $localPaymentStatus = 'paid';
+        }
         if ($normalizedPaymentMethod === 'qris') {
             $localPaymentStatus = 'unpaid';
         }
