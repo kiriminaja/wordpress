@@ -451,7 +451,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 }
                 
                 const remotePayment = resp?.data?.payment_data ?? {};
-                const remoteIsPaid = parseInt(remotePayment?.status_code || 0, 10) >= 100 || !!remotePayment?.pay_time;
+                const remoteIsPaid = parseInt(remotePayment?.status_code || 0, 10) >= 100;
 
                 /** cek jika payment sudah dibayar lalu reload list supaya status ikut berubah */
                 if (remoteIsPaid){

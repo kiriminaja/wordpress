@@ -36,8 +36,9 @@ class GetShippingProcessPayment extends BaseService{
         $remoteStatusCode = (int) ($remotePayment->status_code ?? 0);
         $remotePayTime = (string) ($remotePayment->pay_time ?? '');
 
-        $remoteIsPaid = $remoteStatusCode >= 100 || $remotePayTime !== '';
+        $remoteIsPaid = $remoteStatusCode >= 100;
         $localMethod = strtolower((string) ($getPayment->method ?? ''));
+        $localStatusBefore = (string) ($getPayment->status ?? '');
 
         if ($getPayment && $remoteIsPaid && ($getPayment->status ?? '') !== 'paid') {
             $paymentRepo->updatePaymentByCallback([
@@ -62,6 +63,17 @@ class GetShippingProcessPayment extends BaseService{
             ]);
             $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
         }
+
+        kiriof_log('info', 'QRIS payment form status resolved.', [
+            'pickup_number' => $this->payment_id,
+            'local_method' => $localMethod,
+            'local_status_before' => $localStatusBefore,
+            'local_status_after' => (string) ($getPayment->status ?? ''),
+            'remote_status_code' => $remoteStatusCode,
+            'remote_pay_time_present' => $remotePayTime !== '',
+            'remote_is_paid' => $remoteIsPaid,
+            'has_qr_content' => !empty($remotePayment->qr_content ?? ''),
+        ], 'kiriminaja_request_pickup');
 
         self::transactionsSummaryProccess();
         return self::success([

@@ -350,6 +350,14 @@ class SendRequestPickupTransactionService extends BaseService
 
         $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequestV2($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
+        kiriof_log('info', 'Request pickup API response received.', [
+            'order_ids' => $this->orderIds,
+            'payment_method' => $this->paymentMethod,
+            'api_success' => !empty($pickupRequest['status']),
+            'api_data_status' => !empty($pickupRequest['data']->status),
+            'pickup_number' => $pickupRequest['data']->pickup_number ?? '',
+            'api_payment_status' => $pickupRequest['data']->payment_status ?? '',
+        ], 'kiriminaja_request_pickup');
         
         if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
             $apiData = $pickupRequest['data'] ?? null;
@@ -420,6 +428,16 @@ class SendRequestPickupTransactionService extends BaseService
             'pickup_schedule'   => $this->schedule,
             'created_at'        => $currentTime,
         ]);
+        kiriof_log('info', 'Request pickup local payment created.', [
+            'pickup_number' => $pickupNumber,
+            'payment_method' => $paymentMethod,
+            'normalized_payment_method' => $normalizedPaymentMethod,
+            'local_payment_status' => $localPaymentStatus,
+            'api_payment_status' => $pickupRequest['data']->payment_status ?? '',
+            'has_non_cod_package' => $hasNonCodPackage,
+            'open_payment' => $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
+        ], 'kiriminaja_request_pickup');
+
         return self::success([
             'pickup_number'  => $pickupNumber,
             'open_payment'   => $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
