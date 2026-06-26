@@ -44,6 +44,26 @@ class SendRequestPickupTransactionService extends BaseService
         return $this->helperCache;
     }
 
+    private function isTopPaymentMethod(): bool
+    {
+        $settingService = new \KiriminAjaOfficial\Services\SettingService();
+        $isTop = $settingService->isTopPaymentMethod();
+
+        try {
+            $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            $profilePaymentMethod = strtoupper((string) ($profile->data->metadata->payment_method ?? ''));
+            if ($profilePaymentMethod !== '') {
+                $isTop = $profilePaymentMethod === 'TOP';
+            }
+        } catch (\Throwable $th) {
+            kiriof_log('warning', 'Unable to refresh merchant payment method before request pickup.', [
+                'message' => $th->getMessage(),
+            ], 'kiriminaja_request_pickup');
+        }
+
+        return $isTop;
+    }
+
     private function sanitizeApiName($value)
     {
         $decodedValue = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -288,6 +308,7 @@ class SendRequestPickupTransactionService extends BaseService
             return self::error([], 'No valid packages found');
         }
         $hasNonCodPackage = $this->hasNonCodPackage($getPackageData);
+        $isTopPaymentMethod = $this->isTopPaymentMethod();
         $apiPackages = array_map(
             static function ($package) {
                 if (isset($package['destination_summary'])) {
@@ -320,7 +341,7 @@ class SendRequestPickupTransactionService extends BaseService
             $payload['longitude'] = (float) ($getOriginData['origin_longitude'] ?? 0);
         }
 
-        if (!empty($this->paymentMethod)) {
+        if (!$isTopPaymentMethod && !empty($this->paymentMethod)) {
             $payload['payment_method'] = $this->paymentMethod;
         }
         if ($this->paymentMethod === 'credit' && !empty($this->pin)) {
@@ -333,6 +354,7 @@ class SendRequestPickupTransactionService extends BaseService
                 'order_ids' => $this->orderIds,
                 'schedule' => $this->schedule,
                 'package_count' => count($apiPackages),
+                'is_top_payment_method' => $isTopPaymentMethod,
                 'packages' => array_map(
                     static function ($package) {
                         return [
@@ -353,6 +375,7 @@ class SendRequestPickupTransactionService extends BaseService
         kiriof_log('info', 'Request pickup API response received.', [
             'order_ids' => $this->orderIds,
             'payment_method' => $this->paymentMethod,
+            'is_top_payment_method' => $isTopPaymentMethod,
             'api_success' => !empty($pickupRequest['status']),
             'api_data_status' => !empty($pickupRequest['data']->status),
             'pickup_number' => $pickupRequest['data']->pickup_number ?? '',
@@ -406,10 +429,9 @@ class SendRequestPickupTransactionService extends BaseService
             $transactionRepo->updateTransactionByCallback($payload);
         }
         /** Create Payment*/
-        $paymentMethod = $this->paymentMethod;
+        $paymentMethod = $isTopPaymentMethod ? 'TOP' : $this->paymentMethod;
         if (empty($paymentMethod)) {
-            $isTop = (new \KiriminAjaOfficial\Services\SettingService())->isTopPaymentMethod();
-            $paymentMethod = $isTop ? 'TOP' : 'qris';
+            $paymentMethod = 'qris';
         }
         $normalizedPaymentMethod = strtolower((string) $paymentMethod);
         $localPaymentStatus = ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid';
@@ -432,6 +454,7 @@ class SendRequestPickupTransactionService extends BaseService
             'pickup_number' => $pickupNumber,
             'payment_method' => $paymentMethod,
             'normalized_payment_method' => $normalizedPaymentMethod,
+            'is_top_payment_method' => $isTopPaymentMethod,
             'local_payment_status' => $localPaymentStatus,
             'api_payment_status' => $pickupRequest['data']->payment_status ?? '',
             'has_non_cod_package' => $hasNonCodPackage,
