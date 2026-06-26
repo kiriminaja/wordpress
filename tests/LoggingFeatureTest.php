@@ -63,4 +63,29 @@ final class LoggingFeatureTest extends TestCase
         $this->assertStringContainsString("'kiriminaja_import'", $regionCacheContent);
         $this->assertStringNotContainsString('update_option( \'kiriof_processed_packages\'', $callbackServiceContent, 'Webhook debug state should be logged, not persisted to options');
     }
+
+    #[Test]
+    public function technical_section_downloads_only_plugin_logs_with_consent_disclaimer(): void
+    {
+        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
+        $indexContent = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $technicalContent = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/section-technical.php');
+
+        $this->assertFileDoesNotExist(PLUGIN_DIR . '/templates/setting/setuped/section-cache.php');
+        $this->assertStringContainsString("'cache' === \$kiriof_section", $indexContent);
+        $this->assertStringContainsString("section=technical", $indexContent);
+        $this->assertStringContainsString('admin_post_kiriof_download_plugin_logs', $controllerContent);
+        $this->assertStringContainsString('getPluginLogSources', $controllerContent);
+        $this->assertStringContainsString("'kiriminaja_request_pickup'", $controllerContent);
+        $this->assertStringContainsString("'kiriminaja_webhook'", $controllerContent);
+        $this->assertStringContainsString("'shipping_discount_coupon'", $controllerContent);
+        $this->assertStringContainsString('redactLogContent', $controllerContent);
+        $this->assertStringContainsString('kiriof_couriers_list_v2', $technicalContent);
+        $this->assertStringContainsString('kiriof-cache-updated', $technicalContent);
+        $this->assertStringContainsString('kiriof-cache-valid-until', $technicalContent);
+        $this->assertStringContainsString('kiriof-couriers-cache-updated', $technicalContent);
+        $this->assertStringContainsString('kiriof-couriers-cache-valid-until', $technicalContent);
+        $this->assertStringContainsString('Download Log', $technicalContent);
+        $this->assertStringContainsString('KiriminAja does not collect this diagnostic data automatically', $technicalContent);
+    }
 }

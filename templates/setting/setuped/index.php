@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only section navigation
 $kiriof_section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
+if ( 'cache' === $kiriof_section ) {
+    $kiriof_section = 'technical';
+}
 $kiriof_base_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
 
 // If a section is requested, show the detail page
@@ -259,12 +262,12 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             </div>
         </a>
 
-        <a href="<?php echo esc_url( $kiriof_base_url . '&section=cache' ); ?>" class="kj-setting-row">
+        <a href="<?php echo esc_url( $kiriof_base_url . '&section=technical' ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="#50575e" stroke-width="1.5"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" stroke="#50575e" stroke-width="1.5"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke="#50575e" stroke-width="1.5"/></svg>
                 <div class="kj-setting-row-text">
-                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Cache', 'kiriminaja-official' ) ); ?></span>
-                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Manage cached data such as region coverage used for coupon restrictions.', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-label"><?php echo esc_html( __( 'Technical', 'kiriminaja-official' ) ); ?></span>
+                    <span class="kj-setting-row-desc"><?php echo esc_html( __( 'Manage cache and download KiriminAja plugin-only diagnostic logs.', 'kiriminaja-official' ) ); ?></span>
                 </div>
                 <svg class="kj-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#8c8f94" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>

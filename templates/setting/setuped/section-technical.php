@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Section: Cache (detail page)
+ * Section: Technical (detail page)
  *
  * @var string $kiriof_base_url
  */
@@ -25,11 +25,19 @@ $nonce              = wp_create_nonce( KIRIOF_NONCE );
 $state       = $cacheStatus['state'] ?? 'unknown';
 $stateColors = array( 'ready' => '#00a32a', 'error' => '#d63638' );
 $stateColor  = $stateColors[ $state ] ?? '#dba617';
+$regionValidUntil = 'ready' === $state ? __( 'Manual refresh only', 'kiriminaja-official' ) : '—';
+$downloadLogUrl = wp_nonce_url(
+    admin_url( 'admin-post.php?action=kiriof_download_plugin_logs' ),
+    'kiriof_download_plugin_logs'
+);
 
 $courierService  = new KiriminajaApiService();
 $courierResult   = $courierService->get_couriers();
 $courierCount    = ( 200 === $courierResult->status && is_array( $courierResult->data ) ) ? count( $courierResult->data ) : 0;
-$courierCached   = ( false !== get_transient( 'kiriof_couriers_list' ) );
+$courierCached   = ( false !== get_transient( 'kiriof_couriers_list_v2' ) );
+$courierTimeout  = (int) get_option( '_transient_timeout_kiriof_couriers_list_v2', 0 );
+$courierUpdated  = ( $courierCached && $courierTimeout > DAY_IN_SECONDS ) ? wp_date( 'Y-m-d H:i:s', $courierTimeout - DAY_IN_SECONDS ) : '—';
+$courierValidUntil = ( $courierCached && $courierTimeout > 0 ) ? wp_date( 'Y-m-d H:i:s', $courierTimeout ) : '—';
 $courierBadgeBg  = $courierCached ? '#00a32a' : '#dba617';
 $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 'Not cached', 'kiriminaja-official' );
 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
@@ -39,7 +47,7 @@ $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 
     <style><?php include '_section-css-shared.php'; ?></style>
 
     <?php
-    $kiriof_title        = __( 'Cache', 'kiriminaja-official' );
+    $kiriof_title        = __( 'Technical', 'kiriminaja-official' );
     $kiriof_parent_url   = $kiriof_base_url;
     $kiriof_parent_title = __( 'Settings', 'kiriminaja-official' );
     include KIRIOF_DIR . 'templates/_header.php';
@@ -74,7 +82,11 @@ $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 
                 </tr>
                 <tr>
                     <th scope="row"><?php esc_html_e( 'Last Updated', 'kiriminaja-official' ); ?></th>
-                    <td><?php echo esc_html( $cacheStatus['last_completed_at'] ?? '—' ); ?></td>
+                    <td id="kiriof-cache-updated"><?php echo esc_html( $cacheStatus['last_completed_at'] ?? '—' ); ?></td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Valid Until', 'kiriminaja-official' ); ?></th>
+                    <td id="kiriof-cache-valid-until"><?php echo esc_html( $regionValidUntil ); ?></td>
                 </tr>
             </table>
 
@@ -101,12 +113,29 @@ $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 
                     <th scope="row"><?php esc_html_e( 'Couriers', 'kiriminaja-official' ); ?></th>
                     <td id="kiriof-couriers-cache-count"><?php echo esc_html( number_format_i18n( $courierCount ) ); ?></td>
                 </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Last Updated', 'kiriminaja-official' ); ?></th>
+                    <td id="kiriof-couriers-cache-updated"><?php echo esc_html( $courierUpdated ); ?></td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Valid Until', 'kiriminaja-official' ); ?></th>
+                    <td id="kiriof-couriers-cache-valid-until"><?php echo esc_html( $courierValidUntil ); ?></td>
+                </tr>
             </table>
 
             <button type="button" id="kiriof-flush-couriers-btn" class="button button-primary">
                 <?php esc_html_e( 'Flush &amp; Re-fetch Couriers', 'kiriminaja-official' ); ?>
             </button>
             <span id="kiriof-flush-couriers-msg" style="margin-left:12px;font-size:13px;color:#646970"></span>
+        </div>
+
+        <div style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px 20px;">
+            <h3 style="margin-top:0"><?php esc_html_e( 'Diagnostic Logs', 'kiriminaja-official' ); ?></h3>
+            <p class="description"><?php esc_html_e( 'Download WooCommerce logs generated only by the KiriminAja plugin. The export excludes general WooCommerce and WordPress logs.', 'kiriminaja-official' ); ?></p>
+            <p class="description" style="margin-top:8px"><?php esc_html_e( 'KiriminAja does not collect this diagnostic data automatically or send it directly to KiriminAja. Please download the file and send it to the KiriminAja support team only with your consent.', 'kiriminaja-official' ); ?></p>
+            <a class="button button-primary" href="<?php echo esc_url( $downloadLogUrl ); ?>">
+                <?php esc_html_e( 'Download Log', 'kiriminaja-official' ); ?>
+            </a>
         </div>
 
     </div>
@@ -117,6 +146,21 @@ $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 
     (function($){
         var nonce   = <?php echo wp_json_encode( $nonce ); ?>;
         var ajaxurl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+
+        function kiriofTechnicalFormatDate(d){
+            var pad = function(n){ return String(n).padStart(2, '0'); };
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+        }
+
+        function kiriofTechnicalNow(){
+            return kiriofTechnicalFormatDate(new Date());
+        }
+
+        function kiriofTechnicalValidUntil(days){
+            var d = new Date();
+            d.setDate(d.getDate() + days);
+            return kiriofTechnicalFormatDate(d);
+        }
 
         /* ---------- Region cache ---------- */
         var $btn = $('#kiriof-revalidate-btn');
@@ -135,6 +179,8 @@ $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 
                             $msg.css('color','#00a32a').text(<?php echo wp_json_encode( __( 'Cache updated successfully.', 'kiriminaja-official' ) ); ?>);
                             $('#kiriof-cache-provinces').text(d.province_count || 0);
                             $('#kiriof-cache-cities').text(d.city_count || 0);
+                            $('#kiriof-cache-updated').text((d.status && d.status.last_completed_at) || kiriofTechnicalNow());
+                            $('#kiriof-cache-valid-until').text(<?php echo wp_json_encode( __( 'Manual refresh only', 'kiriminaja-official' ) ); ?>);
                             $('#kiriof-cache-state').html('<span style="display:inline-block;padding:2px 10px;border-radius:999px;background:#00a32a;color:#fff;font-size:12px;font-weight:600">Ready</span>');
                         } else {
                             $msg.css('color','#d63638').text((d.status && d.status.last_error) || <?php echo wp_json_encode( __( 'Re-validate failed.', 'kiriminaja-official' ) ); ?>);
@@ -173,6 +219,8 @@ $courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 
                         var count = res.data && res.data.count ? res.data.count : 0;
                         $cMsg.css('color','#00a32a').text(<?php echo wp_json_encode( __( 'Cache refreshed.', 'kiriminaja-official' ) ); ?> + ' (' + count + ' <?php echo esc_js( __( 'couriers', 'kiriminaja-official' ) ); ?>)');
                         $('#kiriof-couriers-cache-count').text(count);
+                        $('#kiriof-couriers-cache-updated').text(kiriofTechnicalNow());
+                        $('#kiriof-couriers-cache-valid-until').text(kiriofTechnicalValidUntil(1));
                         $('#kiriof-couriers-cache-state').html('<span style="display:inline-block;padding:2px 10px;border-radius:999px;background:#00a32a;color:#fff;font-size:12px;font-weight:600"><?php echo esc_js( __( 'Cached', 'kiriminaja-official' ) ); ?></span>');
                     } else {
                         var errMsg = (res && res.data && res.data.message) ? res.data.message : <?php echo wp_json_encode( __( 'Flush failed. Please try again.', 'kiriminaja-official' ) ); ?>;

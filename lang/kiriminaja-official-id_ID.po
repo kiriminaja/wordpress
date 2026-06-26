@@ -2900,3 +2900,30 @@ msgstr "Tidak dapat mencetak resi karena data pengiriman tidak ditemukan."
 
 msgid "Unable to print resi: %s"
 msgstr "Tidak dapat mencetak resi: %s"
+
+msgid "No KiriminAja plugin logs found."
+msgstr "Log plugin KiriminAja tidak ditemukan."
+
+msgid "Technical"
+msgstr "Teknis"
+
+msgid "Manage cache and download KiriminAja plugin-only diagnostic logs."
+msgstr "Kelola cache dan unduh log diagnostik khusus plugin KiriminAja."
+
+msgid "Diagnostic Logs"
+msgstr "Log Diagnostik"
+
+msgid "Download WooCommerce logs generated only by the KiriminAja plugin. The export excludes general WooCommerce and WordPress logs."
+msgstr "Unduh log WooCommerce yang dibuat hanya oleh plugin KiriminAja. Ekspor ini mengecualikan log umum WooCommerce dan WordPress."
+
+msgid "Download Log"
+msgstr "Unduh Log"
+
+msgid "KiriminAja does not collect this diagnostic data automatically or send it directly to KiriminAja. Please download the file and send it to the KiriminAja support team only with your consent."
+msgstr "KiriminAja tidak mengumpulkan data diagnostik ini secara otomatis atau mengirimkannya langsung ke KiriminAja. Silakan unduh file ini dan kirimkan ke tim support KiriminAja hanya dengan persetujuan Anda."
+
+msgid "Valid Until"
+msgstr "Berlaku Sampai"
+
+msgid "Manual refresh only"
+msgstr "Hanya refresh manual"
