@@ -163,6 +163,7 @@ class KiriminajaApiRepository extends KiriminAjaApi{
     }
 
     public function getPrintAwb($awb){
+        $this->base_url = 'https://client.kiriminaja.com';
         $awbs = is_array( $awb )
             ? array_values( array_filter( array_map( 'strval', $awb ) ) )
             : array_values( array_filter( array( (string) $awb ) ) );

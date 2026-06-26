@@ -213,22 +213,22 @@ class ShippingProcessController
         }
         $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
         $printAwbUrl = $this->resolvePrintAwbUrl( $getAwbData );
-        if ( '' === $printAwbUrl ) {
-            $apiMessage = is_scalar( $getAwbData['data'] ?? null ) ? trim( (string) $getAwbData['data'] ) : '';
-            $this->logResiPrintFailure( 'print_awb_url_missing', array(
-                'order_ids'     => $orderIds,
-                'awbs'          => $awbs,
-                'api_status'    => $getAwbData['status'] ?? null,
-                'api_response'  => is_scalar( $getAwbData['data'] ?? null ) ? substr( (string) $getAwbData['data'], 0, 300 ) : '',
-                'api_attempts'  => $getAwbData['attempts'] ?? array(),
-                'response_type' => is_object( $getAwbData['data'] ?? null ) ? get_class( $getAwbData['data'] ) : gettype( $getAwbData['data'] ?? null ),
-            ) );
-            $this->redirectResiPrintFailure( $apiMessage !== '' ? sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $apiMessage ) : __( 'Unable to print resi because the AWB print URL was not returned by KiriminAja.', 'kiriminaja-official' ) );
+        if ( '' !== $printAwbUrl ) {
+            $this->markTransactionsPrinted( $printedOrderIds );
+            wp_redirect( esc_url_raw( $printAwbUrl ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Trusted label URL returned by KiriminAja API.
+            exit;
         }
-        $this->markTransactionsPrinted( $printedOrderIds );
 
-        wp_redirect( esc_url_raw( $printAwbUrl ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Trusted label URL returned by KiriminAja API.
-        exit;
+        $apiMessage = is_scalar( $getAwbData['data'] ?? null ) ? trim( (string) $getAwbData['data'] ) : '';
+        $this->logResiPrintFailure( 'print_awb_url_missing', array(
+            'order_ids'     => $orderIds,
+            'awbs'          => $awbs,
+            'api_status'    => $getAwbData['status'] ?? null,
+            'api_response'  => is_scalar( $getAwbData['data'] ?? null ) ? substr( (string) $getAwbData['data'], 0, 300 ) : '',
+            'api_attempts'  => $getAwbData['attempts'] ?? array(),
+            'response_type' => is_object( $getAwbData['data'] ?? null ) ? get_class( $getAwbData['data'] ) : gettype( $getAwbData['data'] ?? null ),
+        ) );
+        $this->redirectResiPrintFailure( $apiMessage !== '' ? sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $apiMessage ) : __( 'Unable to print resi because the AWB print URL was not returned by KiriminAja.', 'kiriminaja-official' ) );
     }
 
     function getShippingReschedulePickup()
