@@ -875,7 +875,7 @@ JS;
                 echo "Unable to read log file.\n";
                 continue;
             }
-            echo $this->redactLogContent( $content );
+            echo esc_html( $this->redactLogContent( $content ) );
             echo "\n";
         }
 

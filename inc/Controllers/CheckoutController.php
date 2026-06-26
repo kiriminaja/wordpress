@@ -424,6 +424,7 @@ class CheckoutController
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
         if ( isset( $_POST['rate_id'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce Store API request, nonce handled by WC.
             return sanitize_text_field( wp_unslash( $_POST['rate_id'] ) );
         }
 

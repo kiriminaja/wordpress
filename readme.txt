@@ -1,7 +1,7 @@
 === KiriminAja Official ===
 Contributors: kiriminaja
 Donate link: https://developer.kiriminaja.com/kopi
-Tags: shipping, WooCommerce, kiriminaja, e-commerce, cod, ongkir, pickup, resi, qris, ka credit, jne, sicepat, anteraja, lion parcel, ninja xpress, id express, j&t express, tiki, pos indonesia, sentral cargo, sap express, paxel, spx express
+Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
@@ -12,125 +12,128 @@ WC requires at least: 8.0
 WC tested up to: 10.8
 Requires Plugins: woocommerce
 
-Plugin pengiriman WooCommerce dengan ongkir otomatis, request pickup, cetak resi, COD, Non-COD, QRIS, KA Credit, dan TOP untuk merchant KiriminAja.
+WooCommerce shipping integration for KiriminAja rates, pickup requests, waybill printing, COD, Non-COD, QRIS, KA Credit, and TOP merchant workflows.
 
 == Description ==
 
-Atur pengiriman langsung dari WooCommerce dengan plugin KiriminAja Official. Plugin ini membantu toko online menampilkan ongkir real-time di halaman checkout, membuat transaksi pengiriman, request pickup, cetak resi, menerima update status paket, dan mengelola pembayaran pengiriman dari dashboard WordPress.
+Manage WooCommerce shipping with KiriminAja Official. The plugin helps online stores show real-time shipping rates at checkout, create shipment transactions, request pickups, print waybills, receive shipment status updates, and manage shipment payment workflows from the WordPress dashboard.
 
-KiriminAja Official dibuat untuk merchant Indonesia yang ingin mengelola pengiriman COD maupun Non-COD tanpa harus berpindah-pindah dashboard. Cocok untuk operasional harian toko online yang membutuhkan proses checkout, pickup, pembayaran ongkir, dan tracking yang lebih rapi.
+KiriminAja Official is built for Indonesian WooCommerce merchants who want to manage COD and Non-COD shipments without switching between multiple dashboards. It supports daily operations from checkout to pickup, payment, waybill printing, and tracking.
 
-== Apa Perbedaan Dengan Plugin Pengiriman Biasa? ==
+== What Makes This Plugin Different? ==
 
-Plugin ini tidak hanya menampilkan ongkir di checkout. KiriminAja Official juga membantu operasional setelah order masuk, mulai dari request pickup, pembayaran pickup, cetak resi, hingga sinkronisasi status paket.
+This plugin does more than display shipping rates at checkout. KiriminAja Official also supports post-order operations such as pickup requests, pickup payment handling, waybill printing, and shipment status synchronization.
 
-Untuk merchant TOP, plugin akan mengikuti properti akun KiriminAja dan otomatis memproses pickup sebagai pembayaran TOP tanpa menampilkan QRIS. Untuk merchant Non-TOP, pembayaran pickup Non-COD dapat menggunakan QRIS atau KA Credit sesuai konfigurasi akun.
+For TOP merchants, the plugin follows the KiriminAja account property and processes pickups with the TOP payment flow without showing a QRIS payment modal. For Non-TOP merchants, Non-COD pickup payment can use QRIS or KA Credit depending on account configuration.
 
-== Untuk Siapa Plugin Ini? ==
+== Who Is This Plugin For? ==
 
-KiriminAja Official cocok untuk pemilik toko WooCommerce yang:
+KiriminAja Official is suitable for WooCommerce store owners who:
 
-* Ingin menampilkan ongkir otomatis dari berbagai ekspedisi di checkout.
-* Mengelola pengiriman COD dan Non-COD dari WordPress.
-* Membutuhkan request pickup dan cetak resi dari dashboard admin.
-* Menggunakan QRIS, KA Credit, atau skema TOP untuk pembayaran pengiriman.
-* Ingin status paket tersinkron melalui webhook KiriminAja.
-* Membutuhkan tracking pengiriman untuk customer.
+* Want automatic shipping rates from multiple courier services at checkout.
+* Manage COD and Non-COD shipments from WordPress.
+* Need pickup requests and waybill printing from the admin dashboard.
+* Use QRIS, KA Credit, or TOP payment workflows for shipment payments.
+* Want shipment status updates through KiriminAja webhooks.
+* Need a tracking page for customers.
 
-Dengan KiriminAja, proses pengiriman dari toko WooCommerce bisa lebih terpusat, hemat waktu, dan lebih mudah dipantau oleh tim operasional.
+With KiriminAja, WooCommerce shipping operations can be more centralized, easier to monitor, and faster for the operations team.
 
-== Fitur Unggulan ==
+== Key Features ==
 
-* Ongkir otomatis di checkout WooCommerce.
-* Pilihan kurir KiriminAja berdasarkan layanan yang tersedia untuk akun dan alamat tujuan.
-* Support COD dan Non-COD.
-* Request pickup langsung dari halaman transaksi KiriminAja di WordPress.
-* Pembayaran pickup menggunakan QRIS untuk merchant Non-TOP.
-* Pembayaran pickup menggunakan KA Credit jika akun sudah memiliki PIN dan saldo cukup.
-* Merchant TOP otomatis diproses sebagai TOP dan tidak perlu scan QRIS.
-* Cetak resi satuan dan bulk.
-* Update status paket melalui webhook KiriminAja.
-* Halaman tracking menggunakan shortcode.
-* Pengaturan origin/pickup address, kurir aktif, callback URL, insurance, dan tracking page.
-* Cache coverage region dan daftar kurir untuk performa admin.
+* Real-time shipping rates at WooCommerce checkout.
+* KiriminAja courier options based on account, origin, destination, and service availability.
+* COD and Non-COD shipment support.
+* Pickup requests from the KiriminAja transaction page in WordPress.
+* QRIS pickup payment for eligible Non-TOP merchants.
+* KA Credit pickup payment when the account has PIN enabled and sufficient balance.
+* TOP merchants are automatically processed through the TOP workflow without QRIS scanning.
+* Single and bulk waybill printing.
+* Shipment status updates through KiriminAja webhooks.
+* Tracking page support through shortcode.
+* Origin address, active courier, callback URL, insurance, and tracking page settings.
+* Region coverage and courier list cache for better admin performance.
 
-== Kurir dan Layanan Yang Tersedia ==
+== Supported Couriers and Services ==
 
-Ketersediaan kurir dan layanan mengikuti area, alamat origin, alamat tujuan, konfigurasi akun KiriminAja, dan layanan yang sedang aktif di KiriminAja. Beberapa kurir yang umum tersedia melalui KiriminAja antara lain:
+Courier and service availability depends on the merchant account, origin address, destination address, package details, and active KiriminAja services. Commonly available couriers include:
 
-* JNE – REG, YES, OKE, Trucking/JTR sesuai area.
-* SiCepat – Reguler, BEST, Gokil/Cargo sesuai area.
-* SAP Express – Regular, One Day, Same Day, Cargo sesuai area.
-* Lion Parcel – Regpack, Jagopack, dan layanan lain sesuai area.
-* AnterAja – Reguler, Same Day, Next Day sesuai area.
-* Ninja Xpress – Standard dan layanan lain sesuai area.
-* ID Express – Regular dan layanan lain sesuai area.
-* J&T Express – EZ/Regular dan layanan lain sesuai area.
-* TIKI – REG, ONS, ECO, dan layanan lain sesuai area.
-* POS Indonesia – layanan reguler/cargo sesuai area.
-* J&T Cargo - layanan cargo sesuai area.
-* SPX Express (Shopee) - layanan reguler/cargo sesuai area.
-* Paxel - layanan reguler/cargo sesuai area.
-* Sentral Cargo - layanan reguler/cargo sesuai area.
-* NCS Courier - layanan reguler/cargo sesuai area.
-* RPX - layanan reguler/cargo sesuai area.
+* JNE - REG, YES, OKE, Trucking/JTR depending on area availability.
+* SiCepat - Regular, BEST, Gokil/Cargo depending on area availability.
+* SAP Express - Regular, One Day, Same Day, Cargo depending on area availability.
+* Lion Parcel - Regpack, Jagopack, and other available services.
+* AnterAja - Regular, Same Day, Next Day depending on area availability.
+* Ninja Xpress - Standard and other available services.
+* ID Express - Regular and other available services.
+* J&T Express - EZ/Regular and other available services.
+* TIKI - REG, ONS, ECO, and other available services.
+* POS Indonesia - regular and cargo services depending on area availability.
+* Wahana - regular services depending on area availability.
+* J&T Cargo - cargo services depending on area availability.
+* SPX Express (Shopee) - regular and cargo services depending on area availability.
+* Paxel - regular and cargo services depending on area availability.
+* Sentral Cargo - cargo services depending on area availability.
+* NCS Courier - regular and cargo services depending on area availability.
+* RPX - regular and cargo services depending on area availability.
 
-Daftar kurir aktual dapat berubah mengikuti ketersediaan layanan KiriminAja dan konfigurasi akun merchant. Anda dapat memilih kurir aktif dari halaman pengaturan plugin.
+The actual courier list may change depending on KiriminAja service availability and merchant account configuration. Active couriers can be managed from the plugin settings.
 
-== Pembayaran Pengiriman ==
+== Shipment Payment Workflows ==
 
-KiriminAja Official mendukung beberapa skema pembayaran pickup:
+KiriminAja Official supports several pickup payment workflows:
 
-* KA Credit - Fitur pembayaran ekslkusif untuk user KiriminAja.
-* QRIS - Mendukung seluruh bank dan e-wallet yang terhubung dengan QRIS. Merchant Non-TOP dapat menggunakan QRIS untuk pembayaran pickup Non-COD.
+* QRIS for eligible Non-TOP merchants with Non-COD packages.
+* KA Credit for merchants with PIN enabled and sufficient credit balance.
+* TOP for merchants with TOP account property in KiriminAja.
+* COD-only pickups do not require an additional pickup payment method.
 
 == Installation ==
 
-1. Download dan aktifkan plugin **KiriminAja Official**.
-2. Pastikan plugin WooCommerce sudah aktif.
-3. Buka menu **KiriminAja > Settings** di WordPress Admin.
-4. Hubungkan akun KiriminAja menggunakan setup key/API key dari dashboard KiriminAja.
-5. Lengkapi data origin/pickup address toko.
-6. Pilih kurir yang ingin diaktifkan di checkout.
-7. Pastikan shipping zone WooCommerce sudah mendukung Indonesia dan metode KiriminAja aktif.
-8. Atur callback URL/webhook jika diperlukan.
-9. Lakukan uji checkout untuk memastikan ongkir dan pilihan pengiriman tampil dengan benar.
+1. Download and activate the **KiriminAja Official** plugin.
+2. Make sure WooCommerce is installed and active.
+3. Open **KiriminAja > Settings** in WordPress Admin.
+4. Connect your KiriminAja account using the setup key/API key from the KiriminAja dashboard.
+5. Complete the store origin/pickup address.
+6. Select couriers that should be available at checkout.
+7. Make sure WooCommerce shipping zones support Indonesia and the KiriminAja shipping method is active.
+8. Configure callback URL/webhook settings if needed.
+9. Run a checkout test to confirm shipping rates and courier options appear correctly.
 
 == Frequently Asked Questions ==
 
-= Apakah plugin ini membutuhkan WooCommerce? =
+= Does this plugin require WooCommerce? =
 
-Ya. Plugin ini dibuat untuk WooCommerce dan membutuhkan WooCommerce aktif agar fitur ongkir, checkout, transaksi, pickup, dan pembayaran berjalan.
+Yes. This plugin is built for WooCommerce and requires WooCommerce to be active for checkout rates, shipment transactions, pickup requests, and payment workflows.
 
-= Apakah plugin ini mendukung COD? =
+= Does this plugin support COD? =
 
-Ya. Plugin mendukung transaksi COD sesuai layanan dan konfigurasi akun KiriminAja Anda.
+Yes. COD shipments are supported based on KiriminAja service availability and merchant account configuration.
 
-= Apakah plugin ini mendukung Non-COD? =
+= Does this plugin support Non-COD shipments? =
 
-Ya. Untuk Non-COD, merchant dapat menggunakan pembayaran pickup seperti QRIS atau KA Credit sesuai konfigurasi akun.
+Yes. Non-COD pickup payments can use QRIS or KA Credit depending on merchant account configuration.
 
-= Apa itu merchant TOP? =
+= What is a TOP merchant? =
 
-TOP adalah properti akun/merchant di KiriminAja. Jika akun Anda menggunakan skema TOP, pembayaran pickup akan otomatis mengikuti skema TOP dan tidak meminta scan QRIS.
+TOP is a merchant account property in KiriminAja. If the account uses TOP, pickup payment follows the TOP workflow and the plugin will not ask the merchant to scan QRIS.
 
-= Kenapa kurir tertentu tidak muncul? =
+= Why is a courier not showing at checkout? =
 
-Kurir yang tampil dipengaruhi oleh origin, tujuan, berat/dimensi paket, konfigurasi akun KiriminAja, dan ketersediaan layanan di area tersebut.
+Courier visibility depends on origin, destination, package weight and dimensions, merchant account configuration, and service availability in that area.
 
-= Bagaimana cara menampilkan halaman tracking? =
+= How do I show the tracking page? =
 
-Buat halaman WordPress baru dan gunakan shortcode tracking KiriminAja yang tersedia dari pengaturan plugin.
+Create a WordPress page and add the KiriminAja tracking shortcode available from the plugin settings.
 
 == Screenshots ==
 
-1. Pengaturan integrasi akun KiriminAja.
-2. Pengaturan origin dan pilihan kurir.
-3. Ongkir KiriminAja di halaman checkout WooCommerce.
-4. Halaman transaksi dan request pickup.
-5. Modal pembayaran QRIS untuk pickup Non-COD.
-6. Cetak resi dan detail pickup.
-7. Halaman Technical untuk cache dan tools teknis.
+1. KiriminAja account integration settings.
+2. Origin settings and active courier configuration.
+3. KiriminAja shipping rates at WooCommerce checkout.
+4. Transaction page and pickup request workflow.
+5. QRIS payment modal for eligible Non-COD pickup payments.
+6. Waybill printing and pickup detail page.
+7. Technical page for cache and support tools.
 
 == Changelog ==
 
@@ -157,4 +160,4 @@ Buat halaman WordPress baru dan gunakan shortcode tracking KiriminAja yang terse
 
 = 2.2.5 =
 
-Recommended update for improved pickup payment handling, TOP merchant behavior, diagnostic logs, and WooCommerce compatibility.
+Recommended update for improved pickup payment handling, TOP merchant behavior, technical cache tools, and WooCommerce compatibility.

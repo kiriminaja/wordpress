@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <?php $kiriof_title = __('Payments','kiriminaja-official'); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
     <?php
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice from print redirect.
     $kiriof_print_error = isset( $_GET['kiriof_print_error'] ) ? sanitize_text_field( wp_unslash( $_GET['kiriof_print_error'] ) ) : '';
     if ( '' !== $kiriof_print_error ) :
         ?>

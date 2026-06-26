@@ -371,17 +371,12 @@ class SettingService extends BaseService
      */
     public function isTopPaymentMethod(): bool
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'kiriminaja_settings';
-        $result = $wpdb->get_var(
-            $wpdb->prepare("SELECT `value` FROM {$table} WHERE `key` = %s", 'is_top')
-        );
-
-        if ($result === null) {
+        $setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('is_top');
+        if (!$setting || !isset($setting->value)) {
             return self::resolveIsTop();
         }
 
-        return $result === 'yes';
+        return $setting->value === 'yes';
     }
 
     /**
