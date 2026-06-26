@@ -403,9 +403,15 @@ class SendRequestPickupTransactionService extends BaseService
             $isTop = (new \KiriminAjaOfficial\Services\SettingService())->isTopPaymentMethod();
             $paymentMethod = $isTop ? 'TOP' : 'qris';
         }
+        $normalizedPaymentMethod = strtolower((string) $paymentMethod);
+        $localPaymentStatus = ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid';
+        if ($normalizedPaymentMethod === 'qris') {
+            $localPaymentStatus = 'unpaid';
+        }
+
         (new \KiriminAjaOfficial\Repositories\PaymentRepository())->createPayment([
             'pickup_number'     => $pickupNumber,
-            'status'            => ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid',
+            'status'            => $localPaymentStatus,
             'method'            => $paymentMethod,
             'order_amt'         => count($getPackageData),
             'pickup_schedule'   => $this->schedule,
@@ -413,7 +419,7 @@ class SendRequestPickupTransactionService extends BaseService
         ]);
         return self::success([
             'pickup_number'  => $pickupNumber,
-            'open_payment'   => $hasNonCodPackage && $paymentMethod !== 'credit',
+            'open_payment'   => $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
             'payment_method' => $paymentMethod,
             'payment_status' => $pickupRequest['data']->payment_status ?? '',
         ], 'success');
