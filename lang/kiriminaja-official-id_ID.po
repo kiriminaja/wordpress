@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: KiriminAja Official 2.2.4\n"
+"Project-Id-Version: KiriminAja Official 2.2.5\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1317,6 +1317,14 @@ msgstr "Asuransi Pengiriman"
 #: inc/Pages/Admin.php:347
 msgid "Shipping Locations"
 msgstr "Lokasi Pengiriman"
+
+#: inc/Pages/Admin.php:396
+msgid "KiriminAja Shipping Option"
+msgstr "Opsi Pengiriman KiriminAja"
+
+#: inc/Pages/Admin.php:397
+msgid "KiriminAja is auto-added to the Indonesia shipping zone on activation. If needed, open WooCommerce Shipping Zones and make sure KiriminAja is enabled as a shipping method."
+msgstr "KiriminAja otomatis ditambahkan ke zona pengiriman Indonesia saat aktivasi. Jika diperlukan, buka WooCommerce Shipping Zones dan pastikan KiriminAja aktif sebagai metode pengiriman."
 
 #: templates/woocommerce/cart/cart-shipping.php:50
 msgid "Shipping costs are calculated during checkout."
@@ -2711,6 +2719,10 @@ msgstr "Ninja"
 #: inc/Base/Helper.php
 msgid "ID Express"
 msgstr "ID Express"
+
+#: inc/Services/WooCommerceShippingMethodRegistrationService.php:76
+msgid "Indonesia"
+msgstr "Indonesia"
 
 #: inc/Base/Helper.php
 msgid "NCS Courier"

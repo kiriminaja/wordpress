@@ -794,7 +794,7 @@ final class InsuranceFeatureTest extends TestCase
     }
 
     #[Test]
-    public function setup_notice_includes_woocommerce_shipping_locations_step(): void
+    public function setup_notice_includes_kiriminaja_shipping_option_step(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Pages/Admin.php');
         $methodStart = strpos($content, 'public function kiriof_setup_checklist_notice()');
@@ -814,15 +814,21 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'Shipping Locations',
+            'KiriminAja Shipping Option',
             $methodBody,
-            'Setup notice must include WooCommerce Shipping Locations in the checklist'
+            'Setup notice must include KiriminAja shipping option in the checklist'
         );
 
         $this->assertStringContainsString(
-            "'shipping_locations' => admin_url( 'admin.php?page=wc-settings' )",
+            'WooCommerceShippingMethodRegistrationService',
             $methodBody,
-            'WooCommerce Shipping Locations checklist item must link to WooCommerce general settings'
+            'Setup notice must check whether KiriminAja is registered as an enabled shipping method'
+        );
+
+        $this->assertStringContainsString(
+            "'shipping_option' => admin_url( 'admin.php?page=wc-settings&tab=shipping' )",
+            $methodBody,
+            'KiriminAja shipping option checklist item must link directly to WooCommerce shipping settings'
         );
 
         $this->assertStringContainsString(
