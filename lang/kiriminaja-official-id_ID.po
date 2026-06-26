@@ -2867,3 +2867,24 @@ msgstr "Pickup khusus COD tidak memerlukan metode pembayaran."
 #: templates/transaction-process/view/index.php
 msgid "TOP merchant uses published rates. Payment method is not required for this pickup."
 msgstr "Merchant TOP menggunakan tarif publish. Metode pembayaran tidak diperlukan untuk pickup ini."
+
+msgid "Unable to print resi because no order was selected."
+msgstr "Tidak dapat mencetak resi karena tidak ada pesanan yang dipilih."
+
+msgid "Unable to print resi because the AWB print URL was not returned by KiriminAja."
+msgstr "Tidak dapat mencetak resi karena URL cetak AWB tidak dikembalikan oleh KiriminAja."
+
+msgid "Unable to print resi because the request is not authorized."
+msgstr "Tidak dapat mencetak resi karena permintaan tidak terotorisasi."
+
+msgid "Unable to print resi because the security token is invalid."
+msgstr "Tidak dapat mencetak resi karena token keamanan tidak valid."
+
+msgid "Unable to print resi because the shipment does not have an AWB yet."
+msgstr "Tidak dapat mencetak resi karena pengiriman belum memiliki AWB."
+
+msgid "Unable to print resi because the shipment record was not found."
+msgstr "Tidak dapat mencetak resi karena data pengiriman tidak ditemukan."
+
+msgid "Unable to print resi: %s"
+msgstr "Tidak dapat mencetak resi: %s"
