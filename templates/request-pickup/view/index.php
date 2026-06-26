@@ -558,7 +558,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
 
                 const schedules = resp?.data?.schedules ?? [];
                 const transaction_summary = resp?.data?.transaction_summary ?? {};
-                const sum_cod_fee = transaction_summary?.sum_fee_cod ?? 0;
+                const sum_cod_fee = 0;
                 const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
                 const total = sum_non_cod_fee;
 
@@ -569,7 +569,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 <div>
                     <div class="row">
                         <div class="col"><?php echo esc_js( __( 'COD Package Charges', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_cod ?? 0))}</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
                     </div>
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
@@ -579,7 +579,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     <div class="row-divider" style="margin-top: .5rem"></div>
                     <div class="row">
                         <div class="col"><?php echo esc_js( __( 'Total Charges', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((sum_cod_fee))}</div>
+                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat(total)}</div>
                     </div>
                 </div>
                 `)

@@ -67,7 +67,7 @@ class GetShippingProcessPayment extends BaseService{
         $sum_fee_cod = 0;
         $sum_fee_non_cod = 0;
         foreach ($transactionRepo as $transaction){
-            if (intval($transaction->cod_fee) > 0){
+            if ($this->isCodTransaction($transaction)){
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
@@ -79,6 +79,23 @@ class GetShippingProcessPayment extends BaseService{
         $this->transactionsSummary['count_non_cod']=$count_non_cod;
         $this->transactionsSummary['sum_fee_cod']=$sum_fee_cod;
         $this->transactionsSummary['sum_fee_non_cod']=$sum_fee_non_cod;
+    }
+
+    private function isCodTransaction($transaction){
+        if ((float) ($transaction->cod_fee ?? 0) > 0) {
+            return true;
+        }
+
+        if (empty($transaction->wp_wc_order_stat_order_id) || !function_exists('wc_get_order')) {
+            return false;
+        }
+
+        $order = wc_get_order((int) $transaction->wp_wc_order_stat_order_id);
+        if (!$order) {
+            return false;
+        }
+
+        return 'cod' === strtolower((string) $order->get_payment_method());
     }
     
     private function convertTimeToSettingTimezone($dateTime){

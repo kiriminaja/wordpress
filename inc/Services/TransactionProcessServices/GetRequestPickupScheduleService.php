@@ -38,7 +38,7 @@ class GetRequestPickupScheduleService extends BaseService {
         $sum_fee_cod = 0;
         $sum_fee_non_cod = 0;
         foreach ($transactions as $transaction){
-            if ((float)$transaction->cod_fee>0){
+            if ($this->isCodTransaction($transaction)){
                 $count_cod+=1;
             }else{
                 $count_non_cod+=1;
@@ -51,6 +51,23 @@ class GetRequestPickupScheduleService extends BaseService {
         $array['sum_fee_cod']       =   $sum_fee_cod;
         $array['sum_fee_non_cod']   =   $sum_fee_non_cod;
         return $array;
+    }
+
+    private function isCodTransaction($transaction){
+        if ((float) ($transaction->cod_fee ?? 0) > 0) {
+            return true;
+        }
+
+        if (empty($transaction->wp_wc_order_stat_order_id) || !function_exists('wc_get_order')) {
+            return false;
+        }
+
+        $order = wc_get_order((int) $transaction->wp_wc_order_stat_order_id);
+        if (!$order) {
+            return false;
+        }
+
+        return 'cod' === strtolower((string) $order->get_payment_method());
     }
     
     private function scheduleOptionFormatter($schedules){
