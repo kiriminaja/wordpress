@@ -3,7 +3,7 @@
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
-         cacheDirectory=".phpunit.cache">
+         cacheDirectory=".paratest.cache">
     <testsuites>
         <testsuite name="Plugin Validation">
             <directory suffix="Test.php">tests</directory>

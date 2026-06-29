@@ -45,7 +45,7 @@ templates/          → PHP view templates (admin pages, order metabox, tracking
 └── woocommerce/    → WC template overrides (cart, checkout)
 assets/             → Frontend CSS/JS/libs (Select2, admin scripts)
 frontend/           → Frontend public assets
-tests/              → PHPUnit tests
+tests/              → ParaTest test suite
 lang/               → Translation files
 scripts/            → Build/release helper scripts
 ```
@@ -256,9 +256,9 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
 
 ## Testing
 
-- Framework: PHPUnit 10.5+
+- Test runner: ParaTest
 - Test files: `tests/` directory
-- Run: `vendor/bin/phpunit` or `make test`
+- Run: `vendor/bin/paratest --configuration paratest.xml` or `make test`
 - Tests cover: access control (`AccessControlTest`), cancel transaction flow (`CancelTransactionFeatureTest`), i18n (`I18nValidationTest`), plugin structure (`PluginStructureTest`), prefix validation (`PrefixValidationTest`), security validation (`SecurityValidationTest`), syntax validation (`SyntaxValidationTest`).
 - **Important:** The workspace must be opened at the WordPress installation root so that this plugin resides at `wp-content/plugins/kiriminaja-official`. Tests rely on WordPress core file paths (e.g. `ABSPATH`) resolving correctly. If you open only the plugin folder in isolation, tests will fail.
 - `AccessControlTest` has an `ADMIN_TEMPLATES` constant listing all template controllers that require `manage_woocommerce`.
@@ -269,7 +269,7 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
 ## Build & Release
 
 - `make zip` — Build distributable ZIP into `build/` directory (excludes dev files via rsync)
-- `make test` — Run PHPUnit with `--testdox`
+- `make test` — Run ParaTest with `paratest.xml` and `--testdox`
 - `make release [VERSION]` — Run changelog, bump version, and build ZIP
 - `make publish [VERSION]` — Full flow: release + commit + tag + push
 - `make tag` — Create annotated git tag from current version
