@@ -228,6 +228,7 @@ class ShippingProcessController
             'api_attempts'  => $getAwbData['attempts'] ?? array(),
             'response_type' => is_object( $getAwbData['data'] ?? null ) ? get_class( $getAwbData['data'] ) : gettype( $getAwbData['data'] ?? null ),
         ) );
+        /* translators: %s: Error message returned by KiriminAja when the shipping label cannot be printed. */
         $this->redirectResiPrintFailure( $apiMessage !== '' ? sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $apiMessage ) : __( 'Unable to print resi because the AWB print URL was not returned by KiriminAja.', 'kiriminaja-official' ) );
     }
 
@@ -331,6 +332,7 @@ class ShippingProcessController
             $this->logResiPrintFailure( 'exception', array(
                 'message' => $e->getMessage(),
             ) );
+            /* translators: %s: Exception message explaining why the shipping label cannot be printed. */
             $this->redirectResiPrintFailure( sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $e->getMessage() ) );
         }
     }
