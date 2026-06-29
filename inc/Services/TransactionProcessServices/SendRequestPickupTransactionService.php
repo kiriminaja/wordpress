@@ -292,6 +292,17 @@ class SendRequestPickupTransactionService extends BaseService
         return false;
     }
 
+    private function hasAwbInTransactions($transactions): bool
+    {
+        foreach ((array) $transactions as $transaction) {
+            if (trim((string) ($transaction->awb ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function call()
     {
         if (empty($this->orderIds)) {
@@ -428,17 +439,20 @@ class SendRequestPickupTransactionService extends BaseService
             ];
             $transactionRepo->updateTransactionByCallback($payload);
         }
+        $pickupTransactions = $transactionRepo->getTransactionByPickupNumber($pickupNumber);
+        $hasAwbAfterPickup = $this->hasAwbInTransactions($pickupTransactions);
         /** Create Payment*/
         $paymentMethod = $isTopPaymentMethod ? 'TOP' : $this->paymentMethod;
         if (empty($paymentMethod)) {
             $paymentMethod = 'qris';
         }
         $normalizedPaymentMethod = strtolower((string) $paymentMethod);
-        $localPaymentStatus = ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid';
+        $apiPaymentStatus = strtolower((string) ($pickupRequest['data']->payment_status ?? ''));
+        $localPaymentStatus = ($apiPaymentStatus === 'paid' || $hasAwbAfterPickup) ? 'paid' : 'unpaid';
         if ($normalizedPaymentMethod === 'top') {
             $localPaymentStatus = 'paid';
         }
-        if ($normalizedPaymentMethod === 'qris') {
+        if ($normalizedPaymentMethod === 'qris' && ! $hasAwbAfterPickup && $apiPaymentStatus !== 'paid') {
             $localPaymentStatus = 'unpaid';
         }
 
@@ -456,16 +470,17 @@ class SendRequestPickupTransactionService extends BaseService
             'normalized_payment_method' => $normalizedPaymentMethod,
             'is_top_payment_method' => $isTopPaymentMethod,
             'local_payment_status' => $localPaymentStatus,
-            'api_payment_status' => $pickupRequest['data']->payment_status ?? '',
+            'api_payment_status' => $apiPaymentStatus,
+            'has_awb_after_pickup' => $hasAwbAfterPickup,
             'has_non_cod_package' => $hasNonCodPackage,
-            'open_payment' => $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
+            'open_payment' => $localPaymentStatus !== 'paid' && $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
         ], 'kiriminaja_request_pickup');
 
         return self::success([
             'pickup_number'  => $pickupNumber,
-            'open_payment'   => $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
+            'open_payment'   => $localPaymentStatus !== 'paid' && $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
             'payment_method' => $paymentMethod,
-            'payment_status' => $pickupRequest['data']->payment_status ?? '',
+            'payment_status' => $localPaymentStatus,
         ], 'success');
     }
     private function getOriginData()

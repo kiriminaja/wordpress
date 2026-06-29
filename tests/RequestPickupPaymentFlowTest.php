@@ -22,9 +22,15 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'paymentButton.click();',
+            $content,
+            'Request pickup page should auto-open payment only through an available payment action'
+        );
+
+        $this->assertStringNotContainsString(
             'showPaymentForm(pickupNumberToLoad);',
             $content,
-            'Request pickup page should auto-open payment modal from pickup_number when open_payment opt-in exists'
+            'Request pickup page should not fall back to Scan to Pay when the payment action is absent'
         );
 
         $this->assertStringNotContainsString(
@@ -92,6 +98,68 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;',
             $transactionProcessContent,
             'Transaction process flow should avoid opening Scan to Pay automatically for COD-only pickups'
+        );
+    }
+
+    #[Test]
+    public function top_payment_rows_do_not_render_scan_to_pay_actions(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+
+        $this->assertStringContainsString(
+            "\$kiriof_is_top_method = 'top' === \$kiriof_method;",
+            $content,
+            'Request pickup list should classify TOP rows before deciding payment actions'
+        );
+
+        $this->assertStringContainsString(
+            '@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method',
+            $content,
+            'TOP rows should not enter the unpaid action branch that renders Scan to Pay'
+        );
+    }
+
+    #[Test]
+    public function awb_assignment_marks_pickup_payment_paid(): void
+    {
+        $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
+        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
+
+        $this->assertStringContainsString(
+            "'status'=>'paid'",
+            $callbackContent,
+            'processed_packages webhook should mark payment paid once AWB is stored'
+        );
+
+        $this->assertStringNotContainsString(
+            'if ($paymentMethod === \'qris\')',
+            $callbackContent,
+            'QRIS payment payload should not override the AWB-implies-paid contract'
+        );
+
+        $this->assertStringContainsString(
+            '$hasAwbAfterPickup = $this->hasAwbInTransactions($pickupTransactions);',
+            $requestPickupContent,
+            'Request pickup creation should detect AWB that arrived before the payment row was created'
+        );
+
+        $this->assertStringContainsString(
+            '$localPaymentStatus !== \'paid\' && $hasNonCodPackage && $normalizedPaymentMethod === \'qris\'',
+            $requestPickupContent,
+            'Request pickup response should only open QRIS when local payment is still unpaid'
+        );
+
+        $this->assertStringContainsString(
+            '$remoteIsPaid = $remoteStatusCode >= 100 || $remotePayTime !== \'\' || $hasAwbForPickup;',
+            $paymentRefreshContent,
+            'Payment refresh should keep AWB-backed pickups paid even if QRIS status metadata lags'
+        );
+
+        $this->assertStringContainsString(
+            '$localMethod === \'qris\' && !$remoteIsPaid && ! $hasAwbForPickup',
+            $paymentRefreshContent,
+            'Payment refresh should not downgrade QRIS rows that already have AWB'
         );
     }
 }

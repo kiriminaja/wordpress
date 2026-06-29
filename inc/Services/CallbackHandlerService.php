@@ -187,18 +187,10 @@ class CallbackHandlerService extends BaseService{
             $paymentRepository = new \KiriminAjaOfficial\Repositories\PaymentRepository();
             $paymentRecord = $paymentRepository->getPaymentByPaymentId($this->transactionPickupNumber);
             $paymentMethod = strtolower((string) ($paymentRecord->method ?? ''));
-            $paymentPayload = is_object($this->body) && isset($this->body->payment) ? $this->body->payment : null;
-            $paymentStatusCode = (int) ($paymentPayload->status_code ?? 0);
-            $paymentPayTime = (string) ($paymentPayload->pay_time ?? '');
-            $resolvedPaymentStatus = 'paid';
-
-            if ($paymentMethod === 'qris') {
-                $resolvedPaymentStatus = ($paymentStatusCode >= 100 || $paymentPayTime !== '') ? 'paid' : 'unpaid';
-            }
             /** Update Payment Status*/
             $paymentRepository->updatePaymentByCallback([
                 'changes'=>[
-                    'status'=>$resolvedPaymentStatus
+                    'status'=>'paid'
                 ],
                 'condition'=>[
                     'pickup_number'=>$this->transactionPickupNumber
@@ -211,7 +203,7 @@ class CallbackHandlerService extends BaseService{
                     'order_ids'      => $this->getPackageOrderIds(),
                     'pickup_number'  => $this->transactionPickupNumber,
                     'payment_method' => $paymentMethod,
-                    'payment_status' => $resolvedPaymentStatus,
+                    'payment_status' => 'paid',
                 )
             );
             

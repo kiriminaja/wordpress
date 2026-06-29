@@ -35,8 +35,9 @@ class GetShippingProcessPayment extends BaseService{
         $remotePayment = @$getKiriofPayment['data']->data;
         $remoteStatusCode = (int) ($remotePayment->status_code ?? 0);
         $remotePayTime = (string) ($remotePayment->pay_time ?? '');
+        $hasAwbForPickup = $this->hasAwbForPickup($this->payment_id);
 
-        $remoteIsPaid = $remoteStatusCode >= 100;
+        $remoteIsPaid = $remoteStatusCode >= 100 || $remotePayTime !== '' || $hasAwbForPickup;
         $localMethod = strtolower((string) ($getPayment->method ?? ''));
         $localStatusBefore = (string) ($getPayment->status ?? '');
 
@@ -52,7 +53,7 @@ class GetShippingProcessPayment extends BaseService{
             $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
         }
 
-        if ($getPayment && $localMethod === 'qris' && !$remoteIsPaid && ($getPayment->status ?? '') === 'paid') {
+        if ($getPayment && $localMethod === 'qris' && !$remoteIsPaid && ! $hasAwbForPickup && ($getPayment->status ?? '') === 'paid') {
             $paymentRepo->updatePaymentByCallback([
                 'changes' => [
                     'status' => 'unpaid',
@@ -72,6 +73,7 @@ class GetShippingProcessPayment extends BaseService{
             'remote_status_code' => $remoteStatusCode,
             'remote_pay_time_present' => $remotePayTime !== '',
             'remote_is_paid' => $remoteIsPaid,
+            'has_awb_for_pickup' => $hasAwbForPickup,
             'has_qr_content' => !empty($remotePayment->qr_content ?? ''),
         ], 'kiriminaja_request_pickup');
 
@@ -123,6 +125,18 @@ class GetShippingProcessPayment extends BaseService{
         }
 
         return 'cod' === strtolower((string) $order->get_payment_method());
+    }
+
+    private function hasAwbForPickup($pickupNumber): bool
+    {
+        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByPickupNumber($pickupNumber);
+        foreach ((array) $transactions as $transaction) {
+            if (trim((string) ($transaction->awb ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
     
     private function convertTimeToSettingTimezone($dateTime){

@@ -116,6 +116,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             foreach($results as $id => $kiriof_row){
                                                 $kiriof_btnGroup='';
                                                 $kiriof_pickup_number_js = esc_js( (string) ( $kiriof_row->pickup_number ?? '' ) );
+                                                $kiriof_method = strtolower(trim((string) ($kiriof_row->method ?? '')));
+                                                $kiriof_is_top_method = 'top' === $kiriof_method;
 
 
                                                 $kiriof_statusContent= '
@@ -123,7 +125,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         <span>' . esc_html__('Paid','kiriminaja-official') . '</span>
                                                     </div>
                                                 ';
-                                                if (@$kiriof_row->status!=="paid"){
+                                                if (@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
                                                         <button class="button button-primary kiriof-payment-button" type="button" data-pickup-number="'.$kiriof_pickup_number_js.'" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
@@ -193,7 +195,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 
                                                 
 
-                                                $kiriof_method = strtolower(trim((string) ($kiriof_row->method ?? '')));
                                                 if ($kiriof_method === 'credit') {
                                                     $kiriof_methodContent = '
                                                         <div class="kj-badge info">
@@ -514,9 +515,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 });
                 if (paymentButton) {
                     paymentButton.click();
-                    return;
                 }
-                showPaymentForm(pickupNumberToLoad);
             }, 150);
         }
     });
