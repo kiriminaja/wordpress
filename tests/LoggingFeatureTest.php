@@ -50,6 +50,19 @@ final class LoggingFeatureTest extends TestCase
     }
 
     #[Test]
+    public function kiriminaja_api_requests_send_plugin_user_agent_header(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Base/KiriminAjaApi.php');
+
+        $this->assertStringContainsString('private function build_user_agent(): string', $content);
+        $this->assertStringContainsString('KiriminAjaOfficial/%s WordPress/%s WooCommerce/%s PHP/%s; %s', $content);
+        $this->assertStringContainsString("defined('WC_VERSION') ? WC_VERSION : 'unknown'", $content);
+        $this->assertStringContainsString('PHP_VERSION', $content);
+        $this->assertStringContainsString("'user-agent' => \$userAgent", $content);
+        $this->assertStringContainsString("'User-Agent' => \$userAgent", $content);
+    }
+
+    #[Test]
     public function settings_and_webhook_flows_use_structured_logging(): void
     {
         $settingsContent = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingService.php');
