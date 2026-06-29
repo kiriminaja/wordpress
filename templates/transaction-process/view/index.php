@@ -1173,8 +1173,8 @@ if (page >= 1 && page <= max) {
                 }
 
                 closeModal();
-                const pickupNumber = resp?.data?.pickup_number;
-                const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1;
+                const pickupNumber = encodeURIComponent(resp?.data?.pickup_number || '');
+                const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';
                 const redirectBase = `<?php echo esc_url(admin_url('admin.php?page=kiriminaja-request-pickup')); ?>&pickup_number=${pickupNumber}`;
                 window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;
             }
