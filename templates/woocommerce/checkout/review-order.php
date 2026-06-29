@@ -60,37 +60,6 @@ $kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurren
 			<td><?php wc_cart_totals_subtotal_html(); ?></td>
 		</tr>
 
-		<!-- KJ Custom Payment -->
-		<tr class="kj-payment-checkout">
-			<th><?php esc_html_e( 'Payment', 'kiriminaja-official' ); ?></th>
-			<td>
-				<div id="payment">
-				<?php
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variable
-				$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
-				WC()->payment_gateways()->set_current_gateway( $available_gateways );
-				?>
-				<?php if ( WC()->cart->needs_payment() ) : ?>
-					<ul class="wc_payment_methods payment_methods methods">
-						<?php
-						if ( ! empty( $available_gateways ) ) {
-							// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce template variable
-							foreach ( $available_gateways as $gateway ) {
-								wc_get_template( 'checkout/payment-method.php', array( 'gateway' => $gateway ) );
-							}
-						} else {
-							echo '<li>';
-							wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'kiriminaja-official' ) ), 'notice' ); // phpcs:ignore WooCommerce.Commenting.CommentHooks.MissingHookComment
-							echo '</li>';
-						}
-						?>
-					</ul>
-				<?php endif; ?>	
-				</div>
-			</td>
-		</tr>
-		<!-- END Custom KJ Payment -->
-
 		<?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
 
 			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>

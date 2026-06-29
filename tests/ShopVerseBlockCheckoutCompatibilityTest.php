@@ -314,23 +314,26 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_custom_payment_row_sets_current_gateway_before_rendering_radios(): void
+    public function classic_checkout_review_order_must_not_render_payment_methods(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
-        $gatewayLookup = strpos($content, '$available_gateways = WC()->payment_gateways->get_available_payment_gateways();');
-        $renderLoop = strpos($content, 'foreach ( $available_gateways as $gateway )');
-        $this->assertNotFalse($gatewayLookup, 'Classic checkout custom payment row must fetch available gateways');
-        $this->assertNotFalse($renderLoop, 'Classic checkout custom payment row must render payment method radios');
 
-        $setCurrent = strpos($content, 'WC()->payment_gateways()->set_current_gateway( $available_gateways );');
-        $this->assertNotFalse(
-            $setCurrent,
-            'Custom payment row bypasses WooCommerce checkout/payment.php, so it must set the chosen/default gateway itself before rendering payment-method.php'
+        $this->assertStringNotContainsString(
+            'checkout/payment-method.php',
+            $content,
+            'Classic review-order.php must not render payment radios; WooCommerce checkout/payment.php already renders them through woocommerce_checkout_order_review'
         );
-        $this->assertLessThan(
-            $renderLoop,
-            $setCurrent,
-            'Payment gateway chosen state must be set before radios render, otherwise payment boxes can show while no input is actually checked/posted'
+
+        $this->assertStringNotContainsString(
+            'kj-payment-checkout',
+            $content,
+            'Rendering a custom payment row creates duplicate payment_method radios and duplicate #payment IDs on classic checkout'
+        );
+
+        $this->assertStringNotContainsString(
+            '$available_gateways = WC()->payment_gateways->get_available_payment_gateways();',
+            $content,
+            'Gateway lookup belongs in WooCommerce checkout/payment.php, not review-order.php'
         );
     }
 
