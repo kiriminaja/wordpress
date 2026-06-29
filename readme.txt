@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.2.5
+Stable tag: 2.2.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,10 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+
+= 2.2.6 =
+- Duplicated payment options section on classic woocommerce theme
+- Avoid auto opening payment for cod pickups
 
 = 2.2.5 =
 
