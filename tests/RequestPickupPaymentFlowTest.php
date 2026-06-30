@@ -254,4 +254,54 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'Request pickup list should not display COD-only payment rows as QRIS'
         );
     }
+
+    #[Test]
+    public function payment_list_fees_column_subtracts_platform_shipping_discount(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/index.php');
+
+        $this->assertStringContainsString(
+            'kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost',
+            $content,
+            'Payments list Fees column must subtract platform shipping discount (discount_amount), not show raw shipping + insurance'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriminaja_transactions.shipping_cost + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost',
+            $content,
+            'Payments list Fees column must not ignore discount_amount when computing non-COD cost'
+        );
+    }
+
+    #[Test]
+    public function platform_shipping_discount_label_distinguishes_from_user_coupon(): void
+    {
+        $checkoutController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $transactionProcessController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+        $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
+
+        $this->assertStringContainsString(
+            "Shipping Discount (from KiriminAja)",
+            $checkoutController,
+            'Order received page should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
+        );
+
+        $this->assertStringContainsString(
+            '$is_platform_discount',
+            $checkoutController,
+            'Order received page should distinguish platform discount from user coupon discount before choosing label'
+        );
+
+        $this->assertStringContainsString(
+            "Shipping Discount (from KiriminAja)",
+            $transactionProcessController,
+            'Admin order preview should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
+        );
+
+        $this->assertStringContainsString(
+            "Shipping Discount (from KiriminAja)",
+            $metabox,
+            'Admin order metabox should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
+        );
+    }
 }

@@ -2015,6 +2015,17 @@ if ( ! defined( 'ABSPATH' ) ) {
             } catch(e) {}
         }
 
+        function kiriofScheduleBlockShippingRatesRefresh(delay) {
+            delay = typeof delay === 'number' ? delay : 120;
+            if (kiriofBlockRatesRefreshTimer) {
+                clearTimeout(kiriofBlockRatesRefreshTimer);
+            }
+            kiriofBlockRatesRefreshTimer = setTimeout(function() {
+                kiriofBlockRatesRefreshTimer = null;
+                kiriofRefreshBlockShippingRates();
+            }, delay);
+        }
+
         function kiriofIsBlockCheckoutContext() {
             return jQuery('.wp-block-woocommerce-checkout, .wc-block-checkout, .wc-block-components-sidebar-layout').length > 0;
         }

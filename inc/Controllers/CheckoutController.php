@@ -1090,16 +1090,24 @@ class CheckoutController
         $transaction_insurance_cost = $transactionKiriminaja ? (float) $transactionKiriminaja->insurance_cost : 0;
         $transaction_cod_fee        = $transactionKiriminaja ? (float) $transactionKiriminaja->cod_fee : 0;
         $shipping_discount          = max( 0, $transaction_shipping_cost - (float) $order->get_shipping_total() );
+        $transaction_discount_amount = $transactionKiriminaja ? (float) $transactionKiriminaja->discount_amount : 0;
+        $coupon_service              = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
+        $coupon_scopes               = $coupon_service->splitCouponCodesByScope( (array) $order->get_coupon_codes() );
+        $has_shipping_coupon         = ! empty( $coupon_scopes['shipping'] );
+        $is_platform_discount        = $transaction_discount_amount > 0 && ! $has_shipping_coupon;
 
         if( $shipping_discount > 0 ){
+            $discount_label = $is_platform_discount
+                ? __( 'Shipping Discount (from KiriminAja)', 'kiriminaja-official' )
+                : __( 'Shipping Discount', 'kiriminaja-official' );
             $html .= '
             <tr>
 				<th scope="row">'.esc_html__('Actual Shipping','kiriminaja-official').':</th>
 				<td class="wc-block-order-confirmation-totals__total">'.wc_price($transaction_shipping_cost).'</td>
 			</tr>
             <tr>
-				<th scope="row">'.esc_html__('Shipping Discount','kiriminaja-official').':</th>
-				<td class="wc-block-order-confirmation-totals__total">-'.wc_price($shipping_discount).'</td>
+				<th scope="row">'.esc_html($discount_label).':</th>
+				<td class="wc-block-order-confirmation-totals__total">-'.wp_kses_post( wc_price($shipping_discount) ).'</td>
 			</tr>';
         }
 

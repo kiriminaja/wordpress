@@ -557,7 +557,7 @@ class TransactionProcessController
                                             <# if ( data.shipping_coupon ) { #>
                                                 {{ data.shipping_coupon }} <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></span>
                                             <# } else { #>
-                                                <?php esc_html_e('Shipping Discount', 'kiriminaja-official'); ?>
+                                                <?php esc_html_e('Shipping Discount (from KiriminAja)', 'kiriminaja-official'); ?>
                                             <# } #>
                                         </td>
                                         <td style="text-align:right;">{{ data.shipping_discount_fmt }}</td>
@@ -827,7 +827,7 @@ class TransactionProcessController
                 if ($second_coupon) {
                     $ship_label = $second_coupon . ' <span style="color:#8c8f94;font-size:11px;">' . esc_html__('Shipping', 'kiriminaja-official') . '</span>';
                 } else {
-                    $ship_label = __('Shipping Discount', 'kiriminaja-official');
+                    $ship_label = __('Shipping Discount (from KiriminAja)', 'kiriminaja-official');
                 }
                 $inner .= $this->buildCompactPreviewRow($ship_label, wc_price(-$wc_shipping_discount, $price_args), 'color:#d63638;');
                 $inner .= $this->buildCompactPreviewRow(__('Discounted Shipping', 'kiriminaja-official'), wc_price($discounted_shipping, $price_args));

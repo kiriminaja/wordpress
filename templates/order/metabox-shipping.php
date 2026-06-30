@@ -359,7 +359,7 @@ $kiriof_ship_coupon        = $kiriof_coupon_scopes['shipping'][0] ?? '';
                         <?php echo esc_html($kiriof_ship_coupon); ?>
                         <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></span>
                     <?php else : ?>
-                        <?php esc_html_e('Shipping Discount', 'kiriminaja-official'); ?>
+                        <?php esc_html_e('Shipping Discount (from KiriminAja)', 'kiriminaja-official'); ?>
                     <?php endif; ?>
                 </td>
                 <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post(wc_price($kiriof_wc_shipping_discount)); ?></td>
