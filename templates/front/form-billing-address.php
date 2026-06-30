@@ -39,6 +39,9 @@ if ( ! defined( 'ABSPATH' ) ) {
         var kiriofLastCompletedFeeRefreshAt = 0;
         var kiriofCodInsuranceTimer = null;
         var kiriofBlockRatesRefreshTimer = null;
+        var kiriofBlockCartRefreshTimer = null;
+        var kiriofLastBlockCartRefreshKey = '';
+        var kiriofLastBlockCartRefreshAt = 0;
         var kiriofLastBlockCartUpdateKey = '';
         var kiriofPendingPaymentMethod = '';
         var kiriofPendingPaymentMethodAt = 0;
@@ -2067,18 +2070,36 @@ if ( ! defined( 'ABSPATH' ) ) {
             } catch(e) {}
         }
 
-        function kiriofDispatchWooBlocksCartRefresh() {
-            kiriofRefreshBlockShippingRates();
+        function kiriofScheduleBlockCartDataRefresh(refreshKey, delay) {
+            delay = typeof delay === 'number' ? delay : 240;
 
+            if (
+                refreshKey
+                && refreshKey === kiriofLastBlockCartRefreshKey
+                && Date.now() - kiriofLastBlockCartRefreshAt < 1200
+            ) {
+                return;
+            }
+
+            if (kiriofBlockCartRefreshTimer) {
+                clearTimeout(kiriofBlockCartRefreshTimer);
+            }
+
+            kiriofBlockCartRefreshTimer = setTimeout(function() {
+                kiriofBlockCartRefreshTimer = null;
+                kiriofLastBlockCartRefreshKey = refreshKey || '';
+                kiriofLastBlockCartRefreshAt = Date.now();
+                kiriofRefreshBlockCartData();
+            }, delay);
+        }
+
+        function kiriofRefreshBlockCartData() {
             if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
                 try {
                     var cartDispatch = wp.data.dispatch('wc/store/cart');
                     if (cartDispatch && typeof cartDispatch.invalidateResolutionForStoreSelector === 'function') {
                         cartDispatch.invalidateResolutionForStoreSelector('getCartData');
                         cartDispatch.invalidateResolutionForStoreSelector('getCartTotals');
-                    }
-                    if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
-                        cartDispatch.invalidateResolutionForStore();
                     }
                 } catch(e) {}
 
@@ -2090,13 +2111,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                     }
                 } catch(e) {}
             }
-
-            try {
-                document.body.dispatchEvent(new CustomEvent('wc-blocks_added_to_cart', {
-                    bubbles: true,
-                    detail: { preserveCartData: false }
-                }));
-            } catch(e) {}
         }
 
         if (!jQuery('#kiriof-fee-skeleton-style').length) {
@@ -2391,7 +2405,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofLastCompletedFeeRefreshAt = Date.now();
 
                     kiriofScheduleBlockShippingRatesRefresh(180);
-                    kiriofDispatchWooBlocksCartRefresh();
+                    kiriofScheduleBlockCartDataRefresh(refreshKey, 260);
 
                     if (kiriofPendingFeeRefresh && kiriofPendingFeeRefreshKey && kiriofPendingFeeRefreshKey !== refreshKey) {
                         kiriofPendingFeeRefresh = false;

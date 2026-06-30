@@ -1622,9 +1622,15 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'wc-blocks_added_to_cart',
+            'kiriofScheduleBlockCartDataRefresh',
             $content,
-            'Woo Blocks should receive a full cart refresh event after COD session data is persisted'
+            'Block checkout should throttle cart data refreshes so switching payment/shipping does not keep Woo Blocks shimmer loading indefinitely'
+        );
+
+        $this->assertStringNotContainsString(
+            "kiriofDispatchWooBlocksCartRefresh();\n\n                    if (kiriofPendingFeeRefresh",
+            $content,
+            'Payment changes should not dispatch the heavy Woo Blocks added-to-cart refresh after every extensionCartUpdate response'
         );
     }
 
@@ -2892,7 +2898,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function block_checkout_slot_fill_script_is_enqueued_for_order_summary_fee_breakdown(): void
+    public function block_checkout_uses_native_order_summary_fee_rows(): void
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
@@ -2936,22 +2942,22 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout order summary integration must register a Woo Blocks plugin'
         );
 
-        $this->assertStringContainsString(
-            'ExperimentalOrderMeta',
+        $this->assertStringNotContainsString(
+            'wc-block-components-totals-fees',
             $script,
-            'Insurance and COD Fee breakdown should render through the checkout block ExperimentalOrderMeta slot'
+            'The block script must not hide Woo native fee rows; Woo renders cart.fees below shipping and above Total'
         );
 
-        $this->assertStringContainsString(
-            'fee.key === "insurance"',
-            $script,
-            'Slot/fill should render the native Insurance cart fee from Store API data'
+        $this->assertStringNotContainsString(
+            'kiriof-block-fee-breakdown__row',
+            $script . $style,
+            'Insurance and COD Fee should not be re-rendered through a custom row below Total'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'fee.name === "COD Fee"',
             $script,
-            'Slot/fill should render the native COD Fee cart fee from Store API data'
+            'COD Fee should use WooCommerce Blocks native order-summary fee rendering instead of plugin SlotFill rows'
         );
 
         // kiriof_get_current_shipping_discount is fetched to show strikethrough price in Order Summary totals row
