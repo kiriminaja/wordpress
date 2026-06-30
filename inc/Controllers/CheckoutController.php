@@ -1399,7 +1399,7 @@ class CheckoutController
 
         $field_key = $this->field_insurance_key;
         $fields['billing'][$field_key] = array(
-            'label'     => esc_html__('Insurance Shipping', 'kiriminaja-official'),
+            'label'     => esc_html__('Add shipping insurance', 'kiriminaja-official'),
             'required'  => false,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -1409,7 +1409,7 @@ class CheckoutController
             'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
         );
         $fields['shipping'][$this->field_shipping_insurance_key] = array(
-            'label'     => esc_html__('Insurance Shipping', 'kiriminaja-official'),
+            'label'     => esc_html__('Add shipping insurance', 'kiriminaja-official'),
             'required'  => false,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -1528,6 +1528,25 @@ class CheckoutController
             return $gateways;
         }
 
+        $selected_rate_supports_cod = $this->kiriof_selected_shipping_rate_supports_cod( $chosen_methods );
+        if ( false === $selected_rate_supports_cod ) {
+            if ( isset( $gateways['cod'] ) ) {
+                unset( $gateways['cod'] );
+            }
+
+            if ( WC()->session && 'cod' === WC()->session->get( 'chosen_payment_method' ) ) {
+                WC()->session->set( 'chosen_payment_method', '' );
+            }
+            if ( WC()->session && 'cod' === WC()->session->get( 'payment_method' ) ) {
+                WC()->session->set( 'payment_method', '' );
+            }
+            if ( WC()->session && 'cod' === WC()->session->get( 'kiriof_payment_method' ) ) {
+                WC()->session->set( 'kiriof_payment_method', '' );
+            }
+
+            return $gateways;
+        }
+
         $enable_cod_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_cod');
         $enable_cod = $enable_cod_setting ? $enable_cod_setting->value : 'yes';
 
@@ -1555,6 +1574,67 @@ class CheckoutController
         }
 
         return $gateways;
+    }
+
+    private function kiriof_selected_shipping_rate_supports_cod( $chosen_methods ) {
+        if ( ! is_array( $chosen_methods ) || empty( $chosen_methods ) ) {
+            return null;
+        }
+
+        $chosen_rate_ids = array();
+        foreach ( $chosen_methods as $method ) {
+            $method = (string) $method;
+            if ( 0 === strpos( $method, 'kiriminaja-official' ) ) {
+                $chosen_rate_ids[] = $method;
+            }
+        }
+
+        if ( empty( $chosen_rate_ids ) ) {
+            return null;
+        }
+
+        $session_rate_meta = WC()->session ? (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() ) : array();
+        foreach ( $chosen_rate_ids as $rate_id ) {
+            if ( isset( $session_rate_meta[ $rate_id ]['cod_available'] ) ) {
+                return 'yes' === (string) $session_rate_meta[ $rate_id ]['cod_available'];
+            }
+        }
+
+        if ( ! function_exists( 'WC' ) || ! WC() || ! method_exists( WC(), 'shipping' ) ) {
+            return null;
+        }
+
+        $shipping = WC()->shipping();
+        if ( ! $shipping || ! method_exists( $shipping, 'get_packages' ) ) {
+            return null;
+        }
+
+        $packages = $shipping->get_packages();
+        if ( ! is_array( $packages ) ) {
+            return null;
+        }
+
+        foreach ( $packages as $package ) {
+            $rates = isset( $package['rates'] ) && is_array( $package['rates'] ) ? $package['rates'] : array();
+            foreach ( $rates as $rate ) {
+                if ( ! $rate instanceof \WC_Shipping_Rate ) {
+                    continue;
+                }
+
+                if ( ! in_array( $rate->get_id(), $chosen_rate_ids, true ) ) {
+                    continue;
+                }
+
+                $cod_available = $rate->get_meta_data()['kiriof_rate_cod_available'] ?? $rate->get_meta( 'kiriof_rate_cod_available' );
+                if ( '' === (string) $cod_available ) {
+                    return null;
+                }
+
+                return 'yes' === (string) $cod_available;
+            }
+        }
+
+        return null;
     }
 
     public function kiriof_render_block_checkout_shipping_discount_row( $block_content, $block ) {

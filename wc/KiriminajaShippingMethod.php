@@ -332,10 +332,6 @@ function kiriof_shipping_method(){
                     }
                 }
 
-                if ($is_cod && empty($filteredOptions) && !empty($allOptions)) {
-                    $filteredOptions = $allOptions;
-                }
-
                 // Sort by cost ascending, then by name for stable ordering
                 usort($filteredOptions, function($a, $b) {
                     $costCmp = $a['cost'] <=> $b['cost'];

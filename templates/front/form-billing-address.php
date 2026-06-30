@@ -970,7 +970,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     destination_name: districtLabel || '',
                                     postcode: postcode,
                                     payment_method: kiriofGetPaymentMethod(),
-                                    insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                                    insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                                     force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
                                 };
 
@@ -1297,7 +1297,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         destination_name: '',
                         postcode: kiriofGetCurrentPostcodeKey(),
                         payment_method: kiriofGetPaymentMethod(),
-                        insurance: 0,
+                        insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                         force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
                     });
                     kiriofRefreshBlockShippingRates();
@@ -1519,7 +1519,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             destination_name: '',
                             postcode: kiriofGetCurrentPostcodeKey(),
                             payment_method: kiriofGetPaymentMethod(),
-                            insurance: 0,
+                            insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                             force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
                         });
                         kiriofRefreshBlockShippingRates();
@@ -1581,7 +1581,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         destination_name: savedDistrict.destination_name || '',
                         postcode: postcode,
                         payment_method: kiriofGetPaymentMethod(),
-                        insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                        insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                         force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
                     });
                 }
@@ -1602,7 +1602,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             destination_name: label || '',
                             postcode: postcode,
                             payment_method: kiriofGetPaymentMethod(),
-                            insurance: parseInt(jQuery('[name=kiriof_insurance]').val() || 0),
+                            insurance: <?php echo $kiriof_global_insurance ? '1' : '0'; ?>,
                             force_insurance: parseInt(jQuery('[name=kiriof_force_insurance]').val() || 0)
                         });
                     });
@@ -2124,6 +2124,37 @@ if ( ! defined( 'ABSPATH' ) ) {
             }
         }
 
+        function kiriofRefreshBlockPaymentMethodsData() {
+            if (typeof wp === 'undefined' || !wp.data || !wp.data.dispatch) {
+                return;
+            }
+
+            var selectors = [
+                'getPaymentMethods',
+                'getAvailablePaymentMethods',
+                'getActivePaymentMethod',
+                'getPaymentMethodData'
+            ];
+
+            try {
+                var paymentDispatch = wp.data.dispatch('wc/store/payment');
+                if (paymentDispatch && typeof paymentDispatch.invalidateResolutionForStoreSelector === 'function') {
+                    selectors.forEach(function(selector) {
+                        paymentDispatch.invalidateResolutionForStoreSelector(selector);
+                    });
+                }
+            } catch(e) {}
+
+            try {
+                var coreDataDispatch = wp.data.dispatch('core/data');
+                if (coreDataDispatch && typeof coreDataDispatch.invalidateResolution === 'function') {
+                    selectors.forEach(function(selector) {
+                        coreDataDispatch.invalidateResolution('wc/store/payment', selector, []);
+                    });
+                }
+            } catch(e) {}
+        }
+
         if (!jQuery('#kiriof-fee-skeleton-style').length) {
             jQuery('head').append('<style id="kiriof-fee-skeleton-style">#order_review.kiriof-fee-loading .shop_table{opacity:.65;position:relative}#order_review.kiriof-fee-loading .shop_table:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 100%);animation:kiriofFeeSkeletonShimmer 1.2s ease-in-out infinite}@keyframes kiriofFeeSkeletonShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>');
         }
@@ -2350,13 +2381,15 @@ if ( ! defined( 'ABSPATH' ) ) {
             <?php if ( $kiriof_global_insurance ) : ?>
             let insurance = 1;
             <?php else : ?>
-            let insurance = ( 
-                different_address == '0' 
-                ? 
-                jQuery('#kiriof_insurance:checked').val() 
-                : 
-                jQuery('#kiriof_shipping_insurance:checked').val()
-            );
+            let insurance = kiriofIsBlockCheckoutContext()
+                ? 0
+                : (
+                    different_address == '0'
+                    ?
+                    jQuery('#kiriof_insurance:checked').val()
+                    :
+                    jQuery('#kiriof_shipping_insurance:checked').val()
+                );
             <?php endif; ?>
 
             let payment_method = kiriofGetPaymentMethod();
@@ -2417,6 +2450,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     kiriofScheduleBlockShippingRatesRefresh(180);
                     kiriofScheduleBlockCartDataRefresh(refreshKey, 260);
+                    kiriofRefreshBlockPaymentMethodsData();
 
                     if (kiriofPendingFeeRefresh && kiriofPendingFeeRefreshKey && kiriofPendingFeeRefreshKey !== refreshKey) {
                         kiriofPendingFeeRefresh = false;
@@ -2456,8 +2490,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                             // session is updated, tell WC blocks to re-fetch the cart so the
                             // selected shipping method and fees appear in the summary sidebar.
                             if (kiriofIsBlockCheckoutContext()) {
-                                kiriofRefreshBlockShippingRates();
-                                kiriofDispatchWooBlocksCartRefresh();
+                                kiriofScheduleBlockShippingRatesRefresh(80);
+                                kiriofScheduleBlockCartDataRefresh(refreshKey, 120);
                             }
 
                         },

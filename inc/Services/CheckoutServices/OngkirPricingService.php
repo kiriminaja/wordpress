@@ -74,9 +74,6 @@ class OngkirPricingService extends BaseService{
                 $filteredOptions[] = $rateOption;
             }
         }
-        if ($this->is_cod && empty($filteredOptions) && !empty($allOptions)) {
-            return $allOptions;
-        }
         return $filteredOptions;
     }
 

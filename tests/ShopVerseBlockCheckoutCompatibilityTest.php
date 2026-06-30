@@ -359,7 +359,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function cod_shipping_filter_must_not_blank_all_rates_when_cod_metadata_is_missing(): void
+    public function cod_shipping_filter_must_only_return_cod_capable_rates(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
         $start = strpos($content, 'public function filterOptions');
@@ -367,14 +367,14 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $methodBody = substr($content, $start, 3400);
 
         $this->assertStringContainsString(
-            '$allOptions = [];',
+            'if (!$is_cod || $this->isCodCapableOption($option))',
             $methodBody,
-            'COD filtering must keep a fallback copy of all rates so checkout does not show No shipping option'
+            'When COD is selected, shipping rates must be restricted to services marked COD-capable'
         );
-        $this->assertStringContainsString(
-            'if ($is_cod && empty($filteredOptions) && !empty($allOptions))',
+        $this->assertStringNotContainsString(
+            '$filteredOptions = $allOptions;',
             $methodBody,
-            'When no COD-capable rows are detected, the shipping list should degrade to regular rates instead of emptying checkout'
+            'COD checkout must not fall back to non-COD courier rows when no COD-capable rows are detected'
         );
         $this->assertStringContainsString(
             'isCodCapableOption',
@@ -389,19 +389,19 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function legacy_pricing_ajax_cod_filter_has_same_non_empty_fallback(): void
+    public function legacy_pricing_ajax_cod_filter_has_same_cod_capable_restriction(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
 
         $this->assertStringContainsString(
-            '$allOptions = [];',
+            'if (!$this->is_cod || $this->isCodCapableOption($option))',
             $content,
-            'Legacy pricing AJAX must keep all rates available as a fallback'
+            'Legacy pricing AJAX must restrict selected COD payment to COD-capable services'
         );
-        $this->assertStringContainsString(
-            'if ($this->is_cod && empty($filteredOptions) && !empty($allOptions))',
+        $this->assertStringNotContainsString(
+            'return $allOptions;',
             $content,
-            'Legacy pricing AJAX should not return an empty option list just because COD metadata is missing'
+            'Legacy pricing AJAX must not fall back to non-COD services when COD is selected'
         );
         $this->assertStringContainsString(
             'isCodCapableOption',
@@ -1627,6 +1627,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Block checkout should throttle cart data refreshes so switching payment/shipping does not keep Woo Blocks shimmer loading indefinitely'
         );
 
+        $this->assertStringContainsString(
+            'kiriofRefreshBlockPaymentMethodsData',
+            $content,
+            'Block checkout should invalidate payment methods after shipping/payment context changes so COD disappears for non-COD couriers'
+        );
+
+        $this->assertStringContainsString(
+            "invalidateResolution('wc/store/payment'",
+            $content,
+            'Payment method invalidation should target the Woo Blocks payment store'
+        );
+
         $this->assertStringNotContainsString(
             "kiriofDispatchWooBlocksCartRefresh();\n\n                    if (kiriofPendingFeeRefresh",
             $content,
@@ -1662,6 +1674,49 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             "'no' === \$cod_available",
             $validator,
             'A selected KiriminAja service explicitly marked non-COD must block COD checkout'
+        );
+    }
+
+    #[Test]
+    public function cod_gateway_is_removed_when_selected_kiriminaja_rate_is_not_cod_capable(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $gatewayStart = strpos($content, 'public function kiriof_filter_cod_availability');
+        $this->assertNotFalse($gatewayStart, 'COD availability filter must exist');
+        $gatewayBody = substr($content, $gatewayStart, 2600);
+
+        $this->assertStringContainsString(
+            'kiriof_selected_shipping_rate_supports_cod( $chosen_methods )',
+            $gatewayBody,
+            'COD gateway availability must inspect the selected KiriminAja shipping rate'
+        );
+
+        $this->assertStringContainsString(
+            'false === $selected_rate_supports_cod',
+            $gatewayBody,
+            'COD gateway must be removed when the chosen courier has cod=false metadata'
+        );
+
+        $this->assertStringContainsString(
+            "WC()->session->set( 'chosen_payment_method', '' );",
+            $gatewayBody,
+            'Stale chosen COD session state must be cleared after selecting a non-COD courier'
+        );
+
+        $helperStart = strpos($content, 'private function kiriof_selected_shipping_rate_supports_cod');
+        $this->assertNotFalse($helperStart, 'Selected rate COD capability helper must exist');
+        $helperBody = substr($content, $helperStart, 2600);
+
+        $this->assertStringContainsString(
+            'kiriof_shipping_coupon_rate_meta',
+            $helperBody,
+            'Selected-rate COD checks should use the session metadata map built while rates are added'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof_rate_cod_available',
+            $helperBody,
+            'Selected-rate COD checks should read the rate metadata generated from pricing option cod flags'
         );
     }
 
@@ -2003,6 +2058,56 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'kiriofRefreshBlockShippingRates();',
             $template,
             'Block checkout fee AJAX success should refresh block store rates directly instead of always triggering classic checkout fragment refreshes'
+        );
+    }
+
+    #[Test]
+    public function block_checkout_does_not_render_optional_insurance_checkbox_but_classic_uses_updated_wording(): void
+    {
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringNotContainsString(
+            'function kiriofRenderBlockInsuranceField()',
+            $template,
+            'Woo Blocks checkout should not inject the optional insurance checkbox until the fee refresh flow is reliable'
+        );
+
+        $this->assertStringNotContainsString(
+            'id="kiriof-block-insurance"',
+            $template,
+            'Woo Blocks checkout should not render the block insurance checkbox'
+        );
+
+        $this->assertStringNotContainsString(
+            'name="kiriof_block_insurance"',
+            $template,
+            'Woo Blocks checkout should not post a block-only insurance checkbox value'
+        );
+
+        $this->assertStringNotContainsString(
+            '.kiriof-block-insurance-field',
+            $styles,
+            'Unused block insurance checkbox styles should not be shipped'
+        );
+
+        $this->assertStringContainsString(
+            "esc_html__('Add shipping insurance', 'kiriminaja-official')",
+            $controller,
+            'Classic checkout should keep the updated insurance checkbox wording'
+        );
+
+        $this->assertStringNotContainsString(
+            "esc_html__('Insurance Shipping', 'kiriminaja-official')",
+            $controller,
+            'Classic checkout should not use the old insurance checkbox wording'
+        );
+
+        $this->assertStringContainsString(
+            'insurance: <?php echo $kiriof_global_insurance ? \'1\' : \'0\'; ?>',
+            $template,
+            'Block checkout should only send forced insurance state while the optional checkbox is disabled'
         );
     }
 

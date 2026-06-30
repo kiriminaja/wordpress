@@ -461,13 +461,20 @@ msgstr ""
 msgid "District"
 msgstr ""
 
-#: inc/Controllers/CheckoutController.php:966
-#: inc/Controllers/CheckoutController.php:976
-msgid "Insurance Shipping"
+#: inc/Controllers/CheckoutController.php:1402
+#: inc/Controllers/CheckoutController.php:1412
+msgid "Add shipping insurance"
 msgstr ""
 
 #: inc/Controllers/EditOrderController.php:29
 msgid "KiriminAja Shipping"
+msgstr ""
+
+#: inc/Controllers/CheckoutController.php:1101
+#: inc/Controllers/TransactionProcessController.php:560
+#: inc/Controllers/TransactionProcessController.php:830
+#: templates/order/metabox-shipping.php:362
+msgid "Shipping Discount (from KiriminAja)"
 msgstr ""
 
 #: inc/Controllers/EditOrderController.php:54

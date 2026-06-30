@@ -104,6 +104,11 @@ msgstr "Perlu tindakan"
 msgid "Add the shortcode [kiriminaja-tracking-front-page] to a page to enable order tracking for your customers."
 msgstr "Tambahkan shortcode [kiriminaja-tracking-front-page] ke halaman untuk mengaktifkan pelacakan pesanan bagi pelanggan."
 
+#: inc/Controllers/CheckoutController.php:1402
+#: inc/Controllers/CheckoutController.php:1412
+msgid "Add shipping insurance"
+msgstr "Tambahkan asuransi pengiriman"
+
 #: templates/woocommerce/checkout/form-shipping.php:59
 msgid "Additional information"
 msgstr "Informasi tambahan"
@@ -624,11 +629,6 @@ msgstr "Asuransi"
 #: templates/transaction-process/view/modal-detail.php:109
 msgid "Insurance Fee"
 msgstr "Biaya Asuransi"
-
-#: inc/Controllers/CheckoutController.php:966
-#: inc/Controllers/CheckoutController.php:976
-msgid "Insurance Shipping"
-msgstr "Asuransi Pengiriman"
 
 #: templates/order/metabox-shipping.php:58
 #: templates/transaction-process/view/index.php:73
@@ -2185,6 +2185,13 @@ msgstr "Diskon Produk"
 
 msgid "Shipping Discount"
 msgstr "Diskon Ongkir"
+
+#: inc/Controllers/CheckoutController.php:1101
+#: inc/Controllers/TransactionProcessController.php:560
+#: inc/Controllers/TransactionProcessController.php:830
+#: templates/order/metabox-shipping.php:362
+msgid "Shipping Discount (from KiriminAja)"
+msgstr "Diskon Ongkir dari KiriminAja"
 
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Shipping Discount (%s)"
