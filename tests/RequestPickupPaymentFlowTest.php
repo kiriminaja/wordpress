@@ -158,13 +158,19 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            "\$remoteHasPaidTimestamp = \$remotePaidAt !== '';",
+            $paymentRefreshContent,
+            'QRIS must not treat pay_time as paid because pay_time exists when the payment QR is generated'
+        );
+
+        $this->assertStringContainsString(
             "? (\$remoteHasPaidTimestamp || \$remoteHasPaidStatus)",
             $paymentRefreshContent,
             'QRIS should only be marked paid when KiriminAja returns a paid timestamp or paid status label'
         );
 
         $this->assertStringContainsString(
-            ": (\$remoteStatusCode === '0' || \$remoteHasPaidTimestamp || \$remoteHasPaidStatus || \$hasAwbForPickup);",
+            ": (\$remoteStatusCode === '0' || \$remotePayTime !== '' || \$remoteHasPaidTimestamp || \$remoteHasPaidStatus || \$hasAwbForPickup);",
             $paymentRefreshContent,
             'Non-QRIS auto-paid flows can still use status_code 0 or AWB'
         );
@@ -197,6 +203,12 @@ final class RequestPickupPaymentFlowTest extends TestCase
             "localMethod === 'qris'",
             $requestPickupTemplate,
             'Payment modal should not close QRIS just because status_code is 0 without paid timestamp/status label'
+        );
+
+        $this->assertStringContainsString(
+            'const remoteHasPaidTimestamp = !!remotePayment?.paid_at;',
+            $requestPickupTemplate,
+            'Payment modal should not close QRIS just because pay_time exists on a newly generated QR'
         );
 
         $this->assertStringContainsString(

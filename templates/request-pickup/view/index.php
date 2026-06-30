@@ -458,11 +458,11 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 const remoteStatusCode = String(remotePayment?.status_code ?? '').trim();
                 const remotePaymentStatus = String(remotePayment?.payment_status || remotePayment?.status || '').toLowerCase();
                 const localMethod = String(localPayment?.method || '').toLowerCase();
-                const remoteHasPaidTimestamp = !!remotePayment?.pay_time || !!remotePayment?.paid_at;
+                const remoteHasPaidTimestamp = !!remotePayment?.paid_at;
                 const remoteHasPaidStatus = ['paid', 'settlement', 'settled', 'success'].includes(remotePaymentStatus);
                 const remoteIsPaid = localMethod === 'qris'
                     ? (remoteHasPaidTimestamp || remoteHasPaidStatus)
-                    : (remoteStatusCode === '0' || remoteHasPaidTimestamp || remoteHasPaidStatus);
+                    : (remoteStatusCode === '0' || !!remotePayment?.pay_time || remoteHasPaidTimestamp || remoteHasPaidStatus);
                 const localIsPaid = String(localPayment?.status || '').toLowerCase() === 'paid';
 
                 /** cek jika payment sudah dibayar lalu reload list supaya status ikut berubah */
