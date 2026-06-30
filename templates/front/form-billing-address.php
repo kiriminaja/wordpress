@@ -40,6 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) {
         var kiriofCodInsuranceTimer = null;
         var kiriofBlockRatesRefreshTimer = null;
         var kiriofLastBlockCartUpdateKey = '';
+        var kiriofPendingPaymentMethod = '';
+        var kiriofPendingPaymentMethodAt = 0;
         var kiriofLastRawStoreCustomerUpdateKey = '';
         var kiriofLastRawStoreCustomerUpdateAt = 0;
         var kiriofLastObservedBlockPostcode = '';
@@ -170,6 +172,22 @@ if ( ! defined( 'ABSPATH' ) ) {
                         kiriofScheduleCodInsurance(250);
                     } catch(e) {}
                 });
+
+                jQuery(document).on(
+                    'change.kiriofBlockPaymentRefresh click.kiriofBlockPaymentRefresh',
+                    '[name="payment_method"], [name="radio-control-wc-payment-method-options"], .wc-block-checkout__payment-method input[type="radio"], .wc-block-components-checkout-step--payment input[type="radio"], [id*="payment-method-options"]',
+                    function(event) {
+                        var clickedPaymentMethod = kiriofGetPaymentMethodFromElement(event.target)
+                            || kiriofGetPaymentMethodFromElement(this);
+                        if (!clickedPaymentMethod) {
+                            return;
+                        }
+
+                        kiriofRememberPendingPaymentMethod(clickedPaymentMethod);
+                        kiriofLastPaymentMethod = clickedPaymentMethod;
+                        kiriofScheduleCodInsurance(80);
+                    }
+                );
             
                 // Dynamic District options from postcode
 	                var kiriofLastPostcode = '';
@@ -2051,6 +2069,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         function kiriofDispatchWooBlocksCartRefresh() {
             kiriofRefreshBlockShippingRates();
+
+            if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
+                try {
+                    var cartDispatch = wp.data.dispatch('wc/store/cart');
+                    if (cartDispatch && typeof cartDispatch.invalidateResolutionForStoreSelector === 'function') {
+                        cartDispatch.invalidateResolutionForStoreSelector('getCartData');
+                        cartDispatch.invalidateResolutionForStoreSelector('getCartTotals');
+                    }
+                    if (cartDispatch && typeof cartDispatch.invalidateResolutionForStore === 'function') {
+                        cartDispatch.invalidateResolutionForStore();
+                    }
+                } catch(e) {}
+
+                try {
+                    var coreDataDispatch = wp.data.dispatch('core/data');
+                    if (coreDataDispatch && typeof coreDataDispatch.invalidateResolution === 'function') {
+                        coreDataDispatch.invalidateResolution('wc/store/cart', 'getCartData', []);
+                        coreDataDispatch.invalidateResolution('wc/store/cart', 'getCartTotals', []);
+                    }
+                } catch(e) {}
+            }
+
+            try {
+                document.body.dispatchEvent(new CustomEvent('wc-blocks_added_to_cart', {
+                    bubbles: true,
+                    detail: { preserveCartData: false }
+                }));
+            } catch(e) {}
         }
 
         if (!jQuery('#kiriof-fee-skeleton-style').length) {
@@ -2127,10 +2173,66 @@ if ( ! defined( 'ABSPATH' ) ) {
             return '';
         }
 
+        function kiriofRememberPendingPaymentMethod(paymentMethod) {
+            paymentMethod = kiriofNormalizePaymentMethod(paymentMethod);
+            if (!paymentMethod) {
+                return;
+            }
+
+            kiriofPendingPaymentMethod = paymentMethod;
+            kiriofPendingPaymentMethodAt = Date.now();
+        }
+
+        function kiriofGetPendingPaymentMethod() {
+            if (!kiriofPendingPaymentMethod || Date.now() - kiriofPendingPaymentMethodAt > 2500) {
+                return '';
+            }
+
+            return kiriofPendingPaymentMethod;
+        }
+
+        function kiriofGetPaymentMethodFromElement(element) {
+            var $element = jQuery(element);
+            var paymentMethod = kiriofNormalizePaymentMethod(
+                $element.val()
+                || $element.attr('value')
+                || $element.data('paymentMethod')
+                || $element.attr('data-payment-method')
+                || ''
+            );
+
+            if (paymentMethod) {
+                return paymentMethod;
+            }
+
+            var $input = $element
+                .find('input[name="payment_method"], input[name="radio-control-wc-payment-method-options"], input[type="radio"][value]')
+                .addBack('input[name="payment_method"], input[name="radio-control-wc-payment-method-options"], input[type="radio"][value]')
+                .first();
+
+            paymentMethod = kiriofNormalizePaymentMethod($input.val() || $input.attr('value') || '');
+            if (paymentMethod) {
+                return paymentMethod;
+            }
+
+            var identifiers = [
+                $element.attr('id') || '',
+                $element.attr('for') || '',
+                $element.attr('aria-labelledby') || ''
+            ].join(' ');
+            var match = identifiers.match(/(?:payment_method_|payment-method-options[-_]|wc-payment-method-options[-_])([a-z0-9_-]+)/i);
+
+            return match ? kiriofNormalizePaymentMethod(match[1]) : '';
+        }
+
         function kiriofGetPaymentMethod() {
             let payment_method = kiriofNormalizePaymentMethod(
                 jQuery("[name=payment_method]:checked").val() || ''
             );
+
+            if (!payment_method) {
+                payment_method = kiriofGetPendingPaymentMethod();
+            }
 
             if (!payment_method && typeof wp !== 'undefined' && wp.data && wp.data.select) {
                 try {
@@ -2289,6 +2391,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     kiriofLastCompletedFeeRefreshAt = Date.now();
 
                     kiriofScheduleBlockShippingRatesRefresh(180);
+                    kiriofDispatchWooBlocksCartRefresh();
 
                     if (kiriofPendingFeeRefresh && kiriofPendingFeeRefreshKey && kiriofPendingFeeRefreshKey !== refreshKey) {
                         kiriofPendingFeeRefresh = false;

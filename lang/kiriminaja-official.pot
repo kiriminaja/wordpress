@@ -2104,6 +2104,10 @@ msgstr ""
 #: wc/KiriminajaShippingMethod.php:193
 msgid "Maaf Produk ini Tidak Memiliki Dimension untuk Pengiriman"
 msgstr ""
+
+#: inc/Services/CheckoutServices/ValidationCodCalculationService.php:42
+msgid "Selected courier service does not support Cash on Delivery. Please choose a COD-supported courier service."
+msgstr ""
 #: inc/Pages/Admin.php:70
 msgid "KiriminAja Settings"
 msgstr ""

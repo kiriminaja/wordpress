@@ -1593,6 +1593,73 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_payment_change_refreshes_cod_rates_and_fee_totals(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+
+        $this->assertStringContainsString(
+            'kiriofPendingPaymentMethod',
+            $content,
+            'Block checkout must remember the clicked payment method before the Woo payment store catches up'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetPaymentMethodFromElement',
+            $content,
+            'Payment refresh should read the clicked gateway directly so selecting COD sends payment_method=cod immediately'
+        );
+
+        $this->assertStringContainsString(
+            "invalidateResolutionForStoreSelector('getShippingRates')",
+            $content,
+            'COD payment changes must invalidate shipping rates so non-COD courier services disappear from the checkout list'
+        );
+
+        $this->assertStringContainsString(
+            "invalidateResolutionForStoreSelector('getCartData')",
+            $content,
+            'COD payment changes must invalidate full cart data so the Order Summary fee list receives COD Fee immediately'
+        );
+
+        $this->assertStringContainsString(
+            'wc-blocks_added_to_cart',
+            $content,
+            'Woo Blocks should receive a full cart refresh event after COD session data is persisted'
+        );
+    }
+
+    #[Test]
+    public function cod_checkout_validation_rejects_selected_non_cod_courier(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $validator = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/ValidationCodCalculationService.php');
+
+        $this->assertStringContainsString(
+            "'shipping_packages' => WC()->shipping()->get_packages()",
+            $controller,
+            'Checkout validation needs the selected Woo shipping rate metadata to block COD with a non-COD courier'
+        );
+
+        $this->assertStringContainsString(
+            'validateSelectedCourierSupportsCod',
+            $validator,
+            'COD validation must check the selected courier service before the order is created'
+        );
+
+        $this->assertStringContainsString(
+            "['kiriof_rate_cod_available']",
+            $validator,
+            'Validation should use the same COD availability metadata attached to KiriminAja shipping rates'
+        );
+
+        $this->assertStringContainsString(
+            "'no' === \$cod_available",
+            $validator,
+            'A selected KiriminAja service explicitly marked non-COD must block COD checkout'
+        );
+    }
+
+    #[Test]
     public function admin_ajax_cod_fee_only_sets_cod_payload_for_cod_payment(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');

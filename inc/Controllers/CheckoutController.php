@@ -607,7 +607,8 @@ class CheckoutController
             (new \KiriminAjaOfficial\Services\CheckoutServices\ValidationCodCalculationService([
                 'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
                 'payment_method'    => WC()->session->get('chosen_payment_method'),
-                'cart_total'        => WC()->cart->total
+                'cart_total'        => WC()->cart->total,
+                'shipping_packages' => WC()->shipping()->get_packages(),
             ]))->call();
         
         }catch (\Throwable $th) {
