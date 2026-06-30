@@ -128,26 +128,15 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 if (@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
-                                                        <button class="button button-primary kiriof-payment-button" type="button" data-pickup-number="'.$kiriof_pickup_number_js.'" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')">
-                                                                <div style="display: flex">
-                                                                    <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                        <svg style="position: relative; top: 1px" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                            <path d="M8.47961 7.20001C8.15961 7.12001 7.83961 6.96001 7.59961 6.72001C7.35961 6.64001 7.27961 6.40001 7.27961 6.24001C7.27961 6.08001 7.35961 5.84001 7.51961 5.76001C7.75961 5.60001 7.99961 5.44001 8.23961 5.52001C8.71961 5.52001 9.11961 5.76001 9.35961 6.08001L10.0796 5.12001C9.83961 4.88001 9.59961 4.72001 9.35961 4.56001C9.11961 4.40001 8.79961 4.32001 8.47961 4.32001V3.20001H7.51961V4.32001C7.11961 4.40001 6.71961 4.64001 6.39961 4.96001C6.07961 5.36001 5.83961 5.84001 5.91961 6.32001C5.91961 6.80001 6.07961 7.28001 6.39961 7.60001C6.79961 8.00001 7.35961 8.24001 7.83961 8.48001C8.07961 8.56001 8.39961 8.72001 8.63961 8.88001C8.79961 9.04001 8.87961 9.28001 8.87961 9.52001C8.87961 9.76001 8.79961 10 8.63961 10.24C8.39961 10.48 8.07961 10.56 7.83961 10.56C7.51961 10.56 7.11961 10.48 6.87961 10.24C6.63961 10.08 6.39961 9.84001 6.23961 9.60001L5.43961 10.48C5.67961 10.8 5.91961 11.04 6.23961 11.28C6.63961 11.52 7.11961 11.76 7.59961 11.76V12.8H8.47961V11.6C8.95961 11.52 9.35961 11.28 9.67961 10.96C10.0796 10.56 10.3196 9.92001 10.3196 9.36001C10.3196 8.88001 10.1596 8.32001 9.75961 8.00001C9.35961 7.60001 8.95961 7.36001 8.47961 7.20001ZM7.99961 1.60001C4.47961 1.60001 1.59961 4.48001 1.59961 8.00001C1.59961 11.52 4.47961 14.4 7.99961 14.4C11.5196 14.4 14.3996 11.52 14.3996 8.00001C14.3996 4.48001 11.5196 1.60001 7.99961 1.60001ZM7.99961 13.52C4.95961 13.52 2.47961 11.04 2.47961 8.00001C2.47961 4.96001 4.95961 2.48001 7.99961 2.48001C11.0396 2.48001 13.5196 4.96001 13.5196 8.00001C13.5196 11.04 11.0396 13.52 7.99961 13.52Z" fill="white"/>
-                                                                        </svg>
-                                                                        <span style="margin-left: 6px">' . esc_html__( 'Payment', 'kiriminaja-official' ) . '</span>
-                                                                    </div>
-                                                                </div>
+                                                            <button class="button kiriof-payment-button" type="button" data-pickup-number="'.$kiriof_pickup_number_js.'" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')" title="' . esc_attr__( 'Pay', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Pay', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
+                                                                <span class="dashicons dashicons-money-alt" aria-hidden="true" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span>
                                                             </button>
                                                         ';                                                        
                                                     }else{
                                                         $kiriof_btnGroup.= '
-                                                        <button class="button button-primary" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')">
-                                                                <div style="display: flex">
-                                                                    <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                        <span>' . esc_html__( 'Reschedule', 'kiriminaja-official' ) . '</span>
-                                                                    </div>
-                                                                </div>
-                                                        </button>
+                                                            <button class="button" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')" title="' . esc_attr__( 'Reschedule', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Reschedule', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
+                                                                <span class="dashicons dashicons-update-alt" aria-hidden="true" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span>
+                                                            </button>
                                                         ';    
                                                     }
 
@@ -160,12 +149,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 }
                                                 $kiriof_detail_url = admin_url( 'admin.php?page=kiriminaja-request-pickup-detail&pickup_number=' . urlencode( $kiriof_row->pickup_number ) );
                                                 $kiriof_btnGroup.='
-                                                            <a class="button button-primary-secondary" href="'.esc_url($kiriof_detail_url).'">
-                                                                <div style="display: flex">
-                                                                    <div style="display: flex;align-items: center;justify-items: center;margin: auto">
-                                                                       <span>' . esc_html__( 'Details', 'kiriminaja-official' ) . '</span>
-                                                                    </div>
-                                                                </div>
+                                                            <a class="button" href="'.esc_url($kiriof_detail_url).'" title="' . esc_attr__( 'Details', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Details', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
+                                                                <span class="dashicons dashicons-visibility" aria-hidden="true" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span>
                                                             </a>
                                                 ';
 
@@ -173,17 +158,27 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     'a' => [
                                                         'class' => [],
                                                         'href' => [],
+                                                        'title' => [],
+                                                        'aria-label' => [],
+                                                        'style' => [],
                                                     ],
                                                     'button' => [
                                                         'class' => [],
                                                         'type' => [],
                                                         'data-pickup-number' => [],
                                                         'onclick' => [],
+                                                        'title' => [],
+                                                        'aria-label' => [],
+                                                        'style' => [],
                                                     ],
                                                     'div' => [
                                                         'style' => [],
                                                     ],
-                                                    'span' => [],
+                                                    'span' => [
+                                                        'class' => [],
+                                                        'aria-hidden' => [],
+                                                        'style' => [],
+                                                    ],
                                                 ];
 
                                                 $kiriof_allowed_status_content = [
@@ -211,6 +206,12 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     $kiriof_methodContent = '
                                                         <div class="kj-badge" style="background:#f0f0f1;color:#50575e;">
                                                             <span>' . esc_html__('TOP', 'kiriminaja-official') . '</span>
+                                                        </div>
+                                                    ';
+                                                } elseif ($kiriof_method === 'cod') {
+                                                    $kiriof_methodContent = '
+                                                        <div class="kj-badge" style="background:#f0f0f1;color:#50575e;">
+                                                            <span>' . esc_html__('COD', 'kiriminaja-official') . '</span>
                                                         </div>
                                                     ';
                                                 } else {
@@ -453,10 +454,19 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                 }
                 
                 const remotePayment = resp?.data?.payment_data ?? {};
-                const remoteIsPaid = parseInt(remotePayment?.status_code || 0, 10) >= 100;
+                const localPayment = resp?.data?.payment_in_wc_data ?? {};
+                const remoteStatusCode = String(remotePayment?.status_code ?? '').trim();
+                const remotePaymentStatus = String(remotePayment?.payment_status || remotePayment?.status || '').toLowerCase();
+                const localMethod = String(localPayment?.method || '').toLowerCase();
+                const remoteHasPaidTimestamp = !!remotePayment?.pay_time || !!remotePayment?.paid_at;
+                const remoteHasPaidStatus = ['paid', 'settlement', 'settled', 'success'].includes(remotePaymentStatus);
+                const remoteIsPaid = localMethod === 'qris'
+                    ? (remoteHasPaidTimestamp || remoteHasPaidStatus)
+                    : (remoteStatusCode === '0' || remoteHasPaidTimestamp || remoteHasPaidStatus);
+                const localIsPaid = String(localPayment?.status || '').toLowerCase() === 'paid';
 
                 /** cek jika payment sudah dibayar lalu reload list supaya status ikut berubah */
-                if (remoteIsPaid){
+                if (remoteIsPaid || localIsPaid){
                     modalElem.addClass('kj-hidden')
                     window.location.reload()
                     return

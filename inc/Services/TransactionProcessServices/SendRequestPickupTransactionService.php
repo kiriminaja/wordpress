@@ -284,12 +284,17 @@ class SendRequestPickupTransactionService extends BaseService
     private function hasNonCodPackage(array $packages): bool
     {
         foreach ($packages as $package) {
-            if ((float) ($package['cod'] ?? 0) <= 0) {
+            if (!$this->isCodPackage($package)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function isCodPackage(array $package): bool
+    {
+        return !empty($package['is_cod']) || (float) ($package['cod'] ?? 0) > 0;
     }
 
     private function hasAwbInTransactions($transactions): bool
@@ -324,6 +329,9 @@ class SendRequestPickupTransactionService extends BaseService
             static function ($package) {
                 if (isset($package['destination_summary'])) {
                     unset($package['destination_summary']);
+                }
+                if (isset($package['is_cod'])) {
+                    unset($package['is_cod']);
                 }
 
                 return $package;
@@ -374,6 +382,7 @@ class SendRequestPickupTransactionService extends BaseService
                             'service_type' => $package['service_type'] ?? '',
                             'destination_summary' => $package['destination_summary'] ?? [],
                             'cod' => $package['cod'] ?? 0,
+                            'is_cod' => $package['is_cod'] ?? false,
                         ];
                     },
                     $getPackageData
@@ -444,12 +453,18 @@ class SendRequestPickupTransactionService extends BaseService
         /** Create Payment*/
         $paymentMethod = $isTopPaymentMethod ? 'TOP' : $this->paymentMethod;
         if (empty($paymentMethod)) {
-            $paymentMethod = 'qris';
+            $paymentMethod = $hasNonCodPackage ? 'qris' : 'cod';
         }
         $normalizedPaymentMethod = strtolower((string) $paymentMethod);
         $apiPaymentStatus = strtolower((string) ($pickupRequest['data']->payment_status ?? ''));
-        $localPaymentStatus = ($apiPaymentStatus === 'paid' || $hasAwbAfterPickup) ? 'paid' : 'unpaid';
+        $localPaymentStatus = 'unpaid';
+        if ($normalizedPaymentMethod !== 'qris' && $apiPaymentStatus === 'paid') {
+            $localPaymentStatus = 'paid';
+        }
         if ($normalizedPaymentMethod === 'top') {
+            $localPaymentStatus = 'paid';
+        }
+        if ($normalizedPaymentMethod === 'cod') {
             $localPaymentStatus = 'paid';
         }
         if ($normalizedPaymentMethod === 'qris' && ! $hasAwbAfterPickup && $apiPaymentStatus !== 'paid') {
@@ -587,16 +602,23 @@ class SendRequestPickupTransactionService extends BaseService
                 "item_name"                 => $combinedItemNames,
                 "note"                      => $note,
                 "package_type_id"           => 7,
-                "cod" => (int) round($transaction->cod_fee > 0 ?
-                    ($transaction->transaction_value +
-                    $transaction->shipping_cost -
-                    $transaction->discount_amount +
-                    $transaction->insurance_cost +
-                    $transaction->cod_fee) : 0),
+                "cod" => 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
                 "destination_summary" => $destinationData['summary'],
             ];
+
+            $isCodOrder = 'cod' === strtolower((string) $order->get_payment_method());
+            if ($isCodOrder) {
+                $result['cod'] = (int) round(
+                    (float) ($transaction->transaction_value ?? 0) +
+                    (float) ($transaction->shipping_cost ?? 0) -
+                    (float) ($transaction->discount_amount ?? 0) +
+                    (float) ($transaction->insurance_cost ?? 0) +
+                    (float) ($transaction->cod_fee ?? 0)
+                );
+                $result['is_cod'] = true;
+            }
 
             $result = $this->appendPickupDiscountFields($result, $transaction);
             

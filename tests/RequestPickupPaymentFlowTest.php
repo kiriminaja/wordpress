@@ -120,46 +120,126 @@ final class RequestPickupPaymentFlowTest extends TestCase
     }
 
     #[Test]
-    public function awb_assignment_marks_pickup_payment_paid(): void
+    public function qris_payment_stays_waiting_until_remote_payment_is_paid(): void
     {
         $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
         $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
 
         $this->assertStringContainsString(
-            "'status'=>'paid'",
+            "if (\$paymentMethod !== 'qris' || \$paymentStatus === 'paid')",
             $callbackContent,
-            'processed_packages webhook should mark payment paid once AWB is stored'
-        );
-
-        $this->assertStringNotContainsString(
-            'if ($paymentMethod === \'qris\')',
-            $callbackContent,
-            'QRIS payment payload should not override the AWB-implies-paid contract'
+            'processed_packages webhook must not mark unpaid QRIS payment paid just because AWB exists'
         );
 
         $this->assertStringContainsString(
-            '$hasAwbAfterPickup = $this->hasAwbInTransactions($pickupTransactions);',
+            "\$localPaymentStatus = 'unpaid';",
             $requestPickupContent,
-            'Request pickup creation should detect AWB that arrived before the payment row was created'
+            'Non-TOP QRIS pickups should start as waiting for payment'
+        );
+
+        $this->assertStringContainsString(
+            "if (\$normalizedPaymentMethod !== 'qris' && \$apiPaymentStatus === 'paid')",
+            $requestPickupContent,
+            'Request pickup must not mark QRIS paid from pickup response status alone'
+        );
+
+        $this->assertStringContainsString(
+            "\$remoteIsPaid = \$localMethod === 'qris'",
+            $paymentRefreshContent,
+            'Payment refresh should branch QRIS paid detection away from non-QRIS auto-paid rules'
+        );
+
+        $this->assertStringContainsString(
+            "\$remotePaidAt = (string) (\$remotePayment->paid_at ?? '');",
+            $paymentRefreshContent,
+            'Payment refresh should also treat paid_at as a successful payment signal'
+        );
+
+        $this->assertStringContainsString(
+            "? (\$remoteHasPaidTimestamp || \$remoteHasPaidStatus)",
+            $paymentRefreshContent,
+            'QRIS should only be marked paid when KiriminAja returns a paid timestamp or paid status label'
+        );
+
+        $this->assertStringContainsString(
+            ": (\$remoteStatusCode === '0' || \$remoteHasPaidTimestamp || \$remoteHasPaidStatus || \$hasAwbForPickup);",
+            $paymentRefreshContent,
+            'Non-QRIS auto-paid flows can still use status_code 0 or AWB'
+        );
+
+        $this->assertStringContainsString(
+            '$localMethod === \'qris\' && !$remoteIsPaid',
+            $paymentRefreshContent,
+            'Payment refresh should keep unpaid QRIS rows waiting when remote payment is not paid'
         );
 
         $this->assertStringContainsString(
             '$localPaymentStatus !== \'paid\' && $hasNonCodPackage && $normalizedPaymentMethod === \'qris\'',
             $requestPickupContent,
-            'Request pickup response should only open QRIS when local payment is still unpaid'
+            'Non-TOP pickups with any non-COD package should open Scan to Pay while payment is waiting'
         );
 
         $this->assertStringContainsString(
-            '$remoteIsPaid = $remoteStatusCode >= 100 || $remotePayTime !== \'\' || $hasAwbForPickup;',
-            $paymentRefreshContent,
-            'Payment refresh should keep AWB-backed pickups paid even if QRIS status metadata lags'
+            "const remoteStatusCode = String(remotePayment?.status_code ?? '').trim();",
+            $requestPickupTemplate,
+            'Payment modal should use KiriminAja payment status_code mapping instead of HTTP-like status codes'
         );
 
         $this->assertStringContainsString(
-            '$localMethod === \'qris\' && !$remoteIsPaid && ! $hasAwbForPickup',
-            $paymentRefreshContent,
-            'Payment refresh should not downgrade QRIS rows that already have AWB'
+            "remoteStatusCode === '0'",
+            $requestPickupTemplate,
+            'Payment modal should only use status_code 0 for non-QRIS paid flows'
+        );
+
+        $this->assertStringContainsString(
+            "localMethod === 'qris'",
+            $requestPickupTemplate,
+            'Payment modal should not close QRIS just because status_code is 0 without paid timestamp/status label'
+        );
+
+        $this->assertStringContainsString(
+            "const localIsPaid = String(localPayment?.status || '').toLowerCase() === 'paid';",
+            $requestPickupTemplate,
+            'Refresh button should reload after QRIS has actually been marked paid'
+        );
+    }
+
+    #[Test]
+    public function cod_only_pickup_does_not_fall_back_to_qris(): void
+    {
+        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+
+        $this->assertStringContainsString(
+            "if (isset(\$package['is_cod']))",
+            $requestPickupContent,
+            'Local COD marker should be removed before sending packages to KiriminAja API'
+        );
+
+        $this->assertStringContainsString(
+            '$paymentMethod = $hasNonCodPackage ? \'qris\' : \'cod\';',
+            $requestPickupContent,
+            'COD-only pickups should not default their local payment method to QRIS'
+        );
+
+        $this->assertStringContainsString(
+            '$normalizedPaymentMethod === \'cod\'',
+            $requestPickupContent,
+            'COD-only local payment rows should be marked paid and avoid QRIS actions'
+        );
+
+        $this->assertStringContainsString(
+            "\$isCodOrder = 'cod' === strtolower((string) \$order->get_payment_method());",
+            $requestPickupContent,
+            'Pickup package COD amount should follow the WooCommerce order payment method, not only cod_fee > 0'
+        );
+
+        $this->assertStringContainsString(
+            "elseif (\$kiriof_method === 'cod')",
+            $requestPickupTemplate,
+            'Request pickup list should not display COD-only payment rows as QRIS'
         );
     }
 }

@@ -33,13 +33,18 @@ class GetShippingProcessPayment extends BaseService{
         $paymentRepo = new \KiriminAjaOfficial\Repositories\PaymentRepository();
         $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
         $remotePayment = @$getKiriofPayment['data']->data;
-        $remoteStatusCode = (int) ($remotePayment->status_code ?? 0);
+        $remoteStatusCode = trim((string) ($remotePayment->status_code ?? ''));
         $remotePayTime = (string) ($remotePayment->pay_time ?? '');
+        $remotePaidAt = (string) ($remotePayment->paid_at ?? '');
         $hasAwbForPickup = $this->hasAwbForPickup($this->payment_id);
-
-        $remoteIsPaid = $remoteStatusCode >= 100 || $remotePayTime !== '' || $hasAwbForPickup;
         $localMethod = strtolower((string) ($getPayment->method ?? ''));
         $localStatusBefore = (string) ($getPayment->status ?? '');
+        $remotePaymentStatus = strtolower((string) ($remotePayment->payment_status ?? $remotePayment->status ?? ''));
+        $remoteHasPaidTimestamp = $remotePayTime !== '' || $remotePaidAt !== '';
+        $remoteHasPaidStatus = in_array($remotePaymentStatus, ['paid', 'settlement', 'settled', 'success'], true);
+        $remoteIsPaid = $localMethod === 'qris'
+            ? ($remoteHasPaidTimestamp || $remoteHasPaidStatus)
+            : ($remoteStatusCode === '0' || $remoteHasPaidTimestamp || $remoteHasPaidStatus || $hasAwbForPickup);
 
         if ($getPayment && $remoteIsPaid && ($getPayment->status ?? '') !== 'paid') {
             $paymentRepo->updatePaymentByCallback([
@@ -53,7 +58,7 @@ class GetShippingProcessPayment extends BaseService{
             $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
         }
 
-        if ($getPayment && $localMethod === 'qris' && !$remoteIsPaid && ! $hasAwbForPickup && ($getPayment->status ?? '') === 'paid') {
+        if ($getPayment && $localMethod === 'qris' && !$remoteIsPaid && ($getPayment->status ?? '') === 'paid') {
             $paymentRepo->updatePaymentByCallback([
                 'changes' => [
                     'status' => 'unpaid',
@@ -71,7 +76,11 @@ class GetShippingProcessPayment extends BaseService{
             'local_status_before' => $localStatusBefore,
             'local_status_after' => (string) ($getPayment->status ?? ''),
             'remote_status_code' => $remoteStatusCode,
+            'remote_payment_status' => $remotePaymentStatus,
             'remote_pay_time_present' => $remotePayTime !== '',
+            'remote_paid_at_present' => $remotePaidAt !== '',
+            'remote_has_paid_timestamp' => $remoteHasPaidTimestamp,
+            'remote_has_paid_status' => $remoteHasPaidStatus,
             'remote_is_paid' => $remoteIsPaid,
             'has_awb_for_pickup' => $hasAwbForPickup,
             'has_qr_content' => !empty($remotePayment->qr_content ?? ''),

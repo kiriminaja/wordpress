@@ -187,15 +187,19 @@ class CallbackHandlerService extends BaseService{
             $paymentRepository = new \KiriminAjaOfficial\Repositories\PaymentRepository();
             $paymentRecord = $paymentRepository->getPaymentByPaymentId($this->transactionPickupNumber);
             $paymentMethod = strtolower((string) ($paymentRecord->method ?? ''));
+            $paymentStatus = strtolower((string) ($paymentRecord->status ?? ''));
             /** Update Payment Status*/
-            $paymentRepository->updatePaymentByCallback([
-                'changes'=>[
-                    'status'=>'paid'
-                ],
-                'condition'=>[
-                    'pickup_number'=>$this->transactionPickupNumber
-                ],
-            ]);
+            if ($paymentMethod !== 'qris' || $paymentStatus === 'paid') {
+                $paymentRepository->updatePaymentByCallback([
+                    'changes'=>[
+                        'status'=>'paid'
+                    ],
+                    'condition'=>[
+                        'pickup_number'=>$this->transactionPickupNumber
+                    ],
+                ]);
+                $paymentStatus = 'paid';
+            }
             $this->logWebhookEvent(
                 'notice',
                 'KiriminAja webhook stored AWB numbers and synchronized payment status for processed packages.',
@@ -203,7 +207,7 @@ class CallbackHandlerService extends BaseService{
                     'order_ids'      => $this->getPackageOrderIds(),
                     'pickup_number'  => $this->transactionPickupNumber,
                     'payment_method' => $paymentMethod,
-                    'payment_status' => 'paid',
+                    'payment_status' => $paymentStatus,
                 )
             );
             
