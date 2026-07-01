@@ -128,6 +128,96 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_district_selector_uses_woocommerce_selectwoo_fallback(): void
+    {
+        $script = self::billingAddressScriptContent();
+        $start = strpos($script, 'function getSearchAreaKelurahan()');
+        $this->assertNotFalse($start, 'Classic District select initializer must exist');
+        $body = substr($script, $start, 2600);
+
+        $this->assertStringContainsString(
+            'let select2 = jQuery.fn.selectWoo || jQuery.fn.select2;',
+            $body,
+            'Classic checkout District must use WooCommerce selectWoo when the select2 alias is not available'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl",
+            $body,
+            'Classic District AJAX must fall back to the base localized ajax URL when the billing config object is incomplete'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce",
+            $body,
+            'Classic District AJAX must fall back to the base localized nonce when the billing config object is incomplete'
+        );
+
+        $this->assertStringContainsString(
+            'if (!subDistrictSelectElem.length || !select2 || !ajaxurl || !nonce)',
+            $body,
+            'District initialization should no-op safely when the field, Select2 library, AJAX URL, or nonce is unavailable'
+        );
+
+        $this->assertStringContainsString(
+            "if (\$field.data('select2') || \$field.data('selectWoo'))",
+            $body,
+            'District select must destroy an existing enhanced instance before checkout/cart fragments reinitialize it'
+        );
+
+        $this->assertStringContainsString(
+            "select2.call(\$field, {",
+            $body,
+            'District select must initialize through the chosen selectWoo/select2 implementation'
+        );
+
+        $this->assertStringContainsString(
+            'term:term',
+            $body,
+            'District search should send the Select2 term at the top level as well as inside data[]'
+        );
+
+        $this->assertStringContainsString(
+            'response.success !== false',
+            $body,
+            'District search should treat WP AJAX error payloads as empty results instead of throwing inside processResults'
+        );
+
+        $this->assertStringNotContainsString(
+            'subDistrictSelectElem.select2({',
+            $body,
+            'Calling the select2 alias directly leaves classic themes with only WooCommerce selectWoo as a native select'
+        );
+    }
+
+    #[Test]
+    public function subdistrict_ajax_accepts_select2_top_level_search_terms(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+        $start = strpos($controller, 'public function kiriminajaSubdistrictSearch()');
+        $this->assertNotFalse($start, 'Subdistrict AJAX handler must exist');
+        $body = substr($controller, $start, 1800);
+
+        $this->assertStringContainsString(
+            "isset( \$_POST['term'] )",
+            $body,
+            'Subdistrict AJAX must accept the top-level term sent by Select2/SelectWoo'
+        );
+
+        $this->assertStringContainsString(
+            "isset( \$_POST['search'] )",
+            $body,
+            'Subdistrict AJAX must accept the top-level search fallback sent by some Select2 adapters'
+        );
+
+        $this->assertStringContainsString(
+            "wp_verify_nonce",
+            $body,
+            'Subdistrict AJAX search must keep nonce verification before calling the API'
+        );
+    }
+
+    #[Test]
     public function block_checkout_no_district_state_must_not_make_place_order_a_dead_button(): void
     {
         $script = self::billingAddressTemplateContent();

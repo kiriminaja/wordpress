@@ -1811,38 +1811,65 @@
          * Get Kelurahan by search key up New
          */
         function getSearchAreaKelurahan(){
-            let ajaxurl = kiriofBillingAddressConfig.ajaxUrl || '';
             let subDistrictSelectElem = jQuery(`[name="${kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area'}"],[name=kiriof_shipping_destination_area]`); 
-            let nonce = kiriofBillingAddressConfig.nonce || '';
+            let ajaxurl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                ? kiriofAjax.ajaxurl
+                : kiriofBillingAddressConfig.ajaxUrl || '';
+            let nonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
+                ? kiriofAjax.nonce
+                : kiriofBillingAddressConfig.nonce || '';
+            let select2 = jQuery.fn.selectWoo || jQuery.fn.select2;
 
-            subDistrictSelectElem.select2({
-                minimumInputLength: 3,
-                placeholder: kiriofBillingAddressConfig.i18n.selectOption || 'Select Option',
-                allowClear: true,
-                ajax: {
-                    url: ajaxurl,
-                    dataType: 'json',
-                    type: "POST",
-                    delay: 250,
-                    data: function (search) {
-                        return {
-                            data:search,
-                            nonce:nonce,
-                            action: 'kiriminaja_subdistrict_search'
-                        };
-                    },
-                    processResults: function (response) {
-                        return {
-                            results: jQuery.map(response.data, function (item) {
-                                return {
-                                    text: item.text,
-                                    id: item.id
-                                }
-                            })
-                        };
-                    },
-                    cache: true
+            if (!subDistrictSelectElem.length || !select2 || !ajaxurl || !nonce) {
+                return;
+            }
+
+            subDistrictSelectElem.each(function() {
+                let $field = jQuery(this);
+
+                if ($field.data('select2') || $field.data('selectWoo')) {
+                    select2.call($field, 'destroy');
                 }
+
+                select2.call($field, {
+                    minimumInputLength: 3,
+                    placeholder: kiriofBillingAddressConfig.i18n.selectOption || 'Select Option',
+                    allowClear: true,
+                    ajax: {
+                        url: ajaxurl,
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 250,
+                        data: function (search) {
+                            let term = search && (search.term || search.search || search.q)
+                                ? search.term || search.search || search.q
+                                : '';
+                            return {
+                                data:{
+                                    term:term,
+                                    search:term
+                                },
+                                term:term,
+                                nonce:nonce,
+                                action: 'kiriminaja_subdistrict_search'
+                            };
+                        },
+                        processResults: function (response) {
+                            let responseData = response && response.success !== false && response.data
+                                ? response.data
+                                : [];
+                            return {
+                                results: jQuery.map(responseData, function (item) {
+                                    return {
+                                        text: item.text,
+                                        id: item.id
+                                    }
+                                })
+                            };
+                        },
+                        cache: true
+                    }
+                });
             });
 
             // Restore Select2 display for pre-selected values (e.g. from session on cart page)
