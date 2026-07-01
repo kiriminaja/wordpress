@@ -53,6 +53,13 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        wp_register_script(
+            'kiriof-form-billing-address',
+            $this->plugin_url . 'assets/wp/js/form-billing-address.js',
+            array( 'kiriof-script' ),
+            KIRIOF_VERSION,
+            array( 'in_footer' => true )
+        );
 
         // Localize script to pass ajax URL and nonce
         wp_localize_script(

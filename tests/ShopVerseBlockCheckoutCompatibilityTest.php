@@ -29,6 +29,19 @@ if (! function_exists('WC')) {
  */
 final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 {
+    private static function billingAddressTemplateContent(): string
+    {
+        return file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php')
+            . file_get_contents(PLUGIN_DIR . '/templates/front/partials/form-billing-address-fields.php')
+            . file_get_contents(PLUGIN_DIR . '/templates/front/partials/form-billing-address-config.php')
+            . file_get_contents(PLUGIN_DIR . '/assets/wp/js/form-billing-address.js');
+    }
+
+    private static function billingAddressScriptContent(): string
+    {
+        return file_get_contents(PLUGIN_DIR . '/assets/wp/js/form-billing-address.js');
+    }
+
     #[Test]
     public function shopverse_uses_woocommerce_checkout_blocks(): void
     {
@@ -41,11 +54,27 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
     }
 
+    #[Test]
+    public function billing_address_script_is_registered_and_template_enqueues_config_before_asset(): void
+    {
+        $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $script = self::billingAddressScriptContent();
+
+        $this->assertStringContainsString("wp_register_script(\n            'kiriof-form-billing-address'", $enqueue);
+        $this->assertStringContainsString("assets/wp/js/form-billing-address.js", $enqueue);
+        $this->assertStringContainsString("array( 'kiriof-script' )", $enqueue);
+        $this->assertStringContainsString("wp_enqueue_script( 'kiriof-form-billing-address' );", $template);
+        $this->assertStringContainsString("wp_add_inline_script(\n            'kiriof-form-billing-address'", $template);
+        $this->assertStringContainsString("window.kiriofBillingAddressConfig = ", $template);
+        $this->assertStringContainsString("'before'", $template);
+        $this->assertStringNotContainsString('<?php', $script);
+    }
 
     #[Test]
     public function block_checkout_script_must_run_on_cart_page_when_shopverse_redirects_empty_checkout_to_cart(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'jQuery(document).ready(function($)');
         $this->assertNotFalse($start, 'Inline checkout/cart script must exist');
         $readyBody = substr($content, $start, 19000);
@@ -53,24 +82,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'kiriofInitBlockCheckoutCompatibility();',
             $readyBody,
-            'ShopVerse uses Woo Blocks on cart/checkout; block compatibility wiring must be called outside the PHP is_checkout() branch so cart-rendered block flows get District select and COD fee updates too'
+            'ShopVerse uses Woo Blocks on cart/checkout; block compatibility wiring must be called outside the runtime isCheckout branch so cart-rendered block flows get District select and COD fee updates too'
         );
 
         $callPosition = strpos($readyBody, 'kiriofInitBlockCheckoutCompatibility();');
-        $checkoutBranchPosition = strpos($readyBody, '<?php if(is_checkout()): ?>');
+        $checkoutBranchPosition = strpos($readyBody, 'if (kiriofBillingAddressConfig.isCheckout) {');
         $this->assertNotFalse($callPosition, 'Block compatibility initializer must be called');
         $this->assertNotFalse($checkoutBranchPosition, 'Classic checkout branch still exists');
         $this->assertLessThan(
             $checkoutBranchPosition,
             $callPosition,
-            'Initializer call must happen before/outside the PHP is_checkout() branch; otherwise /cart/ has only fee helper functions and never installs postcode/payment/shipping watchers'
+            'Initializer call must happen before/outside the runtime isCheckout branch; otherwise /cart/ has only fee helper functions and never installs postcode/payment/shipping watchers'
         );
     }
 
     #[Test]
     public function classic_checkout_refresh_flags_must_be_available_to_updated_checkout_handlers(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $readyStart = strpos($content, 'jQuery(document).ready(function($)');
         $handlerStart = strpos($content, "jQuery(document.body).on('updated_checkout', function()");
         $this->assertNotFalse($readyStart, 'Inline checkout/cart script must initialize document ready handler');
@@ -101,7 +130,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_no_district_state_must_not_make_place_order_a_dead_button(): void
     {
-        $script = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $script = self::billingAddressTemplateContent();
         $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
 
         $this->assertStringContainsString(
@@ -138,7 +167,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_valid_district_during_restore_must_reenable_place_order(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'if (kiriofDistrictResultsLoading || kiriofPendingDistrictRestore)');
         $this->assertNotFalse($start, 'District loading/restore branch must exist');
         $branchBody = substr($content, $start, 1600);
@@ -470,7 +499,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function frontend_block_checkout_script_uses_store_api_extension_cart_update_for_fees(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'extensionCartUpdate',
@@ -500,7 +529,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_triggers_store_api_session_persist_before_legacy_ajax_fee_request(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofCodInsurance()');
         $this->assertNotFalse($start, 'Block checkout COD/insurance recalculation function must exist');
         $functionBody = substr($content, $start, 5200);
@@ -520,7 +549,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_postcode_lookup_uses_localized_ajax_url(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofFetchDistricts(postcode)');
         $this->assertNotFalse($start, 'Block checkout district postcode lookup function must exist');
         $functionBody = substr($content, $start, 1900);
@@ -541,7 +570,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_lookup_also_watches_postcode_dom_inputs(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'input.kiriofBlockPostcode',
@@ -726,7 +755,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_select_keeps_react_text_field_as_hidden_source_of_truth(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'kiriof-block-district-source',
@@ -750,7 +779,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_cod_insurance_reads_namespaced_district_field(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'function kiriofGetDestinationId',
@@ -774,7 +803,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_field_lookup_handles_react_rendered_inputs(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'function kiriofGetBlockDistrictField',
@@ -876,7 +905,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_initializer_must_only_bind_subscribers_once(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofInitBlockCheckoutCompatibility()');
         $this->assertNotFalse($start, 'Block checkout initializer must exist');
         $functionBody = substr($content, $start, 900);
@@ -897,7 +926,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_change_updates_checkout_additional_fields_store(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             "wp.data.dispatch('wc/store/checkout')",
@@ -997,7 +1026,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_requires_district_before_showing_shipping_options(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
         $css = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
@@ -1042,7 +1071,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_selection_persists_destination_session_before_shipping_rate_refetch(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'change.kiriofBlockDistrict');
         $this->assertNotFalse($start, 'Block District change handler must exist');
         $handlerBody = substr($content, $start, 2600);
@@ -1092,7 +1121,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_raw_update_customer_uses_store_api_nonce_header(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofForceBlockCartUpdate');
         $this->assertNotFalse($start, 'Block checkout force cart update helper must exist');
         $functionBody = substr($content, $start, 5200);
@@ -1167,7 +1196,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_valid_district_hides_all_stale_district_warnings(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofSyncBlockDistrictWarningState');
         $this->assertNotFalse($start, 'District warning sync helper must exist');
         $functionBody = substr($content, $start, 1800);
@@ -1182,7 +1211,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_resyncs_all_district_source_fields_after_blocks_rerender(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'function kiriofGetBlockDistrictFields',
@@ -1212,7 +1241,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_restores_saved_district_selection_for_the_same_postcode(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
 
         $this->assertStringContainsString(
@@ -1315,7 +1344,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_shipping_rate_refresh_uses_cart_dispatch_invalidation_fallbacks(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofRefreshBlockShippingRates');
         $this->assertNotFalse($start, 'Block checkout must define an explicit shipping-rate refresh helper');
         $methodBody = substr($content, $start, 3200);
@@ -1372,7 +1401,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_cod_fee_reads_and_watches_wc_payment_store(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             "wp.data.select('wc/store/payment')",
@@ -1426,7 +1455,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_cod_fee_keeps_cod_when_store_api_payment_response_lags(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofGetPaymentMethod()');
         $this->assertNotFalse($start, 'Payment method reader must exist');
         $methodBody = substr($content, $start, 2600);
@@ -1459,7 +1488,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_payment_reader_must_not_fall_back_to_first_payment_input_value(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofGetPaymentMethod()');
         $this->assertNotFalse($start, 'Payment method reader must exist');
         $methodBody = substr($content, $start, 3200);
@@ -1595,7 +1624,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_payment_change_refreshes_cod_rates_and_fee_totals(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'kiriofPendingPaymentMethod',
@@ -1782,7 +1811,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_select_uses_dedicated_wrapper_without_overlapping_source_field(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofRenderBlockDistrictSelect');
         $this->assertNotFalse($start, 'Block District select renderer must exist');
         $functionBody = substr($content, $start, 4200);
@@ -1809,7 +1838,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_district_select_matches_woocommerce_blocks_select_markup(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofRenderBlockDistrictSelect');
         $this->assertNotFalse($start, 'Block District select renderer must exist');
         $functionBody = substr($content, $start, 3200);
@@ -1860,7 +1889,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function checkout_fee_amounts_show_skeleton_while_recalculating(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'function kiriofSetFeeSkeletonLoading',
@@ -1933,7 +1962,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function classic_checkout_updated_checkout_handler_must_not_recalculate_fees_recursively(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
         $handlerStart = strpos($template, "jQuery(document.body).on( 'updated_checkout', function() {");
         $this->assertNotFalse($handlerStart, 'Classic updated_checkout compatibility handler must exist');
         $handlerBody = substr($template, $handlerStart, 420);
@@ -1965,7 +1994,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function checkout_refresh_handlers_must_not_accumulate_duplicate_change_listeners(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             ".off('change.kiriofPaymentRefresh'",
@@ -1995,7 +2024,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function fee_refresh_must_collapse_inflight_requests_instead_of_stacking_more_ajax(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
         $start = strpos($template, 'function kiriofCodInsurance()');
         $this->assertNotFalse($start, 'Fee AJAX function must exist');
         $functionBody = substr($template, $start, 7600);
@@ -2034,7 +2063,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_fee_refreshes_must_be_scheduled_and_skip_classic_fragment_cycles(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'var kiriofCodInsuranceTimer = null;',
@@ -2064,7 +2093,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_does_not_render_optional_insurance_checkbox_but_classic_uses_updated_wording(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
         $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
 
@@ -2105,7 +2134,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'insurance: <?php echo $kiriof_global_insurance ? \'1\' : \'0\'; ?>',
+            'insurance: kiriofBillingAddressConfig.globalInsurance ? 1 : 0',
             $template,
             'Block checkout should only send forced insurance state while the optional checkbox is disabled'
         );
@@ -2114,7 +2143,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function classic_checkout_shipping_radio_change_persists_selected_method_before_fee_refresh(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, "jQuery(document.body).on( 'change', 'input.shipping_method'");
         $this->assertNotFalse($start, 'Classic shipping radio change handler must exist');
         $handlerBody = substr($content, $start, 500);
@@ -2130,7 +2159,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_shipping_radio_click_prefers_recent_user_selection_over_stale_store_rate(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
 
         $this->assertStringContainsString(
             'var kiriofPendingShippingMethod',
@@ -2173,7 +2202,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_shipping_radio_click_syncs_wc_blocks_selected_rate_for_order_summary(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $template = self::billingAddressTemplateContent();
 
         $handlerStart = strpos($template, "jQuery(document).on('change click', 'input[type=\"radio\"]'");
         $this->assertNotFalse($handlerStart, 'Block checkout shipping radio listener must exist');
@@ -2597,7 +2626,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function block_checkout_fee_sync_prefers_store_selected_shipping_rate_over_stale_dom_radio(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php');
+        $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofCodInsurance');
         $this->assertNotFalse($start, 'Block checkout fee refresh helper must exist');
         $methodBody = substr($content, $start, 2600);

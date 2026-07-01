@@ -150,10 +150,16 @@ final class ShippingProcessResiPrintSanitizationTest extends TestCase
             'Print AWB response should expose attempted payload shapes for failure logging'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             "\$this->base_url = 'https://client.kiriminaja.com';",
             $methodBody,
-            'Print AWB should use the production API host that worked in the known-good print commit'
+            'Print AWB must not hardcode the base URL; it should inherit the env-aware base URL resolved by KiriminAjaApi'
+        );
+
+        $this->assertStringNotContainsString(
+            "\$this->base_url =",
+            $methodBody,
+            'Print AWB must not override base_url at all; the constructor already resolves the env-aware base URL'
         );
     }
 
