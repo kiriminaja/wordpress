@@ -187,18 +187,11 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         );
         $payloads = array_values( array_unique( $payloads, SORT_REGULAR ) );
         foreach ( $payloads as $attempt => $payload ) {
-            $previousBaseUrl = $this->base_url;
-            // Match the known-good print flow before API base URL overrides were introduced.
-            $this->base_url = 'https://client.kiriminaja.com';
-            try {
-                $response = $this->post('/api/mitra/v6.1/awb/print', $payload, array(
-                    'source'    => 'kiriminaja_shipping',
-                    'operation' => 'get_print_awb',
-                    'attempt'   => $attempt + 1,
-                ));
-            } finally {
-                $this->base_url = $previousBaseUrl;
-            }
+            $response = $this->post('/api/mitra/v6.1/awb/print', $payload, array(
+                'source'    => 'kiriminaja_shipping',
+                'operation' => 'get_print_awb',
+                'attempt'   => $attempt + 1,
+            ));
             $attempts[] = array(
                 'payload_keys'  => array_keys( $payload ),
                 'payload_shape' => is_array( reset( $payload ) ) ? 'array' : 'scalar',
@@ -228,6 +221,29 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         return $this->get('/api/mitra/v6.2/profile', array(), array(
             'source'    => 'kiriminaja_api',
             'operation' => 'get_profile',
+        ));
+    }
+
+    public function getCreditBalance(){
+        return $this->get('/api/mitra/v6.2/credit/balance', array(), array(
+            'source'    => 'kiriminaja_api',
+            'operation' => 'get_credit_balance',
+        ));
+    }
+
+    public function pinValidate($pin){
+        return $this->post('/api/mitra/v6.2/pin/validate', array(
+            'pin' => $pin,
+        ), array(
+            'source'    => 'kiriminaja_api',
+            'operation' => 'pin_validate',
+        ));
+    }
+
+    public function sendPickupRequestV2($payload){
+        return $this->post('/api/mitra/v6.2/request_pickup', $payload, array(
+            'source'    => 'kiriminaja_shipping',
+            'operation' => 'send_pickup_request_v2',
         ));
     }
 }

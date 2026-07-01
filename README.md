@@ -54,7 +54,8 @@ composer install
 make test
 ```
 
-This runs 125+ PHPUnit tests covering security, escaping, prefix compliance, template structure, and build integrity.
+This runs 400+ ParaTest-backed tests covering security, escaping, prefix compliance, template structure, and build integrity.
+The suite is executed through ParaTest so test files run in parallel using `paratest.xml`.
 
 > **Note:** Your workspace/IDE must be opened at the WordPress root directory so the plugin is located at `wp-content/plugins/kiriminaja-official`. Tests depend on WordPress core paths (`ABSPATH`) and will not work if you open the plugin folder in isolation.
 

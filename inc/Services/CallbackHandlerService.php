@@ -11,7 +11,7 @@ class CallbackHandlerService extends BaseService{
     
     public $header;
     public $body;
-    public array $packages;
+    public array $packages = [];
     public $processing;
     public $transactionPickupNumber;
     private $transactions;
@@ -34,7 +34,9 @@ class CallbackHandlerService extends BaseService{
             return self::error([],'Authorization failed');
         }
         if (isset($this->body->data) && !empty($this->body->data)) {
-            $this->packages = $this->body->data;
+            $this->packages = (array) $this->body->data;
+        } elseif (isset($this->body->packages) && !empty($this->body->packages)) {
+            $this->packages = (array) $this->body->packages;
         }
         $orderIds = $this->getPackageOrderIds();
         if (empty($orderIds)) {
@@ -106,11 +108,29 @@ class CallbackHandlerService extends BaseService{
     }
     
     private function headerValidation(){
-        $authorization = @$this->header['Authorization'] ?? '';
-        $authorizationExploded = explode(' ',$authorization);
-        $authorizationToken = @$authorizationExploded[1] ?? '$authorizationToken';
-        $token = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? 'noToken';
-        return $authorizationToken === $token;
+        $authorization = '';
+        foreach ((array) $this->header as $key => $value) {
+            if (strtolower((string) $key) === 'authorization') {
+                $authorization = trim((string) $value);
+                break;
+            }
+        }
+
+        if ($authorization === '') {
+            return false;
+        }
+
+        if (stripos($authorization, 'Bearer ') === 0) {
+            $authorization = trim(substr($authorization, 7));
+        }
+
+        $token = trim((string) ((new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? ''));
+
+        if ($authorization === '' || $token === '') {
+            return false;
+        }
+
+        return hash_equals($token, $authorization);
     }
     
     public function returnFinishedPackages(){
@@ -164,21 +184,30 @@ class CallbackHandlerService extends BaseService{
                 ];
                 (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransactionByCallback($payload);
             }
+            $paymentRepository = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+            $paymentRecord = $paymentRepository->getPaymentByPaymentId($this->transactionPickupNumber);
+            $paymentMethod = strtolower((string) ($paymentRecord->method ?? ''));
+            $paymentStatus = strtolower((string) ($paymentRecord->status ?? ''));
             /** Update Payment Status*/
-            (new \KiriminAjaOfficial\Repositories\PaymentRepository())->updatePaymentByCallback([
-                'changes'=>[
-                    'status'=>'paid'
-                ],
-                'condition'=>[
-                    'pickup_number'=>$this->transactionPickupNumber
-                ],
-            ]);
+            if ($paymentMethod !== 'qris' || $paymentStatus === 'paid') {
+                $paymentRepository->updatePaymentByCallback([
+                    'changes'=>[
+                        'status'=>'paid'
+                    ],
+                    'condition'=>[
+                        'pickup_number'=>$this->transactionPickupNumber
+                    ],
+                ]);
+                $paymentStatus = 'paid';
+            }
             $this->logWebhookEvent(
                 'notice',
-                'KiriminAja webhook marked processed packages as paid and stored their AWB numbers.',
+                'KiriminAja webhook stored AWB numbers and synchronized payment status for processed packages.',
                 array(
                     'order_ids'      => $this->getPackageOrderIds(),
                     'pickup_number'  => $this->transactionPickupNumber,
+                    'payment_method' => $paymentMethod,
+                    'payment_status' => $paymentStatus,
                 )
             );
             

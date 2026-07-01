@@ -217,14 +217,6 @@
     }
   })();
 
-  function formatFeeTotal(fee) {
-    if (fee && fee.totals && fee.totals.currency_prefix) {
-      const total = parseFloat(fee.totals.total || 0);
-      return fee.totals.currency_prefix + total.toLocaleString("id-ID");
-    }
-    return "";
-  }
-
   function fetchCurrentShippingDiscount(onComplete) {
     if (!window.kiriofAjax || !window.kiriofAjax.ajaxurl) {
       onComplete(null);
@@ -523,9 +515,7 @@
   }
 
   const { registerPlugin } = wp.plugins;
-  const { createElement, Fragment, useEffect, useMemo, useRef, useState } =
-    wp.element;
-  const { ExperimentalOrderMeta } = wc.blocksCheckout;
+  const { useEffect, useMemo, useRef, useState } = wp.element;
 
   function KiriofOrderMetaFill(props) {
     const cart = wp.data.useSelect(
@@ -536,15 +526,6 @@
     );
     const previousCouponsRef = useRef("");
     const [shippingDiscount, setShippingDiscount] = useState(null);
-    const fees = Array.isArray(cart.fees) ? cart.fees : [];
-    const kiriofFees = fees.filter(function (fee) {
-      return (
-        fee &&
-        (fee.key === "insurance" ||
-          fee.name === "Insurance" ||
-          fee.name === "COD Fee")
-      );
-    });
 
     const couponSignature = useMemo(
       function () {
@@ -681,30 +662,7 @@
       [activeShippingDiscount, shippingDiscount],
     );
 
-    if (!kiriofFees.length) {
-      return null;
-    }
-
-    return createElement(
-      ExperimentalOrderMeta,
-      null,
-      createElement(
-        Fragment,
-        null,
-        kiriofFees.map(function (fee) {
-          return createElement(
-            "div",
-            {
-              key: fee.key || fee.name,
-              className:
-                "wc-block-components-totals-item kiriof-block-fee-breakdown__row",
-            },
-            createElement("span", null, fee.name),
-            createElement("strong", null, formatFeeTotal(fee)),
-          );
-        }),
-      ),
-    );
+    return null;
   }
 
   registerPlugin("kiriminaja-official-order-meta", {

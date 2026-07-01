@@ -23,12 +23,13 @@ RSYNC_EXCLUDES := \
 	--exclude=.gitignore \
 	--exclude=.env \
 	--exclude=.env.example \
+	--exclude=AGENTS.md \
 	--exclude=Makefile \
 	--exclude=*.zip \
-	--exclude=phpunit.xml \
+	--exclude=paratest.xml \
 	--exclude=tests/ \
 	--exclude=build/ \
-	--exclude=.phpunit.cache/ \
+	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
 .PHONY: zip clean changelog release test tag publish dev stg plain
@@ -77,7 +78,7 @@ ifneq ($(RELEASE_GOALS),)
 endif
 
 test:
-	vendor/bin/phpunit --testdox
+	vendor/bin/paratest --configuration paratest.xml --testdox
 
 changelog:
 	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"

@@ -13,8 +13,8 @@ class KiriminAjaApi
     
     public function __construct()
     {
-        global $wp_version;
         $this->base_url = $this->resolve_base_url();
+        $userAgent = $this->build_user_agent();
         
         $dbApiToken = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
@@ -22,13 +22,13 @@ class KiriminAjaApi
             'timeout' => 30,
             'redirection' => 5,
             'httpversion' => '1.0',
-            'user-agent' => 'WordPress/' . $wp_version . '; ' . get_bloginfo('url'),
+            'user-agent' => $userAgent,
             'blocking' => true,
             'headers' => array(
                 'Authorization' => 'Bearer ' . $dbApiToken,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'User-Agent' => 'wordpress'
+                'User-Agent' => $userAgent
             ),
             'cookies' => array(),
             'body' => null,
@@ -37,6 +37,24 @@ class KiriminAjaApi
             'sslverify' => false,
             'stream' => false,
             'filename' => null,
+        );
+    }
+
+    private function build_user_agent(): string
+    {
+        global $wp_version;
+
+        $pluginVersion = defined('KIRIOF_VERSION') ? KIRIOF_VERSION : 'unknown';
+        $wooCommerceVersion = defined('WC_VERSION') ? WC_VERSION : 'unknown';
+        $siteUrl = get_bloginfo('url');
+
+        return sprintf(
+            'KiriminAjaOfficial/%s WordPress/%s WooCommerce/%s PHP/%s; %s',
+            $pluginVersion,
+            $wp_version,
+            $wooCommerceVersion,
+            PHP_VERSION,
+            $siteUrl
         );
     }
 

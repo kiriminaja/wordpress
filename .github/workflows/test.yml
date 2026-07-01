@@ -45,7 +45,13 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Install gettext
-        run: sudo apt-get update && sudo apt-get install -y gettext
+        run: |
+          if command -v msgfmt >/dev/null 2>&1; then
+            exit 0
+          fi
+          sudo rm -f /etc/apt/sources.list.d/azure-cli.sources /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
+          sudo apt-get install -y gettext
 
       - name: Build official zip
         id: build
@@ -64,34 +70,6 @@ jobs:
           name: plugin-build
           path: ${{ steps.build.outputs.zip_file }}
           if-no-files-found: error
-
-      - name: Unpack staged build for Plugin Check
-        run: |
-          mkdir -p /tmp/pcp
-          unzip -q "${{ steps.build.outputs.zip_file }}" -d /tmp/pcp
-          ls -la /tmp/pcp/kiriminaja-official
-
-      - name: Create wp-env config in plugin dir
-        run: |
-          echo '{"testsEnvironment":false}' > /tmp/pcp/kiriminaja-official/.wp-env.json
-
-      - name: WordPress Plugin Check (WP.org compliance)
-        timeout-minutes: 15
-        # Pin v1.1.4 until wordpress/plugin-check-action@v1 reliably runs
-        # wp-env on GitHub's Node 24 runner. v1.1.5+ can report
-        # "Environment not initialized" immediately after wp-env start.
-        uses: wordpress/plugin-check-action@v1.1.4
-        continue-on-error: true
-        with:
-          build-dir: /tmp/pcp/kiriminaja-official
-          wp-version: "latest"
-          categories: |
-            general
-            plugin_repo
-            security
-            performance
-            accessibility
-          ignore-warnings: false
 
   wordpress:
     name: "Integration + Plugin Check (WP latest / WC latest / PHP 8.1)"

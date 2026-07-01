@@ -104,6 +104,11 @@ msgstr "Perlu tindakan"
 msgid "Add the shortcode [kiriminaja-tracking-front-page] to a page to enable order tracking for your customers."
 msgstr "Tambahkan shortcode [kiriminaja-tracking-front-page] ke halaman untuk mengaktifkan pelacakan pesanan bagi pelanggan."
 
+#: inc/Controllers/CheckoutController.php:1402
+#: inc/Controllers/CheckoutController.php:1412
+msgid "Add shipping insurance"
+msgstr "Tambahkan asuransi pengiriman"
+
 #: templates/woocommerce/checkout/form-shipping.php:59
 msgid "Additional information"
 msgstr "Informasi tambahan"
@@ -224,6 +229,9 @@ msgstr "Tutup panel modal"
 
 msgid "Available Schedules"
 msgstr "Jadwal Tersedia"
+
+msgid "-- Select schedule --"
+msgstr "-- Pilih jadwal --"
 
 msgid "Close"
 msgstr "Tutup"
@@ -621,11 +629,6 @@ msgstr "Asuransi"
 #: templates/transaction-process/view/modal-detail.php:109
 msgid "Insurance Fee"
 msgstr "Biaya Asuransi"
-
-#: inc/Controllers/CheckoutController.php:966
-#: inc/Controllers/CheckoutController.php:976
-msgid "Insurance Shipping"
-msgstr "Asuransi Pengiriman"
 
 #: templates/order/metabox-shipping.php:58
 #: templates/transaction-process/view/index.php:73
@@ -2183,6 +2186,13 @@ msgstr "Diskon Produk"
 msgid "Shipping Discount"
 msgstr "Diskon Ongkir"
 
+#: inc/Controllers/CheckoutController.php:1101
+#: inc/Controllers/TransactionProcessController.php:560
+#: inc/Controllers/TransactionProcessController.php:830
+#: templates/order/metabox-shipping.php:362
+msgid "Shipping Discount (from KiriminAja)"
+msgstr "Diskon Ongkir dari KiriminAja"
+
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Shipping Discount (%s)"
 msgstr "Diskon Ongkir (%s)"
@@ -2744,3 +2754,186 @@ msgstr "Sentral Cargo"
 #: inc/Base/Helper.php
 msgid "SPX Express"
 msgstr "SPX Express"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "KA Credit"
+msgstr "KA Credit"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Loading balance..."
+msgstr "Memuat saldo..."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Max Rp10.000.000"
+msgstr "Maks Rp10.000.000"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "QRIS"
+msgstr "QRIS"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Enter PIN"
+msgstr "Masukkan PIN"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Enter the 6-digit PIN that was set on your profile page."
+msgstr "Masukkan PIN 6 digit yang telah disetel di halaman profil."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "PIN is not configured."
+msgstr "PIN belum dikonfigurasi."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Configure PIN"
+msgstr "Konfigurasi PIN"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Insufficient credit."
+msgstr "Saldo kredit tidak cukup."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Top Up Now"
+msgstr "Top Up Sekarang"
+
+#: inc/Services/TransactionProcessServices/ValidatePinService.php
+msgid "PIN must be 6 digits"
+msgstr "PIN harus 6 digit"
+
+#: templates/transaction-process/view/index.php
+msgid "Please select a payment method."
+msgstr "Silakan pilih metode pembayaran."
+
+#: templates/transaction-process/view/index.php
+msgid "Please enter a 6-digit PIN."
+msgstr "Silakan masukkan PIN 6 digit."
+
+#: templates/transaction-process/view/index.php
+msgid "PIN max attempts reached. Please try again later."
+msgstr "Percobaan PIN mencapai batas maksimum. Silakan coba lagi nanti."
+
+#: templates/transaction-process/view/index.php
+msgid "Incorrect PIN."
+msgstr "PIN salah."
+
+#: templates/transaction-process/view/index.php
+msgid "chances remaining."
+msgstr "kesempatan tersisa."
+
+#: templates/transaction-process/view/index.php
+msgid "Insufficient credit balance. Please top up or use QRIS."
+msgstr "Saldo kredit tidak cukup. Silakan top up atau gunakan QRIS."
+
+#: templates/transaction-process/view/index.php
+msgid "Something went wrong."
+msgstr "Terjadi kesalahan."
+
+#: templates/request-pickup/view/index.php
+msgid "TOP"
+msgstr "TOP"
+
+#: templates/transaction-process/view/index.php
+msgid "Back"
+msgstr "Kembali"
+
+#: templates/transaction-process/view/index.php
+msgid "Confirm PIN"
+msgstr "Konfirmasi PIN"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Enter 6-digit PIN"
+msgstr "Masukkan PIN 6 digit"
+
+#: templates/transaction-process/view/index.php
+msgid "Incorrect PIN"
+msgstr "PIN salah"
+
+#: templates/transaction-process/view/index.php
+msgid "Please check the PIN code you entered again."
+msgstr "Silakan periksa kembali kode PIN yang Anda masukkan."
+
+#: templates/transaction-process/view/index.php
+msgid "Too Many Attempts"
+msgstr "Terlalu Banyak Percobaan"
+
+#: templates/transaction-process/view/index.php
+msgid "Validate"
+msgstr "Validasi"
+
+#: templates/transaction-process/view/index.php
+msgid "You have entered the wrong code three times. Please wait"
+msgstr "Anda telah salah memasukkan kode tiga kali. Silakan tunggu"
+
+#: templates/transaction-process/view/index.php
+msgid "You have entered the wrong code too many times. Please try again later."
+msgstr "Anda terlalu sering memasukkan kode yang salah. Silakan coba lagi nanti."
+
+#: templates/transaction-process/view/index.php
+msgid "You still have"
+msgstr "Anda masih memiliki"
+
+#: templates/transaction-process/view/index.php
+msgid "chances to enter the PIN."
+msgstr "kesempatan untuk memasukkan PIN."
+
+#: templates/transaction-process/view/index.php
+msgid "to try again."
+msgstr "untuk mencoba lagi."
+
+#: templates/transaction-process/view/index.php
+msgid "COD-only pickups do not require a payment method."
+msgstr "Pickup khusus COD tidak memerlukan metode pembayaran."
+
+#: templates/transaction-process/view/index.php
+msgid "TOP merchant uses published rates. Payment method is not required for this pickup."
+msgstr "Merchant TOP menggunakan tarif publish. Metode pembayaran tidak diperlukan untuk pickup ini."
+
+msgid "Unable to print resi because no order was selected."
+msgstr "Tidak dapat mencetak resi karena tidak ada pesanan yang dipilih."
+
+msgid "Unable to print resi because the AWB print URL was not returned by KiriminAja."
+msgstr "Tidak dapat mencetak resi karena URL cetak AWB tidak dikembalikan oleh KiriminAja."
+
+msgid "Unable to print resi because the request is not authorized."
+msgstr "Tidak dapat mencetak resi karena permintaan tidak terotorisasi."
+
+msgid "Unable to print resi because the security token is invalid."
+msgstr "Tidak dapat mencetak resi karena token keamanan tidak valid."
+
+msgid "Unable to print resi because the shipment does not have an AWB yet."
+msgstr "Tidak dapat mencetak resi karena pengiriman belum memiliki AWB."
+
+msgid "Unable to print resi because the shipment record was not found."
+msgstr "Tidak dapat mencetak resi karena data pengiriman tidak ditemukan."
+
+msgid "Unable to print resi: %s"
+msgstr "Tidak dapat mencetak resi: %s"
+
+msgid "No KiriminAja plugin logs found."
+msgstr "Log plugin KiriminAja tidak ditemukan."
+
+msgid "Technical"
+msgstr "Teknis"
+
+msgid "Manage cache and download KiriminAja plugin-only diagnostic logs."
+msgstr "Kelola cache dan unduh log diagnostik khusus plugin KiriminAja."
+
+msgid "Diagnostic Logs"
+msgstr "Log Diagnostik"
+
+msgid "Download WooCommerce logs generated only by the KiriminAja plugin. The export excludes general WooCommerce and WordPress logs."
+msgstr "Unduh log WooCommerce yang dibuat hanya oleh plugin KiriminAja. Ekspor ini mengecualikan log umum WooCommerce dan WordPress."
+
+msgid "Download Log"
+msgstr "Unduh Log"
+
+msgid "KiriminAja does not collect this diagnostic data automatically or send it directly to KiriminAja. Please download the file and send it to the KiriminAja support team only with your consent."
+msgstr "KiriminAja tidak mengumpulkan data diagnostik ini secara otomatis atau mengirimkannya langsung ke KiriminAja. Silakan unduh file ini dan kirimkan ke tim support KiriminAja hanya dengan persetujuan Anda."
+
+msgid "Valid Until"
+msgstr "Berlaku Sampai"
+
+msgid "Manual refresh only"
+msgstr "Hanya refresh manual"
+
+msgid "Selected courier service does not support Cash on Delivery. Please choose a COD-supported courier service."
+msgstr "Layanan kurir yang dipilih tidak mendukung Cash on Delivery. Silakan pilih layanan kurir yang mendukung COD."

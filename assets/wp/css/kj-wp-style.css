@@ -176,14 +176,6 @@ tr.woocommerce-shipping-totals {
   order: 10 !important;
 }
 
-.kiriof-block-fee-breakdown__row {
-  order: 5 !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  margin-bottom: 12px !important;
-}
-
 .kiriof-shipping-totals-original,
 .kiriof-shipping-option-original {
   opacity: 0.6;

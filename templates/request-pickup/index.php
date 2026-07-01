@@ -84,7 +84,7 @@ class Kiriof_RequestPickupIndex {
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use prefix, whereCondition pre-prepared above
         $baseQuery = "SELECT 
             kiriminaja_payments.*, 
-            SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+            SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
             FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
             INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
             ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number

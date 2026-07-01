@@ -57,6 +57,7 @@ class SettingController{
         add_action( 'woocommerce_admin_field_kiriof_tracking_page_select', array( $this, 'renderWooCommerceTrackingPageSelectField' ) );
         add_action( 'woocommerce_update_options_general', array( $this, 'syncWooCommerceGeneralSettings' ) );
         add_action( 'woocommerce_update_options_advanced', array( $this, 'syncWooCommerceAdvancedSettings' ) );
+        add_action( 'admin_post_kiriof_download_plugin_logs', array( $this, 'downloadPluginLogs' ) );
     }
     function getIntegrationData() {
         try {
@@ -842,5 +843,90 @@ JS;
         }
 
         return $inserted ? $output : array_merge( $settings, $insert );
+    }
+
+    public function downloadPluginLogs() {
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_die( esc_html__( 'Insufficient permissions', 'kiriminaja-official' ), 403 );
+        }
+
+        check_admin_referer( 'kiriof_download_plugin_logs' );
+
+        $files = $this->getPluginLogFiles();
+        $filename = 'kiriminaja-plugin-logs-' . gmdate( 'Ymd-His' ) . '.log';
+
+        nocache_headers();
+        header( 'Content-Type: text/plain; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+
+        echo "KiriminAja Plugin Logs\n";
+        echo "Generated at: " . esc_html( current_time( 'mysql' ) ) . "\n";
+        echo "Sources: " . esc_html( implode( ', ', $this->getPluginLogSources() ) ) . "\n\n";
+
+        if ( empty( $files ) ) {
+            echo "No KiriminAja plugin logs found.\n";
+            exit;
+        }
+
+        foreach ( $files as $file ) {
+            echo "\n===== " . esc_html( basename( $file ) ) . " =====\n";
+            $content = file_get_contents( $file );
+            if ( false === $content ) {
+                echo "Unable to read log file.\n";
+                continue;
+            }
+            echo esc_html( $this->redactLogContent( $content ) );
+            echo "\n";
+        }
+
+        exit;
+    }
+
+    private function getPluginLogSources(): array {
+        return array(
+            'kiriminaja',
+            'kiriminaja_api',
+            'kiriminaja_debug',
+            'kiriminaja_import',
+            'kiriminaja_payment',
+            'kiriminaja_print',
+            'kiriminaja_request_pickup',
+            'kiriminaja_settings',
+            'kiriminaja_shipping',
+            'kiriminaja_webhook',
+            'shipping_discount_coupon',
+        );
+    }
+
+    private function getPluginLogFiles(): array {
+        $upload_dir = wp_upload_dir();
+        $log_dir = defined( 'WC_LOG_DIR' ) ? WC_LOG_DIR : trailingslashit( $upload_dir['basedir'] ) . 'wc-logs/';
+        $log_dir_real = realpath( $log_dir );
+        if ( false === $log_dir_real || ! is_dir( $log_dir_real ) ) {
+            return array();
+        }
+
+        $files = array();
+        foreach ( $this->getPluginLogSources() as $source ) {
+            foreach ( glob( trailingslashit( $log_dir_real ) . $source . '-*.log' ) ?: array() as $file ) {
+                $real_file = realpath( $file );
+                if ( false === $real_file || 0 !== strpos( $real_file, $log_dir_real ) || ! is_readable( $real_file ) ) {
+                    continue;
+                }
+                $files[ $real_file ] = filemtime( $real_file ) ?: 0;
+            }
+        }
+
+        arsort( $files );
+        return array_keys( $files );
+    }
+
+    private function redactLogContent( string $content ): string {
+        $patterns = array(
+            '/(authorization|api_key|setup_key|token|pin)(["\'\s:=]+)([^,"\'\s}]+)/i',
+            '/(Bearer\s+)[A-Za-z0-9._\-]+/i',
+        );
+
+        return preg_replace( $patterns, '$1$2[redacted]', $content ) ?? $content;
     }
 }

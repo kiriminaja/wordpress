@@ -363,6 +363,23 @@ class SettingService extends BaseService
     }
 
     /**
+     * Returns true when the connected merchant is a TOP (Term of Payment) member.
+     * Reads the stored is_top flag from the settings table, which is set during
+     * the initial setup via resolveIsTop().
+     *
+     * @return bool
+     */
+    public function isTopPaymentMethod(): bool
+    {
+        $setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('is_top');
+        if (!$setting || !isset($setting->value)) {
+            return self::resolveIsTop();
+        }
+
+        return $setting->value === 'yes';
+    }
+
+    /**
      * Resolve merchant TOP status by calling /api/mitra/v6.2/profile.
      * Returns true when metadata.payment_method === "TOP".
      * Falls back to false if the profile call fails (non-blocking).

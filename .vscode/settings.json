@@ -14,5 +14,6 @@
   },
   "[json]": {
     "editor.tabSize": 2
-  }
+  },
+  "php.version": "8.1"
 }

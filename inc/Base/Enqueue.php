@@ -53,6 +53,13 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        wp_register_script(
+            'kiriof-form-billing-address',
+            $this->plugin_url . 'assets/wp/js/form-billing-address.js',
+            array( 'kiriof-script' ),
+            KIRIOF_VERSION,
+            array( 'in_footer' => true )
+        );
 
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -228,6 +235,8 @@ class Enqueue extends BaseInit{
             wp_enqueue_script( 'woocommerce_admin' );
             wp_enqueue_script( 'wc-backbone-modal' );
             wp_enqueue_script( 'wc-orders' );
+            wp_enqueue_script( 'kiriof-pin-input', $this->plugin_url . 'assets/lib/pin-input/pin-input.js', array(), '0.2.0', true );
+            wp_script_add_data( 'kiriof-pin-input', 'type', 'module' );
         }
 
         /** print */

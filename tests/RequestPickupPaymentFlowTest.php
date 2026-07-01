@@ -22,9 +22,15 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'paymentButton.click();',
+            $content,
+            'Request pickup page should auto-open payment only through an available payment action'
+        );
+
+        $this->assertStringNotContainsString(
             'showPaymentForm(pickupNumberToLoad);',
             $content,
-            'Request pickup page should auto-open payment modal from pickup_number when open_payment opt-in exists'
+            'Request pickup page should not fall back to Scan to Pay when the payment action is absent'
         );
 
         $this->assertStringNotContainsString(
@@ -92,6 +98,210 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;',
             $transactionProcessContent,
             'Transaction process flow should avoid opening Scan to Pay automatically for COD-only pickups'
+        );
+    }
+
+    #[Test]
+    public function top_payment_rows_do_not_render_scan_to_pay_actions(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+
+        $this->assertStringContainsString(
+            "\$kiriof_is_top_method = 'top' === \$kiriof_method;",
+            $content,
+            'Request pickup list should classify TOP rows before deciding payment actions'
+        );
+
+        $this->assertStringContainsString(
+            '@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method',
+            $content,
+            'TOP rows should not enter the unpaid action branch that renders Scan to Pay'
+        );
+    }
+
+    #[Test]
+    public function qris_payment_stays_waiting_until_remote_payment_is_paid(): void
+    {
+        $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
+        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+
+        $this->assertStringContainsString(
+            "if (\$paymentMethod !== 'qris' || \$paymentStatus === 'paid')",
+            $callbackContent,
+            'processed_packages webhook must not mark unpaid QRIS payment paid just because AWB exists'
+        );
+
+        $this->assertStringContainsString(
+            "\$localPaymentStatus = 'unpaid';",
+            $requestPickupContent,
+            'Non-TOP QRIS pickups should start as waiting for payment'
+        );
+
+        $this->assertStringContainsString(
+            "if (\$normalizedPaymentMethod !== 'qris' && \$apiPaymentStatus === 'paid')",
+            $requestPickupContent,
+            'Request pickup must not mark QRIS paid from pickup response status alone'
+        );
+
+        $this->assertStringContainsString(
+            "\$remoteIsPaid = \$localMethod === 'qris'",
+            $paymentRefreshContent,
+            'Payment refresh should branch QRIS paid detection away from non-QRIS auto-paid rules'
+        );
+
+        $this->assertStringContainsString(
+            "\$remotePaidAt = (string) (\$remotePayment->paid_at ?? '');",
+            $paymentRefreshContent,
+            'Payment refresh should also treat paid_at as a successful payment signal'
+        );
+
+        $this->assertStringContainsString(
+            "\$remoteHasPaidTimestamp = \$remotePaidAt !== '';",
+            $paymentRefreshContent,
+            'QRIS must not treat pay_time as paid because pay_time exists when the payment QR is generated'
+        );
+
+        $this->assertStringContainsString(
+            "? (\$remoteHasPaidTimestamp || \$remoteHasPaidStatus)",
+            $paymentRefreshContent,
+            'QRIS should only be marked paid when KiriminAja returns a paid timestamp or paid status label'
+        );
+
+        $this->assertStringContainsString(
+            ": (\$remoteStatusCode === '0' || \$remotePayTime !== '' || \$remoteHasPaidTimestamp || \$remoteHasPaidStatus || \$hasAwbForPickup);",
+            $paymentRefreshContent,
+            'Non-QRIS auto-paid flows can still use status_code 0 or AWB'
+        );
+
+        $this->assertStringContainsString(
+            '$localMethod === \'qris\' && !$remoteIsPaid',
+            $paymentRefreshContent,
+            'Payment refresh should keep unpaid QRIS rows waiting when remote payment is not paid'
+        );
+
+        $this->assertStringContainsString(
+            '$localPaymentStatus !== \'paid\' && $hasNonCodPackage && $normalizedPaymentMethod === \'qris\'',
+            $requestPickupContent,
+            'Non-TOP pickups with any non-COD package should open Scan to Pay while payment is waiting'
+        );
+
+        $this->assertStringContainsString(
+            "const remoteStatusCode = String(remotePayment?.status_code ?? '').trim();",
+            $requestPickupTemplate,
+            'Payment modal should use KiriminAja payment status_code mapping instead of HTTP-like status codes'
+        );
+
+        $this->assertStringContainsString(
+            "remoteStatusCode === '0'",
+            $requestPickupTemplate,
+            'Payment modal should only use status_code 0 for non-QRIS paid flows'
+        );
+
+        $this->assertStringContainsString(
+            "localMethod === 'qris'",
+            $requestPickupTemplate,
+            'Payment modal should not close QRIS just because status_code is 0 without paid timestamp/status label'
+        );
+
+        $this->assertStringContainsString(
+            'const remoteHasPaidTimestamp = !!remotePayment?.paid_at;',
+            $requestPickupTemplate,
+            'Payment modal should not close QRIS just because pay_time exists on a newly generated QR'
+        );
+
+        $this->assertStringContainsString(
+            "const localIsPaid = String(localPayment?.status || '').toLowerCase() === 'paid';",
+            $requestPickupTemplate,
+            'Refresh button should reload after QRIS has actually been marked paid'
+        );
+    }
+
+    #[Test]
+    public function cod_only_pickup_does_not_fall_back_to_qris(): void
+    {
+        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+
+        $this->assertStringContainsString(
+            "if (isset(\$package['is_cod']))",
+            $requestPickupContent,
+            'Local COD marker should be removed before sending packages to KiriminAja API'
+        );
+
+        $this->assertStringContainsString(
+            '$paymentMethod = $hasNonCodPackage ? \'qris\' : \'cod\';',
+            $requestPickupContent,
+            'COD-only pickups should not default their local payment method to QRIS'
+        );
+
+        $this->assertStringContainsString(
+            '$normalizedPaymentMethod === \'cod\'',
+            $requestPickupContent,
+            'COD-only local payment rows should be marked paid and avoid QRIS actions'
+        );
+
+        $this->assertStringContainsString(
+            "\$isCodOrder = 'cod' === strtolower((string) \$order->get_payment_method());",
+            $requestPickupContent,
+            'Pickup package COD amount should follow the WooCommerce order payment method, not only cod_fee > 0'
+        );
+
+        $this->assertStringContainsString(
+            "elseif (\$kiriof_method === 'cod')",
+            $requestPickupTemplate,
+            'Request pickup list should not display COD-only payment rows as QRIS'
+        );
+    }
+
+    #[Test]
+    public function payment_list_fees_column_subtracts_platform_shipping_discount(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/index.php');
+
+        $this->assertStringContainsString(
+            'kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost',
+            $content,
+            'Payments list Fees column must subtract platform shipping discount (discount_amount), not show raw shipping + insurance'
+        );
+
+        $this->assertStringNotContainsString(
+            'kiriminaja_transactions.shipping_cost + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost',
+            $content,
+            'Payments list Fees column must not ignore discount_amount when computing non-COD cost'
+        );
+    }
+
+    #[Test]
+    public function platform_shipping_discount_label_distinguishes_from_user_coupon(): void
+    {
+        $checkoutController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $transactionProcessController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+        $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
+
+        $this->assertStringContainsString(
+            "Shipping Discount (from KiriminAja)",
+            $checkoutController,
+            'Order received page should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
+        );
+
+        $this->assertStringContainsString(
+            '$is_platform_discount',
+            $checkoutController,
+            'Order received page should distinguish platform discount from user coupon discount before choosing label'
+        );
+
+        $this->assertStringContainsString(
+            "Shipping Discount (from KiriminAja)",
+            $transactionProcessController,
+            'Admin order preview should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
+        );
+
+        $this->assertStringContainsString(
+            "Shipping Discount (from KiriminAja)",
+            $metabox,
+            'Admin order metabox should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
         );
     }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * PHPUnit bootstrap file for plugin validation tests.
+ * ParaTest bootstrap file for plugin validation tests.
  *
  * These tests validate the plugin structure, coding standards,
  * and WordPress.org review requirements WITHOUT loading WordPress.

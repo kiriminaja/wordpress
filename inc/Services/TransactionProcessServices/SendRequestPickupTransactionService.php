@@ -11,6 +11,8 @@ class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
     public string $schedule = '';
+    public string $paymentMethod = '';
+    public string $pin = '';
     private $originDataCache = null;
     private $helperCache = null;
     public function orderIds($orderIds)
@@ -23,6 +25,16 @@ class SendRequestPickupTransactionService extends BaseService
         $this->schedule = $schedule;
         return $this;
     }
+    public function paymentMethod($paymentMethod)
+    {
+        $this->paymentMethod = $paymentMethod;
+        return $this;
+    }
+    public function pin($pin)
+    {
+        $this->pin = $pin;
+        return $this;
+    }
     
     private function helper()
     {
@@ -30,6 +42,26 @@ class SendRequestPickupTransactionService extends BaseService
             $this->helperCache = kiriof_helper();
         }
         return $this->helperCache;
+    }
+
+    private function isTopPaymentMethod(): bool
+    {
+        $settingService = new \KiriminAjaOfficial\Services\SettingService();
+        $isTop = $settingService->isTopPaymentMethod();
+
+        try {
+            $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            $profilePaymentMethod = strtoupper((string) ($profile->data->metadata->payment_method ?? ''));
+            if ($profilePaymentMethod !== '') {
+                $isTop = $profilePaymentMethod === 'TOP';
+            }
+        } catch (\Throwable $th) {
+            kiriof_log('warning', 'Unable to refresh merchant payment method before request pickup.', [
+                'message' => $th->getMessage(),
+            ], 'kiriminaja_request_pickup');
+        }
+
+        return $isTop;
     }
 
     private function sanitizeApiName($value)
@@ -225,20 +257,20 @@ class SendRequestPickupTransactionService extends BaseService
             $value = $transaction->$field ?? null;
 
             if ($value !== null && (float) $value > 0) {
-                $payload[$field] = $value;
+                $payload[$field] = (int) round((float) $value);
             }
         }
 
         if ($discountAmount > 0) {
             if ($discountPercentage !== null && (float) $discountPercentage > 0) {
-                $payload['discount_percentage'] = $discountPercentage;
+                $payload['discount_percentage'] = (float) $discountPercentage;
             } elseif ($shippingCost > 0) {
                 $payload['discount_percentage'] = round(($discountAmount / $shippingCost) * 100, 2);
             } else {
-                $payload['discount_percentage'] = 0;
+                $payload['discount_percentage'] = 0.0;
             }
         } elseif ($discountPercentage !== null && (float) $discountPercentage > 0) {
-            $payload['discount_percentage'] = $discountPercentage;
+            $payload['discount_percentage'] = (float) $discountPercentage;
         }
 
         $description = trim((string) ($transaction->woocommerce_discount_description ?? ''));
@@ -252,7 +284,23 @@ class SendRequestPickupTransactionService extends BaseService
     private function hasNonCodPackage(array $packages): bool
     {
         foreach ($packages as $package) {
-            if ((float) ($package['cod'] ?? 0) <= 0) {
+            if (!$this->isCodPackage($package)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isCodPackage(array $package): bool
+    {
+        return !empty($package['is_cod']) || (float) ($package['cod'] ?? 0) > 0;
+    }
+
+    private function hasAwbInTransactions($transactions): bool
+    {
+        foreach ((array) $transactions as $transaction) {
+            if (trim((string) ($transaction->awb ?? '')) !== '') {
                 return true;
             }
         }
@@ -276,10 +324,14 @@ class SendRequestPickupTransactionService extends BaseService
             return self::error([], 'No valid packages found');
         }
         $hasNonCodPackage = $this->hasNonCodPackage($getPackageData);
+        $isTopPaymentMethod = $this->isTopPaymentMethod();
         $apiPackages = array_map(
             static function ($package) {
                 if (isset($package['destination_summary'])) {
                     unset($package['destination_summary']);
+                }
+                if (isset($package['is_cod'])) {
+                    unset($package['is_cod']);
                 }
 
                 return $package;
@@ -290,11 +342,12 @@ class SendRequestPickupTransactionService extends BaseService
         $payload = [
             "address"       => $getOriginData['origin_address'] ?? '',
             "phone"         => $getOriginData['origin_phone'] ?? '',
-            "kelurahan_id"  => $getOriginData['origin_sub_district_id'] ?? '',
+            "kelurahan_id"  => (int) ($getOriginData['origin_sub_district_id'] ?? 0),
             "packages"      => $apiPackages,
             "name"          => $this->sanitizeApiName($getOriginData['origin_name'] ?? ''),
             "zipcode"       => $getOriginData['origin_zip_code'] ?? '',
             "schedule"      => $this->schedule,
+            "platform_name" => 'wordpress',
             "dropoff"        => false,
         ];
         /** 
@@ -303,8 +356,15 @@ class SendRequestPickupTransactionService extends BaseService
          **/
         $firstService = $getPackageData[0]['service'] ?? '';
         if (in_array($firstService, ['lion', 'posindonesia'], true)) {
-            $payload['latitude'] = $getOriginData['origin_latitude'] ?? '';
-            $payload['longitude'] = $getOriginData['origin_longitude'] ?? '';
+            $payload['latitude'] = (float) ($getOriginData['origin_latitude'] ?? 0);
+            $payload['longitude'] = (float) ($getOriginData['origin_longitude'] ?? 0);
+        }
+
+        if (!$isTopPaymentMethod && !empty($this->paymentMethod)) {
+            $payload['payment_method'] = $this->paymentMethod;
+        }
+        if ($this->paymentMethod === 'credit' && !empty($this->pin)) {
+            $payload['pin'] = $this->pin;
         }
 
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis(
@@ -313,6 +373,7 @@ class SendRequestPickupTransactionService extends BaseService
                 'order_ids' => $this->orderIds,
                 'schedule' => $this->schedule,
                 'package_count' => count($apiPackages),
+                'is_top_payment_method' => $isTopPaymentMethod,
                 'packages' => array_map(
                     static function ($package) {
                         return [
@@ -321,6 +382,7 @@ class SendRequestPickupTransactionService extends BaseService
                             'service_type' => $package['service_type'] ?? '',
                             'destination_summary' => $package['destination_summary'] ?? [],
                             'cod' => $package['cod'] ?? 0,
+                            'is_cod' => $package['is_cod'] ?? false,
                         ];
                     },
                     $getPackageData
@@ -328,19 +390,45 @@ class SendRequestPickupTransactionService extends BaseService
             ]
         );
 
-        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
+        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequestV2($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
+        kiriof_log('info', 'Request pickup API response received.', [
+            'order_ids' => $this->orderIds,
+            'payment_method' => $this->paymentMethod,
+            'is_top_payment_method' => $isTopPaymentMethod,
+            'api_success' => !empty($pickupRequest['status']),
+            'api_data_status' => !empty($pickupRequest['data']->status),
+            'pickup_number' => $pickupRequest['data']->pickup_number ?? '',
+            'api_payment_status' => $pickupRequest['data']->payment_status ?? '',
+        ], 'kiriminaja_request_pickup');
         
         if (empty($pickupRequest['status']) || empty($pickupRequest['data']->status)) {
+            $apiData = $pickupRequest['data'] ?? null;
+            $errorResult = $apiData->results ?? null;
+            $errorCode = $errorResult->error ?? '';
+
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis(
                 'send_request_pickup_failed',
                 [
                     'order_ids' => $this->orderIds,
                     'schedule' => $this->schedule,
+                    'payment_method' => $this->paymentMethod,
+                    'error_code' => $errorCode,
                     'api_response' => $pickupRequest,
                 ]
             );
-            return self::error([], $pickupRequest['data']->text ?? $pickupRequest['data'] ?? 'Something is wrong');
+
+            if (in_array($errorCode, ['PIN_INVALID', 'PIN_MAX_ATTEMPT_REACHED', 'BALANCE_NOT_ENOUGH'], true)) {
+                return self::error(
+                    [
+                        'error_code'     => $errorCode,
+                        'error_metafield' => $errorResult->error_metafield ?? null,
+                    ],
+                    $apiData->text ?? $errorCode
+                );
+            }
+
+            return self::error([], $apiData->text ?? $apiData ?? 'Something is wrong');
         }
         $pickupNumber = $pickupRequest['data']->pickup_number ?? '';
         $currentTime = gmdate('Y-m-d H:i:s');
@@ -360,18 +448,54 @@ class SendRequestPickupTransactionService extends BaseService
             ];
             $transactionRepo->updateTransactionByCallback($payload);
         }
+        $pickupTransactions = $transactionRepo->getTransactionByPickupNumber($pickupNumber);
+        $hasAwbAfterPickup = $this->hasAwbInTransactions($pickupTransactions);
         /** Create Payment*/
+        $paymentMethod = $isTopPaymentMethod ? 'TOP' : $this->paymentMethod;
+        if (empty($paymentMethod)) {
+            $paymentMethod = $hasNonCodPackage ? 'qris' : 'cod';
+        }
+        $normalizedPaymentMethod = strtolower((string) $paymentMethod);
+        $apiPaymentStatus = strtolower((string) ($pickupRequest['data']->payment_status ?? ''));
+        $localPaymentStatus = 'unpaid';
+        if ($normalizedPaymentMethod !== 'qris' && $apiPaymentStatus === 'paid') {
+            $localPaymentStatus = 'paid';
+        }
+        if ($normalizedPaymentMethod === 'top') {
+            $localPaymentStatus = 'paid';
+        }
+        if ($normalizedPaymentMethod === 'cod') {
+            $localPaymentStatus = 'paid';
+        }
+        if ($normalizedPaymentMethod === 'qris' && ! $hasAwbAfterPickup && $apiPaymentStatus !== 'paid') {
+            $localPaymentStatus = 'unpaid';
+        }
+
         (new \KiriminAjaOfficial\Repositories\PaymentRepository())->createPayment([
             'pickup_number'     => $pickupNumber,
-            'status'            => ($pickupRequest['data']->payment_status ?? '') === 'paid' ? 'paid' : 'unpaid',
-            'method'            => '',
+            'status'            => $localPaymentStatus,
+            'method'            => $paymentMethod,
             'order_amt'         => count($getPackageData),
             'pickup_schedule'   => $this->schedule,
             'created_at'        => $currentTime,
         ]);
-        return self::success([
+        kiriof_log('info', 'Request pickup local payment created.', [
             'pickup_number' => $pickupNumber,
-            'open_payment' => $hasNonCodPackage,
+            'payment_method' => $paymentMethod,
+            'normalized_payment_method' => $normalizedPaymentMethod,
+            'is_top_payment_method' => $isTopPaymentMethod,
+            'local_payment_status' => $localPaymentStatus,
+            'api_payment_status' => $apiPaymentStatus,
+            'has_awb_after_pickup' => $hasAwbAfterPickup,
+            'has_non_cod_package' => $hasNonCodPackage,
+            'open_payment' => $localPaymentStatus !== 'paid' && $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
+        ], 'kiriminaja_request_pickup');
+
+        return self::success([
+            'pickup_number'  => $pickupNumber,
+            'open_payment'   => $localPaymentStatus !== 'paid' && $hasNonCodPackage && $normalizedPaymentMethod === 'qris',
+            'payment_method' => $paymentMethod,
+            'payment_status' => $localPaymentStatus,
         ], 'success');
     }
     private function getOriginData()
@@ -434,13 +558,13 @@ class SendRequestPickupTransactionService extends BaseService
                 if ($product) {
                     $weight = $weightConverter->toGram($product->get_weight());
                     $itemsPayload[] = [
-                        "qty" => $item->get_quantity(),
-                        "weight" => $weight,
-                        "length" => $product->get_length() ?: 0,
-                        "width" => $product->get_width() ?: 0,
-                        "height" => $product->get_height() ?: 0,
+                        "qty" => (int) $item->get_quantity(),
+                        "weight" => (int) $helper->minAmount($weight),
+                        "length" => (int) $helper->minAmount($product->get_length() ?: 0),
+                        "width" => (int) $helper->minAmount($product->get_width() ?: 0),
+                        "height" => (int) $helper->minAmount($product->get_height() ?: 0),
                         "name" => $itemName,
-                        "price" => $product->get_price() ?: 0,
+                        "price" => (int) round((float) ($product->get_price() ?: 0)),
                     ];
                 }
             }
@@ -464,30 +588,37 @@ class SendRequestPickupTransactionService extends BaseService
                 "destination_name"          => $destinationData['name'],
                 "destination_phone"         => $destinationData['phone'],
                 "destination_address"       => $destinationData['address'],
-                "destination_kelurahan_id"  => $transaction->destination_sub_district_id,
+                "destination_kelurahan_id"  => (int) ($transaction->destination_sub_district_id ?? 0),
                 "destination_zipcode"       => $destinationData['zipcode'],
-                "weight"                    => $helper->minAmount($transaction->weight),
-                "width"                     => $helper->minAmount($transaction->width),
-                "height"                    => $helper->minAmount($transaction->height),
-                "length"                    => $helper->minAmount($transaction->length),
-                "item_value"                => $transaction->transaction_value,
-                "insurance_amount"          => $transaction->insurance_cost,
-                "shipping_cost"             => $transaction->shipping_cost,
+                "weight"                    => (int) $helper->minAmount($transaction->weight),
+                "width"                     => (int) $helper->minAmount($transaction->width),
+                "height"                    => (int) $helper->minAmount($transaction->height),
+                "length"                    => (int) $helper->minAmount($transaction->length),
+                "item_value"                => (int) round((float) ($transaction->transaction_value ?? 0)),
+                "insurance_amount"          => (int) round((float) ($transaction->insurance_cost ?? 0)),
+                "shipping_cost"             => (int) round((float) ($transaction->shipping_cost ?? 0)),
                 "service"                   => $transaction->service,
                 "service_type"              => $transaction->service_name,
                 "item_name"                 => $combinedItemNames,
                 "note"                      => $note,
                 "package_type_id"           => 7,
-                "cod" => $transaction->cod_fee > 0 ? 
-                    ($transaction->transaction_value +
-                    $transaction->shipping_cost -
-                    $transaction->discount_amount +
-                    $transaction->insurance_cost +
-                    $transaction->cod_fee) : 0,
+                "cod" => 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,
                 "destination_summary" => $destinationData['summary'],
             ];
+
+            $isCodOrder = 'cod' === strtolower((string) $order->get_payment_method());
+            if ($isCodOrder) {
+                $result['cod'] = (int) round(
+                    (float) ($transaction->transaction_value ?? 0) +
+                    (float) ($transaction->shipping_cost ?? 0) -
+                    (float) ($transaction->discount_amount ?? 0) +
+                    (float) ($transaction->insurance_cost ?? 0) +
+                    (float) ($transaction->cod_fee ?? 0)
+                );
+                $result['is_cod'] = true;
+            }
 
             $result = $this->appendPickupDiscountFields($result, $transaction);
             

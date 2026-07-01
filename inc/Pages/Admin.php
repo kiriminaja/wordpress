@@ -18,6 +18,7 @@ class Admin extends BaseInit{
         // Screen Options: items per page for transaction list
         add_action( 'current_screen', array( $this, 'kiriof_add_transaction_screen_options' ) );
         add_action( 'in_admin_header', array( $this, 'kiriof_add_transaction_screen_options' ), 5 );
+        add_action( 'admin_bar_menu', array( $this, 'kiriof_add_credit_balance_admin_bar' ), 61 );
         add_filter( 'set-screen-option', array( $this, 'kiriof_save_transaction_screen_options' ), 10, 3 );
 
         /**
@@ -198,11 +199,11 @@ class Admin extends BaseInit{
 
             foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
                 if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], __( 'Transactions', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
                 if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], __( 'Payments', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="awaiting-mod update-plugins count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
             }
@@ -479,6 +480,53 @@ class Admin extends BaseInit{
 
         extract( $context, EXTR_SKIP );
         include KIRIOF_DIR . 'templates/_setup-guide.php';
+    }
+
+    public function kiriof_add_credit_balance_admin_bar( $wp_admin_bar ) {
+        if ( ! is_admin_bar_showing() || ! current_user_can( 'manage_woocommerce' ) || ! kiriof_check_woocommerce() ) {
+            return;
+        }
+
+        $balance = $this->kiriof_get_credit_balance_for_admin_bar();
+        if ( null === $balance ) {
+            return;
+        }
+
+        $icon_url = $this->kiriof_get_admin_bar_icon_url();
+        $title = '<img class="kiriof-admin-bar-credit-icon" src="' . esc_attr( $icon_url ) . '" alt="" aria-hidden="true" style="width:18px;height:18px;margin:0 6px 0 0;vertical-align:text-bottom;" />';
+        $title .= '<span class="ab-label">' . esc_html__( 'KA Credit', 'kiriminaja-official' ) . ': ' . esc_html( kiriof_money_format( $balance ) ) . '</span>';
+
+        $wp_admin_bar->add_node(
+            array(
+                'id'    => 'kiriof-ka-credit-balance',
+                'title' => $title,
+                'href'  => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+                'meta'  => array(
+                    'title' => esc_attr__( 'KA Credit', 'kiriminaja-official' ) . ': ' . esc_attr( kiriof_money_format( $balance ) ),
+                ),
+            )
+        );
+    }
+
+    private function kiriof_get_credit_balance_for_admin_bar() {
+        $cached = get_transient( 'kiriof_admin_bar_credit_balance' );
+        if ( false !== $cached ) {
+            return (float) $cached;
+        }
+
+        $service = ( new \KiriminAjaOfficial\Services\TransactionProcessServices\GetCreditBalanceService() )->call();
+        if ( 200 !== $service->status() || ! isset( $service->data()['balance'] ) ) {
+            return null;
+        }
+
+        $balance = (float) $service->data()['balance'];
+        set_transient( 'kiriof_admin_bar_credit_balance', $balance, 5 * MINUTE_IN_SECONDS );
+
+        return $balance;
+    }
+
+    private function kiriof_get_admin_bar_icon_url() {
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik03Ny41NjA4IDkuNDczOTNMNjYuMDUxOSA0NC40MzgyQzY1LjIzNzQgNDcuMjIxMiA2Mi45MzIyIDQ4LjI1NzIgNjEuMzQwNyA0Ni43Nzc5TDU4LjE0MzMgNDMuNjg5OUw1Ni42MzUyIDQyLjE1MDJMNDguMjQ2IDQ5Ljg5NzZDMzEuODczMyA2Ny42OTIgNDguNjYwNCA4NC40NzkxIDQ4LjY2MDQgODQuNDc5MUwyMi42OTg0IDU4LjUxNDJDMjIuNjA5MiA1OC40Mjc5IDIyLjUxMTMgNTguMzUzMSAyMi40MjUgNTguMjYzOEMyMi4zNTMxIDU4LjE5MTkgMjIuMjkyNiA1OC4xMTEzIDIyLjIyMzUgNTguMDM5NEwyMi4wNDUxIDU3Ljg2MDlMMjIuMDU5NSA1Ny44NTUyQzE3LjY5MDggNTMuMDE0NSAxOC4wNjIgNDUuODM5NyAyMi43MjQzIDQxLjE1NzNMMzkuMDY4MiAyNC40OTRMMzcuNjU4IDIzLjA1NUwzNC41MjM5IDIwLjIzNzVDMzIuOTI5NSAxOC43NTgyIDMzLjUxOTUgMTYuMDk2MSAzNS41ODMgMTUuNDQyOEw3My42MzgyIDYuODAzMTlDNzUuNzAxNiA2LjE0OTkgNzcuNjkzMiA3Ljk5NzU0IDc3LjU2NjYgOS40Nzk2OUw3Ny41NjA4IDkuNDczOTNaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfNDVfMTIyNzIpIi8+CjxwYXRoIGQ9Ik03MS43MjQ2IDczLjM0NjdDNzYuNjU3NCA3OC4yNzM3IDc2LjcwMzQgODUuOTI5NyA3MS44ODI4IDkwLjcxQzY3LjA2MjIgOTUuNDkwMSA1OS41MzAxIDk1LjI1NjggNTQuNjMxOCA5MC4zNjcyTDQ4LjE0MjYgODMuOTE1QzQ1LjQzNzggODAuODU4MyAzMy42MzEzIDY1Ljc4MDMgNDguMjQ1MSA0OS44OTc1TDQ4LjI0NjEgNDkuODk2NUw3MS43MjQ2IDczLjM0NjdaTTIyLjIyMjcgNTguMDM5MUMyMi4yOTE3IDU4LjExMSAyMi4zNTE5IDU4LjE5MTcgMjIuNDIzOCA1OC4yNjM3QzIyLjUxMDEgNTguMzUyOCAyMi42MDgxIDU4LjQyNzQgMjIuNjk3MyA1OC41MTM3TDQwLjMyMTMgNzYuMTM5NkwyMi45OTUxIDU4LjkxNDFDMjIuNjU5MSA1OC41ODE5IDIyLjM0NiA1OC4yMzMgMjIuMDU0NyA1Ny44NzExTDIyLjIyMjcgNTguMDM5MVpNMjIuMDU4NiA1Ny44NTU1TDIyLjA0NDkgNTcuODU5NEMyMS45ODU3IDU3Ljc4NTYgMjEuOTI4NCA1Ny43MTA2IDIxLjg3MTEgNTcuNjM1N0MyMS45MzM2IDU3LjcwODMgMjEuOTk0IDU3Ljc4MzkgMjIuMDU4NiA1Ny44NTU1WiIgZmlsbD0idXJsKCNwYWludDFfbGluZWFyXzQ1XzEyMjcyKSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzQ1XzEyMjcyIiB4MT0iODkuNzU4MSIgeTE9IjI1LjMzMDciIHgyPSIxMS4yOTgyIiB5Mj0iNjUuODQyMiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSJ3aGl0ZSIvPgo8c3RvcCBvZmZzZXQ9IjAuOTkiIHN0b3AtY29sb3I9IiNGMUYxRjEiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQxX2xpbmVhcl80NV8xMjI3MiIgeDE9IjE5LjIxMDQiIHkxPSI2NS45NTU0IiB4Mj0iNzUuNDExMSIgeTI9IjY1LjkxNjIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0id2hpdGUiIHN0b3Atb3BhY2l0eT0iMC4xIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0YxRjFGMSIgc3RvcC1vcGFjaXR5PSIwLjgiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K';
     }
 
     public function kiriof_add_transaction_screen_options( $screen ) {
