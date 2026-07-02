@@ -853,11 +853,14 @@ class ShippingDiscountCouponController {
         );
         wp_enqueue_script(
             'kiriof-coupon-admin-script',
-            KIRIOF_URL . 'assets/admin/js/kj-coupon-admin.js',
-            array( 'jquery', 'select2' ),
+            ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) ? 'http://localhost:5173/client/src/admin/entries/coupon-admin.ts' : KIRIOF_URL . 'assets/admin/js/kj-coupon-admin.js',
+            ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) ? array() : array( 'jquery', 'select2' ),
             KIRIOF_VERSION,
             true
         );
+        if ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) {
+            wp_script_add_data( 'kiriof-coupon-admin-script', 'type', 'module' );
+        }
 
         wp_localize_script(
             'kiriof-coupon-admin-script',

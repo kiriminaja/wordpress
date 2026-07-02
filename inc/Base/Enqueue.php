@@ -18,6 +18,7 @@ class Enqueue extends BaseInit{
     }
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
+        $this->enqueueViteClient();
         // Only load on pages where the plugin's UI actually runs: cart, checkout,
         // account pages, and anywhere the [kiriminaja_tracking] shortcode is used.
         if ( ! $this->shouldEnqueueFront() ) {
@@ -48,18 +49,20 @@ class Enqueue extends BaseInit{
         // Option 2: Make wp-util a dependency of your script (usually better).
         wp_enqueue_script(
             'kiriof-script',
-            $this->plugin_url . 'assets/wp/js/kj-wp-script.js',
-            array( 'wp-util', 'jquery', 'select2' ),
+            $this->assetUrl( 'assets/wp/js/kj-wp-script.js' ),
+            $this->scriptDeps( array( 'wp-util', 'jquery', 'select2' ) ),
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        $this->markScriptAsModuleWhenDev( 'kiriof-script' );
         wp_register_script(
             'kiriof-form-billing-address',
-            $this->plugin_url . 'assets/wp/js/form-billing-address.js',
-            array( 'kiriof-script' ),
+            $this->assetUrl( 'assets/wp/js/form-billing-address.js' ),
+            $this->scriptDeps( array( 'kiriof-script' ) ),
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        $this->markScriptAsModuleWhenDev( 'kiriof-form-billing-address' );
 
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -76,11 +79,12 @@ class Enqueue extends BaseInit{
         if ( $this->isTrackingPage() ) {
             wp_enqueue_script(
                 'kiriof-tracking-script',
-                $this->plugin_url . 'assets/wp/js/kj-tracking.js',
-                array( 'jquery', 'kiriof-script' ),
+                $this->assetUrl( 'assets/wp/js/kj-tracking.js' ),
+                $this->scriptDeps( array( 'jquery', 'kiriof-script' ) ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
+            $this->markScriptAsModuleWhenDev( 'kiriof-tracking-script' );
 
             wp_localize_script(
                 'kiriof-tracking-script',
@@ -99,11 +103,12 @@ class Enqueue extends BaseInit{
         if ( $this->isBlockCartOrCheckoutPage() ) {
             wp_enqueue_script(
                 'kiriof-block-checkout',
-                $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
-                array( 'kiriof-script', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ),
+                $this->assetUrl( 'assets/wp/js/kiriof-block-checkout.js' ),
+                $this->scriptDeps( array( 'kiriof-script', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ) ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
+            $this->markScriptAsModuleWhenDev( 'kiriof-block-checkout' );
         }
     }
 
@@ -184,6 +189,7 @@ class Enqueue extends BaseInit{
     }
     
     function enqueueAdmin(){
+        $this->enqueueViteClient();
         $page   = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
         $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
         $screen_id = $screen ? $screen->id : '';
@@ -214,7 +220,8 @@ class Enqueue extends BaseInit{
         wp_enqueue_style( 'list-tables' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
-        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery', 'select2' ), KIRIOF_VERSION, true );
+        wp_enqueue_script( 'kiriof-script', $this->assetUrl( 'assets/admin/js/kj-admin-script.js' ), $this->scriptDeps( array( 'jquery', 'select2' ) ), KIRIOF_VERSION, true );
+        $this->markScriptAsModuleWhenDev( 'kiriof-script' );
         
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -294,11 +301,12 @@ class Enqueue extends BaseInit{
         if ( $is_order_screen || 'kiriminaja-transaction-process' === $page ) {
             wp_enqueue_script(
                 'kiriof-cod-adjustment',
-                $this->plugin_url . 'assets/js/kiriof-cod-adjustment.js',
-                array( 'jquery', 'backbone', 'wc-backbone-modal' ),
+                $this->assetUrl( 'assets/js/kiriof-cod-adjustment.js' ),
+                $this->scriptDeps( array( 'jquery', 'backbone', 'wc-backbone-modal' ) ),
                 KIRIOF_VERSION,
                 true
             );
+            $this->markScriptAsModuleWhenDev( 'kiriof-cod-adjustment' );
             wp_localize_script(
                 'kiriof-cod-adjustment',
                 'kiriofCodAdj',
@@ -357,5 +365,51 @@ class Enqueue extends BaseInit{
             $response['kiriof_new_nonce'] = wp_create_nonce( KIRIOF_NONCE );
         }
         return $response;
+    }
+
+    private function assetUrl( $path ) {
+        if ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) {
+            return 'http://localhost:5173/' . ltrim( $this->sourceEntryPath( $path ), '/' );
+        }
+
+        return $this->plugin_url . ltrim( $path, '/' );
+    }
+
+    private function sourceEntryPath( $path ) {
+        $entries = array(
+            'assets/wp/js/kj-wp-script.js'        => 'client/src/storefront-classic/entries/wp-script.ts',
+            'assets/wp/js/form-billing-address.js' => 'client/src/storefront-classic/entries/form-billing-address.ts',
+            'assets/wp/js/kj-tracking.js'         => 'client/src/storefront-classic/entries/tracking.ts',
+            'assets/wp/js/kiriof-block-checkout.js' => 'client/src/storefront-block/entries/block-checkout.ts',
+            'assets/admin/js/kj-admin-script.js'  => 'client/src/admin/entries/admin-script.ts',
+            'assets/js/kiriof-cod-adjustment.js'  => 'client/src/admin/entries/cod-adjustment.ts',
+        );
+
+        return $entries[ $path ] ?? $path;
+    }
+
+    private function scriptDeps( $deps ) {
+        return ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) ? array() : $deps;
+    }
+
+    private function markScriptAsModuleWhenDev( $handle ) {
+        if ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) {
+            wp_script_add_data( $handle, 'type', 'module' );
+        }
+    }
+
+    private function enqueueViteClient() {
+        if ( ! defined( 'KIRIOF_DEV_MODE' ) || ! KIRIOF_DEV_MODE || wp_script_is( 'kiriof-vite-client', 'enqueued' ) ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'kiriof-vite-client',
+            'http://localhost:5173/@vite/client',
+            array(),
+            KIRIOF_VERSION,
+            false
+        );
+        wp_script_add_data( 'kiriof-vite-client', 'type', 'module' );
     }
 }

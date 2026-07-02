@@ -14,6 +14,13 @@ RSYNC_EXCLUDES := \
 	--exclude=.idea/ \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
+	--exclude=client/ \
+	--exclude=package.json \
+	--exclude=bun.lock \
+	--exclude=tsconfig.json \
+	--exclude=vite.config.ts \
+	--exclude=vitest.config.ts \
+	--exclude=eslint.config.js \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=scripts/ \
 	--exclude=.DS_Store \
@@ -32,7 +39,32 @@ RSYNC_EXCLUDES := \
 	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: zip clean changelog release test tag publish dev stg plain
+.PHONY: help init build-client zip clean changelog release test tag publish dev stg plain
+
+help:
+	@echo "Available targets:"
+	@echo "  make init         composer install + bun install"
+	@echo "  make build-client bun install --frozen-lockfile + bun run build"
+	@echo "  make dev          start Vite dev server"
+	@echo "  make test         run PHP ParaTest suite"
+	@echo "  make zip          build release zip"
+	@echo "  make zip dev      build dev API zip"
+	@echo "  make zip stg      build staging API zip"
+
+init:
+	@echo "==> [1/2] composer install"
+	composer install
+	@echo "==> [2/2] bun install"
+	bun install
+
+build-client:
+	@echo "==> Building TypeScript client bundles..."
+	bun install --frozen-lockfile
+	bun run build
+
+dev:
+	@echo "==> Starting Vite dev server. Set KIRIOF_DEV_MODE=true in .env."
+	bun run dev
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -111,7 +143,7 @@ publish: release
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
 
-zip:
+zip: build-client
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
 	@if command -v msgfmt >/dev/null 2>&1; then \
 		msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo; \

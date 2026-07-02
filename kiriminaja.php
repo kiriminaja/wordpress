@@ -31,6 +31,47 @@ define( 'KIRIOF_VERSION', '2.3.0' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
 
+if ( ! function_exists( 'kiriof_read_env_value' ) ) {
+    function kiriof_read_env_value( $key ) {
+        $env_path = KIRIOF_DIR . '.env';
+        if ( ! file_exists( $env_path ) || ! is_readable( $env_path ) ) {
+            return null;
+        }
+
+        $lines = file( $env_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
+        if ( false === $lines ) {
+            return null;
+        }
+
+        foreach ( $lines as $line ) {
+            $line = trim( (string) $line );
+            if ( '' === $line || '#' === substr( $line, 0, 1 ) || false === strpos( $line, '=' ) ) {
+                continue;
+            }
+
+            list( $env_key, $env_value ) = array_map( 'trim', explode( '=', $line, 2 ) );
+            if ( $env_key === $key ) {
+                return trim( $env_value, "\"'" );
+            }
+        }
+
+        return null;
+    }
+}
+
+if ( ! function_exists( 'kiriof_env_flag_enabled' ) ) {
+    function kiriof_env_flag_enabled( $key, $default = false ) {
+        $value = kiriof_read_env_value( $key );
+        if ( null === $value ) {
+            return (bool) $default;
+        }
+
+        return in_array( strtolower( $value ), array( '1', 'true', 'yes', 'on' ), true );
+    }
+}
+
+define( 'KIRIOF_DEV_MODE', kiriof_env_flag_enabled( 'KIRIOF_DEV_MODE', false ) );
+
 if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
     require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 }
