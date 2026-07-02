@@ -712,6 +712,11 @@ class TransactionProcessController
                                         <pin-input id="kiriof-pin-widget" class="kiriof-pin-widget" length="6" pattern="[0-9]" autocomplete="one-time-code" inputmode="numeric" mask aria-label="<?php esc_attr_e('Enter 6-digit PIN', 'kiriminaja-official'); ?>"></pin-input>
                                         <input type="password" id="kiriof-pin-fallback" class="kiriof-pin-fallback" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="one-time-code" style="display:none;">
                                         <input type="hidden" id="kiriof-pin-input" name="pin" value="">
+                                        <label for="kiriof-pin-remember" class="kiriof-pin-remember" style="display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;">
+                                            <input type="checkbox" id="kiriof-pin-remember" name="remember_pin" value="1">
+                                            <span><?php echo esc_html($kiriof_pin_cache_label); ?></span>
+                                        </label>
+                                        <p class="kiriof-pin-cache-notice" style="display:none;font-size:12px;color:#2271b1;margin:8px 0 0;"></p>
                                         <p class="kiriof-pin-error err_msg" style="display:none;"></p>
                                     </div>
                                 </div>
