@@ -149,6 +149,8 @@ class CheckoutController
             return;
         }
 
+        $this->kiriof_sync_classic_checkout_context_from_post();
+
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
         if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce cart calculation, nonce handled by WC
@@ -159,6 +161,33 @@ class CheckoutController
 
         // Add insurance + COD as WC cart fees (works on traditional AND block checkout)
         $this->kiriof_add_checkout_fees();
+    }
+
+    private function kiriof_sync_classic_checkout_context_from_post(): void {
+        if ( ! WC()->session ) {
+            return;
+        }
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce validates checkout/update_order_review requests before totals are calculated.
+        if ( isset( $_POST['payment_method'] ) ) {
+            $payment_method = sanitize_text_field( wp_unslash( $_POST['payment_method'] ) );
+            WC()->session->set( 'chosen_payment_method', $payment_method );
+            WC()->session->set( 'payment_method', $payment_method );
+            WC()->session->set( 'kiriof_payment_method', 'cod' === $payment_method ? $payment_method : '' );
+        }
+
+        if ( isset( $_POST[ $this->field_insurance_key ] ) ) {
+            $insurance = ! empty( sanitize_text_field( wp_unslash( $_POST[ $this->field_insurance_key ] ) ) ) ? 1 : 0;
+            WC()->session->set( 'kiriof_insurance', $insurance );
+            WC()->session->set( 'billing_insurance', $insurance );
+        }
+
+        if ( isset( $_POST['kiriof_force_insurance'] ) ) {
+            $force_insurance = (int) sanitize_text_field( wp_unslash( $_POST['kiriof_force_insurance'] ) );
+            WC()->session->set( 'force_insurance', $force_insurance );
+            WC()->session->set( 'kiriof_force_insurance', $force_insurance );
+        }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
     }
 
     private function kiriof_add_checkout_fees() {
@@ -233,10 +262,13 @@ class CheckoutController
                     $result        = $service->data['calculation_result'];
                     $insurance_amt = (float) ( $result['insurance_amt'] ?? 0 );
                     $cod_amt       = ( 'cod' === $chosen_payment ) ? (float) ( $result['cod_amt'] ?? 0 ) : 0;
+                    $force_insurance = ! empty( $result['selected_expedition']->force_insurance ) ? 1 : 0;
 
                     WC()->session->set( 'kiriof_cached_insurance_amt', $insurance_amt );
                     WC()->session->set( 'kiriof_cached_cod_amt', $cod_amt );
                     WC()->session->set( 'kiriof_cached_fee_context', $cache_context );
+                    WC()->session->set( 'force_insurance', $force_insurance );
+                    WC()->session->set( 'kiriof_force_insurance', $force_insurance );
                 }
             } catch ( \Throwable $th ) {
                 (new \KiriminAjaOfficial\Base\BaseInit())->logThis('kiriof_add_checkout_fees_fallback', array( $th->getMessage() ) );

@@ -96,6 +96,16 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'shipping_price responses should also use a short-lived persistent cache for repeated identical payloads'
         );
         $this->assertStringContainsString(
+            'private const STALE_TTL_SECONDS = 900',
+            $cacheService,
+            'Checkout should have a bounded stale-cache window for slow pricing API fallback'
+        );
+        $this->assertStringContainsString(
+            'bool $allow_stale = false',
+            $cacheService,
+            'Pricing cache reads should opt into stale fallback explicitly'
+        );
+        $this->assertStringContainsString(
             'set_transient( self::transientKey( $key ), $entry, self::TTL_SECONDS )',
             $cacheService,
             'Cached shipping_price responses should survive beyond a single Woo session write'
@@ -116,9 +126,24 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'calculate_shipping should cache the full/whitelist shipping_price response'
         );
         $this->assertStringContainsString(
+            "empty( \$kiriofPricing['status'] ) || empty( \$kiriofPricing['data'] )",
+            $shippingMethod,
+            'calculate_shipping should exit cleanly when pricing is unavailable instead of breaking shipment option rendering'
+        );
+        $this->assertStringContainsString(
             'PricingCacheService::get( $pricingPayload )',
             $checkoutCalculation,
             'Selected-courier fee calculation should check the cached shipping_price response before calling the API'
+        );
+        $this->assertStringContainsString(
+            'PricingCacheService::get( $pricingPayload, true )',
+            $checkoutCalculation,
+            'Selected-courier fee calculation should fall back to stale pricing when the API is slow or unavailable'
+        );
+        $this->assertStringContainsString(
+            "empty( \$kiriofPricing['status'] ) || empty( \$kiriofPricing['data'] )",
+            $checkoutCalculation,
+            'Selected-courier fee calculation must treat raw pricing API status as boolean, not compare it to service status 200'
         );
         $cacheLookupPosition = strpos( $checkoutCalculation, 'PricingCacheService::get( $pricingPayload )' );
         $apiCallPosition = strpos( $checkoutCalculation, 'KiriminajaApiRepository())->getPricing($pricingPayload)' );
@@ -128,6 +153,136 @@ final class CheckoutShippingPerformanceTest extends TestCase
             $apiCallPosition,
             $cacheLookupPosition,
             'Fee calculation must attempt cache reuse before making a second shipping_price API call'
+        );
+    }
+
+    #[Test]
+    public function classic_update_order_review_renders_fees_without_second_ajax_refresh(): void
+    {
+        $controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/CheckoutController.php' );
+        $script = file_get_contents( PLUGIN_DIR . '/assets/wp/js/form-billing-address.js' );
+
+        $this->assertStringContainsString(
+            'kiriof_sync_classic_checkout_context_from_post',
+            $controller,
+            'Woo update_order_review should sync posted payment and insurance state before native fee calculation'
+        );
+        $this->assertStringContainsString(
+            "WC()->session->set( 'chosen_payment_method', \$payment_method );",
+            $controller,
+            'Posted payment method must be available to native checkout fee calculation in the same request'
+        );
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_insurance', \$insurance );",
+            $controller,
+            'Posted insurance state must be available to native checkout fee calculation in the same request'
+        );
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_force_insurance', \$force_insurance );",
+            $controller,
+            'Selected courier force-insurance state should be retained from native fee calculation'
+        );
+        $refreshHandlerStart = strpos( $script, 'function kiriofHandleCodInsurance()' );
+        $this->assertNotFalse( $refreshHandlerStart );
+        $refreshHandlerBody = substr( $script, $refreshHandlerStart, 700 );
+        $this->assertStringContainsString(
+            "jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );",
+            $refreshHandlerBody,
+            'Classic checkout state changes should trigger one native WooCommerce checkout refresh'
+        );
+        $feeFunctionStart = strpos( $script, 'function kiriofCodInsurance()' );
+        $this->assertNotFalse( $feeFunctionStart );
+        $feeFunctionBody = substr( $script, $feeFunctionStart, 3000 );
+        $this->assertStringContainsString(
+            'if (!isBlockCheckout) {',
+            $feeFunctionBody,
+            'Classic checkout must skip the separate plugin fee AJAX path'
+        );
+        $this->assertStringNotContainsString(
+            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: true });",
+            $feeFunctionBody,
+            'kiriofCodInsurance must not start another native checkout refresh on classic checkout'
+        );
+        $this->assertStringNotContainsString(
+            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
+            $feeFunctionBody,
+            'Classic checkout should not trigger a second update_checkout after fee AJAX'
+        );
+
+        $this->assertStringContainsString(
+            'if (kiriofIsBlockCheckoutContext())',
+            $script,
+            'Block checkout still needs the Store API fee/rate follow-up after a destination update'
+        );
+        $this->assertStringContainsString(
+            'window.setTimeout(kiriofCodInsurance, 150);',
+            $script,
+            'Block checkout destination updates should schedule Store API refresh without adding a second classic update_checkout'
+        );
+    }
+
+    #[Test]
+    public function pricing_api_uses_checkout_specific_timeout(): void
+    {
+        $api = file_get_contents( PLUGIN_DIR . '/inc/Base/KiriminAjaApi.php' );
+
+        $this->assertStringContainsString(
+            'build_request_args',
+            $api,
+            'KiriminAja API requests should resolve per-operation request arguments'
+        );
+        $this->assertStringContainsString(
+            "'get_pricing' === ( \$request_meta['operation'] ?? '' )",
+            $api,
+            'shipping_price requests should have checkout-specific timeout handling'
+        );
+        $this->assertStringContainsString(
+            '? 10',
+            $api,
+            'shipping_price timeout should allow valid slow pricing responses instead of failing at an aggressive 4 seconds'
+        );
+        $this->assertStringContainsString(
+            "apply_filters( 'kiriof_api_request_timeout'",
+            $api,
+            'Pricing timeout should remain overridable for production tuning'
+        );
+    }
+
+    #[Test]
+    public function subdistrict_search_uses_weekly_wordpress_cache(): void
+    {
+        $service = file_get_contents( PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php' );
+        $repository = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
+
+        $this->assertStringContainsString(
+            "KIRIOF_SUBDISTRICT_SEARCH_CACHE_PREFIX = 'kiriof_subdistrict_search_'",
+            $service,
+            'District search should use a dedicated WordPress transient cache namespace'
+        );
+        $this->assertStringContainsString(
+            'KIRIOF_SUBDISTRICT_SEARCH_CACHE_TTL = 604800',
+            $service,
+            'District search cache should expire after one week'
+        );
+        $this->assertStringContainsString(
+            'get_transient( $cache_key )',
+            $service,
+            'District search should read the WordPress cache before calling the core API'
+        );
+        $this->assertStringContainsString(
+            'set_transient( $cache_key, $result, self::KIRIOF_SUBDISTRICT_SEARCH_CACHE_TTL )',
+            $service,
+            'Successful core API district search responses should be cached'
+        );
+        $this->assertStringContainsString(
+            'normalizeSubdistrictSearchTerm',
+            $service,
+            'District search cache keys should normalize equivalent search terms'
+        );
+        $this->assertStringContainsString(
+            'rawurlencode( (string) $search )',
+            $repository,
+            'District search terms should be URL encoded before calling the core API'
         );
     }
 

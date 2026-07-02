@@ -123,7 +123,25 @@ class CheckoutCalculationService extends BaseService{
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
-        if($kiriofPricing['status'] != 200){
+        if ( empty( $kiriofPricing['status'] ) || empty( $kiriofPricing['data'] ) ) {
+            $stalePricingData = PricingCacheService::get( $pricingPayload, true );
+            if ( $stalePricingData ) {
+                $this->pricingData = $stalePricingData;
+                $this->selectedExpedition = $this->getSelectedExpedition();
+                if ($this->selectedExpedition){
+                    $checkoutCalculation = $this->checkoutCalculation();
+
+                    return self::success([
+                        'cart'                  => $this->carts,
+                        'pricing'               => $this->pricingData,
+                        'payload'               => $this->payload,
+                        'calculation_result'    => $checkoutCalculation,
+                        'carts_attribute'       => $cartAttributes->data,
+                        'pricing_payload'       => $pricingPayload,
+                    ]);
+                }
+            }
+
             return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');
         }
         

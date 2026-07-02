@@ -2376,20 +2376,22 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $feeFunctionStart = strpos($template, 'function kiriofCodInsurance()');
-        $this->assertNotFalse($feeFunctionStart, 'Fee AJAX function must exist');
-        $successStart = strpos($template, 'success:function(response)', $feeFunctionStart);
-        $this->assertNotFalse($successStart, 'Fee AJAX success handler must exist');
-        $successBody = substr($template, $successStart, 900);
+        $this->assertNotFalse($feeFunctionStart, 'Fee refresh function must exist');
+        $feeFunctionBody = substr($template, $feeFunctionStart, 3200);
         $this->assertStringContainsString(
-            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
-            $successBody,
-            'After fee cache updates, classic checkout must refresh once so WooCommerce native fee rows render Insurance and COD Fee'
+            'if (!isBlockCheckout)',
+            $feeFunctionBody,
+            'Classic checkout should avoid the fee AJAX path because native fees render during WooCommerce update_checkout'
         );
-
-        $this->assertStringContainsString(
-            'if (!kiriofIsBlockCheckoutContext())',
-            $successBody,
-            'Fee AJAX success must skip the classic update_checkout fragment refresh path when running inside block checkout'
+        $this->assertStringNotContainsString(
+            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: true });",
+            $feeFunctionBody,
+            'Classic checkout must not start another WooCommerce refresh from inside kiriofCodInsurance'
+        );
+        $this->assertStringNotContainsString(
+            "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
+            $feeFunctionBody,
+            'Classic checkout must not trigger a second checkout refresh after fee AJAX'
         );
     }
 
