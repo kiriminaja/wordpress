@@ -627,11 +627,16 @@ class CheckoutController
     }
 
     private function kiriof_get_posted_text_field( string $key ): string {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only checkout POST normalization; WooCommerce verifies checkout/update-order-review requests.
         if ( ! isset( $_POST[ $key ] ) || is_array( $_POST[ $key ] ) ) {
+            // phpcs:enable WordPress.Security.NonceVerification.Missing
             return '';
         }
 
-        return sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        $value = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        return $value;
     }
 
     private function kiriof_set_posted_text_field_if_empty( string $key, string $value ): void {
@@ -723,6 +728,7 @@ class CheckoutController
 
     private function kiriof_get_address_length_notice(): string {
         return sprintf(
+            /* translators: %d: minimum checkout address length in characters. */
             esc_html__( 'Address length must be greater than %d', 'kiriminaja-official' ),
             self::KIRIOF_MIN_ADDRESS_LENGTH
         );
@@ -1331,10 +1337,43 @@ class CheckoutController
     }
     public function kiriof_shipping_rate_cache_invalidation( $packages ) {
         foreach ( $packages as &$package ) {
-            $package['rate_cache'] = wp_rand();
+            $package['rate_cache'] = $this->kiriof_get_shipping_rate_cache_key( $package );
         }
     
         return $packages;
+    }
+
+    private function kiriof_get_shipping_rate_cache_key( $package ) {
+        $destination_id = WC()->session ? (int) WC()->session->get( 'shipping_destination_id', 0 ) : 0;
+        if ( ! $destination_id && WC()->session ) {
+            $destination_id = (int) WC()->session->get( 'destination_id', 0 );
+        }
+
+        $cart_hash = '';
+        if ( function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_cart_hash' ) ) {
+            $cart_hash = (string) WC()->cart->get_cart_hash();
+        }
+
+        $courier_filter = array();
+        try {
+            $courier_filter = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getWhitelistExpeditionIds();
+        } catch ( \Throwable $th ) {
+            $courier_filter = array();
+        }
+
+        return md5(
+            wp_json_encode(
+                array(
+                    'cart_hash'        => $cart_hash,
+                    'destination'      => isset( $package['destination'] ) ? $package['destination'] : array(),
+                    'destination_id'   => $destination_id,
+                    'insurance'        => WC()->session ? (int) WC()->session->get( 'kiriof_insurance', 0 ) : 0,
+                    'payment_method'   => $this->kiriof_get_checkout_payment_method(),
+                    'coupon_context'   => $this->kiriof_get_cart_discount_context(),
+                    'courier_filter'   => $courier_filter,
+                )
+            )
+        );
     }
     public function kiriof_validateOrder($posted = array(), $errors = null){
         $packages = WC()->shipping->get_packages();
