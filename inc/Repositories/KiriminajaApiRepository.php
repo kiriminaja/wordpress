@@ -13,7 +13,7 @@ const DEFAULT_PICKUP_OPTION = ['PICKUP'];
 class KiriminajaApiRepository extends KiriminAjaApi{
     public function sub_district_search($search)
     {
-        return $this->get('/api/mitra/kelurahan_by_name?search='.$search, array(), array(
+        return $this->get('/api/mitra/kelurahan_by_name?search=' . rawurlencode( (string) $search ), array(), array(
             'source'    => 'kiriminaja_shipping',
             'operation' => 'sub_district_search',
         ));

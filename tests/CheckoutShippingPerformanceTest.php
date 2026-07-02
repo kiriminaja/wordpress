@@ -249,6 +249,44 @@ final class CheckoutShippingPerformanceTest extends TestCase
     }
 
     #[Test]
+    public function subdistrict_search_uses_weekly_wordpress_cache(): void
+    {
+        $service = file_get_contents( PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php' );
+        $repository = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
+
+        $this->assertStringContainsString(
+            "KIRIOF_SUBDISTRICT_SEARCH_CACHE_PREFIX = 'kiriof_subdistrict_search_'",
+            $service,
+            'District search should use a dedicated WordPress transient cache namespace'
+        );
+        $this->assertStringContainsString(
+            'KIRIOF_SUBDISTRICT_SEARCH_CACHE_TTL = 604800',
+            $service,
+            'District search cache should expire after one week'
+        );
+        $this->assertStringContainsString(
+            'get_transient( $cache_key )',
+            $service,
+            'District search should read the WordPress cache before calling the core API'
+        );
+        $this->assertStringContainsString(
+            'set_transient( $cache_key, $result, self::KIRIOF_SUBDISTRICT_SEARCH_CACHE_TTL )',
+            $service,
+            'Successful core API district search responses should be cached'
+        );
+        $this->assertStringContainsString(
+            'normalizeSubdistrictSearchTerm',
+            $service,
+            'District search cache keys should normalize equivalent search terms'
+        );
+        $this->assertStringContainsString(
+            'rawurlencode( (string) $search )',
+            $repository,
+            'District search terms should be URL encoded before calling the core API'
+        );
+    }
+
+    #[Test]
     public function plugin_ajax_fee_cache_context_matches_checkout_fee_context(): void
     {
         $ajax = file_get_contents( PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php' );

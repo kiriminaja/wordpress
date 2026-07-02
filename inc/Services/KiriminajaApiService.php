@@ -12,14 +12,31 @@ class KiriminajaApiService extends BaseService{
     private const KIRIOF_PROFILE_CACHE_KEY = 'kiriof_profile_cache';
     private const KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY = 'kiriof_profile_last_success_cache';
     private const KIRIOF_PROFILE_CACHE_TTL = 60;
+    private const KIRIOF_SUBDISTRICT_SEARCH_CACHE_PREFIX = 'kiriof_subdistrict_search_';
+    private const KIRIOF_SUBDISTRICT_SEARCH_CACHE_TTL = 604800;
 
     public function sub_district_search($search)
     {
+        $search = $this->normalizeSubdistrictSearchTerm( $search );
+        if ( '' === $search ) {
+            return self::error( array(), 'Search term is required' );
+        }
+
+        $cache_key = self::KIRIOF_SUBDISTRICT_SEARCH_CACHE_PREFIX . md5( $search );
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return self::success( $cached );
+        }
+
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sub_district_search($search);
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
-        return self::success($repo['data']->result);
+
+        $result = $repo['data']->result;
+        set_transient( $cache_key, $result, self::KIRIOF_SUBDISTRICT_SEARCH_CACHE_TTL );
+
+        return self::success($result);
     }
     public function getPayment($payment_id)
     {
@@ -76,6 +93,13 @@ class KiriminajaApiService extends BaseService{
     public function invalidateProfileCache(): void {
         delete_transient( self::KIRIOF_PROFILE_CACHE_KEY );
         delete_transient( self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY );
+    }
+
+    private function normalizeSubdistrictSearchTerm( $search ): string {
+        $search = sanitize_text_field( (string) $search );
+        $search = preg_replace( '/\s+/', ' ', trim( $search ) );
+
+        return strtolower( (string) $search );
     }
 
     /**
