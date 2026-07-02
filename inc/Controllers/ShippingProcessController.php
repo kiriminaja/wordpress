@@ -107,25 +107,21 @@ class ShippingProcessController
         }
 
         global $wpdb;
-        $prepared_query = $wpdb->prepare(
-            "UPDATE {$wpdb->prefix}kiriminaja_transactions
-            SET is_printed = %d, printed_at = %s
-            WHERE order_id IN (" . implode( ',', array_fill( 0, count( $orderIds ), '%s' ) ) . ')',
-            array_merge(
-                array(
-                    1,
-                    current_time( 'mysql' ),
-                ),
-                $orderIds
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Print status is updated immediately after successful label fetch.
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$wpdb->prefix}kiriminaja_transactions
+                SET is_printed = %d, printed_at = %s
+                WHERE order_id IN (" . implode( ',', array_fill( 0, count( $orderIds ), '%s' ) ) . ')',
+                array_merge(
+                    array(
+                        1,
+                        current_time( 'mysql' ),
+                    ),
+                    $orderIds
+                )
             )
         );
-
-        if ( ! is_string( $prepared_query ) || '' === $prepared_query ) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Print status is updated immediately after successful label fetch.
-        $wpdb->query( $prepared_query );
     }
 
     private function logResiPrintFailure( string $reason, array $context = array() ): void
