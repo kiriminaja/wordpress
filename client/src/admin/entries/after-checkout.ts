@@ -1,3 +1,5 @@
+import { formatNumber } from "../../shared/utils/money";
+
 jQuery(document).ready(function () {
   // After checkout page transaction display functionality
   if (typeof kiriofTransactionData !== "undefined" && kiriofTransactionData) {
@@ -7,27 +9,29 @@ jQuery(document).ready(function () {
       return;
     }
 
-    const cod_fee = transaction?.cod_fee
-      ? parseInt(`${transaction?.cod_fee}`)
+    const cod_fee =
+      transaction?.cod_fee ? parseInt(`${transaction?.cod_fee}`) : 0;
+    const insurance_cost =
+      transaction?.insurance_cost ?
+        parseInt(`${transaction?.insurance_cost}`)
       : 0;
-    const insurance_cost = transaction?.insurance_cost
-      ? parseInt(`${transaction?.insurance_cost}`)
+    const shipping_cost =
+      transaction?.shipping_cost ?
+        parseInt(`${transaction?.shipping_cost}`)
       : 0;
-    const shipping_cost = transaction?.shipping_cost
-      ? parseInt(`${transaction?.shipping_cost}`)
-      : 0;
-    const transaction_value = transaction?.transaction_value
-      ? parseInt(`${transaction?.transaction_value}`)
+    const transaction_value =
+      transaction?.transaction_value ?
+        parseInt(`${transaction?.transaction_value}`)
       : 0;
     const total_transaction_amt =
       cod_fee + insurance_cost + shipping_cost + transaction_value;
 
     /** Backup current display*/
     const overview_total = jQuery(
-      ".woocommerce-order-overview__total.total"
+      ".woocommerce-order-overview__total.total",
     ).html();
     const overview_payment_method = jQuery(
-      ".woocommerce-order-overview__payment-method.method"
+      ".woocommerce-order-overview__payment-method.method",
     ).html();
 
     /** Remove Current*/
@@ -35,15 +39,15 @@ jQuery(document).ready(function () {
     jQuery(".woocommerce-order-overview__payment-method.method").remove();
 
     jQuery(
-      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details"
+      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details",
     ).append(`
         <li class="woocommerce-order-overview__total total">
         Sub Total:
             <strong>
                 <span class="woocommerce-Price-amount amount">
                     <bdi>
-                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
-                          transaction_value
+                        <span class="woocommerce-Price-currencySymbol">Rp</span>${formatNumber(
+                          transaction_value,
                         )}
                     </bdi>
                 </span>
@@ -52,15 +56,15 @@ jQuery(document).ready(function () {
         `);
 
     jQuery(
-      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details"
+      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details",
     ).append(`
         <li class="woocommerce-order-overview__total kj-item">
         Shipping Fee:
             <strong>
                 <span class="woocommerce-Price-amount amount">
                     <bdi>
-                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
-                          shipping_cost
+                        <span class="woocommerce-Price-currencySymbol">Rp</span>${formatNumber(
+                          shipping_cost,
                         )}
                     </bdi>
                 </span>
@@ -70,15 +74,15 @@ jQuery(document).ready(function () {
 
     if (insurance_cost > 0) {
       jQuery(
-        ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details"
+        ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details",
       ).append(`
             <li class="woocommerce-order-overview__total kj-item">
             Insurance Fee:
                 <strong>
                     <span class="woocommerce-Price-amount amount">
                         <bdi>
-                            <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
-                              insurance_cost
+                            <span class="woocommerce-Price-currencySymbol">Rp</span>${formatNumber(
+                              insurance_cost,
                             )}
                         </bdi>
                     </span>
@@ -89,16 +93,16 @@ jQuery(document).ready(function () {
 
     if (cod_fee > 0) {
       jQuery(
-        ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details"
+        ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details",
       ).append(`
             <li class="woocommerce-order-overview__total kj-item">
             COD Fee:
                 <strong>
                     <span class="woocommerce-Price-amount amount">
                         <bdi>
-                            <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
-                              cod_fee
-                            )}
+                            ${formatNumber(cod_fee, {
+                              currency: true,
+                            })}
                         </bdi>
                     </span>
                 </strong>
@@ -107,15 +111,15 @@ jQuery(document).ready(function () {
     }
 
     jQuery(
-      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details"
+      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details",
     ).append(`
         <li class="woocommerce-order-overview__total kj-item">
         Total:
             <strong>
                 <span class="woocommerce-Price-amount amount">
                     <bdi>
-                        <span class="woocommerce-Price-currencySymbol">Rp</span>${kiriofMoneyFormat(
-                          total_transaction_amt
+                        <span class="woocommerce-Price-currencySymbol">Rp</span>${formatNumber(
+                          total_transaction_amt,
                         )}
                     </bdi>
                 </span>
@@ -125,7 +129,7 @@ jQuery(document).ready(function () {
 
     /** Add previous deleted*/
     jQuery(
-      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details"
+      ".woocommerce-order-overview.woocommerce-thankyou-order-details.order_details",
     ).append(`
         <li class="woocommerce-order-overview__payment-method method">${overview_payment_method}</li>  
         `);

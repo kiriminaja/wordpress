@@ -1,25 +1,9 @@
-/* global kiriofCodAdj, kiriofMoneyFormat */
+/* global kiriofCodAdj */
 /* jshint esversion: 6 */
+import { formatNumber } from "../../shared/utils/money";
+
 (function ($) {
   "use strict";
-
-  // -------------------------------------------------------------------------
-  // Helpers
-  // -------------------------------------------------------------------------
-  function fmtRp(amount) {
-    const neg = amount < 0;
-    const abs = Math.abs(amount);
-    let formatted;
-    if (typeof kiriofMoneyFormat === "function") {
-      formatted = kiriofMoneyFormat(abs);
-    } else {
-      formatted = Number(abs).toLocaleString("id-ID", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      });
-    }
-    return (neg ? "-" : "") + "Rp" + formatted;
-  }
 
   function nonce() {
     return typeof kiriofCodAdj !== "undefined" && kiriofCodAdj.nonce ?
@@ -66,11 +50,15 @@
 
     function recalc(newCod) {
       const payout = newCod - shippingCost - insuranceCost - codFee;
-      $modal.find(".kiriof-adj-cod-paid").text(fmtRp(newCod));
-      $modal.find(".kiriof-adj-total-shipping").text(fmtRp(totalShipping));
+      $modal
+        .find(".kiriof-adj-cod-paid")
+        .text(formatNumber(newCod, { currency: true }));
+      $modal
+        .find(".kiriof-adj-total-shipping")
+        .text(formatNumber(totalShipping, { currency: true }));
       $modal
         .find(".kiriof-adj-payout")
-        .text(fmtRp(payout))
+        .text(formatNumber(payout, { currency: true }))
         .css("color", payout <= 0 ? "#d63638" : "#007017");
 
       let hint = "";
@@ -79,14 +67,22 @@
         valid = false;
         hint =
           typeof kiriofCodAdj !== "undefined" && kiriofCodAdj.hintMin ?
-            kiriofCodAdj.hintMin.replace("{min}", fmtRp(minCod))
-          : "Minimum " + fmtRp(minCod) + " to avoid COD Settlement deficit";
+            kiriofCodAdj.hintMin.replace(
+              "{min}",
+              formatNumber(minCod, { currency: true }),
+            )
+          : "Minimum " +
+            formatNumber(minCod, { currency: true }) +
+            " to avoid COD Settlement deficit";
       } else if (newCod > maxCod) {
         valid = false;
         hint =
           typeof kiriofCodAdj !== "undefined" && kiriofCodAdj.hintMax ?
-            kiriofCodAdj.hintMax.replace("{max}", fmtRp(maxCod))
-          : "Must not exceed " + fmtRp(maxCod);
+            kiriofCodAdj.hintMax.replace(
+              "{max}",
+              formatNumber(maxCod, { currency: true }),
+            )
+          : "Must not exceed " + formatNumber(maxCod, { currency: true });
       }
       // Payout < 0 is informational (shown in red) but does NOT block submission.
       $modal.find(".kiriof-adj-hint").text(hint);
@@ -147,16 +143,21 @@
         total_shipping: totalShipping,
         payout: payout,
         // Pre-formatted display values.
-        sub_total_fmt: fmtRp(subTotal),
-        shipping_fmt: fmtRp(shippingCost),
-        insurance_fmt: fmtRp(insuranceCost),
-        cod_fee_fmt: fmtRp(codFee),
-        total_shipping_fmt: fmtRp(totalShipping),
-        item_discount_fmt: itemDiscount > 0 ? "-" + fmtRp(itemDiscount) : "",
+        sub_total_fmt: formatNumber(subTotal, { currency: true }),
+        shipping_fmt: formatNumber(shippingCost, { currency: true }),
+        insurance_fmt: formatNumber(insuranceCost, { currency: true }),
+        cod_fee_fmt: formatNumber(codFee, { currency: true }),
+        total_shipping_fmt: formatNumber(totalShipping, { currency: true }),
+        item_discount_fmt:
+          itemDiscount > 0 ?
+            "-" + formatNumber(itemDiscount, { currency: true })
+          : "",
         shipping_discount_fmt:
-          shippingDiscount > 0 ? "-" + fmtRp(shippingDiscount) : "",
-        current_cod_fmt: fmtRp(currentCod),
-        payout_fmt: fmtRp(payout),
+          shippingDiscount > 0 ?
+            "-" + formatNumber(shippingDiscount, { currency: true })
+          : "",
+        current_cod_fmt: formatNumber(currentCod, { currency: true }),
+        payout_fmt: formatNumber(payout, { currency: true }),
         payout_color: payout <= 0 ? "color:#d63638;" : "color:#007017;",
       },
     });

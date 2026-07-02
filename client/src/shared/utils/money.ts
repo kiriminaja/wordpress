@@ -1,17 +1,24 @@
+type FormatNumberOptions = {
+  currency?: boolean;
+};
+
+export function formatNumber(
+  value: string | number,
+  options: FormatNumberOptions = {},
+): string {
+  const amount = Number(value) || 0;
+  const prefix = options.currency ? "Rp" : "";
+  const sign = amount < 0 ? "-" : "";
+  const formatted = Math.abs(amount).toLocaleString("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
+  return `${sign}${prefix}${formatted}`;
+}
+
 export function moneyFormat(value: string | number, prefix?: string): string {
-  const numberString = value.toString();
-  const split = numberString.split(",");
-  const integerPart = split[0] || "";
-  const remainder = integerPart.length % 3;
-  let rupiah = integerPart.substring(0, remainder);
-  const thousands = integerPart.substring(remainder).match(/\d{3}/gi);
-
-  if (thousands) {
-    const separator = remainder ? "." : "";
-    rupiah += separator + thousands.join(".");
-  }
-
-  rupiah = split[1] !== undefined ? rupiah + "," + split[1] : rupiah;
+  const rupiah = formatNumber(value);
   return prefix === undefined ? rupiah : rupiah ? "Rp. " + rupiah : "";
 }
 
@@ -20,8 +27,5 @@ export function exposeMoneyFormat(): void {
 }
 
 export function fallbackMoneyFormat(amount: number): string {
-  return Number(amount).toLocaleString("id-ID", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  return formatNumber(amount);
 }
