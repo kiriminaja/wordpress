@@ -99,6 +99,26 @@ class CheckoutCalculationService extends BaseService{
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
+        $cachedPricingData = PricingCacheService::get( $pricingPayload );
+        if ( $cachedPricingData ) {
+            $this->pricingData = $cachedPricingData;
+            $this->selectedExpedition = $this->getSelectedExpedition();
+            if (!$this->selectedExpedition){
+                return self::error([],'Expedition Not Found');
+            }
+
+            $checkoutCalculation = $this->checkoutCalculation();
+
+            return self::success([
+                'cart'                  => $this->carts,
+                'pricing'               => $this->pricingData,
+                'payload'               => $this->payload,
+                'calculation_result'    => $checkoutCalculation,
+                'carts_attribute'       => $cartAttributes->data,
+                'pricing_payload'       => $pricingPayload,
+            ]);
+        }
+
         $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
@@ -114,6 +134,7 @@ class CheckoutCalculationService extends BaseService{
         
         /** jika opsi expedisi tidak ada*/
         $this->pricingData = @$kiriofPricing['data'];
+        PricingCacheService::put( $pricingPayload, $this->pricingData );
         if (count(@$this->pricingData->results ?? [])<1){
             return self::error([],'Expedition Not Found');
         }

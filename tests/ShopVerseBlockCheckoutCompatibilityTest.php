@@ -2048,16 +2048,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function admin_ajax_fee_refresh_preserves_selected_shipping_method_before_recalculating_totals(): void
+    public function admin_ajax_fee_refresh_preserves_selected_shipping_method_before_caching_fees(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
         $start = strpos($content, 'public function kiriof_getDataAfterUpdateCheckout()');
         $this->assertNotFalse($start, 'Admin AJAX checkout recalculation handler must exist');
-        $methodBody = substr($content, $start, 5600);
+        $methodBody = substr($content, $start, 6200);
 
         $kiriofSessionPosition = strpos($methodBody, 'WC()->session->set( \'kiriof_chosen_shipping_methods\', array( $shipping_metode_id ) );');
         $sessionPosition = strpos($methodBody, 'WC()->session->set( \'chosen_shipping_methods\', array( $shipping_metode_id ) );');
-        $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
+        $cacheContextPosition = strpos($methodBody, 'kiriof_get_fee_cache_context');
         $this->assertNotFalse(
             $kiriofSessionPosition,
             'Fee AJAX must keep plugin-owned selected courier session data under the kiriof_ prefix'
@@ -2066,16 +2066,21 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $sessionPosition,
             'Fee AJAX must persist the newly selected courier before WooCommerce recalculates totals'
         );
-        $this->assertNotFalse($calculatePosition, 'Fee AJAX recalculates WooCommerce totals after caching fee data');
+        $this->assertNotFalse($cacheContextPosition, 'Fee AJAX must cache fee data for the following WooCommerce checkout refresh');
+        $this->assertStringNotContainsString(
+            'WC()->cart->calculate_totals();',
+            $methodBody,
+            'Fee AJAX should not recalculate totals before the following update_checkout request'
+        );
         $this->assertLessThan(
             $sessionPosition,
             $kiriofSessionPosition,
             'The prefixed plugin session mirror should be written before syncing the WooCommerce core chosen_shipping_methods key'
         );
         $this->assertLessThan(
-            $calculatePosition,
+            $cacheContextPosition,
             $sessionPosition,
-            'Persisting chosen_shipping_methods before calculate_totals prevents classic checkout from re-rendering the previous/default courier'
+            'Persisting chosen_shipping_methods before caching fee data prevents classic checkout from re-rendering the previous/default courier'
         );
     }
 

@@ -9,6 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SettingRepository{
     
     public $table;
+    private static array $setting_cache = array();
+    private static array $whitelist_expedition_ids_cache = array();
+
     public function __construct(){
         global $wpdb;
         $this->table = $wpdb->prefix . 'kiriminaja_settings';
@@ -213,6 +216,11 @@ class SettingRepository{
     }
     public function getSettingByKey($key){
         global $wpdb;
+        $cache_key = $this->table . '|' . (string) $key;
+        if ( array_key_exists( $cache_key, self::$setting_cache ) ) {
+            return self::$setting_cache[ $cache_key ];
+        }
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $query = $wpdb->get_row( 
             $wpdb->prepare(
@@ -225,6 +233,7 @@ class SettingRepository{
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
             return false;
         }
+        self::$setting_cache[ $cache_key ] = $query;
         return $query;
     }
     public function getSettingByArray( $array ) {
@@ -303,26 +312,12 @@ class SettingRepository{
     }
 
     public function validateWhiteListExpedition($data){
-        global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $origin_whitelist_expedition_id = $wpdb->get_row(
-            $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                "SELECT `value` FROM {$this->table} WHERE `key` = %s",
-                'origin_whitelist_expedition_id' // %s
-            ) 
-        );
-        
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis(@$wpdb->last_error);
-            return false;
-        }
+        $arr_origin_whitelist_expedition_id = $this->getWhitelistExpeditionIds();
         $datas = [];
         
-        if( !empty($origin_whitelist_expedition_id ) && !empty($origin_whitelist_expedition_id->value) ){
-            $arr_origin_whitelist_expedition_id = explode(',', $origin_whitelist_expedition_id->value);
+        if( !empty($arr_origin_whitelist_expedition_id ) ){
             foreach( $data as $row ){
-                if( !in_array($row->service,$arr_origin_whitelist_expedition_id) ){
+                if( !in_array((string) $row->service,$arr_origin_whitelist_expedition_id, true) ){
                     continue;
                 }
                 $datas[]=$row;
@@ -333,6 +328,34 @@ class SettingRepository{
         
         return $datas;
         
+    }
+
+    public function getWhitelistExpeditionIds(): array {
+        $cache_key = $this->table . '|origin_whitelist_expedition_id';
+        if ( array_key_exists( $cache_key, self::$whitelist_expedition_ids_cache ) ) {
+            return self::$whitelist_expedition_ids_cache[ $cache_key ];
+        }
+
+        $origin_whitelist_expedition_id = $this->getSettingByKey( 'origin_whitelist_expedition_id' );
+
+        if ( empty( $origin_whitelist_expedition_id ) || empty( $origin_whitelist_expedition_id->value ) ) {
+            self::$whitelist_expedition_ids_cache[ $cache_key ] = array();
+            return array();
+        }
+
+        $ids = array_map( 'trim', explode( ',', (string) $origin_whitelist_expedition_id->value ) );
+        $ids = array_filter(
+            array_map(
+                static function ( $expedition_id ) {
+                    return sanitize_text_field( (string) $expedition_id );
+                },
+                $ids
+            )
+        );
+
+        self::$whitelist_expedition_ids_cache[ $cache_key ] = array_values( array_unique( $ids ) );
+
+        return self::$whitelist_expedition_ids_cache[ $cache_key ];
     }
 
     /**

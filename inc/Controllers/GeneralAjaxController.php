@@ -102,7 +102,6 @@ class GeneralAjaxController
             );
             WC()->session->set( 'kiriof_destination_postcode_map', $saved_map );
         }
-        WC()->cart->calculate_totals();
         wp_send_json_success(['code' => '200', 'msg' => __( 'Success', 'kiriminaja-official' )]);
     }
     public function kiriof_getDataAfterUpdateCheckout()
@@ -177,24 +176,58 @@ class GeneralAjaxController
                 WC()->session->set( 'kiriof_cached_cod_amt', $datas['is_cod_amt'] );
                 WC()->session->set(
                     'kiriof_cached_fee_context',
-                    array(
-                        'shipping_method' => $shipping_metode_id,
-                        'destination_id'  => $destination_id,
-                        'payment_method'  => $payment_method,
-                        'insurance'       => $insurance,
-                    )
+                    $this->kiriof_get_fee_cache_context( $shipping_metode_id, $destination_id, $payment_method, $insurance )
                 );
-
-                WC()->cart->calculate_totals();
 
                 wp_send_json_success($datas);
             } else {
 
-                WC()->cart->calculate_totals();
                 wp_send_json_error(['is_insurance' => 0, 'is_cod_amt' => 0]);
             }
         }
-        WC()->cart->calculate_totals();
         wp_send_json_error(['is_insurance' => 0, 'is_cod_amt' => 0]);
+    }
+
+    private function kiriof_get_fee_cache_context( $shipping_method, $destination_id, $payment_method, $insurance ) {
+        $discount_context = $this->kiriof_get_cart_discount_context();
+
+        return array(
+            'shipping_method' => $shipping_method,
+            'destination_id'  => $destination_id,
+            'payment_method'  => $payment_method,
+            'insurance'       => $insurance,
+            'coupon_codes'    => $discount_context['coupon_codes'],
+            'discount_total'  => $discount_context['discount_total'],
+            'discount_tax'    => $discount_context['discount_tax'],
+        );
+    }
+
+    private function kiriof_get_cart_discount_context() {
+        $context = array(
+            'coupon_codes'   => '',
+            'discount_total' => 0,
+            'discount_tax'   => 0,
+        );
+
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
+            return $context;
+        }
+
+        if ( method_exists( WC()->cart, 'get_coupons' ) ) {
+            $coupon_codes = array_keys( (array) WC()->cart->get_coupons() );
+            if ( is_array( $coupon_codes ) && ! empty( $coupon_codes ) ) {
+                $coupon_codes = array_filter( array_map( 'sanitize_text_field', $coupon_codes ) );
+                sort( $coupon_codes );
+                $context['coupon_codes'] = implode( ',', $coupon_codes );
+            }
+        }
+        if ( method_exists( WC()->cart, 'get_discount_total' ) ) {
+            $context['discount_total'] = (float) WC()->cart->get_discount_total();
+        }
+        if ( method_exists( WC()->cart, 'get_discount_tax' ) ) {
+            $context['discount_tax'] = (float) WC()->cart->get_discount_tax();
+        }
+
+        return $context;
     }
 }
