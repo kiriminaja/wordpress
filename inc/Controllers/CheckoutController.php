@@ -600,6 +600,8 @@ class CheckoutController
                 $this->kiriof_clear_logistics_session();
                 return;
             }
+
+            $this->kiriof_normalize_classic_destination_post_data();
                 
             $field_key = $this->field_destination_key;
             
@@ -621,6 +623,76 @@ class CheckoutController
     {
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-shipping-address.php');
     }
+
+    private function kiriof_get_posted_text_field( string $key ): string {
+        if ( ! isset( $_POST[ $key ] ) || is_array( $_POST[ $key ] ) ) {
+            return '';
+        }
+
+        return sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+    }
+
+    private function kiriof_set_posted_text_field_if_empty( string $key, string $value ): void {
+        if ( '' === $value || '' !== $this->kiriof_get_posted_text_field( $key ) ) {
+            return;
+        }
+
+        $_POST[ $key ] = $value;
+    }
+
+    private function kiriof_get_session_text_field( string $key ): string {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return '';
+        }
+
+        return sanitize_text_field( (string) WC()->session->get( $key, '' ) );
+    }
+
+    private function kiriof_normalize_classic_destination_post_data(): void {
+        $billing_destination = $this->kiriof_get_posted_text_field( $this->field_destination_key );
+        $shipping_destination = $this->kiriof_get_posted_text_field( $this->field_shipping_destination_key );
+        $billing_name = $this->kiriof_get_posted_text_field( 'kiriof_destination_area_name' );
+        $shipping_name = $this->kiriof_get_posted_text_field( 'kiriof_shipping_destination_area_name' );
+
+        $session_destination = $this->kiriof_get_session_text_field( 'kiriof_destination_area' );
+        if ( '' === $session_destination ) {
+            $session_destination = $this->kiriof_get_session_text_field( 'destination_id' );
+        }
+        if ( '' === $session_destination ) {
+            $session_destination = $this->kiriof_get_session_text_field( 'shipping_destination_id' );
+        }
+
+        $session_name = $this->kiriof_get_session_text_field( 'kiriof_destination_area_name' );
+        if ( '' === $session_name ) {
+            $session_name = $this->kiriof_get_session_text_field( 'destination_name' );
+        }
+        if ( '' === $session_name ) {
+            $session_name = $this->kiriof_get_session_text_field( 'shipping_destination_name' );
+        }
+
+        $destination = '' !== $shipping_destination ? $shipping_destination : $billing_destination;
+        if ( '' === $destination ) {
+            $destination = $session_destination;
+        }
+
+        $destination_name = '' !== $shipping_name ? $shipping_name : $billing_name;
+        if ( '' === $destination_name ) {
+            $destination_name = $session_name;
+        }
+
+        $this->kiriof_set_posted_text_field_if_empty( $this->field_destination_key, $destination );
+        $this->kiriof_set_posted_text_field_if_empty( 'kiriof_destination_area_name', $destination_name );
+
+        if ( '' !== $this->kiriof_get_posted_text_field( 'ship_to_different_address' ) ) {
+            $this->kiriof_set_posted_text_field_if_empty( $this->field_shipping_destination_key, $destination );
+            $this->kiriof_set_posted_text_field_if_empty( 'kiriof_shipping_destination_area_name', $destination_name );
+        }
+
+        if ( '' !== $destination && '' === $this->kiriof_get_posted_text_field( 'kiriof_checkout_token' ) ) {
+            $_POST['kiriof_checkout_token'] = '1';
+        }
+    }
+
     public function afterStoreApiCheckoutOrderProcessed( $order ){
         if ( ! $order instanceof \WC_Order ) {
             return;
@@ -840,6 +912,8 @@ class CheckoutController
             $this->kiriof_clear_logistics_session();
             return;
         }
+
+        $this->kiriof_normalize_classic_destination_post_data();
 
         /**
          * Classic checkout posts kiriof fields directly. Block checkout submits via
@@ -1203,6 +1277,8 @@ class CheckoutController
             $this->kiriof_clear_logistics_session();
             return;
         }
+
+            $this->kiriof_normalize_classic_destination_post_data();
         
             if( isset($_POST['billing_country']) ){
                 

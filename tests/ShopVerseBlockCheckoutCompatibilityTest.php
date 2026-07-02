@@ -2200,6 +2200,60 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_normalizes_selected_district_before_required_field_validation(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'private function kiriof_normalize_classic_destination_post_data()',
+            $controller,
+            'Classic checkout should repair district POST fields from the saved session before WooCommerce validates required selects'
+        );
+
+        $checkoutValidationStart = strpos($controller, 'function kiriof_checkout_field_validation()');
+        $this->assertNotFalse($checkoutValidationStart, 'Plugin checkout validation hook must exist');
+        $checkoutValidationBody = substr($controller, $checkoutValidationStart, 1200);
+        $normalizePosition = strpos($checkoutValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
+        $noticePosition = strpos($checkoutValidationBody, 'Field Kelurahan');
+        $this->assertNotFalse($normalizePosition, 'Classic checkout validation must normalize district POST data first');
+        $this->assertNotFalse($noticePosition, 'Classic checkout validation still owns the Field Kelurahan notice');
+        $this->assertLessThan($noticePosition, $normalizePosition, 'District POST normalization must happen before the Field Kelurahan required notice');
+
+        $orderValidationStart = strpos($controller, 'public function kiriof_validateOrder');
+        $this->assertNotFalse($orderValidationStart, 'Order validation hook must exist');
+        $orderValidationBody = substr($controller, $orderValidationStart, 1300);
+        $normalizePosition = strpos($orderValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
+        $districtNoticePosition = strpos($orderValidationBody, '<strong>District</strong> is a required field');
+        $this->assertNotFalse($normalizePosition, 'Order validation must normalize district POST data first');
+        $this->assertNotFalse($districtNoticePosition, 'Order validation still owns the District required notice');
+        $this->assertLessThan($districtNoticePosition, $normalizePosition, 'District POST normalization must happen before the District required notice');
+
+        $createOrderStart = strpos($controller, 'function afterCheckoutBeforeCreated');
+        $this->assertNotFalse($createOrderStart, 'Create-order hook must exist');
+        $createOrderBody = substr($controller, $createOrderStart, 1700);
+        $this->assertStringContainsString(
+            '$this->kiriof_normalize_classic_destination_post_data();',
+            $createOrderBody,
+            'Create-order hook should persist the same normalized district values used by validation'
+        );
+
+        $normalizerStart = strpos($controller, 'private function kiriof_normalize_classic_destination_post_data()');
+        $this->assertNotFalse($normalizerStart, 'District POST normalizer must exist');
+        $normalizerBody = substr($controller, $normalizerStart, 3000);
+
+        foreach (array(
+            "kiriof_get_session_text_field( 'kiriof_destination_area' )" => 'Normalizer must read the plugin checkout district session value',
+            "kiriof_get_session_text_field( 'destination_id' )" => 'Normalizer must fall back to the classic destination session value',
+            "kiriof_get_session_text_field( 'shipping_destination_id' )" => 'Normalizer must fall back to the shipping destination session value',
+            "kiriof_set_posted_text_field_if_empty( \$this->field_destination_key, \$destination )" => 'Normalizer must refill the billing District POST key',
+            "kiriof_set_posted_text_field_if_empty( \$this->field_shipping_destination_key, \$destination )" => 'Normalizer must refill the shipping District POST key when shipping to a different address',
+            "\$_POST['kiriof_checkout_token'] = '1';" => 'Normalizer must avoid a stale empty checkout token when a district is already saved',
+        ) as $needle => $message) {
+            $this->assertStringContainsString($needle, $normalizerBody, $message);
+        }
+    }
+
+    #[Test]
     public function classic_checkout_uses_native_wc_fee_rows_instead_of_hidden_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
