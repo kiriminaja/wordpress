@@ -11,22 +11,23 @@ class PricingCacheService {
     private const TRANSIENT_PREFIX = 'kiriof_ship_price_';
     private const MAX_ENTRIES = 8;
     private const TTL_SECONDS = 300;
+    private const STALE_TTL_SECONDS = 900;
     private static array $runtime_cache = array();
 
-    public static function get( array $payload ) {
+    public static function get( array $payload, bool $allow_stale = false ) {
         $key   = self::cacheKey( $payload );
-        if ( isset( self::$runtime_cache[ $key ] ) && self::isFresh( self::$runtime_cache[ $key ] ) ) {
+        if ( isset( self::$runtime_cache[ $key ] ) && self::isUsable( self::$runtime_cache[ $key ], $allow_stale ) ) {
             return self::$runtime_cache[ $key ]['data'] ?? null;
         }
 
         $cache = self::getCache();
-        if ( isset( $cache[ $key ] ) && self::isFresh( $cache[ $key ] ) ) {
+        if ( isset( $cache[ $key ] ) && self::isUsable( $cache[ $key ], $allow_stale ) ) {
             self::$runtime_cache[ $key ] = $cache[ $key ];
             return $cache[ $key ]['data'] ?? null;
         }
 
         $transient_entry = get_transient( self::transientKey( $key ) );
-        if ( self::isFresh( $transient_entry ) ) {
+        if ( self::isUsable( $transient_entry, $allow_stale ) ) {
             self::storeEntry( $key, $transient_entry );
             return $transient_entry['data'] ?? null;
         }
@@ -34,7 +35,7 @@ class PricingCacheService {
         $base_key = self::baseKey( $payload );
         $couriers = self::normalizeCouriers( $payload['courier'] ?? null );
         foreach ( $cache as $entry ) {
-            if ( ! self::isFresh( $entry ) || ( $entry['base_key'] ?? '' ) !== $base_key ) {
+            if ( ! self::isUsable( $entry, $allow_stale ) || ( $entry['base_key'] ?? '' ) !== $base_key ) {
                 continue;
             }
 
@@ -106,6 +107,18 @@ class PricingCacheService {
         }
 
         return ( time() - (int) $entry['stored_at'] ) <= self::TTL_SECONDS;
+    }
+
+    private static function isUsable( $entry, bool $allow_stale ): bool {
+        if ( self::isFresh( $entry ) ) {
+            return true;
+        }
+
+        if ( ! $allow_stale || ! is_array( $entry ) || empty( $entry['stored_at'] ) ) {
+            return false;
+        }
+
+        return ( time() - (int) $entry['stored_at'] ) <= self::STALE_TTL_SECONDS;
     }
 
     private static function cacheKey( array $payload ): string {

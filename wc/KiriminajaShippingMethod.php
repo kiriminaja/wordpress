@@ -204,6 +204,14 @@ function kiriof_shipping_method(){
                     $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
                     if ( ! empty( $kiriofPricing['status'] ) && ! empty( $kiriofPricing['data'] ) ) {
                         \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, $kiriofPricing['data'] );
+                    } else {
+                        $stalePricingData = \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::get( $payload, true );
+                        if ( $stalePricingData ) {
+                            $kiriofPricing = array(
+                                'status' => true,
+                                'data'   => $stalePricingData,
+                            );
+                        }
                     }
                 }
                 kiriof_log( 'info', 'getPricing result keys=' . ( is_array( $kiriofPricing ) ? implode( ',', array_keys( $kiriofPricing ) ) : gettype( $kiriofPricing ) ) );

@@ -198,8 +198,8 @@ class KiriminAjaApi
     
     public function get($endpoint, $body = array(), $log_context = array())
     {
-        $args = wp_parse_args(array('body' => $body), $this->default_args);
         $request_meta = $this->build_request_log_context( 'GET', $endpoint, $body, $log_context );
+        $args = $this->build_request_args( array( 'body' => $body ), $request_meta );
         $response = wp_remote_get($this->base_url . $endpoint, $args);
 
         return $this->finalize_response( $response, $request_meta );
@@ -211,11 +211,23 @@ class KiriminAjaApi
             $requestBody = (object) array();
         }
 
-        $args = wp_parse_args(array('body' => wp_json_encode($requestBody)), $this->default_args);
         $request_meta = $this->build_request_log_context( 'POST', $endpoint, $body, $log_context );
+        $args = $this->build_request_args( array( 'body' => wp_json_encode($requestBody) ), $request_meta );
         $response = wp_remote_post($this->base_url . $endpoint, $args);
 
         return $this->finalize_response( $response, $request_meta );
+    }
+
+    private function build_request_args( array $args, array $request_meta ): array {
+        $args = wp_parse_args( $args, $this->default_args );
+
+        $default_timeout = ( 'get_pricing' === ( $request_meta['operation'] ?? '' ) )
+            ? 10
+            : (float) $args['timeout'];
+
+        $args['timeout'] = (float) apply_filters( 'kiriof_api_request_timeout', $default_timeout, $request_meta );
+
+        return $args;
     }
 
     private function finalize_response( $response, array $request_meta ) {
