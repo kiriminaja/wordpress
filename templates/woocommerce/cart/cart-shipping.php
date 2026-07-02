@@ -130,14 +130,14 @@ $kiriof_calculator_text          = '';
 						data-index="<?php echo esc_attr( $index ); ?>"
 						aria-label="<?php echo esc_attr( $package_name ); ?>"
 					>
-						<?php foreach ( $available_methods as $method ) : ?>
-							<?php
-							$kiriof_option_label = html_entity_decode( wp_strip_all_tags( $kiriof_get_shipping_method_label_html( $method ) ), ENT_QUOTES, get_bloginfo( 'charset' ) );
-							?>
-							<option value="<?php echo esc_attr( $method->id ); ?>" <?php selected( $method->id, $chosen_method ); ?>>
-								<?php echo esc_html( trim( preg_replace( '/\s+/', ' ', $kiriof_option_label ) ) ); ?>
-							</option>
-						<?php endforeach; ?>
+							<?php foreach ( $available_methods as $kiriof_shipping_method ) : ?>
+								<?php
+								$kiriof_option_label = html_entity_decode( wp_strip_all_tags( $kiriof_get_shipping_method_label_html( $kiriof_shipping_method ) ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+								?>
+								<option value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>" <?php selected( $kiriof_shipping_method->id, $chosen_method ); ?>>
+									<?php echo esc_html( trim( preg_replace( '/\s+/', ' ', $kiriof_option_label ) ) ); ?>
+								</option>
+							<?php endforeach; ?>
 					</select>
 				</div>
 			<?php endif; ?>

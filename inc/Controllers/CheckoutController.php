@@ -627,11 +627,16 @@ class CheckoutController
     }
 
     private function kiriof_get_posted_text_field( string $key ): string {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only checkout POST normalization; WooCommerce verifies checkout/update-order-review requests.
         if ( ! isset( $_POST[ $key ] ) || is_array( $_POST[ $key ] ) ) {
+            // phpcs:enable WordPress.Security.NonceVerification.Missing
             return '';
         }
 
-        return sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        $value = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        return $value;
     }
 
     private function kiriof_set_posted_text_field_if_empty( string $key, string $value ): void {
@@ -723,6 +728,7 @@ class CheckoutController
 
     private function kiriof_get_address_length_notice(): string {
         return sprintf(
+            /* translators: %d: minimum checkout address length in characters. */
             esc_html__( 'Address length must be greater than %d', 'kiriminaja-official' ),
             self::KIRIOF_MIN_ADDRESS_LENGTH
         );
