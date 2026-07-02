@@ -2254,6 +2254,78 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_short_address_replaces_generic_missing_shipping_notice(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'private const KIRIOF_MIN_ADDRESS_LENGTH = 10;',
+            $controller,
+            'Checkout validation should use the same 10-character address threshold that hides KiriminAja rates'
+        );
+
+        $this->assertStringContainsString(
+            "add_action('woocommerce_after_checkout_validation', array(\$this,'kiriof_validateOrder'), 10, 2);",
+            $controller,
+            'Checkout validation must receive the WooCommerce error bag so generic shipping errors can be replaced'
+        );
+
+        $this->assertStringContainsString(
+            "esc_html__( 'Address length must be greater than %d', 'kiriminaja-official' )",
+            $controller,
+            'Short checkout addresses should show the requested address-length validation message'
+        );
+
+        $this->assertStringContainsString(
+            'private function kiriof_checkout_posted_address_is_too_short(): bool',
+            $controller,
+            'Checkout validation must detect short posted billing/shipping street addresses'
+        );
+
+        $validateStart = strpos($controller, 'public function kiriof_validateOrder');
+        $this->assertNotFalse($validateStart, 'KiriminAja checkout validation must exist');
+        $validateBody = substr($controller, $validateStart, 1800);
+
+        $this->assertStringContainsString(
+            '$kiriof_address_too_short = $this->kiriof_checkout_posted_address_is_too_short();',
+            $validateBody,
+            'Checkout validation should calculate the address-length state once before adding shipping notices'
+        );
+
+        $this->assertStringContainsString(
+            '$this->kiriof_remove_shipping_method_required_errors( $errors );',
+            $validateBody,
+            'Short-address validation should remove WooCommerce generic missing-shipping errors'
+        );
+
+        $this->assertStringContainsString(
+            '$this->kiriof_add_address_length_notice( $errors );',
+            $validateBody,
+            'Short-address validation should add the address-length notice into the same error bag'
+        );
+
+        $this->assertStringContainsString(
+            'if (empty($_POST[\'shipping_method\'][0]) && ! $kiriof_address_too_short)',
+            $validateBody,
+            'Plugin shipping-required notice should not be added when the address length is the actual blocker'
+        );
+
+        $removeStart = strpos($controller, 'private function kiriof_remove_shipping_method_required_errors');
+        $this->assertNotFalse($removeStart, 'Generic shipping error removal helper must exist');
+        $removeBody = substr($controller, $removeStart, 900);
+        $this->assertStringContainsString(
+            'No shipping method has been selected',
+            $removeBody,
+            'WooCommerce no-shipping-method error should be removed for short-address validation'
+        );
+        $this->assertStringContainsString(
+            'Shipping is a required field',
+            $removeBody,
+            'Any shipping-required error should be removed for short-address validation'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_uses_native_wc_fee_rows_instead_of_hidden_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');

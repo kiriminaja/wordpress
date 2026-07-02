@@ -376,6 +376,11 @@ msgstr ""
 msgid "<strong>Field Kelurahan</strong> is a required field."
 msgstr ""
 
+#: inc/Controllers/CheckoutController.php
+#, php-format
+msgid "Address length must be greater than %d"
+msgstr ""
+
 #: inc/Controllers/CheckoutController.php:750
 #: templates/transaction-process/view/index.php:72
 msgid "Order Number"
