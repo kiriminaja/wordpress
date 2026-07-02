@@ -2491,6 +2491,113 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_shipping_methods_use_generic_select2_dropdown(): void
+    {
+        $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
+        $script = self::billingAddressScriptContent();
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+
+        $this->assertStringContainsString(
+            '$kiriof_use_classic_shipping_select = is_checkout() && 1 < count( $available_methods );',
+            $cartShipping,
+            'Classic checkout should render the enhanced carrier dropdown only when multiple rates are available'
+        );
+
+        $this->assertStringContainsString(
+            'class="wc-enhanced-select kiriof-classic-shipping-method-select"',
+            $cartShipping,
+            'Classic checkout should render a WooCommerce enhanced Select2-compatible shipping method select'
+        );
+
+        $this->assertStringContainsString(
+            'foreach ( $available_methods as $method )',
+            $cartShipping,
+            'The enhanced shipping dropdown must include every WooCommerce carrier/rate in the package'
+        );
+
+        $this->assertStringContainsString(
+            'value="<?php echo esc_attr( $method->id ); ?>"',
+            $cartShipping,
+            'Shipping dropdown options must use the original WooCommerce rate IDs'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-shipping-methods-list--enhanced',
+            $cartShipping,
+            'The original radio list should only be visually collapsed after the enhanced dropdown is rendered'
+        );
+
+        $selectStart = strpos($cartShipping, 'kiriof-classic-shipping-method-select-wrap');
+        $this->assertNotFalse($selectStart, 'Enhanced shipping select markup must exist');
+        $selectBody = substr($cartShipping, $selectStart, 1800);
+        $this->assertStringNotContainsString(
+            'kiriminaja-official',
+            $selectBody,
+            'Enhanced shipping dropdown must not be hardcoded to KiriminAja-only carrier IDs'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofInitClassicShippingMethodSelect()',
+            $script,
+            'Frontend script must initialize the classic shipping dropdown'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofScheduleClassicShippingMethodSelectInit()',
+            $script,
+            'Classic shipping dropdown initialization should retry after checkout fragment timing settles'
+        );
+
+        $this->assertStringContainsString(
+            'var select2 = jQuery.fn.selectWoo || jQuery.fn.select2;',
+            $script,
+            'Classic shipping dropdown should use WooCommerce SelectWoo with Select2 fallback'
+        );
+
+        $this->assertStringContainsString(
+            'updated_checkout.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after checkout fragments refresh'
+        );
+
+        $this->assertStringContainsString(
+            'updated_shipping_method.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after WooCommerce shipping method refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'wc_fragments_refreshed.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after WooCommerce fragment refreshes'
+        );
+
+        $this->assertStringContainsString(
+            "kiriof-classic-shipping-method-select--enhanced",
+            $script,
+            'Classic shipping dropdown should mark selects after SelectWoo/Select2 is attached'
+        );
+
+        $this->assertStringContainsString(
+            "change.kiriofClassicShippingMethodSelect",
+            $script,
+            'Changing the enhanced dropdown must synchronize back to WooCommerce radio inputs'
+        );
+
+        $this->assertStringContainsString(
+            "\$method.prop('checked', true).trigger('change');",
+            $script,
+            'Selecting a carrier from the dropdown must trigger the normal WooCommerce shipping method change flow'
+        );
+
+        $this->assertStringContainsString(
+            '.kiriof-shipping-methods-list--enhanced',
+            $styles,
+            'Classic checkout should visually collapse the original radio list when the dropdown is active'
+        );
+    }
+
+    #[Test]
     public function block_checkout_shipping_radio_click_prefers_recent_user_selection_over_stale_store_rate(): void
     {
         $template = self::billingAddressTemplateContent();

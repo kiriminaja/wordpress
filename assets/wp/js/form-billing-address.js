@@ -37,6 +37,7 @@
 
             getSearchAreaKelurahan();
             changeDistrict();
+            kiriofScheduleClassicShippingMethodSelectInit();
             kiriofInitBlockCheckoutCompatibility();
 
             if (kiriofBillingAddressConfig.isCart) {
@@ -2077,6 +2078,66 @@
         function kiriofGetClassicInsuranceValue() {
             return jQuery('#kiriof_insurance:checked').length ? 1 : 0;
         }
+
+        function kiriofInitClassicShippingMethodSelect() {
+            var select2 = jQuery.fn.selectWoo || jQuery.fn.select2;
+
+            jQuery('.kiriof-classic-shipping-method-select').each(function() {
+                var $select = jQuery(this);
+                var index = String($select.data('index') || '0');
+                var $checkedMethod = jQuery('input.shipping_method[data-index="' + index + '"]:checked').first();
+
+                if ($checkedMethod.length && String($select.val() || '') !== String($checkedMethod.val() || '')) {
+                    $select.val($checkedMethod.val());
+                }
+
+                if (!select2) {
+                    return;
+                }
+
+                if ($select.data('select2') || $select.data('selectWoo')) {
+                    select2.call($select, 'destroy');
+                }
+
+                select2.call($select, {
+                    width: '100%',
+                    minimumResultsForSearch: 8
+                });
+
+                $select.addClass('kiriof-classic-shipping-method-select--enhanced');
+            });
+        }
+
+        function kiriofScheduleClassicShippingMethodSelectInit() {
+            kiriofInitClassicShippingMethodSelect();
+
+            jQuery.each([50, 250, 750], function(_, delay) {
+                window.setTimeout(kiriofInitClassicShippingMethodSelect, delay);
+            });
+        }
+
+        jQuery(document)
+            .off('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect')
+            .on('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect', function() {
+                kiriofScheduleClassicShippingMethodSelectInit();
+            });
+
+        jQuery(document)
+            .off('change.kiriofClassicShippingMethodSelect', '.kiriof-classic-shipping-method-select')
+            .on('change.kiriofClassicShippingMethodSelect', '.kiriof-classic-shipping-method-select', function() {
+                var $select = jQuery(this);
+                var selectedMethod = String($select.val() || '');
+                var index = String($select.data('index') || '0');
+                var $method = jQuery('input.shipping_method[data-index="' + index + '"]').filter(function() {
+                    return String(jQuery(this).val() || '') === selectedMethod;
+                }).first();
+
+                if (!$method.length) {
+                    return;
+                }
+
+                $method.prop('checked', true).trigger('change');
+            });
 
         function kiriofIsBlockCheckoutContext() {
             return !!(
