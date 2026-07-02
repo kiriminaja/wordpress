@@ -164,6 +164,51 @@ tr.woocommerce-shipping-totals {
   width: 25% !important;
 }
 
+.woocommerce-checkout .kiriof-classic-shipping-method-select-wrap {
+  width: 100%;
+  max-width: 520px;
+}
+
+.woocommerce-checkout
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-container,
+.woocommerce-checkout
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-selection {
+  width: 100% !important;
+}
+
+.woocommerce-checkout
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-selection--single {
+  min-height: 44px;
+  border-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.woocommerce-checkout
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-selection__rendered {
+  line-height: 42px;
+  padding-right: 36px;
+}
+
+.woocommerce-checkout
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-selection__arrow {
+  min-height: 42px;
+}
+
+.woocommerce-checkout .kiriof-shipping-methods-list--enhanced {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
 /* Block Checkout Totals Alignment */
 .wc-block-components-totals-wrapper,
 .wp-block-woocommerce-checkout-order-summary-totals-block {

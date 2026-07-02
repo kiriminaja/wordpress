@@ -128,6 +128,220 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_district_selector_uses_woocommerce_selectwoo_fallback(): void
+    {
+        $script = self::billingAddressScriptContent();
+        $start = strpos($script, 'function getSearchAreaKelurahan()');
+        $this->assertNotFalse($start, 'Classic District select initializer must exist');
+        $body = substr($script, $start, 5200);
+
+        $this->assertStringContainsString(
+            'let select2 = jQuery.fn.selectWoo || jQuery.fn.select2;',
+            $body,
+            'Classic checkout District must use WooCommerce selectWoo when the select2 alias is not available'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl",
+            $body,
+            'Classic District AJAX must fall back to the base localized ajax URL when the billing config object is incomplete'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce",
+            $body,
+            'Classic District AJAX must fall back to the base localized nonce when the billing config object is incomplete'
+        );
+
+        $this->assertStringContainsString(
+            'if (!subDistrictSelectElem.length || !select2 || !ajaxurl || !nonce)',
+            $body,
+            'District initialization should no-op safely when the field, Select2 library, AJAX URL, or nonce is unavailable'
+        );
+
+        $this->assertStringContainsString(
+            "if (\$field.data('select2') || \$field.data('selectWoo'))",
+            $body,
+            'District select must destroy an existing enhanced instance before checkout/cart fragments reinitialize it'
+        );
+
+        $this->assertStringContainsString(
+            "select2.call(\$field, {",
+            $body,
+            'District select must initialize through the chosen selectWoo/select2 implementation'
+        );
+
+        $this->assertStringContainsString(
+            'term:term',
+            $body,
+            'District search should send the Select2 term at the top level as well as inside data[]'
+        );
+
+        $this->assertStringContainsString(
+            'response.success !== false',
+            $body,
+            'District search should treat WP AJAX error payloads as empty results instead of throwing inside processResults'
+        );
+
+        $this->assertStringNotContainsString(
+            'subDistrictSelectElem.select2({',
+            $body,
+            'Calling the select2 alias directly leaves classic themes with only WooCommerce selectWoo as a native select'
+        );
+    }
+
+    #[Test]
+    public function classic_district_selection_keeps_selected_label_through_checkout_refresh(): void
+    {
+        $script = self::billingAddressScriptContent();
+
+        $this->assertStringContainsString(
+            'function kiriofGetClassicDistrictLabel($select)',
+            $script,
+            'Classic District changes must read the selected SelectWoo label before checkout fragments refresh'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofSetClassicDistrictLabel($select, label, different_address)',
+            $script,
+            'Classic District changes must persist the selected label into the hidden destination name fields'
+        );
+
+        $this->assertStringContainsString(
+            "select2:select.kiriofClassicDistrict",
+            $script,
+            'SelectWoo AJAX selections must cache the selected District label before the normal change handler runs'
+        );
+
+        $this->assertStringContainsString(
+            "\$field.data('kiriofSelectedDistrictText', selectedText);",
+            $script,
+            'The selected District label must be stored outside the transient SelectWoo result list'
+        );
+
+        $changeStart = strpos($script, 'function changeDistrict()');
+        $this->assertNotFalse($changeStart, 'Classic District change handler must exist');
+        $changeBody = substr($script, $changeStart, 5200);
+
+        $this->assertStringContainsString(
+            "jQuery(kelurahanArea).off('change.kiriofClassicDistrict').on('change.kiriofClassicDistrict'",
+            $changeBody,
+            'Classic District change handler must not accumulate duplicate listeners after refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'let selectedDistrictLabel = kiriofGetClassicDistrictLabel(root);',
+            $changeBody,
+            'Classic District AJAX must send the cached selected label, not only option:selected text'
+        );
+
+        $this->assertStringContainsString(
+            "'text':selectedDistrictLabel",
+            $changeBody,
+            'The selected District label must be sent to the destination persistence endpoint'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);',
+            $changeBody,
+            'The hidden District name field must be restored before and after the AJAX response'
+        );
+    }
+
+    #[Test]
+    public function classic_destination_ajax_does_not_alert_system_trouble_for_parseable_200_response(): void
+    {
+        $script = self::billingAddressScriptContent();
+        $changeStart = strpos($script, 'function changeDistrict()');
+        $this->assertNotFalse($changeStart, 'Classic District change handler must exist');
+        $changeBody = substr($script, $changeStart, 6200);
+        $feeRefreshStart = strpos($script, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($feeRefreshStart, 'Classic fee refresh handler must exist');
+        $feeRefreshBody = substr($script, $feeRefreshStart, 7600);
+
+        $this->assertStringContainsString(
+            'function kiriofExtractJsonResponseText(raw)',
+            $script,
+            'Classic destination AJAX should be able to extract JSON from a noisy HTTP 200 response'
+        );
+
+        $this->assertStringContainsString(
+            'dataFilter: function(raw)',
+            $changeBody,
+            'Destination persistence must filter raw responses before jQuery JSON parsing'
+        );
+
+        $this->assertStringContainsString(
+            'return kiriofExtractJsonResponseText(raw);',
+            $changeBody,
+            'Destination persistence must use the shared JSON extraction helper'
+        );
+
+        $this->assertStringContainsString(
+            "if (String(xhr.status) !== '200')",
+            $changeBody,
+            'A parseable HTTP 200 response must not trigger the System Trouble 200 alert'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.destination_nonce",
+            $changeBody,
+            'Destination persistence should fall back to the base localized destination nonce'
+        );
+
+        $this->assertStringContainsString(
+            'dataFilter: function(raw)',
+            $feeRefreshBody,
+            'Classic fee refresh must also filter raw responses before jQuery JSON parsing'
+        );
+
+        $this->assertStringContainsString(
+            'return kiriofExtractJsonResponseText(raw);',
+            $feeRefreshBody,
+            'Classic fee refresh must use the shared JSON extraction helper'
+        );
+
+        $this->assertStringContainsString(
+            "if (String(xhr.status) !== '200')",
+            $feeRefreshBody,
+            'A parseable HTTP 200 fee refresh response must not trigger the System Trouble 200 alert'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.update_checkout_nonce",
+            $feeRefreshBody,
+            'Classic fee refresh should fall back to the base localized update-checkout nonce'
+        );
+    }
+
+    #[Test]
+    public function subdistrict_ajax_accepts_select2_top_level_search_terms(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+        $start = strpos($controller, 'public function kiriminajaSubdistrictSearch()');
+        $this->assertNotFalse($start, 'Subdistrict AJAX handler must exist');
+        $body = substr($controller, $start, 1800);
+
+        $this->assertStringContainsString(
+            "isset( \$_POST['term'] )",
+            $body,
+            'Subdistrict AJAX must accept the top-level term sent by Select2/SelectWoo'
+        );
+
+        $this->assertStringContainsString(
+            "isset( \$_POST['search'] )",
+            $body,
+            'Subdistrict AJAX must accept the top-level search fallback sent by some Select2 adapters'
+        );
+
+        $this->assertStringContainsString(
+            "wp_verify_nonce",
+            $body,
+            'Subdistrict AJAX search must keep nonce verification before calling the API'
+        );
+    }
+
+    #[Test]
     public function block_checkout_no_district_state_must_not_make_place_order_a_dead_button(): void
     {
         $script = self::billingAddressTemplateContent();
@@ -1069,6 +1283,63 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function shipping_method_hides_rates_until_checkout_address_is_long_enough(): void
+    {
+        $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $calculateStart = strpos($shippingMethod, 'public function calculate_shipping');
+        $this->assertNotFalse($calculateStart, 'KiriminAja shipping calculation method must exist');
+        $calculateBody = substr($shippingMethod, $calculateStart, 12000);
+
+        $addressGatePosition = strpos($calculateBody, 'kiriof_has_sufficient_checkout_address');
+        $freeShippingPosition = strpos($calculateBody, 'hasActiveFreeShippingCoupon');
+        $pricingPosition = strpos($calculateBody, 'getPricing');
+
+        $this->assertNotFalse(
+            $addressGatePosition,
+            'KiriminAja rates must be gated by checkout address length'
+        );
+        $this->assertNotFalse(
+            $freeShippingPosition,
+            'Free-shipping coupon branch must remain present'
+        );
+        $this->assertNotFalse(
+            $pricingPosition,
+            'API pricing branch must remain present'
+        );
+        $this->assertLessThan(
+            $freeShippingPosition,
+            $addressGatePosition,
+            'Address-length validation must run before adding the KiriminAja free-shipping rate'
+        );
+        $this->assertLessThan(
+            $pricingPosition,
+            $addressGatePosition,
+            'Address-length validation must run before requesting KiriminAja pricing'
+        );
+
+        $this->assertStringContainsString(
+            'private const KIRIOF_MIN_ADDRESS_LENGTH = 10;',
+            $shippingMethod,
+            'KiriminAja pricing should stay hidden until the address line has at least 20 characters'
+        );
+        $this->assertStringContainsString(
+            "array( 'address_1', 'address' )",
+            $shippingMethod,
+            'Address-length validation must support both Woo Blocks address_1 and classic package address keys'
+        );
+        $this->assertStringContainsString(
+            "'get_shipping_address', 'get_billing_address'",
+            $shippingMethod,
+            'Address-length validation should fall back to Woo customer address accessors when package data is unavailable'
+        );
+        $this->assertStringContainsString(
+            'KiriminAja shipping rates hidden because checkout address is too short.',
+            $shippingMethod,
+            'When rates are hidden by address length, the reason should be traceable in logs'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_selection_persists_destination_session_before_shipping_rate_refetch(): void
     {
         $content = self::billingAddressTemplateContent();
@@ -1929,6 +2200,60 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_normalizes_selected_district_before_required_field_validation(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'private function kiriof_normalize_classic_destination_post_data()',
+            $controller,
+            'Classic checkout should repair district POST fields from the saved session before WooCommerce validates required selects'
+        );
+
+        $checkoutValidationStart = strpos($controller, 'function kiriof_checkout_field_validation()');
+        $this->assertNotFalse($checkoutValidationStart, 'Plugin checkout validation hook must exist');
+        $checkoutValidationBody = substr($controller, $checkoutValidationStart, 1200);
+        $normalizePosition = strpos($checkoutValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
+        $noticePosition = strpos($checkoutValidationBody, 'Field Kelurahan');
+        $this->assertNotFalse($normalizePosition, 'Classic checkout validation must normalize district POST data first');
+        $this->assertNotFalse($noticePosition, 'Classic checkout validation still owns the Field Kelurahan notice');
+        $this->assertLessThan($noticePosition, $normalizePosition, 'District POST normalization must happen before the Field Kelurahan required notice');
+
+        $orderValidationStart = strpos($controller, 'public function kiriof_validateOrder');
+        $this->assertNotFalse($orderValidationStart, 'Order validation hook must exist');
+        $orderValidationBody = substr($controller, $orderValidationStart, 1300);
+        $normalizePosition = strpos($orderValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
+        $districtNoticePosition = strpos($orderValidationBody, '<strong>District</strong> is a required field');
+        $this->assertNotFalse($normalizePosition, 'Order validation must normalize district POST data first');
+        $this->assertNotFalse($districtNoticePosition, 'Order validation still owns the District required notice');
+        $this->assertLessThan($districtNoticePosition, $normalizePosition, 'District POST normalization must happen before the District required notice');
+
+        $createOrderStart = strpos($controller, 'function afterCheckoutBeforeCreated');
+        $this->assertNotFalse($createOrderStart, 'Create-order hook must exist');
+        $createOrderBody = substr($controller, $createOrderStart, 1700);
+        $this->assertStringContainsString(
+            '$this->kiriof_normalize_classic_destination_post_data();',
+            $createOrderBody,
+            'Create-order hook should persist the same normalized district values used by validation'
+        );
+
+        $normalizerStart = strpos($controller, 'private function kiriof_normalize_classic_destination_post_data()');
+        $this->assertNotFalse($normalizerStart, 'District POST normalizer must exist');
+        $normalizerBody = substr($controller, $normalizerStart, 3000);
+
+        foreach (array(
+            "kiriof_get_session_text_field( 'kiriof_destination_area' )" => 'Normalizer must read the plugin checkout district session value',
+            "kiriof_get_session_text_field( 'destination_id' )" => 'Normalizer must fall back to the classic destination session value',
+            "kiriof_get_session_text_field( 'shipping_destination_id' )" => 'Normalizer must fall back to the shipping destination session value',
+            "kiriof_set_posted_text_field_if_empty( \$this->field_destination_key, \$destination )" => 'Normalizer must refill the billing District POST key',
+            "kiriof_set_posted_text_field_if_empty( \$this->field_shipping_destination_key, \$destination )" => 'Normalizer must refill the shipping District POST key when shipping to a different address',
+            "\$_POST['kiriof_checkout_token'] = '1';" => 'Normalizer must avoid a stale empty checkout token when a district is already saved',
+        ) as $needle => $message) {
+            $this->assertStringContainsString($needle, $normalizerBody, $message);
+        }
+    }
+
+    #[Test]
     public function classic_checkout_uses_native_wc_fee_rows_instead_of_hidden_placeholder_rows(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
@@ -2141,6 +2466,69 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function classic_checkout_renders_one_insurance_checkbox_above_order_notes(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $shippingTemplate = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/form-shipping.php');
+        $script = self::billingAddressScriptContent();
+
+        $this->assertStringContainsString(
+            "add_action('woocommerce_before_order_notes', array(\$this, 'kiriof_render_classic_insurance_field'), 5);",
+            $controller,
+            'Classic checkout should render the insurance checkbox through the order-notes hook'
+        );
+
+        $beforeOrderNotesPosition = strpos($shippingTemplate, "do_action( 'woocommerce_before_order_notes', \$checkout );");
+        $orderNotesPosition = strpos($shippingTemplate, "woocommerce_enable_order_notes_field");
+        $this->assertNotFalse($beforeOrderNotesPosition, 'Classic shipping template must expose the before-order-notes hook');
+        $this->assertNotFalse($orderNotesPosition, 'Classic shipping template must render order notes after the hook');
+        $this->assertLessThan(
+            $orderNotesPosition,
+            $beforeOrderNotesPosition,
+            'The insurance hook should render above Order notes in classic checkout'
+        );
+
+        $billingFieldsStart = strpos($controller, 'public function kiriof_billing_fields');
+        $this->assertNotFalse($billingFieldsStart, 'Classic checkout field filter must exist');
+        $billingFieldsBody = substr($controller, $billingFieldsStart, 1000);
+        $this->assertStringNotContainsString(
+            'kiriof_add_field_insurance',
+            $billingFieldsBody,
+            'Insurance must not be injected into both billing and shipping address field groups'
+        );
+
+        $this->assertStringContainsString(
+            'public function kiriof_render_classic_insurance_field()',
+            $controller,
+            'The single classic insurance field renderer must exist'
+        );
+
+        $this->assertStringContainsString(
+            "woocommerce_form_field(\n            \$this->field_insurance_key",
+            $controller,
+            'The single rendered checkbox should keep posting kiriof_insurance'
+        );
+
+        $this->assertStringNotContainsString(
+            "fields['shipping'][\$this->field_shipping_insurance_key]",
+            $controller,
+            'Classic checkout should no longer render a second shipping insurance checkbox'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofGetClassicInsuranceValue()',
+            $script,
+            'Classic checkout JS should read the single insurance checkbox for fee refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetClassicInsuranceValue()',
+            $script,
+            'Classic checkout District and fee refresh flows should use the single insurance checkbox'
+        );
+    }
+
+    #[Test]
     public function classic_checkout_shipping_radio_change_persists_selected_method_before_fee_refresh(): void
     {
         $content = self::billingAddressTemplateContent();
@@ -2154,6 +2542,113 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($storePosition, 'Changing from ID Express to JNE must persist the newly selected radio value immediately');
         $this->assertNotFalse($feePosition, 'Shipping changes must still refresh KiriminAja fee data');
         $this->assertLessThan($feePosition, $storePosition, 'The selected method should be stored before the KiriminAja fee refresh starts WooCommerce checkout recalculation');
+    }
+
+    #[Test]
+    public function classic_checkout_shipping_methods_use_generic_select2_dropdown(): void
+    {
+        $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
+        $script = self::billingAddressScriptContent();
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+
+        $this->assertStringContainsString(
+            '$kiriof_use_classic_shipping_select = is_checkout() && 1 < count( $available_methods );',
+            $cartShipping,
+            'Classic checkout should render the enhanced carrier dropdown only when multiple rates are available'
+        );
+
+        $this->assertStringContainsString(
+            'class="wc-enhanced-select kiriof-classic-shipping-method-select"',
+            $cartShipping,
+            'Classic checkout should render a WooCommerce enhanced Select2-compatible shipping method select'
+        );
+
+        $this->assertStringContainsString(
+            'foreach ( $available_methods as $method )',
+            $cartShipping,
+            'The enhanced shipping dropdown must include every WooCommerce carrier/rate in the package'
+        );
+
+        $this->assertStringContainsString(
+            'value="<?php echo esc_attr( $method->id ); ?>"',
+            $cartShipping,
+            'Shipping dropdown options must use the original WooCommerce rate IDs'
+        );
+
+        $this->assertStringContainsString(
+            'kiriof-shipping-methods-list--enhanced',
+            $cartShipping,
+            'The original radio list should only be visually collapsed after the enhanced dropdown is rendered'
+        );
+
+        $selectStart = strpos($cartShipping, 'kiriof-classic-shipping-method-select-wrap');
+        $this->assertNotFalse($selectStart, 'Enhanced shipping select markup must exist');
+        $selectBody = substr($cartShipping, $selectStart, 1800);
+        $this->assertStringNotContainsString(
+            'kiriminaja-official',
+            $selectBody,
+            'Enhanced shipping dropdown must not be hardcoded to KiriminAja-only carrier IDs'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofInitClassicShippingMethodSelect()',
+            $script,
+            'Frontend script must initialize the classic shipping dropdown'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofScheduleClassicShippingMethodSelectInit()',
+            $script,
+            'Classic shipping dropdown initialization should retry after checkout fragment timing settles'
+        );
+
+        $this->assertStringContainsString(
+            'var select2 = jQuery.fn.selectWoo || jQuery.fn.select2;',
+            $script,
+            'Classic shipping dropdown should use WooCommerce SelectWoo with Select2 fallback'
+        );
+
+        $this->assertStringContainsString(
+            'updated_checkout.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after checkout fragments refresh'
+        );
+
+        $this->assertStringContainsString(
+            'updated_shipping_method.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after WooCommerce shipping method refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'wc_fragments_refreshed.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after WooCommerce fragment refreshes'
+        );
+
+        $this->assertStringContainsString(
+            "kiriof-classic-shipping-method-select--enhanced",
+            $script,
+            'Classic shipping dropdown should mark selects after SelectWoo/Select2 is attached'
+        );
+
+        $this->assertStringContainsString(
+            "change.kiriofClassicShippingMethodSelect",
+            $script,
+            'Changing the enhanced dropdown must synchronize back to WooCommerce radio inputs'
+        );
+
+        $this->assertStringContainsString(
+            "\$method.prop('checked', true).trigger('change');",
+            $script,
+            'Selecting a carrier from the dropdown must trigger the normal WooCommerce shipping method change flow'
+        );
+
+        $this->assertStringContainsString(
+            '.kiriof-shipping-methods-list--enhanced',
+            $styles,
+            'Classic checkout should visually collapse the original radio list when the dropdown is active'
+        );
     }
 
     #[Test]

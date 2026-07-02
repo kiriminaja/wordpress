@@ -37,6 +37,7 @@
 
             getSearchAreaKelurahan();
             changeDistrict();
+            kiriofScheduleClassicShippingMethodSelectInit();
             kiriofInitBlockCheckoutCompatibility();
 
             if (kiriofBillingAddressConfig.isCart) {
@@ -1716,43 +1717,127 @@
             return String(postcode).replace(/\D/g, '');
         }
 
+        function kiriofExtractJsonResponseText(raw) {
+            raw = String(raw || '').trim();
+            if (!raw) {
+                return raw;
+            }
+
+            try {
+                JSON.parse(raw);
+                return raw;
+            } catch(e) {}
+
+            var jsonStart = raw.indexOf('{');
+            var jsonEnd = raw.lastIndexOf('}');
+            if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                var extracted = raw.substring(jsonStart, jsonEnd + 1);
+                try {
+                    JSON.parse(extracted);
+                    return extracted;
+                } catch(e) {}
+            }
+
+            return raw;
+        }
+
+        function kiriofIsPlaceholderDistrictText(text) {
+            text = String(text || '').trim();
+            return !text || text === (kiriofBillingAddressConfig.i18n.selectOption || 'Select Option');
+        }
+
+        function kiriofGetClassicDistrictLabel($select) {
+            var label = String($select.data('kiriofSelectedDistrictText') || '').trim();
+            if (!kiriofIsPlaceholderDistrictText(label)) {
+                return label;
+            }
+
+            try {
+                var selectData = $select.selectWoo ? $select.selectWoo('data') : ($select.select2 ? $select.select2('data') : []);
+                if (selectData && selectData.length && selectData[0].text) {
+                    label = String(selectData[0].text || '').trim();
+                    if (!kiriofIsPlaceholderDistrictText(label)) {
+                        return label;
+                    }
+                }
+            } catch(e) {}
+
+            label = String($select.find('option:selected').text() || '').trim();
+            if (!kiriofIsPlaceholderDistrictText(label)) {
+                return label;
+            }
+
+            if (String($select.attr('name') || '') === 'kiriof_shipping_destination_area') {
+                return String(jQuery('[name="kiriof_shipping_destination_area_name"]').val() || '').trim();
+            }
+
+            return String(jQuery('[name="kiriof_destination_area_name"]').val() || '').trim();
+        }
+
+        function kiriofSetClassicDistrictLabel($select, label, different_address) {
+            label = String(label || '').trim();
+            if (kiriofIsPlaceholderDistrictText(label)) {
+                label = '';
+            }
+
+            if (String($select.attr('name') || '') === 'kiriof_shipping_destination_area') {
+                jQuery('[name="kiriof_shipping_destination_area_name"]').val(label);
+                return;
+            }
+
+            jQuery('[name="kiriof_destination_area_name"]').val(label);
+            if (!different_address) {
+                jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
+            }
+        }
+
         function changeDistrict(){
             
             let kelurahanArea = "select#" + (kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area') + ",select#kiriof_shipping_destination_area";
             
-            jQuery(kelurahanArea).change( function () {
+            jQuery(kelurahanArea).off('change.kiriofClassicDistrict').on('change.kiriofClassicDistrict', function () {
                 let root = jQuery(this);
                 let different_address = jQuery('[name="ship_to_different_address"]:checked').length;
                 let country = jQuery('#billing_country').find(':selected').val();
+                let selectedDistrictLabel = kiriofGetClassicDistrictLabel(root);
+                let ajaxurl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                    ? kiriofAjax.ajaxurl
+                    : kiriofBillingAddressConfig.ajaxUrl || '';
+                let destinationNonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.destination_nonce)
+                    ? kiriofAjax.destination_nonce
+                    : kiriofBillingAddressConfig.destinationNonce || '';
                 let _insurance;
 
                 if (kiriofBillingAddressConfig.isCheckout) {
                     if( different_address > 0 ){
-                        _insurance = jQuery('#kiriof_insurance:checked').length;
-                        jQuery('[name="kiriof_shipping_destination_area_name"]').val(root.find('option:selected').text());
+                        _insurance = kiriofGetClassicInsuranceValue();
                     }else{
-                        _insurance = jQuery('#kiriof_shipping_insurance:checked').length;
-                        jQuery('[name="kiriof_shipping_destination_area_name"]').val('');
+                        _insurance = kiriofGetClassicInsuranceValue();
                     }
                 } else {
                     _insurance = 0;
                 }
+
+                kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);
                 
                 
                 jQuery.ajax({
-                    url:kiriofBillingAddressConfig.ajaxUrl || '',
+                    url:ajaxurl,
                     type: 'post',
                     data: {
                         action:'kiriof_get_destination_area',
                         'val':root.val(),
                         'insurance':_insurance,
                         'different_address': different_address,
-                        'text':root.find('option:selected').text(),
+                        'text':selectedDistrictLabel,
                         'payment_method':jQuery('input[name="payment_method"]:checked').val(),
-                        'nonce':kiriofBillingAddressConfig.destinationNonce || '',
+                        'nonce':destinationNonce,
                         'country':country ?? 'ID'
                     },
                     dataType:'JSON',
+                    dataFilter: function(raw) {
+                        return kiriofExtractJsonResponseText(raw);
+                    },
                     beforeSend:function(){
                         if (kiriofBillingAddressConfig.isCart) {
                             jQuery('.kj-cart-sidebar').block({ message: null }); 
@@ -1761,22 +1846,18 @@
                         }
                     },
                     success:function(response){
+                        var responseData = response && response.data ? response.data : {};
                         
-                        if( response.data.code != 200 ){
-                            jQuery('.woocommerce-notices-wrapper').append(response.msg);
+                        if( response.success === false || responseData.code != 200 ){
+                            jQuery('.woocommerce-notices-wrapper').append(responseData.msg || response.msg || '');
                             toggleCalculationValidation(false);
                         }else{
-                            if (kiriofBillingAddressConfig.isCart) {
-                                jQuery('.kj-cart-sidebar').unblock();
-                            } else {
-                                jQuery('#order_review').find('.shop_table').unblock();
-                            }
                             toggleCalculationValidation(true);
                             
                         }
 
                         /** add Destination Name */
-                        jQuery('[name="kiriof_destination_area_name"]').val(jQuery(`[name="kiriof_destination_area"] option:selected`).text())
+                        kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);
 
                         if (kiriofBillingAddressConfig.isCart) {
                             jQuery('button[name="calc_shipping"]').trigger('click');
@@ -1793,9 +1874,26 @@
                         }
 
                     },
-                    error:function(xhr){
-                        alert("Sorry System Trouble Error Code : "+xhr.status)
+                    error:function(xhr, textStatus, errorThrown){
+                        if (window.console) {
+                            console.warn('[KiriminAja] Destination area AJAX failed', {
+                                status: xhr.status,
+                                textStatus: textStatus,
+                                error: errorThrown
+                            });
+                        }
+                        if (String(xhr.status) !== '200') {
+                            alert("Sorry System Trouble Error Code : "+xhr.status)
+                        }
+                        toggleCalculationValidation(false);
                         return false;
+                    },
+                    complete:function(){
+                        if (kiriofBillingAddressConfig.isCart) {
+                            jQuery('.kj-cart-sidebar').unblock();
+                        } else {
+                            jQuery('#order_review').find('.shop_table').unblock();
+                        }
                     }
                 });
                 
@@ -1811,38 +1909,102 @@
          * Get Kelurahan by search key up New
          */
         function getSearchAreaKelurahan(){
-            let ajaxurl = kiriofBillingAddressConfig.ajaxUrl || '';
             let subDistrictSelectElem = jQuery(`[name="${kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area'}"],[name=kiriof_shipping_destination_area]`); 
-            let nonce = kiriofBillingAddressConfig.nonce || '';
+            let ajaxurl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                ? kiriofAjax.ajaxurl
+                : kiriofBillingAddressConfig.ajaxUrl || '';
+            let nonce = (typeof kiriofAjax !== 'undefined' && kiriofAjax.nonce)
+                ? kiriofAjax.nonce
+                : kiriofBillingAddressConfig.nonce || '';
+            let select2 = jQuery.fn.selectWoo || jQuery.fn.select2;
 
-            subDistrictSelectElem.select2({
-                minimumInputLength: 3,
-                placeholder: kiriofBillingAddressConfig.i18n.selectOption || 'Select Option',
-                allowClear: true,
-                ajax: {
-                    url: ajaxurl,
-                    dataType: 'json',
-                    type: "POST",
-                    delay: 250,
-                    data: function (search) {
-                        return {
-                            data:search,
-                            nonce:nonce,
-                            action: 'kiriminaja_subdistrict_search'
-                        };
-                    },
-                    processResults: function (response) {
-                        return {
-                            results: jQuery.map(response.data, function (item) {
-                                return {
-                                    text: item.text,
-                                    id: item.id
-                                }
-                            })
-                        };
-                    },
-                    cache: true
+            if (!subDistrictSelectElem.length || !select2 || !ajaxurl || !nonce) {
+                return;
+            }
+
+            subDistrictSelectElem.each(function() {
+                let $field = jQuery(this);
+
+                if ($field.data('select2') || $field.data('selectWoo')) {
+                    select2.call($field, 'destroy');
                 }
+
+                select2.call($field, {
+                    minimumInputLength: 3,
+                    placeholder: kiriofBillingAddressConfig.i18n.selectOption || 'Select Option',
+                    allowClear: true,
+                    ajax: {
+                        url: ajaxurl,
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 250,
+                        data: function (search) {
+                            let term = search && (search.term || search.search || search.q)
+                                ? search.term || search.search || search.q
+                                : '';
+                            return {
+                                data:{
+                                    term:term,
+                                    search:term
+                                },
+                                term:term,
+                                nonce:nonce,
+                                action: 'kiriminaja_subdistrict_search'
+                            };
+                        },
+                        processResults: function (response) {
+                            let responseData = response && response.success !== false && response.data
+                                ? response.data
+                                : [];
+                            return {
+                                results: jQuery.map(responseData, function (item) {
+                                    return {
+                                        text: item.text,
+                                        id: item.id
+                                    }
+                                })
+                            };
+                        },
+                        cache: true
+                    }
+                });
+
+                $field
+                    .off('select2:select.kiriofClassicDistrict select2:clear.kiriofClassicDistrict')
+                    .on('select2:select.kiriofClassicDistrict', function(event) {
+                        var selected = event.params && event.params.data ? event.params.data : {};
+                        var selectedId = selected.id || $field.val() || '';
+                        var selectedText = selected.text || '';
+
+                        if (selectedId && selectedText) {
+                            var hasOption = false;
+                            $field.find('option').each(function() {
+                                if (String(jQuery(this).val()) === String(selectedId)) {
+                                    hasOption = true;
+                                    jQuery(this).text(selectedText).prop('selected', true);
+                                    return false;
+                                }
+                            });
+                            if (!hasOption) {
+                                $field.append(new Option(selectedText, selectedId, true, true));
+                            }
+                        }
+
+                        $field.data('kiriofSelectedDistrictText', selectedText);
+                        kiriofSetClassicDistrictLabel(
+                            $field,
+                            selectedText,
+                            jQuery('[name="ship_to_different_address"]:checked').length
+                        );
+                    })
+                    .on('select2:clear.kiriofClassicDistrict', function() {
+                        $field.data('kiriofSelectedDistrictText', '');
+                        kiriofSetClassicDistrictLabel(
+                            $field,
+                            '',
+                            jQuery('[name="ship_to_different_address"]:checked').length
+                        );
+                    });
             });
 
             // Restore Select2 display for pre-selected values (e.g. from session on cart page)
@@ -1912,6 +2074,70 @@
                     }
                 });
         }
+
+        function kiriofGetClassicInsuranceValue() {
+            return jQuery('#kiriof_insurance:checked').length ? 1 : 0;
+        }
+
+        function kiriofInitClassicShippingMethodSelect() {
+            var select2 = jQuery.fn.selectWoo || jQuery.fn.select2;
+
+            jQuery('.kiriof-classic-shipping-method-select').each(function() {
+                var $select = jQuery(this);
+                var index = String($select.data('index') || '0');
+                var $checkedMethod = jQuery('input.shipping_method[data-index="' + index + '"]:checked').first();
+
+                if ($checkedMethod.length && String($select.val() || '') !== String($checkedMethod.val() || '')) {
+                    $select.val($checkedMethod.val());
+                }
+
+                if (!select2) {
+                    return;
+                }
+
+                if ($select.data('select2') || $select.data('selectWoo')) {
+                    select2.call($select, 'destroy');
+                }
+
+                select2.call($select, {
+                    width: '100%',
+                    minimumResultsForSearch: 8
+                });
+
+                $select.addClass('kiriof-classic-shipping-method-select--enhanced');
+            });
+        }
+
+        function kiriofScheduleClassicShippingMethodSelectInit() {
+            kiriofInitClassicShippingMethodSelect();
+
+            jQuery.each([50, 250, 750], function(_, delay) {
+                window.setTimeout(kiriofInitClassicShippingMethodSelect, delay);
+            });
+        }
+
+        jQuery(document)
+            .off('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect')
+            .on('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect', function() {
+                kiriofScheduleClassicShippingMethodSelectInit();
+            });
+
+        jQuery(document)
+            .off('change.kiriofClassicShippingMethodSelect', '.kiriof-classic-shipping-method-select')
+            .on('change.kiriofClassicShippingMethodSelect', '.kiriof-classic-shipping-method-select', function() {
+                var $select = jQuery(this);
+                var selectedMethod = String($select.val() || '');
+                var index = String($select.data('index') || '0');
+                var $method = jQuery('input.shipping_method[data-index="' + index + '"]').filter(function() {
+                    return String(jQuery(this).val() || '') === selectedMethod;
+                }).first();
+
+                if (!$method.length) {
+                    return;
+                }
+
+                $method.prop('checked', true).trigger('change');
+            });
 
         function kiriofIsBlockCheckoutContext() {
             return !!(
@@ -2358,9 +2584,9 @@
                     : (
                         different_address == '0'
                         ?
-                        jQuery('#kiriof_insurance:checked').val()
+                        kiriofGetClassicInsuranceValue()
                         :
-                        jQuery('#kiriof_shipping_insurance:checked').val()
+                        kiriofGetClassicInsuranceValue()
                     )
                 );
 
@@ -2369,7 +2595,9 @@
 
             let data = {
                 action:'kiriof_get_data_after_update_checkout',
-                nonce:kiriofBillingAddressConfig.updateCheckoutNonce || '',
+                nonce:(typeof kiriofAjax !== 'undefined' && kiriofAjax.update_checkout_nonce)
+                    ? kiriofAjax.update_checkout_nonce
+                    : kiriofBillingAddressConfig.updateCheckoutNonce || '',
                 shipping_metode_id : (typeof shipping_metode_id === 'undefined' ? '' : shipping_metode_id),
                 destination_id,
                 destination_name,
@@ -2443,10 +2671,15 @@
             }
 
             kiriofFeeRefreshRequest = jQuery.ajax({
-                        url:kiriofBillingAddressConfig.ajaxUrl || '',
+                        url:(typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
+                            ? kiriofAjax.ajaxurl
+                            : kiriofBillingAddressConfig.ajaxUrl || '',
                         type: 'post',
                         data: data,
                         dataType:'JSON',
+                        dataFilter: function(raw) {
+                            return kiriofExtractJsonResponseText(raw);
+                        },
                         beforeSend:function(){
                             jQuery('#order_review').find('.shop_table').block({ message: null });
                             kiriofSetFeeSkeletonLoading(true);
@@ -2471,7 +2704,15 @@
                             if (textStatus === 'abort') {
                                 return;
                             }
-                            alert("Sorry System Trouble Error Code : "+xhr.status);
+                            if (window.console) {
+                                console.warn('[KiriminAja] Checkout fee refresh AJAX failed', {
+                                    status: xhr.status,
+                                    textStatus: textStatus
+                                });
+                            }
+                            if (String(xhr.status) !== '200') {
+                                alert("Sorry System Trouble Error Code : "+xhr.status);
+                            }
                          },
                         complete:function(){
                             kiriofSetFeeSkeletonLoading(false);

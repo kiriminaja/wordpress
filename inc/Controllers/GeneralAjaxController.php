@@ -34,6 +34,12 @@ class GeneralAjaxController
                 if (empty($data['search'])) {
                     $data['search'] = isset( $data['term'] ) ? sanitize_text_field( (string) $data['term'] ) : '';
                 }
+                if ( empty( $data['search'] ) ) {
+                    $data['search'] = isset( $_POST['term'] ) ? sanitize_text_field( wp_unslash( $_POST['term'] ) ) : '';
+                }
+                if ( empty( $data['search'] ) ) {
+                    $data['search'] = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+                }
                 $kiriminajaSubDistrictSearch = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->sub_district_search($data['search']);
 
                 if ($kiriminajaSubDistrictSearch->status !== 200) {
