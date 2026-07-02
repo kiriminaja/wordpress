@@ -6,4 +6,16 @@ node_modules
 vendor
 build
 .phpunit.cache
+.paratest.cache
+coverage
+.vitest
 .env
+assets/admin/js/kj-admin-script.js
+assets/admin/js/kj-coupon-admin.js
+assets/js/chunks/
+assets/js/kiriof-cod-adjustment.js
+assets/js/templates/after-checkout.js
+assets/wp/js/form-billing-address.js
+assets/wp/js/kiriof-block-checkout.js
+assets/wp/js/kj-tracking.js
+assets/wp/js/kj-wp-script.js
