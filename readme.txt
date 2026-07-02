@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 2.2.6
+Stable tag: 2.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,43 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 2.3.0 =
+- Enhance courier selection on classic theme
+- Retouch classic checkout
+- Increase minimum version to v8.1
+- Merge remote-tracking branch 'origin/main' into feat/ka-credit-payment
+- Treat AWB assignment as the payment authority so delayed QRIS metadata cannot leave processed pickups unpaid or reopen Scan to Pay for TOP/paid pickups.
+- # Conflicts:
+- Add technical log download
+- - Add isTopPaymentMethod() to SettingService that reads is_top from DB,
+- Add ka credit payment
+- Normalize classic district validation
+- Enforce shipping address length to min 20
+- Fix district not loaded
+- Issues on form billing stability and other related to env based
+- Cod payment method filtering
+- Clarify about platform discount and merchant discount
+- Auto-paid issue on non-cod
+- Native total secitons
+- Status handling on non-cod and cod
+- Refresh COD courier eligibility
+- Add resi print translator comments
+- Send runtime versions in user agent
+- Improve compliance
+- Unit testing issue
+- Force top pickup payments paid
+- Log qris pickup payment state
+- Add print resi error translations
+- Mark top pickups as paid
+- Keep qris pending until remote paid
+- COD package accidentaly mentioned as non-cod package
+- Enhance error handling and payment processing in shipping and transaction controllers
+- Handling case webhook handler
+- Hide payment options for top and cod
+- Fixing test coverage
+- Validate credit pin before pickup
+- Prevent duplicate block fee rows
+
 
 = 2.2.6 =
 - Duplicated payment options section on classic woocommerce theme
