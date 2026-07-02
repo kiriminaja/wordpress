@@ -68,6 +68,11 @@ msgstr "<strong>District</strong> wajib diisi"
 msgid "<strong>Field Kelurahan</strong> is a required field."
 msgstr "<strong>Field Kelurahan</strong> wajib diisi."
 
+#: inc/Controllers/CheckoutController.php
+#, php-format
+msgid "Address length must be greater than %d"
+msgstr "Panjang alamat harus lebih dari %d"
+
 #: inc/Controllers/CheckoutController.php:854
 msgid "<strong>Shipping</strong> is a required field"
 msgstr "<strong>Shipping</strong> wajib diisi"
