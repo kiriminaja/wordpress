@@ -14,6 +14,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
     $kiriof_pin_cache_ttl = MINUTE_IN_SECONDS;
 }
 $kiriof_pin_cache_label = sprintf(
+    /* translators: %d: cached PIN duration in minutes. */
     __('Remember PIN on this browser for %d minutes', 'kiriminaja-official'),
     (int) ceil($kiriof_pin_cache_ttl / MINUTE_IN_SECONDS)
 );
