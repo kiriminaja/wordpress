@@ -8,6 +8,16 @@ if (! defined('ABSPATH')) {
 $kiriof_helper = kiriof_helper();
 $kiriof_homeUrl = home_url();
 $kiriof_adminUrl = $kiriof_homeUrl . '/wp-admin';
+$kiriof_current_user = wp_get_current_user();
+$kiriof_pin_cache_ttl = (int) apply_filters('kiriof_pin_cache_ttl', 15 * MINUTE_IN_SECONDS, $kiriof_current_user);
+if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
+    $kiriof_pin_cache_ttl = MINUTE_IN_SECONDS;
+}
+$kiriof_pin_cache_label = sprintf(
+    /* translators: %d: cached PIN duration in minutes. */
+    __('Remember PIN on this browser for %d minutes', 'kiriminaja-official'),
+    (int) ceil($kiriof_pin_cache_ttl / MINUTE_IN_SECONDS)
+);
 
 /**
  * @var string $locale
@@ -623,6 +633,16 @@ const kjPrintLabel = '<?php echo esc_js(__('Print', 'kiriminaja-official')); ?>'
 const kjPickScheduleLabel = '<?php echo esc_js(__('Pick Schedule', 'kiriminaja-official')); ?>';
 const kjConfirmPinLabel = '<?php echo esc_js(__('Confirm PIN', 'kiriminaja-official')); ?>';
 const kjValidateLabel = '<?php echo esc_js(__('Validate', 'kiriminaja-official')); ?>';
+const kjPinCacheConfig = {
+key: <?php echo wp_json_encode('kiriof_pin_cache_' . get_current_blog_id() . '_' . (int) get_current_user_id()); ?>,
+ttl: <?php echo (int) $kiriof_pin_cache_ttl; ?>,
+userHash: <?php echo wp_json_encode(hash_hmac('sha256', (string) get_current_user_id(), wp_salt('auth'))); ?>,
+siteHash: <?php echo wp_json_encode(hash_hmac('sha256', home_url('/'), wp_salt('auth'))); ?>,
+rememberLabel: <?php echo wp_json_encode(__('Saved PIN will be reused until it expires on this browser.', 'kiriminaja-official')); ?>,
+expiredLabel: <?php echo wp_json_encode(__('Saved PIN expired. Please enter your PIN again.', 'kiriminaja-official')); ?>,
+invalidatedLabel: <?php echo wp_json_encode(__('Saved PIN was cleared. Please enter your latest PIN again.', 'kiriminaja-official')); ?>,
+unsupportedLabel: <?php echo wp_json_encode(__('Browser secure storage is unavailable. PIN will not be remembered.', 'kiriminaja-official')); ?>,
+};
 const kjUpdateRequestPickupCount = () => {
 const pickupCount = $transactionCheckboxes().filter(':checked:not(:disabled)[data-can-pickup="1"]').length;
 const printCount = $transactionCheckboxes().filter(':checked:not(:disabled)[data-can-print="1"]').length;
@@ -726,7 +746,7 @@ if (page >= 1 && page <= max) {
     } else if (state==='pin' ) {
     $modal.find('.kiriof-modal-state-pin').show();
     $modal.find('#btn-next').text(kjValidateLabel);
-    kjFocusPinInput($modal);
+    kjPrepareCreditPinStep($modal);
     } else {
     $modal.find('.kiriof-modal-state-content').show();
     }
@@ -785,6 +805,159 @@ if (page >= 1 && page <= max) {
     $modal.data('kiriofPinCooldownTimer', null);
     }
 
+    function kjGetPinRememberCheckbox($modal) {
+    return $modal.find('#kiriof-pin-remember');
+    }
+
+    function kjGetPinCacheNotice($modal) {
+    return $modal.find('.kiriof-pin-cache-notice');
+    }
+
+    function kjSetPinCacheNotice($modal, message, tone) {
+    const $notice = kjGetPinCacheNotice($modal);
+    if (!message) {
+    $notice.hide().text('').removeAttr('data-tone');
+    return;
+    }
+
+    $notice.attr('data-tone', tone || 'info').text(message).show();
+    }
+
+    function kjCanUsePinCache() {
+    return window.isSecureContext && window.crypto && window.crypto.subtle && window.localStorage;
+    }
+
+    async function kjGetPinCacheKeyMaterial() {
+    const rawKey = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${kjPinCacheConfig.userHash}:${kjPinCacheConfig.siteHash}`));
+    return window.crypto.subtle.importKey('raw', rawKey, 'AES-GCM', false, ['encrypt', 'decrypt']);
+    }
+
+    function kjGetPinCacheRecord() {
+    if (!kjCanUsePinCache()) {
+    return null;
+    }
+
+    try {
+    const rawValue = window.localStorage.getItem(kjPinCacheConfig.key);
+    if (!rawValue) {
+    return null;
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    if (!parsedValue || parsedValue.userHash !== kjPinCacheConfig.userHash || parsedValue.siteHash !== kjPinCacheConfig.siteHash) {
+    window.localStorage.removeItem(kjPinCacheConfig.key);
+    return null;
+    }
+
+    if (!parsedValue.expiresAt || Date.now() >= parsedValue.expiresAt) {
+    window.localStorage.removeItem(kjPinCacheConfig.key);
+    return { expired: true };
+    }
+
+    return parsedValue;
+    } catch (error) {
+    window.localStorage.removeItem(kjPinCacheConfig.key);
+    return null;
+    }
+    }
+
+    async function kjDecryptCachedPin(record) {
+    if (!record || !record.ciphertext || !record.iv) {
+    return '';
+    }
+
+    const key = await kjGetPinCacheKeyMaterial();
+    const iv = Uint8Array.from(atob(record.iv), (character) => character.charCodeAt(0));
+    const ciphertext = Uint8Array.from(atob(record.ciphertext), (character) => character.charCodeAt(0));
+    const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+    return new TextDecoder().decode(decrypted).replace(/\D/g, '').substring(0, 6);
+    }
+
+    async function kjPersistCachedPin($modal, pin) {
+    if (!kjCanUsePinCache()) {
+    kjSetPinCacheNotice($modal, kjPinCacheConfig.unsupportedLabel, 'warning');
+    return false;
+    }
+
+    const rememberPin = kjGetPinRememberCheckbox($modal).is(':checked');
+    if (!rememberPin || !pin || pin.length !== 6) {
+    return false;
+    }
+
+    const key = await kjGetPinCacheKeyMaterial();
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(pin));
+    const payload = {
+    userHash: kjPinCacheConfig.userHash,
+    siteHash: kjPinCacheConfig.siteHash,
+    expiresAt: Date.now() + (kjPinCacheConfig.ttl * 1000),
+    iv: btoa(String.fromCharCode(...iv)),
+    ciphertext: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
+    };
+    window.localStorage.setItem(kjPinCacheConfig.key, JSON.stringify(payload));
+    kjSetPinCacheNotice($modal, kjPinCacheConfig.rememberLabel, 'success');
+    return true;
+    }
+
+    function kjClearCachedPin($modal, reason) {
+    if (window.localStorage) {
+    window.localStorage.removeItem(kjPinCacheConfig.key);
+    }
+    kjGetPinRememberCheckbox($modal).prop('checked', false);
+    if (reason === 'expired') {
+    kjSetPinCacheNotice($modal, kjPinCacheConfig.expiredLabel, 'warning');
+    } else if (reason === 'invalid') {
+    kjSetPinCacheNotice($modal, kjPinCacheConfig.invalidatedLabel, 'warning');
+    } else if (!reason) {
+    kjSetPinCacheNotice($modal, '', 'info');
+    }
+    }
+
+    async function kjRestoreCachedPin($modal) {
+    if (!kjCanUsePinCache()) {
+    return false;
+    }
+
+    const record = kjGetPinCacheRecord();
+    if (!record) {
+    return false;
+    }
+
+    if (record.expired) {
+    kjClearCachedPin($modal, 'expired');
+    return false;
+    }
+
+    try {
+    const pin = await kjDecryptCachedPin(record);
+    if (!pin || pin.length !== 6) {
+    kjClearCachedPin($modal, 'invalid');
+    return false;
+    }
+
+    kjSetPinValue($modal, pin);
+    kjGetPinRememberCheckbox($modal).prop('checked', true);
+    kjSetPinCacheNotice($modal, kjPinCacheConfig.rememberLabel, 'success');
+    return true;
+    } catch (error) {
+    kjClearCachedPin($modal, 'invalid');
+    return false;
+    }
+    }
+
+    function kjPrepareCreditPinStep($modal) {
+    kjEnsurePinInputReady($modal);
+    if (!kjCanUsePinCache()) {
+    kjSetPinCacheNotice($modal, kjPinCacheConfig.unsupportedLabel, 'warning');
+    }
+    window.setTimeout(function() {
+    void kjRestoreCachedPin($modal).finally(function() {
+    kjFocusPinInput($modal);
+    kjUpdatePickupButton($modal);
+    });
+    }, 0);
+    }
+
     function kjNormalizePinErrorData($modal, data) {
     const normalized = Object.assign({}, data || {});
     const error = normalized.error || '';
@@ -835,6 +1008,9 @@ if (page >= 1 && page <= max) {
 
         const $modal = kiriofGetRequestPickupModal();
         kjResetPinRetryState($modal);
+        kjSetPinValue($modal, '');
+        kjGetPinRememberCheckbox($modal).prop('checked', false);
+        kjSetPinCacheNotice($modal, '', 'info');
         kiriofSetModalState($modal, 'loading');
         $modal.find('#btn-next').prop('disabled', true);
 
@@ -997,6 +1173,11 @@ if (page >= 1 && page <= max) {
                 kjResetPinRetryState($modal);
                 $modal.find('#kiriof-pin-widget').removeAttr('invalid');
                 $modal.find('.kiriof-pin-error').hide().text('');
+                kjSetPinCacheNotice($modal, '', 'info');
+            } else {
+                void kjRestoreCachedPin($modal).finally(function() {
+                    kjUpdatePickupButton($modal);
+                });
             }
             kjUpdatePickupButton($modal);
         });
@@ -1162,6 +1343,7 @@ if (page >= 1 && page <= max) {
                         kiriofSetModalState($modal, 'content');
                         $errMsg.text('*<?php echo esc_js(__('Insufficient credit balance. Please top up or use QRIS.', 'kiriminaja-official')); ?>').show();
                     } else if (errCode === 'PIN_INVALID' || errCode === 'PIN_MAX_ATTEMPT_REACHED') {
+                        kjClearCachedPin($modal, 'invalid');
                         kiriofSetModalState($modal, 'pin');
                         kjShowPinError($modal, resp?.data || {}, resp?.message || errCode);
                     } else {
@@ -1249,6 +1431,7 @@ if (page >= 1 && page <= max) {
                     complete: function(pinResp) {
                         const pinData = JSON.parse(pinResp.responseText).data;
                         if (pinData?.status !== 200) {
+                            kjClearCachedPin($modal, 'invalid');
                             kiriofSetModalState($modal, 'pin');
                             const pinErr = pinData?.data;
                             if (pinErr?.error === 'PIN_MAX_ATTEMPT_REACHED') {
@@ -1261,7 +1444,9 @@ if (page >= 1 && page <= max) {
                             return;
                         }
                         kjResetPinRetryState($modal);
-                        kjSubmitPickup($modal, orderIds, schedule, paymentMethod, pin, closeModal);
+                        void kjPersistCachedPin($modal, pin).finally(function() {
+                            kjSubmitPickup($modal, orderIds, schedule, paymentMethod, pin, closeModal);
+                        });
                     }
                 });
                 return;
