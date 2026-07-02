@@ -2641,13 +2641,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'foreach ( $available_methods as $method )',
+            'foreach ( $available_methods as $kiriof_shipping_method )',
             $cartShipping,
             'The enhanced shipping dropdown must include every WooCommerce carrier/rate in the package'
         );
 
         $this->assertStringContainsString(
-            'value="<?php echo esc_attr( $method->id ); ?>"',
+            'value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>"',
             $cartShipping,
             'Shipping dropdown options must use the original WooCommerce rate IDs'
         );
