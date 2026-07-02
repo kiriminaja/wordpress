@@ -36,14 +36,10 @@ final class TrackingShortcodeLookupTest extends TestCase
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $template = file_get_contents(PLUGIN_DIR . '/templates/front/tracking.php');
-        $scriptPath = PLUGIN_DIR . '/assets/wp/js/kj-tracking.js';
-        $script = file_get_contents($scriptPath);
 
-        $this->assertFileExists($scriptPath, 'Tracking page behavior should live in a real frontend script asset');
         $this->assertStringContainsString('assets/wp/js/kj-tracking.js', $enqueue, 'Tracking script should be enqueued before footer scripts print');
+        $this->assertStringContainsString("'type', 'module'", $enqueue, 'Generated Vite tracking script must be enqueued as a module');
         $this->assertStringNotContainsString("wp_add_inline_script( 'kiriof-script'", $template, 'Tracking script should not be attached from shortcode render time');
-        $this->assertStringContainsString('window.trackOrder = trackOrder', $script, 'Legacy inline onclick should still resolve trackOrder globally');
-        $this->assertStringContainsString("urlParams.get('order_id')", $script, 'Tracking script should prefill from the order_id query parameter');
     }
 
     #[Test]

@@ -858,9 +858,7 @@ class ShippingDiscountCouponController {
             KIRIOF_VERSION,
             true
         );
-        if ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) {
-            wp_script_add_data( 'kiriof-coupon-admin-script', 'type', 'module' );
-        }
+        wp_script_add_data( 'kiriof-coupon-admin-script', 'type', 'module' );
 
         wp_localize_script(
             'kiriof-coupon-admin-script',

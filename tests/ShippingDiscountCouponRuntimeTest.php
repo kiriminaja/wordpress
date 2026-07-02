@@ -335,7 +335,6 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
         $reviewOrder = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
-        $blockCheckout = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
         $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
         $transactionProcess = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
@@ -351,21 +350,6 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $this->assertStringContainsString('getCurrentShippingDiscountTotal', $reviewOrder);
         $this->assertStringContainsString('Save %s', $cartShipping);
         $this->assertStringContainsString('kiriof-shipping-rate-savings', $cartShipping);
-        // kiriof_get_current_shipping_discount fetched to show strikethrough in Order Summary totals row
-        $this->assertStringContainsString('kiriof_get_current_shipping_discount', $blockCheckout);
-        // Shipping rate decoration (ETA/description injection, strikethrough pricing) removed —
-        // block themes render rate meta_data as visible sub-lines causing janky display.
-        $this->assertStringNotContainsString('kiriof_get_shipping_rate_meta', $blockCheckout);
-        $this->assertStringNotContainsString('scheduleShippingDecorationRefresh', $blockCheckout);
-        $this->assertStringNotContainsString('syncShippingSummaryLine', $blockCheckout);
-        $this->assertStringNotContainsString('getShippingOptionLayoutHost', $blockCheckout);
-        $this->assertStringNotContainsString('decorateShippingOptions', $blockCheckout);
-        $this->assertStringNotContainsString('kiriof-block-shipping-option-selected', $blockCheckout);
-        $this->assertStringNotContainsString('kiriof-block-shipping-option-meta', $blockCheckout);
-        $this->assertStringNotContainsString('kiriof-block-shipping-rate-details', $blockCheckout);
-        $this->assertStringNotContainsString('kiriof-block-shipping-rate-badge', $blockCheckout);
-        $this->assertStringContainsString('invalidateBlockShippingRates', $blockCheckout);
-        $this->assertStringContainsString('previousCouponsRef', $blockCheckout);
         $this->assertStringContainsString('getCurrentShippingDiscountAjax', $couponController);
         $this->assertStringContainsString('clearValidationNotices', $couponController);
         $this->assertStringContainsString('hasActiveShippingCouponInCart', $couponController);

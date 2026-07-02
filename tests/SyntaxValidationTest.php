@@ -29,6 +29,7 @@ final class SyntaxValidationTest extends TestCase
             if (
                 $file->getExtension() === 'php'
                 && !str_contains($path, '/build/')
+                && !str_contains($path, '/node_modules/')
                 && !str_contains($path, '/vendor/')
                 && !str_contains($path, '/tests/')
                 && !str_contains($path, '.zip')
@@ -52,6 +53,7 @@ final class SyntaxValidationTest extends TestCase
             if (
                 $file->getExtension() === 'php'
                 && !str_contains($path, '/build/')
+                && !str_contains($path, '/node_modules/')
                 && !str_contains($path, '/vendor/')
                 && !str_contains($path, '/tests/')
                 && !str_contains($path, '.zip')

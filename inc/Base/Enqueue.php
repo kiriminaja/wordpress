@@ -54,7 +54,7 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
-        $this->markScriptAsModuleWhenDev( 'kiriof-script' );
+        $this->markScriptAsModule( 'kiriof-script' );
         wp_register_script(
             'kiriof-form-billing-address',
             $this->assetUrl( 'assets/wp/js/form-billing-address.js' ),
@@ -62,7 +62,7 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
-        $this->markScriptAsModuleWhenDev( 'kiriof-form-billing-address' );
+        $this->markScriptAsModule( 'kiriof-form-billing-address' );
 
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -84,7 +84,7 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
-            $this->markScriptAsModuleWhenDev( 'kiriof-tracking-script' );
+            $this->markScriptAsModule( 'kiriof-tracking-script' );
 
             wp_localize_script(
                 'kiriof-tracking-script',
@@ -108,7 +108,7 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
-            $this->markScriptAsModuleWhenDev( 'kiriof-block-checkout' );
+            $this->markScriptAsModule( 'kiriof-block-checkout' );
         }
     }
 
@@ -221,7 +221,7 @@ class Enqueue extends BaseInit{
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
         wp_enqueue_script( 'kiriof-script', $this->assetUrl( 'assets/admin/js/kj-admin-script.js' ), $this->scriptDeps( array( 'jquery', 'select2' ) ), KIRIOF_VERSION, true );
-        $this->markScriptAsModuleWhenDev( 'kiriof-script' );
+        $this->markScriptAsModule( 'kiriof-script' );
         
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -292,10 +292,6 @@ class Enqueue extends BaseInit{
         }
 
         /**
-         * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
-         * for the "Scan to Pay" modal on the Request Pickup page.
-         */
-        /**
          * COD Adjustment JS — enqueued on the order edit screen and transaction process page.
          */
         if ( $is_order_screen || 'kiriminaja-transaction-process' === $page ) {
@@ -306,7 +302,7 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 true
             );
-            $this->markScriptAsModuleWhenDev( 'kiriof-cod-adjustment' );
+            $this->markScriptAsModule( 'kiriof-cod-adjustment' );
             wp_localize_script(
                 'kiriof-cod-adjustment',
                 'kiriofCodAdj',
@@ -324,28 +320,6 @@ class Enqueue extends BaseInit{
                 )
             );
         }
-
-        if ( 'kiriminaja-request-pickup' === $page || 'kiriminaja-request-pickup-detail' === $page ) {
-            if ( ! wp_script_is( 'wc-qrcode', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
-                $wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;
-                wp_register_script(
-                    'wc-qrcode',
-                    plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/js/jquery-qrcode/jquery.qrcode.js',
-                    array( 'jquery' ),
-                    $wc_version,
-                    true
-                );
-            }
-            wp_enqueue_script( 'wc-qrcode' );
-            wp_enqueue_script(
-                'kiriof-qr-code-styling',
-                $this->plugin_url . 'assets/lib/qr-code-styling/qr-code-styling.min.js',
-                array(),
-                KIRIOF_VERSION,
-                true
-            );
-        }
-   
     }
 
     /**
@@ -392,10 +366,8 @@ class Enqueue extends BaseInit{
         return ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) ? array() : $deps;
     }
 
-    private function markScriptAsModuleWhenDev( $handle ) {
-        if ( defined( 'KIRIOF_DEV_MODE' ) && KIRIOF_DEV_MODE ) {
-            wp_script_add_data( $handle, 'type', 'module' );
-        }
+    private function markScriptAsModule( $handle ) {
+        wp_script_add_data( $handle, 'type', 'module' );
     }
 
     private function enqueueViteClient() {

@@ -37,7 +37,6 @@ interface JQuery<TElement = HTMLElement> {
   get(index: number): TElement | undefined;
   block(options?: Record<string, unknown>): JQuery<TElement>;
   unblock(): JQuery<TElement>;
-  qrcode(options: Record<string, unknown>): JQuery<TElement>;
   select2(options?: Record<string, unknown> | string): JQuery<TElement>;
   selectWoo(options?: Record<string, unknown> | string): JQuery<TElement>;
   WCBackboneModal(options: Record<string, unknown>): JQuery<TElement>;

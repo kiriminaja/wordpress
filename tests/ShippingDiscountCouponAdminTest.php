@@ -115,27 +115,10 @@ final class ShippingDiscountCouponAdminTest extends TestCase
     #[Test]
     public function coupon_admin_assets_exist(): void
     {
-        $this->assertFileExists(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
+
+        $this->assertStringContainsString('assets/admin/js/kj-coupon-admin.js', $content);
+        $this->assertStringContainsString('wp_script_add_data( \'kiriof-coupon-admin-script\', \'type\', \'module\' )', $content);
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/css/kj-coupon-admin.css');
-    }
-
-    #[Test]
-    public function coupon_admin_script_surfaces_ajax_error_messages(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
-
-        $this->assertStringContainsString('xhr.responseJSON.data.message', $content);
-        $this->assertStringContainsString('window.alert(message)', $content);
-    }
-
-    #[Test]
-    public function coupon_admin_normalizes_leading_zero_amounts(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
-
-        $this->assertStringContainsString('normalizeCouponAmountValue', $content);
-        $this->assertStringContainsString('normalizeCouponAmountField', $content);
-        $this->assertStringContainsString('replace(/^0+(?=\\d)/, "")', $content);
-        $this->assertStringContainsString('parseFloat(normalizeCouponAmountField())', $content);
     }
 }

@@ -149,7 +149,6 @@ declare global {
   const kiriofAjax: KiriofAjaxConfig | undefined;
   const kiriofCodAdj: KiriofCodAdjustmentConfig | undefined;
   const kiriofTransactionData: KiriofTransactionData | undefined;
-  const QRCodeStyling: (new (options: Record<string, unknown>) => { append(target: HTMLElement | undefined): void }) | undefined;
   const kiriofFormatRupiah: ((value: string | number) => string) | undefined;
   const wp: KiriofWpGlobal | undefined;
   const wc: KiriofWcGlobal | undefined;

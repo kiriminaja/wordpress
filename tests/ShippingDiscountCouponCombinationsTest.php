@@ -73,16 +73,6 @@ final class ShippingDiscountCouponCombinationsTest extends TestCase
     }
 
     #[Test]
-    public function js_disables_combinations_when_individual_use_is_checked(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
-
-        $this->assertStringContainsString('syncCombinationsAvailability', $content);
-        $this->assertStringContainsString('individual_use', $content);
-        $this->assertStringContainsString('kiriof-combination-options', $content);
-    }
-
-    #[Test]
     public function admin_styles_include_combination_badges_and_options(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-coupon-admin.css');

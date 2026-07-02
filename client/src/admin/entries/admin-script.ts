@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { exposeAjaxRoute } from "../../shared/utils/ajax";
 import { bindIntegerInput } from "../../shared/utils/int-input";
 import { exposeMoneyFormat } from "../../shared/utils/money";
@@ -35,53 +36,39 @@ function kiriofRenderQrCode(
     return false;
   }
 
-  if (typeof jQuery.fn.qrcode === "function") {
-    try {
-      $target.qrcode({
-        text: text,
-        width: config.width,
-        height: config.height,
-      });
-      return true;
-    } catch (error) {
-      console.error("Error rendering QR with jquery-qrcode:", error);
-    }
-  }
+  QRCode.toDataURL(text, {
+    errorCorrectionLevel: "M",
+    margin: 0,
+    width: Number(config.width),
+  })
+    .then(function (dataUrl) {
+      $target.empty().append(
+        jQuery("<img />")
+          .attr("src", dataUrl)
+          .attr("alt", "QR payment")
+          .css({
+            display: "block",
+            width: config.width + "px",
+            height: config.height + "px",
+            maxWidth: "100%",
+          }),
+      );
+    })
+    .catch(function (error) {
+      console.error("Error rendering QR:", error);
+      $target.empty().append(
+        jQuery("<div />")
+          .css({
+            color: "#a60000",
+            fontWeight: "600",
+            textAlign: "center",
+            maxWidth: config.width + "px",
+          })
+          .text("QR generator tidak tersedia. Silakan refresh halaman."),
+      );
+    });
 
-  if (typeof QRCodeStyling === "function") {
-    try {
-      const qrCode = new QRCodeStyling({
-        width: config.width,
-        height: config.height,
-        type: "canvas",
-        data: text,
-        margin: 0,
-        dotsOptions: {
-          color: "#000000",
-          type: "square",
-        },
-        backgroundOptions: {
-          color: "#ffffff",
-        },
-      });
-      qrCode.append($target.get(0));
-      return true;
-    } catch (error) {
-      console.error("Error rendering QR with QRCodeStyling:", error);
-    }
-  }
-
-  $target.append(
-    jQuery("<div />")
-      .css({
-        color: "#a60000",
-        fontWeight: "600",
-        textAlign: "center",
-        maxWidth: config.width + "px",
-      })
-      .text("QR generator tidak tersedia. Silakan refresh halaman."),
-  );
-  return false;
+  return true;
 }
 window.kiriofRenderQrCode = kiriofRenderQrCode;
 

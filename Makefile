@@ -21,6 +21,7 @@ RSYNC_EXCLUDES := \
 	--exclude=vite.config.ts \
 	--exclude=vitest.config.ts \
 	--exclude=eslint.config.js \
+	--exclude=eslint.config.mjs \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=scripts/ \
 	--exclude=.DS_Store \
@@ -39,14 +40,16 @@ RSYNC_EXCLUDES := \
 	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: help init build-client zip clean changelog release test tag publish dev stg plain
+.PHONY: help init build-client zip clean changelog release test test-php test-client tag publish dev stg plain
 
 help:
 	@echo "Available targets:"
 	@echo "  make init         composer install + bun install"
 	@echo "  make build-client bun install --frozen-lockfile + bun run build"
 	@echo "  make dev          start Vite dev server"
-	@echo "  make test         run PHP ParaTest suite"
+	@echo "  make test         run PHP ParaTest and client Vitest suites"
+	@echo "  make test-php     run PHP ParaTest suite"
+	@echo "  make test-client  run client Vitest suite"
 	@echo "  make zip          build release zip"
 	@echo "  make zip dev      build dev API zip"
 	@echo "  make zip stg      build staging API zip"
@@ -109,8 +112,14 @@ ifneq ($(RELEASE_GOALS),)
   endif
 endif
 
-test:
+test: test-php test-client
+
+test-php:
 	vendor/bin/paratest --configuration paratest.xml --testdox
+
+test-client:
+	bun install --frozen-lockfile
+	bun run test
 
 changelog:
 	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"
