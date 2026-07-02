@@ -16,7 +16,7 @@ function kiriof_shipping_method(){
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- WooCommerce shipping method class
         class Kiriof_Shipping_Method_Controller extends WC_Shipping_Method
         {
-            private const KIRIOF_MIN_ADDRESS_LENGTH = 20;
+            private const KIRIOF_MIN_ADDRESS_LENGTH = 10;
 
             public function __construct( $instance_id = 0 ){
                 

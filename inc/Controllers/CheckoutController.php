@@ -21,6 +21,7 @@ class CheckoutController
     private $field_shipping_destination_key  = 'kiriof_shipping_destination_area';
     private $field_shipping_insurance_key  = 'kiriof_shipping_insurance';
     private $kiriof_virtual_cart_cleanup_printed = false;
+    private $kiriof_classic_insurance_printed = false;
 
     private function kiriof_cart_needs_shipping(): bool {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'needs_shipping' ) ) {
@@ -80,6 +81,7 @@ class CheckoutController
             /** Add Custom field Checkout Sub District */
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'), 9999);
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
+            add_action('woocommerce_before_order_notes', array($this, 'kiriof_render_classic_insurance_field'), 5);
 
             // Block checkout: register District as additional field and expose a Store API
             // update callback so React/block themes (ShopVerse etc.) can refresh fees.
@@ -863,7 +865,7 @@ class CheckoutController
             $insurance_post = isset($_POST[$this->field_insurance_key]) ? sanitize_text_field(wp_unslash($_POST[$this->field_insurance_key])) : '';
         }else{
             $destinasi_name = isset($_POST['kiriof_shipping_destination_area_name']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area_name'])) : '';
-            $insurance_post = isset( $_POST['kiriof_shipping_insurance'] ) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_insurance'])) : '';
+            $insurance_post = isset($_POST[$this->field_insurance_key]) ? sanitize_text_field(wp_unslash($_POST[$this->field_insurance_key])) : '';
             $destination_area = isset($_POST['kiriof_shipping_destination_area']) ? sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area'])) : '';
         }
 
@@ -1265,8 +1267,6 @@ class CheckoutController
         $fields = self::kiriof_remove_fields_checkout($fields,$fields_selected);
         /** Add field Subdistrict */
         $fields = self::kiriof_add_field_subdistrict( $fields );
-        // add field insurance checkout
-        $fields = self::kiriof_add_field_insurance( $fields );
         // Phone is required for courier pickup coordination
         $fields = self::kiriof_require_phone_fields( $fields );
     
@@ -1392,33 +1392,33 @@ class CheckoutController
         );
         return $fields;
     }
-    private function kiriof_add_field_insurance( $fields ){
+    public function kiriof_render_classic_insurance_field(){
+        if ( $this->kiriof_classic_insurance_printed || ! $this->kiriof_cart_needs_shipping() ) {
+            return;
+        }
+        $this->kiriof_classic_insurance_printed = true;
+
         $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
         $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
-        $default_val       = $force_insurance ? '1' : '0';
+        $checked           = $force_insurance || (int) WC()->session->get( 'kiriof_insurance', 0 ) === 1;
 
-        $field_key = $this->field_insurance_key;
-        $fields['billing'][$field_key] = array(
-            'label'     => esc_html__('Add shipping insurance', 'kiriminaja-official'),
-            'required'  => false,
-            'class'     => array('form-row-wide'),
-            'clear'     => true,
-            'type'      => 'checkbox',
-            'priority'  => 62,
-            'default'   => $default_val,
-            'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
+        echo '<div class="kiriof-classic-insurance-field">';
+        if ( $force_insurance ) {
+            echo '<input type="hidden" name="' . esc_attr( $this->field_insurance_key ) . '" value="1">';
+        }
+        woocommerce_form_field(
+            $this->field_insurance_key,
+            array(
+                'label'             => esc_html__('Add shipping insurance', 'kiriminaja-official'),
+                'required'          => false,
+                'class'             => array('form-row-wide'),
+                'clear'             => true,
+                'type'              => 'checkbox',
+                'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
+            ),
+            $checked ? '1' : '0'
         );
-        $fields['shipping'][$this->field_shipping_insurance_key] = array(
-            'label'     => esc_html__('Add shipping insurance', 'kiriminaja-official'),
-            'required'  => false,
-            'class'     => array('form-row-wide'),
-            'clear'     => true,
-            'type'      => 'checkbox',
-            'priority'  => 62,
-            'default'   => $default_val,
-            'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
-        );
-        return $fields;
+        echo '</div>';
     }
     public function kiriof_beforeCheckoutForm(){
         WC()->session->set( 'chosen_shipping_methods', null );

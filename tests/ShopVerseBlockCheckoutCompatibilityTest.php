@@ -133,7 +133,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $script = self::billingAddressScriptContent();
         $start = strpos($script, 'function getSearchAreaKelurahan()');
         $this->assertNotFalse($start, 'Classic District select initializer must exist');
-        $body = substr($script, $start, 2600);
+        $body = substr($script, $start, 5200);
 
         $this->assertStringContainsString(
             'let select2 = jQuery.fn.selectWoo || jQuery.fn.select2;',
@@ -187,6 +187,130 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'subDistrictSelectElem.select2({',
             $body,
             'Calling the select2 alias directly leaves classic themes with only WooCommerce selectWoo as a native select'
+        );
+    }
+
+    #[Test]
+    public function classic_district_selection_keeps_selected_label_through_checkout_refresh(): void
+    {
+        $script = self::billingAddressScriptContent();
+
+        $this->assertStringContainsString(
+            'function kiriofGetClassicDistrictLabel($select)',
+            $script,
+            'Classic District changes must read the selected SelectWoo label before checkout fragments refresh'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofSetClassicDistrictLabel($select, label, different_address)',
+            $script,
+            'Classic District changes must persist the selected label into the hidden destination name fields'
+        );
+
+        $this->assertStringContainsString(
+            "select2:select.kiriofClassicDistrict",
+            $script,
+            'SelectWoo AJAX selections must cache the selected District label before the normal change handler runs'
+        );
+
+        $this->assertStringContainsString(
+            "\$field.data('kiriofSelectedDistrictText', selectedText);",
+            $script,
+            'The selected District label must be stored outside the transient SelectWoo result list'
+        );
+
+        $changeStart = strpos($script, 'function changeDistrict()');
+        $this->assertNotFalse($changeStart, 'Classic District change handler must exist');
+        $changeBody = substr($script, $changeStart, 5200);
+
+        $this->assertStringContainsString(
+            "jQuery(kelurahanArea).off('change.kiriofClassicDistrict').on('change.kiriofClassicDistrict'",
+            $changeBody,
+            'Classic District change handler must not accumulate duplicate listeners after refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'let selectedDistrictLabel = kiriofGetClassicDistrictLabel(root);',
+            $changeBody,
+            'Classic District AJAX must send the cached selected label, not only option:selected text'
+        );
+
+        $this->assertStringContainsString(
+            "'text':selectedDistrictLabel",
+            $changeBody,
+            'The selected District label must be sent to the destination persistence endpoint'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);',
+            $changeBody,
+            'The hidden District name field must be restored before and after the AJAX response'
+        );
+    }
+
+    #[Test]
+    public function classic_destination_ajax_does_not_alert_system_trouble_for_parseable_200_response(): void
+    {
+        $script = self::billingAddressScriptContent();
+        $changeStart = strpos($script, 'function changeDistrict()');
+        $this->assertNotFalse($changeStart, 'Classic District change handler must exist');
+        $changeBody = substr($script, $changeStart, 6200);
+        $feeRefreshStart = strpos($script, 'function kiriofCodInsurance()');
+        $this->assertNotFalse($feeRefreshStart, 'Classic fee refresh handler must exist');
+        $feeRefreshBody = substr($script, $feeRefreshStart, 7600);
+
+        $this->assertStringContainsString(
+            'function kiriofExtractJsonResponseText(raw)',
+            $script,
+            'Classic destination AJAX should be able to extract JSON from a noisy HTTP 200 response'
+        );
+
+        $this->assertStringContainsString(
+            'dataFilter: function(raw)',
+            $changeBody,
+            'Destination persistence must filter raw responses before jQuery JSON parsing'
+        );
+
+        $this->assertStringContainsString(
+            'return kiriofExtractJsonResponseText(raw);',
+            $changeBody,
+            'Destination persistence must use the shared JSON extraction helper'
+        );
+
+        $this->assertStringContainsString(
+            "if (String(xhr.status) !== '200')",
+            $changeBody,
+            'A parseable HTTP 200 response must not trigger the System Trouble 200 alert'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.destination_nonce",
+            $changeBody,
+            'Destination persistence should fall back to the base localized destination nonce'
+        );
+
+        $this->assertStringContainsString(
+            'dataFilter: function(raw)',
+            $feeRefreshBody,
+            'Classic fee refresh must also filter raw responses before jQuery JSON parsing'
+        );
+
+        $this->assertStringContainsString(
+            'return kiriofExtractJsonResponseText(raw);',
+            $feeRefreshBody,
+            'Classic fee refresh must use the shared JSON extraction helper'
+        );
+
+        $this->assertStringContainsString(
+            "if (String(xhr.status) !== '200')",
+            $feeRefreshBody,
+            'A parseable HTTP 200 fee refresh response must not trigger the System Trouble 200 alert'
+        );
+
+        $this->assertStringContainsString(
+            "typeof kiriofAjax !== 'undefined' && kiriofAjax.update_checkout_nonce",
+            $feeRefreshBody,
+            'Classic fee refresh should fall back to the base localized update-checkout nonce'
         );
     }
 
@@ -1194,7 +1318,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'private const KIRIOF_MIN_ADDRESS_LENGTH = 20;',
+            'private const KIRIOF_MIN_ADDRESS_LENGTH = 10;',
             $shippingMethod,
             'KiriminAja pricing should stay hidden until the address line has at least 20 characters'
         );
@@ -2284,6 +2408,69 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'insurance: kiriofBillingAddressConfig.globalInsurance ? 1 : 0',
             $template,
             'Block checkout should only send forced insurance state while the optional checkbox is disabled'
+        );
+    }
+
+    #[Test]
+    public function classic_checkout_renders_one_insurance_checkbox_above_order_notes(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $shippingTemplate = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/form-shipping.php');
+        $script = self::billingAddressScriptContent();
+
+        $this->assertStringContainsString(
+            "add_action('woocommerce_before_order_notes', array(\$this, 'kiriof_render_classic_insurance_field'), 5);",
+            $controller,
+            'Classic checkout should render the insurance checkbox through the order-notes hook'
+        );
+
+        $beforeOrderNotesPosition = strpos($shippingTemplate, "do_action( 'woocommerce_before_order_notes', \$checkout );");
+        $orderNotesPosition = strpos($shippingTemplate, "woocommerce_enable_order_notes_field");
+        $this->assertNotFalse($beforeOrderNotesPosition, 'Classic shipping template must expose the before-order-notes hook');
+        $this->assertNotFalse($orderNotesPosition, 'Classic shipping template must render order notes after the hook');
+        $this->assertLessThan(
+            $orderNotesPosition,
+            $beforeOrderNotesPosition,
+            'The insurance hook should render above Order notes in classic checkout'
+        );
+
+        $billingFieldsStart = strpos($controller, 'public function kiriof_billing_fields');
+        $this->assertNotFalse($billingFieldsStart, 'Classic checkout field filter must exist');
+        $billingFieldsBody = substr($controller, $billingFieldsStart, 1000);
+        $this->assertStringNotContainsString(
+            'kiriof_add_field_insurance',
+            $billingFieldsBody,
+            'Insurance must not be injected into both billing and shipping address field groups'
+        );
+
+        $this->assertStringContainsString(
+            'public function kiriof_render_classic_insurance_field()',
+            $controller,
+            'The single classic insurance field renderer must exist'
+        );
+
+        $this->assertStringContainsString(
+            "woocommerce_form_field(\n            \$this->field_insurance_key",
+            $controller,
+            'The single rendered checkbox should keep posting kiriof_insurance'
+        );
+
+        $this->assertStringNotContainsString(
+            "fields['shipping'][\$this->field_shipping_insurance_key]",
+            $controller,
+            'Classic checkout should no longer render a second shipping insurance checkbox'
+        );
+
+        $this->assertStringContainsString(
+            'function kiriofGetClassicInsuranceValue()',
+            $script,
+            'Classic checkout JS should read the single insurance checkbox for fee refreshes'
+        );
+
+        $this->assertStringContainsString(
+            'kiriofGetClassicInsuranceValue()',
+            $script,
+            'Classic checkout District and fee refresh flows should use the single insurance checkbox'
         );
     }
 
