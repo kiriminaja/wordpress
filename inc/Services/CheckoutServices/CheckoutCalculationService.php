@@ -123,7 +123,7 @@ class CheckoutCalculationService extends BaseService{
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
-        if($kiriofPricing['status'] != 200){
+        if ( empty( $kiriofPricing['status'] ) || empty( $kiriofPricing['data'] ) ) {
             $stalePricingData = PricingCacheService::get( $pricingPayload, true );
             if ( $stalePricingData ) {
                 $this->pricingData = $stalePricingData;

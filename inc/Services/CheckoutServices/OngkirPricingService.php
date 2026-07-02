@@ -70,6 +70,10 @@ class OngkirPricingService extends BaseService{
             }
         }
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriofPricing',[$kiriofPricing]);
+
+        if ( empty( $kiriofPricing['status'] ) || empty( $kiriofPricing['data'] ) ) {
+            return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');
+        }
         
         if(!$kiriofPricing['data']->status){
             return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');

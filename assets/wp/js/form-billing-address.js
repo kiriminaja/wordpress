@@ -1862,6 +1862,9 @@
 
                         } else {
                             jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
+                            if (kiriofIsBlockCheckoutContext()) {
+                                window.setTimeout(kiriofCodInsurance, 150);
+                            }
                         }
 
                     },

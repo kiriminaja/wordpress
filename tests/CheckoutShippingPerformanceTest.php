@@ -126,6 +126,11 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'calculate_shipping should cache the full/whitelist shipping_price response'
         );
         $this->assertStringContainsString(
+            "empty( \$kiriofPricing['status'] ) || empty( \$kiriofPricing['data'] )",
+            $shippingMethod,
+            'calculate_shipping should exit cleanly when pricing is unavailable instead of breaking shipment option rendering'
+        );
+        $this->assertStringContainsString(
             'PricingCacheService::get( $pricingPayload )',
             $checkoutCalculation,
             'Selected-courier fee calculation should check the cached shipping_price response before calling the API'
@@ -134,6 +139,11 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'PricingCacheService::get( $pricingPayload, true )',
             $checkoutCalculation,
             'Selected-courier fee calculation should fall back to stale pricing when the API is slow or unavailable'
+        );
+        $this->assertStringContainsString(
+            "empty( \$kiriofPricing['status'] ) || empty( \$kiriofPricing['data'] )",
+            $checkoutCalculation,
+            'Selected-courier fee calculation must treat raw pricing API status as boolean, not compare it to service status 200'
         );
         $cacheLookupPosition = strpos( $checkoutCalculation, 'PricingCacheService::get( $pricingPayload )' );
         $apiCallPosition = strpos( $checkoutCalculation, 'KiriminajaApiRepository())->getPricing($pricingPayload)' );
@@ -197,6 +207,17 @@ final class CheckoutShippingPerformanceTest extends TestCase
             "jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });",
             $feeFunctionBody,
             'Classic checkout should not trigger a second update_checkout after fee AJAX'
+        );
+
+        $this->assertStringContainsString(
+            'if (kiriofIsBlockCheckoutContext())',
+            $script,
+            'Block checkout still needs the Store API fee/rate follow-up after a destination update'
+        );
+        $this->assertStringContainsString(
+            'window.setTimeout(kiriofCodInsurance, 150);',
+            $script,
+            'Block checkout destination updates should schedule Store API refresh without adding a second classic update_checkout'
         );
     }
 

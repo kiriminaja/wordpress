@@ -221,6 +221,11 @@ function kiriof_shipping_method(){
                 if ( isset( $kiriofPricing['data'] ) && is_array( $kiriofPricing['data'] ) ) {
                     kiriof_log( 'info', 'getPricing data count=' . count( $kiriofPricing['data'] ) );
                 }
+
+                if ( empty( $kiriofPricing['status'] ) || empty( $kiriofPricing['data'] ) ) {
+                    WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+                    return;
+                }
                 
                 $res_pricing = $kiriofPricing['data']; //object
                 $kiriofRateMetaMap = array();
