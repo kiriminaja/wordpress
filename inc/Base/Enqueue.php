@@ -159,14 +159,18 @@ class Enqueue extends BaseInit{
 
     /**
      * Whether the frontend assets should be enqueued on the current request.
-     * Restricts output to WooCommerce commerce pages and tracking shortcode pages
+     * Restricts output to KiriminAja checkout/cart UI and tracking pages
      * to satisfy Plugin Check EnqueuedScriptsScope / EnqueuedStylesScope rules.
      *
      * @return bool
      */
     private function shouldEnqueueFront() {
-        // WooCommerce commerce pages.
-        if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
+        // Checkout/cart pages render KiriminAja shipping fields and fee refresh logic.
+        if ( function_exists( 'is_cart' ) && is_cart() ) {
+            return true;
+        }
+
+        if ( function_exists( 'is_checkout' ) && is_checkout() ) {
             return true;
         }
 

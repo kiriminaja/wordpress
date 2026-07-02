@@ -1,6 +1,10 @@
+export function integerOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
 export function bindIntegerInput($: JQueryStatic): void {
   $(document).on("input", ".kiriof_int_input", function onIntegerInput(this: HTMLInputElement) {
-    this.value = this.value.replace(/\D/g, "");
+    this.value = integerOnly(this.value);
 
     if ($(this).hasClass("duplicate_into")) {
       const targetName = String($(this).data("duplicate_into") || "");
