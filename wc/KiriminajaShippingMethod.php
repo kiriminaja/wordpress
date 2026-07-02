@@ -16,6 +16,8 @@ function kiriof_shipping_method(){
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- WooCommerce shipping method class
         class Kiriof_Shipping_Method_Controller extends WC_Shipping_Method
         {
+            private const KIRIOF_MIN_ADDRESS_LENGTH = 20;
+
             public function __construct( $instance_id = 0 ){
                 
                 $this->id = 'kiriminaja-official';
@@ -71,6 +73,23 @@ function kiriof_shipping_method(){
             }
     
             public function calculate_shipping( $package = array() ){
+                if ( ! $this->kiriof_has_sufficient_checkout_address( $package ) ) {
+                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+                    }
+                    if ( function_exists( 'kiriof_log' ) ) {
+                        kiriof_log(
+                            'info',
+                            'KiriminAja shipping rates hidden because checkout address is too short.',
+                            array(
+                                'address_length' => $this->kiriof_get_checkout_address_length( $package ),
+                                'minimum_length' => self::KIRIOF_MIN_ADDRESS_LENGTH,
+                            )
+                        );
+                    }
+                    return;
+                }
+
                 if ($this->hasActiveFreeShippingCoupon()) {
                     if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
                         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
@@ -263,6 +282,59 @@ function kiriof_shipping_method(){
                     );
                 }
 
+            }
+
+            private function kiriof_has_sufficient_checkout_address( $package ): bool {
+                return $this->kiriof_get_checkout_address_length( $package ) >= self::KIRIOF_MIN_ADDRESS_LENGTH;
+            }
+
+            private function kiriof_get_checkout_address_length( $package ): int {
+                $address = $this->kiriof_get_checkout_address( $package );
+
+                if ( function_exists( 'mb_strlen' ) ) {
+                    return mb_strlen( $address );
+                }
+
+                return strlen( $address );
+            }
+
+            private function kiriof_get_checkout_address( $package ): string {
+                $package_address = $this->kiriof_get_package_destination_address( $package );
+                if ( '' !== $package_address ) {
+                    return $package_address;
+                }
+
+                if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->customer ) || ! WC()->customer ) {
+                    return '';
+                }
+
+                foreach ( array( 'get_shipping_address', 'get_billing_address' ) as $method ) {
+                    if ( method_exists( WC()->customer, $method ) ) {
+                        $address = trim( (string) WC()->customer->{$method}() );
+                        if ( '' !== $address ) {
+                            return $address;
+                        }
+                    }
+                }
+
+                return '';
+            }
+
+            private function kiriof_get_package_destination_address( $package ): string {
+                if ( ! is_array( $package ) || empty( $package['destination'] ) || ! is_array( $package['destination'] ) ) {
+                    return '';
+                }
+
+                foreach ( array( 'address_1', 'address' ) as $key ) {
+                    if ( array_key_exists( $key, $package['destination'] ) ) {
+                        $address = trim( (string) $package['destination'][ $key ] );
+                        if ( '' !== $address ) {
+                            return $address;
+                        }
+                    }
+                }
+
+                return '';
             }
 
             private function applyRateDisplayMetadata($rate_id, $description, $delivery_time) {

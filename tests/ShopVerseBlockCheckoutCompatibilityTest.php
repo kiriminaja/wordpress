@@ -1159,6 +1159,63 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function shipping_method_hides_rates_until_checkout_address_is_long_enough(): void
+    {
+        $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
+        $calculateStart = strpos($shippingMethod, 'public function calculate_shipping');
+        $this->assertNotFalse($calculateStart, 'KiriminAja shipping calculation method must exist');
+        $calculateBody = substr($shippingMethod, $calculateStart, 12000);
+
+        $addressGatePosition = strpos($calculateBody, 'kiriof_has_sufficient_checkout_address');
+        $freeShippingPosition = strpos($calculateBody, 'hasActiveFreeShippingCoupon');
+        $pricingPosition = strpos($calculateBody, 'getPricing');
+
+        $this->assertNotFalse(
+            $addressGatePosition,
+            'KiriminAja rates must be gated by checkout address length'
+        );
+        $this->assertNotFalse(
+            $freeShippingPosition,
+            'Free-shipping coupon branch must remain present'
+        );
+        $this->assertNotFalse(
+            $pricingPosition,
+            'API pricing branch must remain present'
+        );
+        $this->assertLessThan(
+            $freeShippingPosition,
+            $addressGatePosition,
+            'Address-length validation must run before adding the KiriminAja free-shipping rate'
+        );
+        $this->assertLessThan(
+            $pricingPosition,
+            $addressGatePosition,
+            'Address-length validation must run before requesting KiriminAja pricing'
+        );
+
+        $this->assertStringContainsString(
+            'private const KIRIOF_MIN_ADDRESS_LENGTH = 20;',
+            $shippingMethod,
+            'KiriminAja pricing should stay hidden until the address line has at least 20 characters'
+        );
+        $this->assertStringContainsString(
+            "array( 'address_1', 'address' )",
+            $shippingMethod,
+            'Address-length validation must support both Woo Blocks address_1 and classic package address keys'
+        );
+        $this->assertStringContainsString(
+            "'get_shipping_address', 'get_billing_address'",
+            $shippingMethod,
+            'Address-length validation should fall back to Woo customer address accessors when package data is unavailable'
+        );
+        $this->assertStringContainsString(
+            'KiriminAja shipping rates hidden because checkout address is too short.',
+            $shippingMethod,
+            'When rates are hidden by address length, the reason should be traceable in logs'
+        );
+    }
+
+    #[Test]
     public function block_checkout_district_selection_persists_destination_session_before_shipping_rate_refetch(): void
     {
         $content = self::billingAddressTemplateContent();
