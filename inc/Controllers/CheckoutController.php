@@ -392,6 +392,14 @@ class CheckoutController
         return array( $destination_area, $destination_name );
     }
 
+    private function kiriof_extract_postcode_from_destination_name( $destination_name ): string {
+        if ( preg_match( '/(?:^|,\s*)(\d{5})\s*$/', (string) $destination_name, $matches ) ) {
+            return $matches[1];
+        }
+
+        return '';
+    }
+
     private function kiriof_is_store_api_request() {
         if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
             return false;
@@ -962,6 +970,7 @@ class CheckoutController
                 'wc_cart_contents'          => WC()->cart->cart_contents,
                 'woo_discount_amount'       => (float) $woo_discount_amount,
                 'woo_discount_description'  => (string) $woo_discount_description,
+                'destination_zipcode'       => $order ? (string) $order->get_meta( '_kiriof_checkout_postcode', true ) : '',
             ]))->call();
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
         } catch (\Throwable $th){
@@ -979,6 +988,7 @@ class CheckoutController
             $order->delete_meta_data( '_kiriof_checkout_force_insurance' );
             $order->delete_meta_data( '_kiriof_checkout_woocommerce_discount_amount' );
             $order->delete_meta_data( '_kiriof_checkout_woocommerce_discount_description' );
+            $order->delete_meta_data( '_kiriof_checkout_postcode' );
             $order->save();
         }
     }
@@ -1084,6 +1094,31 @@ class CheckoutController
             $order->update_meta_data( '_kiriof_checkout_force_insurance', $kiriof_force_insurance_post );
             $order->update_meta_data( '_kiriof_checkout_woocommerce_discount_amount', $woo_discount_amount );
             $order->update_meta_data( '_kiriof_checkout_woocommerce_discount_description', $woo_discount_description );
+            $kiriof_checkout_postcode = '';
+            if ( empty( $_POST['ship_to_different_address'] ) ) {
+                $kiriof_checkout_postcode = isset( $_POST['billing_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_postcode'] ) ) : '';
+            } else {
+                $kiriof_checkout_postcode = isset( $_POST['shipping_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_postcode'] ) ) : '';
+            }
+            $kiriof_checkout_postcode = trim( preg_replace( '/\s+/', '', (string) $kiriof_checkout_postcode ) );
+            if ( '' === $kiriof_checkout_postcode ) {
+                $kiriof_checkout_postcode = sanitize_text_field( (string) WC()->session->get( 'kiriof_checkout_postcode', '' ) );
+                $kiriof_checkout_postcode = trim( preg_replace( '/\s+/', '', (string) $kiriof_checkout_postcode ) );
+            }
+            if ( '' === $kiriof_checkout_postcode ) {
+                $kiriof_checkout_postcode = $this->kiriof_extract_postcode_from_destination_name( $destinasi_name );
+            }
+            if ( '' !== $kiriof_checkout_postcode ) {
+                $order->update_meta_data( '_kiriof_checkout_postcode', $kiriof_checkout_postcode );
+                if ( empty( $_POST['ship_to_different_address'] ) ) {
+                    $order->set_billing_postcode( $kiriof_checkout_postcode );
+                    if ( '' === (string) $order->get_shipping_postcode() ) {
+                        $order->set_shipping_postcode( $kiriof_checkout_postcode );
+                    }
+                } else {
+                    $order->set_shipping_postcode( $kiriof_checkout_postcode );
+                }
+            }
             /** 
              * save to custom order metadata 
              * field kelurahan 
