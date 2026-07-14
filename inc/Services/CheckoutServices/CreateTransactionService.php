@@ -45,6 +45,9 @@ class CreateTransactionService extends BaseService{
             if (!$requiredPostMeta['status']){ 
                 return self::error([],$requiredPostMeta['message']);
             }
+            if ( ! empty( $this->payload['destination_zipcode'] ) ) {
+                $requiredPostMeta['data']['_kiriof_checkout_postcode'] = sanitize_text_field( (string) $this->payload['destination_zipcode'] );
+            }
             /** Generating Payload*/
             $calcResult = $checkoutCalc['data']['calculation_result'];
             $cartsAttr = $checkoutCalc['data']['carts_attribute'];

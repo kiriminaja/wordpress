@@ -85,13 +85,38 @@ class SendRequestPickupTransactionService extends BaseService
         return '';
     }
 
+    private function readOrderMetaValue($order, array $keys): string
+    {
+        if (!$order || !method_exists($order, 'get_meta')) {
+            return '';
+        }
+
+        foreach ($keys as $key) {
+            $value = trim((string) $order->get_meta($key, true));
+            if ('' !== $value) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractPostcodeFromDestinationText($destinationText): string
+    {
+        if (preg_match('/(?:^|,\s*)(\d{5})\s*$/', (string) $destinationText, $matches)) {
+            return $matches[1];
+        }
+
+        return '';
+    }
+
     private function buildDestinationData($shippingInfo, $order, $transaction): array
     {
         $billingFirstName = $this->readShippingInfoValue($shippingInfo, ['_billing_first_name', 'billing_first_name', 'first_name']);
         $billingLastName  = $this->readShippingInfoValue($shippingInfo, ['_billing_last_name', 'billing_last_name', 'last_name']);
         $billingAddress1  = $this->readShippingInfoValue($shippingInfo, ['_billing_address_1', 'billing_address_1', 'address_1']);
         $billingAddress2  = $this->readShippingInfoValue($shippingInfo, ['_billing_address_2', 'billing_address_2', 'address_2']);
-        $billingPostcode  = $this->readShippingInfoValue($shippingInfo, ['_billing_postcode', 'billing_postcode', 'postcode']);
+        $billingPostcode  = $this->readShippingInfoValue($shippingInfo, ['_billing_postcode', 'billing_postcode', 'postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);
         $billingPhone     = $this->readShippingInfoValue($shippingInfo, ['_billing_phone', 'billing_phone', 'phone']);
 
         $shippingFirstName = $this->readShippingInfoValue($shippingInfo, ['_shipping_first_name', 'shipping_first_name']);
@@ -101,7 +126,7 @@ class SendRequestPickupTransactionService extends BaseService
         $shippingCity      = $this->readShippingInfoValue($shippingInfo, ['_shipping_city', 'shipping_city', '_billing_city', 'billing_city', 'city']);
         $shippingState     = $this->readShippingInfoValue($shippingInfo, ['_shipping_state', 'shipping_state', '_billing_state', 'billing_state', 'state']);
         $shippingCountry   = $this->readShippingInfoValue($shippingInfo, ['_shipping_country', 'shipping_country', '_billing_country', 'billing_country', 'country']);
-        $shippingPostcode  = $this->readShippingInfoValue($shippingInfo, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', 'postcode']);
+        $shippingPostcode  = $this->readShippingInfoValue($shippingInfo, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', 'postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);
         $shippingPhone     = $this->readShippingInfoValue($shippingInfo, ['_shipping_phone', 'shipping_phone', '_billing_phone', 'billing_phone', 'phone']);
         $billingAddressData = $order && method_exists($order, 'get_address') ? (array) $order->get_address('billing') : [];
         $shippingAddressData = $order && method_exists($order, 'get_address') ? (array) $order->get_address('shipping') : [];
@@ -136,6 +161,9 @@ class SendRequestPickupTransactionService extends BaseService
             }
             if ('' === $billingPostcode) {
                 $billingPostcode = (string) $order->get_billing_postcode();
+            }
+            if ('' === $billingPostcode) {
+                $billingPostcode = $this->readOrderMetaValue($order, ['_billing_postcode', 'billing_postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);
             }
             if ('' === $billingPhone) {
                 $billingPhone = trim((string) ($billingAddressData['phone'] ?? ''));
@@ -190,6 +218,12 @@ class SendRequestPickupTransactionService extends BaseService
             }
             if ('' === $shippingPostcode) {
                 $shippingPostcode = (string) $order->get_shipping_postcode();
+            }
+            if ('' === $shippingPostcode) {
+                $shippingPostcode = $this->readOrderMetaValue($order, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);
+            }
+            if ('' === $shippingPostcode) {
+                $shippingPostcode = $this->extractPostcodeFromDestinationText($transaction->destination_sub_district ?? '');
             }
             if ('' === $shippingPhone) {
                 $shippingPhone = trim((string) ($shippingAddressData['phone'] ?? ''));
