@@ -2524,7 +2524,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "esc_html__('Add shipping insurance', 'kiriminaja-official')",
+            "esc_html_e( 'Add shipping insurance', 'kiriminaja-official' )",
             $controller,
             'Classic checkout should keep the updated insurance checkbox wording'
         );
@@ -2543,7 +2543,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_renders_one_insurance_checkbox_above_order_notes(): void
+    public function classic_checkout_renders_one_theme_compatible_insurance_checkbox_above_order_notes(): void
     {
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $shippingTemplate = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/form-shipping.php');
@@ -2581,9 +2581,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "woocommerce_form_field(\n            \$this->field_insurance_key",
+            'id="kiriof-classic-insurance-field"',
+            $controller,
+            'Insurance wrapper should use its own ID instead of reusing WooCommerce ship-to-different-address'
+        );
+
+        $this->assertStringContainsString(
+            'class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox"',
+            $controller,
+            'Insurance checkbox should inherit the same theme-compatible label classes as ship-to-different-address'
+        );
+
+        $this->assertStringContainsString(
+            'class="woocommerce-form__input woocommerce-form__input-checkbox input-checkbox"',
+            $controller,
+            'Insurance checkbox should inherit WooCommerce checkbox input classes'
+        );
+
+        $this->assertStringContainsString(
+            'name="<?php echo esc_attr( $this->field_insurance_key ); ?>"',
             $controller,
             'The single rendered checkbox should keep posting kiriof_insurance'
+        );
+
+        $this->assertStringContainsString(
+            '<span><?php esc_html_e( \'Add shipping insurance\', \'kiriminaja-official\' ); ?></span>',
+            $controller,
+            'Insurance label text should use the same span structure as ship-to-different-address'
+        );
+
+        $this->assertStringContainsString(
+            'echo \'<input type="hidden" name="\' . esc_attr( $this->field_insurance_key ) . \'" value="1">\';',
+            $controller,
+            'Forced insurance should keep posting a hidden kiriof_insurance value while the visible checkbox is disabled'
+        );
+
+        $this->assertStringNotContainsString(
+            'id="ship-to-different-address" class="kiriof-classic-insurance-field"',
+            $controller,
+            'Insurance markup must not duplicate the WooCommerce ship-to-different-address ID'
         );
 
         $this->assertStringNotContainsString(
@@ -2622,16 +2658,96 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_shipping_methods_use_generic_select2_dropdown(): void
+    public function classic_cart_and_checkout_shipping_methods_use_generic_select2_dropdown(): void
     {
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
+        $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
+        $shippingCalculator = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/shipping-calculator.php');
         $script = self::billingAddressScriptContent();
         $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
 
         $this->assertStringContainsString(
-            '$kiriof_use_classic_shipping_select = is_checkout() && 1 < count( $available_methods );',
+            '$kiriof_is_cart_totals_shipping  = is_cart() || ! empty( $GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] );',
             $cartShipping,
-            'Classic checkout should render the enhanced carrier dropdown only when multiple rates are available'
+            'Classic cart shipping template should preserve cart UI mode during WooCommerce AJAX totals refresh'
+        );
+
+        $this->assertStringContainsString(
+            '$GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] = true;',
+            $cartTotals,
+            'Classic cart totals should mark shipping template rendering so AJAX refreshes still render select UI'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_package_title            = $kiriof_is_cart_totals_shipping ? esc_html__( \'Ship To\', \'kiriminaja-official\' ) : $package_name;',
+            $cartShipping,
+            'Classic cart should label the destination row as Ship To'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_shipment_title           = $kiriof_is_cart_totals_shipping ? esc_html__( \'Shipment\', \'kiriminaja-official\' ) : $package_name;',
+            $cartShipping,
+            'Classic cart should keep a separate Shipment row for courier selection'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( function_exists( \'WC\' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( \'destination_id\' ) );',
+            $cartShipping,
+            'Classic cart should not render Shipment while Ship To still has no selected destination'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_cart_has_destination      = function_exists( \'WC\' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( \'destination_id\' );',
+            $cartTotals,
+            'Classic cart discount rows should also know whether Ship To has a destination'
+        );
+
+        $this->assertStringContainsString(
+            '<td data-title="<?php echo esc_attr( $kiriof_package_title ); ?>">',
+            $cartShipping,
+            'Classic cart responsive labels should also use the compact Ship To heading'
+        );
+
+        $this->assertStringContainsString(
+            '<tr class="woocommerce-shipping-totals shipping kiriof-cart-shipment-row">',
+            $cartShipping,
+            'Classic cart should render Shipment as a second totals row below Ship To'
+        );
+
+        $this->assertStringContainsString(
+            '<td data-title="<?php echo esc_attr( $kiriof_shipment_title ); ?>">',
+            $cartShipping,
+            'Classic cart responsive labels should include the Shipment row heading'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_use_classic_shipping_select = 1 < count( $available_methods );',
+            $cartShipping,
+            'Classic shipping template should render the enhanced carrier dropdown whenever multiple rates are available'
+        );
+
+        $this->assertStringContainsString(
+            'if ( $kiriof_cart_has_destination && $kiriof_current_shipping_discount > 0 ) :',
+            $cartTotals,
+            'Classic cart should not render shipping discount while Ship To is still Select Option'
+        );
+
+        $this->assertStringContainsString(
+            'if ( $kiriof_cart_has_destination && ! empty( $available_methods ) && is_array( $available_methods ) ) :',
+            $cartShipping,
+            'Shipment choices should be gated by an actual cart destination, not stale WooCommerce rates'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_is_cart_shipping_calculator = is_cart() || ! empty( $GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] );',
+            $shippingCalculator,
+            'Classic cart District compact mode should survive cart totals AJAX refreshes'
+        );
+
+        $this->assertStringContainsString(
+            "'label_class' => \$kiriof_is_cart_shipping_calculator ? array( 'screen-reader-text' ) : array(),",
+            $shippingCalculator,
+            'Classic cart should keep District accessible while removing the visible label for a compact totals UI'
         );
 
         $this->assertStringContainsString(
@@ -2653,6 +2769,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'if ( empty( $kiriof_display_chosen_method ) )',
+            $cartShipping,
+            'Shipping dropdown should show a placeholder instead of browser-selecting the first courier when WooCommerce has no chosen method'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_display_chosen_method  = ( $kiriof_is_cart_totals_shipping && empty( $kiriof_explicit_chosen_methods[ $index ] ) ) ? \'\' : $chosen_method;',
+            $cartShipping,
+            'Classic cart should not display WooCommerce implicit default shipping as a buyer-selected courier'
+        );
+
+        $this->assertStringContainsString(
+            '<option value="" selected="selected" disabled="disabled"><?php esc_html_e( \'Select Option\', \'kiriminaja-official\' ); ?></option>',
+            $cartShipping,
+            'The empty shipment placeholder must not post or trigger a courier selection'
+        );
+
+        $this->assertStringContainsString(
+            'selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method )',
+            $cartShipping,
+            'Shipping dropdown selected option must follow the explicit display method'
+        );
+
+        $this->assertStringContainsString(
+            'checked( $method->id, $kiriof_display_chosen_method, false )',
+            $cartShipping,
+            'Hidden native radios must not be checked from WooCommerce implicit defaults on cart'
+        );
+
+        $this->assertStringContainsString(
             'kiriof-shipping-methods-list--enhanced',
             $cartShipping,
             'The original radio list should only be visually collapsed after the enhanced dropdown is rendered'
@@ -2662,7 +2808,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($selectStart, 'Enhanced shipping select markup must exist');
         $selectBody = substr($cartShipping, $selectStart, 1800);
         $this->assertStringNotContainsString(
-            'kiriminaja-official',
+            'kiriminaja-official_',
             $selectBody,
             'Enhanced shipping dropdown must not be hardcoded to KiriminAja-only carrier IDs'
         );
@@ -2692,6 +2838,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'updated_cart_totals.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after cart totals fragments refresh'
+        );
+
+        $this->assertStringContainsString(
             'updated_shipping_method.kiriofClassicShippingMethodSelect',
             $script,
             'Classic shipping dropdown must be reinitialized after WooCommerce shipping method refreshes'
@@ -2716,6 +2868,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'if (!selectedMethod) {',
+            $script,
+            'Changing the placeholder must not synchronize to a WooCommerce radio input'
+        );
+
+        $this->assertStringContainsString(
             "\$method.prop('checked', true).trigger('change');",
             $script,
             'Selecting a carrier from the dropdown must trigger the normal WooCommerce shipping method change flow'
@@ -2724,7 +2882,55 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             '.kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Classic checkout should visually collapse the original radio list when the dropdown is active'
+            'Classic cart and checkout should visually collapse the original radio list when the dropdown is active'
+        );
+
+        $this->assertStringContainsString(
+            'display: none !important;',
+            $styles,
+            'Enhanced radio fallback must be fully hidden so buyers do not see duplicate courier controls'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .kiriof-shipping-methods-list--enhanced',
+            $styles,
+            'Classic cart should visually collapse the original radio list even when themes omit the woocommerce-cart body class'
+        );
+
+        $this->assertStringContainsString(
+            '#kiriof_destination_area_field .select2',
+            $styles,
+            'Classic cart District Select2 width rule should target the actual generated field ID'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .shipping-calculator-form',
+            $styles,
+            'Classic cart should remove shipping calculator wrapper spacing so Ship To matches Shipment'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .woocommerce-shipping-calculator',
+            $styles,
+            'Classic cart should remove the native shipping calculator form spacing'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .shipping-calculator-form p',
+            $styles,
+            'Classic cart should remove WooCommerce paragraph margins inside the shipping calculator'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total #kiriof_destination_area_field .select2-selection--single',
+            $styles,
+            'Classic cart District select should use the same compact Select2 dimensions as Shipment'
+        );
+
+        $this->assertStringNotContainsString(
+            'margin-top: 12px;',
+            $styles,
+            'Shipment select wrapper should not add extra whitespace under the row label'
         );
     }
 

@@ -34,7 +34,7 @@ tr.woocommerce-shipping-totals {
   user-select: none; /* Standard syntax */
 }
 
-#kj_destination_area_field .select2 {
+#kiriof_destination_area_field .select2 {
   width: 100% !important;
 }
 
@@ -164,7 +164,8 @@ tr.woocommerce-shipping-totals {
   width: 25% !important;
 }
 
-.woocommerce-checkout .kiriof-classic-shipping-method-select-wrap {
+.woocommerce-checkout .kiriof-classic-shipping-method-select-wrap,
+.woocommerce-cart .kiriof-classic-shipping-method-select-wrap {
   width: 100%;
   max-width: 520px;
 }
@@ -174,11 +175,20 @@ tr.woocommerce-shipping-totals {
   .select2-container,
 .woocommerce-checkout
   .kiriof-classic-shipping-method-select-wrap
+  .select2-selection,
+.woocommerce-cart
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-container,
+.woocommerce-cart
+  .kiriof-classic-shipping-method-select-wrap
   .select2-selection {
   width: 100% !important;
 }
 
 .woocommerce-checkout
+  .kiriof-classic-shipping-method-select-wrap
+  .select2-selection--single,
+.woocommerce-cart
   .kiriof-classic-shipping-method-select-wrap
   .select2-selection--single {
   min-height: 44px;
@@ -188,6 +198,9 @@ tr.woocommerce-shipping-totals {
 
 .woocommerce-checkout
   .kiriof-classic-shipping-method-select-wrap
+  .select2-selection__rendered,
+.woocommerce-cart
+  .kiriof-classic-shipping-method-select-wrap
   .select2-selection__rendered {
   line-height: 42px;
   padding-right: 36px;
@@ -195,18 +208,53 @@ tr.woocommerce-shipping-totals {
 
 .woocommerce-checkout
   .kiriof-classic-shipping-method-select-wrap
+  .select2-selection__arrow,
+.woocommerce-cart
+  .kiriof-classic-shipping-method-select-wrap
   .select2-selection__arrow {
   min-height: 42px;
 }
 
-.woocommerce-checkout .kiriof-shipping-methods-list--enhanced {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  overflow: hidden !important;
-  clip: rect(0 0 0 0) !important;
-  clip-path: inset(50%) !important;
-  white-space: nowrap !important;
+.kiriof-shipping-methods-list--enhanced,
+.kj-cart-total .kiriof-shipping-methods-list--enhanced {
+  display: none !important;
+}
+
+.kj-cart-total .shipping-calculator-form {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.kj-cart-total .woocommerce-shipping-calculator {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.kj-cart-total .shipping-calculator-form p {
+  margin: 0 !important;
+}
+
+.kj-cart-total #kiriof_destination_area_field {
+  margin: 0 !important;
+}
+
+.kj-cart-total #kiriof_destination_area_field .select2-container {
+  width: 100% !important;
+}
+
+.kj-cart-total #kiriof_destination_area_field .select2-selection--single {
+  min-height: 44px;
+  border-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.kj-cart-total #kiriof_destination_area_field .select2-selection__rendered {
+  line-height: 42px;
+  padding-right: 36px;
+}
+
+.kj-cart-total #kiriof_destination_area_field .select2-selection__arrow {
+  min-height: 42px;
 }
 
 /* Block Checkout Totals Alignment */
