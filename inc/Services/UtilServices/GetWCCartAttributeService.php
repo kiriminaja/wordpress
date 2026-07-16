@@ -31,49 +31,76 @@ class GetWCCartAttributeService extends BaseService{
     
     private function getCartProductAttribute(){
         $ids = [];
+        $metadata_ids = [];
+        $parent_ids = [];
         foreach ($this->wc_cart_contents as $cart){
-            $ids[] = self::getCartItemVolumetricProductId($cart);
+            $product_id = self::getCartItemVolumetricProductId($cart);
+            $parent_id = self::getCartItemParentProductId($cart);
+
+            $ids[] = $product_id;
+            $metadata_ids[] = $product_id;
+            if ($parent_id > 0) {
+                $metadata_ids[] = $parent_id;
+                $parent_ids[$product_id] = $parent_id;
+            }
         }
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        $metadata_ids = array_values(array_unique(array_filter(array_map('intval', $metadata_ids))));
 
         if (empty($ids)) {
             return [];
         }
 
-        $wpPostMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdsAndMetaKeys($ids,[
+        $wpPostMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdsAndMetaKeys($metadata_ids,[
             '_weight',
             '_length',
             '_width',
             '_height',
         ]);
-        
-        $cartProducts = [];
+
+        $productAttributes = [];
         /** Make Product ARR*/
-        foreach ($ids as $id){
-            $cartProducts[$id]=[
+        foreach ($metadata_ids as $id){
+            $productAttributes[$id]=[
                 'id' => $id,
                 'weight' => 0,
                 'length' => 0,
                 'width' => 0,
                 'height' => 0,
+            ];
+        }
+
+        /** FIll Product Data*/
+        foreach ((array) $wpPostMetaRepo as $product){
+            if (!isset($productAttributes[$product->post_id])) {
+                continue;
+            }
+
+            if ($product->meta_key === '_weight'){
+                $productAttributes[$product->post_id]['weight']  = @$product->meta_value ?? 0;
+            }else if ($product->meta_key === '_length'){
+                $productAttributes[$product->post_id]['length']  = @$product->meta_value ?? 0;
+            }else if ($product->meta_key === '_width'){
+                $productAttributes[$product->post_id]['width']   = @$product->meta_value ?? 0;
+            }else if ($product->meta_key === '_height'){
+                $productAttributes[$product->post_id]['height']  = @$product->meta_value ?? 0;
+            }
+        }
+
+        $cartProducts = [];
+        foreach ($ids as $id){
+            $parent_id = $parent_ids[$id] ?? 0;
+            $cartProducts[$id]=[
+                'id' => $id,
+                'weight' => self::getResolvedProductAttribute($productAttributes, $id, $parent_id, 'weight'),
+                'length' => self::getResolvedProductAttribute($productAttributes, $id, $parent_id, 'length'),
+                'width' => self::getResolvedProductAttribute($productAttributes, $id, $parent_id, 'width'),
+                'height' => self::getResolvedProductAttribute($productAttributes, $id, $parent_id, 'height'),
                 'cart_quantity' => 0,
                 'cart_total' => 0,
             ];
         }
-        
-        /** FIll Product Data*/
-        foreach ($wpPostMetaRepo as $product){
-            if ($product->meta_key === '_weight'){
-                $cartProducts[$product->post_id]['weight']  = @$product->meta_value ?? 0;
-            }else if ($product->meta_key === '_length'){
-                $cartProducts[$product->post_id]['length']  = @$product->meta_value ?? 0;
-            }else if ($product->meta_key === '_width'){
-                $cartProducts[$product->post_id]['width']   = @$product->meta_value ?? 0;
-            }else if ($product->meta_key === '_height'){
-                $cartProducts[$product->post_id]['height']  = @$product->meta_value ?? 0;
-            }
-        }
-        
+
         /** Fill Cart Data*/
         foreach ($this->wc_cart_contents as $cart){
             $product_id = self::getCartItemVolumetricProductId($cart);
@@ -96,6 +123,24 @@ class GetWCCartAttributeService extends BaseService{
         }
 
         return intval($cart['product_id'] ?? 0);
+    }
+
+    private function getCartItemParentProductId($cart){
+        $variation_id = intval($cart['variation_id'] ?? 0);
+        if ($variation_id < 1) {
+            return 0;
+        }
+
+        return intval($cart['product_id'] ?? 0);
+    }
+
+    private static function getResolvedProductAttribute($productAttributes, $product_id, $parent_id, $attribute){
+        $value = (float) ($productAttributes[$product_id][$attribute] ?? 0);
+        if ($value <= 0 && $parent_id > 0) {
+            $value = (float) ($productAttributes[$parent_id][$attribute] ?? 0);
+        }
+
+        return $value;
     }
     
     private function getCartsProductAttributeCollection(){
