@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 $kiriof_shipping_discount_service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 $kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurrentShippingDiscountTotal();
+$kiriof_cart_has_destination      = function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( 'destination_id' );
 
 ?>
 <div class="kj-cart-total cart_totals <?php echo ( WC()->customer->has_calculated_shipping() ) ? 'calculated_shipping' : ''; ?>">
@@ -61,7 +62,9 @@ $kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurren
 
 			<?php 
 				if( is_cart() && 'yes' === get_option( 'woocommerce_enable_shipping_calc' ) ){
+					$GLOBALS['kiriof_rendering_cart_totals_shipping'] = true;
 					wc_cart_totals_shipping_html(); 
+					unset( $GLOBALS['kiriof_rendering_cart_totals_shipping'] );
 				}
 			?>
 
@@ -76,7 +79,7 @@ $kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurren
 
 		<?php endif; ?>
 
-		<?php if ( $kiriof_current_shipping_discount > 0 ) : ?>
+		<?php if ( $kiriof_cart_has_destination && $kiriof_current_shipping_discount > 0 ) : ?>
 			<tr class="kiriof-shipping-discount-total">
 				<th><?php esc_html_e( 'Shipping Discount', 'kiriminaja-official' ); ?></th>
 				<td data-title="<?php esc_attr_e( 'Shipping Discount', 'kiriminaja-official' ); ?>">

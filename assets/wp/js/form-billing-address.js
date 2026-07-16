@@ -49,6 +49,7 @@
                 jQuery( document.body ).on( 'updated_cart_totals', function(){
                     getSearchAreaKelurahan();
                     changeDistrict(); 
+                    kiriofScheduleClassicShippingMethodSelectInit();
                 });
 
                 // Save chosen shipping method to local storage
@@ -2117,8 +2118,8 @@
         }
 
         jQuery(document)
-            .off('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect')
-            .on('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect', function() {
+            .off('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_cart_totals.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect')
+            .on('init_checkout.kiriofClassicShippingMethodSelect updated_checkout.kiriofClassicShippingMethodSelect updated_cart_totals.kiriofClassicShippingMethodSelect updated_shipping_method.kiriofClassicShippingMethodSelect wc_fragments_refreshed.kiriofClassicShippingMethodSelect', function() {
                 kiriofScheduleClassicShippingMethodSelectInit();
             });
 
@@ -2128,6 +2129,11 @@
                 var $select = jQuery(this);
                 var selectedMethod = String($select.val() || '');
                 var index = String($select.data('index') || '0');
+
+                if (!selectedMethod) {
+                    return;
+                }
+
                 var $method = jQuery('input.shipping_method[data-index="' + index + '"]').filter(function() {
                     return String(jQuery(this).val() || '') === selectedMethod;
                 }).first();

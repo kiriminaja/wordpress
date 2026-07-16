@@ -1628,23 +1628,25 @@ class CheckoutController
         $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
         $checked           = $force_insurance || (int) WC()->session->get( 'kiriof_insurance', 0 ) === 1;
 
-        echo '<div class="kiriof-classic-insurance-field">';
+        echo '<h3 id="kiriof-classic-insurance-field" class="kiriof-classic-insurance-field">';
         if ( $force_insurance ) {
             echo '<input type="hidden" name="' . esc_attr( $this->field_insurance_key ) . '" value="1">';
         }
-        woocommerce_form_field(
-            $this->field_insurance_key,
-            array(
-                'label'             => esc_html__('Add shipping insurance', 'kiriminaja-official'),
-                'required'          => false,
-                'class'             => array('form-row-wide'),
-                'clear'             => true,
-                'type'              => 'checkbox',
-                'custom_attributes' => $force_insurance ? array( 'disabled' => 'disabled' ) : array(),
-            ),
-            $checked ? '1' : '0'
-        );
-        echo '</div>';
+        ?>
+		<label class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox">
+			<input
+				id="<?php echo esc_attr( $this->field_insurance_key ); ?>"
+				class="woocommerce-form__input woocommerce-form__input-checkbox input-checkbox"
+				<?php checked( $checked, true ); ?>
+				type="checkbox"
+				name="<?php echo esc_attr( $this->field_insurance_key ); ?>"
+				value="1"
+				<?php disabled( $force_insurance, true ); ?>
+			/>
+			<span><?php esc_html_e( 'Add shipping insurance', 'kiriminaja-official' ); ?></span>
+		</label>
+		<?php
+        echo '</h3>';
     }
     public function kiriof_beforeCheckoutForm(){
         WC()->session->set( 'chosen_shipping_methods', null );

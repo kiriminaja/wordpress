@@ -17,6 +17,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+$kiriof_is_cart_shipping_calculator = is_cart() || ! empty( $GLOBALS['kiriof_rendering_cart_totals_shipping'] );
+
 do_action( 'woocommerce_before_shipping_calculator' ); ?>
 
 <form class="woocommerce-shipping-calculator" action="<?php echo esc_url( wc_get_cart_url() ); ?>" method="post">
@@ -94,12 +96,13 @@ do_action( 'woocommerce_before_shipping_calculator' ); ?>
                 if ( ! empty( $kiriof_dest_id ) ) {
                     $kiriof_options[ $kiriof_dest_id ] = $kiriof_dest_name;
                 }
-                woocommerce_form_field( 'kiriof_destination_area', array(
-                    'type'        => 'select',
-                    'label'       => esc_html__('District', 'kiriminaja-official'),
-                    'required'    => true,
-                    'options'     => $kiriof_options,
-                ), ! empty( $kiriof_dest_id ) ? $kiriof_dest_id : '' );
+				woocommerce_form_field( 'kiriof_destination_area', array(
+					'type'        => 'select',
+					'label'       => esc_html__('District', 'kiriminaja-official'),
+					'required'    => true,
+					'label_class' => $kiriof_is_cart_shipping_calculator ? array( 'screen-reader-text' ) : array(),
+					'options'     => $kiriof_options,
+				), ! empty( $kiriof_dest_id ) ? $kiriof_dest_id : '' );
         ?>
 
 		<p><button type="submit" style="display:none;" name="calc_shipping" value="1" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php esc_html_e( 'Update', 'kiriminaja-official' ); ?></button></p>
