@@ -378,4 +378,34 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'Admin order metabox should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
         );
     }
+
+    #[Test]
+    public function deficit_rows_with_non_negative_effective_cod_payout_remain_pickup_processable(): void
+    {
+        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+
+        $this->assertStringContainsString(
+            '$kiriof_effectiveShippingCost = max(0.0, $kiriof_shippingCost - $kiriof_wcShippingDiscount);',
+            $transactionProcessView,
+            'Request pickup eligibility must use discounted shipping when evaluating COD payout'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_effectiveCodPayout    = $kiriof_wcTotal - $kiriof_effectiveShippingCost - $kiriof_insuranceCost - $kiriof_codFee;',
+            $transactionProcessView,
+            'Request pickup eligibility must evaluate the effective COD payout'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_canRequestPickup      = $kiriof_isProcessable && (! $kiriof_isDeficitRow || $kiriof_effectiveCodPayout >= 0);',
+            $transactionProcessView,
+            'Deficit rows should remain pickup-processable when the effective COD payout is non-negative'
+        );
+
+        $this->assertStringContainsString(
+            'data-can-pickup="\' . ($kiriof_canRequestPickup ? \'1\' : \'0\')',
+            $transactionProcessView,
+            'Request pickup checkbox must use effective processability instead of the raw deficit flag'
+        );
+    }
 }
