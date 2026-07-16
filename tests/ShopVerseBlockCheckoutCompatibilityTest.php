@@ -433,10 +433,66 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'getCartItemParentProductId',
+            $content,
+            'Variable cart items must retain their parent product ID for inherited shipping attributes'
+        );
+
+        $this->assertStringContainsString(
+            'getResolvedProductAttribute',
+            $content,
+            'Pricing attributes must resolve empty variation values from the parent product'
+        );
+
+        $this->assertStringContainsString(
             "\$cartProducts[\$product_id]['cart_quantity'] += intval",
             $content,
             'Multiple cart rows for product variants must not overwrite each other when quantities are collected'
         );
+    }
+
+    #[Test]
+    public function checkout_pricing_inherits_missing_variation_attributes_from_parent(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Base/BaseService.php';
+        require_once PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php';
+
+        $method = new ReflectionMethod(
+            \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService::class,
+            'getResolvedProductAttribute'
+        );
+        $method->setAccessible(true);
+
+        $attributes = array(
+            100 => array(
+                'weight' => 2,
+                'length' => 10,
+                'width'  => 20,
+                'height' => 30,
+            ),
+            101 => array(
+                'weight' => 3,
+                'length' => 0,
+                'width'  => 25,
+                'height' => '',
+            ),
+            102 => array(
+                'weight' => '',
+                'length' => 0,
+                'width'  => '',
+                'height' => 0,
+            ),
+        );
+
+        $this->assertSame(2.0, $method->invoke(null, $attributes, 102, 100, 'weight'));
+        $this->assertSame(10.0, $method->invoke(null, $attributes, 102, 100, 'length'));
+        $this->assertSame(20.0, $method->invoke(null, $attributes, 102, 100, 'width'));
+        $this->assertSame(30.0, $method->invoke(null, $attributes, 102, 100, 'height'));
+        $this->assertSame(3.0, $method->invoke(null, $attributes, 101, 100, 'weight'));
+        $this->assertSame(10.0, $method->invoke(null, $attributes, 101, 100, 'length'));
+        $this->assertSame(25.0, $method->invoke(null, $attributes, 101, 100, 'width'));
+        $this->assertSame(30.0, $method->invoke(null, $attributes, 101, 100, 'height'));
+        $this->assertSame(2.0, $method->invoke(null, $attributes, 100, 0, 'weight'));
     }
 
     #[Test]
