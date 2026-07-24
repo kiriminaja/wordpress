@@ -825,9 +825,7 @@
                     if (window.console) console.log('[KiriminAja] Persist district selection', data);
                     var updateKey = kiriofBuildBlockCartUpdateKey(data);
                     if (updateKey && updateKey === kiriofLastBlockCartUpdateKey) {
-                        if (window.console) console.log('[KiriminAja] District already persisted (dedup), refreshing rates');
-                        kiriofScheduleBlockShippingRatesRefresh(160);
-                        kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
+                        if (window.console) console.log('[KiriminAja] District already persisted (dedup)');
                         return;
                     }
 
@@ -835,9 +833,10 @@
 
                     function kiriofAfterBlockDistrictPersist() {
                         kiriofScheduleBlockShippingRatesRefresh(80);
+                        kiriofSyncBlockDistrictWarningState();
+                    }
 
-                        // Save session data (insurance, payment_method, destination) via AJAX
-                        // as fallback when extensionCartUpdate is not available.
+                    function kiriofPersistBlockDistrictFallback() {
                         var ajaxUrl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
                             ? kiriofAjax.ajaxurl
                             : kiriofBillingAddressConfig.ajaxUrl || '';
@@ -874,11 +873,10 @@
                         result.then(function() {
                             kiriofAfterBlockDistrictPersist();
                         }).catch(function() {
-                            kiriofScheduleBlockShippingRatesRefresh(160);
-                            kiriofForceBlockCartUpdate(data.destination_name || '', data.destination_id || '');
+                            kiriofPersistBlockDistrictFallback();
                         });
                     } else {
-                        kiriofAfterBlockDistrictPersist();
+                        kiriofPersistBlockDistrictFallback();
                     }
                 }
                 
@@ -926,7 +924,8 @@
                         // Direct change handler on the select for reliability.
                         // The delegated handler on `document` may not fire in WooCommerce
                         // blocks (React 18 captures native events before they reach document).
-                        $select.on('change.kiriofBlockDistrictDirect', function() {
+                        $select.on('change.kiriofBlockDistrictDirect', function(event) {
+                            event.kiriofDistrictHandled = true;
                             if (window.console) console.log('[KiriminAja] Select changed', jQuery(this).val());
                             try {
                                 var districtVal = jQuery(this).val();
@@ -1561,7 +1560,8 @@
                 }
             
                 jQuery(document).off('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select')
-                    .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function() {
+                    .on('change.kiriofBlockDistrict', '[name="' + kiriofFieldId + '"], .kiriof-block-district-select', function(event) {
+                        if (event.kiriofDistrictHandled) return;
                         var val = jQuery(this).val();
                         var label = jQuery(this).find('option:selected').text();
                         var postcode = kiriofGetCurrentPostcodeKey();
