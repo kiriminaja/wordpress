@@ -36,9 +36,14 @@
             }
 
             getSearchAreaKelurahan();
+            kiriofRestoreClassicDistrictSelections();
             changeDistrict();
             kiriofScheduleClassicShippingMethodSelectInit();
             kiriofInitBlockCheckoutCompatibility();
+            if (kiriofBillingAddressConfig.isCheckout) {
+                setTimeout(kiriofRestoreClassicDistrictSelections, 300);
+                setTimeout(kiriofRestoreClassicDistrictSelections, 1500);
+            }
 
             if (kiriofBillingAddressConfig.isCart) {
 
@@ -74,6 +79,7 @@
                 // update_checkout once so WooCommerce can render native fee rows. Calling
                 // it again from updated_checkout creates an endless loading loop.
                 jQuery(document.body).on( 'updated_checkout', function() {
+                    kiriofRestoreClassicDistrictSelections();
                     kiriofChangeCodPayment();
                     kiriofChangeDifferentAddress();
                 });
@@ -1792,6 +1798,45 @@
             }
         }
 
+        function kiriofRestoreClassicDistrictSelections() {
+            kiriofRestoreClassicDistrictSelection(
+                jQuery('#kiriof_destination_area'),
+                kiriofBillingAddressConfig.billingDistrict || {},
+                jQuery('[name="kiriof_destination_area_name"]')
+            );
+            kiriofRestoreClassicDistrictSelection(
+                jQuery('#kiriof_shipping_destination_area'),
+                kiriofBillingAddressConfig.shippingDistrict || {},
+                jQuery('[name="kiriof_shipping_destination_area_name"]')
+            );
+        }
+
+        function kiriofRestoreClassicDistrictSelection($select, district, $nameField) {
+            if (!$select.length || String($select.val() || '')) {
+                return;
+            }
+
+            var districtId = String((district && district.id) || '');
+            var districtName = String((district && district.name) || $nameField.val() || '').trim();
+            if (!districtId || !districtName || kiriofIsPlaceholderDistrictText(districtName)) {
+                return;
+            }
+
+            var hasOption = false;
+            $select.find('option').each(function() {
+                if (String(jQuery(this).val()) === districtId) {
+                    hasOption = true;
+                    jQuery(this).text(districtName).prop('selected', true);
+                    return false;
+                }
+            });
+            if (!hasOption) {
+                $select.append(new Option(districtName, districtId, true, true));
+            }
+            $select.val(districtId).data('kiriofSelectedDistrictText', districtName).trigger('change.select2');
+            $nameField.val(districtName);
+        }
+
         function changeDistrict(){
             
             let kelurahanArea = "select#" + (kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area') + ",select#kiriof_shipping_destination_area";
@@ -2017,6 +2062,7 @@
                     $el.trigger('change.select2');
                 }
             }); 
+            kiriofRestoreClassicDistrictSelections();
         }
 
         jQuery(document.body).on('updated_checkout', function() {

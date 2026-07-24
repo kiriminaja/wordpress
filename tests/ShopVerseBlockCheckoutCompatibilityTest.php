@@ -2245,10 +2245,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
 
+        $defaultAddressStart = strpos($content, 'public function kiriof_default_address_labels');
+        $this->assertNotFalse($defaultAddressStart, 'Default address field filter may only adjust native address labels');
+        $defaultAddressBody = substr($content, $defaultAddressStart, 700);
         $this->assertStringNotContainsString(
-            "add_filter( 'woocommerce_default_address_fields'",
-            $content,
-            'Classic checkout already injects District via woocommerce_checkout_fields; adding it again through default address fields renders a duplicate prefixed billing_kiriof_destination_area field'
+            'kiriof_destination_area',
+            $defaultAddressBody,
+            'Classic checkout already injects District via woocommerce_checkout_fields; default address fields must not add another District field'
         );
 
         $this->assertStringContainsString(
@@ -2382,6 +2385,18 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $removeBody,
             'Any shipping-required error should be removed for short-address validation'
         );
+    }
+
+    #[Test]
+    public function street_address_label_shows_minimum_length_hint(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString('woocommerce_default_address_fields', $controller);
+        $this->assertStringContainsString('kiriof_default_address_labels', $controller);
+        $this->assertStringContainsString('kiriof_address_1_label_fields', $controller);
+        $this->assertStringContainsString('Street address (min. %d char)', $controller);
+        $this->assertStringContainsString("address_1']['label'] = self::kiriof_address_1_label()", $controller);
     }
 
     #[Test]

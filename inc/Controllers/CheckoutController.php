@@ -125,6 +125,7 @@ class CheckoutController
              * Remove Billing and shipping Fields
              */
             add_filter('woocommerce_checkout_fields', array($this,'kiriof_billing_fields'), 9999);            
+            add_filter( 'woocommerce_checkout_get_value', array( $this, 'kiriof_checkout_district_value' ), 20, 2 );
             add_filter('woocommerce_shipping_chosen_method', array($this,'kiriof_shipping_chosen_method'), 10, 2);
             
             add_filter( 'woocommerce_cart_needs_shipping', array($this,'kiriof_filter_cart_needs_shipping'));
@@ -137,6 +138,7 @@ class CheckoutController
             // Phone is required for courier pickup — force it at the locale level so
             // block checkout also treats it as mandatory (shows "Phone" not "Phone (optional)").
             add_filter( 'woocommerce_get_country_locale', array( $this, 'kiriof_require_phone_locale' ), 9999 );
+            add_filter( 'woocommerce_default_address_fields', array( $this, 'kiriof_default_address_labels' ), 9999 );
             add_action( 'wp_footer', array( $this, 'kiriof_block_checkout_require_phone_label' ) );
 
             /** Control COD availability based on KiriminAja Config tab */
@@ -1518,8 +1520,32 @@ class CheckoutController
         $fields = self::kiriof_add_field_subdistrict( $fields );
         // Phone is required for courier pickup coordination
         $fields = self::kiriof_require_phone_fields( $fields );
+        $fields = self::kiriof_address_1_label_fields( $fields );
     
         return $fields;
+    }
+
+    public function kiriof_checkout_district_value( $value, string $input ) {
+        if ( '' !== (string) $value || ! is_user_logged_in() ) {
+            return $value;
+        }
+
+        $address_type = '';
+        if ( $this->field_destination_key === $input ) {
+            $address_type = 'billing';
+        } elseif ( $this->field_shipping_destination_key === $input ) {
+            $address_type = 'shipping';
+        }
+        if ( '' === $address_type ) {
+            return $value;
+        }
+
+        $district = ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->get( get_current_user_id(), $address_type );
+        if ( '' === $district['id'] && 'shipping' === $address_type ) {
+            $district = ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->get( get_current_user_id(), 'billing' );
+        }
+
+        return $district['id'];
     }
     private static function kiriof_require_phone_fields( $fields ) {
         foreach ( array( 'billing', 'shipping' ) as $group ) {
@@ -1529,6 +1555,33 @@ class CheckoutController
             }
         }
         return $fields;
+    }
+
+    public function kiriof_default_address_labels( $fields ) {
+        if ( isset( $fields['address_1'] ) ) {
+            $fields['address_1']['label'] = self::kiriof_address_1_label();
+        }
+
+        return $fields;
+    }
+
+    private static function kiriof_address_1_label_fields( $fields ) {
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $key = $group . '_address_1';
+            if ( isset( $fields[ $group ][ $key ] ) ) {
+                $fields[ $group ][ $key ]['label'] = self::kiriof_address_1_label();
+            }
+        }
+
+        return $fields;
+    }
+
+    private static function kiriof_address_1_label(): string {
+        return sprintf(
+            /* translators: %d: minimum street address length in characters. */
+            esc_html__( 'Street address (min. %d char)', 'kiriminaja-official' ),
+            self::KIRIOF_MIN_ADDRESS_LENGTH
+        );
     }
 
     /**
@@ -1543,11 +1596,17 @@ class CheckoutController
         foreach ( $locales as $country => $fields ) {
             $locales[ $country ]['phone']['required'] = true;
             $locales[ $country ]['phone']['hidden']   = false;
+            if ( isset( $locales[ $country ]['address_1'] ) ) {
+                $locales[ $country ]['address_1']['label'] = self::kiriof_address_1_label();
+            }
         }
         // Also set the 'default' locale used as fallback.
         if ( isset( $locales['default'] ) ) {
             $locales['default']['phone']['required'] = true;
             $locales['default']['phone']['hidden']   = false;
+            if ( isset( $locales['default']['address_1'] ) ) {
+                $locales['default']['address_1']['label'] = self::kiriof_address_1_label();
+            }
         }
         return $locales;
     }
@@ -1602,22 +1661,37 @@ class CheckoutController
     private function kiriof_add_field_subdistrict( $fields ){
         $field_key = $this->field_destination_key;
         $district_service = new \KiriminAjaOfficial\Services\CustomerDistrictService();
-        $customer = isset( WC()->customer ) && WC()->customer instanceof \WC_Customer ? WC()->customer : get_current_user_id();
+        $customer = get_current_user_id();
+        if ( $customer < 1 && isset( WC()->customer ) && WC()->customer instanceof \WC_Customer ) {
+            $customer = WC()->customer;
+        }
         $saved_billing = $district_service->get( $customer, 'billing' );
         $saved_shipping = $district_service->get( $customer, 'shipping' );
         //billing session
-        $destination_id     = WC()->session->get('destination_id') ?: $saved_billing['id'];
-        $destination_name   = WC()->session->get('destination_name') ?: $saved_billing['name'];
+        $destination_id     = WC()->session->get('destination_id');
+        $destination_name   = WC()->session->get('destination_name');
+        if ( empty( $destination_id ) || empty( $destination_name ) ) {
+            $destination_id = $saved_billing['id'];
+            $destination_name = $saved_billing['name'];
+        }
         $options = array( '' => esc_html__( 'Select Option', 'kiriminaja-official' ) );
-        if ( ! empty( $destination_id ) ) {
+        if ( ! empty( $destination_id ) && ! empty( $destination_name ) ) {
             $options[ $destination_id ] = $destination_name;
         }
 
         //shipping session
-        $shipping_dest_id   = WC()->session->get('shipping_destination_id') ?: $saved_shipping['id'];
-        $shipping_dest_name = WC()->session->get('shipping_destination_name') ?: $saved_shipping['name'];
+        $shipping_dest_id   = WC()->session->get('shipping_destination_id');
+        $shipping_dest_name = WC()->session->get('shipping_destination_name');
+        if ( empty( $shipping_dest_id ) || empty( $shipping_dest_name ) ) {
+            $shipping_dest_id = $saved_shipping['id'];
+            $shipping_dest_name = $saved_shipping['name'];
+        }
+        if ( empty( $shipping_dest_id ) || empty( $shipping_dest_name ) ) {
+            $shipping_dest_id = $destination_id;
+            $shipping_dest_name = $destination_name;
+        }
         $shipping_options   = array( '' => esc_html__( 'Select Option', 'kiriminaja-official' ) );
-        if ( ! empty( $shipping_dest_id ) ) {
+        if ( ! empty( $shipping_dest_id ) && ! empty( $shipping_dest_name ) ) {
             $shipping_options[ $shipping_dest_id ] = $shipping_dest_name;
         }
 
@@ -1631,6 +1705,7 @@ class CheckoutController
             'priority'  => 61,
             'options'   => $options,
             'default'   => $destination_id,
+            'value'     => $destination_id,
         );
         //add field shipping District
         $fields['shipping'][$this->field_shipping_destination_key] = array(
@@ -1642,6 +1717,7 @@ class CheckoutController
             'priority'  => 61,
             'options'   => ! empty( $shipping_dest_id ) ? $shipping_options : $options,
             'default'   => ! empty( $shipping_dest_id ) ? $shipping_dest_id : $destination_id,
+            'value'     => ! empty( $shipping_dest_id ) ? $shipping_dest_id : $destination_id,
         );
         return $fields;
     }

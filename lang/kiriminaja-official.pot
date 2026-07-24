@@ -39,6 +39,10 @@ msgstr ""
 msgid "https://kiriminaja.com"
 msgstr ""
 
+#: inc/Controllers/CheckoutController.php
+msgid "Street address (min. %d char)"
+msgstr ""
+
 #: inc/Base/Helper.php:13
 #: templates/transaction-process/view/modal-detail.php:18
 msgid "New"

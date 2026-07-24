@@ -29,6 +29,13 @@ class AccountAddressController {
             $options[ $district['id'] ] = $district['name'];
         }
 
+        $address_2_key = $address_type . '_address_2';
+        if ( isset( $fields[ $address_2_key ]['value'] ) && '' !== $district['id'] && (string) $fields[ $address_2_key ]['value'] === $district['id'] ) {
+            $fields[ $address_2_key ]['value'] = '';
+        }
+
+        $fields = $this->hideBlockMirrorDistrictFields( $fields, $address_type, $district );
+
         $field = array(
             'label'    => __( 'District', 'kiriminaja-official' ),
             'required' => true,
@@ -69,6 +76,7 @@ class AccountAddressController {
 
         $district_id = $this->postedDistrictId( $address_type );
         $district_name = $this->postedDistrictName( $address_type );
+        $this->clearPollutedAddress2Post( $address_type, $district_id );
         if ( $district_id < 1 || '' === $district_name ) {
             wc_add_notice( __( 'Please select a District.', 'kiriminaja-official' ), 'error' );
         }
@@ -79,12 +87,19 @@ class AccountAddressController {
             return;
         }
 
+        $district_id = $this->postedDistrictId( $address_type );
+        $district_name = $this->postedDistrictName( $address_type );
+        if ( $district_id > 0 && '' === $district_name ) {
+            $saved_district = ( new CustomerDistrictService() )->get( $user_id, $address_type );
+            $district_name = $saved_district['name'];
+        }
         ( new CustomerDistrictService() )->save(
             $user_id,
             $address_type,
-            $this->postedDistrictId( $address_type ),
-            $this->postedDistrictName( $address_type )
+            $district_id,
+            $district_name
         );
+        $this->syncCheckoutSession( $address_type, $district_id, $district_name );
     }
 
     private function isEditAddressRequest( string $address_type = '' ): bool {
@@ -109,6 +124,67 @@ class AccountAddressController {
         $key = $address_type . '_kiriof_destination_area_name';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the account address nonce before this hook.
         return isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+    }
+
+    private function clearPollutedAddress2Post( string $address_type, int $district_id ): void {
+        if ( $district_id < 1 ) {
+            return;
+        }
+
+        $key = $address_type . '_address_2';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the account address nonce before this hook.
+        $address_2 = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+        if ( (string) $district_id === $address_2 ) {
+            $_POST[ $key ] = '';
+        }
+    }
+
+    private function hideBlockMirrorDistrictFields( array $fields, string $address_type, array $district ): array {
+        $prefix = '_wc_' . $address_type . '/kiriminaja-official/kiriof_destination_area';
+
+        foreach ( $fields as $key => $field ) {
+            if ( ! is_string( $key ) || 0 !== strpos( $key, $prefix ) ) {
+                continue;
+            }
+
+            $fields[ $key ]['type'] = 'hidden';
+            $fields[ $key ]['required'] = false;
+            $fields[ $key ]['label'] = '';
+            $fields[ $key ]['class'] = array( 'kiriof-hidden-district-mirror' );
+            $fields[ $key ]['value'] = false !== strpos( $key, '_name' ) ? $district['name'] : $district['id'];
+        }
+
+        return $fields;
+    }
+
+    private function syncCheckoutSession( string $address_type, int $district_id, string $district_name ): void {
+        if ( ! function_exists( 'WC' ) || ! WC()->session ) {
+            return;
+        }
+
+        $id_key = 'shipping' === $address_type ? 'shipping_destination_id' : 'destination_id';
+        $name_key = 'shipping' === $address_type ? 'shipping_destination_name' : 'destination_name';
+        WC()->session->set( $id_key, $district_id > 0 ? $district_id : '' );
+        WC()->session->set( $name_key, $district_name );
+
+        $postcode_key = $address_type . '_postcode';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the account address nonce before this hook.
+        $postcode = isset( $_POST[ $postcode_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $postcode_key ] ) ) : '';
+        $postcode = trim( preg_replace( '/\s+/', '', $postcode ) );
+        if ( '' === $postcode ) {
+            return;
+        }
+
+        $saved_map = (array) WC()->session->get( 'kiriof_destination_postcode_map', array() );
+        if ( $district_id > 0 ) {
+            $saved_map[ $postcode ] = array(
+                'destination_id'   => (string) $district_id,
+                'destination_name' => $district_name,
+            );
+        } else {
+            unset( $saved_map[ $postcode ] );
+        }
+        WC()->session->set( 'kiriof_destination_postcode_map', $saved_map );
     }
 
     private function insertAfterPostcode( array $fields, string $field_key, array $field ): array {
