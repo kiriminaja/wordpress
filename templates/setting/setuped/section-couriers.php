@@ -50,6 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
 
         function enabledCountText(count, total) {
+            <?php /* translators: %1$s: enabled courier count, %2$s: total courier count. */ ?>
             return '<?php echo esc_js( _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ) ); ?>'
                 .replace('%1$s', count)
                 .replace('%2$s', total);
