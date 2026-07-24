@@ -95,6 +95,7 @@ final class PluginUpdateNoticeService extends BaseService {
         );
 
         echo '<div class="' . esc_attr( $notice_class ) . '">';
+        /* translators: %s: latest KiriminAja Official version available on WordPress.org. */
         echo '<p><strong>' . esc_html( sprintf( __( 'KiriminAja Official %s is available.', 'kiriminaja-official' ), $latest_version ) ) . '</strong></p>';
 
         if ( $this->kiriof_has_native_update( $latest_version ) ) {
