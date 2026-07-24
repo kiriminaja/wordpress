@@ -42,6 +42,7 @@ class KiriminajaApiService extends BaseService{
         return self::success($repo['data']);
     }
     private const KIRIOF_COURIERS_CACHE_KEY = 'kiriof_couriers_list_v2';
+    private const KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY = 'kiriof_couriers_last_success_cache';
     private const KIRIOF_COURIERS_CACHE_TTL = DAY_IN_SECONDS;
 
     public function get_couriers(){
@@ -52,6 +53,17 @@ class KiriminajaApiService extends BaseService{
 
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->get_couriers();
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
+            $last_success = get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
+            if ( false !== $last_success ) {
+                kiriof_log(
+                    'warning',
+                    'Courier lookup used the cached fallback because the live API request failed.',
+                    array( 'source' => 'kiriminaja_api' )
+                );
+                set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $last_success, self::KIRIOF_COURIERS_CACHE_TTL );
+                return self::success( $last_success, 'Using cached courier data.', 'courier_cache_fallback' );
+            }
+
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
 
@@ -66,11 +78,15 @@ class KiriminajaApiService extends BaseService{
             )
         );
         set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $data, self::KIRIOF_COURIERS_CACHE_TTL );
+        set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $data, WEEK_IN_SECONDS );
         return self::success( $data );
     }
 
-    public function invalidateCouriersCache(): void {
+    public function invalidateCouriersCache( bool $include_last_success = true ): void {
         delete_transient( self::KIRIOF_COURIERS_CACHE_KEY );
+        if ( $include_last_success ) {
+            delete_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
+        }
     }
 
     public function invalidateProfileCache(): void {

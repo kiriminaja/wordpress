@@ -639,14 +639,13 @@ class CheckoutController
     }
 
     private function kiriof_get_posted_text_field( string $key ): string {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only checkout POST normalization; WooCommerce verifies checkout/update-order-review requests.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only checkout POST normalization; WooCommerce verifies checkout/update-order-review requests.
         if ( ! isset( $_POST[ $key ] ) || is_array( $_POST[ $key ] ) ) {
-            // phpcs:enable WordPress.Security.NonceVerification.Missing
             return '';
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only checkout POST normalization; WooCommerce verifies checkout/update-order-review requests.
         $value = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         return $value;
     }

@@ -119,6 +119,7 @@ class ShippingProcessController
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Placeholder list is generated from sanitized order IDs above.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Print status is updated immediately after successful label fetch.
         $wpdb->query(
+            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders match the sanitized order IDs in $query_args.
             $wpdb->prepare(
                 "UPDATE {$wpdb->prefix}kiriminaja_transactions
                 SET is_printed = %d, printed_at = %s

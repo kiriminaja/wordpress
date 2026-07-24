@@ -13,6 +13,22 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
 
+#: templates/setting/setuped/section-couriers.php
+msgid "Could not load couriers. Reload this page and try again."
+msgstr "Tidak dapat memuat kurir. Muat ulang halaman ini dan coba lagi."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Could not refresh couriers from the API. The last successful courier list remains available."
+msgstr "Tidak dapat memperbarui kurir dari API. Daftar kurir terakhir yang berhasil masih tersedia."
+
+#: templates/setting/setuped/section-couriers.php
+msgid "Could not save courier settings."
+msgstr "Tidak dapat menyimpan pengaturan kurir."
+
+#: templates/setting/setuped/section-couriers.php
+msgid "No couriers are available for this account."
+msgstr "Tidak ada kurir yang tersedia untuk akun ini."
+
 #. translators: %s: total number of items
 #: templates/transaction-process/view/index.php:86
 #: templates/transaction-process/view/index.php:283
