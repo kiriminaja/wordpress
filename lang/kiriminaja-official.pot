@@ -43,6 +43,38 @@ msgstr ""
 msgid "Street address (min. %d char)"
 msgstr ""
 
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "KiriminAja Official %s is available."
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "WordPress has already received this update. Open Plugins to install it from the WordPress dashboard."
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Open Plugins screen"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "View on WordPress.org"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Dismiss notice"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "WordPress.org shows this release, but this site has not received the update yet."
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "WordPress.org can take up to 24 hours to publish new plugin releases through the update system."
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "If you do not see this version in Plugins, open the WordPress.org plugin page and install it manually."
+msgstr ""
+
 #: inc/Base/Helper.php:13
 #: templates/transaction-process/view/modal-detail.php:18
 msgid "New"

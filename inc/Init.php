@@ -17,6 +17,7 @@ final class Init {
         return [
             Base\Enqueue::class,
             Pages\Admin::class,
+            Services\PluginUpdateNoticeService::class,
             Controllers\ProductController::class,
             Controllers\SettingController::class,
             Controllers\CallbackController::class,

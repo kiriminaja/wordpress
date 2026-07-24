@@ -2981,3 +2981,27 @@ msgstr "Layanan kurir yang dipilih tidak mendukung Cash on Delivery. Silakan pil
 
 msgid "Street address (min. %d char)"
 msgstr "Alamat jalan (min. %d karakter)"
+
+msgid "KiriminAja Official %s is available."
+msgstr "KiriminAja Official %s sudah tersedia."
+
+msgid "WordPress has already received this update. Open Plugins to install it from the WordPress dashboard."
+msgstr "WordPress sudah menerima pembaruan ini. Buka halaman Plugin untuk memasangnya dari dashboard WordPress."
+
+msgid "Open Plugins screen"
+msgstr "Buka halaman Plugin"
+
+msgid "View on WordPress.org"
+msgstr "Lihat di WordPress.org"
+
+msgid "Dismiss notice"
+msgstr "Tutup pemberitahuan"
+
+msgid "WordPress.org shows this release, but this site has not received the update yet."
+msgstr "WordPress.org sudah menampilkan rilis ini, tetapi situs ini belum menerima pembaruannya."
+
+msgid "WordPress.org can take up to 24 hours to publish new plugin releases through the update system."
+msgstr "WordPress.org dapat membutuhkan waktu hingga 24 jam untuk menerbitkan rilis plugin baru melalui sistem pembaruan."
+
+msgid "If you do not see this version in Plugins, open the WordPress.org plugin page and install it manually."
+msgstr "Jika versi ini belum terlihat di halaman Plugin, buka halaman plugin di WordPress.org lalu pasang secara manual."

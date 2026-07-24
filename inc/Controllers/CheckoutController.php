@@ -1159,20 +1159,25 @@ class CheckoutController
 
             if ( is_user_logged_in() ) {
                 $district_service = new \KiriminAjaOfficial\Services\CustomerDistrictService();
-                if ( isset( $_POST['kiriof_destination_area'] ) ) {
+                $billing_district_id = $this->kiriof_get_posted_text_field( 'kiriof_destination_area' );
+                $billing_district_name = $this->kiriof_get_posted_text_field( 'kiriof_destination_area_name' );
+                $shipping_district_id = $this->kiriof_get_posted_text_field( 'kiriof_shipping_destination_area' );
+                $shipping_district_name = $this->kiriof_get_posted_text_field( 'kiriof_shipping_destination_area_name' );
+
+                if ( '' !== $billing_district_id ) {
                     $district_service->save(
                         get_current_user_id(),
                         'billing',
-                        wp_unslash( $_POST['kiriof_destination_area'] ),
-                        isset( $_POST['kiriof_destination_area_name'] ) ? wp_unslash( $_POST['kiriof_destination_area_name'] ) : ''
+                        $billing_district_id,
+                        $billing_district_name
                     );
                 }
-                if ( ! empty( $_POST['ship_to_different_address'] ) ) {
+                if ( '' !== $this->kiriof_get_posted_text_field( 'ship_to_different_address' ) ) {
                     $district_service->save(
                         get_current_user_id(),
                         'shipping',
-                        isset( $_POST['kiriof_shipping_destination_area'] ) ? wp_unslash( $_POST['kiriof_shipping_destination_area'] ) : '',
-                        isset( $_POST['kiriof_shipping_destination_area_name'] ) ? wp_unslash( $_POST['kiriof_shipping_destination_area_name'] ) : ''
+                        $shipping_district_id,
+                        $shipping_district_name
                     );
                 }
             }

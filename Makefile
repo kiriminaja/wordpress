@@ -24,6 +24,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.env \
 	--exclude=.env.example \
 	--exclude=AGENTS.md \
+	--exclude=CLAUDE.md \
 	--exclude=Makefile \
 	--exclude=*.zip \
 	--exclude=paratest.xml \
