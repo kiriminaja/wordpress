@@ -505,6 +505,10 @@ class CheckoutController
     }
     function add_custom_select_options_field_and_script($checkout)
     {
+        if ( ! is_cart() && ! is_checkout() ) {
+            return;
+        }
+
         if ( ! $this->kiriof_cart_needs_shipping() ) {
             $this->kiriof_clear_logistics_session();
             $this->kiriof_render_virtual_cart_district_cleanup();
@@ -1150,6 +1154,26 @@ class CheckoutController
             //save meta subdistrict shipping woocommerce
             if( isset($_POST['kiriof_shipping_destination_area']) && !empty($_POST['kiriof_shipping_destination_area']) ) $order->update_meta_data( '_shipping_kiriof_destination_area', sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area'])) );
             if( isset($_POST['kiriof_shipping_destination_area_name']) && !empty($_POST['kiriof_shipping_destination_area_name']) ) $order->update_meta_data( '_shipping_kiriof_destination_name', sanitize_text_field(wp_unslash($_POST['kiriof_shipping_destination_area_name'])) );
+
+            if ( is_user_logged_in() ) {
+                $district_service = new \KiriminAjaOfficial\Services\CustomerDistrictService();
+                if ( isset( $_POST['kiriof_destination_area'] ) ) {
+                    $district_service->save(
+                        get_current_user_id(),
+                        'billing',
+                        wp_unslash( $_POST['kiriof_destination_area'] ),
+                        isset( $_POST['kiriof_destination_area_name'] ) ? wp_unslash( $_POST['kiriof_destination_area_name'] ) : ''
+                    );
+                }
+                if ( ! empty( $_POST['ship_to_different_address'] ) ) {
+                    $district_service->save(
+                        get_current_user_id(),
+                        'shipping',
+                        isset( $_POST['kiriof_shipping_destination_area'] ) ? wp_unslash( $_POST['kiriof_shipping_destination_area'] ) : '',
+                        isset( $_POST['kiriof_shipping_destination_area_name'] ) ? wp_unslash( $_POST['kiriof_shipping_destination_area_name'] ) : ''
+                    );
+                }
+            }
             
             //save meta Insurance shipping woocommerce
             if( isset($data['kiriof_shipping_insurance']) && !empty($data['kiriof_shipping_insurance']) ) $order->update_meta_data( '_shipping_kiriof_insurance', sanitize_text_field( ( wp_unslash($data['kiriof_shipping_insurance']) == true ) ? 'yes' : '' ) );
@@ -1577,17 +1601,21 @@ class CheckoutController
     }
     private function kiriof_add_field_subdistrict( $fields ){
         $field_key = $this->field_destination_key;
+        $district_service = new \KiriminAjaOfficial\Services\CustomerDistrictService();
+        $customer = isset( WC()->customer ) && WC()->customer instanceof \WC_Customer ? WC()->customer : get_current_user_id();
+        $saved_billing = $district_service->get( $customer, 'billing' );
+        $saved_shipping = $district_service->get( $customer, 'shipping' );
         //billing session
-        $destination_id     = WC()->session->get('destination_id') ?? '';
-        $destination_name   = WC()->session->get('destination_name') ?? '';
+        $destination_id     = WC()->session->get('destination_id') ?: $saved_billing['id'];
+        $destination_name   = WC()->session->get('destination_name') ?: $saved_billing['name'];
         $options = array( '' => esc_html__( 'Select Option', 'kiriminaja-official' ) );
         if ( ! empty( $destination_id ) ) {
             $options[ $destination_id ] = $destination_name;
         }
 
         //shipping session
-        $shipping_dest_id   = WC()->session->get('shipping_destination_id') ?? '';
-        $shipping_dest_name = WC()->session->get('shipping_destination_name') ?? '';
+        $shipping_dest_id   = WC()->session->get('shipping_destination_id') ?: $saved_shipping['id'];
+        $shipping_dest_name = WC()->session->get('shipping_destination_name') ?: $saved_shipping['name'];
         $shipping_options   = array( '' => esc_html__( 'Select Option', 'kiriminaja-official' ) );
         if ( ! empty( $shipping_dest_id ) ) {
             $shipping_options[ $shipping_dest_id ] = $shipping_dest_name;
@@ -2018,16 +2046,18 @@ class CheckoutController
         // meta, NOT from WC()->session, so session-only storage leaves the
         // field empty in the cart response and can cause empty shipping rates.
         if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
-            if ( $destination_id > 0 ) {
-                WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
-                WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', (string) $destination_id );
-            } else {
-                WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area', '' );
-                WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area', '' );
-            }
-            WC()->customer->update_meta_data( 'shipping_kiriminaja-official/kiriof_destination_area_name', $destination_name );
-            WC()->customer->update_meta_data( 'billing_kiriminaja-official/kiriof_destination_area_name', $destination_name );
-            WC()->customer->save_meta_data();
+            ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->save(
+                WC()->customer,
+                'shipping',
+                $destination_id,
+                $destination_name
+            );
+            ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->save(
+                WC()->customer,
+                'billing',
+                $destination_id,
+                $destination_name
+            );
         }
 
         WC()->session->set( 'kiriof_insurance', $insurance );

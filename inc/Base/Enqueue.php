@@ -60,6 +60,22 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) ) {
+            wp_enqueue_script(
+                'kiriof-account-address',
+                KIRIOF_URL . 'assets/wp/js/account-address.js',
+                array( 'kiriof-script', 'jquery', 'select2' ),
+                KIRIOF_VERSION,
+                array( 'in_footer' => true )
+            );
+            wp_localize_script(
+                'kiriof-account-address',
+                'kiriofAccountAddress',
+                array(
+                    'selectOption' => __( 'Select Option', 'kiriminaja-official' ),
+                )
+            );
+        }
 
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
