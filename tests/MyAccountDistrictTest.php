@@ -18,6 +18,16 @@ final class MyAccountDistrictTest extends TestCase
     }
 
     #[Test]
+    public function account_address_controller_removes_blocks_duplicate_district_fields(): void
+    {
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/AccountAddressController.php');
+
+        $this->assertStringContainsString('removeBlocksDistrictFields', $content);
+        $this->assertStringContainsString("strpos( (string) \$key, 'kiriof_destination_area' )", $content);
+        $this->assertStringContainsString("\$key !== \$canonical_key", $content);
+    }
+
+    #[Test]
     public function account_district_service_reads_and_writes_canonical_and_legacy_metadata(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CustomerDistrictService.php');

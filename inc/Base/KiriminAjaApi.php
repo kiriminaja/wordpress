@@ -204,14 +204,17 @@ class KiriminAjaApi
 
         return $this->finalize_response( $response, $request_meta );
     }
-    public function post($endpoint, $body = array(), $log_context = array())
+    public function post($endpoint, $body = array(), $log_context = array(), $request_args = array())
     {
         $requestBody = $body;
         if ( is_array( $body ) && empty( $body ) ) {
             $requestBody = (object) array();
         }
 
-        $args = wp_parse_args(array('body' => wp_json_encode($requestBody)), $this->default_args);
+        $args = wp_parse_args(
+            array_merge( $request_args, array( 'body' => wp_json_encode( $requestBody ) ) ),
+            $this->default_args
+        );
         $request_meta = $this->build_request_log_context( 'POST', $endpoint, $body, $log_context );
         $response = wp_remote_post($this->base_url . $endpoint, $args);
 

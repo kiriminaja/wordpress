@@ -20,6 +20,7 @@ class AccountAddressController {
             return $fields;
         }
 
+        $fields = $this->removeBlocksDistrictFields( $fields, $address_type );
         $district = ( new CustomerDistrictService() )->get( get_current_user_id(), $address_type );
         $field_key = $address_type . '_kiriof_destination_area';
         $name_key = $address_type . '_kiriof_destination_area_name';
@@ -45,6 +46,17 @@ class AccountAddressController {
 
         $fields = $this->insertAfterPostcode( $fields, $field_key, $field );
         $fields = $this->insertAfterKey( $fields, $field_key, $name_key, $name_field );
+
+        return $fields;
+    }
+
+    private function removeBlocksDistrictFields( array $fields, string $address_type ): array {
+        $canonical_key = $address_type . '_kiriof_destination_area';
+        foreach ( array_keys( $fields ) as $key ) {
+            if ( $key !== $canonical_key && false !== strpos( (string) $key, 'kiriof_destination_area' ) ) {
+                unset( $fields[ $key ] );
+            }
+        }
 
         return $fields;
     }

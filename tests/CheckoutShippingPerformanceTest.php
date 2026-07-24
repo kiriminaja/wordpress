@@ -182,4 +182,35 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'Fee AJAX should only cache calculated fees; the following update_checkout request renders them'
         );
     }
+
+    #[Test]
+    public function pricing_api_uses_a_short_filterable_timeout(): void
+    {
+        $repository = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
+        $api = file_get_contents( PLUGIN_DIR . '/inc/Base/KiriminAjaApi.php' );
+
+        $this->assertStringContainsString("apply_filters( 'kiriof_pricing_api_timeout', 8 )", $repository);
+        $this->assertStringContainsString("'httpversion' => '1.1'", $repository);
+        $this->assertStringContainsString('$request_args = array()', $api);
+        $this->assertStringContainsString('array_merge( $request_args', $api);
+    }
+
+    #[Test]
+    public function block_district_persistence_uses_ajax_only_as_fallback(): void
+    {
+        $script = file_get_contents( PLUGIN_DIR . '/assets/wp/js/form-billing-address.js' );
+        $start = strpos( $script, 'function kiriofPersistBlockDistrictSelection' );
+        $end = strpos( $script, 'var kiriofLastDistrictResults', $start );
+        $body = substr( $script, $start, $end - $start );
+
+        $this->assertStringContainsString('function kiriofPersistBlockDistrictFallback()', $body);
+        $this->assertStringContainsString('result.then(function()', $body);
+        $this->assertStringContainsString('kiriofAfterBlockDistrictPersist();', $body);
+        $this->assertStringContainsString('kiriofPersistBlockDistrictFallback();', $body);
+        $this->assertLessThan(
+            strpos( $body, 'kiriofPersistBlockDistrictFallback();' ),
+            strpos( $body, 'kiriofAfterBlockDistrictPersist();' ),
+            'Successful extensionCartUpdate should finish without the fallback AJAX and raw Store API update chain'
+        );
+    }
 }

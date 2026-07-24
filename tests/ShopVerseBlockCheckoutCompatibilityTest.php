@@ -1925,7 +1925,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function store_api_update_callback_recalculates_totals_after_block_destination_changes(): void
+    public function store_api_update_callback_defers_totals_to_woocommerce(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
@@ -1934,21 +1934,15 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($end, 'Store API update callback boundary must exist');
         $methodBody = substr($content, $start, $end - $start);
 
-        $destinationPosition = strpos($methodBody, "WC()->session->set( 'kiriof_destination_area', \$destination_id );");
-        $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
-
-        $this->assertNotFalse(
-            $destinationPosition,
+        $this->assertStringContainsString(
+            "WC()->session->set( 'kiriof_destination_area', \$destination_id );",
+            $methodBody,
             'Store API callback must persist the selected District before rates are recalculated'
         );
-        $this->assertNotFalse(
-            $calculatePosition,
-            'Store API callback must recalculate totals after District/payment/shipping context changes so block checkout receives fresh rates'
-        );
-        $this->assertLessThan(
-            $calculatePosition,
-            $destinationPosition,
-            'Destination must be in session before Woo recalculates shipping totals'
+        $this->assertStringNotContainsString(
+            'WC()->cart->calculate_totals();',
+            $methodBody,
+            'Store API already recalculates the cart after extension callbacks; nested totals duplicate pricing calls'
         );
     }
 

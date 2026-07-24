@@ -69,6 +69,9 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         ], array(
             'source'    => 'kiriminaja_shipping',
             'operation' => 'get_pricing',
+        ), array(
+            'timeout'     => (int) apply_filters( 'kiriof_pricing_api_timeout', 8 ),
+            'httpversion' => '1.1',
         ));
     }
     

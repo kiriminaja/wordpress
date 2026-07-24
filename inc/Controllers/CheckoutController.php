@@ -2079,14 +2079,8 @@ class CheckoutController
             WC()->session->set( 'kiriof_destination_postcode_map', $saved_destination_map );
         }
 
-        if (
-            ( $destination_id > 0 || '' !== $shipping_method || '' !== $payment_method )
-            && isset( WC()->cart )
-            && is_object( WC()->cart )
-            && method_exists( WC()->cart, 'calculate_totals' )
-        ) {
-            WC()->cart->calculate_totals();
-        }
+        // WooCommerce recalculates the Store API cart after this callback returns.
+        // Calling calculate_totals() here duplicates shipping and pricing work.
     }
 
     /**
