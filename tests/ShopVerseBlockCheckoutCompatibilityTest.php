@@ -1901,7 +1901,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 6000);
+        $end = strpos($content, 'public function kiriof_ajax_session_save', $start);
+        $this->assertNotFalse($end, 'Store API update callback boundary must exist');
+        $methodBody = substr($content, $start, $end - $start);
 
         $this->assertStringContainsString(
             "WC()->session->set( 'kiriof_checkout_postcode', \$postcode );",
@@ -1928,7 +1930,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 6000);
+        $end = strpos($content, 'public function kiriof_ajax_session_save', $start);
+        $this->assertNotFalse($end, 'Store API update callback boundary must exist');
+        $methodBody = substr($content, $start, $end - $start);
 
         $destinationPosition = strpos($methodBody, "WC()->session->set( 'kiriof_destination_area', \$destination_id );");
         $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');

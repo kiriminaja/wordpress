@@ -114,6 +114,7 @@ function kiriof_shipping_method(){
                     try {
                         if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
                             $meta_keys = array(
+                                'shipping_kiriof_destination_area',
                                 'shipping_kiriminaja-official/kiriof_destination_area',
                                 'kiriminaja-official/kiriof_destination_area',
                                 '_wc_blocks_checkout_field_kiriminaja-official/kiriof_destination_area',
