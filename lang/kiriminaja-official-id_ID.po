@@ -2978,3 +2978,6 @@ msgstr "Hanya refresh manual"
 
 msgid "Selected courier service does not support Cash on Delivery. Please choose a COD-supported courier service."
 msgstr "Layanan kurir yang dipilih tidak mendukung Cash on Delivery. Silakan pilih layanan kurir yang mendukung COD."
+
+msgid "Street address (min. %d char)"
+msgstr "Alamat jalan (min. %d karakter)"

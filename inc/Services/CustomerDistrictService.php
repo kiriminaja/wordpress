@@ -25,8 +25,14 @@ class CustomerDistrictService {
         if ( '' === $id ) {
             $id = $this->readMeta( $customer, $address_type . '_kiriminaja-official/' . self::FIELD_ID );
         }
+        if ( '' === $id ) {
+            $id = $this->readMeta( $customer, '_wc_' . $address_type . '/kiriminaja-official/' . self::FIELD_ID );
+        }
         if ( '' === $name ) {
             $name = $this->readMeta( $customer, $address_type . '_kiriminaja-official/' . self::FIELD_NAME );
+        }
+        if ( '' === $name ) {
+            $name = $this->readMeta( $customer, '_wc_' . $address_type . '/kiriminaja-official/' . self::FIELD_NAME );
         }
 
         return array(
@@ -52,6 +58,8 @@ class CustomerDistrictService {
             $address_type . '_' . self::FIELD_NAME => $district_name,
             $address_type . '_kiriminaja-official/' . self::FIELD_ID => $district_id > 0 ? (string) $district_id : '',
             $address_type . '_kiriminaja-official/' . self::FIELD_NAME => $district_name,
+            '_wc_' . $address_type . '/kiriminaja-official/' . self::FIELD_ID => $district_id > 0 ? (string) $district_id : '',
+            '_wc_' . $address_type . '/kiriminaja-official/' . self::FIELD_NAME => $district_name,
         );
 
         if ( $customer instanceof \WC_Customer ) {
