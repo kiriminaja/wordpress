@@ -947,11 +947,11 @@ class ShippingDiscountCouponController {
         }
 
         $service       = new KiriminajaApiService();
-        $service->invalidateCouriersCache();
+        $service->invalidateCouriersCache( false );
         $fresh = $service->get_couriers();
 
-        if ( 200 !== $fresh->status ) {
-            wp_send_json_error( array( 'message' => __( 'Flushed, but could not re-fetch from API. Will retry on next page load.', 'kiriminaja-official' ) ) );
+        if ( 200 !== $fresh->status || 'courier_cache_fallback' === $fresh->customCode ) {
+            wp_send_json_error( array( 'message' => __( 'Could not refresh couriers from the API. The last successful courier list remains available.', 'kiriminaja-official' ) ) );
         }
 
         $count = is_array( $fresh->data ) ? count( $fresh->data ) : 0;

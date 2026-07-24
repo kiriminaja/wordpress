@@ -114,6 +114,7 @@ function kiriof_shipping_method(){
                     try {
                         if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
                             $meta_keys = array(
+                                'shipping_kiriof_destination_area',
                                 'shipping_kiriminaja-official/kiriof_destination_area',
                                 'kiriminaja-official/kiriof_destination_area',
                                 '_wc_blocks_checkout_field_kiriminaja-official/kiriof_destination_area',
@@ -169,11 +170,13 @@ function kiriof_shipping_method(){
                     $height += (int) $_product->get_height();
                 }
 
-                $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+                $settingRepository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+                $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
                 if(!$settingRepo||$settingRepo->value === null){
                     wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
                     return;
                 }
+                $courier_filter = $settingRepository->getWhitelistExpeditionIds();
 
                 /** convert unit weight */
                 $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
@@ -189,10 +192,21 @@ function kiriof_shipping_method(){
                     'height' => $cartAttributes->data['height'],
                     'insurance' => (int) $kiriof_insurance,
                     'item_value' => (int) ($cartAttributes->data['item_value'] ?? 0),
-                    'courier' => "", // 'jne', 'pos', 'tiki', 'jet'
+                    'courier' => ! empty( $courier_filter ) ? $courier_filter : "", // 'jne', 'pos', 'tiki', 'jet'
                 ];
 
-                $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
+                $cachedPricingData = \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::get( $payload );
+                if ( $cachedPricingData ) {
+                    $kiriofPricing = array(
+                        'status' => true,
+                        'data'   => $cachedPricingData,
+                    );
+                } else {
+                    $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
+                    if ( ! empty( $kiriofPricing['status'] ) && ! empty( $kiriofPricing['data'] ) ) {
+                        \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, $kiriofPricing['data'] );
+                    }
+                }
                 kiriof_log( 'info', 'getPricing result keys=' . ( is_array( $kiriofPricing ) ? implode( ',', array_keys( $kiriofPricing ) ) : gettype( $kiriofPricing ) ) );
                 if ( isset( $kiriofPricing['status'] ) ) {
                     kiriof_log( 'info', 'getPricing status=' . ( is_scalar( $kiriofPricing['status'] ) ? (string) $kiriofPricing['status'] : wp_json_encode( $kiriofPricing['status'] ) ) );

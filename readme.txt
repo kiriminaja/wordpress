@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 2.3.0
+Stable tag: 2.3.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,21 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 2.3.3 =
+- Inherit variant shipping data (#252)
+- Inherit variant shipping data
+- Compact classic shipping selectors (#251)
+- Allow positive COD payout deficits
+
+= 2.3.2 =
+- Destination_zipcode payload not stored properly
+
+= 2.3.1 =
+- Cache KiriminAja shipping pricing
+- Improve address length notice (#245)
+- Improve address length notice
+- Fix checkout lint findings
+
 = 2.3.0 =
 - Enhance courier selection on classic theme
 - Retouch classic checkout

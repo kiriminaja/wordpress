@@ -311,6 +311,80 @@ final class RequestPickupPaymentFlowTest extends TestCase
     }
 
     #[Test]
+    public function request_pickup_preserves_checkout_postcode_for_destination_zipcode(): void
+    {
+        $checkoutController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $createTransactionService = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php');
+        $requestPickupService = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+
+        $this->assertStringContainsString(
+            "\$order->update_meta_data( '_kiriof_checkout_postcode', \$kiriof_checkout_postcode );",
+            $checkoutController,
+            'Checkout must persist the buyer postcode on the order before transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            "\$order->set_billing_postcode( \$kiriof_checkout_postcode );",
+            $checkoutController,
+            'Checkout must mirror the resolved postcode into WooCommerce billing postcode'
+        );
+
+        $this->assertStringContainsString(
+            "\$order->set_shipping_postcode( \$kiriof_checkout_postcode );",
+            $checkoutController,
+            'Checkout must mirror the resolved postcode into WooCommerce shipping postcode'
+        );
+
+        $this->assertStringContainsString(
+            'private function kiriof_extract_postcode_from_destination_name( $destination_name ): string',
+            $checkoutController,
+            'Classic checkout must extract postcode from KiriminAja district labels when no postcode field exists'
+        );
+
+        $this->assertStringContainsString(
+            "\$kiriof_checkout_postcode = \$this->kiriof_extract_postcode_from_destination_name( \$destinasi_name );",
+            $checkoutController,
+            'Checkout postcode must fall back to the trailing postal code in the selected district name'
+        );
+
+        $this->assertStringContainsString(
+            "'destination_zipcode'       => \$order ? (string) \$order->get_meta( '_kiriof_checkout_postcode', true ) : '',",
+            $checkoutController,
+            'Checkout must pass the persisted postcode into transaction creation'
+        );
+
+        $this->assertStringContainsString(
+            "\$requiredPostMeta['data']['_kiriof_checkout_postcode'] = sanitize_text_field( (string) \$this->payload['destination_zipcode'] );",
+            $createTransactionService,
+            'Transaction shipping_info must keep checkout postcode for later request pickup payloads'
+        );
+
+        $this->assertStringContainsString(
+            'private function readOrderMetaValue($order, array $keys): string',
+            $requestPickupService,
+            'Request pickup destination zipcode must support WooCommerce order meta fallbacks'
+        );
+
+        $this->assertStringContainsString(
+            "\$shippingPostcode = \$this->readOrderMetaValue(\$order, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);",
+            $requestPickupService,
+            'Request pickup destination zipcode must fall back to WooCommerce shipping and billing postcode meta'
+        );
+
+        $this->assertStringContainsString(
+            "\$shippingPostcode = \$this->extractPostcodeFromDestinationText(\$transaction->destination_sub_district ?? '');",
+            $requestPickupService,
+            'Existing request pickup transactions must recover destination zipcode from trailing postal code in district text'
+        );
+
+        $this->assertStringContainsString(
+            '"destination_zipcode"       => $destinationData[\'zipcode\']',
+            $requestPickupService,
+            'Request pickup package payload must send destination_zipcode from resolved destination data'
+        );
+    }
+
+    #[Test]
     public function platform_shipping_discount_label_distinguishes_from_user_coupon(): void
     {
         $checkoutController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
@@ -339,6 +413,36 @@ final class RequestPickupPaymentFlowTest extends TestCase
             "Shipping Discount (from KiriminAja)",
             $metabox,
             'Admin order metabox should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
+        );
+    }
+
+    #[Test]
+    public function deficit_rows_with_non_negative_effective_cod_payout_remain_pickup_processable(): void
+    {
+        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+
+        $this->assertStringContainsString(
+            '$kiriof_effectiveShippingCost = max(0.0, $kiriof_shippingCost - $kiriof_wcShippingDiscount);',
+            $transactionProcessView,
+            'Request pickup eligibility must use discounted shipping when evaluating COD payout'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_effectiveCodPayout    = $kiriof_wcTotal - $kiriof_effectiveShippingCost - $kiriof_insuranceCost - $kiriof_codFee;',
+            $transactionProcessView,
+            'Request pickup eligibility must evaluate the effective COD payout'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_canRequestPickup      = $kiriof_isProcessable && (! $kiriof_isDeficitRow || $kiriof_effectiveCodPayout >= 0);',
+            $transactionProcessView,
+            'Deficit rows should remain pickup-processable when the effective COD payout is non-negative'
+        );
+
+        $this->assertStringContainsString(
+            'data-can-pickup="\' . ($kiriof_canRequestPickup ? \'1\' : \'0\')',
+            $transactionProcessView,
+            'Request pickup checkbox must use effective processability instead of the raw deficit flag'
         );
     }
 }

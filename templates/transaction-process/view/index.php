@@ -392,7 +392,7 @@ $kiriof_pin_cache_label = sprintf(
                     $kiriof_wcDiscountTotal      = 0.0;
                     $kiriof_wcShippingDiscount   = 0.0;
                     $kiriof_wcCouponCodes        = [];
-                    $kiriof_wcTotal              = $kiriof_shippingFee; // fallback
+                    $kiriof_wcTotal              = $kiriof_wcOrder ? (float) $kiriof_wcOrder->get_total() : $kiriof_shippingFee;
                     if ($kiriof_isDeficitRow && ! empty($kiriof_row->wc_order_id)) {
                         $kiriof_wcOrderForDeficit = wc_get_order((int) $kiriof_row->wc_order_id);
                         if ($kiriof_wcOrderForDeficit) {
@@ -407,13 +407,17 @@ $kiriof_pin_cache_label = sprintf(
                     $kiriof_adjItemCoupon    = $kiriof_adjCouponScopes['item'][0] ?? '';
                     $kiriof_adjShipCoupon    = $kiriof_adjCouponScopes['shipping'][0] ?? '';
 
+                    $kiriof_effectiveShippingCost = max(0.0, $kiriof_shippingCost - $kiriof_wcShippingDiscount);
+                    $kiriof_effectiveCodPayout    = $kiriof_wcTotal - $kiriof_effectiveShippingCost - $kiriof_insuranceCost - $kiriof_codFee;
+                    $kiriof_canRequestPickup      = $kiriof_isProcessable && (! $kiriof_isDeficitRow || $kiriof_effectiveCodPayout >= 0);
+
                     $kiriof_isProcessedFilter = ('processed' === $kiriof_status_filter);
                     $kiriof_isAllFilter = ('all' === $kiriof_status_filter);
                     $kiriof_canPrintRow = (($kiriof_isProcessedFilter || $kiriof_isAllFilter) && ! empty($kiriof_awb) && 'request_pickup' === $kiriof_row->status);
                     $kiriof_checkboxDisabled = ($kiriof_isProcessedFilter || $kiriof_isAllFilter)
-                        ? (! $kiriof_canPrintRow && ($kiriof_isDeficitRow || ! $kiriof_isProcessable))
-                        : ($kiriof_isDeficitRow || ! $kiriof_isProcessable);
-                    $kiriof_checkboxTitle   = $kiriof_isDeficitRow
+                        ? (! $kiriof_canPrintRow && ! $kiriof_canRequestPickup)
+                        : (! $kiriof_canRequestPickup);
+                    $kiriof_checkboxTitle   = $kiriof_isDeficitRow && $kiriof_effectiveCodPayout < 0
                         ? __('Resolve the COD deficit before proceeding.', 'kiriminaja-official')
                         : (($kiriof_isProcessedFilter || ($kiriof_isAllFilter && ! $kiriof_isProcessable))
                             ? ($kiriof_canPrintRow ? '' : __('Order must have an AWB and request pickup status before it can be printed.', 'kiriminaja-official'))
@@ -425,7 +429,7 @@ $kiriof_pin_cache_label = sprintf(
                     echo '
                                                       <tr>
                                                         <td class="manage-column column-thumb kiriof-col-select">
-                                                             <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_orderIdKA) . '" data-can-pickup="' . ($kiriof_isProcessable && ! $kiriof_isDeficitRow ? '1' : '0') . '" data-can-print="' . ($kiriof_canPrintRow ? '1' : '0') . '"' . ($kiriof_checkboxDisabled ? ' disabled' : '') . ($kiriof_checkboxTitle ? ' title="' . esc_attr($kiriof_checkboxTitle) . '"' : '') . '>
+                                                             <input type="checkbox" name="transaction_id[]" value="' . esc_attr($kiriof_orderIdKA) . '" data-can-pickup="' . ($kiriof_canRequestPickup ? '1' : '0') . '" data-can-print="' . ($kiriof_canPrintRow ? '1' : '0') . '"' . ($kiriof_checkboxDisabled ? ' disabled' : '') . ($kiriof_checkboxTitle ? ' title="' . esc_attr($kiriof_checkboxTitle) . '"' : '') . '>
                                                         </td>
                                                         <td class="manage-column column-thumb kiriof-col-order">
                                                             <a href="' . esc_url($kiriof_orderEditUrl) . '" target="_blank" style="font-weight: 700">#' . esc_html($kiriof_row->wc_order_id) . '</a>

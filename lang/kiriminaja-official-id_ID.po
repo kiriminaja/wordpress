@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: KiriminAja Official 2.3.0\n"
+"Project-Id-Version: KiriminAja Official 2.3.3\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -12,6 +12,22 @@ msgstr ""
 "Language: id_ID\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
+
+#: templates/setting/setuped/section-couriers.php
+msgid "Could not load couriers. Reload this page and try again."
+msgstr "Tidak dapat memuat kurir. Muat ulang halaman ini dan coba lagi."
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Could not refresh couriers from the API. The last successful courier list remains available."
+msgstr "Tidak dapat memperbarui kurir dari API. Daftar kurir terakhir yang berhasil masih tersedia."
+
+#: templates/setting/setuped/section-couriers.php
+msgid "Could not save courier settings."
+msgstr "Tidak dapat menyimpan pengaturan kurir."
+
+#: templates/setting/setuped/section-couriers.php
+msgid "No couriers are available for this account."
+msgstr "Tidak ada kurir yang tersedia untuk akun ini."
 
 #. translators: %s: total number of items
 #: templates/transaction-process/view/index.php:86
@@ -1251,6 +1267,10 @@ msgstr "Pilih Kecamatan"
 #: templates/woocommerce/cart/shipping-calculator.php:93
 msgid "Select Option"
 msgstr "Pilih Opsi"
+
+#: inc/Controllers/AccountAddressController.php
+msgid "Please select a District."
+msgstr "Silakan pilih Kecamatan."
 
 #: templates/woocommerce/cart/shipping-calculator.php:30
 msgid "Select a country / region&hellip;"

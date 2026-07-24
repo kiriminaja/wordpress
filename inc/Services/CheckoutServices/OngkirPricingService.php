@@ -21,10 +21,12 @@ class OngkirPricingService extends BaseService{
     }
     public function call(){
         
-        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+        $settingRepository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+        $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
         if(!$settingRepo||$settingRepo->value === null){
             return self::error([],'Terjadi Kesalahan!');
         }  
+        $courier_filter = $settingRepository->getWhitelistExpeditionIds();
         
         $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
@@ -42,12 +44,23 @@ class OngkirPricingService extends BaseService{
             "height"                    => $cartAttributes->data['height'],
             'insurance'                 => 1,
             'item_value'                => (int) $cartAttributes->data['item_value'],
-            'courier'                   => null
+            'courier'                   => ! empty( $courier_filter ) ? $courier_filter : null
         ];
         
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
         
-        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $cachedPricingData = PricingCacheService::get( $pricingPayload );
+        if ( $cachedPricingData ) {
+            $kiriofPricing = array(
+                'status' => true,
+                'data'   => $cachedPricingData,
+            );
+        } else {
+            $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+            if ( ! empty( $kiriofPricing['status'] ) && ! empty( $kiriofPricing['data'] ) ) {
+                PricingCacheService::put( $pricingPayload, $kiriofPricing['data'] );
+            }
+        }
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriofPricing',[$kiriofPricing]);
         
         if(!$kiriofPricing['data']->status){

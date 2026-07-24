@@ -433,10 +433,66 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'getCartItemParentProductId',
+            $content,
+            'Variable cart items must retain their parent product ID for inherited shipping attributes'
+        );
+
+        $this->assertStringContainsString(
+            'getResolvedProductAttribute',
+            $content,
+            'Pricing attributes must resolve empty variation values from the parent product'
+        );
+
+        $this->assertStringContainsString(
             "\$cartProducts[\$product_id]['cart_quantity'] += intval",
             $content,
             'Multiple cart rows for product variants must not overwrite each other when quantities are collected'
         );
+    }
+
+    #[Test]
+    public function checkout_pricing_inherits_missing_variation_attributes_from_parent(): void
+    {
+        require_once PLUGIN_DIR . '/inc/Base/BaseService.php';
+        require_once PLUGIN_DIR . '/inc/Services/UtilServices/GetWCCartAttributeService.php';
+
+        $method = new ReflectionMethod(
+            \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService::class,
+            'getResolvedProductAttribute'
+        );
+        $method->setAccessible(true);
+
+        $attributes = array(
+            100 => array(
+                'weight' => 2,
+                'length' => 10,
+                'width'  => 20,
+                'height' => 30,
+            ),
+            101 => array(
+                'weight' => 3,
+                'length' => 0,
+                'width'  => 25,
+                'height' => '',
+            ),
+            102 => array(
+                'weight' => '',
+                'length' => 0,
+                'width'  => '',
+                'height' => 0,
+            ),
+        );
+
+        $this->assertSame(2.0, $method->invoke(null, $attributes, 102, 100, 'weight'));
+        $this->assertSame(10.0, $method->invoke(null, $attributes, 102, 100, 'length'));
+        $this->assertSame(20.0, $method->invoke(null, $attributes, 102, 100, 'width'));
+        $this->assertSame(30.0, $method->invoke(null, $attributes, 102, 100, 'height'));
+        $this->assertSame(3.0, $method->invoke(null, $attributes, 101, 100, 'weight'));
+        $this->assertSame(10.0, $method->invoke(null, $attributes, 101, 100, 'length'));
+        $this->assertSame(25.0, $method->invoke(null, $attributes, 101, 100, 'width'));
+        $this->assertSame(30.0, $method->invoke(null, $attributes, 101, 100, 'height'));
+        $this->assertSame(2.0, $method->invoke(null, $attributes, 100, 0, 'weight'));
     }
 
     #[Test]
@@ -1845,7 +1901,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 6000);
+        $end = strpos($content, 'public function kiriof_ajax_session_save', $start);
+        $this->assertNotFalse($end, 'Store API update callback boundary must exist');
+        $methodBody = substr($content, $start, $end - $start);
 
         $this->assertStringContainsString(
             "WC()->session->set( 'kiriof_checkout_postcode', \$postcode );",
@@ -1872,7 +1930,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 6000);
+        $end = strpos($content, 'public function kiriof_ajax_session_save', $start);
+        $this->assertNotFalse($end, 'Store API update callback boundary must exist');
+        $methodBody = substr($content, $start, $end - $start);
 
         $destinationPosition = strpos($methodBody, "WC()->session->set( 'kiriof_destination_area', \$destination_id );");
         $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
@@ -2048,16 +2108,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function admin_ajax_fee_refresh_preserves_selected_shipping_method_before_recalculating_totals(): void
+    public function admin_ajax_fee_refresh_preserves_selected_shipping_method_before_caching_fees(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
         $start = strpos($content, 'public function kiriof_getDataAfterUpdateCheckout()');
         $this->assertNotFalse($start, 'Admin AJAX checkout recalculation handler must exist');
-        $methodBody = substr($content, $start, 5600);
+        $methodBody = substr($content, $start, 6200);
 
         $kiriofSessionPosition = strpos($methodBody, 'WC()->session->set( \'kiriof_chosen_shipping_methods\', array( $shipping_metode_id ) );');
         $sessionPosition = strpos($methodBody, 'WC()->session->set( \'chosen_shipping_methods\', array( $shipping_metode_id ) );');
-        $calculatePosition = strpos($methodBody, 'WC()->cart->calculate_totals();');
+        $cacheContextPosition = strpos($methodBody, 'kiriof_get_fee_cache_context');
         $this->assertNotFalse(
             $kiriofSessionPosition,
             'Fee AJAX must keep plugin-owned selected courier session data under the kiriof_ prefix'
@@ -2066,16 +2126,21 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $sessionPosition,
             'Fee AJAX must persist the newly selected courier before WooCommerce recalculates totals'
         );
-        $this->assertNotFalse($calculatePosition, 'Fee AJAX recalculates WooCommerce totals after caching fee data');
+        $this->assertNotFalse($cacheContextPosition, 'Fee AJAX must cache fee data for the following WooCommerce checkout refresh');
+        $this->assertStringNotContainsString(
+            'WC()->cart->calculate_totals();',
+            $methodBody,
+            'Fee AJAX should not recalculate totals before the following update_checkout request'
+        );
         $this->assertLessThan(
             $sessionPosition,
             $kiriofSessionPosition,
             'The prefixed plugin session mirror should be written before syncing the WooCommerce core chosen_shipping_methods key'
         );
         $this->assertLessThan(
-            $calculatePosition,
+            $cacheContextPosition,
             $sessionPosition,
-            'Persisting chosen_shipping_methods before calculate_totals prevents classic checkout from re-rendering the previous/default courier'
+            'Persisting chosen_shipping_methods before caching fee data prevents classic checkout from re-rendering the previous/default courier'
         );
     }
 
@@ -2251,6 +2316,78 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         ) as $needle => $message) {
             $this->assertStringContainsString($needle, $normalizerBody, $message);
         }
+    }
+
+    #[Test]
+    public function classic_checkout_short_address_replaces_generic_missing_shipping_notice(): void
+    {
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+
+        $this->assertStringContainsString(
+            'private const KIRIOF_MIN_ADDRESS_LENGTH = 10;',
+            $controller,
+            'Checkout validation should use the same 10-character address threshold that hides KiriminAja rates'
+        );
+
+        $this->assertStringContainsString(
+            "add_action('woocommerce_after_checkout_validation', array(\$this,'kiriof_validateOrder'), 10, 2);",
+            $controller,
+            'Checkout validation must receive the WooCommerce error bag so generic shipping errors can be replaced'
+        );
+
+        $this->assertStringContainsString(
+            "esc_html__( 'Address length must be greater than %d', 'kiriminaja-official' )",
+            $controller,
+            'Short checkout addresses should show the requested address-length validation message'
+        );
+
+        $this->assertStringContainsString(
+            'private function kiriof_checkout_posted_address_is_too_short(): bool',
+            $controller,
+            'Checkout validation must detect short posted billing/shipping street addresses'
+        );
+
+        $validateStart = strpos($controller, 'public function kiriof_validateOrder');
+        $this->assertNotFalse($validateStart, 'KiriminAja checkout validation must exist');
+        $validateBody = substr($controller, $validateStart, 1800);
+
+        $this->assertStringContainsString(
+            '$kiriof_address_too_short = $this->kiriof_checkout_posted_address_is_too_short();',
+            $validateBody,
+            'Checkout validation should calculate the address-length state once before adding shipping notices'
+        );
+
+        $this->assertStringContainsString(
+            '$this->kiriof_remove_shipping_method_required_errors( $errors );',
+            $validateBody,
+            'Short-address validation should remove WooCommerce generic missing-shipping errors'
+        );
+
+        $this->assertStringContainsString(
+            '$this->kiriof_add_address_length_notice( $errors );',
+            $validateBody,
+            'Short-address validation should add the address-length notice into the same error bag'
+        );
+
+        $this->assertStringContainsString(
+            'if (empty($_POST[\'shipping_method\'][0]) && ! $kiriof_address_too_short)',
+            $validateBody,
+            'Plugin shipping-required notice should not be added when the address length is the actual blocker'
+        );
+
+        $removeStart = strpos($controller, 'private function kiriof_remove_shipping_method_required_errors');
+        $this->assertNotFalse($removeStart, 'Generic shipping error removal helper must exist');
+        $removeBody = substr($controller, $removeStart, 900);
+        $this->assertStringContainsString(
+            'No shipping method has been selected',
+            $removeBody,
+            'WooCommerce no-shipping-method error should be removed for short-address validation'
+        );
+        $this->assertStringContainsString(
+            'Shipping is a required field',
+            $removeBody,
+            'Any shipping-required error should be removed for short-address validation'
+        );
     }
 
     #[Test]
@@ -2447,7 +2584,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "esc_html__('Add shipping insurance', 'kiriminaja-official')",
+            "esc_html_e( 'Add shipping insurance', 'kiriminaja-official' )",
             $controller,
             'Classic checkout should keep the updated insurance checkbox wording'
         );
@@ -2466,7 +2603,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_renders_one_insurance_checkbox_above_order_notes(): void
+    public function classic_checkout_renders_one_theme_compatible_insurance_checkbox_above_order_notes(): void
     {
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $shippingTemplate = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/form-shipping.php');
@@ -2504,9 +2641,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "woocommerce_form_field(\n            \$this->field_insurance_key",
+            'id="kiriof-classic-insurance-field"',
+            $controller,
+            'Insurance wrapper should use its own ID instead of reusing WooCommerce ship-to-different-address'
+        );
+
+        $this->assertStringContainsString(
+            'class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox"',
+            $controller,
+            'Insurance checkbox should inherit the same theme-compatible label classes as ship-to-different-address'
+        );
+
+        $this->assertStringContainsString(
+            'class="woocommerce-form__input woocommerce-form__input-checkbox input-checkbox"',
+            $controller,
+            'Insurance checkbox should inherit WooCommerce checkbox input classes'
+        );
+
+        $this->assertStringContainsString(
+            'name="<?php echo esc_attr( $this->field_insurance_key ); ?>"',
             $controller,
             'The single rendered checkbox should keep posting kiriof_insurance'
+        );
+
+        $this->assertStringContainsString(
+            '<span><?php esc_html_e( \'Add shipping insurance\', \'kiriminaja-official\' ); ?></span>',
+            $controller,
+            'Insurance label text should use the same span structure as ship-to-different-address'
+        );
+
+        $this->assertStringContainsString(
+            'echo \'<input type="hidden" name="\' . esc_attr( $this->field_insurance_key ) . \'" value="1">\';',
+            $controller,
+            'Forced insurance should keep posting a hidden kiriof_insurance value while the visible checkbox is disabled'
+        );
+
+        $this->assertStringNotContainsString(
+            'id="ship-to-different-address" class="kiriof-classic-insurance-field"',
+            $controller,
+            'Insurance markup must not duplicate the WooCommerce ship-to-different-address ID'
         );
 
         $this->assertStringNotContainsString(
@@ -2545,16 +2718,96 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_checkout_shipping_methods_use_generic_select2_dropdown(): void
+    public function classic_cart_and_checkout_shipping_methods_use_generic_select2_dropdown(): void
     {
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
+        $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
+        $shippingCalculator = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/shipping-calculator.php');
         $script = self::billingAddressScriptContent();
         $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
 
         $this->assertStringContainsString(
-            '$kiriof_use_classic_shipping_select = is_checkout() && 1 < count( $available_methods );',
+            '$kiriof_is_cart_totals_shipping  = is_cart() || ! empty( $GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] );',
             $cartShipping,
-            'Classic checkout should render the enhanced carrier dropdown only when multiple rates are available'
+            'Classic cart shipping template should preserve cart UI mode during WooCommerce AJAX totals refresh'
+        );
+
+        $this->assertStringContainsString(
+            '$GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] = true;',
+            $cartTotals,
+            'Classic cart totals should mark shipping template rendering so AJAX refreshes still render select UI'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_package_title            = $kiriof_is_cart_totals_shipping ? esc_html__( \'Ship To\', \'kiriminaja-official\' ) : $package_name;',
+            $cartShipping,
+            'Classic cart should label the destination row as Ship To'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_shipment_title           = $kiriof_is_cart_totals_shipping ? esc_html__( \'Shipment\', \'kiriminaja-official\' ) : $package_name;',
+            $cartShipping,
+            'Classic cart should keep a separate Shipment row for courier selection'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( function_exists( \'WC\' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( \'destination_id\' ) );',
+            $cartShipping,
+            'Classic cart should not render Shipment while Ship To still has no selected destination'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_cart_has_destination      = function_exists( \'WC\' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( \'destination_id\' );',
+            $cartTotals,
+            'Classic cart discount rows should also know whether Ship To has a destination'
+        );
+
+        $this->assertStringContainsString(
+            '<td data-title="<?php echo esc_attr( $kiriof_package_title ); ?>">',
+            $cartShipping,
+            'Classic cart responsive labels should also use the compact Ship To heading'
+        );
+
+        $this->assertStringContainsString(
+            '<tr class="woocommerce-shipping-totals shipping kiriof-cart-shipment-row">',
+            $cartShipping,
+            'Classic cart should render Shipment as a second totals row below Ship To'
+        );
+
+        $this->assertStringContainsString(
+            '<td data-title="<?php echo esc_attr( $kiriof_shipment_title ); ?>">',
+            $cartShipping,
+            'Classic cart responsive labels should include the Shipment row heading'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_use_classic_shipping_select = 1 < count( $available_methods );',
+            $cartShipping,
+            'Classic shipping template should render the enhanced carrier dropdown whenever multiple rates are available'
+        );
+
+        $this->assertStringContainsString(
+            'if ( $kiriof_cart_has_destination && $kiriof_current_shipping_discount > 0 ) :',
+            $cartTotals,
+            'Classic cart should not render shipping discount while Ship To is still Select Option'
+        );
+
+        $this->assertStringContainsString(
+            'if ( $kiriof_cart_has_destination && ! empty( $available_methods ) && is_array( $available_methods ) ) :',
+            $cartShipping,
+            'Shipment choices should be gated by an actual cart destination, not stale WooCommerce rates'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_is_cart_shipping_calculator = is_cart() || ! empty( $GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] );',
+            $shippingCalculator,
+            'Classic cart District compact mode should survive cart totals AJAX refreshes'
+        );
+
+        $this->assertStringContainsString(
+            "'label_class' => \$kiriof_is_cart_shipping_calculator ? array( 'screen-reader-text' ) : array(),",
+            $shippingCalculator,
+            'Classic cart should keep District accessible while removing the visible label for a compact totals UI'
         );
 
         $this->assertStringContainsString(
@@ -2564,15 +2817,45 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'foreach ( $available_methods as $kiriof_method )',
+            'foreach ( $available_methods as $kiriof_shipping_method )',
             $cartShipping,
             'The enhanced shipping dropdown must include every WooCommerce carrier/rate in the package'
         );
 
         $this->assertStringContainsString(
-            'value="<?php echo esc_attr( $kiriof_method->id ); ?>"',
+            'value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>"',
             $cartShipping,
             'Shipping dropdown options must use the original WooCommerce rate IDs'
+        );
+
+        $this->assertStringContainsString(
+            'if ( empty( $kiriof_display_chosen_method ) )',
+            $cartShipping,
+            'Shipping dropdown should show a placeholder instead of browser-selecting the first courier when WooCommerce has no chosen method'
+        );
+
+        $this->assertStringContainsString(
+            '$kiriof_display_chosen_method  = ( $kiriof_is_cart_totals_shipping && empty( $kiriof_explicit_chosen_methods[ $index ] ) ) ? \'\' : $chosen_method;',
+            $cartShipping,
+            'Classic cart should not display WooCommerce implicit default shipping as a buyer-selected courier'
+        );
+
+        $this->assertStringContainsString(
+            '<option value="" selected="selected" disabled="disabled"><?php esc_html_e( \'Select Option\', \'kiriminaja-official\' ); ?></option>',
+            $cartShipping,
+            'The empty shipment placeholder must not post or trigger a courier selection'
+        );
+
+        $this->assertStringContainsString(
+            'selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method )',
+            $cartShipping,
+            'Shipping dropdown selected option must follow the explicit display method'
+        );
+
+        $this->assertStringContainsString(
+            'checked( $kiriof_method->id, $kiriof_display_chosen_method, false )',
+            $cartShipping,
+            'Hidden native radios must not be checked from WooCommerce implicit defaults on cart'
         );
 
         $this->assertStringContainsString(
@@ -2585,7 +2868,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($selectStart, 'Enhanced shipping select markup must exist');
         $selectBody = substr($cartShipping, $selectStart, 1800);
         $this->assertStringNotContainsString(
-            'kiriminaja-official',
+            'kiriminaja-official_',
             $selectBody,
             'Enhanced shipping dropdown must not be hardcoded to KiriminAja-only carrier IDs'
         );
@@ -2615,6 +2898,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'updated_cart_totals.kiriofClassicShippingMethodSelect',
+            $script,
+            'Classic shipping dropdown must be reinitialized after cart totals fragments refresh'
+        );
+
+        $this->assertStringContainsString(
             'updated_shipping_method.kiriofClassicShippingMethodSelect',
             $script,
             'Classic shipping dropdown must be reinitialized after WooCommerce shipping method refreshes'
@@ -2639,6 +2928,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
+            'if (!selectedMethod) {',
+            $script,
+            'Changing the placeholder must not synchronize to a WooCommerce radio input'
+        );
+
+        $this->assertStringContainsString(
             "\$method.prop('checked', true).trigger('change');",
             $script,
             'Selecting a carrier from the dropdown must trigger the normal WooCommerce shipping method change flow'
@@ -2647,7 +2942,55 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             '.kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Classic checkout should visually collapse the original radio list when the dropdown is active'
+            'Classic cart and checkout should visually collapse the original radio list when the dropdown is active'
+        );
+
+        $this->assertStringContainsString(
+            'display: none !important;',
+            $styles,
+            'Enhanced radio fallback must be fully hidden so buyers do not see duplicate courier controls'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .kiriof-shipping-methods-list--enhanced',
+            $styles,
+            'Classic cart should visually collapse the original radio list even when themes omit the woocommerce-cart body class'
+        );
+
+        $this->assertStringContainsString(
+            '#kiriof_destination_area_field .select2',
+            $styles,
+            'Classic cart District Select2 width rule should target the actual generated field ID'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .shipping-calculator-form',
+            $styles,
+            'Classic cart should remove shipping calculator wrapper spacing so Ship To matches Shipment'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .woocommerce-shipping-calculator',
+            $styles,
+            'Classic cart should remove the native shipping calculator form spacing'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total .shipping-calculator-form p',
+            $styles,
+            'Classic cart should remove WooCommerce paragraph margins inside the shipping calculator'
+        );
+
+        $this->assertStringContainsString(
+            '.kj-cart-total #kiriof_destination_area_field .select2-selection--single',
+            $styles,
+            'Classic cart District select should use the same compact Select2 dimensions as Shipment'
+        );
+
+        $this->assertStringNotContainsString(
+            'margin-top: 12px;',
+            $styles,
+            'Shipment select wrapper should not add extra whitespace under the row label'
         );
     }
 

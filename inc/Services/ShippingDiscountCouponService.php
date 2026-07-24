@@ -210,16 +210,19 @@ class ShippingDiscountCouponService {
         // chosen_shipping_methods session key before our checkout mirror is restored.
         // Preserve a just-posted shipping method so shipping coupon validation does
         // not falsely reject stacked coupons that otherwise remain eligible.
-        if ( isset( $_POST['shipping_method'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- checkout/coupon request state only
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Checkout/coupon request state is read-only here; WooCommerce verifies the action nonce before coupon processing.
+        if ( isset( $_POST['shipping_method'] ) ) {
             $postedMethods = array_map(
                 'sanitize_text_field',
-                (array) wp_unslash( $_POST['shipping_method'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- checkout/coupon request state only
+                (array) wp_unslash( $_POST['shipping_method'] )
             );
             $postedMethods = array_values( array_filter( $postedMethods, 'strlen' ) );
             if ( ! empty( $postedMethods ) ) {
+                // phpcs:enable WordPress.Security.NonceVerification.Missing
                 return $postedMethods;
             }
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         return array();
     }
@@ -858,7 +861,8 @@ class ShippingDiscountCouponService {
 
     private function getRequestValuesByKeys( array $keys ): array {
         $found = array();
-        $stack = array( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- request state only
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only checkout request state; caller sanitizes resolved values.
+        $stack = array( $_POST );
 
         while ( ! empty( $stack ) ) {
             $candidate = array_pop( $stack );

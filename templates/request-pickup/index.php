@@ -56,8 +56,7 @@ class Kiriof_RequestPickupIndex {
         $items_per_page = 20;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $page = isset($_GET['cpage']) ? absint($_GET['cpage']) : 1;
-        $offset = ( $page * $items_per_page ) - $items_per_page;
+        $page = isset($_GET['cpage']) ? max( 1, absint($_GET['cpage']) ) : 1;
         
         $whereConditions = [];
         
@@ -72,35 +71,13 @@ class Kiriof_RequestPickupIndex {
             $whereConditions[] = $wpdb->prepare("kiriminaja_payments.created_at LIKE %s", '%' . $wpdb->esc_like($month) . '%');
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (!empty(sanitize_text_field(wp_unslash($_GET['status'] ?? '')))) {
-            $status = sanitize_text_field(wp_unslash($_GET['status'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $status = sanitize_text_field(wp_unslash($_GET['status'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( in_array( $status, array( 'unpaid', 'paid' ), true ) ) {
             $whereConditions[] = $wpdb->prepare("kiriminaja_payments.status = %s", $status);
         }
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Each condition is individually prepared above
         $whereCondition = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
-
-        /** Main Query*/
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use prefix, whereCondition pre-prepared above
-        $baseQuery = "SELECT 
-            kiriminaja_payments.*, 
-            SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
-            FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
-            INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
-            ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-            " . $whereCondition . "
-            GROUP BY kiriminaja_payments.pickup_number
-            ORDER BY kiriminaja_payments.created_at DESC
-            LIMIT %d, %d";
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $results = $wpdb->get_results( 
-            $wpdb->prepare($baseQuery, $offset, $items_per_page) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        );
-        
-        if (strlen(@$wpdb->last_error ?? '') > 0){
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
-        }
 
         /** Pagination Query*/
         $count_sql = "SELECT 
@@ -114,7 +91,33 @@ class Kiriof_RequestPickupIndex {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query safe: whereCondition contains pre-prepared statements, no additional params needed
         $totalQuery = $wpdb->get_results($count_sql);
         $total = count($totalQuery);
-        $total_pages = ceil($total/$items_per_page);
+        $total_pages = (int) ceil($total/$items_per_page);
+        if ( $page > $total_pages && $total_pages > 0 ) {
+            $page = $total_pages;
+        }
+        $offset = ( $page - 1 ) * $items_per_page;
+
+        /** Main Query*/
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use prefix, whereCondition pre-prepared above
+        $baseQuery = "SELECT
+            kiriminaja_payments.*,
+            SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+            FROM {$wpdb->prefix}kiriminaja_payments as kiriminaja_payments
+            INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
+            ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
+            " . $whereCondition . "
+            GROUP BY kiriminaja_payments.pickup_number
+            ORDER BY kiriminaja_payments.created_at DESC
+            LIMIT %d, %d";
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $results = $wpdb->get_results(
+            $wpdb->prepare($baseQuery, $offset, $items_per_page) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        );
+
+        if (strlen(@$wpdb->last_error ?? '') > 0){
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('last_error',@$wpdb->last_error);
+        }
 
         /** Paginate*/
         $next_page_link = admin_url( 'admin.php?' );
