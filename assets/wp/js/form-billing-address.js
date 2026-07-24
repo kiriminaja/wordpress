@@ -70,9 +70,6 @@
 
 
                 // Re-bind handlers after AJAX fragment refresh (theme compatibility).
-                // Do not call kiriofCodInsurance() here: its success callback triggers
-                // update_checkout once so WooCommerce can render native fee rows. Calling
-                // it again from updated_checkout creates an endless loading loop.
                 jQuery(document.body).on( 'updated_checkout', function() {
                     kiriofChangeCodPayment();
                     kiriofChangeDifferentAddress();
@@ -1866,12 +1863,9 @@
 
                         } else {
                             jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
-                            
-                                jQuery(document.body).one('updated_checkout', function() {
-                                    kiriofCodInsurance();                                    
-                                });
-                            
-                            
+                            if (kiriofIsBlockCheckoutContext()) {
+                                window.setTimeout(kiriofCodInsurance, 150);
+                            }
                         }
 
                     },
@@ -2163,9 +2157,6 @@
                     kiriofCodInsurance();
                     return;
                 }
-                jQuery(document.body).off('updated_checkout.kiriofFeeRefresh').one('updated_checkout.kiriofFeeRefresh', function() {
-                    kiriofCodInsurance();
-                });
                 jQuery( document.body ).trigger( 'update_checkout',{update_shipping_method:true} );                        
             }
         }
@@ -2615,6 +2606,9 @@
 
             let refreshKey = kiriofBuildFeeRefreshKey(data);
             let isBlockCheckout = kiriofIsBlockCheckoutContext();
+            if (!isBlockCheckout) {
+                return;
+            }
 
             if (
                 isBlockCheckout
@@ -2692,9 +2686,6 @@
                         },
                         success:function(response){                                 
                             jQuery('[name=kiriof_force_insurance]').val(response?.data?.force_insurance);
-                            if (!kiriofIsBlockCheckoutContext()) {
-                                jQuery(document.body).trigger('update_checkout', { update_shipping_method: false });
-                            }
 
                             // Block checkout: the React sidebar (order summary) reads from the
                             // Store API, not from classic checkout fragments. After the server

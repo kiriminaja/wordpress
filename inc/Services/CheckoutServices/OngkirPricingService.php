@@ -59,9 +59,21 @@ class OngkirPricingService extends BaseService{
             $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
             if ( ! empty( $kiriofPricing['status'] ) && ! empty( $kiriofPricing['data'] ) ) {
                 PricingCacheService::put( $pricingPayload, $kiriofPricing['data'] );
+            } else {
+                $stalePricingData = PricingCacheService::get( $pricingPayload, true );
+                if ( $stalePricingData ) {
+                    $kiriofPricing = array(
+                        'status' => true,
+                        'data'   => $stalePricingData,
+                    );
+                }
             }
         }
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriofPricing',[$kiriofPricing]);
+
+        if ( empty( $kiriofPricing['status'] ) || empty( $kiriofPricing['data'] ) ) {
+            return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');
+        }
         
         if(!$kiriofPricing['data']->status){
             return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');
