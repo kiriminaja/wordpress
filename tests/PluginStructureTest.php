@@ -204,4 +204,21 @@ final class PluginStructureTest extends TestCase
             "Build files differ from source (run `make zip` to sync):\n" . implode("\n", $violations)
         );
     }
+
+    #[Test]
+    public function packaged_vendor_keeps_composer_manifest(): void
+    {
+        $buildDir = PLUGIN_DIR . '/build/kiriminaja-official';
+        if (!is_dir($buildDir)) {
+            $this->markTestSkipped('Build directory does not exist; run `make zip` first.');
+        }
+
+        $this->assertDirectoryExists($buildDir . '/vendor');
+        $this->assertFileExists(
+            $buildDir . '/composer.json',
+            'Packaged Composer vendor files need composer.json for Plugin Check attribution'
+        );
+        $this->assertFileDoesNotExist($buildDir . '/composer.lock');
+        $this->assertFileDoesNotExist($buildDir . '/vendor/bin/.phpunit.result.cache');
+    }
 }

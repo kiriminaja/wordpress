@@ -126,7 +126,8 @@ zip:
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
 	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
-	cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null; rm -f $(STAGE_DIR)/composer.json $(STAGE_DIR)/composer.lock
+	(cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null)
+	rm -f $(STAGE_DIR)/composer.lock $(STAGE_DIR)/vendor/bin/.phpunit.result.cache
 	@if [ "$(KIRIOF_ENV)" != "prd" ] && [ -f .env ]; then \
 		API_URL=$$(grep '^$(ENV_VAR_NAME)=' .env | head -1 | cut -d= -f2- | xargs); \
 		if [ -n "$$API_URL" ]; then \
