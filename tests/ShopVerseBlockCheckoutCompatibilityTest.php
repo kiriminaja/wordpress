@@ -2853,7 +2853,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'checked( $method->id, $kiriof_display_chosen_method, false )',
+            'checked( $kiriof_method->id, $kiriof_display_chosen_method, false )',
             $cartShipping,
             'Hidden native radios must not be checked from WooCommerce implicit defaults on cart'
         );

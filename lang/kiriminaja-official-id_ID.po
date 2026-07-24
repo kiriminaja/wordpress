@@ -254,6 +254,9 @@ msgstr "Jadwal Tersedia"
 msgid "-- Select schedule --"
 msgstr "-- Pilih jadwal --"
 
+msgid "Browser secure storage is unavailable. PIN will not be remembered."
+msgstr "Penyimpanan aman browser tidak tersedia. PIN tidak akan diingat."
+
 msgid "Close"
 msgstr "Tutup"
 
@@ -262,6 +265,19 @@ msgstr "Tidak ada jadwal pickup yang tersedia."
 
 msgid "Please select a pickup schedule."
 msgstr "Silakan pilih jadwal pickup."
+
+#, php-format
+msgid "Remember PIN on this browser for %d minutes"
+msgstr "Ingat PIN di browser ini selama %d menit"
+
+msgid "Saved PIN expired. Please enter your PIN again."
+msgstr "PIN tersimpan sudah kedaluwarsa. Silakan masukkan PIN Anda lagi."
+
+msgid "Saved PIN was cleared. Please enter your latest PIN again."
+msgstr "PIN tersimpan telah dihapus. Silakan masukkan PIN terbaru Anda lagi."
+
+msgid "Saved PIN will be reused until it expires on this browser."
+msgstr "PIN tersimpan akan digunakan kembali sampai masa berlakunya habis di browser ini."
 
 #: inc/Base/Helper.php:37
 #: inc/Base/Helper.php:57

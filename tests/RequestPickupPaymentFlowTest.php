@@ -256,6 +256,43 @@ final class RequestPickupPaymentFlowTest extends TestCase
     }
 
     #[Test]
+    public function request_pickup_credit_pin_supports_temporary_encrypted_browser_cache(): void
+    {
+        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+
+        $this->assertStringContainsString(
+            "const kjPinCacheConfig = {",
+            $transactionProcessContent,
+            'Transaction process should expose browser PIN cache config for the request pickup flow'
+        );
+
+        $this->assertStringContainsString(
+            'window.crypto.subtle.encrypt',
+            $transactionProcessContent,
+            'Temporary PIN storage should encrypt the PIN before writing to browser storage'
+        );
+
+        $this->assertStringContainsString(
+            'window.localStorage.setItem(kjPinCacheConfig.key, JSON.stringify(payload));',
+            $transactionProcessContent,
+            'Temporary PIN cache should persist encrypted browser state per user key'
+        );
+
+        $this->assertStringContainsString(
+            'kjClearCachedPin($modal, \'invalid\');',
+            $transactionProcessContent,
+            'Invalid or outdated PIN responses should clear the saved browser PIN cache'
+        );
+
+        $this->assertStringContainsString(
+            'id="kiriof-pin-remember"',
+            $controllerContent,
+            'Credit PIN modal should render a remember PIN checkbox for temporary browser cache opt-in'
+        );
+    }
+
+    #[Test]
     public function payment_list_fees_column_subtracts_platform_shipping_discount(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/index.php');

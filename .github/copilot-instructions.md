@@ -1,5 +1,7 @@
 # KiriminAja Official — WordPress/WooCommerce Shipping Plugin
 
+These are local repository instructions for GitHub Copilot. `AGENTS.md` is the canonical source for shared agentic workflow rules. Keep this file aligned with `AGENTS.md` and `CLAUDE.md`.
+
 ## Project Overview
 
 KiriminAja Official is a WooCommerce shipping plugin for Indonesian online sellers. It provides real-time shipping rates from multiple couriers, COD support, pickup scheduling, label printing, and package tracking—all from the WooCommerce dashboard.
@@ -253,6 +255,16 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
   - `POST /api/mitra/set_callback` — Register callback URL
 
 ---
+
+## Local Workflow Rules
+
+- Use `rtk` before shell commands in this workspace.
+- Check `git status --short --branch` before edits and avoid unrelated user changes.
+- Prefer narrow fixes in the existing service/controller/template structure.
+- Follow WordPress Coding Standards unless nearby code has a stronger local convention.
+- When using `$wpdb->prepare()` with dynamic `IN (...)` placeholders, pass the prepared SQL directly into `$wpdb->query()` or similar calls. Do not store prepared SQL in an intermediate variable. Keep replacement counts exact and avoid interpolated placeholder variables that trigger WordPressCS / Plugin Check `PreparedSQL` warnings.
+- Do not start local WordPress or dev servers unless explicitly requested.
+- When changing packaged source files, run `make zip` before final verification.
 
 ## Testing
 

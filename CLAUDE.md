@@ -1,6 +1,6 @@
-# AGENTS.md
+# CLAUDE.md
 
-This is the canonical local instruction file for agentic coding tools in this repository. Keep `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` aligned when these project rules change.
+This is the canonical local instruction file for Claude and other agentic coding tools in this repository. Keep `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` aligned when these project rules change.
 
 ## Project Context
 
@@ -25,5 +25,5 @@ This repository is the KiriminAja Official WordPress plugin for WooCommerce. Kee
 
 ## Packaging
 
-- `AGENTS.md`, `paratest.xml`, tests, development files, and cache directories must not be included in the distributable zip.
+- `CLAUDE.md`, `AGENTS.md`, `paratest.xml`, tests, development files, and cache directories must not be included in the distributable zip.
 - The distributable archive is produced by `make zip`.
