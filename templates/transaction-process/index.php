@@ -38,11 +38,12 @@ class Kiriof_TransactionProcessIndex
         if ( $kiriof_per_page < 1 ) {
             $kiriof_per_page = 25;
         }
+        $kiriof_per_page = min( $kiriof_per_page, 100 );
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $kiriof_per_page_get = isset( $_GET['per_page'] ) ? (int) $_GET['per_page'] : 0;
         if ( $kiriof_per_page_get > 0 && $kiriof_per_page_get !== $kiriof_per_page ) {
-            $kiriof_per_page = $kiriof_per_page_get;
+            $kiriof_per_page = min( $kiriof_per_page_get, 100 );
             update_user_meta( $user->ID, 'kiriof_transactions_per_page', $kiriof_per_page );
         }
 
@@ -54,6 +55,11 @@ class Kiriof_TransactionProcessIndex
         $kiriof_results = $pageQuery['results'];
         $kiriof_total   = $pageQuery['total'];
         $kiriof_total_pages = (int) ceil( $kiriof_total / $kiriof_per_page );
+        if ( $kiriof_current_page > $kiriof_total_pages && $kiriof_total_pages > 0 ) {
+            $kiriof_current_page = $kiriof_total_pages;
+            $pageQuery           = $this->pageQuery( $kiriof_per_page, $kiriof_current_page );
+            $kiriof_results       = $pageQuery['results'];
+        }
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriof_results', [$kiriof_results]);
 
         /** Month Options */
