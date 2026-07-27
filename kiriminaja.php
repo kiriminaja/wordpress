@@ -273,6 +273,13 @@ function kiriof_activate_plugin() {
     (new \KiriminAjaOfficial\Base\Activate())->activate();
     (new \KiriminAjaOfficial\Pages\AdminPost())->register();
 
+	// Defer redirect until the next normal admin request. Activation hooks must not redirect.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only activation context detection.
+	$is_bulk_activation = isset( $_REQUEST['action'] ) && 'activate-selected' === sanitize_key( wp_unslash( $_REQUEST['action'] ) );
+	if ( ! $is_bulk_activation && ! is_network_admin() ) {
+		update_option( 'kiriof_onboarding_activation_redirect', time(), false );
+	}
+
 }
 /** Deactivation*/
 /** Deactivation */
@@ -300,10 +307,16 @@ function kiriof_plugin_update_migration( $upgrader_object, $options ) {
                     }
                     
                     // Run migration only if class exists
-                    if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
-                        (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
-                    }
-                    break;
+					if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
+						(new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+					}
+					if ( class_exists( '\KiriminAjaOfficial\Services\OnboardingSetupStateService' ) ) {
+						$state_service = new \KiriminAjaOfficial\Services\OnboardingSetupStateService();
+						if ( ! $state_service->is_required_complete() ) {
+							update_option( 'kiriof_onboarding_update_redirect', time(), false );
+						}
+					}
+					break;
                 }
             }
         }

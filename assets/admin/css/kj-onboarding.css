@@ -1,0 +1,473 @@
+html.wp-toolbar {
+	padding-top: 0;
+}
+
+body.kiriof-onboarding-screen {
+	background: #fff;
+}
+
+body.kiriof-onboarding-screen #wpadminbar,
+body.kiriof-onboarding-screen #adminmenumain,
+body.kiriof-onboarding-screen #screen-meta-links,
+body.kiriof-onboarding-screen #wpfooter {
+	display: none;
+}
+
+body.kiriof-onboarding-screen #wpcontent,
+body.kiriof-onboarding-screen #wpfooter {
+	margin-left: 0;
+}
+
+body.kiriof-onboarding-screen #wpcontent {
+	padding-left: 0;
+}
+
+body.kiriof-onboarding-screen #wpbody-content {
+	padding-bottom: 0;
+}
+
+.kiriof-onboarding {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+	color: #19152b;
+	font-size: 15px;
+}
+
+.kiriof-onboarding__header {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 64px;
+	padding: 8px 28px;
+	border-bottom: 1px solid #e3ddf6;
+	background: #fff;
+}
+
+.kiriof-onboarding__brand {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+}
+
+.kiriof-onboarding__brand img {
+	display: block;
+	width: 132px;
+	height: auto;
+}
+
+.kiriof-onboarding__header-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.kiriof-onboarding__icon-link {
+	display: inline-grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border: 1px solid #d9cff5;
+	border-radius: 50%;
+	background: #fff;
+	color: #5c2ecb;
+	text-decoration: none;
+}
+
+.kiriof-onboarding__icon-link:hover,
+.kiriof-onboarding__icon-link:focus {
+	border-color: #5c2ecb;
+	color: #37159f;
+}
+
+.kiriof-onboarding__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	width: min(960px, calc(100% - 40px));
+	margin: 0 auto;
+	padding: 20px 0 0;
+}
+
+.kiriof-onboarding__eyebrow,
+.kiriof-onboarding__step-number {
+	margin: 0;
+	color: #6f2cc9;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.kiriof-onboarding__progress {
+	position: absolute;
+	left: 50%;
+	width: min(760px, calc(100% - 420px));
+	transform: translateX(-50%);
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 6px;
+	margin: 0;
+}
+
+.kiriof-onboarding__progress-step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 34px;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: #6f2cc9;
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+}
+
+.kiriof-onboarding__progress-step.is-current {
+	background: #f5f0ff;
+	color: #241b3d;
+}
+
+.kiriof-onboarding__progress-step.is-done {
+	color: #5c2ecb;
+}
+
+.kiriof-onboarding__progress-step span:last-child {
+	white-space: nowrap;
+	font-size: 13px;
+	line-height: 1.1;
+}
+
+.kiriof-onboarding__progress-step:not(.is-current) {
+	opacity: 1;
+}
+
+.kiriof-onboarding__progress-index {
+	display: inline-grid;
+	place-items: center;
+	flex: 0 0 24px;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: #ece5fd;
+	line-height: 1;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.kiriof-onboarding__progress-step.is-current .kiriof-onboarding__progress-index {
+	background: #dccdfd;
+}
+
+.kiriof-onboarding__progress-index .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	line-height: 18px;
+	display: block;
+	margin: 0;
+}
+
+.kiriof-onboarding__panel {
+	flex: 1;
+	padding: 14px 0 152px;
+}
+
+.kiriof-onboarding__step {
+	display: none;
+	max-width: 760px;
+	margin: 0 auto;
+}
+
+.kiriof-onboarding__step.is-active {
+	display: block;
+}
+
+.kiriof-onboarding__step h2 {
+	margin: 8px 0 8px;
+	font-size: 30px;
+	line-height: 1.2;
+}
+
+.kiriof-onboarding__step > p:not(.kiriof-onboarding__step-number) {
+	color: #635d75;
+	line-height: 1.6;
+}
+
+.kiriof-onboarding .form-table {
+	margin-top: 18px;
+}
+
+.kiriof-onboarding .form-table th {
+	width: 180px;
+	padding-left: 0;
+}
+
+.kiriof-onboarding .form-table td {
+	padding-right: 0;
+}
+
+.kiriof-onboarding__field,
+.kiriof-onboarding .select2-container {
+	width: 100% !important;
+	max-width: 30rem;
+}
+
+.kiriof-onboarding textarea.kiriof-onboarding__field {
+	min-height: 86px;
+}
+
+.kiriof-onboarding__account-shell {
+	margin: 24px 0;
+}
+
+.kiriof-onboarding__map {
+	width: 100%;
+	max-width: none;
+	height: 240px;
+	margin-top: 22px;
+	margin-bottom: 10px;
+	border: 1px solid #c9c2d8;
+	border-radius: 12px;
+}
+
+.kiriof-onboarding__locate {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border: 2px solid rgb(0 0 0 / 20%);
+	border-radius: 4px;
+	background: #fff;
+	background-clip: padding-box;
+	color: #1d2327;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.kiriof-onboarding__locate:hover,
+.kiriof-onboarding__locate:focus {
+	background: #f6f7f7;
+	color: #5c2ecb;
+}
+
+.kiriof-onboarding__actions,
+.kiriof-onboarding__checks {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 24px 0 16px;
+}
+
+.kiriof-onboarding__courier-actions {
+	align-items: center;
+	gap: 14px;
+}
+
+.kiriof-onboarding__segmented-actions {
+	display: inline-flex;
+	align-items: center;
+	border: 1px solid #bfaef7;
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+.kiriof-onboarding__segmented-actions .button {
+	min-height: 38px;
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	background: #fff;
+	color: #5c2ecb;
+	font-weight: 600;
+	box-shadow: none;
+}
+
+.kiriof-onboarding__segmented-actions .button + .button {
+	border-left: 1px solid #d8ccfb;
+}
+
+.kiriof-onboarding__segmented-actions .button:hover,
+.kiriof-onboarding__segmented-actions .button:focus {
+	background: #f5f0ff;
+	color: #37159f;
+}
+
+.kiriof-onboarding__courier-count {
+	color: #241b3d;
+	font-weight: 600;
+}
+
+.kiriof-onboarding__checks {
+	align-items: stretch;
+	flex-direction: column;
+}
+
+.kiriof-onboarding__check {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	padding: 16px;
+	border: 1px solid #ded7ef;
+	border-radius: 12px;
+}
+
+.kiriof-onboarding__check .dashicons {
+	width: 24px;
+	height: 24px;
+	font-size: 24px;
+	line-height: 24px;
+}
+
+.kiriof-onboarding__check strong {
+	display: block;
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.kiriof-onboarding__check p {
+	margin: 5px 0 0;
+	color: #635d75;
+	line-height: 1.5;
+}
+
+.kiriof-onboarding__check.is-done .dashicons {
+	color: #167a46;
+}
+
+.kiriof-onboarding__check.is-pending .dashicons {
+	color: #8c84a0;
+}
+
+.kiriof-onboarding__couriers {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 10px;
+	max-height: none;
+	overflow: visible;
+}
+
+.kiriof-onboarding__courier {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 14px;
+	border: 1px solid #ded7ef;
+	border-radius: 12px;
+}
+
+.kiriof-onboarding__switch {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	margin: 0;
+	font-weight: 600;
+}
+
+.kiriof-onboarding__switch .woocommerce-input-toggle {
+	margin: 0;
+}
+
+.kiriof-onboarding__message {
+	min-height: 20px;
+	margin-top: 16px;
+	color: #b32d2e;
+}
+
+.kiriof-onboarding__message.is-success {
+	color: #167a46;
+}
+
+.kiriof-onboarding__footer {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	padding: 14px 36px calc(14px + env(safe-area-inset-bottom)) 36px;
+	background: #fff;
+	border-top: 1px solid #e3ddf6;
+	box-sizing: border-box;
+}
+
+.kiriof-onboarding__success-icon {
+	display: grid;
+	place-items: center;
+	width: 72px;
+	height: 72px;
+	border-radius: 24px;
+	background: #e8f8ef;
+	color: #167a46;
+	font-size: 36px;
+}
+
+.kiriof-onboarding.is-complete .kiriof-onboarding__header,
+.kiriof-onboarding.is-complete .kiriof-onboarding__footer {
+	display: none;
+}
+
+.kiriof-onboarding.is-complete .kiriof-onboarding__main {
+	justify-content: center;
+	width: 100%;
+	min-height: 100vh;
+	padding: 0 20px;
+	box-sizing: border-box;
+}
+
+.kiriof-onboarding.is-complete .kiriof-onboarding__panel {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
+
+.kiriof-onboarding__step[data-step-panel="complete"].is-active {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	max-width: 640px;
+	text-align: center;
+}
+
+@media (max-width: 782px) {
+	.kiriof-onboarding__header {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		gap: 8px;
+		padding: 8px 12px;
+	}
+
+	.kiriof-onboarding__progress {
+		position: static;
+		grid-column: 1 / -1;
+		grid-template-columns: 1fr 1fr;
+		order: 3;
+		margin-top: 6px;
+		width: auto;
+		transform: none;
+	}
+
+	.kiriof-onboarding__main {
+		width: 100%;
+		padding: 10px 0 0;
+	}
+
+	.kiriof-onboarding__couriers {
+		grid-template-columns: 1fr;
+	}
+
+	.kiriof-onboarding__footer {
+		padding: 12px 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+	}
+}

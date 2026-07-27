@@ -16,6 +16,7 @@ final class Init {
     public static function get_services(){
         return [
             Base\Enqueue::class,
+            Pages\Onboarding::class,
             Pages\Admin::class,
             Services\PluginUpdateNoticeService::class,
             Controllers\ProductController::class,

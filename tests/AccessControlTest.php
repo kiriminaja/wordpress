@@ -27,6 +27,7 @@ final class AccessControlTest extends TestCase
     /** Template files that render admin pages. */
     private const ADMIN_TEMPLATES = [
         'templates/setting/index.php',
+		'templates/onboarding/index.php',
         'templates/transaction-process/index.php',
         'templates/request-pickup/index.php',
         'templates/request-pickup-detail/index.php',

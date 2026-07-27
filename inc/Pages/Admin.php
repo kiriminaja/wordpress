@@ -143,9 +143,8 @@ class Admin extends BaseInit{
         add_filter('plugin_row_meta', [$this, 'kiriof_plugin_row_meta'], 10, 2);
         add_action( 'admin_head', [$this,'kiriof_add_transaction_status_count']);
 
-        // Setup checklist on selected admin pages.
-        add_action( 'admin_notices', [$this, 'kiriof_setup_checklist_notice'] );
-        add_action( 'kiriof_after_page_header', [ $this, 'kiriof_render_setup_guide' ] );
+        // Optional setup guidance follows the native WordPress notice experience.
+        add_action( 'admin_notices', array( $this, 'kiriof_optional_setup_notices' ) );
 
         // Highlight "Payments" in the sidebar when viewing the detail page.
         add_filter( 'submenu_file', function ( $submenu_file ) {
@@ -481,6 +480,39 @@ class Admin extends BaseInit{
         extract( $context, EXTR_SKIP );
         include KIRIOF_DIR . 'templates/_setup-guide.php';
     }
+
+	public function kiriof_optional_setup_notices() {
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! kiriof_check_woocommerce() ) {
+			return;
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen ) {
+			return;
+		}
+
+		$steps = ( new \KiriminAjaOfficial\Services\OnboardingSetupStateService() )->get_steps();
+
+		if ( ! $steps['products']['done'] && in_array( $screen->id, array( 'edit-product', 'product' ), true ) ) {
+			printf(
+				'<div class="notice notice-warning is-dismissible"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
+				esc_html__( 'Complete product shipping details.', 'kiriminaja-official' ),
+				esc_html__( 'Add weight and dimensions so KiriminAja can calculate accurate shipping rates.', 'kiriminaja-official' ),
+				esc_url( admin_url( 'edit.php?post_type=product' ) ),
+				esc_html__( 'Review products', 'kiriminaja-official' )
+			);
+		}
+
+		if ( ! $steps['tracking']['done'] && false !== strpos( $screen->id, 'kiriminaja' ) ) {
+			printf(
+				'<div class="notice notice-info is-dismissible"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
+				esc_html__( 'Add customer shipment tracking.', 'kiriminaja-official' ),
+				esc_html__( 'Create or select a tracking page when you are ready.', 'kiriminaja-official' ),
+				esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ) ),
+				esc_html__( 'Configure tracking', 'kiriminaja-official' )
+			);
+		}
+	}
 
     public function kiriof_add_credit_balance_admin_bar( $wp_admin_bar ) {
         if ( ! is_admin_bar_showing() || ! current_user_can( 'manage_woocommerce' ) || ! kiriof_check_woocommerce() ) {

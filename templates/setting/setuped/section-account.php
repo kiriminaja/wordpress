@@ -107,43 +107,14 @@ $kiriof_courier_colors = array(
         <?php endif; ?>
 
         <!-- Connection -->
-        <div class="kj-account-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size:14px;font-weight:600;color:#1d2327;margin-bottom:16px;"><?php echo esc_html( __( 'Connection', 'kiriminaja-official' ) ); ?></div>
+		<div class="kj-account-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+			<div style="font-size:14px;font-weight:600;color:#1d2327;margin-bottom:16px;"><?php echo esc_html( __( 'Connection', 'kiriminaja-official' ) ); ?></div>
 
-            <?php if ( $kiriof_is_connected && $kiriof_profile ) : ?>
-                <!-- Connected state: profile card -->
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <div style="width:44px;height:44px;border-radius:50%;background:#7d3eb9;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;">
-                            <?php echo esc_html( mb_substr( $kiriof_profile->name ?? '?', 0, 1 ) ); ?>
-                        </div>
-                        <div>
-                            <div style="font-weight:600;color:#1d2327;">
-                                <?php echo esc_html( $kiriof_profile->name ?? '—' ); ?>
-                                <?php if ( ! empty( $kiriof_profile->metadata->payment_method ) ) : ?>
-                                <span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;vertical-align:middle;<?php echo 'TOP' === $kiriof_profile->metadata->payment_method ? 'background:#edfaef;color:#007017;border:1px solid #b7e5be;' : 'background:#f0f6fc;color:#135e96;border:1px solid #bcd8f0;'; ?>">
-                                    <?php echo esc_html( $kiriof_profile->metadata->payment_method ); ?>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                            <div style="font-size:13px;color:#646970;"><?php echo esc_html( $kiriof_profile->email ?? '—' ); ?></div>
-                        </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <?php if ( ! empty( $kiriof_profile->status ) ) : ?>
-                        <span style="display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;text-transform:uppercase;<?php echo 'active' === $kiriof_profile->status ? 'background:#edfaef;color:#007017;border:1px solid #b7e5be;' : 'background:#fcf0f1;color:#8a2424;border:1px solid #f4cccc;'; ?>">
-                            <?php echo esc_html( $kiriof_profile->status ); ?>
-                        </span>
-                        <?php endif; ?>
-                        <button type="button" class="button kj-disconnect" style="color:#b32d2e;border-color:#b32d2e;"><?php echo esc_html( __( 'Disconnect', 'kiriminaja-official' ) ); ?></button>
-                    </div>
-                </div>
-            <?php elseif ( $kiriof_is_connected && $kiriof_profile_err ) : ?>
-                <div style="color:#d63638;"><?php echo esc_html( __( 'Unable to load account information. Your integration may be incomplete.', 'kiriminaja-official' ) ); ?></div>
-                <div style="margin-top:12px;text-align:right;">
-                    <button type="button" class="button kj-disconnect" style="color:#b32d2e;border-color:#b32d2e;"><?php echo esc_html( __( 'Disconnect', 'kiriminaja-official' ) ); ?></button>
-                </div>
-            <?php else : ?>
+			<?php if ( $kiriof_is_connected && $kiriof_profile ) : ?>
+				<?php include KIRIOF_DIR . 'templates/setting/partials/account-connection-status.php'; ?>
+			<?php elseif ( $kiriof_is_connected && $kiriof_profile_err ) : ?>
+				<?php include KIRIOF_DIR . 'templates/setting/partials/account-connection-status.php'; ?>
+			<?php else : ?>
                 <!-- Not connected: setup key form -->
                 <div style="display:flex;gap:24px;flex-wrap:wrap;">
                     <!-- Left: setup key input -->
