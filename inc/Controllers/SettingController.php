@@ -47,6 +47,8 @@ class SettingController{
         /** storeCourierWhitelist*/
         add_action('wp_ajax_kiriof_store_courier_whitelist', array($this,'storeCourierWhitelist'));
 
+		add_action( 'wp_ajax_kiriof_enable_shipping_method', array( $this, 'enableShippingMethod' ) );
+
         /** storeInsuranceData*/
         add_action('wp_ajax_kiriof_store_insurance_data', array($this,'storeInsuranceData'));
 
@@ -150,8 +152,19 @@ class SettingController{
                 ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
                 : array();
             if ( ! isset( $data['origin_whitelist_expedition_id'] ) ) {
-                $data['origin_whitelist_expedition_id']   = '';
-                $data['origin_whitelist_expedition_name'] = '';
+				$courier_settings = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByArray(
+					array( 'origin_whitelist_expedition_id', 'origin_whitelist_expedition_name' )
+				);
+				$data['origin_whitelist_expedition_id']   = array();
+				$data['origin_whitelist_expedition_name'] = array();
+				foreach ( $courier_settings as $courier_setting ) {
+					if ( 'origin_whitelist_expedition_id' === $courier_setting->key && ! empty( $courier_setting->value ) ) {
+						$data['origin_whitelist_expedition_id'] = array_map( 'trim', explode( ',', $courier_setting->value ) );
+					}
+					if ( 'origin_whitelist_expedition_name' === $courier_setting->key && ! empty( $courier_setting->value ) ) {
+						$data['origin_whitelist_expedition_name'] = array_map( 'trim', explode( ',', $courier_setting->value ) );
+					}
+				}
             }
 
             $service = (new \KiriminAjaOfficial\Services\SettingService())->storeOriginData($data);
@@ -369,6 +382,35 @@ class SettingController{
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
+
+	public function enableShippingMethod() {
+		try {
+			if ( ! current_user_can( 'manage_woocommerce' ) ) {
+				wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
+			}
+
+			if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
+				wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
+			}
+
+			$registered = ( new \KiriminAjaOfficial\Services\WooCommerceShippingMethodRegistrationService() )->register();
+			$steps      = ( new \KiriminAjaOfficial\Services\OnboardingSetupStateService() )->get_steps();
+			$shipping   = $steps['shipping'];
+
+			if ( ! $registered || ! $shipping['shipping_ready'] ) {
+				wp_send_json_error( array( 'status' => 400, 'message' => __( 'KiriminAja shipping could not be enabled.', 'kiriminaja-official' ) ) );
+			}
+
+			wp_send_json_success(
+				array(
+					'status'          => 200,
+					'locations_ready' => (bool) $shipping['locations_ready'],
+				)
+			);
+		} catch ( Throwable $e ) {
+			wp_send_json_error( array( 'status' => 400, 'message' => $e->getMessage() ) );
+		}
+	}
     function storeInsuranceData() {
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {

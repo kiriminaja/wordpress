@@ -13,6 +13,258 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
 
+#: inc/Pages/Admin.php
+msgid "Add customer shipment tracking."
+msgstr "Tambahkan pelacakan kiriman pelanggan."
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Add weight and dimensions for accurate shipping rates."
+msgstr "Tambahkan berat dan dimensi untuk tarif pengiriman yang akurat."
+
+#: inc/Pages/Admin.php
+msgid "Add weight and dimensions so KiriminAja can calculate accurate shipping rates."
+msgstr "Tambahkan berat dan dimensi agar KiriminAja dapat menghitung tarif pengiriman secara akurat."
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Add your shipping address"
+msgstr "Tambahkan alamat pengiriman Anda"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Choose courier services"
+msgstr "Pilih layanan kurir"
+
+#: templates/onboarding/steps/couriers.php
+msgid "Courier bulk actions"
+msgstr "Aksi massal kurir"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Complete product details"
+msgstr "Lengkapi detail produk"
+
+#: inc/Pages/Admin.php
+msgid "Complete product shipping details."
+msgstr "Lengkapi detail pengiriman produk."
+
+#: templates/onboarding/index.php
+msgid "Complete these steps to start offering KiriminAja shipping at checkout."
+msgstr "Selesaikan langkah berikut untuk menawarkan pengiriman KiriminAja saat checkout."
+
+#: inc/Pages/Admin.php
+msgid "Configure tracking"
+msgstr "Atur pelacakan"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Connect your KiriminAja account"
+msgstr "Hubungkan akun KiriminAja Anda"
+
+#: inc/Base/Enqueue.php
+msgid "Connect your KiriminAja account before continuing."
+msgstr "Hubungkan akun KiriminAja Anda sebelum melanjutkan."
+
+#: templates/onboarding/index.php
+msgid "Close setup"
+msgstr "Tutup pengaturan"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Account"
+msgstr "Akun"
+
+#: templates/onboarding/steps/account.php
+msgid "KiriminAja account connected"
+msgstr "Akun KiriminAja terhubung"
+
+#: templates/onboarding/steps/account.php
+msgid "Order prefix: %s"
+msgstr "Prefix order: %s"
+
+#: templates/onboarding/steps/account.php
+msgid "Your store can sync orders, shipments, and tracking."
+msgstr "Toko Anda dapat menyinkronkan pesanan, pengiriman, dan pelacakan."
+
+#: inc/Base/Enqueue.php
+msgid "Use current location"
+msgstr "Gunakan lokasi saat ini"
+
+#: inc/Base/Enqueue.php
+msgid "Could not detect your current location."
+msgstr "Tidak dapat mendeteksi lokasi Anda saat ini."
+
+#: inc/Base/Enqueue.php
+msgid "Current location is not available in this browser."
+msgstr "Lokasi saat ini tidak tersedia di browser ini."
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Connect your store to sync orders, shipments, and tracking."
+msgstr "Hubungkan toko untuk menyinkronkan pesanan, pengiriman, dan pelacakan."
+
+#: templates/onboarding/index.php
+msgid "Continue"
+msgstr "Lanjutkan"
+
+#: inc/Base/Enqueue.php
+msgid "Could not save this step."
+msgstr "Tidak dapat menyimpan langkah ini."
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Create a tracking page"
+msgstr "Buat halaman pelacakan"
+
+#: inc/Pages/Admin.php
+msgid "Create or select a tracking page when you are ready."
+msgstr "Buat atau pilih halaman pelacakan saat Anda siap."
+
+#: templates/onboarding/steps/couriers.php
+msgid "Disable all"
+msgstr "Nonaktifkan semua"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Enable KiriminAja shipping"
+msgstr "Aktifkan pengiriman KiriminAja"
+
+#: templates/onboarding/steps/couriers.php
+msgid "Enable all"
+msgstr "Aktifkan semua"
+
+#: templates/onboarding/steps/account.php
+msgid "Find this key in your KiriminAja application."
+msgstr "Temukan kunci ini di aplikasi KiriminAja Anda."
+
+#: templates/onboarding/index.php
+msgid "Go to KiriminAja"
+msgstr "Buka KiriminAja"
+
+#: inc/Pages/Onboarding.php
+msgid "KiriminAja Setup"
+msgstr "Pengaturan KiriminAja"
+
+#: templates/onboarding/index.php
+msgid "KiriminAja is configured. You can now manage shipments from your WordPress dashboard."
+msgstr "KiriminAja telah dikonfigurasi. Sekarang Anda dapat mengelola pengiriman dari dasbor WordPress."
+
+#: inc/Controllers/SettingController.php
+msgid "KiriminAja shipping could not be enabled."
+msgstr "Pengiriman KiriminAja tidak dapat diaktifkan."
+
+#: templates/onboarding/steps/shipping.php
+msgid "KiriminAja shipping method enabled"
+msgstr "Metode pengiriman KiriminAja aktif"
+
+#: templates/onboarding/steps/shipping.php
+msgid "Adds KiriminAja as an available WooCommerce shipping method for checkout rates."
+msgstr "Menambahkan KiriminAja sebagai metode pengiriman WooCommerce untuk tarif checkout."
+
+#: templates/onboarding/steps/account.php
+msgid "Learn how"
+msgstr "Pelajari caranya"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Let customers track their shipments from your store."
+msgstr "Izinkan pelanggan melacak kiriman dari toko Anda."
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Make KiriminAja rates available to your customers at checkout."
+msgstr "Tampilkan tarif KiriminAja kepada pelanggan saat checkout."
+
+#: templates/onboarding/steps/address.php
+msgid "Move the map to place the pin at your pickup location."
+msgstr "Geser peta untuk menempatkan pin di lokasi penjemputan."
+
+#: templates/onboarding/index.php
+msgid "Need help?"
+msgstr "Butuh bantuan?"
+
+#: inc/Base/Enqueue.php
+msgid "Network error. Please try again."
+msgstr "Terjadi kesalahan jaringan. Silakan coba lagi."
+
+#: templates/onboarding/steps/shipping.php
+msgid "Open shipping settings"
+msgstr "Buka pengaturan pengiriman"
+
+#: templates/onboarding/steps/account.php
+msgid "Paste your setup key"
+msgstr "Tempel kunci setup Anda"
+
+#: inc/Pages/Admin.php
+msgid "Review products"
+msgstr "Tinjau produk"
+
+#: inc/Base/Enqueue.php
+msgid "Search subdistrict"
+msgstr "Cari kecamatan"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Select the courier services your customers can use at checkout."
+msgstr "Pilih layanan kurir yang dapat digunakan pelanggan saat checkout."
+
+#: templates/onboarding/steps/address.php
+msgid "Sender name"
+msgstr "Nama pengirim"
+
+#: templates/onboarding/steps/address.php
+msgid "Sender phone"
+msgstr "Telepon pengirim"
+
+#: templates/onboarding/index.php
+msgid "Set up shipping for your store"
+msgstr "Atur pengiriman untuk toko Anda"
+
+#: inc/Pages/Onboarding.php
+msgid "Setup"
+msgstr "Pengaturan"
+
+#: templates/onboarding/steps/account.php
+msgid "Setup key"
+msgstr "Kunci setup"
+
+#: templates/onboarding/index.php
+msgid "Setup progress"
+msgstr "Progres pengaturan"
+
+#: templates/onboarding/steps/shipping.php
+msgid "Shipping locations must be enabled in WooCommerce before rates can appear at checkout."
+msgstr "Lokasi pengiriman harus diaktifkan di WooCommerce sebelum tarif tampil saat checkout."
+
+#: templates/onboarding/steps/account.php
+msgid "Step 1 of 4"
+msgstr "Langkah 1 dari 4"
+
+#: templates/onboarding/steps/address.php
+msgid "Step 2 of 4"
+msgstr "Langkah 2 dari 4"
+
+#: templates/onboarding/steps/couriers.php
+msgid "Step 3 of 4"
+msgstr "Langkah 3 dari 4"
+
+#: templates/onboarding/steps/shipping.php
+msgid "Step 4 of 4"
+msgstr "Langkah 4 dari 4"
+
+#: inc/Services/OnboardingSetupStateService.php
+msgid "Tell couriers where to collect your packages."
+msgstr "Beri tahu kurir lokasi pengambilan paket Anda."
+
+#: templates/onboarding/index.php
+msgid "Welcome to KiriminAja"
+msgstr "Selamat datang di KiriminAja"
+
+#: templates/onboarding/steps/shipping.php
+msgid "WooCommerce shipping locations configured"
+msgstr "Lokasi pengiriman WooCommerce telah dikonfigurasi"
+
+#: templates/onboarding/steps/shipping.php
+msgid "Confirms WooCommerce can show shipping choices to customers in supported regions."
+msgstr "Memastikan WooCommerce dapat menampilkan pilihan pengiriman kepada pelanggan di wilayah yang didukung."
+
+#: templates/onboarding/index.php
+msgid "WordPress Dashboard"
+msgstr "Dasbor WordPress"
+
+#: templates/onboarding/index.php
+msgid "Your store is ready to ship"
+msgstr "Toko Anda siap mengirim"
+
 #: templates/setting/setuped/section-couriers.php
 msgid "Could not load couriers. Reload this page and try again."
 msgstr "Tidak dapat memuat kurir. Muat ulang halaman ini dan coba lagi."
@@ -1793,6 +2045,10 @@ msgstr "Transaksi"
 #: templates/setting/setuped/section-account.php:142
 msgid "Unable to load account information. Your integration may be incomplete."
 msgstr "Tidak dapat memuat informasi akun. Integrasi Anda mungkin belum lengkap."
+
+#: templates/setting/partials/account-connection-status.php
+msgid "Account is connected, but profile details are unavailable right now."
+msgstr "Akun terhubung, tetapi detail profil belum tersedia saat ini."
 
 #: templates/woocommerce/checkout/thankyou.php:33
 msgid "Unfortunately your order cannot be processed as the originating bank/merchant has declined your transaction. Please attempt your purchase again."

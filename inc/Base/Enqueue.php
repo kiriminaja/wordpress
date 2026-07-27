@@ -204,6 +204,11 @@ class Enqueue extends BaseInit{
         $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
         $screen_id = $screen ? $screen->id : '';
 
+		if ( 'kiriminaja-onboarding' === $page || 'kiriminaja_page_kiriminaja-onboarding' === $screen_id ) {
+			$this->enqueueOnboarding();
+			return;
+		}
+
         $is_plugin_page = in_array( $page, array(
             'kiriminaja-konfigurasi',
             'kiriminaja-transaction-process',
@@ -355,6 +360,43 @@ class Enqueue extends BaseInit{
         }
    
     }
+
+	private function enqueueOnboarding(): void {
+		wp_enqueue_style( 'dashicons' );
+		wp_enqueue_style( 'woocommerce_admin_styles' );
+		wp_enqueue_script( 'jquery' );
+		wp_enqueue_script( 'select2' );
+		wp_enqueue_style( 'select2' );
+		wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+		wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+		wp_enqueue_style( 'kiriof-onboarding-style', $this->plugin_url . 'assets/admin/css/kj-onboarding.css', array(), KIRIOF_VERSION );
+		wp_enqueue_script(
+			'kiriof-onboarding-script',
+			$this->plugin_url . 'assets/admin/js/kj-onboarding.js',
+			array( 'jquery', 'select2', 'kiriof-leaflet-script' ),
+			KIRIOF_VERSION,
+			true
+		);
+		wp_localize_script(
+			'kiriof-onboarding-script',
+			'kiriofOnboarding',
+			array(
+				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+				'nonce'         => wp_create_nonce( KIRIOF_NONCE ),
+				'settingsUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+				'shippingUrl'   => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+				'subdistrictPlaceholder' => __( 'Search subdistrict', 'kiriminaja-official' ),
+				'accountRequired' => __( 'Connect your KiriminAja account before continuing.', 'kiriminaja-official' ),
+				'currentLocation' => __( 'Use current location', 'kiriminaja-official' ),
+				'currentLocationFailed' => __( 'Could not detect your current location.', 'kiriminaja-official' ),
+				'currentLocationUnavailable' => __( 'Current location is not available in this browser.', 'kiriminaja-official' ),
+				'disconnectConfirm' => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
+				'disconnectFailed' => __( 'Disconnect failed.', 'kiriminaja-official' ),
+				'networkError'  => __( 'Network error. Please try again.', 'kiriminaja-official' ),
+				'saveFailed'    => __( 'Could not save this step.', 'kiriminaja-official' ),
+			)
+		);
+	}
 
     /**
      * Heartbeat API callback: returns a fresh nonce so long-idle admin pages
