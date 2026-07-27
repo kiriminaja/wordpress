@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 2.3.3
+Stable tag: 2.3.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,26 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 2.3.4 =
+- Add setup wizard
+- Add the missing translators comment for the version notice, sanitize
+- Cache WordPress.org plugin info for 2 hours and show release status
+- Merge origin/main into PIN cache feature
+- Add billing and shipping District fields to My Account address editing and converge account, classic checkout, and Blocks metadata. Keep billing and shipping values independent while clearing stale selections after postcode changes.
+- Keep the last successful courier response during API failures and surface actionable admin errors. Clamp stale pagination so user-specific URLs cannot render false empty lists.
+- Update bump version
+- Update content for more agentic compability
+- Cache credit pin temporarily
+- Prefix template variables
+- Add WordPress.org update notice (#257)
+- Fully sync address both checkout and edit-address (logged in user) (#256)
+- Handling account shipping and billing, with perf improvement (#255)
+- Fully sync address both checkout and edit-address (logged in user)
+- Handling account shipping and billing, with perf improvement
+- Merge origin/main into account District fix
+- Resolve Plugin Check findings
+- Ci test not passed
+
 = 2.3.3 =
 - Inherit variant shipping data (#252)
 - Inherit variant shipping data
