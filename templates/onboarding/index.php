@@ -8,8 +8,8 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
 	wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'kiriminaja-official' ) );
 }
 
-$required_steps = array_filter( $steps, static function ( $step ) { return $step['required']; } );
-$step_number    = 0;
+$kiriof_required_steps = array_filter( $steps, static function ( $kiriof_step ) { return $kiriof_step['required']; } );
+$kiriof_step_number    = 0;
 ?>
 <div class="kiriof-onboarding" data-kiriof-onboarding data-current-step="<?php echo esc_attr( $current_step ); ?>" data-account-complete="<?php echo ! empty( $steps['account']['done'] ) ? '1' : '0'; ?>">
 	<header class="kiriof-onboarding__header">
@@ -17,16 +17,16 @@ $step_number    = 0;
 			<img src="<?php echo esc_url( KIRIOF_URL . 'assets/admin/img/logo-tagline.svg' ); ?>" alt="<?php echo esc_attr__( 'KiriminAja', 'kiriminaja-official' ); ?>">
 		</a>
 		<nav class="kiriof-onboarding__progress" aria-label="<?php echo esc_attr__( 'Setup progress', 'kiriminaja-official' ); ?>">
-			<?php foreach ( $required_steps as $key => $step ) : $step_number++; ?>
-				<button type="button" class="kiriof-onboarding__progress-step <?php echo $key === $current_step ? 'is-current' : ''; ?> <?php echo $step['done'] ? 'is-done' : ''; ?>" data-step-target="<?php echo esc_attr( $key ); ?>">
+			<?php foreach ( $kiriof_required_steps as $kiriof_key => $kiriof_step ) : $kiriof_step_number++; ?>
+				<button type="button" class="kiriof-onboarding__progress-step <?php echo $kiriof_key === $current_step ? 'is-current' : ''; ?> <?php echo $kiriof_step['done'] ? 'is-done' : ''; ?>" data-step-target="<?php echo esc_attr( $kiriof_key ); ?>">
 					<span class="kiriof-onboarding__progress-index" aria-hidden="true">
-						<?php if ( $step['done'] ) : ?>
+						<?php if ( $kiriof_step['done'] ) : ?>
 							&#10003;
 						<?php else : ?>
-							<?php echo esc_html( $step_number ); ?>
+							<?php echo esc_html( $kiriof_step_number ); ?>
 						<?php endif; ?>
 					</span>
-					<span><?php echo esc_html( $step['nav_title'] ?? $step['title'] ); ?></span>
+					<span><?php echo esc_html( $kiriof_step['nav_title'] ?? $kiriof_step['title'] ); ?></span>
 				</button>
 			<?php endforeach; ?>
 		</nav>
