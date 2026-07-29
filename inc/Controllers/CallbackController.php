@@ -67,11 +67,14 @@ class CallbackController{
                     )
                 );
 
-                wp_send_json_error([
-                    'status'=>false,
-                    'text'=>'Invalid JSON input',
-                    'data'=>[]
-                ]);
+                wp_send_json_error(
+                    array(
+                        'status' => false,
+                        'text'   => 'Invalid JSON input',
+                        'data'   => array(),
+                    ),
+                    400
+                );
                 wp_die();
             }
 
@@ -97,18 +100,23 @@ class CallbackController{
                     )
                 );
 
-                wp_send_json_error([
-                    'status'=>false,
-                    'text'=>$service->message,
-                    'data'=>[]
-                ]);
+                wp_send_json_error(
+                    array(
+                        'status' => false,
+                        'text'   => $service->message,
+                        'data'   => $service->data,
+                    ),
+                    $service->status
+                );
                 wp_die();
             }
-            wp_send_json_success([
-                'status'=>true,
-                'text'=>$service->message,
-                'data'=>[]
-            ]);
+            wp_send_json_success(
+                array(
+                    'status' => true,
+                    'text'   => $service->message,
+                    'data'   => array(),
+                )
+            );
             wp_die();
         }catch (\Throwable $th){
             kiriof_log(
@@ -120,11 +128,14 @@ class CallbackController{
                 )
             );
 
-            wp_send_json_error([
-                'status'=>false,
-                'text'=>$th->getMessage(),
-                'data'=>[]
-            ]);
+            wp_send_json_error(
+                array(
+                    'status' => false,
+                    'text'   => $th->getMessage(),
+                    'data'   => array(),
+                ),
+                500
+            );
             wp_die();
         }
   

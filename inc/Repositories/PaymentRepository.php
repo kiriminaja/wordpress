@@ -73,6 +73,47 @@ class PaymentRepository{
     }
 
     /**
+     * Update a payment and verify idempotent zero-row writes.
+     *
+     * @param array $payloads Update changes and conditions.
+     * @return bool
+     */
+    public function updatePaymentByCallbackVerified( $payloads ) {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $updated = $wpdb->update( $this->table, $payloads['changes'], $payloads['condition'] );
+        if ( false === $updated || strlen( @$wpdb->last_error ?? '' ) > 0 ) {
+            if ( strlen( @$wpdb->last_error ?? '' ) > 0 ) {
+                ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( @$wpdb->last_error );
+            }
+            return false;
+        }
+
+        if ( $updated > 0 ) {
+            return true;
+        }
+
+        $pickup_number = $payloads['condition']['pickup_number'] ?? '';
+        if ( '' === (string) $pickup_number ) {
+            return false;
+        }
+
+        $payment = $this->getPaymentByPaymentId( $pickup_number );
+        if ( ! $payment ) {
+            return false;
+        }
+
+        foreach ( $payloads['changes'] as $field => $value ) {
+            if ( ! property_exists( $payment, $field ) || (string) $payment->{$field} !== (string) $value ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Count of "Waiting for Payment" rows shown on the Shipment Process page.
      *
      * Mirrors the list query in templates/request-pickup/index.php which

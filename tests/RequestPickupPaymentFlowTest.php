@@ -128,7 +128,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
 
         $this->assertStringContainsString(
-            "if (\$paymentMethod !== 'qris' || \$paymentStatus === 'paid')",
+            "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
             $callbackContent,
             'processed_packages webhook must not mark unpaid QRIS payment paid just because AWB exists'
         );
