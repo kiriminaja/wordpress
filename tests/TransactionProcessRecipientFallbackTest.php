@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class TransactionProcessRecipientFallbackTest extends TestCase
 {
     #[Test]
-    public function transaction_process_view_falls_back_to_wc_order_recipient_fields(): void
+    public function transaction_process_view_uses_the_shared_recipient_resolver(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
 
@@ -16,33 +16,15 @@ final class TransactionProcessRecipientFallbackTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "get_address('billing')",
+            'RecipientDataResolver',
             $content,
-            'Billing address fallback should read the WooCommerce billing address array'
+            'Transaction process rows must use the shared WooCommerce-first recipient resolver'
         );
 
         $this->assertStringContainsString(
-            "get_address('shipping')",
+            '$kiriof_recipientResolver->resolve($kiriof_wcOrder, $kiriof_shippingData, $kiriof_row)',
             $content,
-            'Shipping address fallback should read the WooCommerce shipping address array'
-        );
-
-        $this->assertStringContainsString(
-            'get_billing_phone()',
-            $content,
-            'Recipient phone fallback should read the WooCommerce billing phone'
-        );
-
-        $this->assertStringContainsString(
-            'get_formatted_billing_full_name()',
-            $content,
-            'Billing recipient fallback should read the formatted WooCommerce billing full name'
-        );
-
-        $this->assertStringContainsString(
-            'get_formatted_shipping_full_name()',
-            $content,
-            'Ship-to recipient fallback should read the formatted WooCommerce shipping full name'
+            'Transaction process rows must resolve recipient data from the current WooCommerce order before legacy shipping_info'
         );
     }
 

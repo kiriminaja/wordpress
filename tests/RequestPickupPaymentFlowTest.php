@@ -360,27 +360,52 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'private function readOrderMetaValue($order, array $keys): string',
+            'RecipientDataResolver',
             $requestPickupService,
-            'Request pickup destination zipcode must support WooCommerce order meta fallbacks'
+            'Request pickup must resolve recipient data from the current WooCommerce order before using the transaction snapshot'
         );
 
         $this->assertStringContainsString(
-            "\$shippingPostcode = \$this->readOrderMetaValue(\$order, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);",
-            $requestPickupService,
-            'Request pickup destination zipcode must fall back to WooCommerce shipping and billing postcode meta'
-        );
-
-        $this->assertStringContainsString(
-            "\$shippingPostcode = \$this->extractPostcodeFromDestinationText(\$transaction->destination_sub_district ?? '');",
-            $requestPickupService,
-            'Existing request pickup transactions must recover destination zipcode from trailing postal code in district text'
+            'get_order_postcode_meta',
+            file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/RecipientDataResolver.php'),
+            'Recipient resolver must retain WooCommerce order-meta postcode fallbacks for legacy orders'
         );
 
         $this->assertStringContainsString(
             '"destination_zipcode"       => $destinationData[\'zipcode\']',
             $requestPickupService,
             'Request pickup package payload must send destination_zipcode from resolved destination data'
+        );
+    }
+
+    #[Test]
+    public function request_pickup_sends_the_resolved_destination_phone_to_the_api(): void
+    {
+        $requestPickupService = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $apiRepository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
+
+        $this->assertStringContainsString(
+            '"destination_phone"         => $destinationData[\'phone\']',
+            $requestPickupService,
+            'Each pickup package must include the phone resolved from the current WooCommerce recipient data'
+        );
+
+        $this->assertStringNotContainsString(
+            "unset(\$package['destination_phone'])",
+            $requestPickupService,
+            'Destination phone must not be removed while preparing the request-pickup API payload'
+        );
+
+        $this->assertStringContainsString(
+            'sendPickupRequestV2($payload)',
+            $requestPickupService,
+            'Pickup service must send the prepared package payload to the request-pickup API'
+        );
+
+        $this->assertStringContainsString(
+            "return \$this->post('/api/mitra/v6.2/request_pickup', \$payload",
+            $apiRepository,
+            'Request-pickup API repository must forward the complete payload, including package destination phones'
         );
     }
 
