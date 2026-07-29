@@ -379,6 +379,37 @@ final class RequestPickupPaymentFlowTest extends TestCase
     }
 
     #[Test]
+    public function request_pickup_sends_the_resolved_destination_phone_to_the_api(): void
+    {
+        $requestPickupService = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $apiRepository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
+
+        $this->assertStringContainsString(
+            '"destination_phone"         => $destinationData[\'phone\']',
+            $requestPickupService,
+            'Each pickup package must include the phone resolved from the current WooCommerce recipient data'
+        );
+
+        $this->assertStringNotContainsString(
+            "unset(\$package['destination_phone'])",
+            $requestPickupService,
+            'Destination phone must not be removed while preparing the request-pickup API payload'
+        );
+
+        $this->assertStringContainsString(
+            'sendPickupRequestV2($payload)',
+            $requestPickupService,
+            'Pickup service must send the prepared package payload to the request-pickup API'
+        );
+
+        $this->assertStringContainsString(
+            "return \$this->post('/api/mitra/v6.2/request_pickup', \$payload",
+            $apiRepository,
+            'Request-pickup API repository must forward the complete payload, including package destination phones'
+        );
+    }
+
+    #[Test]
     public function platform_shipping_discount_label_distinguishes_from_user_coupon(): void
     {
         $checkoutController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
