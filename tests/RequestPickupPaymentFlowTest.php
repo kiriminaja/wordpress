@@ -360,21 +360,15 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'private function readOrderMetaValue($order, array $keys): string',
+            'RecipientDataResolver',
             $requestPickupService,
-            'Request pickup destination zipcode must support WooCommerce order meta fallbacks'
+            'Request pickup must resolve recipient data from the current WooCommerce order before using the transaction snapshot'
         );
 
         $this->assertStringContainsString(
-            "\$shippingPostcode = \$this->readOrderMetaValue(\$order, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', '_kiriof_checkout_postcode', 'kiriof_checkout_postcode']);",
-            $requestPickupService,
-            'Request pickup destination zipcode must fall back to WooCommerce shipping and billing postcode meta'
-        );
-
-        $this->assertStringContainsString(
-            "\$shippingPostcode = \$this->extractPostcodeFromDestinationText(\$transaction->destination_sub_district ?? '');",
-            $requestPickupService,
-            'Existing request pickup transactions must recover destination zipcode from trailing postal code in district text'
+            'get_order_postcode_meta',
+            file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/RecipientDataResolver.php'),
+            'Recipient resolver must retain WooCommerce order-meta postcode fallbacks for legacy orders'
         );
 
         $this->assertStringContainsString(

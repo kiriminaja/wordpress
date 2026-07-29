@@ -306,6 +306,7 @@ final class InsuranceFeatureTest extends TestCase
     public function pickup_service_uses_customer_name_for_destination_name(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
+        $resolver = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/RecipientDataResolver.php');
 
         $this->assertStringContainsString(
             'private function buildDestinationData($shippingInfo, $order, $transaction): array',
@@ -314,27 +315,21 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "\$shippingFirstName = \$this->readShippingInfoValue(\$shippingInfo, ['_shipping_first_name', 'shipping_first_name']);",
+            'RecipientDataResolver',
             $content,
-            'SendRequestPickupTransactionService must source destination_name from the shipping recipient first name before falling back elsewhere'
+            'SendRequestPickupTransactionService must use the centralized recipient resolver before building destination_name'
         );
 
         $this->assertStringContainsString(
-            "\$shippingLastName  = \$this->readShippingInfoValue(\$shippingInfo, ['_shipping_last_name', 'shipping_last_name']);",
-            $content,
-            'SendRequestPickupTransactionService must source destination_name from the shipping recipient last name before falling back elsewhere'
+            "'first_name' => \$this->first_value( \$shipping['first_name'], \$billing['first_name']",
+            $resolver,
+            'Recipient resolver must prefer the current WooCommerce shipping recipient name'
         );
 
         $this->assertStringContainsString(
-            "\$shippingFirstName = \$billingFirstName;",
-            $content,
-            'SendRequestPickupTransactionService must fall back to the billing first name when shipping recipient data is blank'
-        );
-
-        $this->assertStringContainsString(
-            "\$shippingLastName = \$billingLastName;",
-            $content,
-            'SendRequestPickupTransactionService must fall back to the billing last name when shipping recipient data is blank'
+            "'last_name'  => \$this->first_value( \$shipping['last_name'], \$billing['last_name']",
+            $resolver,
+            'Recipient resolver must use the current WooCommerce billing recipient name when shipping data is blank'
         );
     }
 

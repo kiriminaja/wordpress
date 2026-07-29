@@ -163,20 +163,9 @@ $kiriof_pin_cache_label = sprintf(
             $kiriof_print_base_url = admin_url('admin-post.php?action=kiriof_resi_print');
             $kiriof_adj_nonce = wp_create_nonce(KIRIOF_NONCE);
             if (!empty($kiriof_results)) {
+                $kiriof_recipientResolver = new \KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver();
                 foreach ($kiriof_results as $id => $kiriof_row) {
                     $kiriof_shippingData = json_decode($kiriof_row->shipping_info ?? '{}');
-                    $kiriofReadShippingData = static function ($shippingData, array $keys) {
-                        foreach ($keys as $key) {
-                            if (isset($shippingData->$key)) {
-                                $value = trim((string) $shippingData->$key);
-                                if ('' !== $value) {
-                                    return $value;
-                                }
-                            }
-                        }
-
-                        return '';
-                    };
 
                     // Calculate shipping fee
                     $kiriof_shippingCost = (float) ($kiriof_row->shipping_cost ?? 0);
@@ -190,118 +179,33 @@ $kiriof_pin_cache_label = sprintf(
                         $kiriof_shippingFee += $kiriof_transactionValue + $kiriof_codFee;
                     }
 
-                    // Cache shipping data properties
-                    $kiriof_billingFirstName = $kiriofReadShippingData($kiriof_shippingData, ['_billing_first_name', 'billing_first_name', 'first_name']);
-                    $kiriof_billingLastName = $kiriofReadShippingData($kiriof_shippingData, ['_billing_last_name', 'billing_last_name', 'last_name']);
-                    $kiriof_billingAddress1 = $kiriofReadShippingData($kiriof_shippingData, ['_billing_address_1', 'billing_address_1', 'address_1']);
-                    $kiriof_billingAddress2 = $kiriofReadShippingData($kiriof_shippingData, ['_billing_address_2', 'billing_address_2', 'address_2']);
-                    $kiriof_billingPostcode = $kiriofReadShippingData($kiriof_shippingData, ['_billing_postcode', 'billing_postcode', 'postcode']);
-                    $kiriof_billingPhone   = $kiriofReadShippingData($kiriof_shippingData, ['_billing_phone', 'billing_phone', 'phone']);
-                    $kiriof_shippingPhone  = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_phone', 'shipping_phone', '_billing_phone', 'billing_phone', 'phone']);
-                    $kiriof_shippingFirstName = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_first_name', 'shipping_first_name']);
-                    $kiriof_shippingLastName = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_last_name', 'shipping_last_name']);
-                    $kiriof_shippingAddress1 = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_address_1', 'shipping_address_1', '_billing_address_1', 'billing_address_1', 'address_1']);
-                    $kiriof_shippingAddress2 = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_address_2', 'shipping_address_2', '_billing_address_2', 'billing_address_2', 'address_2']);
-                    $kiriof_shippingCity = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_city', 'shipping_city', '_billing_city', 'billing_city', 'city']);
-                    $kiriof_shippingState = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_state', 'shipping_state', '_billing_state', 'billing_state', 'state']);
-                    $kiriof_shippingCountry = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_country', 'shipping_country', '_billing_country', 'billing_country', 'country']);
-                    $kiriof_shippingPostcode = $kiriofReadShippingData($kiriof_shippingData, ['_shipping_postcode', 'shipping_postcode', '_billing_postcode', 'billing_postcode', 'postcode']);
                     $kiriof_destinationSubDistrict = $kiriof_row->destination_sub_district ?? '';
                     $kiriof_wcOrder = function_exists('wc_get_order') ? wc_get_order($kiriof_row->wc_order_id) : false;
                     $kiriofBillingAddress = $kiriof_wcOrder && method_exists($kiriof_wcOrder, 'get_address') ? (array) $kiriof_wcOrder->get_address('billing') : [];
-                    $kiriofShippingAddress = $kiriof_wcOrder && method_exists($kiriof_wcOrder, 'get_address') ? (array) $kiriof_wcOrder->get_address('shipping') : [];
-                    if ('' === $kiriof_billingFirstName) {
-                        $kiriof_billingFirstName = trim((string) ($kiriofBillingAddress['first_name'] ?? ''));
-                    }
-                    if ('' === $kiriof_billingLastName) {
-                        $kiriof_billingLastName = trim((string) ($kiriofBillingAddress['last_name'] ?? ''));
-                    }
-                    if ('' === $kiriof_billingAddress1) {
-                        $kiriof_billingAddress1 = trim((string) ($kiriofBillingAddress['address_1'] ?? ''));
-                    }
-                    if ('' === $kiriof_billingAddress2) {
-                        $kiriof_billingAddress2 = trim((string) ($kiriofBillingAddress['address_2'] ?? ''));
-                    }
-                    if ('' === $kiriof_billingPostcode) {
-                        $kiriof_billingPostcode = trim((string) ($kiriofBillingAddress['postcode'] ?? ''));
-                    }
-                    if ('' === $kiriof_billingPhone) {
-                        $kiriof_billingPhone = trim((string) ($kiriofBillingAddress['phone'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingFirstName) {
-                        $kiriof_shippingFirstName = trim((string) ($kiriofShippingAddress['first_name'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingLastName) {
-                        $kiriof_shippingLastName = trim((string) ($kiriofShippingAddress['last_name'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingAddress1) {
-                        $kiriof_shippingAddress1 = trim((string) ($kiriofShippingAddress['address_1'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingAddress2) {
-                        $kiriof_shippingAddress2 = trim((string) ($kiriofShippingAddress['address_2'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingCity) {
-                        $kiriof_shippingCity = trim((string) ($kiriofShippingAddress['city'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingState) {
-                        $kiriof_shippingState = trim((string) ($kiriofShippingAddress['state'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingCountry) {
-                        $kiriof_shippingCountry = trim((string) ($kiriofShippingAddress['country'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingPostcode) {
-                        $kiriof_shippingPostcode = trim((string) ($kiriofShippingAddress['postcode'] ?? ''));
-                    }
-                    if ('' === $kiriof_shippingPhone) {
-                        $kiriof_shippingPhone = trim((string) ($kiriofShippingAddress['phone'] ?? ''));
-                    }
-                    if ('' === $kiriof_billingFirstName && $kiriof_wcOrder) {
-                        $kiriof_billingFirstName = (string) $kiriof_wcOrder->get_billing_first_name();
-                    }
-                    if ('' === $kiriof_billingLastName && $kiriof_wcOrder) {
-                        $kiriof_billingLastName = (string) $kiriof_wcOrder->get_billing_last_name();
-                    }
-                    if ('' === $kiriof_billingPhone && $kiriof_wcOrder) {
-                        $kiriof_billingPhone = (string) $kiriof_wcOrder->get_billing_phone();
-                    }
-                    if ('' === $kiriof_shippingFirstName && $kiriof_wcOrder) {
-                        $kiriof_shippingFirstName = (string) $kiriof_wcOrder->get_shipping_first_name();
-                    }
-                    if ('' === $kiriof_shippingLastName && $kiriof_wcOrder) {
-                        $kiriof_shippingLastName = (string) $kiriof_wcOrder->get_shipping_last_name();
-                    }
-                    if ('' === $kiriof_shippingPhone && $kiriof_wcOrder && method_exists($kiriof_wcOrder, 'get_shipping_phone')) {
-                        $kiriof_shippingPhone = (string) $kiriof_wcOrder->get_shipping_phone();
-                    }
-                    if ('' === $kiriof_shippingFirstName) {
-                        $kiriof_shippingFirstName = $kiriof_billingFirstName;
-                    }
-                    if ('' === $kiriof_shippingLastName) {
-                        $kiriof_shippingLastName = $kiriof_billingLastName;
-                    }
-                    if ('' === $kiriof_shippingPhone) {
-                        $kiriof_shippingPhone = $kiriof_billingPhone;
-                    }
+                    $kiriof_recipient = $kiriof_recipientResolver->resolve($kiriof_wcOrder, $kiriof_shippingData, $kiriof_row);
+                    $kiriof_billingFirstName = trim((string) ($kiriofBillingAddress['first_name'] ?? ''));
+                    $kiriof_billingLastName = trim((string) ($kiriofBillingAddress['last_name'] ?? ''));
                     $kiriofBillingName = trim($kiriof_billingFirstName . ' ' . $kiriof_billingLastName);
                     if ('' === $kiriofBillingName && $kiriof_wcOrder && method_exists($kiriof_wcOrder, 'get_formatted_billing_full_name')) {
                         $kiriofBillingName = trim((string) $kiriof_wcOrder->get_formatted_billing_full_name());
                     }
                     if ('' === $kiriofBillingName) {
-                        $kiriofBillingName = trim($kiriof_shippingFirstName . ' ' . $kiriof_shippingLastName);
+                        $kiriofBillingName = trim($kiriof_recipient['first_name'] . ' ' . $kiriof_recipient['last_name']);
                     }
-                    $kiriofShippingName = trim($kiriof_shippingFirstName . ' ' . $kiriof_shippingLastName);
+                    $kiriofShippingName = trim($kiriof_recipient['first_name'] . ' ' . $kiriof_recipient['last_name']);
                     if ('' === $kiriofShippingName && $kiriof_wcOrder && method_exists($kiriof_wcOrder, 'get_formatted_shipping_full_name')) {
                         $kiriofShippingName = trim((string) $kiriof_wcOrder->get_formatted_shipping_full_name());
                     }
                     if ('' === $kiriofShippingName) {
                         $kiriofShippingName = $kiriofBillingName;
                     }
-                    if ('' === $kiriof_shippingPhone && $kiriof_wcOrder) {
-                        $kiriof_shippingPhone = (string) $kiriof_wcOrder->get_meta('_billing_phone', true);
-                    }
-                    if ('' === $kiriof_shippingPhone && $kiriof_wcOrder) {
-                        $kiriof_shippingPhone = (string) $kiriof_wcOrder->get_meta('_shipping_phone', true);
-                    }
+                    $kiriof_shippingPhone = $kiriof_recipient['phone'];
+                    $kiriof_shippingAddress1 = $kiriof_recipient['address_1'];
+                    $kiriof_shippingAddress2 = $kiriof_recipient['address_2'];
+                    $kiriof_shippingCity = $kiriof_recipient['city'];
+                    $kiriof_shippingState = $kiriof_recipient['state'];
+                    $kiriof_shippingCountry = $kiriof_recipient['country'];
+                    $kiriof_shippingPostcode = $kiriof_recipient['postcode'];
                     $kiriof_paymentMethod = $kiriof_wcOrder ? $kiriof_wcOrder->get_payment_method() : ($kiriof_shippingData->_payment_method ?? '');
                     $kiriof_isCod = $kiriof_paymentMethod === 'cod';
 
