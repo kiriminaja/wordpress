@@ -213,6 +213,43 @@ class TransactionRepository{
         
         return !$this->hasError();
     }
+
+    /**
+     * Update a transaction and verify idempotent zero-row writes.
+     *
+     * @param array $payloads Update changes and conditions.
+     * @return bool
+     */
+    public function updateTransactionByCallbackVerified( $payloads ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $updated = $this->wpdb->update( $this->table, $payloads['changes'], $payloads['condition'] );
+
+        if ( false === $updated || $this->hasError() ) {
+            return false;
+        }
+
+        if ( $updated > 0 ) {
+            return true;
+        }
+
+        $order_id = $payloads['condition']['order_id'] ?? '';
+        if ( '' === (string) $order_id ) {
+            return false;
+        }
+
+        $transaction = $this->getTransactionByOrderId( $order_id );
+        if ( ! $transaction ) {
+            return false;
+        }
+
+        foreach ( $payloads['changes'] as $field => $value ) {
+            if ( ! property_exists( $transaction, $field ) || (string) $transaction->{$field} !== (string) $value ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
     
     /**
      * Alias for getTransactionByPickupNumber

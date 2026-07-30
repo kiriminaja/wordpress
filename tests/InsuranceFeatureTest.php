@@ -410,6 +410,12 @@ final class InsuranceFeatureTest extends TestCase
             'Pickup request payload must inspect the main discount amount before deciding whether to send discount_percentage'
         );
 
+        $this->assertStringNotContainsString(
+            "elseif (\$discountPercentage !== null && (float) \$discountPercentage > 0)",
+            $content,
+            'Pickup request payload must not send a stale discount_percentage when discount_amount is zero'
+        );
+
         $this->assertStringContainsString(
             "\$payload['discount_percentage'] = round((\$discountAmount / \$shippingCost) * 100, 2);",
             $content,

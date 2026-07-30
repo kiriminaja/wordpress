@@ -128,7 +128,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
 
         $this->assertStringContainsString(
-            "if (\$paymentMethod !== 'qris' || \$paymentStatus === 'paid')",
+            "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
             $callbackContent,
             'processed_packages webhook must not mark unpaid QRIS payment paid just because AWB exists'
         );
@@ -289,6 +289,25 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'id="kiriof-pin-remember"',
             $controllerContent,
             'Credit PIN modal should render a remember PIN checkbox for temporary browser cache opt-in'
+        );
+
+        $this->assertStringContainsString(
+            "'Remember PIN on this browser for %d minutes'",
+            $controllerContent,
+            'Credit PIN modal renderer must create its own checkbox label instead of relying on template scope'
+        );
+
+        $this->assertStringContainsString(
+            'esc_html($kiriof_pin_cache_label)',
+            $controllerContent,
+            'Credit PIN modal should render the generated remember PIN label beside the checkbox'
+        );
+
+        $adminCss = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-admin-style.css');
+        $this->assertStringContainsString(
+            '.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember',
+            $adminCss,
+            'Credit PIN checkbox label should have explicit readable modal styling'
         );
     }
 

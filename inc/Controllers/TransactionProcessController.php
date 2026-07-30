@@ -485,6 +485,18 @@ class TransactionProcessController
             if (! $this->isTransactionProcessPage() && ! $this->isOrderEditScreen()) {
                 return;
             }
+
+            $kiriof_pin_cache_ttl = (int) apply_filters(
+                'kiriof_pin_cache_ttl',
+                15 * MINUTE_IN_SECONDS,
+                wp_get_current_user()
+            );
+            $kiriof_pin_cache_ttl = max( MINUTE_IN_SECONDS, $kiriof_pin_cache_ttl );
+            $kiriof_pin_cache_label = sprintf(
+                /* translators: %d: cached PIN duration in minutes. */
+                __( 'Remember PIN on this browser for %d minutes', 'kiriminaja-official' ),
+                (int) ceil( $kiriof_pin_cache_ttl / MINUTE_IN_SECONDS )
+            );
             ?>
                 <script type="text/template" id="tmpl-kiriof-modal-cod-adjustment">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cod-adjustment-modal">
@@ -712,7 +724,7 @@ class TransactionProcessController
                                         <pin-input id="kiriof-pin-widget" class="kiriof-pin-widget" length="6" pattern="[0-9]" autocomplete="one-time-code" inputmode="numeric" mask aria-label="<?php esc_attr_e('Enter 6-digit PIN', 'kiriminaja-official'); ?>"></pin-input>
                                         <input type="password" id="kiriof-pin-fallback" class="kiriof-pin-fallback" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="one-time-code" style="display:none;">
                                         <input type="hidden" id="kiriof-pin-input" name="pin" value="">
-                                        <label for="kiriof-pin-remember" class="kiriof-pin-remember" style="display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;">
+                                        <label for="kiriof-pin-remember" class="kiriof-pin-remember">
                                             <input type="checkbox" id="kiriof-pin-remember" name="remember_pin" value="1">
                                             <span><?php echo esc_html($kiriof_pin_cache_label); ?></span>
                                         </label>

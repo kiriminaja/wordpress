@@ -125,8 +125,6 @@ class SendRequestPickupTransactionService extends BaseService
             } else {
                 $payload['discount_percentage'] = 0.0;
             }
-        } elseif ($discountPercentage !== null && (float) $discountPercentage > 0) {
-            $payload['discount_percentage'] = (float) $discountPercentage;
         }
 
         $description = trim((string) ($transaction->woocommerce_discount_description ?? ''));
