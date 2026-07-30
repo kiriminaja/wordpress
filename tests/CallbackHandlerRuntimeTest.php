@@ -1,5 +1,6 @@
 <?php
 use KiriminAjaOfficial\Services\CallbackHandlerService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -14,6 +15,32 @@ if ( ! function_exists( 'kiriof_log' ) ) {
     }
 }
 
+if ( ! function_exists( 'kiriof_helper' ) ) {
+    function kiriof_helper() {
+        return new CallbackHelperFake();
+    }
+}
+
+if ( ! function_exists( 'wc_get_order' ) ) {
+    function wc_get_order( $orderId ) {
+        return $GLOBALS['kiriof_callback_test_orders'][ $orderId ] ?? false;
+    }
+}
+
+if ( ! function_exists( 'remove_action' ) ) {
+    function remove_action( $hook, $callback ) {
+        $GLOBALS['kiriof_callback_test_hooks'][] = array( 'remove', $hook, $callback );
+        return true;
+    }
+}
+
+if ( ! function_exists( 'add_action' ) ) {
+    function add_action( $hook, $callback ) {
+        $GLOBALS['kiriof_callback_test_hooks'][] = array( 'add', $hook, $callback );
+        return true;
+    }
+}
+
 require_once PLUGIN_DIR . '/inc/Utils/ServiceResponse.php';
 require_once PLUGIN_DIR . '/inc/Base/BaseService.php';
 require_once PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php';
@@ -21,6 +48,8 @@ require_once PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php';
 final class CallbackHandlerRuntimeTest extends TestCase {
     protected function setUp(): void {
         $GLOBALS['kiriof_callback_test_logs'] = array();
+        $GLOBALS['kiriof_callback_test_hooks'] = array();
+        $GLOBALS['kiriof_callback_test_orders'] = array();
     }
 
     #[Test]
@@ -179,13 +208,107 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $this->assertSame( 'Authorization failed', $response->message );
     }
 
+    #[Test]
+    #[DataProvider( 'packageEventProvider' )]
+    public function package_event_updates_expected_transaction_and_order(
+        string $method,
+        array $packageData,
+        array $expectedChanges,
+        ?string $expectedOrderStatus,
+        bool $expectsCancelHooks
+    ): void {
+        $transactionRepository = new CallbackTransactionRepositoryFake(
+            array( $this->transaction( 'ORDER-1', 'PICKUP-1' ) )
+        );
+        $paymentRepository = new CallbackPaymentRepositoryFake( array() );
+        $order = new CallbackOrderFake( 'processing' );
+        $GLOBALS['kiriof_callback_test_orders'][1] = $order;
+
+        $response = $this->eventService(
+            $transactionRepository,
+            $paymentRepository,
+            $method,
+            array( (object) array_merge( array( 'order_id' => 'ORDER-1' ), $packageData ) )
+        )->call();
+
+        $this->assertSame( 200, $response->status );
+        foreach ( $expectedChanges as $field => $value ) {
+            $this->assertSame( $value, $transactionRepository->transactions['ORDER-1']->{$field} );
+        }
+        $this->assertSame( $expectedOrderStatus, $order->updatedStatus );
+        $this->assertCount( $expectsCancelHooks ? 2 : 0, $GLOBALS['kiriof_callback_test_hooks'] );
+    }
+
+    public static function packageEventProvider(): array {
+        return array(
+            'return finished' => array(
+                'return_finished_packages',
+                array( 'date' => '2026-07-30 10:00:00' ),
+                array( 'return_finished_at' => '2026-07-30 10:00:00', 'status' => 'returned' ),
+                'cancelled',
+                false,
+            ),
+            'shipped' => array(
+                'shipped_packages',
+                array( 'shipped_at' => '2026-07-30 11:00:00' ),
+                array( 'shipped_at' => '2026-07-30 11:00:00', 'status' => 'shipped' ),
+                null,
+                false,
+            ),
+            'finished' => array(
+                'finished_packages',
+                array( 'finished_at' => '2026-07-30 12:00:00' ),
+                array( 'finished_at' => '2026-07-30 12:00:00', 'status' => 'finished' ),
+                'completed',
+                false,
+            ),
+            'returned' => array(
+                'returned_packages',
+                array( 'returned_at' => '2026-07-30 13:00:00' ),
+                array( 'returned_at' => '2026-07-30 13:00:00', 'status' => 'return' ),
+                null,
+                false,
+            ),
+            'validated' => array(
+                'validated_packages',
+                array( 'shipping_cost' => '25000' ),
+                array( 'shipping_cost' => '25000' ),
+                null,
+                false,
+            ),
+            'rejected' => array(
+                'rejected_packages',
+                array( 'rejected_at' => '2026-07-30 14:00:00', 'reason' => 'Invalid address' ),
+                array( 'rejected_at' => '2026-07-30 14:00:00', 'rejected_reason' => 'Invalid address', 'status' => 'rejected' ),
+                null,
+                false,
+            ),
+            'canceled' => array(
+                'canceled_packages',
+                array( 'canceled_at' => '2026-07-30 15:00:00' ),
+                array( 'canceled_at' => '2026-07-30 15:00:00', 'status' => 'canceled' ),
+                'cancelled',
+                true,
+            ),
+        );
+    }
+
     private function service( $transactionRepository, $paymentRepository ): CallbackHandlerService {
-        $body = (object) array(
-            'method' => 'processed_packages',
-            'data'   => array(
+        return $this->eventService(
+            $transactionRepository,
+            $paymentRepository,
+            'processed_packages',
+            array(
                 (object) array( 'order_id' => 'ORDER-1', 'awb' => 'AWB-1' ),
                 (object) array( 'order_id' => 'ORDER-2', 'awb' => 'AWB-2' ),
-            ),
+            )
+        );
+    }
+
+    private function eventService( $transactionRepository, $paymentRepository, $method, $packages ): CallbackHandlerService {
+        $body = (object) array(
+            'method' => $method,
+            'data'   => $packages,
         );
 
         return ( new CallbackHandlerService( $transactionRepository, $paymentRepository, 'secret' ) )
@@ -208,6 +331,30 @@ final class CallbackHandlerRuntimeTest extends TestCase {
             'method'        => $method,
             'status'        => $status,
         );
+    }
+}
+
+final class CallbackHelperFake {
+    public function dateConvertGMT( $date ) {
+        return $date;
+    }
+}
+
+final class CallbackOrderFake {
+    public ?string $updatedStatus = null;
+    private string $status;
+
+    public function __construct( $status ) {
+        $this->status = $status;
+    }
+
+    public function get_status() {
+        return $this->status;
+    }
+
+    public function update_status( $status ) {
+        $this->status        = $status;
+        $this->updatedStatus = $status;
     }
 }
 
