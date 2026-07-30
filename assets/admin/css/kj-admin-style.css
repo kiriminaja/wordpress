@@ -973,6 +973,28 @@ button.select2-selection__clear {
   outline: none;
 }
 
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember {
+  align-items: flex-start;
+  color: #1d2327;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  line-height: 1.45;
+  margin: 16px 0 0;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember input {
+  flex: 0 0 auto;
+  margin: 1px 0 0;
+}
+
+.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember span {
+  display: inline;
+  visibility: visible;
+}
+
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-widget::part(wrapper) {
   display: flex;
   gap: 10px;

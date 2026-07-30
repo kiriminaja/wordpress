@@ -290,6 +290,25 @@ final class RequestPickupPaymentFlowTest extends TestCase
             $controllerContent,
             'Credit PIN modal should render a remember PIN checkbox for temporary browser cache opt-in'
         );
+
+        $this->assertStringContainsString(
+            "'Remember PIN on this browser for %d minutes'",
+            $controllerContent,
+            'Credit PIN modal renderer must create its own checkbox label instead of relying on template scope'
+        );
+
+        $this->assertStringContainsString(
+            'esc_html($kiriof_pin_cache_label)',
+            $controllerContent,
+            'Credit PIN modal should render the generated remember PIN label beside the checkbox'
+        );
+
+        $adminCss = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-admin-style.css');
+        $this->assertStringContainsString(
+            '.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember',
+            $adminCss,
+            'Credit PIN checkbox label should have explicit readable modal styling'
+        );
     }
 
     #[Test]
