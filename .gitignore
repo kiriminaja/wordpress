@@ -7,3 +7,4 @@ vendor
 build
 .phpunit.cache
 .env
+.paratest.cache

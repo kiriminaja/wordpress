@@ -150,8 +150,29 @@ class ShipmentLocationService
             || !empty($origin['origin_sub_district_id'])
             || !empty($origin['origin_zip_code']);
 
+        // Fall back to the native WooCommerce Store Address values so the
+        // default location is always populated from the existing store data.
+        if (!$hasOrigin) {
+            $origin['origin_address']  = (string) get_option( 'woocommerce_store_address', '' );
+            $origin['origin_zip_code'] = (string) get_option( 'woocommerce_store_postcode', '' );
+            $hasOrigin                 = '' !== $origin['origin_address'] || '' !== $origin['origin_zip_code'];
+        }
+
+        // Always backfill the remaining native Store Address fields so the
+        // seeded default location mirrors the full WooCommerce store address.
+        $origin['origin_address_2'] = (string) get_option( 'woocommerce_store_address2', '' );
+        $origin['origin_city']      = (string) get_option( 'woocommerce_store_city', '' );
+        $origin['origin_country']   = (string) get_option( 'woocommerce_default_country', '' );
+
         if (!$hasOrigin) {
             return false;
+        }
+
+        $seed_country_state = isset($origin['origin_country']) ? $origin['origin_country'] : '';
+        $seed_country       = $seed_country_state;
+        $seed_state         = '';
+        if (false !== strpos($seed_country_state, ':')) {
+            list($seed_country, $seed_state) = explode(':', $seed_country_state, 2);
         }
 
         return $this->repository->insert(array(
@@ -160,6 +181,10 @@ class ShipmentLocationService
             'address'         => isset($origin['origin_address']) ? $origin['origin_address'] : '',
             'sub_district_id' => isset($origin['origin_sub_district_id']) ? (int) $origin['origin_sub_district_id'] : 0,
             'zip_code'        => isset($origin['origin_zip_code']) ? $origin['origin_zip_code'] : '',
+            'address_2'       => isset($origin['origin_address_2']) ? $origin['origin_address_2'] : '',
+            'city'            => isset($origin['origin_city']) ? $origin['origin_city'] : '',
+            'country'         => $seed_country,
+            'state'           => $seed_state,
             'latitude'        => isset($origin['origin_latitude']) ? $origin['origin_latitude'] : '',
             'longitude'       => isset($origin['origin_longitude']) ? $origin['origin_longitude'] : '',
             'is_default'      => 1,

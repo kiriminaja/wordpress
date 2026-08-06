@@ -3395,3 +3395,9 @@ msgstr "Lokasi pengiriman dikelola di pengaturan Umum WooCommerce pada Alamat To
 
 msgid "Open Store Address settings"
 msgstr "Buka pengaturan Alamat Toko"
+msgid "Address line 2"
+msgstr "Alamat baris 2"
+
+msgid "Country / State"
+msgstr "Negara / Negara Bagian"
+

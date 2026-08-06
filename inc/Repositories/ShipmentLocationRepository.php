@@ -61,6 +61,10 @@ class ShipmentLocationRepository
             'address'         => isset($data['address']) ? sanitize_textarea_field($data['address']) : '',
             'sub_district_id' => isset($data['sub_district_id']) ? (int) $data['sub_district_id'] : 0,
             'sub_district_name' => isset($data['sub_district_name']) ? sanitize_text_field($data['sub_district_name']) : '',
+            'address_2'         => isset($data['address_2']) ? sanitize_text_field($data['address_2']) : '',
+            'city'              => isset($data['city']) ? sanitize_text_field($data['city']) : '',
+            'state'             => isset($data['state']) ? sanitize_text_field($data['state']) : '',
+            'country'           => isset($data['country']) ? sanitize_text_field($data['country']) : '',
             'zip_code'        => isset($data['zip_code']) ? sanitize_text_field($data['zip_code']) : '',
             'latitude'        => isset($data['latitude']) ? sanitize_text_field($data['latitude']) : '',
             'longitude'       => isset($data['longitude']) ? sanitize_text_field($data['longitude']) : '',
@@ -74,7 +78,7 @@ class ShipmentLocationRepository
         $inserted = $wpdb->insert(
             $this->getTableName(),
             $payload,
-            array('%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s')
+            array('%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s')
         );
 
         if (false === $inserted) {
@@ -115,6 +119,10 @@ class ShipmentLocationRepository
             'address'         => '%s',
             'sub_district_id' => '%d',
             'sub_district_name' => '%s',
+            'address_2'         => '%s',
+            'city'              => '%s',
+            'state'             => '%s',
+            'country'           => '%s',
             'zip_code'        => '%s',
             'latitude'        => '%s',
             'longitude'       => '%s',

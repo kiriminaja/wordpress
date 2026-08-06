@@ -536,7 +536,7 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "array( 'woocommerce_store_address', 'woocommerce_store_address2', 'woocommerce_store_postcode' )",
+            "array( 'woocommerce_store_address', 'woocommerce_store_address2', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_default_country' )",
             $controller,
             'Native single-store address fields must be replaced by the per-location table'
         );

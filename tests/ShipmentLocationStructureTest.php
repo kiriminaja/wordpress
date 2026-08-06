@@ -29,9 +29,18 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( 'kiriof_locations[', $source );
         $this->assertStringContainsString( 'kiriof_default_location_id', $source );
         $this->assertStringContainsString( 'kiriof-wc-location-row', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-card', $source );
+        $this->assertStringContainsString( 'Add Shipment Location', $source );
+        $this->assertStringContainsString( 'kiriof-wc-locations-table', $source );
+        $this->assertStringContainsString( 'wc-shipping-zones widefat', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-summary', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-editor-row', $source );
         $this->assertStringContainsString( 'kiriof-wc-origin-area-select', $source );
         $this->assertStringContainsString( 'kiriof-wc-origin-map', $source );
-        $this->assertStringContainsString( 'renderShipmentLocationRow( 0, null )', $source );
+        $this->assertStringContainsString( 'renderShipmentLocationRow( 0, null, true )', $source );
+        $this->assertStringNotContainsString( 'kiriof-wc-locations-cards', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-card', $source );
+        $this->assertStringContainsString( "get_option( 'woocommerce_store_address' )", $source );
         $this->assertStringNotContainsString( "'id'       => 'kiriof_wc_origin_name',", $source );
         $this->assertStringNotContainsString( "'id'      => 'kiriof_wc_origin_pin_location',", $source );
     }
@@ -48,6 +57,13 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( "update_option( 'woocommerce_store_address', \$payload['origin_address'] );", $source );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_postcode', \$payload['origin_zip_code'] );", $source );
         $this->assertStringContainsString( 'storeOriginMirrorData( $payload );', $source );
+    }
+
+    public function testSeedFallsBackToNativeWooCommerceStoreAddress(): void {
+        $source = $this->read( __DIR__ . '/../inc/Services/ShipmentLocationService.php' );
+
+        $this->assertStringContainsString( "get_option( 'woocommerce_store_address', '' )", $source );
+        $this->assertStringContainsString( "get_option( 'woocommerce_store_postcode', '' )", $source );
     }
 
     public function testShippingSectionIsPointerToGeneralSettings(): void {
@@ -69,5 +85,24 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( '`sub_district_name` varchar(191) NOT NULL DEFAULT \'\',', $migration );
         $this->assertStringContainsString( "'sub_district_name' => isset(\$data['sub_district_name']) ? sanitize_text_field(\$data['sub_district_name']) : '',", $repository );
         $this->assertStringContainsString( "'sub_district_name' => '%s',", $repository );
+
+        foreach ( array( 'address_2', 'city', 'state', 'country' ) as $column ) {
+            $this->assertStringContainsString( '`' . $column . '`', $migration );
+            $this->assertMatchesRegularExpression( "/'" . $column . "'\s*=>/", $repository );
+        }
+    }
+
+    public function testGeneralSettingsStoreAddressHoldsFullNativeFieldsPerLocation(): void {
+        $controller = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
+
+        $this->assertStringContainsString( 'Address line 2', $controller );
+        $this->assertStringContainsString( 'Country / State', $controller );
+        $this->assertStringContainsString( 'kiriof-wc-location-country', $controller );
+        $this->assertStringContainsString( 'renderCountryStateOptions', $controller );
+        $this->assertStringContainsString( "'woocommerce_store_city', 'woocommerce_default_country'", $controller );
+        $this->assertStringContainsString( "update_option( 'woocommerce_store_address2'", $controller );
+        $this->assertStringContainsString( "update_option( 'woocommerce_store_city'", $controller );
+        $this->assertStringContainsString( "update_option( 'woocommerce_default_country'", $controller );
+        $this->assertStringContainsString( 'woocommerce_store_address2', $controller );
     }
 }
