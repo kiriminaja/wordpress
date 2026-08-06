@@ -3266,3 +3266,114 @@ msgstr "WordPress.org dapat membutuhkan waktu hingga 24 jam untuk menerbitkan ri
 
 msgid "If you do not see this version in Plugins, open the WordPress.org plugin page and install it manually."
 msgstr "Jika versi ini belum terlihat di halaman Plugin, buka halaman plugin di WordPress.org lalu pasang secara manual."
+
+msgid "Actions"
+msgstr "Tindakan"
+
+msgid "Activate"
+msgstr "Aktifkan"
+
+msgid "Active"
+msgstr "Aktif"
+
+msgid "Add New"
+msgstr "Tambah Baru"
+
+msgid "Add Shipment Location"
+msgstr "Tambah Lokasi Pengiriman"
+
+msgid "Deactivate"
+msgstr "Nonaktifkan"
+
+msgid "Delete"
+msgstr "Hapus"
+
+msgid "Delete this shipment location?"
+msgstr "Hapus lokasi pengiriman ini?"
+
+msgid "Edit Shipment Location"
+msgstr "Edit Lokasi Pengiriman"
+
+msgid "For example: Jakarta warehouse."
+msgstr "Contoh: gudang Jakarta."
+
+msgid "Inactive"
+msgstr "Tidak Aktif"
+
+msgid "Latitude"
+msgstr "Lintang"
+
+msgid "Location"
+msgstr "Lokasi"
+
+msgid "Location name"
+msgstr "Nama lokasi"
+
+msgid "Locations"
+msgstr "Lokasi"
+
+msgid "Longitude"
+msgstr "Bujur"
+
+msgid "Make default"
+msgstr "Jadikan default"
+
+msgid "Manage the fulfillment origins used by your products. Products without an assigned location use the default location."
+msgstr "Kelola asal pemenuhan pesanan yang digunakan produk Anda. Produk tanpa lokasi yang ditetapkan akan menggunakan lokasi default."
+
+msgid "No shipment locations found."
+msgstr "Tidak ada lokasi pengiriman."
+
+msgid "Save Location"
+msgstr "Simpan Lokasi"
+
+msgid "Shipment Locations"
+msgstr "Lokasi Pengiriman"
+
+msgid "Shipment location saved."
+msgstr "Lokasi pengiriman disimpan."
+
+msgid "Sub-district ID"
+msgstr "ID Kecamatan"
+
+msgid "The shipment location could not be changed. A default location must remain active and cannot be deleted."
+msgstr "Lokasi pengiriman tidak dapat diubah. Lokasi default harus tetap aktif dan tidak dapat dihapus."
+
+msgid "Use the KiriminAja sub-district ID for shipping-rate calculation."
+msgstr "Gunakan ID kecamatan KiriminAja untuk menghitung tarif pengiriman."
+
+msgid "You do not have permission to manage shipment locations."
+msgstr "Anda tidak memiliki izin untuk mengelola lokasi pengiriman."
+
+msgid "Zip code"
+msgstr "Kode pos"
+
+msgid "Origin used to calculate shipping and fulfill this product."
+msgstr "Asal yang digunakan untuk menghitung ongkos kirim dan memenuhi produk ini."
+
+msgid "Shipment location"
+msgstr "Lokasi pengiriman"
+
+msgid "Use default shipment location"
+msgstr "Gunakan lokasi pengiriman default"
+
+msgid "Use parent product location"
+msgstr "Gunakan lokasi produk induk"
+
+msgid "Default Location"
+msgstr "Lokasi Default"
+
+msgid "Manage shipment locations"
+msgstr "Kelola lokasi pengiriman"
+
+msgid "This option is managed by the KiriminAja plugin and determines the origin used to calculate shipping and fulfill this product."
+msgstr "Opsi ini dikelola oleh plugin KiriminAja dan menentukan asal yang digunakan untuk menghitung ongkos kirim serta memenuhi produk ini."
+
+msgid "This option is managed by the KiriminAja plugin. Select a location only to override the parent product location for this variation."
+msgstr "Opsi ini dikelola oleh plugin KiriminAja. Pilih lokasi hanya untuk mengganti lokasi produk induk pada variasi ini."
+
+msgid "Default shipment location:"
+msgstr "Lokasi pengiriman default:"
+
+msgid "Products without an assigned shipment location use this origin."
+msgstr "Produk tanpa lokasi pengiriman yang ditetapkan menggunakan asal ini."

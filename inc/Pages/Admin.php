@@ -49,6 +49,16 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
+                    'page_title'=>__( 'Shipment Locations', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Locations', 'kiriminaja-official' ),
+                    'capability'=>'manage_woocommerce',
+                    'menu_slug'=>'kiriminaja-shipment-locations',
+                    'callback'=> function() {
+                        ( new \KiriminAjaOfficial\Controllers\ShipmentLocationController() )->redirectLegacyPage();
+                    }
+                ],
+                [
+                    'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',

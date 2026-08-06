@@ -273,6 +273,9 @@ function kiriof_activate_plugin() {
     }
 
     (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+    if ( class_exists( '\\KiriminAjaOfficial\\Services\\ShipmentLocationService' ) ) {
+        ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->seedDefaultFromGlobalOrigin();
+    }
     (new \KiriminAjaOfficial\Base\Activate())->activate();
     (new \KiriminAjaOfficial\Pages\AdminPost())->register();
 
@@ -312,6 +315,9 @@ function kiriof_plugin_update_migration( $upgrader_object, $options ) {
                     // Run migration only if class exists
 					if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
 						(new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+					}
+					if ( class_exists( '\\KiriminAjaOfficial\\Services\\ShipmentLocationService' ) ) {
+						( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->seedDefaultFromGlobalOrigin();
 					}
 					if ( class_exists( '\KiriminAjaOfficial\Services\OnboardingSetupStateService' ) ) {
 						$state_service = new \KiriminAjaOfficial\Services\OnboardingSetupStateService();

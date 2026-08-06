@@ -19,7 +19,9 @@ final class Init {
             Pages\Onboarding::class,
             Pages\Admin::class,
             Services\PluginUpdateNoticeService::class,
+            Services\ShipmentLocationService::class,
             Controllers\ProductController::class,
+            Controllers\ShipmentLocationController::class,
             Controllers\SettingController::class,
             Controllers\CallbackController::class,
             Controllers\GeneralAjaxController::class,
@@ -38,6 +40,7 @@ final class Init {
      * @return void
      */
     public static function register_services(){
+        (new Services\ShipmentLocationService())->seedDefaultFromGlobalOrigin();
         foreach (self::get_services() as $class){
             $service = self::instantiate($class);
             if (method_exists($service,'register')){

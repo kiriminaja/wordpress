@@ -1,6 +1,8 @@
 <?php 
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Services\ShipmentLocationService;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -17,13 +19,15 @@ class ProductController{
          * General product Tab Custom Field
          */
         add_action( 'woocommerce_product_options_general_product_data', [$this,'kiriof_custom_field_shipping_product'] ); 
+        add_action( 'add_meta_boxes_product', array( $this, 'register_shipment_location_meta_box' ) );
         
         /**
          * save product custom field
          */ 
         add_action( 'woocommerce_process_product_meta', [$this,'kiriof_save_product_custom_fields'] );
         
-        add_action('woocommerce_product_options_general_product_data', array($this,'kiriof_editproduct_nonce') );
+        add_action( 'woocommerce_product_after_variable_attributes', [$this, 'render_variation_shipment_location_field'], 10, 3 );
+        add_action( 'woocommerce_save_product_variation', [$this, 'save_variation_shipment_location_field'], 10, 2 );
 
         add_filter( 'manage_edit-product_columns', array( $this, 'kiriof_add_product_volumetric_column' ), 20 );
         add_action( 'manage_product_posts_custom_column', array( $this, 'kiriof_render_product_volumetric_column' ), 10, 2 );
@@ -36,8 +40,77 @@ class ProductController{
         include_once KIRIOF_DIR .'templates/product/general-wc-tab-setting.php'; 
     }
 
-    public function kiriof_editproduct_nonce() {
+    public function register_shipment_location_meta_box() {
+        add_meta_box(
+            'kiriof-shipment-locations',
+            __( 'Shipment Locations', 'kiriminaja-official' ),
+            array( $this, 'render_shipment_location_meta_box' ),
+            'product',
+            'side',
+            'high'
+        );
+    }
+
+    public function render_shipment_location_meta_box( $post ) {
+        $locations = ( new ShipmentLocationService() )->repository()->getAll( true );
+        $value     = get_post_meta( $post->ID, ShipmentLocationService::META_KEY, true );
+
         wp_nonce_field( KIRIOF_NONCE, 'kiriof_product_nonce_field' );
+        ?>
+        <p><?php esc_html_e( 'This option is managed by the KiriminAja plugin and determines the origin used to calculate shipping and fulfill this product.', 'kiriminaja-official' ); ?></p>
+        <p>
+            <label for="<?php echo esc_attr( ShipmentLocationService::META_KEY ); ?>"><strong><?php esc_html_e( 'Shipment location', 'kiriminaja-official' ); ?></strong></label>
+            <select class="widefat" id="<?php echo esc_attr( ShipmentLocationService::META_KEY ); ?>" name="<?php echo esc_attr( ShipmentLocationService::META_KEY ); ?>">
+                <option value=""><?php esc_html_e( 'Use default shipment location', 'kiriminaja-official' ); ?></option>
+                <?php foreach ( $locations as $location ) : ?>
+                    <option value="<?php echo esc_attr( $location->id ); ?>" <?php selected( (string) $value, (string) $location->id ); ?>><?php echo esc_html( $location->name ); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </p>
+        <p class="description">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=shipping&section=kiriminaja_shipment_locations' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
+        </p>
+        <?php
+    }
+
+    public function render_variation_shipment_location_field($loop, $variation_data, $variation) {
+        $this->render_location_select((int) $variation->ID, ShipmentLocationService::META_KEY . '[' . (int) $variation->ID . ']', true);
+    }
+
+    private function render_location_select($post_id, $field_id, $inherit) {
+        $locations = (new ShipmentLocationService())->repository()->getAll(true);
+        if (empty($locations)) {
+            return;
+        }
+        $options = array('' => $inherit ? __('Use parent product location', 'kiriminaja-official') : __('Use default shipment location', 'kiriminaja-official'));
+        foreach ($locations as $location) {
+            $options[(string) $location->id] = $location->name;
+        }
+        woocommerce_wp_select(array(
+            'id' => $field_id,
+            'label' => __('Shipment location', 'kiriminaja-official'),
+            'description' => __( 'This option is managed by the KiriminAja plugin. Select a location only to override the parent product location for this variation.', 'kiriminaja-official' ),
+            'desc_tip' => true,
+            'options' => $options,
+            'value' => get_post_meta($post_id, ShipmentLocationService::META_KEY, true),
+        ));
+    }
+
+    public function save_variation_shipment_location_field($variation_id, $loop) {
+        // Nonce is supplied on the parent product edit form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $locations = isset($_POST[ShipmentLocationService::META_KEY]) ? wp_unslash($_POST[ShipmentLocationService::META_KEY]) : array();
+        $this->save_shipment_location_meta($variation_id, is_array($locations) && isset($locations[$variation_id]) ? $locations[$variation_id] : '');
+    }
+
+    private function save_shipment_location_meta($post_id, $value) {
+        $location_id = absint($value);
+        $location = $location_id ? (new ShipmentLocationService())->repository()->getById($location_id) : null;
+        if ($location && (int) $location->is_active === 1) {
+            update_post_meta($post_id, ShipmentLocationService::META_KEY, $location_id);
+            return;
+        }
+        delete_post_meta($post_id, ShipmentLocationService::META_KEY);
     }
 
     public function kiriof_save_product_custom_fields($post_id){
@@ -53,6 +126,11 @@ class ProductController{
         if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
             return;
         }
+
+        // Nonce and capability were verified above.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $shipment_location = isset($_POST[ShipmentLocationService::META_KEY]) ? wp_unslash($_POST[ShipmentLocationService::META_KEY]) : '';
+        $this->save_shipment_location_meta($post_id, $shipment_location);
 
         /**
          * Read a numeric dimension/weight value from $_POST as a non-negative float string.

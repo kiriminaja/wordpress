@@ -15,6 +15,7 @@ class SetupMigration {
         self::transactionsTable();
         self::paymentsTable();
         self::regionCacheTables();
+        self::shipmentLocationTable();
     }
     
     private function settingsTable(){
@@ -252,5 +253,40 @@ class SetupMigration {
 
         dbDelta($provinces_sql);
         dbDelta($cities_sql);
+    }
+
+    /**
+     * Shipment Locations Table.
+     *
+     * Stores independent fulfillment origins for the multi-origin shipping
+     * feature. One row is flagged as the active default fallback.
+     */
+    private function shipmentLocationTable(){
+        global $wpdb;
+
+        require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
+
+        $table_name      = esc_sql( $wpdb->prefix . 'kiriminaja_shipment_location' );
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE `" . $table_name . "`(
+            `id` bigint(20) NOT NULL AUTO_INCREMENT,
+            `name` varchar(191) NOT NULL DEFAULT '',
+            `phone` varchar(50) NOT NULL DEFAULT '',
+            `address` text NULL,
+            `sub_district_id` bigint(20) NOT NULL DEFAULT 0,
+            `zip_code` varchar(20) NOT NULL DEFAULT '',
+            `latitude` varchar(50) NOT NULL DEFAULT '',
+            `longitude` varchar(50) NOT NULL DEFAULT '',
+            `is_default` tinyint(1) NOT NULL DEFAULT 0,
+            `is_active` tinyint(1) NOT NULL DEFAULT 1,
+            `created_at` timestamp NULL DEFAULT NULL,
+            `updated_at` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `is_default` (`is_default`),
+            KEY `is_active` (`is_active`)
+        ) " . $charset_collate . ";";
+
+        dbDelta($sql);
     }
 }
