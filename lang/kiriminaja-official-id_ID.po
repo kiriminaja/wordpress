@@ -3377,3 +3377,21 @@ msgstr "Lokasi pengiriman default:"
 
 msgid "Products without an assigned shipment location use this origin."
 msgstr "Produk tanpa lokasi pengiriman yang ditetapkan menggunakan asal ini."
+
+msgid "Zip"
+msgstr "Kode Pos"
+
+msgid "Remove"
+msgstr "Hapus"
+
+msgid "Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment."
+msgstr "Setiap lokasi adalah asal pemenuhan independen. Lokasi default digunakan ketika produk tidak memiliki penetapan eksplisit."
+
+msgid "This option is managed by the KiriminAja plugin. Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment."
+msgstr "Opsi ini dikelola oleh plugin KiriminAja. Setiap lokasi adalah asal pemenuhan independen. Lokasi default digunakan ketika produk tidak memiliki penetapan eksplisit."
+
+msgid "Shipment locations are managed in WooCommerce General settings under Store Address."
+msgstr "Lokasi pengiriman dikelola di pengaturan Umum WooCommerce pada Alamat Toko."
+
+msgid "Open Store Address settings"
+msgstr "Buka pengaturan Alamat Toko"

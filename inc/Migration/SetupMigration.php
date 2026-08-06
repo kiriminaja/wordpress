@@ -275,6 +275,7 @@ class SetupMigration {
             `phone` varchar(50) NOT NULL DEFAULT '',
             `address` text NULL,
             `sub_district_id` bigint(20) NOT NULL DEFAULT 0,
+            `sub_district_name` varchar(191) NOT NULL DEFAULT '',
             `zip_code` varchar(20) NOT NULL DEFAULT '',
             `latitude` varchar(50) NOT NULL DEFAULT '',
             `longitude` varchar(50) NOT NULL DEFAULT '',

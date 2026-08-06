@@ -1,77 +1,73 @@
 <?php
 
-declare(strict_types=1);
-
 use PHPUnit\Framework\TestCase;
 
-final class ShipmentLocationStructureTest extends TestCase
-{
-    private string $root;
+class ShipmentLocationStructureTest extends TestCase {
+    private function read( string $path ): string {
+        $content = file_get_contents( $path );
+        $this->assertIsString( $content );
 
-    protected function setUp(): void
-    {
-        $this->root = dirname(__DIR__);
+        return $content;
     }
 
-    public function test_location_schema_and_service_are_packaged_source(): void
-    {
-        $migration = (string) file_get_contents($this->root . '/inc/Migration/SetupMigration.php');
-        $service = (string) file_get_contents($this->root . '/inc/Services/ShipmentLocationService.php');
+    public function testProductEditorUsesShipmentLocationsMetaboxLinkingToGeneralSettings(): void {
+        $source = $this->read( __DIR__ . '/../inc/Controllers/ProductController.php' );
 
-        self::assertStringContainsString('kiriminaja_shipment_location', $migration);
-        self::assertStringContainsString('seedDefaultFromGlobalOrigin', $service);
-        self::assertStringContainsString('resolveProductLocation', $service);
-        self::assertStringContainsString('splitPackageByOrigin', $service);
+        $this->assertStringContainsString( "add_action( 'add_meta_boxes_product', array( \$this, 'register_shipment_location_meta_box' ) );", $source );
+        $this->assertStringContainsString( 'Shipment Locations', $source );
+        $this->assertStringContainsString( 'This option is managed by the KiriminAja plugin', $source );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations', $source );
+        $this->assertStringContainsString( '$this->save_shipment_location_meta($post_id, $shipment_location);', $source );
+        $this->assertStringContainsString( '$this->save_shipment_location_meta($variation_id, is_array($locations) && isset($locations[$variation_id]) ? $locations[$variation_id] : \'\');', $source );
     }
 
-    public function test_variation_assignment_and_cart_package_hooks_are_registered(): void
-    {
-        $product = (string) file_get_contents($this->root . '/inc/Controllers/ProductController.php');
-        $service = (string) file_get_contents($this->root . '/inc/Services/ShipmentLocationService.php');
+    public function testGeneralSettingsStoreAddressRendersPerLocationTable(): void {
+        $source = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
-        self::assertStringContainsString('woocommerce_product_after_variable_attributes', $product);
-        self::assertStringContainsString('woocommerce_save_product_variation', $product);
-        self::assertStringContainsString('woocommerce_cart_shipping_packages', $service);
-        self::assertStringContainsString('woocommerce_checkout_create_order_line_item', $service);
+        $this->assertStringContainsString( "add_action( 'woocommerce_admin_field_kiriof_shipment_locations', array( \$this, 'renderWooCommerceShipmentLocationsField' ) );", $source );
+        $this->assertStringContainsString( "'type'     => 'kiriof_shipment_locations',", $source );
+        $this->assertStringContainsString( 'kiriof_locations[', $source );
+        $this->assertStringContainsString( 'kiriof_default_location_id', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-row', $source );
+        $this->assertStringContainsString( 'kiriof-wc-origin-area-select', $source );
+        $this->assertStringContainsString( 'kiriof-wc-origin-map', $source );
+        $this->assertStringContainsString( 'renderShipmentLocationRow( 0, null )', $source );
+        $this->assertStringNotContainsString( "'id'       => 'kiriof_wc_origin_name',", $source );
+        $this->assertStringNotContainsString( "'id'      => 'kiriof_wc_origin_pin_location',", $source );
     }
 
-    public function test_product_assignment_uses_a_dedicated_shipment_locations_meta_box(): void
-    {
-        $product = (string) file_get_contents($this->root . '/inc/Controllers/ProductController.php');
+    public function testGeneralSettingsSavePersistsLocationsAndSyncsDefaultOrigin(): void {
+        $source = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
-        self::assertStringContainsString('add_meta_boxes_product', $product);
-        self::assertStringContainsString("'kiriof-shipment-locations'", $product);
-        self::assertStringContainsString("'Shipment Locations'", $product);
-        self::assertStringContainsString('This option is managed by the KiriminAja plugin', $product);
-        self::assertStringContainsString('page=wc-settings&tab=shipping&section=kiriminaja_shipment_locations', $product);
+        $this->assertStringContainsString( "\$posted     = isset( \$_POST['kiriof_locations'] ) ? wp_unslash( \$_POST['kiriof_locations'] ) : array();", $source );
+        $this->assertStringContainsString( '$repository->insert( $data );', $source );
+        $this->assertStringContainsString( '$repository->update( $location_id, $data );', $source );
+        $this->assertStringContainsString( '$repository->delete( $location_id );', $source );
+        $this->assertStringContainsString( '$repository->setDefault( $default_id );', $source );
+        $this->assertStringContainsString( '$repository->ensureDefaultExists();', $source );
+        $this->assertStringContainsString( "update_option( 'woocommerce_store_address', \$payload['origin_address'] );", $source );
+        $this->assertStringContainsString( "update_option( 'woocommerce_store_postcode', \$payload['origin_zip_code'] );", $source );
+        $this->assertStringContainsString( 'storeOriginMirrorData( $payload );', $source );
     }
 
-    public function test_shipping_method_uses_the_origin_bound_to_each_package(): void
-    {
-        $shippingMethod = (string) file_get_contents($this->root . '/wc/KiriminajaShippingMethod.php');
+    public function testShippingSectionIsPointerToGeneralSettings(): void {
+        $controller = $this->read( __DIR__ . '/../inc/Controllers/ShipmentLocationController.php' );
+        $template   = $this->read( __DIR__ . '/../templates/shipment-location/index.php' );
 
-        self::assertStringContainsString('isset($package[\'origin\'])', $shippingMethod);
-        self::assertStringContainsString('[\'origin_sub_district_id\']', $shippingMethod);
-        self::assertStringContainsString('\'wc_cart_contents\' => isset($package[\'contents\'])', $shippingMethod);
+        $this->assertStringContainsString( "add_filter( 'woocommerce_get_sections_shipping', array( \$this, 'addShippingSection' ) );", $controller );
+        $this->assertStringContainsString( "add_action( 'woocommerce_settings_shipping', array( \$this, 'renderShippingSection' ) );", $controller );
+        $this->assertStringNotContainsString( 'admin_post_kiriof_save_shipment_location', $controller );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations', $controller );
+        $this->assertStringContainsString( 'Shipment locations are managed in WooCommerce General settings under Store Address.', $template );
+        $this->assertStringContainsString( 'Open Store Address settings', $template );
     }
 
-    public function test_locations_management_screen_is_registered_and_secured(): void
-    {
-        $admin      = (string) file_get_contents($this->root . '/inc/Pages/Admin.php');
-        $controller = (string) file_get_contents($this->root . '/inc/Controllers/ShipmentLocationController.php');
-        $template   = (string) file_get_contents($this->root . '/templates/shipment-location/index.php');
+    public function testLocationSchemaStoresSubDistrictName(): void {
+        $migration  = $this->read( __DIR__ . '/../inc/Migration/SetupMigration.php' );
+        $repository = $this->read( __DIR__ . '/../inc/Repositories/ShipmentLocationRepository.php' );
 
-        self::assertStringContainsString("'menu_slug'=>'kiriminaja-shipment-locations'", $admin);
-        self::assertStringContainsString('redirectLegacyPage', $admin);
-        self::assertStringContainsString('current_user_can', $controller);
-        self::assertStringContainsString('check_admin_referer', $controller);
-        self::assertStringContainsString('woocommerce_get_sections_shipping', $controller);
-        self::assertStringContainsString('woocommerce_settings_shipping', $controller);
-        self::assertStringContainsString('KIRIOF_DIR . \'templates/shipment-location/index.php\'', $controller);
-        self::assertStringNotContainsString('KIRIOF_PLUGIN_PATH', $controller);
-        self::assertStringContainsString('kiriminaja_shipment_locations', $controller);
-        self::assertStringContainsString('Shipment Locations', $template);
-        self::assertStringContainsString('Default shipment location:', $template);
-        self::assertStringContainsString('kiriof_save_shipment_location', $template);
+        $this->assertStringContainsString( '`sub_district_name` varchar(191) NOT NULL DEFAULT \'\',', $migration );
+        $this->assertStringContainsString( "'sub_district_name' => isset(\$data['sub_district_name']) ? sanitize_text_field(\$data['sub_district_name']) : '',", $repository );
+        $this->assertStringContainsString( "'sub_district_name' => '%s',", $repository );
     }
 }

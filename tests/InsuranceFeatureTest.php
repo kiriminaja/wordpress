@@ -530,15 +530,15 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "insertSettingsAfterId( \$settings, 'woocommerce_default_country'",
+            "'type'     => 'kiriof_shipment_locations',",
             $controller,
-            'Area must appear below WooCommerce Country / State'
+            'Store Address section must render the per-location shipment table'
         );
 
         $this->assertStringContainsString(
-            "insertSettingsAfterId( \$settings, 'woocommerce_store_address'",
+            "array( 'woocommerce_store_address', 'woocommerce_store_address2', 'woocommerce_store_postcode' )",
             $controller,
-            'Pin Location must appear near WooCommerce Address line 1'
+            'Native single-store address fields must be replaced by the per-location table'
         );
 
         $this->assertStringContainsString(

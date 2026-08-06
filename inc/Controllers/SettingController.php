@@ -56,6 +56,7 @@ class SettingController{
         add_filter( 'woocommerce_get_settings_advanced', array( $this, 'injectWooCommerceAdvancedSettings' ) );
         add_action( 'woocommerce_admin_field_kiriof_area_select', array( $this, 'renderWooCommerceAreaSelectField' ) );
         add_action( 'woocommerce_admin_field_kiriof_pin_location', array( $this, 'renderWooCommercePinLocationField' ) );
+        add_action( 'woocommerce_admin_field_kiriof_shipment_locations', array( $this, 'renderWooCommerceShipmentLocationsField' ) );
         add_action( 'woocommerce_admin_field_kiriof_tracking_page_select', array( $this, 'renderWooCommerceTrackingPageSelectField' ) );
         add_action( 'woocommerce_update_options_general', array( $this, 'syncWooCommerceGeneralSettings' ) );
         add_action( 'woocommerce_update_options_advanced', array( $this, 'syncWooCommerceAdvancedSettings' ) );
@@ -437,49 +438,27 @@ class SettingController{
             return $settings;
         }
 
-        $origin = $this->getOriginSettingValues();
-
-        $sender_fields = array(
+        $locations_field = array(
             array(
-                'title'    => __( 'Sender Name', 'kiriminaja-official' ),
-                'id'       => 'kiriof_wc_origin_name',
-                'type'     => 'text',
-                'default'  => $origin['origin_name'] ?? '',
-                'desc_tip' => __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ),
-            ),
-            array(
-                'title'    => __( 'Sender Phone', 'kiriminaja-official' ),
-                'id'       => 'kiriof_wc_origin_phone',
-                'type'     => 'text',
-                'default'  => $origin['origin_phone'] ?? '',
-                'desc_tip' => __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ),
+                'title'    => __( 'Shipment Locations', 'kiriminaja-official' ),
+                'id'       => 'kiriof_wc_shipment_locations',
+                'type'     => 'kiriof_shipment_locations',
+                'desc_tip' => __( 'Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment.', 'kiriminaja-official' ),
             ),
         );
 
-        $area_field = array(
-            array(
-                'title'             => __( 'Area', 'kiriminaja-official' ),
-                'id'                => 'kiriof_wc_origin_area',
-                'type'              => 'kiriof_area_select',
-                'default'           => $origin['origin_sub_district_id'] ?? '',
-                'origin_area_name'  => $origin['origin_sub_district_name'] ?? '',
-                'desc'              => __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ),
-            ),
-        );
+        $settings = $this->insertSettingsBeforeId( $settings, 'woocommerce_store_address', $locations_field );
 
-        $pin_location_field = array(
-            array(
-                'title'   => __( 'Pin Location', 'kiriminaja-official' ),
-                'id'      => 'kiriof_wc_origin_pin_location',
-                'type'    => 'kiriof_pin_location',
-                'default' => '',
-                'desc'    => __( 'Required by KiriminAja Official Plugin', 'kiriminaja-official' ),
-            ),
-        );
-
-        $settings = $this->insertSettingsBeforeId( $settings, 'woocommerce_store_address', $sender_fields );
-        $settings = $this->insertSettingsAfterId( $settings, 'woocommerce_store_address', $pin_location_field );
-        $settings = $this->insertSettingsAfterId( $settings, 'woocommerce_default_country', $area_field );
+        foreach ( array( 'woocommerce_store_address', 'woocommerce_store_address2', 'woocommerce_store_postcode' ) as $removed_id ) {
+            $settings = array_values(
+                array_filter(
+                    $settings,
+                    static function ( $field ) use ( $removed_id ) {
+                        return ! is_array( $field ) || ! isset( $field['id'] ) || $field['id'] !== $removed_id;
+                    }
+                )
+            );
+        }
 
         return $settings;
     }
@@ -745,6 +724,218 @@ JS;
         wp_add_inline_script( 'kiriof-script', $inline_script );
     }
 
+    public function renderWooCommerceShipmentLocationsField( $value ) {
+        $service   = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+        $locations = $service->repository()->getAll();
+
+        if ( empty( $locations ) ) {
+            $service->seedDefaultFromGlobalOrigin();
+            $locations = $service->repository()->getAll();
+        }
+        ?>
+        <tr valign="top" class="kiriof-wc-shipment-locations" id="kiriof-shipment-locations">
+            <th scope="row" class="titledesc">
+                <label><?php esc_html_e( 'Shipment Locations', 'kiriminaja-official' ); ?></label>
+            </th>
+            <td class="forminp forminp-kiriof_shipment_locations">
+                <p class="description"><?php esc_html_e( 'This option is managed by the KiriminAja plugin. Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment.', 'kiriminaja-official' ); ?></p>
+                <table class="widefat striped kiriof-wc-locations-table" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th scope="col"><?php esc_html_e( 'Default', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Active', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Sender Name', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Sender Phone', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Address', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Area', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Zip', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Pin Location', 'kiriminaja-official' ); ?></th>
+                            <th scope="col"><?php esc_html_e( 'Remove', 'kiriminaja-official' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        foreach ( $locations as $location ) {
+                            $this->renderShipmentLocationRow( (int) $location->id, $location );
+                        }
+                        $this->renderShipmentLocationRow( 0, null );
+                        ?>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        <?php
+        $this->renderShipmentLocationsInlineScript();
+    }
+
+    private function renderShipmentLocationRow( $id, $location ) {
+        $key        = $id > 0 ? (string) $id : 'new';
+        $prefix     = 'kiriof_locations[' . $key . ']';
+        $name       = $location ? (string) $location->name : '';
+        $phone      = $location ? (string) $location->phone : '';
+        $address    = $location ? (string) $location->address : '';
+        $area_id    = $location ? (string) $location->sub_district_id : '';
+        $area_name  = $location ? (string) $location->sub_district_name : '';
+        $zip        = $location ? (string) $location->zip_code : '';
+        $lat        = $location ? (string) $location->latitude : '';
+        $lng        = $location ? (string) $location->longitude : '';
+        $is_default = $location && 1 === (int) $location->is_default;
+        $is_active  = ! $location || 1 === (int) $location->is_active;
+        ?>
+        <tr class="kiriof-wc-location-row">
+            <td>
+                <?php if ( $id > 0 ) : ?>
+                    <input type="radio" name="kiriof_default_location_id" value="<?php echo esc_attr( $id ); ?>" <?php checked( $is_default ); ?> />
+                <?php endif; ?>
+            </td>
+            <td>
+                <input type="checkbox" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" <?php checked( $is_active ); ?> />
+            </td>
+            <td>
+                <input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[name]' ); ?>" value="<?php echo esc_attr( $name ); ?>" />
+            </td>
+            <td>
+                <input type="text" name="<?php echo esc_attr( $prefix . '[phone]' ); ?>" value="<?php echo esc_attr( $phone ); ?>" />
+            </td>
+            <td>
+                <textarea rows="3" cols="28" name="<?php echo esc_attr( $prefix . '[address]' ); ?>"><?php echo esc_textarea( $address ); ?></textarea>
+            </td>
+            <td>
+                <select class="kiriof-wc-origin-area-select" name="<?php echo esc_attr( $prefix . '[sub_district_id]' ); ?>">
+                    <?php if ( '' !== $area_id && '0' !== $area_id ) : ?>
+                        <option value="<?php echo esc_attr( $area_id ); ?>" selected="selected"><?php echo esc_html( $area_name ); ?></option>
+                    <?php endif; ?>
+                </select>
+                <input type="hidden" class="kiriof-wc-location-area-name" name="<?php echo esc_attr( $prefix . '[sub_district_name]' ); ?>" value="<?php echo esc_attr( $area_name ); ?>" />
+            </td>
+            <td>
+                <input type="text" class="kiriof-wc-location-zip" size="6" name="<?php echo esc_attr( $prefix . '[zip_code]' ); ?>" value="<?php echo esc_attr( $zip ); ?>" />
+            </td>
+            <td>
+                <div class="kiriof-wc-origin-map" style="width:220px;height:150px;" data-lat="<?php echo esc_attr( $lat ); ?>" data-lng="<?php echo esc_attr( $lng ); ?>"></div>
+                <input type="hidden" class="kiriof-wc-location-latitude" name="<?php echo esc_attr( $prefix . '[latitude]' ); ?>" value="<?php echo esc_attr( $lat ); ?>" />
+                <input type="hidden" class="kiriof-wc-location-longitude" name="<?php echo esc_attr( $prefix . '[longitude]' ); ?>" value="<?php echo esc_attr( $lng ); ?>" />
+                <button type="button" class="button kiriof-wc-origin-my-location"><?php esc_html_e( 'My Location', 'kiriminaja-official' ); ?></button>
+            </td>
+            <td>
+                <?php if ( $id > 0 ) : ?>
+                    <input type="checkbox" name="<?php echo esc_attr( $prefix . '[remove]' ); ?>" value="1" />
+                <?php endif; ?>
+            </td>
+        </tr>
+        <?php
+    }
+
+    private function renderShipmentLocationsInlineScript() {
+        $inline_script = <<<JS
+jQuery(function ($) {
+    var select2 = $.fn.selectWoo || $.fn.select2;
+
+    function kiriofExtractPostcode(item) {
+        if (!item || typeof item !== 'object') {
+            return '';
+        }
+        if (item.postcode) {
+            return String(item.postcode);
+        }
+        if (item.postal_code) {
+            return String(item.postal_code);
+        }
+        if (item.data && item.data.postcode) {
+            return String(item.data.postcode);
+        }
+        return '';
+    }
+
+    $('.kiriof-wc-location-row').each(function () {
+        var $row  = $(this);
+        var $area = $row.find('.kiriof-wc-origin-area-select');
+        var $name = $row.find('.kiriof-wc-location-area-name');
+        var $zip  = $row.find('.kiriof-wc-location-zip');
+
+        if (select2 && $area.length) {
+            select2.call($area, {
+                width: '100%',
+                minimumInputLength: 3,
+                placeholder: 'Select Option',
+                allowClear: true,
+                ajax: {
+                    url: window.kiriofAjax ? kiriofAjax.ajaxurl : window.ajaxurl,
+                    dataType: 'json',
+                    delay: 300,
+                    data: function (params) {
+                        return {
+                            action: 'kiriminaja_subdistrict_search',
+                            nonce: window.kiriofAjax ? kiriofAjax.nonce : '',
+                            term: params.term
+                        };
+                    },
+                    processResults: function (response) {
+                        var results = response && response.data && response.data.results ? response.data.results : [];
+                        return { results: results };
+                    },
+                    cache: true
+                }
+            });
+
+            $area.on('change', function () {
+                var $option = $area.find('option:selected');
+                $name.val($option.length ? $option.text() : '');
+            });
+            $area.on('select2:select', function (event) {
+                var postcode = kiriofExtractPostcode(event.params && event.params.data ? event.params.data : null);
+                if (postcode) {
+                    $zip.val(postcode);
+                }
+            });
+            $area.on('select2:clear', function () {
+                $name.val('');
+            });
+        }
+
+        var $map = $row.find('.kiriof-wc-origin-map');
+        if ($map.length && window.L) {
+            var rawLat = $map.data('lat');
+            var rawLng = $map.data('lng');
+            var hasPin = rawLat !== undefined && rawLat !== '' && rawLng !== undefined && rawLng !== '';
+            var lat = hasPin ? parseFloat(rawLat) : -6.2;
+            var lng = hasPin ? parseFloat(rawLng) : 106.817;
+            var map = L.map($map[0]).setView([lat, lng], hasPin ? 15 : 11);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            var marker = hasPin ? L.marker([lat, lng]).addTo(map) : null;
+
+            var setPin = function (la, ln) {
+                $row.find('.kiriof-wc-location-latitude').val(la);
+                $row.find('.kiriof-wc-location-longitude').val(ln);
+                if (marker) {
+                    marker.setLatLng([la, ln]);
+                } else {
+                    marker = L.marker([la, ln]).addTo(map);
+                }
+                map.setView([la, ln], 15);
+            };
+
+            map.on('click', function (event) {
+                setPin(event.latlng.lat, event.latlng.lng);
+            });
+
+            $row.find('.kiriof-wc-origin-my-location').on('click', function (event) {
+                event.preventDefault();
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        setPin(position.coords.latitude, position.coords.longitude);
+                    });
+                }
+            });
+        }
+    });
+});
+JS;
+        wp_add_inline_script( 'kiriof-script', $inline_script );
+    }
+
     public function syncWooCommerceGeneralSettings() {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
@@ -754,27 +945,75 @@ JS;
         }
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce settings nonce verified above.
-        $posted_area_name = isset( $_POST['kiriof_wc_origin_area_name'] )
-            ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_area_name'] ) )
-            : '';
+        $service    = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+        $repository = $service->repository();
 
-        $origin = $this->getOriginSettingValues();
-        $payload = array(
-            'origin_name'              => isset( $_POST['kiriof_wc_origin_name'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_name'] ) ) : ( $origin['origin_name'] ?? '' ),
-            'origin_phone'             => isset( $_POST['kiriof_wc_origin_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_phone'] ) ) : ( $origin['origin_phone'] ?? '' ),
-            'origin_address'           => isset( $_POST['woocommerce_store_address'] ) ? sanitize_textarea_field( wp_unslash( $_POST['woocommerce_store_address'] ) ) : ( $origin['origin_address'] ?? '' ),
-            'origin_zip_code'          => isset( $_POST['woocommerce_store_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['woocommerce_store_postcode'] ) ) : ( $origin['origin_zip_code'] ?? '' ),
-            'origin_sub_district_id'   => isset( $_POST['kiriof_wc_origin_area'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_area'] ) ) : ( $origin['origin_sub_district_id'] ?? '' ),
-            'origin_sub_district_name' => '' !== $posted_area_name ? $posted_area_name : ( $origin['origin_sub_district_name'] ?? '' ),
-            'origin_latitude'          => isset( $_POST['kiriof_wc_origin_latitude'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_latitude'] ) ) : ( $origin['origin_latitude'] ?? '' ),
-            'origin_longitude'         => isset( $_POST['kiriof_wc_origin_longitude'] ) ? sanitize_text_field( wp_unslash( $_POST['kiriof_wc_origin_longitude'] ) ) : ( $origin['origin_longitude'] ?? '' ),
-        );
+        $posted     = isset( $_POST['kiriof_locations'] ) ? wp_unslash( $_POST['kiriof_locations'] ) : array();
+        $default_id = isset( $_POST['kiriof_default_location_id'] ) ? absint( $_POST['kiriof_default_location_id'] ) : 0;
 
-        update_option( 'kiriof_wc_origin_name', $payload['origin_name'] );
-        update_option( 'kiriof_wc_origin_phone', $payload['origin_phone'] );
-        update_option( 'kiriof_wc_origin_area', $payload['origin_sub_district_id'] );
+        if ( is_array( $posted ) ) {
+            foreach ( $posted as $key => $raw ) {
+                if ( ! is_array( $raw ) ) {
+                    continue;
+                }
 
-        ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+                $data = array(
+                    'name'              => isset( $raw['name'] ) ? sanitize_text_field( $raw['name'] ) : '',
+                    'phone'             => isset( $raw['phone'] ) ? sanitize_text_field( $raw['phone'] ) : '',
+                    'address'           => isset( $raw['address'] ) ? sanitize_textarea_field( $raw['address'] ) : '',
+                    'sub_district_id'   => isset( $raw['sub_district_id'] ) ? sanitize_text_field( $raw['sub_district_id'] ) : '',
+                    'sub_district_name' => isset( $raw['sub_district_name'] ) ? sanitize_text_field( $raw['sub_district_name'] ) : '',
+                    'zip_code'          => isset( $raw['zip_code'] ) ? sanitize_text_field( $raw['zip_code'] ) : '',
+                    'latitude'          => isset( $raw['latitude'] ) ? sanitize_text_field( $raw['latitude'] ) : '',
+                    'longitude'         => isset( $raw['longitude'] ) ? sanitize_text_field( $raw['longitude'] ) : '',
+                    'is_active'         => ! empty( $raw['is_active'] ) ? 1 : 0,
+                );
+
+                if ( 'new' === (string) $key ) {
+                    if ( '' !== $data['name'] || '' !== $data['address'] ) {
+                        $repository->insert( $data );
+                    }
+                    continue;
+                }
+
+                $location_id = absint( $key );
+                if ( $location_id <= 0 ) {
+                    continue;
+                }
+                if ( ! empty( $raw['remove'] ) ) {
+                    $repository->delete( $location_id );
+                    continue;
+                }
+                $repository->update( $location_id, $data );
+            }
+        }
+
+        if ( $default_id > 0 ) {
+            $repository->setDefault( $default_id );
+        }
+        $repository->ensureDefaultExists();
+
+        $default = $repository->getDefault();
+        if ( $default ) {
+            $payload = array(
+                'origin_name'              => (string) $default->name,
+                'origin_phone'             => (string) $default->phone,
+                'origin_address'           => (string) $default->address,
+                'origin_zip_code'          => (string) $default->zip_code,
+                'origin_sub_district_id'   => (string) $default->sub_district_id,
+                'origin_sub_district_name' => (string) $default->sub_district_name,
+                'origin_latitude'          => (string) $default->latitude,
+                'origin_longitude'         => (string) $default->longitude,
+            );
+
+            update_option( 'kiriof_wc_origin_name', $payload['origin_name'] );
+            update_option( 'kiriof_wc_origin_phone', $payload['origin_phone'] );
+            update_option( 'kiriof_wc_origin_area', $payload['origin_sub_district_id'] );
+            update_option( 'woocommerce_store_address', $payload['origin_address'] );
+            update_option( 'woocommerce_store_postcode', $payload['origin_zip_code'] );
+
+            ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+        }
         // phpcs:enable WordPress.Security.NonceVerification.Missing
     }
 
