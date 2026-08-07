@@ -3425,3 +3425,46 @@ msgstr "Lokasi aktif"
 
 msgid "Set as default"
 msgstr "Jadikan default"
+
+msgid "Warehouses"
+msgstr "Gudang"
+
+msgid "Manage every pickup address used for shipping calculations. The default location is used when no other rule applies."
+msgstr "Kelola setiap alamat penjemputan yang digunakan untuk perhitungan pengiriman. Lokasi default digunakan jika tidak ada aturan lain yang berlaku."
+
+msgid "Shipping Address"
+msgstr "Alamat Pengiriman"
+
+msgid "This is the default address used for shipping calculations. To manage multiple pickup addresses, go to the <a href=\"%s\">Warehouses</a> tab."
+msgstr "Ini adalah alamat default yang digunakan untuk perhitungan pengiriman. Untuk mengelola beberapa alamat penjemputan, buka tab <a href=\"%s\">Gudang</a>."
+
+#: inc/Controllers/SettingController.php
+msgid "Set Primary"
+msgstr "Tetapkan Utama"
+
+msgid "Warehouse name"
+msgstr "Nama Gudang"
+
+msgid "Region(s)"
+msgstr "Wilayah"
+
+msgid "e.g. Gudang Utama Jakarta"
+msgstr "cth. Gudang Utama Jakarta"
+
+msgid "e.g. 081234567890"
+msgstr "cth. 081234567890"
+
+msgid "e.g. Jl. Sudirman No. 123, Kelurahan X"
+msgstr "cth. Jl. Sudirman No. 123, Kelurahan X"
+
+msgid "e.g. Blok A, Lantai 2"
+msgstr "cth. Blok A, Lantai 2"
+
+msgid "e.g. Jakarta Selatan"
+msgstr "cth. Jakarta Selatan"
+
+msgid "e.g. 12950"
+msgstr "cth. 12950"
+
+msgid "Search for sub-district or area&hellip;"
+msgstr "Cari kelurahan atau area&hellip;"

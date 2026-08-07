@@ -16,7 +16,7 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( "add_action( 'add_meta_boxes_product', array( \$this, 'register_shipment_location_meta_box' ) );", $source );
         $this->assertStringContainsString( 'Shipment Locations', $source );
         $this->assertStringContainsString( 'This option is managed by the KiriminAja plugin', $source );
-        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations', $source );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $source );
         $this->assertStringContainsString( '$this->save_shipment_location_meta($post_id, $shipment_location);', $source );
         $this->assertStringContainsString( '$this->save_shipment_location_meta($variation_id, is_array($locations) && isset($locations[$variation_id]) ? $locations[$variation_id] : \'\');', $source );
     }
@@ -24,8 +24,8 @@ class ShipmentLocationStructureTest extends TestCase {
     public function testGeneralSettingsStoreAddressRendersPerLocationTable(): void {
         $source = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
-        $this->assertStringContainsString( "add_action( 'woocommerce_admin_field_kiriof_shipment_locations', array( \$this, 'renderWooCommerceShipmentLocationsField' ) );", $source );
-        $this->assertStringContainsString( "'type'  => 'kiriof_shipment_locations',", $source );
+        $this->assertStringContainsString( "add_action( 'woocommerce_settings_kiriminaja_warehouses', array( \$this, 'renderWarehousesSettingsTab' ) );", $source );
+        $this->assertStringContainsString( "add_filter( 'woocommerce_settings_tabs_array', array( \$this, 'registerWarehousesSettingsTab' ), 50 );", $source );
         $this->assertStringContainsString( 'kiriof_locations[', $source );
         $this->assertStringContainsString( 'kiriof_default_location_id', $source );
         $this->assertStringContainsString( 'kiriof-wc-location-card__body', $source );
@@ -40,8 +40,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'kiriof-wc-locations-cards', $source );
         $this->assertStringNotContainsString( '<dialog', $source );
         $this->assertStringContainsString( "get_option( 'woocommerce_store_address' )", $source );
-        $this->assertStringNotContainsString( "'id'       => 'kiriof_wc_origin_name',", $source );
-        $this->assertStringNotContainsString( "'id'      => 'kiriof_wc_origin_pin_location',", $source );
+        $this->assertStringContainsString( "'id'       => 'kiriof_wc_origin_name',", $source );
+        $this->assertStringContainsString( "'id'    => 'kiriof_wc_origin_pin_location',", $source );
     }
 
     public function testGeneralSettingsSavePersistsLocationsAndSyncsDefaultOrigin(): void {
@@ -77,7 +77,7 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'ShipmentLocationController', $init );
         $this->assertStringNotContainsString( 'kiriminaja-shipment-locations', $pages );
         $this->assertStringNotContainsString( "\$kiriof_base_url . '&section=address'", $admin );
-        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations', $admin );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $admin );
     }
 
     public function testLocationSchemaStoresSubDistrictName(): void {
@@ -98,14 +98,14 @@ class ShipmentLocationStructureTest extends TestCase {
         $controller = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
         $this->assertStringContainsString( 'Address line 2', $controller );
-        $this->assertStringContainsString( 'Country / State', $controller );
-        $this->assertStringContainsString( 'kiriof-wc-location-country', $controller );
-        $this->assertStringContainsString( 'renderCountryStateOptions', $controller );
-        $this->assertStringContainsString( "'woocommerce_store_city', 'woocommerce_default_country'", $controller );
+        $this->assertStringContainsString( 'country_state', $controller );
+        $this->assertStringContainsString( 'value="ID"', $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_address_2'", $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_city'", $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_default_country'", $controller );
         $this->assertStringContainsString( 'woocommerce_store_address_2', $controller );
+        $this->assertStringContainsString( 'Warehouses', $controller );
+        $this->assertStringContainsString( 'registerWarehousesSettingsTab', $controller );
     }
 
     public function testInitRegistersMigrationOnEveryLoadForSelfHealingSchema(): void {

@@ -237,7 +237,7 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
             </div>
         </div>
 
-        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations' ) ); ?>" class="kj-setting-row">
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>" class="kj-setting-row">
             <div class="kj-setting-row-inner">
                 <svg class="kj-row-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" stroke="#50575e" stroke-width="1.5"/></svg>
                 <div class="kj-setting-row-text">

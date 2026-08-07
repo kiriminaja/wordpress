@@ -68,7 +68,7 @@ class ProductController{
             </select>
         </p>
         <p class="description">
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
         </p>
         <?php
     }

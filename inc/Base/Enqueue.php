@@ -219,9 +219,11 @@ class Enqueue extends BaseInit{
         $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );
 
         $tab = filter_input( INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS );
-        $is_wc_general_settings = 'woocommerce_page_wc-settings' === $screen_id && ( empty( $tab ) || 'general' === $tab );
+        $is_wc_warehouses_settings = 'woocommerce_page_wc-settings' === $screen_id && 'kiriminaja_warehouses' === $tab;
+        $is_wc_general_settings    = 'woocommerce_page_wc-settings' === $screen_id
+                                     && ( 'general' === $tab || '' === $tab || null === $tab );
 
-        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_general_settings ) {
+        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_warehouses_settings && ! $is_wc_general_settings ) {
             return;
         }
 
@@ -235,7 +237,20 @@ class Enqueue extends BaseInit{
         wp_enqueue_style( 'list-tables' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
-        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery', 'select2' ), KIRIOF_VERSION, true );
+
+        $needs_leaflet = 'kiriminaja-konfigurasi' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
+
+        if ( $needs_leaflet ) {
+            wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+            wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+        }
+
+        $kiriof_script_dependencies = array( 'jquery', 'select2' );
+        if ( $needs_leaflet ) {
+            $kiriof_script_dependencies[] = 'kiriof-leaflet-script';
+        }
+
+        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', $kiriof_script_dependencies, KIRIOF_VERSION, true );
         
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -295,15 +310,6 @@ class Enqueue extends BaseInit{
             .select2-container .select2-selection--multiple .select2-selection__choice__remove { min-height: auto; line-height: 1; }
             .select2-container .select2-search--inline .select2-search__field { border: none; box-shadow: none; background-color: transparent; }
         ' );
-
-        /**
-         * Leaflet - bundled locally for the store-address map picker on
-         * the Settings page. Only loaded on kiriminaja-konfigurasi.
-         */
-        if ( 'kiriminaja-konfigurasi' === $page || $is_wc_general_settings ) {
-            wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-            wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
-        }
 
         /**
          * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
