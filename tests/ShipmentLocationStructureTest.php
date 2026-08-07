@@ -28,18 +28,17 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( "'type'  => 'kiriof_shipment_locations',", $source );
         $this->assertStringContainsString( 'kiriof_locations[', $source );
         $this->assertStringContainsString( 'kiriof_default_location_id', $source );
-        $this->assertStringContainsString( 'kiriof-wc-location-card', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-card__body', $source );
         $this->assertStringContainsString( 'Add Shipment Location', $source );
         $this->assertStringContainsString( 'kiriof-wc-locations-table', $source );
         $this->assertStringContainsString( 'wc-shipping-zones widefat', $source );
         $this->assertStringContainsString( 'kiriof-wc-location-summary', $source );
-        $this->assertStringContainsString( 'kiriof-wc-location-dialog', $source );
-        $this->assertStringContainsString( '<dialog class="kiriof-wc-location-dialog"', $source );
+        $this->assertStringContainsString( 'kiriof-wc-location-page', $source );
         $this->assertStringContainsString( 'kiriof-wc-origin-area-select', $source );
         $this->assertStringContainsString( 'kiriof-wc-origin-map', $source );
-        $this->assertStringContainsString( 'renderShipmentLocationDialog( 0, null, true )', $source );
+        $this->assertStringContainsString( "renderShipmentLocationCard( \$id, \$location, \$use_store_fallback )", $source );
         $this->assertStringNotContainsString( 'kiriof-wc-locations-cards', $source );
-        $this->assertStringContainsString( 'kiriof-wc-location-card', $source );
+        $this->assertStringNotContainsString( '<dialog', $source );
         $this->assertStringContainsString( "get_option( 'woocommerce_store_address' )", $source );
         $this->assertStringNotContainsString( "'id'       => 'kiriof_wc_origin_name',", $source );
         $this->assertStringNotContainsString( "'id'      => 'kiriof_wc_origin_pin_location',", $source );
@@ -66,16 +65,19 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( "get_option( 'woocommerce_store_postcode', '' )", $source );
     }
 
-    public function testShippingSectionIsPointerToGeneralSettings(): void {
-        $controller = $this->read( __DIR__ . '/../inc/Controllers/ShipmentLocationController.php' );
-        $template   = $this->read( __DIR__ . '/../templates/shipment-location/index.php' );
+    public function testStandaloneShipmentLocationPagesAreRemoved(): void {
+        $init  = $this->read( __DIR__ . '/../inc/Init.php' );
+        $admin = $this->read( __DIR__ . '/../templates/setting/setuped/index.php' );
+        $pages = $this->read( __DIR__ . '/../inc/Pages/Admin.php' );
 
-        $this->assertStringContainsString( "add_filter( 'woocommerce_get_sections_shipping', array( \$this, 'addShippingSection' ) );", $controller );
-        $this->assertStringContainsString( "add_action( 'woocommerce_settings_shipping', array( \$this, 'renderShippingSection' ) );", $controller );
-        $this->assertStringNotContainsString( 'admin_post_kiriof_save_shipment_location', $controller );
-        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations', $controller );
-        $this->assertStringContainsString( 'Shipment locations are managed in WooCommerce General settings under Store Address.', $template );
-        $this->assertStringContainsString( 'Open Store Address settings', $template );
+        $this->assertFileDoesNotExist( __DIR__ . '/../inc/Controllers/ShipmentLocationController.php' );
+        $this->assertDirectoryDoesNotExist( __DIR__ . '/../templates/shipment-location' );
+        $this->assertFileDoesNotExist( __DIR__ . '/../templates/setting/setuped/section-address.php' );
+
+        $this->assertStringNotContainsString( 'ShipmentLocationController', $init );
+        $this->assertStringNotContainsString( 'kiriminaja-shipment-locations', $pages );
+        $this->assertStringNotContainsString( "\$kiriof_base_url . '&section=address'", $admin );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations', $admin );
     }
 
     public function testLocationSchemaStoresSubDistrictName(): void {

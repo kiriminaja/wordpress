@@ -3416,3 +3416,12 @@ msgstr "Apakah Anda yakin ingin menghapus lokasi pengiriman ini?"
 
 msgid "Save changes"
 msgstr "Simpan perubahan"
+
+msgid "Back to Shipment Locations"
+msgstr "Kembali ke Lokasi Pengiriman"
+
+msgid "Location is active"
+msgstr "Lokasi aktif"
+
+msgid "Set as default"
+msgstr "Jadikan default"

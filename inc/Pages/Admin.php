@@ -49,16 +49,6 @@ class Admin extends BaseInit{
                 ],
                 [
                     'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>__( 'Shipment Locations', 'kiriminaja-official' ),
-                    'menu_title'=>__( 'Locations', 'kiriminaja-official' ),
-                    'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-shipment-locations',
-                    'callback'=> function() {
-                        ( new \KiriminAjaOfficial\Controllers\ShipmentLocationController() )->redirectLegacyPage();
-                    }
-                ],
-                [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
                     'page_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
@@ -378,7 +368,7 @@ class Admin extends BaseInit{
         $step_urls = array(
             'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
             'products'           => admin_url( 'edit.php?post_type=product' ),
-            'origin'             => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=address' ),
+            'origin'             => admin_url( 'admin.php?page=wc-settings&tab=general#kiriof-shipment-locations' ),
             'couriers'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=couriers' ),
             'shipping_option'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
             'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),

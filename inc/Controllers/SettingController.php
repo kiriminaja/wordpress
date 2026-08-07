@@ -446,6 +446,11 @@ class SettingController{
             ),
         );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view routing, no state change.
+        if ( ! empty( $_GET['kiriof_location'] ) ) {
+            return $locations_field;
+        }
+
         $settings = $this->insertSettingsBeforeId( $settings, 'woocommerce_store_address', $locations_field );
 
         foreach ( array( 'woocommerce_store_address', 'woocommerce_store_address_2', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_default_country' ) as $removed_id ) {
@@ -731,6 +736,18 @@ JS;
             $service->seedDefaultFromGlobalOrigin();
             $locations = $service->repository()->getAll();
         }
+
+        $editing_key = isset( $_GET['kiriof_location'] ) ? sanitize_text_field( wp_unslash( $_GET['kiriof_location'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view routing, no state change.
+
+        if ( '' !== $editing_key ) {
+            $this->renderShipmentLocationDetailPage( $editing_key, $locations );
+            return;
+        }
+
+        $this->renderShipmentLocationListPage( $locations );
+    }
+
+    private function renderShipmentLocationListPage( $locations ) {
         ?>
         <tr valign="top" class="kiriof-wc-shipment-locations" id="kiriof-shipment-locations">
             <td colspan="2" class="forminp forminp-kiriof_shipment_locations" style="padding:0;">
@@ -755,71 +772,114 @@ JS;
                     <tfoot>
                         <tr>
                             <td colspan="6">
-                                <button type="button" class="button kiriof-wc-locations-add"><?php esc_html_e( 'Add Shipment Location', 'kiriminaja-official' ); ?></button>
+                                <a class="button kiriof-wc-locations-add" href="<?php echo esc_url( $this->getShipmentLocationDetailUrl( 'new' ) ); ?>"><?php esc_html_e( 'Add Shipment Location', 'kiriminaja-official' ); ?></a>
                             </td>
                         </tr>
                     </tfoot>
                 </table>
-                <div class="kiriof-wc-location-dialogs">
-                    <?php
-                    foreach ( $locations as $location ) {
-                        $this->renderShipmentLocationDialog( (int) $location->id, $location );
-                    }
-                    ?>
-                    <div class="kiriof-wc-location-new-source">
-                        <?php $this->renderShipmentLocationDialog( 0, null, true ); ?>
+                <?php $this->renderShipmentLocationListStyles(); ?>
+            </td>
+        </tr>
+        <?php
+    }
+
+    private function renderShipmentLocationDetailPage( $key, $locations ) {
+        $id       = ( 'new' === $key ) ? 0 : absint( $key );
+        $location = null;
+
+        if ( $id > 0 ) {
+            foreach ( $locations as $candidate ) {
+                if ( (int) $candidate->id === $id ) {
+                    $location = $candidate;
+                    break;
+                }
+            }
+
+            if ( ! $location ) {
+                $id = 0;
+            }
+        }
+
+        $use_store_fallback = ( 0 === $id && empty( $locations ) );
+        $back_url            = $this->getShipmentLocationDetailUrl( '' );
+        ?>
+        <tr valign="top" class="kiriof-wc-shipment-locations kiriof-wc-shipment-location-detail" id="kiriof-shipment-locations">
+            <td colspan="2" class="forminp forminp-kiriof_shipment_locations" style="padding:0;">
+                <div class="kiriof-wc-location-page">
+                    <div class="kiriof-wc-location-page__header">
+                        <a class="kiriof-wc-location-page__back" href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Shipment Locations', 'kiriminaja-official' ); ?></a>
+                        <h2><?php echo esc_html( $id > 0 ? __( 'Edit Shipment Location', 'kiriminaja-official' ) : __( 'Add Shipment Location', 'kiriminaja-official' ) ); ?></h2>
+                    </div>
+                    <div class="kiriof-wc-location-page__body">
+                        <?php $this->renderShipmentLocationCard( $id, $location, $use_store_fallback ); ?>
+                    </div>
+                    <div class="kiriof-wc-location-page__footer">
+                        <a class="button kiriof-wc-location-cancel" href="<?php echo esc_url( $back_url ); ?>"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></a>
+                        <button type="submit" class="button button-primary kiriof-wc-location-save" name="save" value="<?php esc_attr_e( 'Save changes', 'kiriminaja-official' ); ?>"><?php esc_html_e( 'Save changes', 'kiriminaja-official' ); ?></button>
                     </div>
                 </div>
-                <style>
-                    .kiriof-wc-locations-table { width: 100%; }
-                    .kiriof-wc-locations-table th { font-weight: 600; }
-                    .kiriof-wc-location-card__body th { width: 150px; padding: 10px 14px 0; }
-                    .kiriof-wc-location-card__body td { padding: 10px 14px 0; }
-                    .kiriof-wc-location-summary .dashicons-yes-alt { color: #46b450; }
-                    .kiriof-wc-location-summary .dashicons-marker { color: #c3c4c7; }
-                    .kiriof-wc-location-dialog {
-                        padding: 0;
-                        border: 1px solid #c3c4c7;
-                        border-radius: 4px;
-                        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-                        width: 600px;
-                        max-width: 90vw;
-                        max-height: 85vh;
-                    }
-                    .kiriof-wc-location-dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
-                    .kiriof-wc-location-dialog__form { margin: 0; display: flex; flex-direction: column; max-height: 85vh; }
-                    .kiriof-wc-location-dialog__header {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        padding: 16px 24px;
-                        border-bottom: 1px solid #dcdcde;
-                        background: #fff;
-                    }
-                    .kiriof-wc-location-dialog__header h2 { margin: 0; font-size: 18px; }
-                    .kiriof-wc-location-dialog__close {
-                        background: none;
-                        border: 0;
-                        cursor: pointer;
-                        font-size: 22px;
-                        line-height: 1;
-                        color: #787c82;
-                        padding: 0;
-                    }
-                    .kiriof-wc-location-dialog__body { padding: 0 24px; overflow-y: auto; flex: 1 1 auto; }
-                    .kiriof-wc-location-dialog__footer {
-                        display: flex;
-                        justify-content: flex-end;
-                        gap: 8px;
-                        padding: 16px 24px;
-                        border-top: 1px solid #dcdcde;
-                        background: #fff;
-                    }
-                </style>
+                <?php $this->renderShipmentLocationDetailStyles(); ?>
             </td>
         </tr>
         <?php
         $this->renderShipmentLocationsInlineScript();
+    }
+
+    /**
+     * Builds the URL back to the WooCommerce General settings screen, optionally
+     * pointing at a specific shipment location's detail view.
+     *
+     * @param string $key Location id, 'new', or '' for the list view.
+     */
+    private function getShipmentLocationDetailUrl( $key ) {
+        $url = admin_url( 'admin.php?page=wc-settings&tab=general' );
+
+        if ( '' !== $key ) {
+            $url = add_query_arg( 'kiriof_location', $key, $url );
+        }
+
+        return $url . '#kiriof-shipment-locations';
+    }
+
+    private function renderShipmentLocationListStyles() {
+        ?>
+        <style>
+            .kiriof-wc-locations-table { width: 100%; }
+            .kiriof-wc-locations-table th { font-weight: 600; }
+            .kiriof-wc-location-summary .dashicons-yes-alt { color: #46b450; }
+            .kiriof-wc-location-summary .dashicons-marker { color: #c3c4c7; }
+            .kiriof-wc-location-status-active { color: #007017; }
+            .kiriof-wc-location-status-inactive { color: #787c82; }
+        </style>
+        <?php
+    }
+
+    private function renderShipmentLocationDetailStyles() {
+        ?>
+        <style>
+            .kiriof-wc-location-page { max-width: 720px; }
+            .kiriof-wc-location-page__header { padding: 16px 0 8px; }
+            .kiriof-wc-location-page__back { display: inline-block; margin-bottom: 10px; text-decoration: none; }
+            .kiriof-wc-location-page__header h2 { margin: 0; font-size: 20px; font-weight: 600; }
+            .kiriof-wc-location-page__body { background: #fff; border: 1px solid #dcdcde; border-radius: 4px; padding: 8px 24px; }
+            .kiriof-wc-location-page__footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 0 32px; }
+            .kiriof-wc-location-card__body { border-collapse: collapse; width: 100%; }
+            .kiriof-wc-location-card__body th,
+            .kiriof-wc-location-card__body td { padding: 10px 0; border: 0; vertical-align: top; text-align: left; }
+            .kiriof-wc-location-card__body th { width: 160px; padding-right: 14px; }
+            .kiriof-wc-location-card__body .regular-text,
+            .kiriof-wc-location-card__body textarea,
+            .kiriof-wc-location-card__body select.kiriof-wc-location-country,
+            .kiriof-wc-location-card__body .kiriof-wc-origin-area-select,
+            .kiriof-wc-location-card__body .select2-container { width: 100%; max-width: 480px; box-sizing: border-box; }
+            .kiriof-wc-location-card__body .kiriof-wc-location-zip { width: 120px; }
+            .kiriof-wc-location-card__body tr:first-child th,
+            .kiriof-wc-location-card__body tr:first-child td { padding-top: 0; }
+            .kiriof-wc-location-active-toggle { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+            .kiriof-wc-origin-map { width: 100%; max-width: 480px; height: 220px; border-radius: 4px; }
+            .kiriof-wc-origin-my-location { margin-top: 8px; }
+        </style>
+        <?php
     }
 
     private function resolveShipmentLocationFields( $location, $use_store_fallback ) {
@@ -866,7 +926,6 @@ JS;
 
     private function renderShipmentLocationRow( $id, $location, $use_store_fallback = false ) {
         $key        = $id > 0 ? (string) $id : 'new';
-        $prefix     = 'kiriof_locations[' . $key . ']';
         $fields     = $this->resolveShipmentLocationFields( $location, $use_store_fallback );
         $name       = $fields['name'];
         $phone      = $fields['phone'];
@@ -883,7 +942,7 @@ JS;
         <?php if ( $id > 0 ) : ?>
         <tr class="kiriof-wc-location-summary">
             <td class="kiriof-wc-location-default-col" style="text-align:center;">
-                <label style="display:inline-block;">
+                <label title="<?php esc_attr_e( 'Set as default', 'kiriminaja-official' ); ?>">
                     <input type="radio" name="kiriof_default_location_id" value="<?php echo esc_attr( $id ); ?>" <?php checked( $is_default ); ?> />
                 </label>
             </td>
@@ -903,16 +962,15 @@ JS;
                 <?php endif; ?>
             </td>
             <td class="wc-shipping-zone-actions">
-                <button type="button" class="button kiriof-wc-location-edit" data-dialog="#kiriof-wc-location-dialog-<?php echo esc_attr( $key ); ?>"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></button>
-                <button type="button" class="button kiriof-wc-location-delete"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></button>
-                <input type="hidden" class="kiriof-wc-location-remove" name="<?php echo esc_attr( $prefix . '[remove]' ); ?>" value="" />
+                <a class="button kiriof-wc-location-edit" href="<?php echo esc_url( $this->getShipmentLocationDetailUrl( $key ) ); ?>"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></a>
+                <button type="submit" formnovalidate name="kiriof_locations[<?php echo esc_attr( $key ); ?>][remove]" value="1" class="button kiriof-wc-location-delete" data-confirm="<?php esc_attr_e( 'Are you sure you want to delete this shipment location?', 'kiriminaja-official' ); ?>"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></button>
             </td>
         </tr>
         <?php endif; ?>
         <?php
     }
 
-    private function renderShipmentLocationDialog( $id, $location, $use_store_fallback = false ) {
+    private function renderShipmentLocationCard( $id, $location, $use_store_fallback = false ) {
         $key        = $id > 0 ? (string) $id : 'new';
         $prefix     = 'kiriof_locations[' . $key . ']';
         $fields     = $this->resolveShipmentLocationFields( $location, $use_store_fallback );
@@ -929,86 +987,77 @@ JS;
         $lat        = $fields['lat'];
         $lng        = $fields['lng'];
         $is_active  = $fields['is_active'];
-        $dialog_title = $id > 0 ? __( 'Edit Shipment Location', 'kiriminaja-official' ) : __( 'Add Shipment Location', 'kiriminaja-official' );
         ?>
-        <dialog class="kiriof-wc-location-dialog" id="kiriof-wc-location-dialog-<?php echo esc_attr( $key ); ?>" data-key="<?php echo esc_attr( $key ); ?>">
-            <form method="dialog" class="kiriof-wc-location-dialog__form">
-                <div class="kiriof-wc-location-dialog__header">
-                    <h2><?php echo esc_html( $dialog_title ); ?></h2>
-                    <button type="button" class="kiriof-wc-location-dialog__close" aria-label="<?php esc_attr_e( 'Close', 'kiriminaja-official' ); ?>">&times;</button>
-                </div>
-                <div class="kiriof-wc-location-dialog__body">
-                    <table class="form-table kiriof-wc-location-card__body">
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Sender Name', 'kiriminaja-official' ); ?></label></th>
-                            <td>
-                                <input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[name]' ); ?>" value="<?php echo esc_attr( $name ); ?>" />
-                                <?php if ( $id > 0 ) : ?>
-                                    <label style="margin-left:16px;">
-                                        <input type="checkbox" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" <?php checked( $is_active ); ?> />
-                                        <?php esc_html_e( 'Active', 'kiriminaja-official' ); ?>
-                                    </label>
-                                <?php else : ?>
-                                    <input type="hidden" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" />
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Sender Phone', 'kiriminaja-official' ); ?></label></th>
-                            <td><input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[phone]' ); ?>" value="<?php echo esc_attr( $phone ); ?>" /></td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Address', 'kiriminaja-official' ); ?></label></th>
-                            <td><textarea rows="3" cols="50" class="regular-text" name="<?php echo esc_attr( $prefix . '[address]' ); ?>"><?php echo esc_textarea( $address ); ?></textarea></td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Address line 2', 'kiriminaja-official' ); ?></label></th>
-                            <td><input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[address_2]' ); ?>" value="<?php echo esc_attr( $address_2 ); ?>" /></td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'City', 'kiriminaja-official' ); ?></label></th>
-                            <td><input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[city]' ); ?>" value="<?php echo esc_attr( $city ); ?>" /></td>
-                        </tr>
-                        <tr class="kiriof-wc-location-area-row">
-                            <th scope="row"><label><?php esc_html_e( 'Area', 'kiriminaja-official' ); ?></label></th>
-                            <td>
-                                <select class="kiriof-wc-origin-area-select" name="<?php echo esc_attr( $prefix . '[sub_district_id]' ); ?>">
-                                    <?php if ( '' !== $area_id && '0' !== $area_id ) : ?>
-                                        <option value="<?php echo esc_attr( $area_id ); ?>" selected="selected"><?php echo esc_html( $area_name ); ?></option>
-                                    <?php endif; ?>
-                                </select>
-                                <input type="hidden" class="kiriof-wc-location-area-name" name="<?php echo esc_attr( $prefix . '[sub_district_name]' ); ?>" value="<?php echo esc_attr( $area_name ); ?>" />
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Zip', 'kiriminaja-official' ); ?></label></th>
-                            <td><input type="text" class="kiriof-wc-location-zip" size="8" name="<?php echo esc_attr( $prefix . '[zip_code]' ); ?>" value="<?php echo esc_attr( $zip ); ?>" /></td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Country / State', 'kiriminaja-official' ); ?></label></th>
-                            <td>
-                                <select class="regular-text kiriof-wc-location-country" name="<?php echo esc_attr( $prefix . '[country_state]' ); ?>">
-                                    <?php echo $this->renderCountryStateOptions( $country, $state ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in helper. ?>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label><?php esc_html_e( 'Pin Location', 'kiriminaja-official' ); ?></label></th>
-                            <td>
-                                <div class="kiriof-wc-origin-map" style="width:100%;max-width:440px;height:180px;" data-lat="<?php echo esc_attr( $lat ); ?>" data-lng="<?php echo esc_attr( $lng ); ?>"></div>
-                                <input type="hidden" class="kiriof-wc-location-latitude" name="<?php echo esc_attr( $prefix . '[latitude]' ); ?>" value="<?php echo esc_attr( $lat ); ?>" />
-                                <input type="hidden" class="kiriof-wc-location-longitude" name="<?php echo esc_attr( $prefix . '[longitude]' ); ?>" value="<?php echo esc_attr( $lng ); ?>" />
-                                <button type="button" class="button kiriof-wc-origin-my-location"><?php esc_html_e( 'My Location', 'kiriminaja-official' ); ?></button>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="kiriof-wc-location-dialog__footer">
-                    <button type="button" class="button kiriof-wc-location-close"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></button>
-                    <button type="button" class="button button-primary kiriof-wc-location-save"><?php esc_html_e( 'Save changes', 'kiriminaja-official' ); ?></button>
-                </div>
-            </form>
-        </dialog>
+        <table class="form-table kiriof-wc-location-card__body">
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Sender Name', 'kiriminaja-official' ); ?></label></th>
+                <td>
+                    <input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[name]' ); ?>" value="<?php echo esc_attr( $name ); ?>" />
+                    <?php if ( 0 === $id ) : ?>
+                        <input type="hidden" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" />
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php if ( $id > 0 ) : ?>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Active', 'kiriminaja-official' ); ?></label></th>
+                <td>
+                    <label class="kiriof-wc-location-active-toggle">
+                        <input type="checkbox" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" <?php checked( $is_active ); ?> />
+                        <?php esc_html_e( 'Location is active', 'kiriminaja-official' ); ?>
+                    </label>
+                </td>
+            </tr>
+            <?php endif; ?>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Sender Phone', 'kiriminaja-official' ); ?></label></th>
+                <td><input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[phone]' ); ?>" value="<?php echo esc_attr( $phone ); ?>" /></td>
+            </tr>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Address', 'kiriminaja-official' ); ?></label></th>
+                <td><textarea rows="3" cols="50" class="regular-text" name="<?php echo esc_attr( $prefix . '[address]' ); ?>"><?php echo esc_textarea( $address ); ?></textarea></td>
+            </tr>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Address line 2', 'kiriminaja-official' ); ?></label></th>
+                <td><input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[address_2]' ); ?>" value="<?php echo esc_attr( $address_2 ); ?>" /></td>
+            </tr>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'City', 'kiriminaja-official' ); ?></label></th>
+                <td><input type="text" class="regular-text" name="<?php echo esc_attr( $prefix . '[city]' ); ?>" value="<?php echo esc_attr( $city ); ?>" /></td>
+            </tr>
+            <tr class="kiriof-wc-location-area-row">
+                <th scope="row"><label><?php esc_html_e( 'Area', 'kiriminaja-official' ); ?></label></th>
+                <td>
+                    <select class="kiriof-wc-origin-area-select" name="<?php echo esc_attr( $prefix . '[sub_district_id]' ); ?>">
+                        <?php if ( '' !== $area_id && '0' !== $area_id ) : ?>
+                            <option value="<?php echo esc_attr( $area_id ); ?>" selected="selected"><?php echo esc_html( $area_name ); ?></option>
+                        <?php endif; ?>
+                    </select>
+                    <input type="hidden" class="kiriof-wc-location-area-name" name="<?php echo esc_attr( $prefix . '[sub_district_name]' ); ?>" value="<?php echo esc_attr( $area_name ); ?>" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Zip', 'kiriminaja-official' ); ?></label></th>
+                <td><input type="text" class="kiriof-wc-location-zip" size="8" name="<?php echo esc_attr( $prefix . '[zip_code]' ); ?>" value="<?php echo esc_attr( $zip ); ?>" /></td>
+            </tr>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Country / State', 'kiriminaja-official' ); ?></label></th>
+                <td>
+                    <select class="regular-text kiriof-wc-location-country" name="<?php echo esc_attr( $prefix . '[country_state]' ); ?>">
+                        <?php echo $this->renderCountryStateOptions( $country, $state ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in helper. ?>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label><?php esc_html_e( 'Pin Location', 'kiriminaja-official' ); ?></label></th>
+                <td>
+                    <div class="kiriof-wc-origin-map" data-lat="<?php echo esc_attr( $lat ); ?>" data-lng="<?php echo esc_attr( $lng ); ?>"></div>
+                    <input type="hidden" class="kiriof-wc-location-latitude" name="<?php echo esc_attr( $prefix . '[latitude]' ); ?>" value="<?php echo esc_attr( $lat ); ?>" />
+                    <input type="hidden" class="kiriof-wc-location-longitude" name="<?php echo esc_attr( $prefix . '[longitude]' ); ?>" value="<?php echo esc_attr( $lng ); ?>" />
+                    <button type="button" class="button kiriof-wc-origin-my-location"><?php esc_html_e( 'My Location', 'kiriminaja-official' ); ?></button>
+                </td>
+            </tr>
+        </table>
         <?php
     }
 
@@ -1056,208 +1105,120 @@ jQuery(function ($) {
         return '';
     }
 
-    function kiriofSelectedCountryIsIndonesia() {
-        var $select = $('#woocommerce_default_country');
-        if (!$select.length) {
-            return true;
-        }
-        var value = String($select.val() || '');
-        return value === 'ID' || value.indexOf('ID:') === 0;
-    }
+    $('.kiriof-wc-location-card__body').each(function () {
+        var $card = $(this);
+        var $area = $card.find('.kiriof-wc-origin-area-select');
+        var $name = $card.find('.kiriof-wc-location-area-name');
+        var $zip  = $card.find('.kiriof-wc-location-zip');
+        var $country = $card.find('.kiriof-wc-location-country');
+        var $areaRow = $card.find('.kiriof-wc-location-area-row');
 
-    function kiriofInitLocationDialog($dialog) {
-        if ($dialog.data('kiriofInitialized')) {
-            return;
-        }
-        $dialog.data('kiriofInitialized', true);
-
-        var $row  = $dialog;
-        var $area = $row.find('.kiriof-wc-origin-area-select');
-        var $name = $row.find('.kiriof-wc-location-area-name');
-        var $zip  = $row.find('.kiriof-wc-location-zip');
-        var $country = $row.find('.kiriof-wc-location-country');
-        var $areaRow = $row.find('.kiriof-wc-location-area-row');
-        var initialized = false;
-
-        function rowIsIndonesia() {
-            if ($country.length) {
-                var value = String($country.val() || '');
-                return value === 'ID' || value.indexOf('ID:') === 0;
-            }
-            return kiriofSelectedCountryIsIndonesia();
+        function cardIsIndonesia() {
+            var value = String($country.val() || '');
+            return value === 'ID' || value.indexOf('ID:') === 0;
         }
 
         function toggleAreaRow() {
             if ($areaRow.length) {
-                $areaRow.toggle(rowIsIndonesia());
+                $areaRow.toggle(cardIsIndonesia());
             }
         }
 
         toggleAreaRow();
         $country.on('change', toggleAreaRow);
 
-        function initWidgets() {
-            if (initialized) {
-                return;
-            }
-            initialized = true;
+        if (select2 && $area.length) {
+            select2.call($area, {
+                width: '100%',
+                minimumInputLength: 3,
+                placeholder: 'Select Option',
+                allowClear: true,
+                ajax: {
+                    url: window.kiriofAjax ? kiriofAjax.ajaxurl : window.ajaxurl,
+                    type: 'POST',
+                    dataType: 'json',
+                    delay: 300,
+                    data: function (params) {
+                        return {
+                            action: 'kiriminaja_subdistrict_search',
+                            nonce: window.kiriofAjax ? kiriofAjax.nonce : '',
+                            term: params.term
+                        };
+                    },
+                    processResults: function (response) {
+                        var results = response && response.data ? response.data : [];
+                        return { results: results };
+                    },
+                    cache: true
+                }
+            });
 
-            if (select2 && $area.length) {
-                select2.call($area, {
-                    width: '100%',
-                    minimumInputLength: 3,
-                    placeholder: 'Select Option',
-                    allowClear: true,
-                    ajax: {
-                        url: window.kiriofAjax ? kiriofAjax.ajaxurl : window.ajaxurl,
-                        dataType: 'json',
-                        delay: 300,
-                        data: function (params) {
-                            return {
-                                action: 'kiriminaja_subdistrict_search',
-                                nonce: window.kiriofAjax ? kiriofAjax.nonce : '',
-                                term: params.term
-                            };
-                        },
-                        processResults: function (response) {
-                            var results = response && response.data && response.data.results ? response.data.results : [];
-                            return { results: results };
-                        },
-                        cache: true
-                    }
-                });
-
-                $area.on('change', function () {
-                    var $option = $area.find('option:selected');
-                    $name.val($option.length ? $option.text() : '');
-                });
-                $area.on('select2:select', function (event) {
-                    var postcode = kiriofExtractPostcode(event.params && event.params.data ? event.params.data : null);
-                    if (postcode) {
-                        $zip.val(postcode);
-                    }
-                });
-                $area.on('select2:clear', function () {
-                    $name.val('');
-                });
-            }
-
-            var $map = $row.find('.kiriof-wc-origin-map');
-            if ($map.length && window.L) {
-                var rawLat = $map.data('lat');
-                var rawLng = $map.data('lng');
-                var hasPin = rawLat !== undefined && rawLat !== '' && rawLng !== undefined && rawLng !== '';
-                var lat = hasPin ? parseFloat(rawLat) : -6.2;
-                var lng = hasPin ? parseFloat(rawLng) : 106.817;
-                var map = L.map($map[0]).setView([lat, lng], hasPin ? 15 : 11);
-                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
-                var marker = hasPin ? L.marker([lat, lng]).addTo(map) : null;
-
-                var setPin = function (la, ln) {
-                    $row.find('.kiriof-wc-location-latitude').val(la);
-                    $row.find('.kiriof-wc-location-longitude').val(ln);
-                    if (marker) {
-                        marker.setLatLng([la, ln]);
-                    } else {
-                        marker = L.marker([la, ln]).addTo(map);
-                    }
-                    map.setView([la, ln], 15);
-                };
-
-                map.on('click', function (event) {
-                    setPin(event.latlng.lat, event.latlng.lng);
-                });
-
-                $row.find('.kiriof-wc-origin-my-location').on('click', function (event) {
-                    event.preventDefault();
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(function (position) {
-                            setPin(position.coords.latitude, position.coords.longitude);
-                        });
-                    }
-                });
-            }
+            $area.on('change', function () {
+                var $option = $area.find('option:selected');
+                $name.val($option.length ? $option.text() : '');
+            });
+            $area.on('select2:select', function (event) {
+                var data = event.params && event.params.data ? event.params.data : null;
+                var label = data ? (data.text || data.name || '') : '';
+                if (label) {
+                    $name.val(label);
+                }
+                var postcode = kiriofExtractPostcode(event.params && event.params.data ? event.params.data : null);
+                if (postcode) {
+                    $zip.val(postcode);
+                }
+            });
+            $area.on('select2:clear', function () {
+                $name.val('');
+            });
         }
 
-        function openEditor() {
-            if ($row[0].showModal) {
-                $row[0].showModal();
-            } else {
-                $row.show();
-            }
-            initWidgets();
-        }
+        var $map = $card.find('.kiriof-wc-origin-map');
+        if ($map.length && window.L) {
+            var rawLat = $map.data('lat');
+            var rawLng = $map.data('lng');
+            var hasPin = rawLat !== undefined && rawLat !== '' && rawLng !== undefined && rawLng !== '';
+            var lat = hasPin ? parseFloat(rawLat) : -6.2;
+            var lng = hasPin ? parseFloat(rawLng) : 106.817;
+            var map = L.map($map[0]).setView([lat, lng], hasPin ? 15 : 11);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            var marker = hasPin ? L.marker([lat, lng]).addTo(map) : null;
 
-        function closeEditor() {
-            if ($row[0].close) {
-                $row[0].close();
-            } else {
-                $row.hide();
-            }
-        }
+            var setPin = function (la, ln) {
+                $card.find('.kiriof-wc-location-latitude').val(la);
+                $card.find('.kiriof-wc-location-longitude').val(ln);
+                if (marker) {
+                    marker.setLatLng([la, ln]);
+                } else {
+                    marker = L.marker([la, ln]).addTo(map);
+                }
+                map.setView([la, ln], 15);
+            };
 
-        $row.find('.kiriof-wc-location-close').on('click', function (event) {
-            event.preventDefault();
-            closeEditor();
-        });
-        $row.find('.kiriof-wc-location-dialog__close').on('click', function (event) {
-            event.preventDefault();
-            closeEditor();
-        });
-        $row.find('.kiriof-wc-location-save').on('click', function (event) {
-            event.preventDefault();
-            closeEditor();
-        });
-        $row.on('cancel', function (event) {
-            event.preventDefault();
-            closeEditor();
-        });
+            map.on('click', function (event) {
+                setPin(event.latlng.lat, event.latlng.lng);
+            });
 
-        $row.data('openEditor', openEditor);
-        $row.data('closeEditor', closeEditor);
-    }
+            $card.find('.kiriof-wc-origin-my-location').on('click', function (event) {
+                event.preventDefault();
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        setPin(position.coords.latitude, position.coords.longitude);
+                    });
+                }
+            });
 
-    $('.kiriof-wc-location-dialog').each(function () {
-        kiriofInitLocationDialog($(this));
-    });
-
-    $(document).on('click', '.kiriof-wc-location-edit', function (event) {
-        event.preventDefault();
-        var target = $(this).data('dialog');
-        var $dialog = target ? $(target) : $();
-        if (!$dialog.length) {
-            return;
-        }
-        kiriofInitLocationDialog($dialog);
-        var openEditor = $dialog.data('openEditor');
-        if (typeof openEditor === 'function') {
-            openEditor();
+            setTimeout(function () {
+                map.invalidateSize();
+            }, 0);
         }
     });
 
     $(document).on('click', '.kiriof-wc-location-delete', function (event) {
-        event.preventDefault();
         if (!window.confirm(kiriofLocationsL10n.confirmDelete)) {
-            return;
-        }
-        var $summary = $(this).closest('.kiriof-wc-location-summary');
-        $summary.find('.kiriof-wc-location-remove').val('1');
-        $summary.css('opacity', '0.5');
-        $summary.find('.kiriof-wc-location-edit, .kiriof-wc-location-delete').prop('disabled', true);
-    });
-
-    $('.kiriof-wc-locations-add').on('click', function (event) {
-        event.preventDefault();
-        var $dialog = $('#kiriof-wc-location-dialog-new');
-        if (!$dialog.length) {
-            return;
-        }
-        kiriofInitLocationDialog($dialog);
-        var openEditor = $dialog.data('openEditor');
-        if (typeof openEditor === 'function') {
-            openEditor();
+            event.preventDefault();
         }
     });
 });

@@ -21,7 +21,6 @@ final class Init {
             Services\PluginUpdateNoticeService::class,
             Services\ShipmentLocationService::class,
             Controllers\ProductController::class,
-            Controllers\ShipmentLocationController::class,
             Controllers\SettingController::class,
             Controllers\CallbackController::class,
             Controllers\GeneralAjaxController::class,
