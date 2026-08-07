@@ -440,16 +440,15 @@ class SettingController{
 
         $locations_field = array(
             array(
-                'title'    => __( 'Shipment Locations', 'kiriminaja-official' ),
-                'id'       => 'kiriof_wc_shipment_locations',
-                'type'     => 'kiriof_shipment_locations',
-                'desc_tip' => __( 'Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment.', 'kiriminaja-official' ),
+                'title' => __( 'Shipment Locations', 'kiriminaja-official' ),
+                'id'    => 'kiriof_wc_shipment_locations',
+                'type'  => 'kiriof_shipment_locations',
             ),
         );
 
         $settings = $this->insertSettingsBeforeId( $settings, 'woocommerce_store_address', $locations_field );
 
-        foreach ( array( 'woocommerce_store_address', 'woocommerce_store_address2', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_default_country' ) as $removed_id ) {
+        foreach ( array( 'woocommerce_store_address', 'woocommerce_store_address_2', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_default_country' ) as $removed_id ) {
             $settings = array_values(
                 array_filter(
                     $settings,
@@ -734,9 +733,7 @@ JS;
         }
         ?>
         <tr valign="top" class="kiriof-wc-shipment-locations" id="kiriof-shipment-locations">
-            <th scope="row" class="titledesc"></th>
-            <td class="forminp forminp-kiriof_shipment_locations">
-                <p class="description"><?php esc_html_e( 'Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment.', 'kiriminaja-official' ); ?></p>
+            <td colspan="2" class="forminp forminp-kiriof_shipment_locations" style="padding:0;">
                 <table class="wc-shipping-zones widefat kiriof-wc-locations-table">
                     <thead>
                         <tr>
@@ -767,10 +764,10 @@ JS;
                     <?php $this->renderShipmentLocationRow( 0, null, true ); ?>
                 </div>
                 <style>
-                    .kiriof-wc-locations-table { max-width: 960px; }
+                    .kiriof-wc-locations-table { width: 100%; }
                     .kiriof-wc-locations-table th { font-weight: 600; }
                     .kiriof-wc-location-editor-row > td { background: #f6f7f7; padding: 0 0 16px; }
-                    .kiriof-wc-location-card { border: 0; background: transparent; margin: 0; max-width: 960px; }
+                    .kiriof-wc-location-card { border: 0; background: transparent; margin: 0; width: 100%; }
                     .kiriof-wc-location-card__body th { width: 150px; padding: 10px 14px 0; }
                     .kiriof-wc-location-card__body td { padding: 10px 14px 0; }
                     .kiriof-wc-location-summary .dashicons-yes-alt { color: #46b450; }
@@ -789,7 +786,7 @@ JS;
         if ( ! $location && $use_store_fallback ) {
             $fallback_address = (string) get_option( 'woocommerce_store_address' );
             $fallback_zip     = (string) get_option( 'woocommerce_store_postcode', '' );
-            $fallback_address_2     = (string) get_option( 'woocommerce_store_address2', '' );
+            $fallback_address_2     = (string) get_option( 'woocommerce_store_address_2', '' );
             $fallback_city          = (string) get_option( 'woocommerce_store_city', '' );
             $fallback_country_state = (string) get_option( 'woocommerce_default_country', '' );
         } else {
@@ -848,13 +845,8 @@ JS;
                 <?php endif; ?>
             </td>
             <td class="wc-shipping-zone-actions">
-                <button type="button" class="kiriof-wc-location-actions-toggle" title="<?php esc_attr_e( 'Actions', 'kiriminaja-official' ); ?>">
-                    <span class="dashicons dashicons-ellipsis"></span>
-                </button>
-                <ul class="kiriof-wc-location-actions-menu" style="display:none;">
-                    <li><a href="#" class="kiriof-wc-location-edit"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></a></li>
-                    <li><a href="#" class="kiriof-wc-location-delete"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></a></li>
-                </ul>
+                <button type="button" class="button kiriof-wc-location-edit"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></button>
+                <button type="button" class="button kiriof-wc-location-delete"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></button>
             </td>
         </tr>
         <?php endif; ?>
@@ -967,7 +959,7 @@ JS;
     }
 
     private function renderShipmentLocationsInlineScript() {
-        $inline_script = <<<JS
+        $inline_script = <<<'JS'
 jQuery(function ($) {
     var select2 = $.fn.selectWoo || $.fn.select2;
 
@@ -1127,7 +1119,7 @@ jQuery(function ($) {
                 event.preventDefault();
                 $row.find('.kiriof-wc-location-remove').prop('checked', true);
                 $summary.css('opacity', '0.5');
-                $summary.find('.kiriof-wc-location-actions-menu').hide();
+                $summary.find('.kiriof-wc-location-edit, .kiriof-wc-location-delete').prop('disabled', true);
             });
         }
 
@@ -1153,23 +1145,6 @@ jQuery(function ($) {
             $editor.show();
         }
         $(this).prop('disabled', true);
-    });
-
-    // Kebab actions-menu toggle
-    $('body').on('click', '.kiriof-wc-location-actions-toggle', function (e) {
-        e.stopPropagation();
-        var $menu = $(this).siblings('.kiriof-wc-location-actions-menu');
-        $('.kiriof-wc-location-actions-menu').not($menu).hide();
-        $menu.toggle();
-    });
-
-    // Kebab menu: clicking edit closes the menu first
-    $('body').on('click', '.kiriof-wc-location-actions-menu .kiriof-wc-location-edit', function () {
-        $(this).closest('.kiriof-wc-location-actions-menu').hide();
-    });
-
-    $(document).on('click', function () {
-        $('.kiriof-wc-location-actions-menu').hide();
     });
 });
 JS;
@@ -1260,7 +1235,7 @@ JS;
             update_option( 'kiriof_wc_origin_area', $payload['origin_sub_district_id'] );
             update_option( 'woocommerce_store_address', $payload['origin_address'] );
             update_option( 'woocommerce_store_postcode', $payload['origin_zip_code'] );
-            update_option( 'woocommerce_store_address2', (string) $default->address_2 );
+            update_option( 'woocommerce_store_address_2', (string) $default->address_2 );
             update_option( 'woocommerce_store_city', (string) $default->city );
             $default_country_state = (string) $default->country . ( '' !== (string) $default->state ? ':' . (string) $default->state : '' );
             update_option( 'woocommerce_default_country', $default_country_state );

@@ -25,7 +25,7 @@ class ShipmentLocationStructureTest extends TestCase {
         $source = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
         $this->assertStringContainsString( "add_action( 'woocommerce_admin_field_kiriof_shipment_locations', array( \$this, 'renderWooCommerceShipmentLocationsField' ) );", $source );
-        $this->assertStringContainsString( "'type'     => 'kiriof_shipment_locations',", $source );
+        $this->assertStringContainsString( "'type'  => 'kiriof_shipment_locations',", $source );
         $this->assertStringContainsString( 'kiriof_locations[', $source );
         $this->assertStringContainsString( 'kiriof_default_location_id', $source );
         $this->assertStringContainsString( 'kiriof-wc-location-row', $source );
@@ -100,9 +100,15 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( 'kiriof-wc-location-country', $controller );
         $this->assertStringContainsString( 'renderCountryStateOptions', $controller );
         $this->assertStringContainsString( "'woocommerce_store_city', 'woocommerce_default_country'", $controller );
-        $this->assertStringContainsString( "update_option( 'woocommerce_store_address2'", $controller );
+        $this->assertStringContainsString( "update_option( 'woocommerce_store_address_2'", $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_city'", $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_default_country'", $controller );
-        $this->assertStringContainsString( 'woocommerce_store_address2', $controller );
+        $this->assertStringContainsString( 'woocommerce_store_address_2', $controller );
+    }
+
+    public function testInitRegistersMigrationOnEveryLoadForSelfHealingSchema(): void {
+        $init = $this->read( __DIR__ . '/../inc/Init.php' );
+
+        $this->assertMatchesRegularExpression( '/SetupMigration.*register\(\)/s', $init );
     }
 }

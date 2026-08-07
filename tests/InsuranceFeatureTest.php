@@ -530,13 +530,13 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "'type'     => 'kiriof_shipment_locations',",
+            "'type'  => 'kiriof_shipment_locations',",
             $controller,
             'Store Address section must render the per-location shipment table'
         );
 
         $this->assertStringContainsString(
-            "array( 'woocommerce_store_address', 'woocommerce_store_address2', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_default_country' )",
+            "array( 'woocommerce_store_address', 'woocommerce_store_address_2', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_default_country' )",
             $controller,
             'Native single-store address fields must be replaced by the per-location table'
         );
