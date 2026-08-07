@@ -3410,3 +3410,9 @@ msgstr "Area / Kota"
 
 msgid "Shipment Location"
 msgstr "Lokasi Pengiriman"
+
+msgid "Are you sure you want to delete this shipment location?"
+msgstr "Apakah Anda yakin ingin menghapus lokasi pengiriman ini?"
+
+msgid "Save changes"
+msgstr "Simpan perubahan"

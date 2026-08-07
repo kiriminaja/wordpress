@@ -760,19 +760,61 @@ JS;
                         </tr>
                     </tfoot>
                 </table>
-                <div class="kiriof-wc-location-new-source" style="display:none;">
-                    <?php $this->renderShipmentLocationRow( 0, null, true ); ?>
+                <div class="kiriof-wc-location-dialogs">
+                    <?php
+                    foreach ( $locations as $location ) {
+                        $this->renderShipmentLocationDialog( (int) $location->id, $location );
+                    }
+                    ?>
+                    <div class="kiriof-wc-location-new-source">
+                        <?php $this->renderShipmentLocationDialog( 0, null, true ); ?>
+                    </div>
                 </div>
                 <style>
                     .kiriof-wc-locations-table { width: 100%; }
                     .kiriof-wc-locations-table th { font-weight: 600; }
-                    .kiriof-wc-location-editor-row > td { background: #f6f7f7; padding: 0 0 16px; }
-                    .kiriof-wc-location-card { border: 0; background: transparent; margin: 0; width: 100%; }
                     .kiriof-wc-location-card__body th { width: 150px; padding: 10px 14px 0; }
                     .kiriof-wc-location-card__body td { padding: 10px 14px 0; }
                     .kiriof-wc-location-summary .dashicons-yes-alt { color: #46b450; }
                     .kiriof-wc-location-summary .dashicons-marker { color: #c3c4c7; }
-                    .kiriof-wc-location-editor-row { display: none; }
+                    .kiriof-wc-location-dialog {
+                        padding: 0;
+                        border: 1px solid #c3c4c7;
+                        border-radius: 4px;
+                        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+                        width: 600px;
+                        max-width: 90vw;
+                        max-height: 85vh;
+                    }
+                    .kiriof-wc-location-dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+                    .kiriof-wc-location-dialog__form { margin: 0; display: flex; flex-direction: column; max-height: 85vh; }
+                    .kiriof-wc-location-dialog__header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 16px 24px;
+                        border-bottom: 1px solid #dcdcde;
+                        background: #fff;
+                    }
+                    .kiriof-wc-location-dialog__header h2 { margin: 0; font-size: 18px; }
+                    .kiriof-wc-location-dialog__close {
+                        background: none;
+                        border: 0;
+                        cursor: pointer;
+                        font-size: 22px;
+                        line-height: 1;
+                        color: #787c82;
+                        padding: 0;
+                    }
+                    .kiriof-wc-location-dialog__body { padding: 0 24px; overflow-y: auto; flex: 1 1 auto; }
+                    .kiriof-wc-location-dialog__footer {
+                        display: flex;
+                        justify-content: flex-end;
+                        gap: 8px;
+                        padding: 16px 24px;
+                        border-top: 1px solid #dcdcde;
+                        background: #fff;
+                    }
                 </style>
             </td>
         </tr>
@@ -780,42 +822,58 @@ JS;
         $this->renderShipmentLocationsInlineScript();
     }
 
-    private function renderShipmentLocationRow( $id, $location, $use_store_fallback = false ) {
-        $key        = $id > 0 ? (string) $id : 'new';
-        $prefix     = 'kiriof_locations[' . $key . ']';
+    private function resolveShipmentLocationFields( $location, $use_store_fallback ) {
         if ( ! $location && $use_store_fallback ) {
-            $fallback_address = (string) get_option( 'woocommerce_store_address' );
-            $fallback_zip     = (string) get_option( 'woocommerce_store_postcode', '' );
+            $fallback_address       = (string) get_option( 'woocommerce_store_address' );
+            $fallback_zip           = (string) get_option( 'woocommerce_store_postcode', '' );
             $fallback_address_2     = (string) get_option( 'woocommerce_store_address_2', '' );
             $fallback_city          = (string) get_option( 'woocommerce_store_city', '' );
             $fallback_country_state = (string) get_option( 'woocommerce_default_country', '' );
         } else {
-            $fallback_address = '';
-            $fallback_zip     = '';
+            $fallback_address       = '';
+            $fallback_zip           = '';
             $fallback_address_2     = '';
             $fallback_city          = '';
             $fallback_country_state = '';
         }
-        $name       = $location ? (string) $location->name : '';
-        $phone      = $location ? (string) $location->phone : '';
-        $address    = $location ? (string) $location->address : $fallback_address;
-        $area_id    = $location ? (string) $location->sub_district_id : '';
-        $area_name  = $location ? (string) $location->sub_district_name : '';
-        $zip        = $location ? (string) $location->zip_code : $fallback_zip;
-        $address_2  = $location ? (string) $location->address_2 : $fallback_address_2;
-        $city       = $location ? (string) $location->city : $fallback_city;
-        $country    = $location ? (string) $location->country : '';
-        $state      = $location ? (string) $location->state : '';
+
+        $country = $location ? (string) $location->country : '';
+        $state   = $location ? (string) $location->state : '';
         if ( '' === $country && '' !== $fallback_country_state ) {
             $country = $fallback_country_state;
             if ( false !== strpos( $fallback_country_state, ':' ) ) {
                 list( $country, $state ) = explode( ':', $fallback_country_state, 2 );
             }
         }
-        $lat        = $location ? (string) $location->latitude : '';
-        $lng        = $location ? (string) $location->longitude : '';
-        $is_default = $location && 1 === (int) $location->is_default;
-        $is_active  = ! $location || 1 === (int) $location->is_active;
+
+        return array(
+            'name'       => $location ? (string) $location->name : '',
+            'phone'      => $location ? (string) $location->phone : '',
+            'address'    => $location ? (string) $location->address : $fallback_address,
+            'area_id'    => $location ? (string) $location->sub_district_id : '',
+            'area_name'  => $location ? (string) $location->sub_district_name : '',
+            'zip'        => $location ? (string) $location->zip_code : $fallback_zip,
+            'address_2'  => $location ? (string) $location->address_2 : $fallback_address_2,
+            'city'       => $location ? (string) $location->city : $fallback_city,
+            'country'    => $country,
+            'state'      => $state,
+            'lat'        => $location ? (string) $location->latitude : '',
+            'lng'        => $location ? (string) $location->longitude : '',
+            'is_default' => $location && 1 === (int) $location->is_default,
+            'is_active'  => ! $location || 1 === (int) $location->is_active,
+        );
+    }
+
+    private function renderShipmentLocationRow( $id, $location, $use_store_fallback = false ) {
+        $key        = $id > 0 ? (string) $id : 'new';
+        $prefix     = 'kiriof_locations[' . $key . ']';
+        $fields     = $this->resolveShipmentLocationFields( $location, $use_store_fallback );
+        $name       = $fields['name'];
+        $phone      = $fields['phone'];
+        $area_name  = $fields['area_name'];
+        $city       = $fields['city'];
+        $is_default = $fields['is_default'];
+        $is_active  = $fields['is_active'];
         $title      = $id > 0 ? ( '' !== $name ? $name : __( 'Shipment Location', 'kiriminaja-official' ) ) : __( 'Add Shipment Location', 'kiriminaja-official' );
         $region     = trim( $area_name . ( '' !== $area_name && '' !== $city ? ', ' : '' ) . $city );
         if ( '' === $region ) {
@@ -845,14 +903,41 @@ JS;
                 <?php endif; ?>
             </td>
             <td class="wc-shipping-zone-actions">
-                <button type="button" class="button kiriof-wc-location-edit"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></button>
+                <button type="button" class="button kiriof-wc-location-edit" data-dialog="#kiriof-wc-location-dialog-<?php echo esc_attr( $key ); ?>"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></button>
                 <button type="button" class="button kiriof-wc-location-delete"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></button>
+                <input type="hidden" class="kiriof-wc-location-remove" name="<?php echo esc_attr( $prefix . '[remove]' ); ?>" value="" />
             </td>
         </tr>
         <?php endif; ?>
-        <tr class="kiriof-wc-location-row kiriof-wc-location-editor-row">
-            <td colspan="6">
-                <div class="kiriof-wc-location-card">
+        <?php
+    }
+
+    private function renderShipmentLocationDialog( $id, $location, $use_store_fallback = false ) {
+        $key        = $id > 0 ? (string) $id : 'new';
+        $prefix     = 'kiriof_locations[' . $key . ']';
+        $fields     = $this->resolveShipmentLocationFields( $location, $use_store_fallback );
+        $name       = $fields['name'];
+        $phone      = $fields['phone'];
+        $address    = $fields['address'];
+        $area_id    = $fields['area_id'];
+        $area_name  = $fields['area_name'];
+        $zip        = $fields['zip'];
+        $address_2  = $fields['address_2'];
+        $city       = $fields['city'];
+        $country    = $fields['country'];
+        $state      = $fields['state'];
+        $lat        = $fields['lat'];
+        $lng        = $fields['lng'];
+        $is_active  = $fields['is_active'];
+        $dialog_title = $id > 0 ? __( 'Edit Shipment Location', 'kiriminaja-official' ) : __( 'Add Shipment Location', 'kiriminaja-official' );
+        ?>
+        <dialog class="kiriof-wc-location-dialog" id="kiriof-wc-location-dialog-<?php echo esc_attr( $key ); ?>" data-key="<?php echo esc_attr( $key ); ?>">
+            <form method="dialog" class="kiriof-wc-location-dialog__form">
+                <div class="kiriof-wc-location-dialog__header">
+                    <h2><?php echo esc_html( $dialog_title ); ?></h2>
+                    <button type="button" class="kiriof-wc-location-dialog__close" aria-label="<?php esc_attr_e( 'Close', 'kiriminaja-official' ); ?>">&times;</button>
+                </div>
+                <div class="kiriof-wc-location-dialog__body">
                     <table class="form-table kiriof-wc-location-card__body">
                         <tr>
                             <th scope="row"><label><?php esc_html_e( 'Sender Name', 'kiriminaja-official' ); ?></label></th>
@@ -916,22 +1001,14 @@ JS;
                                 <button type="button" class="button kiriof-wc-origin-my-location"><?php esc_html_e( 'My Location', 'kiriminaja-official' ); ?></button>
                             </td>
                         </tr>
-                        <tr>
-                            <th scope="row"></th>
-                            <td>
-                                <?php if ( $id > 0 ) : ?>
-                                    <label class="kiriof-wc-location-remove-label" style="color:#b32d2e;">
-                                        <input type="checkbox" class="kiriof-wc-location-remove" name="<?php echo esc_attr( $prefix . '[remove]' ); ?>" value="1" />
-                                        <?php esc_html_e( 'Remove', 'kiriminaja-official' ); ?>
-                                    </label>
-                                <?php endif; ?>
-                                <button type="button" class="button kiriof-wc-location-close"><?php esc_html_e( 'Close', 'kiriminaja-official' ); ?></button>
-                            </td>
-                        </tr>
                     </table>
                 </div>
-            </td>
-        </tr>
+                <div class="kiriof-wc-location-dialog__footer">
+                    <button type="button" class="button kiriof-wc-location-close"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></button>
+                    <button type="button" class="button button-primary kiriof-wc-location-save"><?php esc_html_e( 'Save changes', 'kiriminaja-official' ); ?></button>
+                </div>
+            </form>
+        </dialog>
         <?php
     }
 
@@ -979,8 +1056,22 @@ jQuery(function ($) {
         return '';
     }
 
-    $('.kiriof-wc-location-editor-row').each(function () {
-        var $row  = $(this);
+    function kiriofSelectedCountryIsIndonesia() {
+        var $select = $('#woocommerce_default_country');
+        if (!$select.length) {
+            return true;
+        }
+        var value = String($select.val() || '');
+        return value === 'ID' || value.indexOf('ID:') === 0;
+    }
+
+    function kiriofInitLocationDialog($dialog) {
+        if ($dialog.data('kiriofInitialized')) {
+            return;
+        }
+        $dialog.data('kiriofInitialized', true);
+
+        var $row  = $dialog;
         var $area = $row.find('.kiriof-wc-origin-area-select');
         var $name = $row.find('.kiriof-wc-location-area-name');
         var $zip  = $row.find('.kiriof-wc-location-zip');
@@ -993,7 +1084,7 @@ jQuery(function ($) {
                 var value = String($country.val() || '');
                 return value === 'ID' || value.indexOf('ID:') === 0;
             }
-            return !$('#woocommerce_default_country').length || kiriofSelectedCountryIsIndonesia();
+            return kiriofSelectedCountryIsIndonesia();
         }
 
         function toggleAreaRow() {
@@ -1090,64 +1181,91 @@ jQuery(function ($) {
             }
         }
 
-        var $summary = $row.prev('.kiriof-wc-location-summary');
-
         function openEditor() {
-            $('.kiriof-wc-location-editor-row:visible').not($row).each(function () {
-                $(this).hide().prev('.kiriof-wc-location-summary').show();
-            });
-            $row.show();
-            if ($summary.length) {
-                $summary.hide();
+            if ($row[0].showModal) {
+                $row[0].showModal();
+            } else {
+                $row.show();
             }
             initWidgets();
         }
 
         function closeEditor() {
-            $row.hide();
-            if ($summary.length) {
-                $summary.show();
+            if ($row[0].close) {
+                $row[0].close();
+            } else {
+                $row.hide();
             }
-        }
-
-        if ($summary.length) {
-            $summary.find('.kiriof-wc-location-edit').on('click', function (event) {
-                event.preventDefault();
-                openEditor();
-            });
-            $summary.find('.kiriof-wc-location-delete').on('click', function (event) {
-                event.preventDefault();
-                $row.find('.kiriof-wc-location-remove').prop('checked', true);
-                $summary.css('opacity', '0.5');
-                $summary.find('.kiriof-wc-location-edit, .kiriof-wc-location-delete').prop('disabled', true);
-            });
         }
 
         $row.find('.kiriof-wc-location-close').on('click', function (event) {
             event.preventDefault();
             closeEditor();
         });
+        $row.find('.kiriof-wc-location-dialog__close').on('click', function (event) {
+            event.preventDefault();
+            closeEditor();
+        });
+        $row.find('.kiriof-wc-location-save').on('click', function (event) {
+            event.preventDefault();
+            closeEditor();
+        });
+        $row.on('cancel', function (event) {
+            event.preventDefault();
+            closeEditor();
+        });
 
         $row.data('openEditor', openEditor);
+        $row.data('closeEditor', closeEditor);
+    }
+
+    $('.kiriof-wc-location-dialog').each(function () {
+        kiriofInitLocationDialog($(this));
+    });
+
+    $(document).on('click', '.kiriof-wc-location-edit', function (event) {
+        event.preventDefault();
+        var target = $(this).data('dialog');
+        var $dialog = target ? $(target) : $();
+        if (!$dialog.length) {
+            return;
+        }
+        kiriofInitLocationDialog($dialog);
+        var openEditor = $dialog.data('openEditor');
+        if (typeof openEditor === 'function') {
+            openEditor();
+        }
+    });
+
+    $(document).on('click', '.kiriof-wc-location-delete', function (event) {
+        event.preventDefault();
+        if (!window.confirm(kiriofLocationsL10n.confirmDelete)) {
+            return;
+        }
+        var $summary = $(this).closest('.kiriof-wc-location-summary');
+        $summary.find('.kiriof-wc-location-remove').val('1');
+        $summary.css('opacity', '0.5');
+        $summary.find('.kiriof-wc-location-edit, .kiriof-wc-location-delete').prop('disabled', true);
     });
 
     $('.kiriof-wc-locations-add').on('click', function (event) {
         event.preventDefault();
-        var $editor = $('.kiriof-wc-location-new-source .kiriof-wc-location-editor-row');
-        if (!$editor.length) {
+        var $dialog = $('#kiriof-wc-location-dialog-new');
+        if (!$dialog.length) {
             return;
         }
-        $('.kiriof-wc-locations-rows').append($editor);
-        var openEditor = $editor.data('openEditor');
+        kiriofInitLocationDialog($dialog);
+        var openEditor = $dialog.data('openEditor');
         if (typeof openEditor === 'function') {
             openEditor();
-        } else {
-            $editor.show();
         }
-        $(this).prop('disabled', true);
     });
 });
 JS;
+        $localize_script = array(
+            'confirmDelete' => __( 'Are you sure you want to delete this shipment location?', 'kiriminaja-official' ),
+        );
+        wp_localize_script( 'kiriof-script', 'kiriofLocationsL10n', $localize_script );
         wp_add_inline_script( 'kiriof-script', $inline_script );
     }
 
