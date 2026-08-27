@@ -322,12 +322,20 @@ function kiriof_shipping_method(){
                     return '';
                 }
 
-                foreach ( array( 'get_shipping_address', 'get_billing_address' ) as $method ) {
-                    if ( method_exists( WC()->customer, $method ) ) {
-                        $address = trim( (string) WC()->customer->{$method}() );
-                        if ( '' !== $address ) {
-                            return $address;
+                foreach ( array( 'shipping', 'billing' ) as $address_type ) {
+                    $address_parts = array();
+                    foreach ( array( 'address', 'address_2' ) as $address_field ) {
+                        $method = 'get_' . $address_type . '_' . $address_field;
+                        if ( method_exists( WC()->customer, $method ) ) {
+                            $address = trim( (string) WC()->customer->{$method}() );
+                            if ( '' !== $address ) {
+                                $address_parts[] = $address;
+                            }
                         }
+                    }
+
+                    if ( ! empty( $address_parts ) ) {
+                        return implode( ' ', $address_parts );
                     }
                 }
 
@@ -339,16 +347,17 @@ function kiriof_shipping_method(){
                     return '';
                 }
 
-                foreach ( array( 'address_1', 'address' ) as $key ) {
+                $address_parts = array();
+                foreach ( array( 'address_1', 'address', 'address_2' ) as $key ) {
                     if ( array_key_exists( $key, $package['destination'] ) ) {
                         $address = trim( (string) $package['destination'][ $key ] );
                         if ( '' !== $address ) {
-                            return $address;
+                            $address_parts[] = $address;
                         }
                     }
                 }
 
-                return '';
+                return implode( ' ', $address_parts );
             }
 
             private function applyRateDisplayMetadata($rate_id, $description, $delivery_time) {

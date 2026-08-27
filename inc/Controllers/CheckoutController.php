@@ -714,8 +714,14 @@ class CheckoutController
     }
 
     private function kiriof_get_checkout_posted_address(): string {
-        $billing_address = $this->kiriof_get_posted_text_field( 'billing_address_1' );
-        $shipping_address = $this->kiriof_get_posted_text_field( 'shipping_address_1' );
+        $billing_address  = trim( implode( ' ', array_filter( array(
+            $this->kiriof_get_posted_text_field( 'billing_address_1' ),
+            $this->kiriof_get_posted_text_field( 'billing_address_2' ),
+        ) ) ) );
+        $shipping_address = trim( implode( ' ', array_filter( array(
+            $this->kiriof_get_posted_text_field( 'shipping_address_1' ),
+            $this->kiriof_get_posted_text_field( 'shipping_address_2' ),
+        ) ) ) );
 
         if ( '' !== $this->kiriof_get_posted_text_field( 'ship_to_different_address' ) ) {
             return '' !== $shipping_address ? $shipping_address : $billing_address;
