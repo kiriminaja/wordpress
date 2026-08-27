@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.5
+Stable tag: 2.3.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,9 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 2.3.6 =
+- Keep district errors on shipping address
+
 = 2.3.5 =
 - Build the remember-PIN text inside the footer modal renderer so it remains in scope, and apply explicit label styles for readable checkbox context.
 - Do not send discount_percentage when the shipping discount amount is zero. This prevents no-discount pickup requests from being treated as discounted packages by the API.
