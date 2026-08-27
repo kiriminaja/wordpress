@@ -1294,6 +1294,32 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function block_checkout_only_writes_district_validation_state_to_shipping_address(): void
+    {
+        $content = self::billingAddressScriptContent();
+        $updater_start = strpos( $content, 'function kiriofUpdateCheckoutAdditionalFields(val)' );
+
+        $this->assertNotFalse( $updater_start, 'Block checkout District updater must exist' );
+        $updater_body = substr( $content, $updater_start, 1800 );
+
+        $this->assertStringContainsString(
+            'setEditingShippingAddress(editingShippingAddress)',
+            $updater_body,
+            'District must be written to the shipping address where the Blocks field is registered'
+        );
+        $this->assertStringNotContainsString(
+            'setEditingBillingAddress',
+            $updater_body,
+            'District must not be written to billing address state, which makes Woo Blocks show the error under billing locality'
+        );
+        $this->assertStringNotContainsString(
+            "'billing_' + kiriofFieldId",
+            $content,
+            'District validation must not target an unrendered billing field'
+        );
+    }
+
+    #[Test]
     public function block_checkout_requires_district_before_showing_shipping_options(): void
     {
         $content = self::billingAddressTemplateContent();
@@ -1379,12 +1405,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'KiriminAja pricing should stay hidden until the address line has at least 20 characters'
         );
         $this->assertStringContainsString(
-            "array( 'address_1', 'address' )",
+            "array( 'address_1', 'address', 'address_2' )",
             $shippingMethod,
-            'Address-length validation must support both Woo Blocks address_1 and classic package address keys'
+            'Address-length validation must include both checkout address lines from Woo Blocks and classic packages'
         );
         $this->assertStringContainsString(
-            "'get_shipping_address', 'get_billing_address'",
+            "array( 'shipping', 'billing' )",
             $shippingMethod,
             'Address-length validation should fall back to Woo customer address accessors when package data is unavailable'
         );

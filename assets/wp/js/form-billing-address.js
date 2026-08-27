@@ -405,12 +405,10 @@
                                             if (validationDispatch && typeof validationDispatch.clearValidationErrors === 'function') {
                                                 validationDispatch.clearValidationErrors([
                                                     'shipping_' + kiriofFieldId,
-                                                    'billing_' + kiriofFieldId,
                                                     kiriofFieldId,
                                                 ]);
                                             } else if (validationDispatch && typeof validationDispatch.clearValidationError === 'function') {
                                                 validationDispatch.clearValidationError('shipping_' + kiriofFieldId);
-                                                validationDispatch.clearValidationError('billing_' + kiriofFieldId);
                                                 validationDispatch.clearValidationError(kiriofFieldId);
                                             }
                                         }
@@ -553,22 +551,13 @@
                         var editingShippingAddress = checkoutStore && typeof checkoutStore.getEditingShippingAddress === 'function'
                             ? (checkoutStore.getEditingShippingAddress() || {})
                             : {};
-                        var editingBillingAddress = checkoutStore && typeof checkoutStore.getEditingBillingAddress === 'function'
-                            ? (checkoutStore.getEditingBillingAddress() || {})
-                            : {};
 
                         editingShippingAddress = Object.assign({}, editingShippingAddress);
-                        editingBillingAddress = Object.assign({}, editingBillingAddress);
 
                         editingShippingAddress[kiriofFieldId] = val;
-                        editingBillingAddress[kiriofFieldId] = val;
 
                         if (typeof checkoutDispatch.setEditingShippingAddress === 'function') {
                             checkoutDispatch.setEditingShippingAddress(editingShippingAddress);
-                        }
-
-                        if (typeof checkoutDispatch.setEditingBillingAddress === 'function') {
-                            checkoutDispatch.setEditingBillingAddress(editingBillingAddress);
                         }
                     } catch(e) {}
 
