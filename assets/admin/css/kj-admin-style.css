@@ -404,6 +404,316 @@
   padding: 24px;
 }
 
+/* Change-origin modal: compact, readable comparison layout. */
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content {
+  width: min(720px, calc(100vw - 32px));
+  max-width: 720px;
+  margin: 4vh auto 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-modal-body {
+  min-height: 0;
+  max-height: min(70vh, 720px);
+  height: auto;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content,
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
+  height: auto;
+  min-height: 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-loading {
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 16px;
+  color: #50575e;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-field {
+  margin-bottom: 16px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-current {
+  margin-top: 6px;
+  color: #1d2327;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-result {
+  margin: 16px 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid #dcdcde;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card h2 {
+  margin: 0 0 14px;
+  color: #1d2327;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0;
+  margin: 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card dt,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card dd {
+  margin: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card dd {
+  padding-left: 24px;
+  color: #1d2327;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card dt:last-of-type,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-card dd:last-of-type {
+  border-bottom: 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-total {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact {
+  border-color: #c3c4c7;
+  background: #f6f7f7;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-delta {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 2px solid #dcdcde;
+  color: #1d2327;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+}
+
+/* Change-origin dialog: keep every state readable and visually grouped. */
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-header {
+  padding: 20px 28px;
+  border-bottom: 1px solid #dcdcde;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-modal-body {
+  padding: 24px 28px;
+  background: #fff;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-field {
+  margin: 0 0 20px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1d2327;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-current {
+  margin: 0;
+  color: #1d2327;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal select[name="location_id"] {
+  width: 100%;
+  max-width: none;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-container {
+  width: 100% !important;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-container .select2-selection--single {
+  height: 42px;
+  border-color: #8c8f94;
+  border-radius: 4px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-container .select2-selection__rendered {
+  padding: 6px 12px;
+  color: #2c3338;
+  line-height: 28px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-container .select2-selection__arrow {
+  height: 40px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-result {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left-width: 4px;
+  border-radius: 3px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-result p {
+  margin: 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #dcdcde;
+  border-radius: 4px;
+  background: #f6f7f7;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement p {
+  margin: 0 0 12px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement p:last-child {
+  margin-bottom: 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement label {
+  display: block;
+  margin-bottom: 8px;
+  color: #2c3338;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement input[type="checkbox"] {
+  margin-right: 6px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-breakdown {
+  margin: 20px 0 0;
+  padding: 20px;
+  border: 1px solid #dcdcde;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-breakdown h2,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content h2 {
+  margin: 0 0 12px;
+  color: #1d2327;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-breakdown dl,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-breakdown dt,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-breakdown dd,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content dt,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content dd {
+  margin: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f0f1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-breakdown dd,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content dd {
+  padding-left: 24px;
+  color: #1d2327;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-total {
+  font-size: 14px !important;
+  font-weight: 700;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #dcdcde;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-delta {
+  margin: 16px 0 0;
+  color: #1d2327;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal footer {
+  padding: 16px 28px;
+  border-top: 1px solid #dcdcde;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal footer .inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media screen and (max-width: 600px) {
+  .wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
+    width: calc(100vw - 20px);
+  }
+
+  .wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-modal-body,
+  .wc-backbone-modal.kiriof-change-origin-modal footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-order-breakdown dd,
+  .wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-impact-content dd {
+    padding-left: 12px;
+  }
+}
+
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-backbone-modal-loader {
   min-height: 140px;
   display: flex;
@@ -1063,4 +1373,21 @@ button.select2-selection__clear {
 
 .wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-cooldown {
   font-weight: 600;
+}
+
+/* Keep Change Origin modal layers inside one shared box. */
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content,
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content {
+  max-width: 760px !important;
+  overflow: hidden;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
+  overflow: hidden;
 }

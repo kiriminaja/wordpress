@@ -14,6 +14,7 @@ class SendRequestPickupTransactionService extends BaseService
     public string $paymentMethod = '';
     public string $pin = '';
     private $originDataCache = null;
+    private $locationIdCache = null;
     private $helperCache = null;
     public function orderIds($orderIds)
     {
@@ -33,6 +34,19 @@ class SendRequestPickupTransactionService extends BaseService
     public function pin($pin)
     {
         $this->pin = $pin;
+        return $this;
+    }
+
+    /**
+     * Optional shipment location (fulfillment origin) selected by the seller
+     * for this pickup request. Falls back to the default location when empty.
+     *
+     * @param int|string $locationId
+     * @return $this
+     */
+    public function locationId($locationId)
+    {
+        $this->locationIdCache = (int) $locationId;
         return $this;
     }
     
@@ -293,12 +307,15 @@ class SendRequestPickupTransactionService extends BaseService
         
         /** Update Package Status to Request Pickup*/
         $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $originSnapshot  = $this->getOriginData();
         foreach ($this->orderIds as $orderId) {
             $payload = [
                 'changes' => [
                     'status' => 'request_pickup',
                     'pickup_number' => $pickupNumber,
-                    'request_pickup_at' => $currentTime
+                    'request_pickup_at' => $currentTime,
+                    'shipment_location_id' => (int) ($originSnapshot['location_id'] ?? 0),
+                    'shipment_location_snapshot' => wp_json_encode($originSnapshot),
                 ],
                 'condition' => [
                     'order_id' => $orderId
@@ -361,7 +378,26 @@ class SendRequestPickupTransactionService extends BaseService
         if ($this->originDataCache !== null) {
             return $this->originDataCache;
         }
-        
+
+        $locationId = (int) ($this->locationIdCache ?? 0);
+        if ($locationId < 1 && ! empty($this->orderIds)) {
+            $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+            $savedLocationIds = [];
+            foreach ((array) $transactions as $transaction) {
+                $savedLocationIds[] = (int) ($transaction->shipment_location_id ?? 0);
+            }
+            $savedLocationIds = array_values(array_unique(array_filter($savedLocationIds)));
+            if (1 === count($savedLocationIds)) {
+                $locationId = (int) $savedLocationIds[0];
+            }
+        }
+
+        $location = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->getLocationOrDefault($locationId);
+        if ($location) {
+            $this->originDataCache = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->locationToOrigin($location);
+            return $this->originDataCache;
+        }
+
         $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray([
             'origin_name',
             'origin_phone',
@@ -375,7 +411,7 @@ class SendRequestPickupTransactionService extends BaseService
         foreach ($repo as $setting) {
             $array[$setting->key] = $setting->value;
         }
-        
+
         $this->originDataCache = $array;
         return $array;
     }

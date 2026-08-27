@@ -140,6 +140,8 @@ class SetupMigration {
                 `returned_at` timestamp NULL DEFAULT NULL,
                 `canceled_at` timestamp NULL DEFAULT NULL,
                 `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
+                `shipment_location_id` int(11) DEFAULT NULL,
+                `shipment_location_snapshot` text DEFAULT NULL,
                 UNIQUE KEY id (id)
             );";
             require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
@@ -192,6 +194,14 @@ class SetupMigration {
             if (!in_array('printed_at', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE `$table_name` ADD printed_at timestamp NULL DEFAULT NULL");
+            }
+            if (!in_array('shipment_location_id', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD shipment_location_id int(11) DEFAULT NULL");
+            }
+            if (!in_array('shipment_location_snapshot', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD shipment_location_snapshot text DEFAULT NULL");
             }
             
         }

@@ -715,7 +715,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
 
         $this->assertStringContainsString(
-            'kiriof_money_format($option->cost-$option->discount_amount)',
+            'kiriof_money_format($kiriof_price)',
             $content,
             'Pricing AJAX response must use the plugin money formatter that is loaded by kiriminaja.php'
         );

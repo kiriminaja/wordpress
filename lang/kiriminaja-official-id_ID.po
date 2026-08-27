@@ -1582,6 +1582,11 @@ msgstr "Setup Key akan muncul di halaman Integrasi Aplikasi."
 msgid "Ship To"
 msgstr "Kirim Ke"
 
+#: inc/Controllers/TransactionProcessController.php:722
+#: templates/request-pickup/view/modal-request-pickup.php:63
+msgid "Ship From"
+msgstr "Kirim Dari"
+
 #: templates/woocommerce/checkout/form-shipping.php:26
 msgid "Ship to a different address?"
 msgstr "Kirim ke alamat berbeda?"
@@ -3468,3 +3473,129 @@ msgstr "cth. 12950"
 
 msgid "Search for sub-district or area&hellip;"
 msgstr "Cari kelurahan atau area&hellip;"
+
+msgid "Change Shipment Origin"
+msgstr "Ganti Origin Pengiriman"
+
+msgid "From"
+msgstr "Dari"
+
+msgid "To"
+msgstr "Menjadi"
+
+msgid "Shipment Route"
+msgstr "Rute Pengiriman"
+
+msgid "Default origin"
+msgstr "Origin default"
+
+msgid "Select shipment location"
+msgstr "Pilih lokasi pengiriman"
+
+msgid "Shipping Check"
+msgstr "Cek Pengiriman"
+
+msgid "Confirm"
+msgstr "Konfirmasi"
+
+msgid "Change Origin"
+msgstr "Ganti Origin"
+
+msgid "Shipping check passed. Route is serviceable from the selected origin."
+msgstr "Cek pengiriman berhasil. Rute dapat dilayani dari origin yang dipilih."
+
+msgid "Route is not serviceable from the selected origin: %s"
+msgstr "Rute tidak dapat dilayani dari origin yang dipilih: %s"
+
+msgid "Origin can only be changed before pickup is requested."
+msgstr "Origin hanya dapat diganti sebelum pickup diminta."
+
+msgid "Selected shipment location is not available."
+msgstr "Lokasi pengiriman yang dipilih tidak tersedia."
+
+msgid "Selected shipment location has no serviceable area yet."
+msgstr "Lokasi pengiriman yang dipilih belum memiliki area layanan."
+
+msgid "Transaction not found."
+msgstr "Transaksi tidak ditemukan."
+
+msgid "Invalid request payload."
+msgstr "Payload permintaan tidak valid."
+
+msgid "Failed to update the shipment origin."
+msgstr "Gagal memperbarui origin pengiriman."
+
+msgid "Shipment origin updated."
+msgstr "Origin pengiriman diperbarui."
+
+msgid "Please select a shipment location first."
+msgstr "Silakan pilih lokasi pengiriman terlebih dahulu."
+
+msgid "Shipping check failed."
+msgstr "Cek pengiriman gagal."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Default location"
+msgstr "Lokasi default"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "store administrator"
+msgstr "administrator toko"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Shipment origin changed from %1$s to %2$s by %3$s."
+msgstr "Asal pengiriman diubah dari %1$s ke %2$s oleh %3$s."
+
+msgid "%1$s price decreases by %2$s."
+msgstr "Harga %1$s turun sebesar %2$s."
+
+msgid "%1$s price increases by %2$s."
+msgstr "Harga %1$s naik sebesar %2$s."
+
+msgid "%s is not available from the selected origin."
+msgstr "%s tidak tersedia dari origin yang dipilih."
+
+msgid "Courier changed with seller consent to %s."
+msgstr "Kurir diubah dengan persetujuan penjual menjadi %s."
+
+msgid "Courier is unchanged."
+msgstr "Kurir tidak berubah."
+
+msgid "Courier replacement requires your consent."
+msgstr "Penggantian kurir memerlukan persetujuan Anda."
+
+msgid "Shipping check passed. Review the courier and price impact before confirming."
+msgstr "Pengecekan pengiriman berhasil. Tinjau kurir dan perubahan harga sebelum mengonfirmasi."
+
+msgid "Checking shipping route..."
+msgstr "Memeriksa rute pengiriman..."
+
+msgid "New courier"
+msgstr "Kurir baru"
+
+msgid "New shipping"
+msgstr "Ongkir baru"
+
+msgid "No change"
+msgstr "Tidak ada perubahan"
+
+msgid "Order price impact"
+msgstr "Dampak harga pesanan"
+
+msgid "Order total"
+msgstr "Total pesanan"
+
+msgid "Previous courier"
+msgstr "Kurir sebelumnya"
+
+msgid "Previous shipping"
+msgstr "Ongkir sebelumnya"
+
+msgid "Shipping discount"
+msgstr "Diskon ongkir"
+
+msgid "decreases"
+msgstr "menurun"
+
+msgid "increases"
+msgstr "meningkat"

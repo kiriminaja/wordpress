@@ -75,7 +75,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Order / Transaction','kiriminaja-official'); ?></th>
                                         <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Expedition & Service','kiriminaja-official'); ?></th>
                                         <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Airwaybill / Order ID','kiriminaja-official'); ?></th>
-                                        <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Ship To','kiriminaja-official'); ?></th>
+                                        <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Shipment Route','kiriminaja-official'); ?></th>
                                         <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Packages & Fee','kiriminaja-official'); ?></th>
                                         <th scope="col" class="manage-column column-thumb"><?php esc_html_e('COD Value','kiriminaja-official'); ?></th>
                                         <th scope="col" class="manage-column column-thumb"><?php esc_html_e('Status','kiriminaja-official'); ?></th>

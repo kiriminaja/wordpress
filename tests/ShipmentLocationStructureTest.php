@@ -10,15 +10,67 @@ class ShipmentLocationStructureTest extends TestCase {
         return $content;
     }
 
+    public function testTransactionListDisplaysShipmentRoute(): void {
+        $template = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+
+        $this->assertStringContainsString( "__('Shipment Route', 'kiriminaja-official')", $template );
+        $this->assertStringContainsString( 'shipment_location_snapshot', $template );
+        $this->assertStringContainsString( '$kiriof_originName', $template );
+        $this->assertStringContainsString( "__('To', 'kiriminaja-official')", $template );
+        $this->assertStringContainsString( '$kiriofShippingName', $template );
+    }
+
     public function testProductEditorUsesShipmentLocationsMetaboxLinkingToGeneralSettings(): void {
         $source = $this->read( __DIR__ . '/../inc/Controllers/ProductController.php' );
 
-        $this->assertStringContainsString( "add_action( 'add_meta_boxes_product', array( \$this, 'register_shipment_location_meta_box' ) );", $source );
-        $this->assertStringContainsString( 'Shipment Locations', $source );
-        $this->assertStringContainsString( 'This option is managed by the KiriminAja plugin', $source );
-        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $source );
-        $this->assertStringContainsString( '$this->save_shipment_location_meta($post_id, $shipment_location);', $source );
-        $this->assertStringContainsString( '$this->save_shipment_location_meta($variation_id, is_array($locations) && isset($locations[$variation_id]) ? $locations[$variation_id] : \'\');', $source );
+        $this->assertStringNotContainsString( 'register_shipment_location_meta_box', $source );
+        $this->assertStringNotContainsString( 'save_shipment_location_meta', $source );
+        $this->assertStringNotContainsString( 'ShipmentLocationService', $source );
+    }
+
+    public function testShipmentLocationServiceHasNoCartSplittingOrProductBinding(): void {
+        $source = $this->read( __DIR__ . '/../inc/Services/ShipmentLocationService.php' );
+
+        $this->assertStringNotContainsString( 'splitCartShippingPackages', $source );
+        $this->assertStringNotContainsString( 'splitPackageByOrigin', $source );
+        $this->assertStringNotContainsString( 'isMultiOriginPackage', $source );
+        $this->assertStringNotContainsString( 'resolveProductLocation', $source );
+        $this->assertStringNotContainsString( 'storeOrderItemLocation', $source );
+        $this->assertStringContainsString( 'getLocationOrDefault', $source );
+        $this->assertStringContainsString( 'locationToOrigin', $source );
+    }
+
+    public function testPickupRequestSupportsShipFromLocation(): void {
+        $service    = $this->read( __DIR__ . '/../inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
+        $controller = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+        $modal      = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+        $tpl        = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+        $rp_modal   = $this->read( __DIR__ . '/../templates/request-pickup/view/modal-request-pickup.php' );
+        $rp_js      = $this->read( __DIR__ . '/../templates/request-pickup/view/index.php' );
+
+        $this->assertStringContainsString( 'public function locationId(', $service );
+        $this->assertStringContainsString( 'getLocationOrDefault(', $service );
+        $this->assertStringContainsString( "'shipment_location_id' => (int) (\$originSnapshot['location_id'] ?? 0),", $service );
+        $this->assertStringContainsString( "'shipment_location_snapshot' => wp_json_encode(\$originSnapshot),", $service );
+
+        $this->assertStringContainsString( "\$_POST['data']['location_id']", $controller );
+        $this->assertStringContainsString( '->locationId($location_id)', $controller );
+        $this->assertStringContainsString( 'kiriof-shipment-location-select', $modal );
+        $this->assertStringContainsString( 'Ship From', $modal );
+
+        $this->assertStringContainsString( 'location_id', $tpl );
+        $this->assertStringContainsString( 'select[name="location_id"]', $tpl );
+        $this->assertStringContainsString( 'name="location_id"', $rp_modal );
+        $this->assertStringContainsString( 'location_id', $rp_js );
+    }
+
+    public function testTransactionSchemaStoresShipmentLocationSnapshot(): void {
+        $migration = $this->read( __DIR__ . '/../inc/Migration/SetupMigration.php' );
+
+        $this->assertStringContainsString( '`shipment_location_id` int(11) DEFAULT NULL,', $migration );
+        $this->assertStringContainsString( '`shipment_location_snapshot` text DEFAULT NULL,', $migration );
+        $this->assertStringContainsString( "ADD shipment_location_id int(11) DEFAULT NULL", $migration );
+        $this->assertStringContainsString( "ADD shipment_location_snapshot text DEFAULT NULL", $migration );
     }
 
     public function testGeneralSettingsStoreAddressRendersPerLocationTable(): void {

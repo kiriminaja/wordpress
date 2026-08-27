@@ -380,6 +380,7 @@ wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
                     schedule : jQuery('[name="schedule-opt"]:checked').val(),
                     order_ids : orderIds,
                     nonce : kiriofAjax.nonce
+                    ,location_id : jQuery('#request-pickup-modal select[name="location_id"]').val() || 0
                 },         // any JS object
             },
             complete: function (response) {
