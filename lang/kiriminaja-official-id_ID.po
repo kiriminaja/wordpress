@@ -3057,6 +3057,11 @@ msgid "KA Credit"
 msgstr "KA Credit"
 
 #: inc/Controllers/TransactionProcessController.php
+#: inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php
+msgid "KA Credit is temporarily unavailable."
+msgstr "KA Credit sementara tidak tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
 msgid "Loading balance..."
 msgstr "Memuat saldo..."
 
