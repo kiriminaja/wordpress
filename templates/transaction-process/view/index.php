@@ -994,6 +994,7 @@ if (page >= 1 && page <= max) {
 
                 const isTop = resp?.data?.is_top === true;
                 const hasPin = resp?.data?.has_pin === true;
+                const isKaCreditEnabled = resp?.data?.ka_credit_enabled === true;
                 const countNonCod = parseInt($modal.data('kiriofCountNonCod') || 0, 10);
                 const hasNonCodFee = $modal.data('kiriofHasNonCodFee') === true;
                 const $stateBanner = $modal.find('.kiriof-pm-state-banner');
@@ -1026,10 +1027,17 @@ if (page >= 1 && page <= max) {
                 const $creditWarning = $modal.find('.kiriof-pm-credit-warning');
                 const $balanceLabel = $modal.find('.kiriof-pm-balance');
 
-                if (!hasPin) {
+                if (!isKaCreditEnabled) {
+                    $creditOpt.hide();
+                } else if (!hasPin) {
                     $creditOpt.addClass('kiriof-pm-disabled');
                     $modal.find('#kiriof-pm-credit').prop('disabled', true);
                     $creditWarning.html('<?php echo esc_js(__('PIN is not configured.', 'kiriminaja-official')); ?> <a href="https://app.kiriminaja.com/settings/profile?tab=keamanan&action=pin" target="_blank"><?php echo esc_js(__('Configure PIN', 'kiriminaja-official')); ?></a>').show();
+                }
+
+                if (!isKaCreditEnabled) {
+                    kjUpdatePickupButton($modal);
+                    return;
                 }
 
                 $.ajax({

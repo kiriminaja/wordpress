@@ -214,10 +214,14 @@ class SendRequestPickupTransactionService extends BaseService
             $payload['longitude'] = (float) ($getOriginData['origin_longitude'] ?? 0);
         }
 
+        $isKaCreditEnabled = KIRIOF_ENABLE_KA_CREDIT;
+        if (!$isKaCreditEnabled && $this->paymentMethod === 'credit') {
+            return self::error([], __('KA Credit is temporarily unavailable.', 'kiriminaja-official'));
+        }
         if (!$isTopPaymentMethod && !empty($this->paymentMethod)) {
             $payload['payment_method'] = $this->paymentMethod;
         }
-        if ($this->paymentMethod === 'credit' && !empty($this->pin)) {
+        if ($isKaCreditEnabled && $this->paymentMethod === 'credit' && !empty($this->pin)) {
             $payload['pin'] = $this->pin;
         }
 
@@ -244,7 +248,7 @@ class SendRequestPickupTransactionService extends BaseService
             ]
         );
 
-        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequestV2($payload);
+        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
         kiriof_log('info', 'Request pickup API response received.', [
             'order_ids' => $this->orderIds,

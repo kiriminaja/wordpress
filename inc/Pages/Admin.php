@@ -18,7 +18,9 @@ class Admin extends BaseInit{
         // Screen Options: items per page for transaction list
         add_action( 'current_screen', array( $this, 'kiriof_add_transaction_screen_options' ) );
         add_action( 'in_admin_header', array( $this, 'kiriof_add_transaction_screen_options' ), 5 );
-        add_action( 'admin_bar_menu', array( $this, 'kiriof_add_credit_balance_admin_bar' ), 61 );
+        if ( KIRIOF_ENABLE_KA_CREDIT ) {
+            add_action( 'admin_bar_menu', array( $this, 'kiriof_add_credit_balance_admin_bar' ), 61 );
+        }
         add_filter( 'set-screen-option', array( $this, 'kiriof_save_transaction_screen_options' ), 10, 3 );
 
         /**
