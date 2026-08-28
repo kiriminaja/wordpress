@@ -83,6 +83,13 @@ class TransactionProcessController
                 : ''
             );
 
+            if ($payment_method === 'credit' && ! KIRIOF_ENABLE_KA_CREDIT) {
+                wp_send_json_success(
+                    \KiriminAjaOfficial\Base\BaseService::error([], __('KA Credit is temporarily unavailable.', 'kiriminaja-official'))
+                );
+                return;
+            }
+
             if ($payment_method === 'credit') {
                 $pinValidation = (new ValidatePinService())->pin($pin)->call();
                 if ($pinValidation->status !== 200 || empty($pinValidation->data['valid'])) {
@@ -186,6 +193,11 @@ class TransactionProcessController
             wp_die();
         }
 
+        if (! KIRIOF_ENABLE_KA_CREDIT) {
+            wp_send_json_success(\KiriminAjaOfficial\Base\BaseService::error([], __('KA Credit is temporarily unavailable.', 'kiriminaja-official')));
+            return;
+        }
+
         $service = (new GetCreditBalanceService())->call();
         wp_send_json_success($service);
     }
@@ -199,6 +211,11 @@ class TransactionProcessController
         if (! isset($_POST['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)) {
             wp_send_json_error(array('status' => 403, 'message' => __('Security check failed', 'kiriminaja-official')));
             wp_die();
+        }
+
+        if (! KIRIOF_ENABLE_KA_CREDIT) {
+            wp_send_json_success(\KiriminAjaOfficial\Base\BaseService::error([], __('KA Credit is temporarily unavailable.', 'kiriminaja-official')));
+            return;
         }
 
         $pin = isset($_POST['pin']) ? sanitize_text_field(wp_unslash($_POST['pin'])) : '';
@@ -221,7 +238,8 @@ class TransactionProcessController
         $isTop = $settingService->isTopPaymentMethod();
 
         $hasPin = false;
-        try {
+        if (KIRIOF_ENABLE_KA_CREDIT) {
+            try {
             $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
             if (! empty($profile->data)) {
                 $hasPin = (bool) ($profile->data->metadata->has_pin ?? false);
@@ -230,8 +248,9 @@ class TransactionProcessController
                     $isTop = $profilePaymentMethod === 'TOP';
                 }
             }
-        } catch (\Throwable $th) {
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('getPaymentMethodConfig profile error', [$th->getMessage()]);
+            } catch (\Throwable $th) {
+                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('getPaymentMethodConfig profile error', [$th->getMessage()]);
+            }
         }
 
         wp_send_json_success([
@@ -240,6 +259,7 @@ class TransactionProcessController
             'data'    => [
                 'is_top'   => $isTop,
                 'has_pin'  => $hasPin,
+                'ka_credit_enabled' => KIRIOF_ENABLE_KA_CREDIT,
             ],
         ]);
     }

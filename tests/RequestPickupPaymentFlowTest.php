@@ -416,15 +416,15 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'sendPickupRequestV2($payload)',
+            'sendPickupRequest($payload)',
             $requestPickupService,
-            'Pickup service must send the prepared package payload to the request-pickup API'
+            'Pickup service must send the prepared package payload through request-pickup API v6.1'
         );
 
-        $this->assertStringContainsString(
-            "return \$this->post('/api/mitra/v6.2/request_pickup', \$payload",
+        $this->assertStringNotContainsString(
+            'sendPickupRequestWithFeatureFlag',
             $apiRepository,
-            'Request-pickup API repository must forward the complete payload, including package destination phones'
+            'Request-pickup API repository must not conditionally switch API versions'
         );
     }
 
