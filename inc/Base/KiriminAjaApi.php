@@ -14,7 +14,7 @@ class KiriminAjaApi
     public function __construct()
     {
         $this->base_url = $this->resolve_base_url();
-        $userAgent = $this->build_user_agent();
+        $wpAgent = $this->build_user_agent();
         
         $dbApiToken = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
         
@@ -22,13 +22,14 @@ class KiriminAjaApi
             'timeout' => 30,
             'redirection' => 5,
             'httpversion' => '1.0',
-            'user-agent' => $userAgent,
+            'user-agent' => 'wordpress',
             'blocking' => true,
             'headers' => array(
                 'Authorization' => 'Bearer ' . $dbApiToken,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'User-Agent' => $userAgent
+                'User-Agent' => 'wordpress',
+                'X-WP-Agent' => $wpAgent,
             ),
             'cookies' => array(),
             'body' => null,
