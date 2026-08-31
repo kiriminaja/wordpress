@@ -50,7 +50,7 @@ final class LoggingFeatureTest extends TestCase
     }
 
     #[Test]
-    public function kiriminaja_api_requests_send_plugin_user_agent_header(): void
+    public function kiriminaja_api_requests_send_wordpress_and_plugin_agent_headers(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Base/KiriminAjaApi.php');
 
@@ -58,8 +58,9 @@ final class LoggingFeatureTest extends TestCase
         $this->assertStringContainsString('KiriminAjaOfficial/%s WordPress/%s WooCommerce/%s PHP/%s; %s', $content);
         $this->assertStringContainsString("defined('WC_VERSION') ? WC_VERSION : 'unknown'", $content);
         $this->assertStringContainsString('PHP_VERSION', $content);
-        $this->assertStringContainsString("'user-agent' => \$userAgent", $content);
-        $this->assertStringContainsString("'User-Agent' => \$userAgent", $content);
+        $this->assertStringContainsString("'user-agent' => 'wordpress'", $content);
+        $this->assertStringContainsString("'User-Agent' => 'wordpress'", $content);
+        $this->assertStringContainsString("'X-WP-Agent' => \$wpAgent", $content);
     }
 
     #[Test]
