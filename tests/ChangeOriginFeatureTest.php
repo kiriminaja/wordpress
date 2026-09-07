@@ -62,7 +62,13 @@ class ChangeOriginFeatureTest extends TestCase {
 
         $this->assertStringContainsString( 'wc_get_order( (int) $kiriof_transaction->wp_wc_order_stat_order_id )', $source );
         $this->assertStringContainsString( '$kiriof_wc_order->add_order_note(', $source );
-        $this->assertStringContainsString( 'Shipment origin changed from %1$s to %2$s by %3$s.', $source );
+        $this->assertSame( 1, substr_count( $source, '$kiriof_wc_order->add_order_note(' ) );
+        $this->assertStringContainsString( 'Shipment fulfillment updated by %s.', $source );
+        $this->assertStringContainsString( 'Origin: %1$s → %2$s', $source );
+        $this->assertStringContainsString( 'Courier: %1$s → %2$s', $source );
+        $this->assertStringContainsString( 'Shipping cost: %1$s → %2$s (%3$s)', $source );
+        $this->assertStringContainsString( 'Calculated order total: %1$s → %2$s (%3$s)', $source );
+        $this->assertStringNotContainsString( 'Courier changed with seller consent to %s.', $source );
         $this->assertStringContainsString( 'wp_get_current_user()', $source );
     }
 

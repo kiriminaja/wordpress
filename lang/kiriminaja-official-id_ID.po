@@ -3626,3 +3626,30 @@ msgstr "Lokasi pengiriman tidak dapat disimpan. Periksa semua field wajib lalu c
 #: inc/Base/Enqueue.php
 msgid "Courier"
 msgstr "Kurir"
+
+#. translators: %s: administrator name.
+msgid "Shipment fulfillment updated by %s."
+msgstr "Pemenuhan pengiriman diperbarui oleh %s."
+
+#. translators: 1: previous origin, 2: new origin.
+msgid "Origin: %1$s → %2$s"
+msgstr "Asal pengiriman: %1$s → %2$s"
+
+#. translators: 1: previous courier, 2: new courier.
+msgid "Courier: %1$s → %2$s"
+msgstr "Kurir: %1$s → %2$s"
+
+#. translators: 1: previous shipping cost, 2: new shipping cost, 3: formatted difference.
+msgid "Shipping cost: %1$s → %2$s (%3$s)"
+msgstr "Ongkos kirim: %1$s → %2$s (%3$s)"
+
+#. translators: 1: previous shipping discount, 2: new shipping discount.
+msgid "Shipping discount: %1$s → %2$s"
+msgstr "Diskon pengiriman: %1$s → %2$s"
+
+#. translators: 1: previous calculated order total, 2: new calculated order total, 3: formatted difference.
+msgid "Calculated order total: %1$s → %2$s (%3$s)"
+msgstr "Total pesanan terhitung: %1$s → %2$s (%3$s)"
+
+msgid "no change"
+msgstr "tidak berubah"
