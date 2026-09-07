@@ -60,6 +60,31 @@ if ( ! defined( 'ABSPATH' ) ) {
                             </div>
                         </div>
                         <div style="margin-top: .75rem; font-weight: 600;color: red" class="err_msg kj-hidden"></div>
+                        <div style="margin-top: .75rem">
+                            <label for="kiriof-ship-from-select" style="font-weight: 600"><?php esc_html_e( 'Ship From', 'kiriminaja-official' ); ?></label>
+                            <select id="kiriof-ship-from-select" name="location_id" style="width: 100%">
+                                <?php
+                                $kiriof_rp_locations = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->repository()->getAll();
+                                $kiriof_rp_default_id = 0;
+                                foreach ($kiriof_rp_locations as $kiriof_rp_loc) {
+                                    if (!empty($kiriof_rp_loc->is_default)) {
+                                        $kiriof_rp_default_id = (int) $kiriof_rp_loc->id;
+                                    }
+                                }
+                                foreach ($kiriof_rp_locations as $kiriof_rp_loc) {
+                                    if (empty($kiriof_rp_loc->is_active)) {
+                                        continue;
+                                    }
+                                    printf(
+                                        '<option value="%1$d"%2$s>%3$s</option>',
+                                        (int) $kiriof_rp_loc->id,
+                                        selected((int) $kiriof_rp_loc->id, $kiriof_rp_default_id, false),
+                                        esc_html($kiriof_rp_loc->name)
+                                    );
+                                }
+                                ?>
+                            </select>
+                        </div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
                             <button onclick="kjRequestPickupProcess()" class="button button-primary" type="button">

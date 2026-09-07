@@ -29,9 +29,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><label for="kiriof-origin-sub-district-id"><?php echo esc_html__( 'Subdistrict', 'kiriminaja-official' ); ?></label></th>
 				<td>
-					<select id="kiriof-origin-sub-district-id" name="origin_sub_district_id" class="kiriof-onboarding-subdistrict wc-enhanced-select-nostd kiriof-onboarding__field">
+					<select id="kiriof-origin-sub-district-id" name="origin_sub_district_id" class="kiriof-onboarding-subdistrict kiriof-onboarding__field">
 						<?php if ( ! empty( $origin_values['origin_sub_district_id'] ) ) : ?><option selected value="<?php echo esc_attr( $origin_values['origin_sub_district_id'] ); ?>"><?php echo esc_html( $origin_values['origin_sub_district_name'] ?? '' ); ?></option><?php endif; ?>
 					</select>
+					<input type="hidden" name="origin_sub_district_name" value="<?php echo esc_attr( $origin_values['origin_sub_district_name'] ?? '' ); ?>">
 				</td>
 			</tr>
 		</tbody>

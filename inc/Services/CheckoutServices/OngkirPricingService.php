@@ -12,38 +12,57 @@ class OngkirPricingService extends BaseService{
     private bool $is_cod = false;
     private int $destination_area_id = 0;
     private array $wc_cart_contents = [];
+    private int $origin_sub_district_id = 0;
+    private array $package_overrides = [];
     public function __construct($payload)
     {
         $this->is_cod               = @$payload['is_cod'];
         $this->destination_area_id  = @$payload['destination_area_id'];
-        $this->wc_cart_contents     = @$payload['wc_cart_contents'];
+        $this->wc_cart_contents     = ! empty( $payload['wc_cart_contents'] ) && is_array( $payload['wc_cart_contents'] )
+            ? $payload['wc_cart_contents']
+            : [];
+        $this->origin_sub_district_id = ! empty( $payload['origin_sub_district_id'] ) ? (int) $payload['origin_sub_district_id'] : 0;
+        $this->package_overrides    = ! empty( $payload['package_overrides'] ) && is_array( $payload['package_overrides'] ) ? $payload['package_overrides'] : [];
         return $this;
     }
     public function call(){
         
         $settingRepository = new \KiriminAjaOfficial\Repositories\SettingRepository();
         $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
-        if(!$settingRepo||$settingRepo->value === null){
+        if ( 0 === $this->origin_sub_district_id && ( ! $settingRepo || $settingRepo->value === null ) ) {
             return self::error([],'Terjadi Kesalahan!');
         }  
         $courier_filter = $settingRepository->getWhitelistExpeditionIds();
         
-        $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
-            'wc_cart_contents' => $this->wc_cart_contents
-        ]))->call();
-        if ($cartAttributes->status !== 200){
-            return self::error([],'Terjadi Kesalahan!');
+        if ( ! empty( $this->package_overrides ) ) {
+            $weight     = (float) ( $this->package_overrides['weight'] ?? 0 );
+            $length     = (float) ( $this->package_overrides['length'] ?? 0 );
+            $width      = (float) ( $this->package_overrides['width'] ?? 0 );
+            $height     = (float) ( $this->package_overrides['height'] ?? 0 );
+            $item_value = (int) ( $this->package_overrides['item_value'] ?? 0 );
+        } else {
+            $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
+                'wc_cart_contents' => $this->wc_cart_contents
+            ]))->call();
+            if ($cartAttributes->status !== 200){
+                return self::error([],'Terjadi Kesalahan!');
+            }
+            $weight     = (float) $cartAttributes->data['weight'];
+            $length     = (float) $cartAttributes->data['length'];
+            $width      = (float) $cartAttributes->data['width'];
+            $height     = (float) $cartAttributes->data['height'];
+            $item_value = (int) $cartAttributes->data['item_value'];
         }
         
         $pricingPayload = [
-            'subdistrict_origin'        => (int) $settingRepo->value,
+            'subdistrict_origin'        => $this->origin_sub_district_id > 0 ? $this->origin_sub_district_id : (int) $settingRepo->value,
             'subdistrict_destination'   => $this->destination_area_id,
-            'weight'                    => $cartAttributes->data['weight'],
-            "length"                    => $cartAttributes->data['length'],
-            "width"                     => $cartAttributes->data['width'],
-            "height"                    => $cartAttributes->data['height'],
+            'weight'                    => $weight,
+            "length"                    => $length,
+            "width"                     => $width,
+            "height"                    => $height,
             'insurance'                 => 1,
-            'item_value'                => (int) $cartAttributes->data['item_value'],
+            'item_value'                => $item_value,
             'courier'                   => ! empty( $courier_filter ) ? $courier_filter : null
         ];
         
@@ -77,9 +96,17 @@ class OngkirPricingService extends BaseService{
         $filteredOptions = [];
         $allOptions = [];
         foreach ($options as $option){
+            $kiriof_price = max( 0, (float) $option->cost - (float) $option->discount_amount );
             $rateOption = [
                 'key'=>$option->service.'_'.$option->service_type,
-                'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name).' (Rp'.(kiriof_money_format($option->cost-$option->discount_amount)).')'
+                'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name).' (Rp'.(kiriof_money_format($kiriof_price)).')',
+                'courier' => kiriof_helper()->formatServiceName($option->service, $option->service_name),
+                'service' => (string) $option->service_type,
+                'service_code' => (string) $option->service,
+                'service_type' => (string) $option->service_type,
+                'service_name' => (string) ( $option->service_name ?? '' ),
+                'price' => $kiriof_price,
+                'etd' => (string) ( $option->etd ?? '' ),
             ];
             $allOptions[] = $rateOption;
 

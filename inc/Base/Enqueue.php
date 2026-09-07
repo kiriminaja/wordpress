@@ -13,8 +13,45 @@ class Enqueue extends BaseInit{
         /** enqueue js & CSS */
         /* admin */
         add_action('admin_enqueue_scripts', array($this,'enqueueAdmin'));
+        add_action( 'admin_footer', array( $this, 'renderOrderPreviewTemplate' ) );
         /* WP */
         add_action('wp_enqueue_scripts', array($this,'enqueueWp'));
+    }
+
+    /**
+     * Render WooCommerce's order preview template on the custom transactions page.
+     *
+     * WooCommerce normally prints this template only on its native order list
+     * screens. The Transactions page uses the same preview button, so it needs
+     * the template explicitly.
+     *
+     * @return void
+     */
+    public function renderOrderPreviewTemplate() {
+        $page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
+
+        if ( 'kiriminaja-transaction-process' !== $page ) {
+            return;
+        }
+
+        if ( class_exists( '\Automattic\WooCommerce\Internal\Admin\Orders\ListTable' ) && function_exists( 'wc_get_container' ) ) {
+            $list_table_class = '\Automattic\WooCommerce\Internal\Admin\Orders\ListTable';
+            $list_table       = wc_get_container()->get( $list_table_class );
+
+            if ( method_exists( $list_table, 'get_order_preview_template' ) ) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo $list_table->get_order_preview_template();
+                return;
+            }
+        }
+
+        if ( class_exists( 'WC_Admin_List_Table_Orders' ) ) {
+            $orders_table = new \WC_Admin_List_Table_Orders();
+
+            if ( method_exists( $orders_table, 'order_preview_template' ) ) {
+                $orders_table->order_preview_template();
+            }
+        }
     }
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
@@ -219,9 +256,11 @@ class Enqueue extends BaseInit{
         $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );
 
         $tab = filter_input( INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS );
-        $is_wc_general_settings = 'woocommerce_page_wc-settings' === $screen_id && ( empty( $tab ) || 'general' === $tab );
+        $is_wc_warehouses_settings = 'woocommerce_page_wc-settings' === $screen_id && 'kiriminaja_warehouses' === $tab;
+        $is_wc_general_settings    = 'woocommerce_page_wc-settings' === $screen_id
+                                     && ( 'general' === $tab || '' === $tab || null === $tab );
 
-        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_general_settings ) {
+        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_warehouses_settings && ! $is_wc_general_settings ) {
             return;
         }
 
@@ -235,7 +274,20 @@ class Enqueue extends BaseInit{
         wp_enqueue_style( 'list-tables' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
-        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', array( 'jquery', 'select2' ), KIRIOF_VERSION, true );
+
+        $needs_leaflet = 'kiriminaja-konfigurasi' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
+
+        if ( $needs_leaflet ) {
+            wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+            wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+        }
+
+        $kiriof_script_dependencies = array( 'jquery', 'select2' );
+        if ( $needs_leaflet ) {
+            $kiriof_script_dependencies[] = 'kiriof-leaflet-script';
+        }
+
+        wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', $kiriof_script_dependencies, KIRIOF_VERSION, true );
         
         // Localize script to pass ajax URL and nonce
         wp_localize_script(
@@ -253,9 +305,17 @@ class Enqueue extends BaseInit{
 
         if ( 'kiriminaja-transaction-process' === $page ) {
             wp_enqueue_style( 'woocommerce_admin_styles' );
-            wp_enqueue_script( 'woocommerce_admin' );
-            wp_enqueue_script( 'wc-backbone-modal' );
-            wp_enqueue_script( 'wc-orders' );
+            // Load only the native order-preview scripts. Do not enqueue the
+            // `woocommerce_admin` bundle: WC localizes its global only on native
+            // screens, which causes a ReferenceError on this custom page.
+            foreach ( array( 'wc-backbone-modal', 'wc-orders', 'wc-admin-order' ) as $order_script ) {
+                if ( wp_script_is( $order_script, 'registered' ) ) {
+                    wp_enqueue_script( $order_script );
+                }
+            }
+            if ( wp_script_is( 'wc-backbone-modal', 'registered' ) ) {
+                wp_enqueue_script( 'wc-backbone-modal' );
+            }
             wp_enqueue_script( 'kiriof-pin-input', $this->plugin_url . 'assets/lib/pin-input/pin-input.js', array(), '0.2.0', true );
             wp_script_add_data( 'kiriof-pin-input', 'type', 'module' );
         }
@@ -297,15 +357,6 @@ class Enqueue extends BaseInit{
         ' );
 
         /**
-         * Leaflet - bundled locally for the store-address map picker on
-         * the Settings page. Only loaded on kiriminaja-konfigurasi.
-         */
-        if ( 'kiriminaja-konfigurasi' === $page || $is_wc_general_settings ) {
-            wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-            wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
-        }
-
-        /**
          * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
          * for the "Scan to Pay" modal on the Request Pickup page.
          */
@@ -334,6 +385,44 @@ class Enqueue extends BaseInit{
                     'cancelConfirm' => __( 'Are you sure you want to cancel this deficit COD order? This cannot be undone.', 'kiriminaja-official' ),
                     'hintCodInvalid' => __( 'Please correct the COD value.', 'kiriminaja-official' ),
                     'errorGeneral'  => __( 'An error occurred.', 'kiriminaja-official' ),
+                )
+            );
+        }
+
+        /**
+         * Change Origin JS — enqueued on the transaction process page.
+         */
+        if ( 'kiriminaja-transaction-process' === $page ) {
+            wp_enqueue_script(
+                'kiriof-change-origin',
+                $this->plugin_url . 'assets/js/kiriof-change-origin.js',
+                array( 'jquery', 'select2', 'wp-util', 'underscore', 'backbone', 'wc-jquery-blockui', 'wc-backbone-modal' ),
+                file_exists( KIRIOF_DIR . 'assets/js/kiriof-change-origin.js' ) ? filemtime( KIRIOF_DIR . 'assets/js/kiriof-change-origin.js' ) : KIRIOF_VERSION,
+                true
+            );
+            wp_localize_script(
+                'kiriof-change-origin',
+                'kiriofChangeOrigin',
+                array(
+                    'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+                    'previewNonce' => wp_create_nonce( 'woocommerce-preview-order' ),
+                    'i18n' => array(
+                        'selectLocation' => __( 'Please select a shipment location first.', 'kiriminaja-official' ),
+                        'checkFailed'    => __( 'Shipping check failed.', 'kiriminaja-official' ),
+                        'updateFailed'   => __( 'Failed to update the shipment origin.', 'kiriminaja-official' ),
+                        'priceImpact'    => __( 'Order price impact', 'kiriminaja-official' ),
+                        'previousCourier'=> __( 'Previous courier', 'kiriminaja-official' ),
+                        'newCourier'     => __( 'New courier', 'kiriminaja-official' ),
+                        'previousShipping' => __( 'Previous shipping', 'kiriminaja-official' ),
+                        'newShipping'    => __( 'New shipping', 'kiriminaja-official' ),
+                        'shippingDiscount' => __( 'Shipping discount', 'kiriminaja-official' ),
+                        'courier'          => __( 'Courier', 'kiriminaja-official' ),
+                        'orderTotal'     => __( 'Order total', 'kiriminaja-official' ),
+                        'priceIncrease'  => __( 'increases', 'kiriminaja-official' ),
+                        'priceDecrease'  => __( 'decreases', 'kiriminaja-official' ),
+                        'noChange'       => __( 'No change', 'kiriminaja-official' ),
+                        'checkingShipping' => __( 'Checking shipping route...', 'kiriminaja-official' ),
+                    ),
                 )
             );
         }

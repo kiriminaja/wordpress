@@ -552,6 +552,28 @@ class TransactionRepository{
         return ! $this->hasError();
     }
 
+    /**
+     * Update the shipment (pickup) origin assigned to a transaction.
+     *
+     * @param string $kaOrderId  KiriminAja order id.
+     * @param int    $locationId Shipment location id.
+     * @param string $snapshot   JSON snapshot of the chosen location.
+     * @return bool
+     */
+    public function updateTransactionShipmentLocation( string $kaOrderId, int $locationId, string $snapshot, array $courier = array() ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $this->wpdb->update(
+            $this->table,
+            array_merge( [
+                'shipment_location_id'       => $locationId,
+                'shipment_location_snapshot' => $snapshot,
+            ], array_intersect_key( $courier, array_flip( array( 'service', 'service_name', 'shipping_cost' ) ) ) ),
+            [ 'order_id' => $kaOrderId ]
+        );
+
+        return ! $this->hasError();
+    }
+
     public function updateTransaction($payload){
         $updateData = [
             'destination_sub_district_id' => $payload['destination_sub_district_id'],

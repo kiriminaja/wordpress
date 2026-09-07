@@ -124,7 +124,7 @@
 	}
 
 	function saveAddress() {
-		var area = $('[name="origin_sub_district_id"] option:selected');
+		var $area = $('[name="origin_sub_district_id"]');
 		var data = {
 			origin_name: $('[name="origin_name"]').val(),
 			origin_phone: $('[name="origin_phone"]').val(),
@@ -132,8 +132,8 @@
 			origin_zip_code: $('[name="origin_zip_code"]').val(),
 			origin_latitude: $('[name="origin_latitude"]').val(),
 			origin_longitude: $('[name="origin_longitude"]').val(),
-			origin_sub_district_id: area.val(),
-			origin_sub_district_name: area.text()
+			origin_sub_district_id: $area.val(),
+			origin_sub_district_name: $('[name="origin_sub_district_name"]').val()
 		};
 		if (Object.keys(data).some(function (key) { return !String(data[key] || '').trim(); })) {
 			message('address', 'Complete all address fields and set the map pin.');
@@ -279,10 +279,58 @@
 		setTimeout(function () { map.invalidateSize(); }, 100);
 	}
 
-	$('.kiriof-onboarding-subdistrict').select2({
-		width: '100%', minimumInputLength: 3, placeholder: kiriofOnboarding.subdistrictPlaceholder,
-		ajax: { url: kiriofOnboarding.ajaxUrl, dataType: 'json', type: 'POST', delay: 250, data: function (params) { return { data: params, nonce: kiriofOnboarding.nonce, action: 'kiriminaja_subdistrict_search' }; }, processResults: function (response) { return { results: $.map(response.data || [], function (item) { return { id: item.id, text: item.text }; }) }; } }
-	});
+	var $subdistrict = $('.kiriof-onboarding-subdistrict');
+	if ($subdistrict.hasClass('select2-hidden-accessible')) {
+		$subdistrict.select2('destroy');
+	}
+	$subdistrict
+		.select2({
+			width: '100%',
+			minimumInputLength: 3,
+			placeholder: kiriofOnboarding.subdistrictPlaceholder,
+			ajax: {
+				url: kiriofOnboarding.ajaxUrl,
+				dataType: 'json',
+				type: 'POST',
+				delay: 250,
+				data: function (params) {
+					return {
+						action: 'kiriminaja_subdistrict_search',
+						nonce: kiriofOnboarding.nonce,
+						term: params.term || '',
+						data: { term: params.term || '', search: params.term || '' }
+					};
+				},
+				processResults: function (response) {
+					return {
+						results: $.map(response && response.data ? response.data : [], function (item) {
+							return { id: String(item.id), text: item.text, postcode: item.postcode || '' };
+						})
+					};
+				}
+			}
+		})
+		.off('select2:select.kiriofOnboarding select2:clear.kiriofOnboarding')
+		.on('select2:select.kiriofOnboarding', function (event) {
+			var selected = event.params && event.params.data ? event.params.data : null;
+			var id = selected && selected.id ? String(selected.id) : '';
+			var text = selected && selected.text ? String(selected.text) : '';
+
+			if (!id || !text) {
+				return;
+			}
+
+			$(this).empty().append(new Option(text, id, true, true)).val(id);
+			$('[name="origin_sub_district_name"]').val(text);
+			if (selected.postcode) {
+				$('[name="origin_zip_code"]').val(String(selected.postcode)).trigger('input').trigger('change');
+			}
+			$(this).trigger('change.select2');
+		})
+		.on('select2:clear.kiriofOnboarding', function () {
+			$(this).empty().val(null);
+			$('[name="origin_sub_district_name"]').val('');
+		});
 
 	$('[data-kiriof-continue]').on('click', continueStep);
 	$('[data-kiriof-back]').on('click', function () { show(order[Math.max(order.indexOf(current) - 1, 0)]); });

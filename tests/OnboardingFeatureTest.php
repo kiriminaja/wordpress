@@ -90,6 +90,13 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('nav_title', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('kiriof-onboarding__field', $address);
+		$this->assertStringContainsString('name="origin_sub_district_name"', $address);
+		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
+		$this->assertStringContainsString("select2:select.kiriofOnboarding", $script);
+		$this->assertStringContainsString("new Option(text, id, true, true)", $script);
+		$this->assertStringContainsString("$(this).trigger('change.select2')", $script);
+		$this->assertStringContainsString("origin_sub_district_name: $('[name=\"origin_sub_district_name\"]').val()", $script);
+		$this->assertStringContainsString("postcode: item.postcode || ''", $script);
 		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
 		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
 		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
@@ -135,6 +142,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('is_kiriminaja_admin_page', $page);
 		$this->assertStringContainsString("'kiriminaja-konfigurasi'", $page);
 		$this->assertStringContainsString("'kiriminaja-transaction-process'", $page);
+		$this->assertStringContainsString("array( 'shipping', 'kiriminaja_warehouses' )", $page);
 		$this->assertStringNotContainsString('should_gate_request', $page);
 
         foreach (['wp_doing_ajax()', 'wp_doing_cron()', 'REST_REQUEST', 'WP_CLI', "'admin-post.php'", "'plugins.php'", "'update.php'", 'is_network_admin()'] as $exception) {

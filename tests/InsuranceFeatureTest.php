@@ -530,15 +530,15 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "insertSettingsAfterId( \$settings, 'woocommerce_default_country'",
+            "'id'    => 'kiriof_wc_origin_pin_location',",
             $controller,
-            'Area must appear below WooCommerce Country / State'
+            'Store Address section must render the Pin Location field'
         );
 
         $this->assertStringContainsString(
-            "insertSettingsAfterId( \$settings, 'woocommerce_store_address'",
+            "'title' => __( 'Shipping Address', 'kiriminaja-official' ),",
             $controller,
-            'Pin Location must appear near WooCommerce Address line 1'
+            'Native single-store address fields must keep a notice pointing to the Warehouses tab'
         );
 
         $this->assertStringContainsString(
@@ -692,9 +692,9 @@ final class InsuranceFeatureTest extends TestCase
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
 
         $this->assertStringContainsString(
-            '$is_wc_general_settings',
+            '$is_wc_warehouses_settings',
             $enqueue,
-            'WooCommerce General settings must load KiriminAja admin assets for the mirror Area field'
+            'WooCommerce Warehouses settings must load KiriminAja admin assets for the mirror Area field'
         );
 
         $this->assertStringContainsString(
@@ -704,15 +704,15 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "'general' === \$tab",
+            "'kiriminaja_warehouses' === \$tab",
             $enqueue,
-            'Admin enqueue must scope the mirror assets to the WooCommerce General tab'
+            'Admin enqueue must scope the mirror assets to the WooCommerce Warehouses tab'
         );
 
         $this->assertStringContainsString(
-            "'kiriminaja-konfigurasi' === \$page || \$is_wc_general_settings",
+            "'kiriminaja-konfigurasi' === \$page || \$is_wc_warehouses_settings",
             $enqueue,
-            'WooCommerce General settings must load Leaflet for the Pin Location mirror field'
+            'WooCommerce Warehouses settings must load Leaflet for the Pin Location mirror field'
         );
     }
 

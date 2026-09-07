@@ -172,7 +172,11 @@ function kiriof_shipping_method(){
 
                 $settingRepository = new \KiriminAjaOfficial\Repositories\SettingRepository();
                 $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
-                if(!$settingRepo||$settingRepo->value === null){
+                $locationOrigin = isset($package['origin']) && is_array($package['origin']) ? $package['origin'] : array();
+                $originSubdistrictId = !empty($locationOrigin['origin_sub_district_id'])
+                    ? (int) $locationOrigin['origin_sub_district_id']
+                    : (int) ($settingRepo ? $settingRepo->value : 0);
+                if(!$originSubdistrictId){
                     wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
                     return;
                 }
@@ -180,11 +184,11 @@ function kiriof_shipping_method(){
 
                 /** convert unit weight */
                 $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
-                    'wc_cart_contents' => WC()->cart->get_cart()
+                    'wc_cart_contents' => isset($package['contents']) ? $package['contents'] : WC()->cart->get_cart()
                 ]))->call();
 
                 $payload = [
-                    'subdistrict_origin' => (int) $settingRepo->value,
+                    'subdistrict_origin' => $originSubdistrictId,
                     'subdistrict_destination'=>$destination_id,
                     'weight' => $cartAttributes->data['weight'],
                     'length' => $cartAttributes->data['length'],

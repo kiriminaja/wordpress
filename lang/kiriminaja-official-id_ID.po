@@ -1582,6 +1582,11 @@ msgstr "Setup Key akan muncul di halaman Integrasi Aplikasi."
 msgid "Ship To"
 msgstr "Kirim Ke"
 
+#: inc/Controllers/TransactionProcessController.php:722
+#: templates/request-pickup/view/modal-request-pickup.php:63
+msgid "Ship From"
+msgstr "Kirim Dari"
+
 #: templates/woocommerce/checkout/form-shipping.php:26
 msgid "Ship to a different address?"
 msgstr "Kirim ke alamat berbeda?"
@@ -3266,3 +3271,358 @@ msgstr "WordPress.org dapat membutuhkan waktu hingga 24 jam untuk menerbitkan ri
 
 msgid "If you do not see this version in Plugins, open the WordPress.org plugin page and install it manually."
 msgstr "Jika versi ini belum terlihat di halaman Plugin, buka halaman plugin di WordPress.org lalu pasang secara manual."
+
+msgid "Actions"
+msgstr "Tindakan"
+
+msgid "Activate"
+msgstr "Aktifkan"
+
+msgid "Active"
+msgstr "Aktif"
+
+msgid "Add New"
+msgstr "Tambah Baru"
+
+msgid "Add Shipment Location"
+msgstr "Tambah Lokasi Pengiriman"
+
+msgid "Deactivate"
+msgstr "Nonaktifkan"
+
+msgid "Delete"
+msgstr "Hapus"
+
+msgid "Delete this shipment location?"
+msgstr "Hapus lokasi pengiriman ini?"
+
+msgid "Edit Shipment Location"
+msgstr "Edit Lokasi Pengiriman"
+
+msgid "For example: Jakarta warehouse."
+msgstr "Contoh: gudang Jakarta."
+
+msgid "Inactive"
+msgstr "Tidak Aktif"
+
+msgid "Latitude"
+msgstr "Lintang"
+
+msgid "Location"
+msgstr "Lokasi"
+
+msgid "Location name"
+msgstr "Nama lokasi"
+
+msgid "Locations"
+msgstr "Lokasi"
+
+msgid "Longitude"
+msgstr "Bujur"
+
+msgid "Make default"
+msgstr "Jadikan default"
+
+msgid "Manage the fulfillment origins used by your products. Products without an assigned location use the default location."
+msgstr "Kelola asal pemenuhan pesanan yang digunakan produk Anda. Produk tanpa lokasi yang ditetapkan akan menggunakan lokasi default."
+
+msgid "No shipment locations found."
+msgstr "Tidak ada lokasi pengiriman."
+
+msgid "Save Location"
+msgstr "Simpan Lokasi"
+
+msgid "Shipment Locations"
+msgstr "Lokasi Pengiriman"
+
+msgid "Shipment location saved."
+msgstr "Lokasi pengiriman disimpan."
+
+msgid "Sub-district ID"
+msgstr "ID Kecamatan"
+
+msgid "The shipment location could not be changed. A default location must remain active and cannot be deleted."
+msgstr "Lokasi pengiriman tidak dapat diubah. Lokasi default harus tetap aktif dan tidak dapat dihapus."
+
+msgid "Use the KiriminAja sub-district ID for shipping-rate calculation."
+msgstr "Gunakan ID kecamatan KiriminAja untuk menghitung tarif pengiriman."
+
+msgid "You do not have permission to manage shipment locations."
+msgstr "Anda tidak memiliki izin untuk mengelola lokasi pengiriman."
+
+msgid "Zip code"
+msgstr "Kode pos"
+
+msgid "Origin used to calculate shipping and fulfill this product."
+msgstr "Asal yang digunakan untuk menghitung ongkos kirim dan memenuhi produk ini."
+
+msgid "Shipment location"
+msgstr "Lokasi pengiriman"
+
+msgid "Use default shipment location"
+msgstr "Gunakan lokasi pengiriman default"
+
+msgid "Use parent product location"
+msgstr "Gunakan lokasi produk induk"
+
+msgid "Default Location"
+msgstr "Lokasi Default"
+
+msgid "Manage shipment locations"
+msgstr "Kelola lokasi pengiriman"
+
+msgid "This option is managed by the KiriminAja plugin and determines the origin used to calculate shipping and fulfill this product."
+msgstr "Opsi ini dikelola oleh plugin KiriminAja dan menentukan asal yang digunakan untuk menghitung ongkos kirim serta memenuhi produk ini."
+
+msgid "This option is managed by the KiriminAja plugin. Select a location only to override the parent product location for this variation."
+msgstr "Opsi ini dikelola oleh plugin KiriminAja. Pilih lokasi hanya untuk mengganti lokasi produk induk pada variasi ini."
+
+msgid "Default shipment location:"
+msgstr "Lokasi pengiriman default:"
+
+msgid "Products without an assigned shipment location use this origin."
+msgstr "Produk tanpa lokasi pengiriman yang ditetapkan menggunakan asal ini."
+
+msgid "Zip"
+msgstr "Kode Pos"
+
+msgid "Remove"
+msgstr "Hapus"
+
+msgid "Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment."
+msgstr "Setiap lokasi adalah asal pemenuhan independen. Lokasi default digunakan ketika produk tidak memiliki penetapan eksplisit."
+
+msgid "This option is managed by the KiriminAja plugin. Each location is an independent fulfillment origin. The default location is used when a product has no explicit assignment."
+msgstr "Opsi ini dikelola oleh plugin KiriminAja. Setiap lokasi adalah asal pemenuhan independen. Lokasi default digunakan ketika produk tidak memiliki penetapan eksplisit."
+
+msgid "Shipment locations are managed in WooCommerce General settings under Store Address."
+msgstr "Lokasi pengiriman dikelola di pengaturan Umum WooCommerce pada Alamat Toko."
+
+msgid "Open Store Address settings"
+msgstr "Buka pengaturan Alamat Toko"
+
+msgid "Address line 2"
+msgstr "Alamat baris 2"
+
+msgid "Country / State"
+msgstr "Negara / Negara Bagian"
+
+msgid "Sender"
+msgstr "Pengirim"
+
+msgid "Area / City"
+msgstr "Area / Kota"
+
+msgid "Shipment Location"
+msgstr "Lokasi Pengiriman"
+
+msgid "Are you sure you want to delete this shipment location?"
+msgstr "Apakah Anda yakin ingin menghapus lokasi pengiriman ini?"
+
+msgid "Save changes"
+msgstr "Simpan perubahan"
+
+msgid "Back to Shipment Locations"
+msgstr "Kembali ke Lokasi Pengiriman"
+
+msgid "Location is active"
+msgstr "Lokasi aktif"
+
+msgid "Set as default"
+msgstr "Jadikan default"
+
+msgid "Warehouses"
+msgstr "Gudang"
+
+msgid "Manage every pickup address used for shipping calculations. The default location is used when no other rule applies."
+msgstr "Kelola setiap alamat penjemputan yang digunakan untuk perhitungan pengiriman. Lokasi default digunakan jika tidak ada aturan lain yang berlaku."
+
+msgid "Shipping Address"
+msgstr "Alamat Pengiriman"
+
+msgid "This is the default address used for shipping calculations. To manage multiple pickup addresses, go to the <a href=\"%s\">Warehouses</a> tab."
+msgstr "Ini adalah alamat default yang digunakan untuk perhitungan pengiriman. Untuk mengelola beberapa alamat penjemputan, buka tab <a href=\"%s\">Gudang</a>."
+
+#: inc/Controllers/SettingController.php
+msgid "Set Primary"
+msgstr "Tetapkan Utama"
+
+msgid "Warehouse name"
+msgstr "Nama Gudang"
+
+msgid "Region(s)"
+msgstr "Wilayah"
+
+msgid "e.g. Gudang Utama Jakarta"
+msgstr "cth. Gudang Utama Jakarta"
+
+msgid "e.g. 081234567890"
+msgstr "cth. 081234567890"
+
+msgid "e.g. Jl. Sudirman No. 123, Kelurahan X"
+msgstr "cth. Jl. Sudirman No. 123, Kelurahan X"
+
+msgid "e.g. Blok A, Lantai 2"
+msgstr "cth. Blok A, Lantai 2"
+
+msgid "e.g. Jakarta Selatan"
+msgstr "cth. Jakarta Selatan"
+
+msgid "e.g. 12950"
+msgstr "cth. 12950"
+
+msgid "Search for sub-district or area&hellip;"
+msgstr "Cari kelurahan atau area&hellip;"
+
+msgid "Change Shipment Origin"
+msgstr "Ganti Origin Pengiriman"
+
+msgid "From"
+msgstr "Dari"
+
+msgid "To"
+msgstr "Menjadi"
+
+msgid "Current shipment origin"
+msgstr "Asal pengiriman saat ini"
+
+msgid "New shipment origin"
+msgstr "Asal pengiriman baru"
+
+msgid "Shipment Route"
+msgstr "Rute Pengiriman"
+
+msgid "Default origin"
+msgstr "Origin default"
+
+msgid "Select shipment location"
+msgstr "Pilih lokasi pengiriman"
+
+msgid "Shipping Check"
+msgstr "Cek Pengiriman"
+
+msgid "Confirm"
+msgstr "Konfirmasi"
+
+msgid "Change Origin"
+msgstr "Ganti Origin"
+
+msgid "Shipping check passed. Route is serviceable from the selected origin."
+msgstr "Cek pengiriman berhasil. Rute dapat dilayani dari origin yang dipilih."
+
+msgid "Route is not serviceable from the selected origin: %s"
+msgstr "Rute tidak dapat dilayani dari origin yang dipilih: %s"
+
+msgid "Origin can only be changed before pickup is requested."
+msgstr "Origin hanya dapat diganti sebelum pickup diminta."
+
+msgid "Selected shipment location is not available."
+msgstr "Lokasi pengiriman yang dipilih tidak tersedia."
+
+msgid "Selected shipment location has no serviceable area yet."
+msgstr "Lokasi pengiriman yang dipilih belum memiliki area layanan."
+
+msgid "Transaction not found."
+msgstr "Transaksi tidak ditemukan."
+
+msgid "Invalid request payload."
+msgstr "Payload permintaan tidak valid."
+
+msgid "Failed to update the shipment origin."
+msgstr "Gagal memperbarui origin pengiriman."
+
+msgid "Shipment origin updated."
+msgstr "Origin pengiriman diperbarui."
+
+msgid "Please select a shipment location first."
+msgstr "Silakan pilih lokasi pengiriman terlebih dahulu."
+
+msgid "Shipping check failed."
+msgstr "Cek pengiriman gagal."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Default location"
+msgstr "Lokasi default"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "store administrator"
+msgstr "administrator toko"
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Shipment origin changed from %1$s to %2$s by %3$s."
+msgstr "Asal pengiriman diubah dari %1$s ke %2$s oleh %3$s."
+
+msgid "%1$s price decreases by %2$s."
+msgstr "Harga %1$s turun sebesar %2$s."
+
+msgid "%1$s price increases by %2$s."
+msgstr "Harga %1$s naik sebesar %2$s."
+
+msgid "%s is not available from the selected origin."
+msgstr "%s tidak tersedia dari origin yang dipilih."
+
+msgid "Courier changed with seller consent to %s."
+msgstr "Kurir diubah dengan persetujuan penjual menjadi %s."
+
+msgid "Courier is unchanged."
+msgstr "Kurir tidak berubah."
+
+msgid "Courier replacement requires your consent."
+msgstr "Penggantian kurir memerlukan persetujuan Anda."
+
+msgid "Shipping check passed. Review the courier and price impact before confirming."
+msgstr "Pengecekan pengiriman berhasil. Tinjau kurir dan perubahan harga sebelum mengonfirmasi."
+
+msgid "Checking shipping route..."
+msgstr "Memeriksa rute pengiriman..."
+
+msgid "New courier"
+msgstr "Kurir baru"
+
+msgid "New shipping"
+msgstr "Ongkir baru"
+
+msgid "No change"
+msgstr "Tidak ada perubahan"
+
+msgid "Order price impact"
+msgstr "Dampak harga pesanan"
+
+msgid "Order total"
+msgstr "Total pesanan"
+
+msgid "Previous courier"
+msgstr "Kurir sebelumnya"
+
+msgid "Previous shipping"
+msgstr "Ongkir sebelumnya"
+
+msgid "Shipping discount"
+msgstr "Diskon ongkir"
+
+msgid "decreases"
+msgstr "menurun"
+
+msgid "increases"
+msgstr "meningkat"
+
+msgid "No alternative shipment locations are available."
+msgstr "Belum ada lokasi pengiriman alternatif."
+
+msgid "Add shipment location"
+msgstr "Tambah lokasi pengiriman"
+
+#: inc/Controllers/SettingController.php
+msgid "Shipment location details"
+msgstr "Detail lokasi pengiriman"
+
+#: inc/Controllers/SettingController.php
+msgid "Required fields"
+msgstr "Kolom wajib"
+
+msgid "Shipment location could not be saved. Check all required fields and try again."
+msgstr "Lokasi pengiriman tidak dapat disimpan. Periksa semua field wajib lalu coba lagi."
+
+#: inc/Base/Enqueue.php
+msgid "Courier"
+msgstr "Kurir"

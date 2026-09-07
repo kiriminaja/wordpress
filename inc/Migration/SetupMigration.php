@@ -15,6 +15,7 @@ class SetupMigration {
         self::transactionsTable();
         self::paymentsTable();
         self::regionCacheTables();
+        self::shipmentLocationTable();
     }
     
     private function settingsTable(){
@@ -139,6 +140,8 @@ class SetupMigration {
                 `returned_at` timestamp NULL DEFAULT NULL,
                 `canceled_at` timestamp NULL DEFAULT NULL,
                 `wp_wc_order_stat_order_id` int(11) DEFAULT NULL,
+                `shipment_location_id` int(11) DEFAULT NULL,
+                `shipment_location_snapshot` text DEFAULT NULL,
                 UNIQUE KEY id (id)
             );";
             require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
@@ -191,6 +194,14 @@ class SetupMigration {
             if (!in_array('printed_at', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE `$table_name` ADD printed_at timestamp NULL DEFAULT NULL");
+            }
+            if (!in_array('shipment_location_id', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD shipment_location_id int(11) DEFAULT NULL");
+            }
+            if (!in_array('shipment_location_snapshot', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                $wpdb->query("ALTER TABLE `$table_name` ADD shipment_location_snapshot text DEFAULT NULL");
             }
             
         }
@@ -252,5 +263,45 @@ class SetupMigration {
 
         dbDelta($provinces_sql);
         dbDelta($cities_sql);
+    }
+
+    /**
+     * Shipment Locations Table.
+     *
+     * Stores independent fulfillment origins for the multi-origin shipping
+     * feature. One row is flagged as the active default fallback.
+     */
+    private function shipmentLocationTable(){
+        global $wpdb;
+
+        require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
+
+        $table_name      = esc_sql( $wpdb->prefix . 'kiriminaja_shipment_location' );
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE `" . $table_name . "`(
+            `id` bigint(20) NOT NULL AUTO_INCREMENT,
+            `name` varchar(191) NOT NULL DEFAULT '',
+            `phone` varchar(50) NOT NULL DEFAULT '',
+            `address` text NULL,
+            `sub_district_id` bigint(20) NOT NULL DEFAULT 0,
+                `sub_district_name` varchar(191) NOT NULL DEFAULT '',
+                `address_2` varchar(255) NOT NULL DEFAULT '',
+                `city` varchar(191) NOT NULL DEFAULT '',
+                `state` varchar(191) NOT NULL DEFAULT '',
+                `country` varchar(12) NOT NULL DEFAULT '',
+                `zip_code` varchar(20) NOT NULL DEFAULT '',
+            `latitude` varchar(50) NOT NULL DEFAULT '',
+            `longitude` varchar(50) NOT NULL DEFAULT '',
+            `is_default` tinyint(1) NOT NULL DEFAULT 0,
+            `is_active` tinyint(1) NOT NULL DEFAULT 1,
+            `created_at` timestamp NULL DEFAULT NULL,
+            `updated_at` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `is_default` (`is_default`),
+            KEY `is_active` (`is_active`)
+        ) " . $charset_collate . ";";
+
+        dbDelta($sql);
     }
 }

@@ -122,7 +122,7 @@ class Onboarding extends BaseInit {
 
 		$page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
 		$tab  = filter_input( INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS );
-		if ( 'wc-settings' === $page && 'shipping' === $tab ) {
+		if ( 'wc-settings' === $page && in_array( $tab, array( 'shipping', 'kiriminaja_warehouses' ), true ) ) {
 			return false;
 		}
 

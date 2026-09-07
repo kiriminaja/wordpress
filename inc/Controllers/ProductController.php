@@ -22,8 +22,6 @@ class ProductController{
          * save product custom field
          */ 
         add_action( 'woocommerce_process_product_meta', [$this,'kiriof_save_product_custom_fields'] );
-        
-        add_action('woocommerce_product_options_general_product_data', array($this,'kiriof_editproduct_nonce') );
 
         add_filter( 'manage_edit-product_columns', array( $this, 'kiriof_add_product_volumetric_column' ), 20 );
         add_action( 'manage_product_posts_custom_column', array( $this, 'kiriof_render_product_volumetric_column' ), 10, 2 );
@@ -34,10 +32,6 @@ class ProductController{
     public function kiriof_custom_field_shipping_product(){
         global $post;
         include_once KIRIOF_DIR .'templates/product/general-wc-tab-setting.php'; 
-    }
-
-    public function kiriof_editproduct_nonce() {
-        wp_nonce_field( KIRIOF_NONCE, 'kiriof_product_nonce_field' );
     }
 
     public function kiriof_save_product_custom_fields($post_id){
