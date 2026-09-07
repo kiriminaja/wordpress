@@ -223,9 +223,10 @@
 				nonce: $('.kiriof-change-origin-button[data-ka-order-id="' + data.order_id + '"]').data('nonce'),
 			})
 				.done(function (response) {
-					if (response && response.success) {
-						var comparison = response.data.comparison || {};
-						var html = '<p>' + $('<span>').text(comparison.label || response.data.message).html() + '</p>';
+					var payload = response && response.data && typeof response.data === 'object' ? response.data : null;
+					var comparison = payload && payload.comparison && typeof payload.comparison === 'object' ? payload.comparison : null;
+					if (response && response.success && comparison) {
+						var html = '<p>' + $('<span>').text(comparison.label || payload.message || '').html() + '</p>';
 						var $replacement = $modal.find('.kiriof-change-origin-replacement');
 						var $breakdown = $modal.find('.kiriof-change-origin-breakdown');
 						$replacement.empty().hide();
@@ -237,7 +238,10 @@
 							html += '<input type="hidden" class="kiriof-selected-price" value="' + (parseFloat(comparison.raw_price) || 0) + '">';
 						} else {
 							var replacementHtml = '<p><label>' + text('replacementCourier', 'Select a replacement courier with your consent.') + '</label><select class="kiriof-replacement-courier" style="width:100%;"><option value="">' + text('selectCourier', 'Select courier') + '</option>';
-							$.each(response.data.replacement_options || [], function (index, option) {
+							$.each(Array.isArray(payload.replacement_options) ? payload.replacement_options : [], function (index, option) {
+								if (!option || typeof option !== 'object') {
+									return;
+								}
 								replacementHtml += '<option value="' + $('<span>').text(option.service_code + '|' + option.service_name).html() + '" data-price="' + (parseFloat(option.raw_price) || 0) + '" data-option="' + $('<span>').text(JSON.stringify(option)).html() + '">' + $('<span>').text(option.courier + ' ' + option.service + ' — ' + option.price).html() + '</option>';
 							});
 							replacementHtml += '</select></p><p><label><input type="checkbox" class="kiriof-replacement-consent"> ' + text('replacementConsent', 'I consent to use this replacement courier.') + '</label></p>';
@@ -245,12 +249,12 @@
 						}
 						setResult($result, true, html);
 						$modal.find('#kiriof-change-origin-confirm').prop('disabled', !comparison.available);
-						$modal.data('shipping-check', response.data);
+						$modal.data('shipping-check', payload);
 							if ($.fn.select2) {
 								$modal.find('.kiriof-replacement-courier').select2({ width: '100%' });
 							}
 					} else {
-						setResult($result, false, '<p>' + ((response && response.data && response.data.message) || text('checkFailed', 'Shipping check failed.')) + '</p>');
+						setResult($result, false, '<p>' + ((payload && payload.message) || text('checkFailed', 'Shipping check failed.')) + '</p>');
 					}
 				})
 				.fail(function () {
@@ -268,8 +272,17 @@
 			var selected = $replacement.find(':selected').attr('data-option');
 			if (selected) {
 				var base = ($modal.data('shipping-check') || {}).comparison || {};
-				var option = JSON.parse($('<textarea>').html(selected).val() || '{}');
-								$modal.find('.kiriof-change-origin-breakdown').html(renderOrderBreakdown(buildReplacementComparison(base, option))).show();
+				var option = null;
+				try {
+					option = JSON.parse($('<textarea>').html(selected).val() || '{}');
+				} catch (error) {
+					option = null;
+				}
+				if (option && typeof option === 'object') {
+					$modal.find('.kiriof-change-origin-breakdown').html(renderOrderBreakdown(buildReplacementComparison(base, option))).show();
+				} else {
+					$replacement.val('').trigger('change.select2');
+				}
 			}
 			$modal.find('#kiriof-change-origin-confirm').prop('disabled', !$replacement.val() || !$modal.find('.kiriof-replacement-consent').prop('checked'));
 		});

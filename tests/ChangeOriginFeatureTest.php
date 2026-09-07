@@ -50,6 +50,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $repository   = $this->read( __DIR__ . '/../inc/Repositories/TransactionRepository.php' );
 
         $this->assertStringContainsString( 'updateTransactionShipmentLocation( $order_id, $location_id, $kiriof_snapshot, $kiriof_courier_update )', $controller );
+        $this->assertStringContainsString( 'locationToOrigin( $kiriof_location )', $controller );
+        $this->assertStringNotContainsString( '$kiriof_location->sender_name', $controller );
         $this->assertStringContainsString( 'public function updateTransactionShipmentLocation( string $kaOrderId, int $locationId, string $snapshot, array $courier = array() ): bool {', $repository );
         $this->assertStringContainsString( "'shipment_location_id'       => \$locationId,", $repository );
         $this->assertStringContainsString( "'shipment_location_snapshot' => \$snapshot,", $repository );
@@ -114,6 +116,11 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'change.kiriofChangeOrigin', $js );
         $this->assertStringContainsString( "var hasAlternatives = \$select.find('option[value!=\"\"]')", $js );
         $this->assertStringContainsString( 'comparison.available', $js );
+        $this->assertStringContainsString( "typeof response.data === 'object'", $js );
+        $this->assertStringContainsString( 'Array.isArray(payload.replacement_options)', $js );
+        $this->assertStringContainsString( 'try {', $js );
+        $this->assertStringContainsString( 'JSON.parse', $js );
+        $this->assertStringContainsString( '} catch (error) {', $js );
         $this->assertStringContainsString( 'kiriof-replacement-courier', $js );
         $this->assertStringContainsString( 'kiriof-replacement-consent', $js );
         $this->assertStringContainsString( "$('#tmpl-kiriof-modal-change-origin').html()", $js );

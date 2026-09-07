@@ -746,13 +746,7 @@ class TransactionProcessController
                 ? (string) $kiriof_previous_location->name
                 : __( 'Default location', 'kiriminaja-official' );
 
-            $kiriof_snapshot = wp_json_encode( array(
-                'id'          => (int) $kiriof_location->id,
-                'name'        => (string) $kiriof_location->name,
-                'sender_name' => (string) $kiriof_location->sender_name,
-                'address'     => (string) $kiriof_location->address,
-                'city'        => (string) ( $kiriof_location->city ?? '' ),
-            ) );
+            $kiriof_snapshot = wp_json_encode( $kiriof_location_service->locationToOrigin( $kiriof_location ) );
 
             $kiriof_updated = $kiriof_transaction_repo->updateTransactionShipmentLocation( $order_id, $location_id, $kiriof_snapshot, $kiriof_courier_update );
             if (! $kiriof_updated) {

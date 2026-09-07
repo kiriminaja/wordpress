@@ -45,7 +45,34 @@ class GeneralAjaxController
                 if ($kiriminajaSubDistrictSearch->status !== 200) {
                     wp_send_json_success([]);
                 }
-                wp_send_json_success($kiriminajaSubDistrictSearch->data);
+                $results = array();
+                foreach ( (array) $kiriminajaSubDistrictSearch->data as $item ) {
+                    $item = (array) $item;
+                    $id   = isset( $item['id'] ) ? absint( $item['id'] ) : absint( $item['sub_district_id'] ?? 0 );
+                    $text = isset( $item['text'] ) ? sanitize_text_field( $item['text'] ) : sanitize_text_field( $item['name'] ?? '' );
+
+                    if ( $id <= 0 || '' === $text ) {
+                        continue;
+                    }
+
+                    $postcode = '';
+                    foreach ( array( 'postcode', 'postal_code', 'zipcode', 'zip_code', 'kode_pos', 'kodepos' ) as $postcode_key ) {
+                        if ( ! empty( $item[ $postcode_key ] ) ) {
+                            $postcode = sanitize_text_field( $item[ $postcode_key ] );
+                            break;
+                        }
+                    }
+                    if ( '' === $postcode && preg_match( '/\b\d{5}\b/', $text, $matches ) ) {
+                        $postcode = $matches[0];
+                    }
+
+                    $results[] = array(
+                        'id'       => $id,
+                        'text'     => $text,
+                        'postcode' => $postcode,
+                    );
+                }
+                wp_send_json_success( $results );
             } else {
                 wp_send_json_error(['code' => '401', 'msg' => wc_add_notice( __( 'Security Check Kiriminaja', 'kiriminaja-official' ), "error" )]);
             }

@@ -100,14 +100,22 @@ class ShipmentLocationStructureTest extends TestCase {
         $source = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
         $this->assertStringContainsString( "\$posted     = isset( \$_POST['kiriof_locations'] ) ? wp_unslash( \$_POST['kiriof_locations'] ) : array();", $source );
-        $this->assertStringContainsString( '$repository->insert( $data );', $source );
-        $this->assertStringContainsString( '$repository->update( $location_id, $data );', $source );
-        $this->assertStringContainsString( '$repository->delete( $location_id );', $source );
-        $this->assertStringContainsString( '$repository->setDefault( $default_id );', $source );
-        $this->assertStringContainsString( '$repository->ensureDefaultExists();', $source );
+        $this->assertStringContainsString( 'false === $repository->insert( $data )', $source );
+        $this->assertStringContainsString( '! $repository->update( $location_id, $data )', $source );
+        $this->assertStringContainsString( '! $repository->delete( $location_id )', $source );
+        $this->assertStringContainsString( '! $repository->setDefault( $default_id )', $source );
+        $this->assertStringContainsString( '! $default_location || ! $repository->setDefault( $default_id )', $source );
+        $this->assertStringContainsString( '! $repository->ensureDefaultExists()', $source );
+        $this->assertStringContainsString( 'isValidShipmentLocationData', $source );
+        $this->assertStringContainsString( '-90 <= $latitude', $source );
+        $this->assertStringContainsString( '180 >= $longitude', $source );
+        $this->assertStringContainsString( 'Shipment location could not be saved.', $source );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_address', \$payload['origin_address'] );", $source );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_postcode', \$payload['origin_zip_code'] );", $source );
         $this->assertStringContainsString( 'storeOriginMirrorData( $payload );', $source );
+		$this->assertStringContainsString( '$editing_key = $this->getCurrentShipmentLocationEditingKey();', $source );
+		$this->assertStringContainsString( '$posted     = isset( $posted[ $posted_key ] ) ? array( $posted_key => $posted[ $posted_key ] ) : array();', $source );
+		$this->assertStringContainsString( "wp_safe_redirect( \$this->getShipmentLocationDetailUrl( '' ) );", $source );
     }
 
     public function testSeedFallsBackToNativeWooCommerceStoreAddress(): void {
@@ -150,14 +158,21 @@ class ShipmentLocationStructureTest extends TestCase {
         $controller = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
         $this->assertStringContainsString( 'Address line 2', $controller );
+        $this->assertStringContainsString( "String(label).match(/\\b\\d{5}\\b/)", $controller );
+        $this->assertStringContainsString( "\$zip.val(postcode).trigger('input').trigger('change')", $controller );
+        $this->assertStringContainsString( "'Required fields'", $controller );
+        $this->assertStringContainsString( "'(Optional)'", $controller );
+        $this->assertStringContainsString( 'required aria-required="true"', $controller );
         $this->assertStringContainsString( 'country_state', $controller );
-        $this->assertStringContainsString( 'value="ID"', $controller );
+        $this->assertStringNotContainsString( 'name="<?php echo esc_attr( $prefix . \'[country_state]\' ); ?>" value="ID"', $controller );
+        $this->assertStringContainsString( '$fields[\'country\'] . ( \'\' !== $fields[\'state\']', $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_address_2'", $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_store_city'", $controller );
         $this->assertStringContainsString( "update_option( 'woocommerce_default_country'", $controller );
         $this->assertStringContainsString( 'woocommerce_store_address_2', $controller );
         $this->assertStringContainsString( 'Warehouses', $controller );
         $this->assertStringContainsString( 'registerWarehousesSettingsTab', $controller );
+		$this->assertStringContainsString( "data: {\n                                term: params.term,\n                                search: params.term", $controller );
     }
 
     public function testInitRegistersMigrationOnEveryLoadForSelfHealingSchema(): void {

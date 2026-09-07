@@ -67,6 +67,7 @@ class ShipmentLocationService
     public function seedDefaultFromGlobalOrigin()
     {
         if ($this->hasLocations()) {
+            $this->repository->ensureDefaultExists();
             return false;
         }
 
@@ -145,6 +146,7 @@ class ShipmentLocationService
             return $this->defaultCache ?: null;
         }
 
+        $this->repository->ensureDefaultExists();
         $default = $this->repository->getDefault();
         if (!$default) {
             $this->seedDefaultFromGlobalOrigin();

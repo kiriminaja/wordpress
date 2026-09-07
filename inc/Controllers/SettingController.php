@@ -11,22 +11,22 @@ class SettingController{
     public function register(){
         /** getIntegrationData*/
         add_action('wp_ajax_kiriof_get_integration_data', array($this,'getIntegrationData'));
-        
+
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_store_integration_data', array($this,'storeIntegrationData'));
-        
+
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_disconnect_integration', array($this,'disconnectIntegration'));
-        
+
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_get_origin_data', array($this,'getOriginData'));
-        
+
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_store_origin_data', array($this,'storeOriginData'));
-        
+
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_get_call_back_data', array($this,'getCallbackData'));
-        
+
         /** storeCallbackData*/
         add_action('wp_ajax_kiriof_store_call_back_data', array($this,'storeCallbackData'));
         /**storeWhitelistExpedition*/
@@ -63,6 +63,24 @@ class SettingController{
         add_action( 'woocommerce_admin_field_kiriof_tracking_page_select', array( $this, 'renderWooCommerceTrackingPageSelectField' ) );
         add_action( 'woocommerce_update_options_advanced', array( $this, 'syncWooCommerceAdvancedSettings' ) );
         add_action( 'admin_post_kiriof_download_plugin_logs', array( $this, 'downloadPluginLogs' ) );
+    }
+
+    private function isValidShipmentLocationData( $data ) {
+        $latitude  = isset( $data['latitude'] ) && is_numeric( $data['latitude'] ) ? (float) $data['latitude'] : null;
+        $longitude = isset( $data['longitude'] ) && is_numeric( $data['longitude'] ) ? (float) $data['longitude'] : null;
+
+        return is_array( $data )
+            && '' !== trim( (string) ( $data['name'] ?? '' ) )
+            && '' !== trim( (string) ( $data['phone'] ?? '' ) )
+            && '' !== trim( (string) ( $data['address'] ?? '' ) )
+            && 0 < (int) ( $data['sub_district_id'] ?? 0 )
+            && '' !== trim( (string) ( $data['zip_code'] ?? '' ) )
+            && null !== $latitude
+            && -90 <= $latitude
+            && 90 >= $latitude
+            && null !== $longitude
+            && -180 <= $longitude
+            && 180 >= $longitude;
     }
     function getIntegrationData() {
         try {
@@ -101,7 +119,7 @@ class SettingController{
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
-    
+
     function disconnectIntegration(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -120,7 +138,7 @@ class SettingController{
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
-    
+
     function getOriginData(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -139,7 +157,7 @@ class SettingController{
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
-    
+
     function storeOriginData(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -177,7 +195,7 @@ class SettingController{
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
-    
+
     function getCallbackData(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -190,14 +208,14 @@ class SettingController{
                 wp_die();
             }
             $service = (new \KiriminAjaOfficial\Services\SettingService())->getCallbackData();
-            
+
             if ($service->status!==200){ wp_send_json_error($service);}
             wp_send_json_success($service);
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
         }
     }
-    
+
     function storeCallbackData(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -237,20 +255,20 @@ class SettingController{
             }
             $search = isset( $_POST['data']['term'] ) ? sanitize_text_field( wp_unslash( $_POST['data']['term'] )) : '';
             $kiriminajaExpedition = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers();
-            
+
             if( !empty($kiriminajaExpedition ) ){
                 $kiriminajaExpedition = array_filter($kiriminajaExpedition->data, function($item) use ($search){
                     return stripos($item->name, $search)!== false;
                 });
-                
+
                 $kiriminajaExpedition = array_map(function($item){
                     return [
                         'id' => $item->code,
                         'text' => $item->name." ({$item->type})"
                     ];
-                }, $kiriminajaExpedition);  
+                }, $kiriminajaExpedition);
             }
-            
+
             wp_send_json_success($kiriminajaExpedition);
         }catch (Throwable $e){
             wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
@@ -1017,6 +1035,7 @@ JS;
         $city       = $fields['city'];
         $is_default = $fields['is_default'];
         $is_active  = $fields['is_active'];
+        $is_default = $fields['is_default'];
         $title      = $id > 0 ? ( '' !== $name ? $name : __( 'Shipment Location', 'kiriminaja-official' ) ) : __( 'Add Shipment Location', 'kiriminaja-official' );
         $region     = trim( $area_name . ( '' !== $area_name && '' !== $city ? ', ' : '' ) . $city );
         if ( '' === $region ) {
@@ -1045,8 +1064,10 @@ JS;
                     <input type="hidden" name="save" value="1" />
                     <button type="submit" name="kiriof_default_location_id" value="<?php echo esc_attr( $id ); ?>" class="button-link kiriof-wc-location-set-default"><?php esc_html_e( 'Set Primary', 'kiriminaja-official' ); ?></button> |
                 <?php endif; ?>
-                <a class="wc-shipping-zone-action-edit kiriof-wc-location-edit" href="<?php echo esc_url( $this->getShipmentLocationDetailUrl( $key ) ); ?>"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></a> |
-                <a href="#" class="wc-shipping-zone-delete wc-shipping-zone-actions kiriof-wc-location-delete" data-location-key="<?php echo esc_attr( $key ); ?>"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></a>
+                <a class="wc-shipping-zone-action-edit kiriof-wc-location-edit" href="<?php echo esc_url( $this->getShipmentLocationDetailUrl( $key ) ); ?>"><?php esc_html_e( 'Edit', 'kiriminaja-official' ); ?></a>
+                <?php if ( ! $is_default ) : ?>
+                    | <a href="#" class="wc-shipping-zone-delete wc-shipping-zone-actions kiriof-wc-location-delete" data-location-key="<?php echo esc_attr( $key ); ?>"><?php esc_html_e( 'Delete', 'kiriminaja-official' ); ?></a>
+                <?php endif; ?>
             </td>
         </tr>
         <?php endif; ?>
@@ -1070,11 +1091,16 @@ JS;
         $is_active  = $fields['is_active'];
         ?>
         <table class="form-table kiriof-wc-location-card__body">
+            <caption class="screen-reader-text"><?php esc_html_e( 'Shipment location details', 'kiriminaja-official' ); ?></caption>
+            <tr class="kiriof-wc-location-required-note">
+                <th scope="row"></th>
+                <td><span class="description"><span class="required" aria-hidden="true">*</span> <?php esc_html_e( 'Required fields', 'kiriminaja-official' ); ?></span></td>
+            </tr>
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'Sender Name', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Sender Name', 'kiriminaja-official' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
                 <td>
                     <input type="text" name="<?php echo esc_attr( $prefix . '[name]' ); ?>" value="<?php echo esc_attr( $name ); ?>"
-                        placeholder="<?php esc_attr_e( 'e.g. Gudang Utama Jakarta', 'kiriminaja-official' ); ?>" />
+                        placeholder="<?php esc_attr_e( 'e.g. Gudang Utama Jakarta', 'kiriminaja-official' ); ?>" required aria-required="true" />
                     <?php if ( 0 === $id ) : ?>
                         <input type="hidden" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" />
                     <?php endif; ?>
@@ -1085,37 +1111,40 @@ JS;
                 <th scope="row"><label><?php esc_html_e( 'Active', 'kiriminaja-official' ); ?></label></th>
                 <td>
                     <label class="kiriof-wc-location-active-toggle">
-                        <input type="checkbox" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" <?php checked( $is_active ); ?> />
+                        <input type="checkbox" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" <?php checked( $is_active ); ?> <?php disabled( $is_default ); ?> />
+                        <?php if ( $is_default ) : ?>
+                            <input type="hidden" name="<?php echo esc_attr( $prefix . '[is_active]' ); ?>" value="1" />
+                        <?php endif; ?>
                         <?php esc_html_e( 'Location is active', 'kiriminaja-official' ); ?>
                     </label>
                 </td>
             </tr>
             <?php endif; ?>
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'Sender Phone', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Sender Phone', 'kiriminaja-official' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
                 <td><input type="text" name="<?php echo esc_attr( $prefix . '[phone]' ); ?>" value="<?php echo esc_attr( $phone ); ?>"
-                    placeholder="<?php esc_attr_e( 'e.g. 081234567890', 'kiriminaja-official' ); ?>" /></td>
+                    placeholder="<?php esc_attr_e( 'e.g. 081234567890', 'kiriminaja-official' ); ?>" required aria-required="true" /></td>
             </tr>
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'Address', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Address', 'kiriminaja-official' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
                 <td><textarea rows="3" cols="50" name="<?php echo esc_attr( $prefix . '[address]' ); ?>"
-                    placeholder="<?php esc_attr_e( 'e.g. Jl. Sudirman No. 123, Kelurahan X', 'kiriminaja-official' ); ?>"><?php echo esc_textarea( $address ); ?></textarea></td>
+                    placeholder="<?php esc_attr_e( 'e.g. Jl. Sudirman No. 123, Kelurahan X', 'kiriminaja-official' ); ?>" required aria-required="true"><?php echo esc_textarea( $address ); ?></textarea></td>
             </tr>
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'Address line 2', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Address line 2', 'kiriminaja-official' ); ?> <span class="description"><?php esc_html_e( '(Optional)', 'kiriminaja-official' ); ?></span></label></th>
                 <td><input type="text" name="<?php echo esc_attr( $prefix . '[address_2]' ); ?>" value="<?php echo esc_attr( $address_2 ); ?>"
                     placeholder="<?php esc_attr_e( 'e.g. Blok A, Lantai 2', 'kiriminaja-official' ); ?>" /></td>
             </tr>
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'City', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'City', 'kiriminaja-official' ); ?> <span class="description"><?php esc_html_e( '(Optional)', 'kiriminaja-official' ); ?></span></label></th>
                 <td><input type="text" name="<?php echo esc_attr( $prefix . '[city]' ); ?>" value="<?php echo esc_attr( $city ); ?>"
                     placeholder="<?php esc_attr_e( 'e.g. Jakarta Selatan', 'kiriminaja-official' ); ?>" /></td>
             </tr>
             <tr class="kiriof-wc-location-area-row">
-                <th scope="row"><label><?php esc_html_e( 'Area', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Area', 'kiriminaja-official' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
                 <td>
                     <select class="kiriof-wc-origin-area-select" name="<?php echo esc_attr( $prefix . '[sub_district_id]' ); ?>"
-                        data-placeholder="<?php esc_attr_e( 'Search for sub-district or area&hellip;', 'kiriminaja-official' ); ?>">
+                        data-placeholder="<?php esc_attr_e( 'Search for sub-district or area&hellip;', 'kiriminaja-official' ); ?>" required aria-required="true">
 
                         <?php if ( '' !== $area_id && '0' !== $area_id ) : ?>
                             <option value="<?php echo esc_attr( $area_id ); ?>" selected="selected"><?php echo esc_html( $area_name ); ?></option>
@@ -1125,13 +1154,13 @@ JS;
                 </td>
             </tr>
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'Zip', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Zip', 'kiriminaja-official' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
                 <td><input type="text" class="kiriof-wc-location-zip" size="8" name="<?php echo esc_attr( $prefix . '[zip_code]' ); ?>" value="<?php echo esc_attr( $zip ); ?>"
-                    placeholder="<?php esc_attr_e( 'e.g. 12950', 'kiriminaja-official' ); ?>" /></td>
+                    placeholder="<?php esc_attr_e( 'e.g. 12950', 'kiriminaja-official' ); ?>" required aria-required="true" /></td>
             </tr>
-            <input type="hidden" name="<?php echo esc_attr( $prefix . '[country_state]' ); ?>" value="ID" />
+            <input type="hidden" name="<?php echo esc_attr( $prefix . '[country_state]' ); ?>" value="<?php echo esc_attr( $fields['country'] . ( '' !== $fields['state'] ? ':' . $fields['state'] : '' ) ); ?>" />
             <tr>
-                <th scope="row"><label><?php esc_html_e( 'Pin Location', 'kiriminaja-official' ); ?></label></th>
+                <th scope="row"><label><?php esc_html_e( 'Pin Location', 'kiriminaja-official' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
                 <td>
                     <div class="kiriof-wc-origin-map" data-lat="<?php echo esc_attr( $lat ); ?>" data-lng="<?php echo esc_attr( $lng ); ?>"></div>
                     <input type="hidden" class="kiriof-wc-location-latitude" name="<?php echo esc_attr( $prefix . '[latitude]' ); ?>" value="<?php echo esc_attr( $lat ); ?>" />
@@ -1175,14 +1204,19 @@ jQuery(function ($) {
         if (!item || typeof item !== 'object') {
             return '';
         }
-        if (item.postcode) {
-            return String(item.postcode);
+        var sources = [item, item.data || {}, item.attributes || {}, item.raw || {}];
+        var keys = ['postcode', 'postal_code', 'zipcode', 'zip_code', 'kode_pos', 'kodepos', 'postalCode'];
+        for (var sourceIndex = 0; sourceIndex < sources.length; sourceIndex++) {
+            for (var keyIndex = 0; keyIndex < keys.length; keyIndex++) {
+                if (sources[sourceIndex][keys[keyIndex]]) {
+                    return String(sources[sourceIndex][keys[keyIndex]]).replace(/\s+/g, '').trim();
+                }
+            }
         }
-        if (item.postal_code) {
-            return String(item.postal_code);
-        }
-        if (item.data && item.data.postcode) {
-            return String(item.data.postcode);
+        var label = item.text || item.name || item.label || '';
+        if (label) {
+            var match = String(label).match(/\b\d{5}\b/);
+            return match ? match[0] : '';
         }
         return '';
     }
@@ -1208,7 +1242,11 @@ jQuery(function ($) {
                         return {
                             action: 'kiriminaja_subdistrict_search',
                             nonce: window.kiriofAjax ? kiriofAjax.nonce : '',
-                            term: params.term
+                            term: params.term,
+                            data: {
+                                term: params.term,
+                                search: params.term
+                            }
                         };
                     },
                     processResults: function (response) {
@@ -1227,7 +1265,7 @@ jQuery(function ($) {
                 }
                 var postcode = kiriofExtractPostcode(event.params && event.params.data ? event.params.data : null);
                 if (postcode) {
-                    $zip.val(postcode);
+                    $zip.val(postcode).trigger('input').trigger('change');
                 }
             });
             $area.on('select2:clear', function () {
@@ -1345,6 +1383,7 @@ JS;
      */
     private function mirrorDefaultLocationToRepository( array $payload ) {
         $repository = ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->repository();
+        $repository->ensureDefaultExists();
         $default    = $repository->getDefault();
 
         $country_state = (string) get_option( 'woocommerce_default_country', '' );
@@ -1397,6 +1436,16 @@ JS;
         $posted     = isset( $_POST['kiriof_locations'] ) ? wp_unslash( $_POST['kiriof_locations'] ) : array();
         $default_id = isset( $_POST['kiriof_default_location_id'] ) ? absint( $_POST['kiriof_default_location_id'] ) : 0;
 
+		// The warehouse detail screen submits exactly one location. Restrict the
+		// payload to that route key so stale/duplicated fields cannot overwrite
+		// another saved address.
+		$editing_key = $this->getCurrentShipmentLocationEditingKey();
+		if ( '' !== $editing_key && is_array( $posted ) ) {
+			$posted_key = 'new' === $editing_key ? 'new' : (string) absint( $editing_key );
+			$posted     = isset( $posted[ $posted_key ] ) ? array( $posted_key => $posted[ $posted_key ] ) : array();
+		}
+
+        $mutation_failed = false;
         if ( is_array( $posted ) ) {
             foreach ( $posted as $key => $raw ) {
                 if ( ! is_array( $raw ) ) {
@@ -1425,8 +1474,10 @@ JS;
                 }
 
                 if ( 'new' === (string) $key ) {
-                    if ( '' !== $data['name'] || '' !== $data['address'] ) {
-                        $repository->insert( $data );
+                    if ( $this->isValidShipmentLocationData( $data ) ) {
+                        $mutation_failed = false === $repository->insert( $data ) || $mutation_failed;
+                    } elseif ( array_filter( $data ) ) {
+                        $mutation_failed = true;
                     }
                     continue;
                 }
@@ -1435,18 +1486,38 @@ JS;
                 if ( $location_id <= 0 ) {
                     continue;
                 }
-                if ( ! empty( $raw['remove'] ) ) {
-                    $repository->delete( $location_id );
+                $existing_location = $repository->getById( $location_id );
+                if ( ! $existing_location ) {
+                    $mutation_failed = true;
                     continue;
                 }
-                $repository->update( $location_id, $data );
+                if ( ! empty( $raw['remove'] ) ) {
+                    $mutation_failed = ! $repository->delete( $location_id ) || $mutation_failed;
+                    continue;
+                }
+
+                if ( 1 === (int) $existing_location->is_default ) {
+                    $data['is_active']  = 1;
+                    $data['is_default'] = 1;
+                }
+                if ( ! $this->isValidShipmentLocationData( $data ) || ! $repository->update( $location_id, $data ) ) {
+                    $mutation_failed = true;
+                }
             }
         }
 
         if ( $default_id > 0 ) {
-            $repository->setDefault( $default_id );
+            $default_location = $repository->getById( $default_id );
+            $mutation_failed  = ! $default_location || ! $repository->setDefault( $default_id ) || $mutation_failed;
         }
-        $repository->ensureDefaultExists();
+        $mutation_failed = ! $repository->ensureDefaultExists() || $mutation_failed;
+
+        if ( $mutation_failed ) {
+            if ( class_exists( '\WC_Admin_Settings' ) ) {
+                \WC_Admin_Settings::add_error( __( 'Shipment location could not be saved. Check all required fields and try again.', 'kiriminaja-official' ) );
+            }
+            return;
+        }
 
         $default = $repository->getDefault();
         if ( $default ) {
@@ -1474,6 +1545,11 @@ JS;
             ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
         }
         // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( '' !== $editing_key ) {
+			wp_safe_redirect( $this->getShipmentLocationDetailUrl( '' ) );
+			exit;
+		}
     }
 
     public function syncWooCommerceAdvancedSettings() {

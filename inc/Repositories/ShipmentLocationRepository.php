@@ -82,14 +82,16 @@ class ShipmentLocationRepository
         );
 
         if (false === $inserted) {
+            $this->logDatabaseFailure('insert');
             return false;
         }
 
         $id = (int) $wpdb->insert_id;
 
         // Enforce a single default row.
-        if (1 === $payload['is_default']) {
-            $this->clearDefaultExcept($id);
+        if (1 === $payload['is_default'] && ! $this->setDefault($id)) {
+            $wpdb->delete($this->getTableName(), array('id' => $id), array('%d'));
+            return false;
         }
 
         return $id;
@@ -109,6 +111,17 @@ class ShipmentLocationRepository
         if ($id <= 0) {
             return false;
         }
+
+        $existing = $this->getById($id);
+        if (! $existing) {
+            return false;
+        }
+        if (1 === (int) $existing->is_default && isset($data['is_active']) && 1 !== (int) $data['is_active']) {
+            return false;
+        }
+
+        $promote_to_default = isset($data['is_default']) && 1 === (int) $data['is_default'];
+        unset($data['is_default']);
 
         $fields  = array();
         $formats = array();
@@ -159,11 +172,12 @@ class ShipmentLocationRepository
         );
 
         if (false === $updated) {
+            $this->logDatabaseFailure('update', $id);
             return false;
         }
 
-        if (isset($fields['is_default']) && 1 === (int) $fields['is_default']) {
-            $this->clearDefaultExcept($id);
+        if ($promote_to_default) {
+            return $this->setDefault($id);
         }
 
         return true;
@@ -179,8 +193,19 @@ class ShipmentLocationRepository
     {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Table delete via $wpdb.
-        $deleted = $wpdb->delete($this->getTableName(), array('id' => (int) $id), array('%d'));
-        return false !== $deleted;
+        $id = (int) $id;
+        $location = $id > 0 ? $this->getById($id) : null;
+        if (! $location || 1 === (int) $location->is_default) {
+            return false;
+        }
+
+        $deleted = $wpdb->delete($this->getTableName(), array('id' => $id), array('%d'));
+        if (1 !== $deleted) {
+            $this->logDatabaseFailure('delete', $id);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -223,18 +248,11 @@ class ShipmentLocationRepository
         global $wpdb;
         $table = $this->getTableName();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $row = $wpdb->get_row("SELECT * FROM {$table} WHERE is_default = 1 ORDER BY id ASC LIMIT 1");
+        $row = $wpdb->get_row("SELECT * FROM {$table} WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1");
         if ($row) {
             return $row;
         }
-        // Fallback: first active location, then first location at all.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $row = $wpdb->get_row("SELECT * FROM {$table} WHERE is_active = 1 ORDER BY id ASC LIMIT 1");
-        if ($row) {
-            return $row;
-        }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        return $wpdb->get_row("SELECT * FROM {$table} ORDER BY id ASC LIMIT 1");
+        return null;
     }
 
     /**
@@ -258,40 +276,106 @@ class ShipmentLocationRepository
      */
     public function setDefault($id)
     {
+        global $wpdb;
         $id = (int) $id;
-        $this->update($id, array('is_default' => 1));
-        $this->clearDefaultExcept($id);
+        $location = $this->getById($id);
+        if (! $location || 1 !== (int) $location->is_active) {
+            return false;
+        }
+
+        $table = $this->getTableName();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic invariant update for plugin-owned table.
+        $wpdb->query('START TRANSACTION');
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Table update via $wpdb.
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'is_default' => 1,
+                'is_active'  => 1,
+                'updated_at' => current_time('mysql'),
+            ),
+            array('id' => $id),
+            array('%d', '%d', '%s'),
+            array('%d')
+        );
+        $cleared = false !== $updated && $this->clearDefaultExcept($id);
+
+        if (! $cleared) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Roll back failed invariant update.
+            $wpdb->query('ROLLBACK');
+            $this->logDatabaseFailure('set_default', $id);
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Commit successful invariant update.
+        $wpdb->query('COMMIT');
         return true;
     }
 
     /**
      * Ensure at least one default location exists. If none, promote the first.
      *
-     * @return void
+     * @return bool
      */
     public function ensureDefaultExists()
     {
-        $default = $this->getDefault();
+        global $wpdb;
+        $table = $this->getTableName();
+
+        // Do not use getDefault() here because its active-row fallback is not
+        // necessarily flagged as the persisted default.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
+        $default = $wpdb->get_row("SELECT * FROM {$table} WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1");
         if ($default) {
-            return;
+            return $this->clearDefaultExcept((int) $default->id);
         }
-        $all = $this->getAll();
-        if (!empty($all)) {
-            $this->setDefault((int) $all[0]->id);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
+        $first_active = $wpdb->get_row("SELECT * FROM {$table} WHERE is_active = 1 ORDER BY id ASC LIMIT 1");
+        if (! $first_active) {
+            return 0 === $this->count();
         }
+
+        return $this->setDefault((int) $first_active->id);
     }
 
     /**
      * Clear the default flag on every row except the given ID.
      *
      * @param int $exceptId
-     * @return void
+     * @return bool
      */
     private function clearDefaultExcept($exceptId)
     {
         global $wpdb;
         $table = $this->getTableName();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $wpdb->query($wpdb->prepare("UPDATE {$table} SET is_default = 0 WHERE id != %d", (int) $exceptId));
+        $updated = $wpdb->query($wpdb->prepare("UPDATE {$table} SET is_default = 0 WHERE id != %d", (int) $exceptId));
+        return false !== $updated;
+    }
+
+    /**
+     * Log failed shipment-location writes without exposing database details to users.
+     *
+     * @param string $operation Database operation name.
+     * @param int    $id        Optional location ID.
+     * @return void
+     */
+    private function logDatabaseFailure($operation, $id = 0)
+    {
+        global $wpdb;
+        if (! class_exists('\\KiriminAjaOfficial\\Utils\\Logger')) {
+            return;
+        }
+
+        \KiriminAjaOfficial\Utils\Logger::error(
+            'Shipment location database operation failed.',
+            array(
+                'operation'   => strtolower((string) preg_replace('/[^a-z0-9_]+/i', '_', (string) $operation)),
+                'location_id' => (int) $id,
+                'db_error'    => isset($wpdb->last_error) ? sanitize_text_field((string) $wpdb->last_error) : '',
+            )
+        );
     }
 }
