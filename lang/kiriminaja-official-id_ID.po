@@ -3483,6 +3483,12 @@ msgstr "Dari"
 msgid "To"
 msgstr "Menjadi"
 
+msgid "Current shipment origin"
+msgstr "Asal pengiriman saat ini"
+
+msgid "New shipment origin"
+msgstr "Asal pengiriman baru"
+
 msgid "Shipment Route"
 msgstr "Rute Pengiriman"
 
@@ -3599,3 +3605,9 @@ msgstr "menurun"
 
 msgid "increases"
 msgstr "meningkat"
+
+msgid "No alternative shipment locations are available."
+msgstr "Belum ada lokasi pengiriman alternatif."
+
+msgid "Add shipment location"
+msgstr "Tambah lokasi pengiriman"

@@ -798,7 +798,8 @@ class TransactionProcessController
                 return;
             }
 
-            $kiriof_shipment_locations = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->repository()->getAll( true );
+            $kiriof_location_service   = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+            $kiriof_shipment_locations = $kiriof_location_service->repository()->getAll( true );
 
             $kiriof_pin_cache_ttl = (int) apply_filters(
                 'kiriof_pin_cache_ttl',
@@ -1143,19 +1144,36 @@ class TransactionProcessController
                             <form>
                                 <input type="hidden" name="order_id" value="{{ data.order_id }}">
                                 <div class="kiriof-backbone-field">
-                                    <label class="kiriof-backbone-label"><?php esc_html_e( 'From', 'kiriminaja-official' ); ?></label>
-                                    <div class="kiriof-change-origin-current">{{ data.current_origin }}</div>
+									<label class="kiriof-backbone-label"><?php esc_html_e( 'Current shipment origin', 'kiriminaja-official' ); ?></label>
+                                    <div class="kiriof-change-origin-current kiriof-origin-card">
+                                        <strong>{{ data.current_origin }}</strong>
+                                        <span>{{ data.current_origin_address }}</span>
+                                    </div>
                                 </div>
                                 <div class="kiriof-backbone-field">
                                     <label for="kiriof-change-origin-to" class="kiriof-backbone-label">
-                                        <?php esc_html_e( 'To', 'kiriminaja-official' ); ?> <span class="required">*</span>
+										<?php esc_html_e( 'New shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span>
                                     </label>
                                     <select id="kiriof-change-origin-to" name="location_id" class="wc-enhanced-select" data-placeholder="<?php esc_attr_e( 'Select shipment location', 'kiriminaja-official' ); ?>" data-current-origin="{{ data.current_origin }}" data-current-location-id="{{ data.current_location_id }}">
                                         <option value=""></option>
                                         <?php foreach ( $kiriof_shipment_locations as $kiriof_location_option ) : ?>
-                                            <option value="<?php echo esc_attr( $kiriof_location_option->id ); ?>"><?php echo esc_html( $kiriof_location_option->name ); ?></option>
+                                            <?php
+                                            $kiriof_location_address = $kiriof_location_service->formatAddress( $kiriof_location_option );
+                                            $kiriof_location_label   = (string) $kiriof_location_option->name;
+                                            if ( '' !== $kiriof_location_address ) {
+                                                $kiriof_location_label .= ' — ' . $kiriof_location_address;
+                                            }
+                                            ?>
+                                            <option value="<?php echo esc_attr( $kiriof_location_option->id ); ?>"><?php echo esc_html( $kiriof_location_label ); ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <p class="description kiriof-change-origin-manage">
+                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
+                                    </p>
+                                    <div class="kiriof-change-origin-empty" style="display:none;">
+                                        <p><?php esc_html_e( 'No alternative shipment locations are available.', 'kiriminaja-official' ); ?></p>
+                                        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Add shipment location', 'kiriminaja-official' ); ?></a>
+                                    </div>
                                 </div>
                                 <div class="kiriof-change-origin-loading" aria-live="polite" style="display:none;">
                                     <span class="spinner" style="float:none;"></span>

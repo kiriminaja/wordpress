@@ -246,6 +246,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                     $kiriof_isKAOrder       = ('wc-processing' === $kiriof_postStatus);
                     $kiriof_isDeficitRow    = ! empty($kiriof_row->is_deficit);
                     $kiriof_origin_label    = '';
+                    $kiriof_origin_snapshot = array();
                     if ( ! empty( $kiriof_row->shipment_location_snapshot ) ) {
                         $kiriof_origin_snapshot = json_decode( $kiriof_row->shipment_location_snapshot, true );
                         $kiriof_origin_label    = is_array( $kiriof_origin_snapshot ) ? (string) ( $kiriof_origin_snapshot['name'] ?? '' ) : '';
@@ -254,6 +255,15 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                         $kiriof_origin_default = ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->getDefaultLocation();
                         $kiriof_origin_label   = ! empty( $kiriof_origin_default ) ? (string) $kiriof_origin_default->name : '';
                     }
+                    $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+                    $kiriof_origin_location  = ! empty( $kiriof_row->shipment_location_id )
+                        ? $kiriof_location_service->repository()->getById( (int) $kiriof_row->shipment_location_id )
+                        : $kiriof_location_service->getDefaultLocation();
+                    $kiriof_origin_address = $kiriof_location_service->formatAddress(
+                        ! empty( $kiriof_origin_snapshot ) && is_array( $kiriof_origin_snapshot )
+                            ? $kiriof_origin_snapshot
+                            : $kiriof_origin_location
+                    );
                     $kiriof_statusLabel     = $kiriof_isDeficitRow
                         ? __('COD Deficit', 'kiriminaja-official')
                         : ($kiriof_isKAOrder
@@ -429,6 +439,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                             . ' style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;color:#2271b1"'
                              . ' data-ka-order-id="' . esc_attr($kiriof_orderIdKA) . '"'
                              . ' data-current-origin="' . esc_attr($kiriof_origin_label) . '"'
+                             . ' data-current-origin-address="' . esc_attr($kiriof_origin_address) . '"'
                              . ' data-current-location-id="' . esc_attr((int) ($kiriof_row->shipment_location_id ?? 0)) . '"'
                             . ' data-nonce="' . esc_attr($kiriof_adj_nonce) . '"'
                             . ' title="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '"'

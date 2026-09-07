@@ -3,6 +3,76 @@
 	'use strict';
 
 	var i18n = (window.kiriofChangeOrigin && window.kiriofChangeOrigin.i18n) || {};
+	var pageScrollState = null;
+
+	function lockPageScroll() {
+		if (pageScrollState) {
+			return;
+		}
+
+		var body = document.body;
+		var html = document.documentElement;
+		var scrollTop = window.pageYOffset || html.scrollTop || body.scrollTop || 0;
+		var scrollLeft = window.pageXOffset || html.scrollLeft || body.scrollLeft || 0;
+		var scrollbarWidth = Math.max(0, window.innerWidth - html.clientWidth);
+		var computedPaddingRight = parseFloat(window.getComputedStyle(body).paddingRight) || 0;
+
+		pageScrollState = {
+			scrollTop: scrollTop,
+			scrollLeft: scrollLeft,
+			htmlOverflow: html.style.overflow,
+			bodyPosition: body.style.position,
+			bodyTop: body.style.top,
+			bodyLeft: body.style.left,
+			bodyRight: body.style.right,
+			bodyWidth: body.style.width,
+			bodyPaddingRight: body.style.paddingRight,
+		};
+
+		$('html, body').addClass('kiriof-change-origin-scroll-locked');
+		html.style.overflow = 'hidden';
+		body.style.position = 'fixed';
+		body.style.top = '-' + scrollTop + 'px';
+		body.style.left = '-' + scrollLeft + 'px';
+		body.style.right = '0';
+		body.style.width = '100%';
+		if (scrollbarWidth) {
+			body.style.paddingRight = (computedPaddingRight + scrollbarWidth) + 'px';
+		}
+	}
+
+	function unlockPageScroll() {
+		if (!pageScrollState) {
+			return;
+		}
+
+		var body = document.body;
+		var html = document.documentElement;
+		var state = pageScrollState;
+		pageScrollState = null;
+
+		html.style.overflow = state.htmlOverflow;
+		body.style.position = state.bodyPosition;
+		body.style.top = state.bodyTop;
+		body.style.left = state.bodyLeft;
+		body.style.right = state.bodyRight;
+		body.style.width = state.bodyWidth;
+		body.style.paddingRight = state.bodyPaddingRight;
+		$('html, body').removeClass('kiriof-change-origin-scroll-locked');
+		window.scrollTo(state.scrollLeft, state.scrollTop);
+	}
+
+	function closeModal($modal) {
+		if ($.fn.select2) {
+			$modal.find('.select2-hidden-accessible').each(function () {
+				if ($(this).data('select2')) {
+					$(this).select2('destroy');
+				}
+			});
+		}
+		$modal.remove();
+		unlockPageScroll();
+	}
 
 	function text(key, fallback) {
 		return i18n[key] || fallback;
@@ -97,8 +167,12 @@
 			$select.select2('destroy');
 		}
 		removeCurrentOriginOption();
+		var hasAlternatives = $select.find('option[value!=""]').length > 0;
+		$select.toggle(hasAlternatives);
+		$modal.find('.kiriof-change-origin-empty').toggle(!hasAlternatives);
+		$modal.toggleClass('kiriof-change-origin-empty-state', !hasAlternatives);
 
-		if ($.fn.select2 && $select.length) {
+		if ($.fn.select2 && $select.length && hasAlternatives) {
 			$select.select2({
 				width: '100%',
 				placeholder: $select.data('placeholder') || '',
@@ -112,7 +186,12 @@
 		$modal.off('.kiriofChangeOrigin');
 
 		$modal.on('click.kiriofChangeOrigin', '.modal-close', function () {
-			$modal.remove();
+			closeModal($modal);
+		});
+		$modal.on('click.kiriofChangeOrigin', function (event) {
+			if (event.target === this) {
+				closeModal($modal);
+			}
 		});
 
 		function checkShipping() {
@@ -247,20 +326,26 @@
 		var $button = $(button);
 		var orderId = $button.data('ka-order-id') || '';
 		var currentOrigin = $button.data('current-origin') || '';
+		var currentOriginAddress = $button.data('current-origin-address') || '';
 		var currentLocationId = parseInt($button.data('current-location-id'), 10) || 0;
 
-		var data = { order_id: orderId, current_origin: currentOrigin, current_location_id: currentLocationId };
+		var data = { order_id: orderId, current_origin: currentOrigin, current_origin_address: currentOriginAddress, current_location_id: currentLocationId };
 		var template = $('#tmpl-kiriof-modal-change-origin').html() || '';
 		if (!template) {
 			return;
 		}
 
-		$('.kiriof-change-origin-modal').remove();
+		var $existingModal = $('.kiriof-change-origin-modal');
+		if ($existingModal.length) {
+			closeModal($existingModal);
+		}
 		template = template.replace(/\{\{ data\.order_id \}\}/g, $('<span>').text(orderId).html());
 		template = template.replace(/\{\{ data\.current_origin \}\}/g, $('<span>').text(currentOrigin).html());
+		template = template.replace(/\{\{ data\.current_origin_address \}\}/g, $('<span>').text(currentOriginAddress).html());
 		template = template.replace(/\{\{ data\.current_location_id \}\}/g, String(currentLocationId));
 		template = template.replace(/\{\{ data\.current_location_id \}\}/g, String(currentLocationId));
 		var $modal = $(template).appendTo('body');
+		lockPageScroll();
 		initializeModal($modal, data);
 		$modal.attr('aria-hidden', 'false');
 	}

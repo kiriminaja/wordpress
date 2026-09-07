@@ -205,10 +205,38 @@ class ShipmentLocationService
             'origin_name'            => (string) $location->name,
             'origin_phone'           => (string) $location->phone,
             'origin_address'         => (string) $location->address,
+            'origin_address_2'       => (string) ( $location->address_2 ?? '' ),
+            'origin_sub_district'    => (string) ( $location->sub_district_name ?? '' ),
+            'origin_city'            => (string) ( $location->city ?? '' ),
+            'origin_state'           => (string) ( $location->state ?? '' ),
+            'origin_country'         => (string) ( $location->country ?? '' ),
             'origin_sub_district_id' => (int) $location->sub_district_id,
             'origin_zip_code'        => (string) $location->zip_code,
             'origin_latitude'        => (string) $location->latitude,
             'origin_longitude'       => (string) $location->longitude,
         );
+    }
+
+    /**
+     * Build a compact human-readable address for a shipment location.
+     *
+     * @param object|array|null $location Location row or origin snapshot.
+     * @return string
+     */
+    public function formatAddress($location)
+    {
+        $data = is_object($location) ? get_object_vars($location) : (array) $location;
+        $lines = array_filter(array(
+            trim((string) ($data['address'] ?? $data['origin_address'] ?? '')),
+            trim((string) ($data['address_2'] ?? $data['origin_address_2'] ?? '')),
+            implode(', ', array_filter(array(
+                trim((string) ($data['sub_district_name'] ?? $data['origin_sub_district'] ?? '')),
+                trim((string) ($data['city'] ?? $data['origin_city'] ?? '')),
+                trim((string) ($data['state'] ?? $data['origin_state'] ?? '')),
+                trim((string) ($data['zip_code'] ?? $data['origin_zip_code'] ?? '')),
+            ))),
+        ));
+
+        return implode(' · ', $lines);
     }
 }
