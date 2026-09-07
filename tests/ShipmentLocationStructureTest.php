@@ -99,7 +99,7 @@ class ShipmentLocationStructureTest extends TestCase {
     public function testGeneralSettingsSavePersistsLocationsAndSyncsDefaultOrigin(): void {
         $source = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
 
-        $this->assertStringContainsString( "\$posted     = isset( \$_POST['kiriof_locations'] ) ? wp_unslash( \$_POST['kiriof_locations'] ) : array();", $source );
+        $this->assertStringContainsString( "\$posted     = isset( \$_POST['kiriof_locations'] ) ? map_deep( wp_unslash( \$_POST['kiriof_locations'] ), 'sanitize_textarea_field' ) : array();", $source );
         $this->assertStringContainsString( 'false === $repository->insert( $data )', $source );
         $this->assertStringContainsString( '! $repository->update( $location_id, $data )', $source );
         $this->assertStringContainsString( '! $repository->delete( $location_id )', $source );

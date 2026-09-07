@@ -812,6 +812,7 @@ JS;
             return;
         }
 
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- WooCommerce reads this core settings global.
         $GLOBALS['hide_save_button'] = true;
 
         $service   = new \KiriminAjaOfficial\Services\ShipmentLocationService();
@@ -1039,7 +1040,7 @@ JS;
         $title      = $id > 0 ? ( '' !== $name ? $name : __( 'Shipment Location', 'kiriminaja-official' ) ) : __( 'Add Shipment Location', 'kiriminaja-official' );
         $region     = trim( $area_name . ( '' !== $area_name && '' !== $city ? ', ' : '' ) . $city );
         if ( '' === $region ) {
-            $region = '&mdash;';
+            $region = '—';
         }
         ?>
         <?php if ( $id > 0 ) : ?>
@@ -1051,7 +1052,7 @@ JS;
                     <span class="dashicons dashicons-yes-alt" title="<?php esc_attr_e( 'Default', 'kiriminaja-official' ); ?>"></span>
                 <?php endif; ?>
             </td>
-            <td class="wc-shipping-zone-region"><?php echo '' !== $region && '&mdash;' !== $region ? esc_html( $region ) : $region; ?></td>
+            <td class="wc-shipping-zone-region"><?php echo esc_html( $region ); ?></td>
             <td class="wc-shipping-zone-methods">
                 <?php if ( $is_active ) : ?>
                     <span class="kiriof-wc-location-status-active"><?php esc_html_e( 'Active', 'kiriminaja-official' ); ?></span>
@@ -1433,7 +1434,7 @@ JS;
         $service    = new \KiriminAjaOfficial\Services\ShipmentLocationService();
         $repository = $service->repository();
 
-        $posted     = isset( $_POST['kiriof_locations'] ) ? wp_unslash( $_POST['kiriof_locations'] ) : array();
+        $posted     = isset( $_POST['kiriof_locations'] ) ? map_deep( wp_unslash( $_POST['kiriof_locations'] ), 'sanitize_textarea_field' ) : array();
         $default_id = isset( $_POST['kiriof_default_location_id'] ) ? absint( $_POST['kiriof_default_location_id'] ) : 0;
 
 		// The warehouse detail screen submits exactly one location. Restrict the

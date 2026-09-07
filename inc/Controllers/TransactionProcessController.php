@@ -627,8 +627,10 @@ class TransactionProcessController
             if ( $kiriof_matched_option ) {
                 $kiriof_delta = (float) $kiriof_matched_option['raw_price'] - $kiriof_previous_price;
                 if ( $kiriof_delta > 0 ) {
+                    /* translators: 1: courier service name, 2: formatted price increase. */
                     $kiriof_change_label = sprintf( __( '%1$s price increases by %2$s.', 'kiriminaja-official' ), $kiriof_previous_name, wp_strip_all_tags( wc_price( $kiriof_delta ) ) );
                 } elseif ( $kiriof_delta < 0 ) {
+                    /* translators: 1: courier service name, 2: formatted price decrease. */
                     $kiriof_change_label = sprintf( __( '%1$s price decreases by %2$s.', 'kiriminaja-official' ), $kiriof_previous_name, wp_strip_all_tags( wc_price( abs( $kiriof_delta ) ) ) );
                 }
                 $kiriof_comparison = array(
@@ -657,9 +659,11 @@ class TransactionProcessController
                 $kiriof_comparison['total_delta'] = $kiriof_comparison['new_paid_shipping'] - $kiriof_previous_paid_shipping;
                 $kiriof_comparison['new_total'] = $kiriof_previous_total + $kiriof_comparison['total_delta'];
             } else {
+                /* translators: %s: courier service name. */
+                $kiriof_unavailable_label = sprintf( __( '%s is not available from the selected origin.', 'kiriminaja-official' ), $kiriof_previous_name );
                 $kiriof_comparison = array(
                     'available'     => false,
-                    'label'        => sprintf( __( '%s is not available from the selected origin.', 'kiriminaja-official' ), $kiriof_previous_name ),
+                    'label'        => $kiriof_unavailable_label,
                     'old_price'    => wc_price( $kiriof_previous_price ),
                     'service_code' => $kiriof_previous_service,
                     'service_name' => (string) ( $kiriof_transaction->service_name ?? '' ),
