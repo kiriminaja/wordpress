@@ -104,6 +104,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $enqueue = $this->read( __DIR__ . '/../inc/Base/Enqueue.php' );
         $js      = $this->read( __DIR__ . '/../assets/js/kiriof-change-origin.js' );
         $css     = $this->read( __DIR__ . '/../assets/admin/css/kj-admin-style.css' );
+		$source  = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
 
         $this->assertStringContainsString( "'kiriof-change-origin',", $enqueue );
         $this->assertStringContainsString( 'assets/js/kiriof-change-origin.js', $enqueue );
@@ -116,6 +117,10 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'change.kiriofChangeOrigin', $js );
         $this->assertStringContainsString( "var hasAlternatives = \$select.find('option[value!=\"\"]')", $js );
         $this->assertStringContainsString( 'comparison.available', $js );
+		$this->assertStringContainsString( '$kiriof_is_replacement', $source );
+		$this->assertStringContainsString( '$kiriof_selected_service !== $kiriof_previous_service', $source );
+		$this->assertStringContainsString( '$kiriof_is_replacement && ! $courier_consent', $source );
+		$this->assertStringContainsString( ".kiriof-replacement-consent').prop('checked') ? 1 : 0", $js );
         $this->assertStringContainsString( "typeof response.data === 'object'", $js );
         $this->assertStringContainsString( 'Array.isArray(payload.replacement_options)', $js );
         $this->assertStringContainsString( 'try {', $js );
@@ -174,9 +179,20 @@ class ChangeOriginFeatureTest extends TestCase {
             $this->assertStringContainsString( "'{$field}'", $controller );
         }
 
-        foreach ( array( 'Shipping', 'Shipping discount', 'Order total', 'Order price impact', '↑', '↓', '→' ) as $label ) {
+        foreach ( array( 'Courier', 'Shipping', 'Shipping discount', 'Order total', '↑', '↓', '→' ) as $label ) {
             $this->assertStringContainsString( $label, $script );
         }
+
+        $this->assertStringNotContainsString( 'Order price impact', $script );
+        $this->assertStringNotContainsString( 'renderImpactDetails', $script );
+        $this->assertStringContainsString( 'if (previousDiscount !== 0 || newDiscount !== 0)', $script );
+        $this->assertStringContainsString( 'discountRow =', $script );
+        $styles = $this->read( __DIR__ . '/../assets/admin/css/kj-admin-style.css' );
+        $this->assertStringContainsString( 'height: fit-content !important;', $styles );
+        $this->assertMatchesRegularExpression(
+            '/\.wc-backbone-modal-main\s*\{[^}]*margin:\s*0\s*!important;[^}]*padding:\s*0\s*!important;/s',
+            $styles
+        );
 
         $this->assertStringNotContainsString( "text('previousShipping'", $script );
         $this->assertStringNotContainsString( "text('newShipping'", $script );

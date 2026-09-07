@@ -104,17 +104,25 @@
 			return '';
 		}
 
+		var previousCourier = comparison.previous_courier || '';
+		var newCourier = comparison.new_courier || previousCourier;
+		var previousDiscount = parseFloat(comparison.previous_discount) || 0;
+		var newDiscount = parseFloat(comparison.new_discount) || 0;
+		var discountRow = '';
+
+		if (previousDiscount !== 0 || newDiscount !== 0) {
+			discountRow = '<dt>' + text('shippingDiscount', 'Shipping discount') + '</dt><dd>' + changeValue(previousDiscount, newDiscount) + '</dd>';
+		}
+
 		return '<div class="kiriof-change-origin-order-breakdown">' +
 			'<h2>' + text('orderBreakdown', 'Order summary') + '</h2>' +
 			'<dl>' +
+			'<dt>' + text('courier', 'Courier') + '</dt><dd>' + $('<span>').text(previousCourier + ' → ' + newCourier).html() + '</dd>' +
 			'<dt>' + text('subTotal', 'Sub Total') + '</dt><dd>' + money(comparison.previous_subtotal) + '</dd>' +
-			'<dt>' + text('totalShipping', 'Total Shipping') + '</dt><dd>' + money(comparison.new_total_shipping) + '</dd>' +
-			'<dt>' + text('shipping', 'Shipping') + '</dt><dd>' + money(comparison.new_raw_shipping) + '</dd>' +
-			'<dt>' + text('shippingDiscountFromKiriminAja', 'Shipping Discount (from KiriminAja)') + '</dt><dd>-' + money(comparison.new_discount) + '</dd>' +
-			'<dt>' + text('discountedShipping', 'Discounted Shipping') + '</dt><dd>' + money(comparison.new_discounted_shipping) + '</dd>' +
-			'<dt class="kiriof-change-origin-order-total"><strong>' + text('orderTotal', 'Total') + '</strong></dt><dd class="kiriof-change-origin-order-total"><strong>' + money(comparison.new_total) + '</strong></dd>' +
+			'<dt>' + text('shipping', 'Shipping') + '</dt><dd>' + changeValue(comparison.previous_paid_shipping, comparison.new_paid_shipping) + '</dd>' +
+			discountRow +
+			'<dt class="kiriof-change-origin-order-total"><strong>' + text('orderTotal', 'Order total') + '</strong></dt><dd class="kiriof-change-origin-order-total"><strong>' + changeValue(comparison.previous_total, comparison.new_total) + '</strong></dd>' +
 			'</dl>' +
-			renderImpactDetails(comparison) +
 		'</div>';
 	}
 
@@ -128,28 +136,6 @@
 		var arrow = next > previous ? '↑' : (next < previous ? '↓' : '→');
 
 		return money(previous) + ' ' + arrow + ' ' + money(next);
-	}
-
-	function renderImpactDetails(comparison) {
-		if (!comparison || !comparison.available) {
-			return '';
-		}
-
-		var delta = parseFloat(comparison.total_delta) || 0;
-		var direction = delta > 0 ? text('priceIncrease', 'increases') : (delta < 0 ? text('priceDecrease', 'decreases') : text('noChange', 'does not change'));
-		var deltaText = delta === 0 ? text('noChange', 'No change') : money(Math.abs(delta));
-		var discountDelta = (parseFloat(comparison.new_discount) || 0) - (parseFloat(comparison.previous_discount) || 0);
-
-		return '<div class="kiriof-change-origin-impact-content">' +
-			'<h2>' + text('priceImpact', 'Order price impact') + '</h2>' +
-			'<dl>' +
-			'<dt>' + text('previousCourier', 'Previous courier') + '</dt><dd>' + $('<span>').text(comparison.previous_courier || '').html() + '</dd>' +
-			'<dt>' + text('newCourier', 'New courier') + '</dt><dd>' + $('<span>').text(comparison.new_courier || comparison.previous_courier || '').html() + '</dd>' +
-			'<dt>' + text('shipping', 'Shipping') + '</dt><dd>' + changeValue(comparison.previous_paid_shipping, comparison.new_paid_shipping) + '</dd>' +
-			'<dt>' + text('shippingDiscount', 'Shipping discount') + '</dt><dd>' + changeValue(comparison.previous_discount, comparison.new_discount) + (discountDelta ? ' (' + (discountDelta > 0 ? '+' : '-') + money(Math.abs(discountDelta)) + ')' : '') + '</dd>' +
-			'<dt>' + text('orderTotal', 'Order total') + '</dt><dd>' + changeValue(comparison.previous_total, comparison.new_total) + '</dd>' +
-			'</dl><p class="kiriof-change-origin-impact-delta">' + deltaText + ' — ' + direction + '</p>' +
-		'</div>';
 	}
 
 	function initializeModal($modal, data) {
@@ -309,7 +295,7 @@
 				courier_service: serviceParts[0],
 				courier_service_name: serviceParts[1],
 				courier_price: selectedPrice,
-				courier_consent: $replacement.length ? 1 : 0,
+				courier_consent: $replacement.length && $modal.find('.kiriof-replacement-consent').prop('checked') ? 1 : 0,
 				nonce: $('.kiriof-change-origin-button[data-ka-order-id="' + data.order_id + '"]').data('nonce'),
 			})
 				.done(function (response) {

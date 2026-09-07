@@ -3622,3 +3622,7 @@ msgstr "Kolom wajib"
 
 msgid "Shipment location could not be saved. Check all required fields and try again."
 msgstr "Lokasi pengiriman tidak dapat disimpan. Periksa semua field wajib lalu coba lagi."
+
+#: inc/Base/Enqueue.php
+msgid "Courier"
+msgstr "Kurir"

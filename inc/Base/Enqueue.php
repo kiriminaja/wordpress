@@ -416,6 +416,7 @@ class Enqueue extends BaseInit{
                         'previousShipping' => __( 'Previous shipping', 'kiriminaja-official' ),
                         'newShipping'    => __( 'New shipping', 'kiriminaja-official' ),
                         'shippingDiscount' => __( 'Shipping discount', 'kiriminaja-official' ),
+                        'courier'          => __( 'Courier', 'kiriminaja-official' ),
                         'orderTotal'     => __( 'Order total', 'kiriminaja-official' ),
                         'priceIncrease'  => __( 'increases', 'kiriminaja-official' ),
                         'priceDecrease'  => __( 'decreases', 'kiriminaja-official' ),

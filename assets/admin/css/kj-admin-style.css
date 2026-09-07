@@ -133,6 +133,7 @@ body.kiriof-change-origin-scroll-locked {
   }
 }
 
+
 .kj-btn-loader {
   border: 3px solid #f3f3f3; /* Light grey */
   border-top: 3px solid #3c70ab; /* Blue */
@@ -1501,4 +1502,38 @@ button.select2-selection__clear {
   .wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content {
     max-height: calc(100vh - 24px) !important;
   }
+}
+
+/* Final Change Origin geometry override; must follow WooCommerce modal rules. */
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content {
+  height: fit-content !important;
+  min-height: 0 !important;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
+  position: static !important;
+  inset: auto !important;
+  display: flex !important;
+  flex-direction: column;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-backbone-modal-body {
+  position: static !important;
+  inset: auto !important;
+  flex: 0 1 auto;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal footer {
+  position: static !important;
+  inset: auto !important;
+  flex: 0 0 auto;
+  height: fit-content !important;
+  min-height: 0 !important;
+  padding-bottom: 12px !important;
 }

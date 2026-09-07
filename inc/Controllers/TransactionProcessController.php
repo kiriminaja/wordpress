@@ -732,7 +732,14 @@ class TransactionProcessController
             $courier_consent      = ! empty( $_POST['courier_consent'] );
             $kiriof_courier_update = array();
             if ( $courier_service || $courier_service_name ) {
-                if ( ! $courier_consent ) {
+                $kiriof_normalize_service = static function ( $service ) {
+                    return strtolower( preg_replace( '/[^a-z0-9]/i', '', (string) $service ) );
+                };
+                $kiriof_previous_service  = $kiriof_normalize_service( $kiriof_transaction->service ?? '' );
+                $kiriof_selected_service  = $kiriof_normalize_service( $courier_service );
+                $kiriof_is_replacement    = '' !== $kiriof_selected_service && $kiriof_selected_service !== $kiriof_previous_service;
+
+                if ( $kiriof_is_replacement && ! $courier_consent ) {
                     wp_send_json_error( array( 'status' => 422, 'message' => __( 'Courier replacement requires your consent.', 'kiriminaja-official' ) ) );
                     wp_die();
                 }
@@ -766,24 +773,90 @@ class TransactionProcessController
                 $kiriof_actor         = $kiriof_current_user instanceof \WP_User && $kiriof_current_user->exists()
                     ? $kiriof_current_user->display_name
                     : __( 'store administrator', 'kiriminaja-official' );
-                $kiriof_wc_order->add_order_note(
-                    sprintf(
-                        /* translators: 1: previous origin, 2: new origin, 3: administrator name. */
-                        __( 'Shipment origin changed from %1$s to %2$s by %3$s.', 'kiriminaja-official' ),
-                        $kiriof_previous_origin_name,
-                        (string) $kiriof_location->name,
-                        $kiriof_actor
-                    )
+
+                $kiriof_previous_courier = kiriof_helper()->formatServiceName(
+                    (string) ( $kiriof_transaction->service ?? '' ),
+                    (string) ( $kiriof_transaction->service_name ?? '' )
                 );
-                if ( $kiriof_courier_update ) {
-                    $kiriof_wc_order->add_order_note(
-                        sprintf(
-                            /* translators: 1: courier service name. */
-                            __( 'Courier changed with seller consent to %s.', 'kiriminaja-official' ),
-                            $courier_service_name
-                        )
+                $kiriof_new_courier = $kiriof_courier_update
+                    ? kiriof_helper()->formatServiceName( $courier_service, $courier_service_name )
+                    : $kiriof_previous_courier;
+
+                $kiriof_previous_shipping = max( 0, (float) ( $kiriof_transaction->shipping_cost ?? 0 ) );
+                $kiriof_new_shipping      = $kiriof_courier_update ? max( 0, $courier_price ) : $kiriof_previous_shipping;
+                $kiriof_shipping_delta    = $kiriof_new_shipping - $kiriof_previous_shipping;
+
+                $kiriof_previous_discount = max( 0, (float) ( $kiriof_transaction->discount_amount ?? 0 ) );
+                $kiriof_new_discount      = min( $kiriof_previous_discount, $kiriof_new_shipping );
+                $kiriof_previous_paid     = max( 0, $kiriof_previous_shipping - $kiriof_previous_discount );
+                $kiriof_new_paid          = max( 0, $kiriof_new_shipping - $kiriof_new_discount );
+                $kiriof_total_delta       = $kiriof_new_paid - $kiriof_previous_paid;
+                $kiriof_previous_total    = (float) $kiriof_wc_order->get_total();
+                $kiriof_new_total         = $kiriof_previous_total + $kiriof_total_delta;
+
+                $kiriof_format_price = static function ( $amount ) {
+                    return wp_strip_all_tags( wc_price( max( 0, (float) $amount ) ) );
+                };
+                $kiriof_format_delta = static function ( $amount ) use ( $kiriof_format_price ) {
+                    $kiriof_amount = (float) $amount;
+                    if ( 0.0 === $kiriof_amount ) {
+                        return __( 'no change', 'kiriminaja-official' );
+                    }
+
+                    return sprintf(
+                        '%1$s%2$s',
+                        $kiriof_amount > 0 ? '+' : '-',
+                        $kiriof_format_price( abs( $kiriof_amount ) )
+                    );
+                };
+
+                $kiriof_note_lines = array(
+                    sprintf(
+                        /* translators: %s: administrator name. */
+                        __( 'Shipment fulfillment updated by %s.', 'kiriminaja-official' ),
+                        $kiriof_actor
+                    ),
+                    sprintf(
+                        /* translators: 1: previous origin, 2: new origin. */
+                        __( 'Origin: %1$s → %2$s', 'kiriminaja-official' ),
+                        $kiriof_previous_origin_name,
+                        (string) $kiriof_location->name
+                    ),
+                    sprintf(
+                        /* translators: 1: previous courier, 2: new courier. */
+                        __( 'Courier: %1$s → %2$s', 'kiriminaja-official' ),
+                        $kiriof_previous_courier,
+                        $kiriof_new_courier
+                    ),
+                    sprintf(
+                        /* translators: 1: previous shipping cost, 2: new shipping cost, 3: formatted difference. */
+                        __( 'Shipping cost: %1$s → %2$s (%3$s)', 'kiriminaja-official' ),
+                        $kiriof_format_price( $kiriof_previous_shipping ),
+                        $kiriof_format_price( $kiriof_new_shipping ),
+                        $kiriof_format_delta( $kiriof_shipping_delta )
+                    ),
+                );
+
+                if ( $kiriof_previous_discount > 0 || $kiriof_new_discount > 0 ) {
+                    $kiriof_note_lines[] = sprintf(
+                        /* translators: 1: previous shipping discount, 2: new shipping discount. */
+                        __( 'Shipping discount: %1$s → %2$s', 'kiriminaja-official' ),
+                        $kiriof_format_price( $kiriof_previous_discount ),
+                        $kiriof_format_price( $kiriof_new_discount )
                     );
                 }
+
+                $kiriof_note_lines[] = sprintf(
+                    /* translators: 1: previous calculated order total, 2: new calculated order total, 3: formatted difference. */
+                    __( 'Calculated order total: %1$s → %2$s (%3$s)', 'kiriminaja-official' ),
+                    $kiriof_format_price( $kiriof_previous_total ),
+                    $kiriof_format_price( $kiriof_new_total ),
+                    $kiriof_format_delta( $kiriof_total_delta )
+                );
+
+                $kiriof_wc_order->add_order_note(
+                    implode( "\n", $kiriof_note_lines )
+                );
             }
 
             wp_send_json_success( array( 'message' => __( 'Shipment origin updated.', 'kiriminaja-official' ) ) );
