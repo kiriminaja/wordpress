@@ -11,6 +11,8 @@
 	var accountComplete = String($root.data('account-complete')) === '1';
 	var courierMap = {};
 	var couriers = [];
+	var couriersLoaded = false;
+	var couriersLoading = false;
 	var map;
 
 	function parse(response) {
@@ -35,6 +37,9 @@
 		$('[data-kiriof-continue]').toggle(step !== 'complete').text(step === 'shipping' ? 'Finish setup' : 'Continue');
 		if (step === 'address') {
 			initMap();
+		}
+		if (step === 'couriers') {
+			loadCouriers();
 		}
 		updateContinueState();
 	}
@@ -118,6 +123,9 @@
 			}
 			message('account', 'Account connected.', true);
 			accountComplete = true;
+			couriersLoaded = false;
+			courierMap = {};
+			couriers = [];
 			$root.attr('data-account-complete', '1');
 			$('[data-step-target="account"]').addClass('is-done');
 		});
@@ -222,17 +230,34 @@
 	}
 
 	function loadCouriers() {
+		if (!accountComplete || couriersLoading || couriersLoaded) {
+			return;
+		}
+
+		couriersLoading = true;
+		$('[data-courier-list]').html('<span class="spinner is-active"></span> Loading couriers…');
+		message('couriers', '');
+
 		post('kiriof_get_courier_whitelist').done(function (response) {
 			var result = parse(response);
 			if (!result || Number(result.status) !== 200 || !result.data) {
-				message('couriers', result && result.message ? result.message : kiriofOnboarding.networkError);
+				var errorMessage = result && result.message ? result.message : kiriofOnboarding.networkError;
+				$('[data-courier-list]').html('<p>' + $('<div>').text(errorMessage).html() + '</p>');
+				message('couriers', errorMessage);
 				return;
 			}
+			couriersLoaded = true;
+			courierMap = {};
 			couriers = result.data.couriers || [];
 			(result.data.whitelist_ids || []).forEach(function (id) { courierMap[id] = id; });
 			couriers.forEach(function (courier) { if (courierMap[courier.code]) { courierMap[courier.code] = courier.name; } });
 			renderCouriers();
-		}).fail(function () { message('couriers', kiriofOnboarding.networkError); });
+		}).fail(function () {
+			$('[data-courier-list]').html('<p>' + $('<div>').text(kiriofOnboarding.networkError).html() + '</p>');
+			message('couriers', kiriofOnboarding.networkError);
+		}).always(function () {
+			couriersLoading = false;
+		});
 	}
 
 	function initMap() {
@@ -313,6 +338,5 @@
 		});
 	});
 
-	loadCouriers();
 	show(current);
 })(jQuery);
