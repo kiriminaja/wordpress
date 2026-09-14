@@ -422,6 +422,12 @@ class Enqueue extends BaseInit{
                         'priceDecrease'  => __( 'decreases', 'kiriminaja-official' ),
                         'noChange'       => __( 'No change', 'kiriminaja-official' ),
                         'checkingShipping' => __( 'Checking shipping route...', 'kiriminaja-official' ),
+                        'replacementCourier' => __( 'Select a replacement courier with your consent.', 'kiriminaja-official' ),
+                        'selectCourier' => __( 'Select courier', 'kiriminaja-official' ),
+                        'replacementConsent' => __( 'I consent to use this replacement courier.', 'kiriminaja-official' ),
+                        'orderBreakdown' => __( 'Order summary', 'kiriminaja-official' ),
+                        'subTotal' => __( 'Sub Total', 'kiriminaja-official' ),
+                        'shipping' => __( 'Shipping', 'kiriminaja-official' ),
                     ),
                 )
             );

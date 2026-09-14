@@ -440,7 +440,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                              . ' data-ka-order-id="' . esc_attr($kiriof_orderIdKA) . '"'
                              . ' data-current-origin="' . esc_attr($kiriof_origin_label) . '"'
                              . ' data-current-origin-address="' . esc_attr($kiriof_origin_address) . '"'
-                             . ' data-current-location-id="' . esc_attr((int) ($kiriof_row->shipment_location_id ?? 0)) . '"'
+                             . ' data-current-location-id="' . esc_attr($kiriof_origin_location ? (int) $kiriof_origin_location->id : 0) . '"'
                             . ' data-nonce="' . esc_attr($kiriof_adj_nonce) . '"'
                             . ' title="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '"'
                             . ' aria-label="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '">'

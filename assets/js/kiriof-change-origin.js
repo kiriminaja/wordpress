@@ -78,16 +78,25 @@
 		return i18n[key] || fallback;
 	}
 
+	function optionDisplayLabel(option) {
+		var courier = $.trim((option && option.courier) || '');
+		var service = $.trim((option && option.service) || '');
+		if (!service || courier.toLowerCase().indexOf(service.toLowerCase()) !== -1) {
+			return courier;
+		}
+		return $.trim(courier + ' ' + service);
+	}
+
 	function buildReplacementComparison(base, option) {
-		var rawPrice = parseFloat(option.raw_price) || 0;
-		var previousDiscount = parseFloat(base.previous_discount) || 0;
+		var rawPrice = Math.max(0, parseFloat(option.raw_price) || 0);
+		var optionDiscount = Math.max(0, parseFloat(option.discount_amount) || 0);
 		var previousPaidShipping = parseFloat(base.previous_paid_shipping) || 0;
-		var newDiscount = Math.min(previousDiscount, rawPrice);
+		var newDiscount = Math.min(optionDiscount, rawPrice);
 		var newPaidShipping = Math.max(0, rawPrice - newDiscount);
 		var next = $.extend({}, base, {
 			available: true,
-			label: option.courier + ' ' + option.service,
-			new_courier: option.courier + ' ' + option.service,
+			label: optionDisplayLabel(option),
+			new_courier: optionDisplayLabel(option),
 			new_raw_shipping: rawPrice,
 			new_discount: newDiscount,
 			new_paid_shipping: newPaidShipping,
@@ -141,12 +150,12 @@
 	function initializeModal($modal, data) {
 		var $select = $modal.find('select[name="location_id"]');
 		function removeCurrentOriginOption() {
-			$select.find('option[value="' + data.current_location_id + '"]').remove();
-			$select.find('option').filter(function () {
-			var optionName = $.trim($(this).text()).toLowerCase();
-			var currentName = $.trim(data.current_origin).toLowerCase();
-			return optionName && currentName && (optionName === currentName || optionName.indexOf(currentName) === 0 || currentName.indexOf(optionName) === 0);
-			}).remove();
+			var currentLocationId = String(parseInt(data.current_location_id, 10) || 0);
+			if (currentLocationId !== '0') {
+				$select.find('option').filter(function () {
+					return String($(this).val()) === currentLocationId;
+				}).remove();
+			}
 		}
 
 		if ($.fn.select2 && $select.length && $select.data('select2')) {
@@ -202,7 +211,7 @@
 				.html('<p>' + text('checkingShipping', 'Checking shipping route...') + '</p>')
 				.show();
 
-			$.post(window.ajaxurl, {
+			$.post((window.kiriofChangeOrigin && window.kiriofChangeOrigin.ajaxUrl) || window.ajaxurl, {
 				action: 'kiriof_change_origin_check',
 				order_id: data.order_id,
 				location_id: locationId,
@@ -222,13 +231,14 @@
 							html += '<input type="hidden" class="kiriof-selected-service-code" value="' + $('<span>').text(comparison.service_code || '').html() + '">';
 							html += '<input type="hidden" class="kiriof-selected-service-name" value="' + $('<span>').text(comparison.service_name || '').html() + '">';
 							html += '<input type="hidden" class="kiriof-selected-price" value="' + (parseFloat(comparison.raw_price) || 0) + '">';
+							html += '<input type="hidden" class="kiriof-selected-discount" value="' + (parseFloat(comparison.new_discount) || 0) + '">';
 						} else {
 							var replacementHtml = '<p><label>' + text('replacementCourier', 'Select a replacement courier with your consent.') + '</label><select class="kiriof-replacement-courier" style="width:100%;"><option value="">' + text('selectCourier', 'Select courier') + '</option>';
 							$.each(Array.isArray(payload.replacement_options) ? payload.replacement_options : [], function (index, option) {
 								if (!option || typeof option !== 'object') {
 									return;
 								}
-								replacementHtml += '<option value="' + $('<span>').text(option.service_code + '|' + option.service_name).html() + '" data-price="' + (parseFloat(option.raw_price) || 0) + '" data-option="' + $('<span>').text(JSON.stringify(option)).html() + '">' + $('<span>').text(option.courier + ' ' + option.service + ' — ' + option.price).html() + '</option>';
+								replacementHtml += '<option value="' + $('<span>').text(option.service_code + '|' + option.service_name).html() + '" data-price="' + (parseFloat(option.raw_price) || 0) + '" data-option="' + $('<span>').text(JSON.stringify(option)).html() + '">' + $('<span>').text(optionDisplayLabel(option) + ' — ' + option.price).html() + '</option>';
 							});
 							replacementHtml += '</select></p><p><label><input type="checkbox" class="kiriof-replacement-consent"> ' + text('replacementConsent', 'I consent to use this replacement courier.') + '</label></p>';
 							$replacement.html(replacementHtml).show();
@@ -282,19 +292,30 @@
 			var $replacement = $modal.find('.kiriof-replacement-courier');
 			var serviceParts = $replacement.length && $replacement.val() ? $replacement.val().split('|') : [ comparison.service_code || '', comparison.service_name || '' ];
 			var selectedPrice = $replacement.length && $replacement.val() ? parseFloat($replacement.find(':selected').data('price')) || 0 : parseFloat($modal.find('.kiriof-selected-price').val()) || 0;
+			var selectedOption = null;
+			var selectedDiscount = parseFloat($modal.find('.kiriof-selected-discount').val()) || 0;
+			if ($replacement.length && $replacement.val()) {
+				try {
+					selectedOption = JSON.parse($('<textarea>').html($replacement.find(':selected').attr('data-option') || '').val() || '{}');
+				} catch (error) {
+					selectedOption = null;
+				}
+				selectedDiscount = selectedOption && typeof selectedOption === 'object' ? parseFloat(selectedOption.discount_amount) || 0 : 0;
+			}
 
 			if (!locationId || $confirm.prop('disabled')) {
 				return;
 			}
 
 			$confirm.prop('disabled', true);
-			$.post(window.ajaxurl, {
+			$.post((window.kiriofChangeOrigin && window.kiriofChangeOrigin.ajaxUrl) || window.ajaxurl, {
 				action: 'kiriof_change_origin',
 				order_id: data.order_id,
 				location_id: locationId,
 				courier_service: serviceParts[0],
 				courier_service_name: serviceParts[1],
 				courier_price: selectedPrice,
+				courier_discount: selectedDiscount,
 				courier_consent: $replacement.length && $modal.find('.kiriof-replacement-consent').prop('checked') ? 1 : 0,
 				nonce: $('.kiriof-change-origin-button[data-ka-order-id="' + data.order_id + '"]').data('nonce'),
 			})
@@ -341,7 +362,6 @@
 		template = template.replace(/\{\{ data\.order_id \}\}/g, $('<span>').text(orderId).html());
 		template = template.replace(/\{\{ data\.current_origin \}\}/g, $('<span>').text(currentOrigin).html());
 		template = template.replace(/\{\{ data\.current_origin_address \}\}/g, $('<span>').text(currentOriginAddress).html());
-		template = template.replace(/\{\{ data\.current_location_id \}\}/g, String(currentLocationId));
 		template = template.replace(/\{\{ data\.current_location_id \}\}/g, String(currentLocationId));
 		var $modal = $(template).appendTo('body');
 		lockPageScroll();

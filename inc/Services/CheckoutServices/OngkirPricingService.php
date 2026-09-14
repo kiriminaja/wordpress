@@ -96,16 +96,23 @@ class OngkirPricingService extends BaseService{
         $filteredOptions = [];
         $allOptions = [];
         foreach ($options as $option){
-            $kiriof_price = max( 0, (float) $option->cost - (float) $option->discount_amount );
+            $kiriof_raw_price = max( 0, (float) ( $option->cost ?? 0 ) );
+            $kiriof_discount  = min( $kiriof_raw_price, max( 0, (float) ( $option->discount_amount ?? 0 ) ) );
+            $kiriof_price     = max( 0, $kiriof_raw_price - $kiriof_discount );
+            $kiriof_service_type = (string) ( $option->service_type ?? '' );
+            $kiriof_courier_code = (string) ( $option->service ?? '' );
+            $kiriof_display_name = kiriof_helper()->formatServiceName( $kiriof_courier_code, $kiriof_service_type );
             $rateOption = [
-                'key'=>$option->service.'_'.$option->service_type,
-                'value'=>kiriof_helper()->formatServiceName($option->service, $option->service_name).' (Rp'.(kiriof_money_format($kiriof_price)).')',
-                'courier' => kiriof_helper()->formatServiceName($option->service, $option->service_name),
-                'service' => (string) $option->service_type,
-                'service_code' => (string) $option->service,
-                'service_type' => (string) $option->service_type,
+                'key'=>$kiriof_courier_code.'_'.$kiriof_service_type,
+                'value'=>$kiriof_display_name.' (Rp'.(kiriof_money_format($kiriof_price)).')',
+                'courier' => $kiriof_display_name,
+                'service' => $kiriof_service_type,
+                'service_code' => $kiriof_courier_code,
+                'service_type' => $kiriof_service_type,
                 'service_name' => (string) ( $option->service_name ?? '' ),
                 'price' => $kiriof_price,
+                'raw_price' => $kiriof_raw_price,
+                'discount_amount' => $kiriof_discount,
                 'etd' => (string) ( $option->etd ?? '' ),
             ];
             $allOptions[] = $rateOption;

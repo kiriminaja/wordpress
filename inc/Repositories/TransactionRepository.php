@@ -82,6 +82,7 @@ class TransactionRepository{
 
     /**
      * Check for database errors and log them
+     * @param array  $courier    Validated courier and shipping values.
      * @return bool
      */
     private function hasError(){
@@ -561,17 +562,17 @@ class TransactionRepository{
      * @return bool
      */
     public function updateTransactionShipmentLocation( string $kaOrderId, int $locationId, string $snapshot, array $courier = array() ): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update(
-            $this->table,
-            array_merge( [
+        $changes = array_merge( [
                 'shipment_location_id'       => $locationId,
                 'shipment_location_snapshot' => $snapshot,
-            ], array_intersect_key( $courier, array_flip( array( 'service', 'service_name', 'shipping_cost' ) ) ) ),
-            [ 'order_id' => $kaOrderId ]
-        );
+            ], array_intersect_key( $courier, array_flip( array( 'service', 'service_name', 'shipping_cost', 'discount_amount' ) ) ) );
 
-        return ! $this->hasError();
+        return $this->updateTransactionByCallbackVerified(
+            array(
+                'changes'   => $changes,
+                'condition' => array( 'order_id' => $kaOrderId ),
+            )
+        );
     }
 
     public function updateTransaction($payload){

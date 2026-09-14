@@ -3540,6 +3540,27 @@ msgstr "Silakan pilih lokasi pengiriman terlebih dahulu."
 msgid "Shipping check failed."
 msgstr "Cek pengiriman gagal."
 
+msgid "Please select a different shipment origin."
+msgstr "Silakan pilih origin pengiriman yang berbeda."
+
+msgid "Please run the shipping check again before confirming."
+msgstr "Silakan jalankan kembali cek pengiriman sebelum mengonfirmasi."
+
+msgid "The selected courier is no longer available. Please run the shipping check again."
+msgstr "Kurir yang dipilih sudah tidak tersedia. Silakan jalankan kembali cek pengiriman."
+
+msgid "WooCommerce order not found. No shipment data was changed."
+msgstr "Pesanan WooCommerce tidak ditemukan. Tidak ada data pengiriman yang diubah."
+
+msgid "Failed to create the shipment audit note."
+msgstr "Gagal membuat catatan audit pengiriman."
+
+msgid "Failed to save the WooCommerce shipment data."
+msgstr "Gagal menyimpan data pengiriman WooCommerce."
+
+msgid "Failed to update the shipment origin. No shipment data was changed."
+msgstr "Gagal memperbarui origin pengiriman. Tidak ada data pengiriman yang diubah."
+
 #: inc/Controllers/TransactionProcessController.php
 msgid "Default location"
 msgstr "Lokasi default"
@@ -3570,6 +3591,15 @@ msgstr "Kurir tidak berubah."
 msgid "Courier replacement requires your consent."
 msgstr "Penggantian kurir memerlukan persetujuan Anda."
 
+msgid "Select a replacement courier with your consent."
+msgstr "Pilih kurir pengganti dan berikan persetujuan Anda."
+
+msgid "Select courier"
+msgstr "Pilih kurir"
+
+msgid "I consent to use this replacement courier."
+msgstr "Saya setuju menggunakan kurir pengganti ini."
+
 msgid "Shipping check passed. Review the courier and price impact before confirming."
 msgstr "Pengecekan pengiriman berhasil. Tinjau kurir dan perubahan harga sebelum mengonfirmasi."
 
@@ -3590,6 +3620,9 @@ msgstr "Dampak harga pesanan"
 
 msgid "Order total"
 msgstr "Total pesanan"
+
+msgid "Order summary"
+msgstr "Ringkasan pesanan"
 
 msgid "Previous courier"
 msgstr "Kurir sebelumnya"

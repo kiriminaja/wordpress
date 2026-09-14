@@ -61,7 +61,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $source = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
 
         $this->assertStringContainsString( 'wc_get_order( (int) $kiriof_transaction->wp_wc_order_stat_order_id )', $source );
-        $this->assertStringContainsString( '$kiriof_wc_order->add_order_note(', $source );
+        $this->assertStringContainsString( '$kiriof_note_id = $kiriof_wc_order->add_order_note(', $source );
         $this->assertSame( 1, substr_count( $source, '$kiriof_wc_order->add_order_note(' ) );
         $this->assertStringContainsString( 'Shipment fulfillment updated by %s.', $source );
         $this->assertStringContainsString( 'Origin: %1$s → %2$s', $source );
@@ -70,6 +70,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'Calculated order total: %1$s → %2$s (%3$s)', $source );
         $this->assertStringNotContainsString( 'Courier changed with seller consent to %s.', $source );
         $this->assertStringContainsString( 'wp_get_current_user()', $source );
+        $this->assertStringContainsString( "update_meta_data( '_kiriof_expedition_code'", $source );
+        $this->assertStringContainsString( '$kiriof_wc_order->save()', $source );
     }
 
     public function testTransactionsListRendersChangeOriginButtonForProcessableRows(): void {
@@ -80,6 +82,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'data-current-origin="', $template );
         $this->assertStringContainsString( 'data-current-origin-address="', $template );
         $this->assertStringContainsString( 'data-current-location-id="', $template );
+        $this->assertStringContainsString( '$kiriof_origin_location ? (int) $kiriof_origin_location->id : 0', $template );
         $this->assertStringContainsString( 'data-nonce="', $template );
         $this->assertMatchesRegularExpression( '/\$kiriof_isProcessable\s*\?[^;]*kiriof-change-origin-button/s', $template );
         $this->assertStringContainsString( 'dashicons-location', $template );
@@ -114,6 +117,12 @@ class ChangeOriginFeatureTest extends TestCase {
 
         $this->assertStringContainsString( "'kiriof-change-origin',", $enqueue );
         $this->assertStringContainsString( 'assets/js/kiriof-change-origin.js', $enqueue );
+        $this->assertFileExists( __DIR__ . '/../build/kiriminaja-official/assets/js/kiriof-change-origin.js' );
+        $this->assertSame(
+            hash_file( 'sha256', __DIR__ . '/../assets/js/kiriof-change-origin.js' ),
+            hash_file( 'sha256', __DIR__ . '/../build/kiriminaja-official/assets/js/kiriof-change-origin.js' ),
+            'Packaged Change Origin JavaScript must match source.'
+        );
         $this->assertStringContainsString( "'kiriminaja-transaction-process' === \$page", $enqueue );
 
         $this->assertStringContainsString( "action: 'kiriof_change_origin_check',", $js );
@@ -122,6 +131,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "select2", $js );
         $this->assertStringContainsString( 'change.kiriofChangeOrigin', $js );
         $this->assertStringContainsString( "var hasAlternatives = \$select.find('option[value!=\"\"]')", $js );
+        $this->assertStringContainsString( "String(\$(this).val()) === currentLocationId", $js );
+        $this->assertStringNotContainsString( 'optionName.indexOf(currentName)', $js );
         $this->assertStringContainsString( 'comparison.available', $js );
 		$this->assertStringContainsString( '$kiriof_is_replacement', $source );
 		$this->assertStringContainsString( '$kiriof_selected_service !== $kiriof_previous_service', $source );
@@ -129,6 +140,8 @@ class ChangeOriginFeatureTest extends TestCase {
 		$this->assertStringContainsString( ".kiriof-replacement-consent').prop('checked') ? 1 : 0", $js );
         $this->assertStringContainsString( "typeof response.data === 'object'", $js );
         $this->assertStringContainsString( 'Array.isArray(payload.replacement_options)', $js );
+        $this->assertStringContainsString( 'courier_discount: selectedDiscount', $js );
+        $this->assertSame( 1, substr_count( $js, 'template = template.replace(/\\{\\{ data\\.current_location_id \\}\\}/g, String(currentLocationId));' ) );
         $this->assertStringContainsString( 'try {', $js );
         $this->assertStringContainsString( 'JSON.parse', $js );
         $this->assertStringContainsString( '} catch (error) {', $js );
@@ -173,7 +186,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '$kiriof_pricing->status()', $controller );
         $this->assertStringContainsString( '$kiriof_pricing->data()', $controller );
         $this->assertStringContainsString( "'price' => \$kiriof_price", $service );
-        $this->assertStringContainsString( "'courier' => kiriof_helper()->formatServiceName", $service );
+        $this->assertStringContainsString( '$kiriof_display_name = kiriof_helper()->formatServiceName', $service );
+        $this->assertStringContainsString( "'courier' => \$kiriof_display_name", $service );
         $this->assertStringNotContainsString( '$kiriof_pricing[\'error\']', $controller );
     }
 
@@ -202,5 +216,37 @@ class ChangeOriginFeatureTest extends TestCase {
 
         $this->assertStringNotContainsString( "text('previousShipping'", $script );
         $this->assertStringNotContainsString( "text('newShipping'", $script );
+    }
+
+    public function testShippingRateDataKeepsRawCostAndApiDiscountSeparated(): void {
+        $service    = $this->read( __DIR__ . '/../inc/Services/CheckoutServices/OngkirPricingService.php' );
+        $controller = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+        $repository = $this->read( __DIR__ . '/../inc/Repositories/TransactionRepository.php' );
+
+        $this->assertStringContainsString( "'raw_price' => \$kiriof_raw_price", $service );
+        $this->assertStringContainsString( "'discount_amount' => \$kiriof_discount", $service );
+        $this->assertStringContainsString( "\$kiriof_option['raw_price'] ?? \$kiriof_option['price']", $controller );
+        $this->assertStringContainsString( "'discount_amount' => \$courier_discount", $controller );
+        $this->assertStringContainsString( "array( 'service', 'service_name', 'shipping_cost', 'discount_amount' )", $repository );
+        $this->assertStringContainsString( 'updateTransactionByCallbackVerified(', $repository );
+    }
+
+    public function testServerRejectsSelectingTheCurrentOriginAndUnvalidatedConfirm(): void {
+        $source = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+
+        $this->assertSame( 2, substr_count( $source, 'Please select a different shipment origin.' ) );
+        $this->assertStringContainsString( 'Please run the shipping check again before confirming.', $source );
+        $this->assertStringContainsString( 'getVerifiedChangeOriginRate(', $source );
+        $this->assertStringContainsString( 'Client-provided prices are intentionally ignored.', $source );
+        $this->assertStringContainsString( 'The selected courier is no longer available. Please run the shipping check again.', $source );
+        $this->assertStringNotContainsString( "\$courier_price        = isset( \$_POST['courier_price'] )", $source );
+        $this->assertStringNotContainsString( "\$courier_discount     = isset( \$_POST['courier_discount'] )", $source );
+        $this->assertStringContainsString( "\$courier_price        = (float) \$kiriof_verified_rate['raw_price'];", $source );
+        $this->assertStringContainsString( "\$courier_discount     = min( \$courier_price, max( 0, (float) \$kiriof_verified_rate['discount_amount'] ) );", $source );
+        $this->assertStringContainsString( '$wpdb->query( \'START TRANSACTION\' )', $source );
+        $this->assertStringContainsString( '$wpdb->query( \'ROLLBACK\' )', $source );
+        $this->assertStringContainsString( '$wpdb->query( \'COMMIT\' )', $source );
+        $this->assertStringContainsString( 'WooCommerce order not found. No shipment data was changed.', $source );
+        $this->assertStringContainsString( 'Failed to update the shipment origin. No shipment data was changed.', $source );
     }
 }
