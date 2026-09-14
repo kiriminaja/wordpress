@@ -3561,6 +3561,9 @@ msgstr "Gagal menyimpan data pengiriman WooCommerce."
 msgid "Failed to update the shipment origin. No shipment data was changed."
 msgstr "Gagal memperbarui origin pengiriman. Tidak ada data pengiriman yang diubah."
 
+msgid "Selected transactions use different shipment origins. Request pickup separately for each origin."
+msgstr "Transaksi yang dipilih menggunakan origin pengiriman berbeda. Request pickup harus dilakukan terpisah untuk setiap origin."
+
 #: inc/Controllers/TransactionProcessController.php
 msgid "Default location"
 msgstr "Lokasi default"

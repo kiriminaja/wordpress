@@ -170,7 +170,8 @@ class ChangeOriginFeatureTest extends TestCase {
 
         $this->assertStringContainsString( 'getTransactionByOrderIds($this->orderIds)', $service );
         $this->assertStringContainsString( '$transaction->shipment_location_id', $service );
-        $this->assertStringContainsString( '1 === count($savedLocationIds)', $service );
+        $this->assertStringContainsString( 'count($savedLocationIds) > 1', $service );
+        $this->assertStringContainsString( 'getDefaultLocation()', $service );
     }
 
     public function testOngkirPricingServiceSupportsOriginAndPackageOverrides(): void {

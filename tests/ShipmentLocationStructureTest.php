@@ -40,7 +40,7 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( 'locationToOrigin', $source );
     }
 
-    public function testPickupRequestSupportsShipFromLocation(): void {
+    public function testPickupRequestUsesOriginsAlreadyStoredOnTransactions(): void {
         $service    = $this->read( __DIR__ . '/../inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
         $controller = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $modal      = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
@@ -48,20 +48,25 @@ class ShipmentLocationStructureTest extends TestCase {
         $rp_modal   = $this->read( __DIR__ . '/../templates/request-pickup/view/modal-request-pickup.php' );
         $rp_js      = $this->read( __DIR__ . '/../templates/request-pickup/view/index.php' );
 
-        $this->assertStringContainsString( 'public function locationId(', $service );
+        $this->assertStringNotContainsString( 'public function locationId(', $service );
+        $this->assertStringNotContainsString( 'locationIdCache', $service );
         $this->assertStringContainsString( 'getLocationOrDefault(', $service );
-        $this->assertStringContainsString( "'shipment_location_id' => (int) (\$originSnapshot['location_id'] ?? 0),", $service );
-        $this->assertStringContainsString( "'shipment_location_snapshot' => wp_json_encode(\$originSnapshot),", $service );
+        $this->assertStringContainsString( '$transaction->shipment_location_id', $service );
+        $this->assertStringContainsString( 'getDefaultLocation()', $service );
+        $this->assertStringContainsString( 'array_unique($savedLocationIds)', $service );
+        $this->assertStringContainsString( 'count($savedLocationIds) > 1', $service );
+        $this->assertStringContainsString( 'Selected transactions use different shipment origins. Request pickup separately for each origin.', $service );
+        $this->assertStringNotContainsString( "'shipment_location_id' => (int) (\$originSnapshot['location_id'] ?? 0),", $service );
+        $this->assertStringNotContainsString( "'shipment_location_snapshot' => wp_json_encode(\$originSnapshot),", $service );
 
-        $this->assertStringContainsString( "\$_POST['data']['location_id']", $controller );
-        $this->assertStringContainsString( '->locationId($location_id)', $controller );
-        $this->assertStringContainsString( 'kiriof-shipment-location-select', $modal );
-        $this->assertStringContainsString( 'Ship From', $modal );
+        $this->assertStringNotContainsString( "\$_POST['data']['location_id']", $controller );
+        $this->assertStringNotContainsString( '->locationId($location_id)', $controller );
+        $this->assertStringNotContainsString( 'kiriof-shipment-location-select', $modal );
+        $this->assertStringNotContainsString( "esc_html_e('Ship From'", $modal );
 
-        $this->assertStringContainsString( 'location_id', $tpl );
-        $this->assertStringContainsString( 'select[name="location_id"]', $tpl );
-        $this->assertStringContainsString( 'name="location_id"', $rp_modal );
-        $this->assertStringContainsString( 'location_id', $rp_js );
+        $this->assertStringNotContainsString( 'select[name="location_id"]', $tpl );
+        $this->assertStringNotContainsString( 'name="location_id"', $rp_modal );
+        $this->assertStringNotContainsString( "select[name=\"location_id\"]", $rp_js );
     }
 
     public function testTransactionSchemaStoresShipmentLocationSnapshot(): void {

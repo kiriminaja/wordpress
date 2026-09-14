@@ -1282,7 +1282,6 @@ if (page >= 1 && page <= max) {
                     payment_method: paymentMethod,
                     pin: pin,
                     nonce: kiriofAjax.nonce
-                    ,location_id: $modal.find('select[name="location_id"]').val() || 0
                 }
             },
             complete: function(response) {

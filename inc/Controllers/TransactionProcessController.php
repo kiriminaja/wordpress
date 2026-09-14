@@ -85,11 +85,6 @@ class TransactionProcessController
                 ? sanitize_text_field(wp_unslash($_POST['data']['pin']))
                 : ''
             );
-            $location_id = (isset($_POST['data']['location_id']) && !empty($_POST['data']['location_id'])
-                ? (int) $_POST['data']['location_id']
-                : 0
-            );
-
             if ($payment_method === 'credit' && ! KIRIOF_ENABLE_KA_CREDIT) {
                 wp_send_json_success(
                     \KiriminAjaOfficial\Base\BaseService::error([], __('KA Credit is temporarily unavailable.', 'kiriminaja-official'))
@@ -110,7 +105,6 @@ class TransactionProcessController
                 ->schedule($schedule)
                 ->paymentMethod($payment_method)
                 ->pin($pin)
-                ->locationId($location_id)
                 ->call();
             wp_send_json_success($service);
         } catch (\Throwable $th) {
@@ -1212,32 +1206,6 @@ class TransactionProcessController
                                         <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Available Schedules', 'kiriminaja-official'); ?></h2>
                                         <select class="kiriof-schedule-select" name="schedule_opt" style="width:100%;">
                                             <option value=""><?php esc_html_e('-- Select schedule --', 'kiriminaja-official'); ?></option>
-                                        </select>
-                                    </div>
-
-                                    <div class="kiriof-backbone-section">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Ship From', 'kiriminaja-official'); ?></h2>
-                                        <select class="kiriof-shipment-location-select" name="location_id" style="width:100%;">
-                                            <?php
-                                            $kiriof_ship_locations = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->repository()->getAll();
-                                            $kiriof_ship_default_id = 0;
-                                            foreach ($kiriof_ship_locations as $kiriof_ship_loc) {
-                                                if (!empty($kiriof_ship_loc->is_default)) {
-                                                    $kiriof_ship_default_id = (int) $kiriof_ship_loc->id;
-                                                }
-                                            }
-                                            foreach ($kiriof_ship_locations as $kiriof_ship_loc) {
-                                                if (empty($kiriof_ship_loc->is_active)) {
-                                                    continue;
-                                                }
-                                                printf(
-                                                    '<option value="%1$d"%2$s>%3$s</option>',
-                                                    (int) $kiriof_ship_loc->id,
-                                                    selected((int) $kiriof_ship_loc->id, $kiriof_ship_default_id, false),
-                                                    esc_html($kiriof_ship_loc->name)
-                                                );
-                                            }
-                                            ?>
                                         </select>
                                     </div>
 
