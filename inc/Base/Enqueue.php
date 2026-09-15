@@ -362,31 +362,19 @@ class Enqueue extends BaseInit{
     }
 
 	private function enqueueOnboarding(): void {
-		$select_script_handle = wp_script_is( 'selectWoo', 'registered' ) ? 'selectWoo' : 'select2';
-
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'jquery' );
-		wp_enqueue_script( $select_script_handle );
-
-		if ( ! wp_style_is( 'select2', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
-			$wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;
-			wp_register_style(
-				'select2',
-				plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/css/select2.css',
-				array(),
-				$wc_version
-			);
-		}
-
-		wp_enqueue_style( 'select2' );
+		wp_enqueue_style( 'kiriof-choices-style', $this->plugin_url . 'assets/lib/choices/choices.min.css', array(), '11.2.4' );
+		wp_enqueue_script( 'kiriof-choices-script', $this->plugin_url . 'assets/lib/choices/choices.min.js', array(), '11.2.4', true );
+		wp_add_inline_script( 'kiriof-choices-script', 'window.kiriofChoices = window.Choices;', 'after' );
 		wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
 		wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
 		wp_enqueue_style( 'kiriof-onboarding-style', $this->plugin_url . 'assets/admin/css/kj-onboarding.css', array(), KIRIOF_VERSION );
 		wp_enqueue_script(
 			'kiriof-onboarding-script',
 			$this->plugin_url . 'assets/admin/js/kj-onboarding.js',
-			array( 'jquery', $select_script_handle, 'kiriof-leaflet-script' ),
+			array( 'jquery', 'kiriof-choices-script', 'kiriof-leaflet-script' ),
 			KIRIOF_VERSION,
 			true
 		);
@@ -399,6 +387,9 @@ class Enqueue extends BaseInit{
 				'settingsUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
 				'shippingUrl'   => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
 				'subdistrictPlaceholder' => __( 'Search subdistrict', 'kiriminaja-official' ),
+				'subdistrictLoading' => __( 'Searching subdistricts...', 'kiriminaja-official' ),
+				'subdistrictNoResults' => __( 'No subdistricts found.', 'kiriminaja-official' ),
+				'subdistrictTypeMore' => __( 'Type at least 3 characters.', 'kiriminaja-official' ),
 				'accountRequired' => __( 'Connect your KiriminAja account before continuing.', 'kiriminaja-official' ),
 				'currentLocation' => __( 'Use current location', 'kiriminaja-official' ),
 				'currentLocationFailed' => __( 'Could not detect your current location.', 'kiriminaja-official' ),

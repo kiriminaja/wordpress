@@ -75,7 +75,9 @@ final class OnboardingFeatureTest extends TestCase
         $account = file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/account.php');
         $address = file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/address.php');
         $css = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css');
-        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js');
+		$script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js');
+		$enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+		$onboarding_enqueue = substr($enqueue, strpos($enqueue, 'private function enqueueOnboarding'));
 
         foreach (['account.php', 'address.php', 'couriers.php', 'shipping.php'] as $step) {
             $this->assertStringContainsString($step, $template);
@@ -104,13 +106,23 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('kiriof-onboarding__field', $address);
 		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
-		$this->assertStringContainsString('var select = $.fn.selectWoo || $.fn.select2;', $script);
-		$this->assertStringContainsString("select.call(\$subdistrict, {", $script);
-		$this->assertStringContainsString('term: term', $script);
-		$this->assertStringContainsString('response.success === false', $script);
-		$this->assertStringNotContainsString("$('.kiriof-onboarding-subdistrict').select2({", $script);
-		$this->assertStringContainsString("wp_script_is( 'selectWoo', 'registered' )", file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
-		$this->assertStringContainsString("! wp_style_is( 'select2', 'registered' )", file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
+		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.js');
+		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.css');
+		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/LICENSE');
+		$this->assertStringContainsString("'kiriof-choices-script'", $onboarding_enqueue);
+		$this->assertStringContainsString("'kiriof-choices-style'", $onboarding_enqueue);
+		$this->assertStringContainsString("'11.2.4'", $onboarding_enqueue);
+		$this->assertStringContainsString('window.kiriofChoices = window.Choices;', $onboarding_enqueue);
+		$this->assertStringNotContainsString("wp_enqueue_script( 'select2'", $onboarding_enqueue);
+		$this->assertStringNotContainsString("wp_enqueue_script( 'selectWoo'", $onboarding_enqueue);
+		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
+		$this->assertStringContainsString('new window.kiriofChoices', $script);
+		$this->assertStringContainsString('subdistrictChoices.setChoices', $script);
+		$this->assertStringContainsString("addEventListener('search'", $script);
+		$this->assertStringContainsString('new window.AbortController()', $script);
+		$this->assertStringContainsString("body.set('data[search]', term)", $script);
+		$this->assertStringContainsString('payload.success === false', $script);
+		$this->assertStringContainsString('.kiriof-onboarding .choices', $css);
 		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
 		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
 		$this->assertStringContainsString('disconnectConfirm', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));

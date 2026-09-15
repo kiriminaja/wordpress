@@ -14,7 +14,6 @@
 	var couriersLoaded = false;
 	var couriersLoading = false;
 	var map;
-	var select = $.fn.selectWoo || $.fn.select2;
 
 	function parse(response) {
 		if (response && response.data) {
@@ -306,34 +305,74 @@
 	}
 
 	var $subdistrict = $root.find('.kiriof-onboarding-subdistrict');
-	if ($subdistrict.length && select && typeof kiriofOnboarding !== 'undefined') {
-		select.call($subdistrict, {
-			width: '100%',
-			minimumInputLength: 3,
-			placeholder: kiriofOnboarding.subdistrictPlaceholder,
-			ajax: {
-				url: kiriofOnboarding.ajaxUrl,
-				dataType: 'json',
-				type: 'POST',
-				delay: 250,
-				data: function (params) {
-					var term = params && params.term ? params.term : '';
-					return {
-						action: 'kiriminaja_subdistrict_search',
-						nonce: kiriofOnboarding.nonce,
-						term: term,
-						data: { term: term, search: term }
-					};
-				},
-				processResults: function (response) {
-					var rows = response && response.success !== false && response.data ? response.data : [];
-					if (response && response.success === false) {
-						message('address', response.data && response.data.message ? response.data.message : kiriofOnboarding.subdistrictSearchFailed);
-					}
-					return { results: $.map(rows, function (item) { return { id: item.id, text: item.text }; }) };
-				},
-				cache: true
+	if ($subdistrict.length && typeof window.kiriofChoices === 'function' && typeof kiriofOnboarding !== 'undefined') {
+		var searchTimer;
+		var searchController;
+		var subdistrictChoices = new window.kiriofChoices($subdistrict[0], {
+			allowHTML: false,
+			shouldSort: false,
+			searchEnabled: true,
+			searchChoices: false,
+			searchFloor: 3,
+			searchResultLimit: -1,
+			placeholder: true,
+			placeholderValue: kiriofOnboarding.subdistrictPlaceholder,
+			searchPlaceholderValue: kiriofOnboarding.subdistrictPlaceholder,
+			loadingText: kiriofOnboarding.subdistrictLoading,
+			noResultsText: kiriofOnboarding.subdistrictNoResults,
+			noChoicesText: kiriofOnboarding.subdistrictTypeMore,
+			itemSelectText: ''
+		});
+
+		$subdistrict[0].addEventListener('search', function (event) {
+			var term = event.detail && event.detail.value ? event.detail.value.trim() : '';
+			window.clearTimeout(searchTimer);
+			if (searchController) {
+				searchController.abort();
 			}
+			if (term.length < 3) {
+				subdistrictChoices.clearChoices();
+				return;
+			}
+
+			searchTimer = window.setTimeout(function () {
+				var controller = new window.AbortController();
+				searchController = controller;
+				var body = new window.URLSearchParams();
+				body.set('action', 'kiriminaja_subdistrict_search');
+				body.set('nonce', kiriofOnboarding.nonce);
+				body.set('term', term);
+				body.set('data[term]', term);
+				body.set('data[search]', term);
+
+				subdistrictChoices.setChoices(function () {
+					return window.fetch(kiriofOnboarding.ajaxUrl, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+						body: body.toString(),
+						credentials: 'same-origin',
+						signal: controller.signal
+					}).then(function (response) {
+						return response.json().then(function (payload) {
+							if (!response.ok || !payload || payload.success === false) {
+								throw new Error(payload && payload.data && payload.data.message ? payload.data.message : kiriofOnboarding.subdistrictSearchFailed);
+							}
+							return (payload.data || []).map(function (item) {
+								return { value: String(item.id), label: String(item.text) };
+							});
+						});
+					});
+				}, 'value', 'label', true).then(function () {
+					subdistrictChoices.showDropdown();
+				}).catch(function (error) {
+					if (error.name === 'AbortError') {
+						return;
+					}
+					subdistrictChoices.clearChoices();
+					message('address', error.message || kiriofOnboarding.subdistrictSearchFailed);
+					subdistrictChoices.showDropdown();
+				});
+			}, 250);
 		});
 	}
 
