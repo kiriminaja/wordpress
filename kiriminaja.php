@@ -33,6 +33,7 @@ define( 'KIRIOF_ENABLE_KA_CREDIT', false );
 define( 'KIRIOF_VERSION', '2.3.9' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
+define( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS', 5 );
 
 if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
     require_once dirname( __FILE__ ) . '/vendor/autoload.php';

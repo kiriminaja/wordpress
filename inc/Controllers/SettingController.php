@@ -876,6 +876,18 @@ JS;
 
         $use_store_fallback = ( 0 === $id && empty( $locations ) );
         $back_url           = $this->getShipmentLocationDetailUrl( '' );
+        $custom_limit       = defined( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS' ) ? max( 0, (int) KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS ) : 5;
+        $custom_count       = count( array_filter( (array) $locations, static function ( $candidate ) {
+            return empty( $candidate->is_default );
+        } ) );
+
+        if ( 0 === $id && ! $use_store_fallback && $custom_count >= $custom_limit ) {
+            if ( class_exists( '\WC_Admin_Settings' ) ) {
+                \WC_Admin_Settings::add_error( __( 'The custom shipment address limit has been reached. Edit or delete an existing custom address first.', 'kiriminaja-official' ) );
+            }
+            wp_safe_redirect( $back_url );
+            exit;
+        }
 
         wc_back_header(
             $id > 0 ? __( 'Edit Shipment Location', 'kiriminaja-official' ) : __( 'Add Shipment Location', 'kiriminaja-official' ),
@@ -892,9 +904,28 @@ JS;
     }
 
     private function renderShipmentLocationListPage( $locations ) {
+        $custom_limit = defined( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS' ) ? max( 0, (int) KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS ) : 5;
+        $custom_count = count( array_filter( (array) $locations, static function ( $location ) {
+            return empty( $location->is_default );
+        } ) );
+        $at_limit = $custom_count >= $custom_limit;
         ?>
         <p class="submit">
-            <a class="button kiriof-wc-locations-add" href="<?php echo esc_url( $this->getShipmentLocationDetailUrl( 'new' ) ); ?>"><?php esc_html_e( 'Add Shipment Location', 'kiriminaja-official' ); ?></a>
+            <?php if ( ! $at_limit ) : ?>
+                <a class="button kiriof-wc-locations-add" href="<?php echo esc_url( $this->getShipmentLocationDetailUrl( 'new' ) ); ?>"><?php esc_html_e( 'Add Shipment Location', 'kiriminaja-official' ); ?></a>
+            <?php else : ?>
+                <button class="button" type="button" disabled><?php esc_html_e( 'Add Shipment Location', 'kiriminaja-official' ); ?></button>
+            <?php endif; ?>
+            <span class="description kiriof-location-limit-description">
+                <?php
+                printf(
+                    /* translators: 1: current custom location count, 2: custom location limit. */
+                    esc_html__( '%1$d of %2$d custom shipment addresses used. The default origin is not counted.', 'kiriminaja-official' ),
+                    (int) $custom_count,
+                    (int) $custom_limit
+                );
+                ?>
+            </span>
         </p>
         <table class="wc-shipping-zones widefat kiriof-wc-locations-table">
             <thead>
@@ -1475,7 +1506,9 @@ JS;
                 }
 
                 if ( 'new' === (string) $key ) {
-                    if ( $this->isValidShipmentLocationData( $data ) ) {
+                    if ( ! $repository->canCreateCustomLocation() ) {
+                        $mutation_failed = true;
+                    } elseif ( $this->isValidShipmentLocationData( $data ) ) {
                         $mutation_failed = false === $repository->insert( $data ) || $mutation_failed;
                     } elseif ( array_filter( $data ) ) {
                         $mutation_failed = true;

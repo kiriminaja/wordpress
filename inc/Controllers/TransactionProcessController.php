@@ -680,7 +680,7 @@ class TransactionProcessController
             wp_send_json_success( array(
                 'message' => __( 'Shipping check passed. Review the courier and price impact before confirming.', 'kiriminaja-official' ),
                 'comparison' => $kiriof_comparison,
-                'options' => array_slice( $kiriof_normalized, 0, 3 ),
+                'options' => array_values( $kiriof_normalized ),
                 'replacement_options' => array_values( array_filter( $kiriof_normalized, static function ( $option ) use ( $kiriof_previous_code, $kiriof_normalize_code ) {
                     return $kiriof_normalize_code( $option['service_code'] ) !== $kiriof_previous_code;
                 } ) ),
@@ -1298,18 +1298,18 @@ class TransactionProcessController
                             <form>
                                 <input type="hidden" name="order_id" value="{{ data.order_id }}">
                                 <div class="kiriof-backbone-field">
-									<label class="kiriof-backbone-label"><?php esc_html_e( 'Current shipment origin', 'kiriminaja-official' ); ?></label>
-                                    <div class="kiriof-change-origin-current kiriof-origin-card">
-                                        <strong>{{ data.current_origin }}</strong>
-                                        <span>{{ data.current_origin_address }}</span>
-                                    </div>
-                                </div>
-                                <div class="kiriof-backbone-field">
-                                    <label for="kiriof-change-origin-to" class="kiriof-backbone-label">
-										<?php esc_html_e( 'New shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span>
-                                    </label>
-                                    <select id="kiriof-change-origin-to" name="location_id" data-current-origin="{{ data.current_origin }}" data-current-location-id="{{ data.current_location_id }}">
-                                        <option value=""><?php esc_html_e( 'Select shipment location', 'kiriminaja-official' ); ?></option>
+                                    <span class="kiriof-backbone-label">
+										<?php esc_html_e( 'Shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span>
+                                    </span>
+                                    <div class="kiriof-radio-card-group kiriof-origin-radio-group" role="radiogroup" aria-label="<?php esc_attr_e( 'Shipment origin', 'kiriminaja-official' ); ?>">
+                                        <label class="kiriof-radio-card kiriof-radio-card-current">
+                                            <input type="radio" name="location_id" value="{{ data.current_location_id }}" checked data-current="1">
+                                            <span class="kiriof-radio-card-copy">
+                                                <strong>{{ data.current_origin }}</strong>
+                                                <small>{{ data.current_origin_address }}</small>
+                                                <em><?php esc_html_e( 'Current origin', 'kiriminaja-official' ); ?></em>
+                                            </span>
+                                        </label>
                                         <?php foreach ( $kiriof_shipment_locations as $kiriof_location_option ) : ?>
                                             <?php
                                             $kiriof_location_address = $kiriof_location_service->formatAddress( $kiriof_location_option );
@@ -1318,9 +1318,17 @@ class TransactionProcessController
                                                 $kiriof_location_label .= ' — ' . $kiriof_location_address;
                                             }
                                             ?>
-                                            <option value="<?php echo esc_attr( $kiriof_location_option->id ); ?>"><?php echo esc_html( $kiriof_location_label ); ?></option>
+                                            <label class="kiriof-radio-card" data-location-id="<?php echo esc_attr( $kiriof_location_option->id ); ?>">
+                                                <input type="radio" name="location_id" value="<?php echo esc_attr( $kiriof_location_option->id ); ?>">
+                                                <span class="kiriof-radio-card-copy">
+                                                    <strong><?php echo esc_html( $kiriof_location_option->name ); ?></strong>
+                                                    <?php if ( '' !== $kiriof_location_address ) : ?>
+                                                        <small><?php echo esc_html( $kiriof_location_address ); ?></small>
+                                                    <?php endif; ?>
+                                                </span>
+                                            </label>
                                         <?php endforeach; ?>
-                                    </select>
+                                    </div>
                                     <p class="description kiriof-change-origin-manage">
                                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
                                     </p>
@@ -1335,7 +1343,7 @@ class TransactionProcessController
                                 </div>
                                 <div class="kiriof-change-origin-result notice inline" style="display:none;"></div>
                                 <div class="kiriof-change-origin-replacement" style="display:none;"></div>
-                                <div class="kiriof-change-origin-breakdown kiriof-change-origin-card" style="display:none;"></div>
+                                 <div class="kiriof-change-origin-breakdown kiriof-change-origin-card" style="display:none;" aria-live="polite"></div>
                             </form>
                         </article>
                         <footer>
@@ -1347,7 +1355,7 @@ class TransactionProcessController
                     </section>
                 </div>
             </div>
-            <div class="wc-backbone-modal-backdrop modal-close"></div>
+            <div class="wc-backbone-modal-backdrop kiriof-change-origin-backdrop modal-close"></div>
         </script>
                 <?php endif; ?>
         <?php

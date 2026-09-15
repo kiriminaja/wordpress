@@ -3489,6 +3489,19 @@ msgstr "Asal pengiriman saat ini"
 msgid "New shipment origin"
 msgstr "Asal pengiriman baru"
 
+msgid "Shipment origin"
+msgstr "Asal pengiriman"
+
+msgid "Current origin"
+msgstr "Origin saat ini"
+
+#. translators: 1: current custom location count, 2: custom location limit.
+msgid "%1$d of %2$d custom shipment addresses used. The default origin is not counted."
+msgstr "%1$d dari %2$d alamat pengiriman custom telah digunakan. Origin default tidak dihitung."
+
+msgid "The custom shipment address limit has been reached. Edit or delete an existing custom address first."
+msgstr "Batas alamat pengiriman custom telah tercapai. Ubah atau hapus alamat custom yang ada terlebih dahulu."
+
 msgid "Shipment Route"
 msgstr "Rute Pengiriman"
 

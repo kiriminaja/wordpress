@@ -190,4 +190,25 @@ class ShipmentLocationStructureTest extends TestCase {
 
         $this->assertMatchesRegularExpression( '/SetupMigration.*register\(\)/s', $init );
     }
+
+    public function testCustomShipmentAddressLimitIsConfigurableAndExcludesDefault(): void {
+        $plugin     = $this->read( __DIR__ . '/../kiriminaja.php' );
+        $env        = $this->read( __DIR__ . '/../.env.example' );
+        $makefile   = $this->read( __DIR__ . '/../Makefile' );
+        $injector   = $this->read( __DIR__ . '/../scripts/inject-api-url.php' );
+        $repository = $this->read( __DIR__ . '/../inc/Repositories/ShipmentLocationRepository.php' );
+        $controller = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
+
+        $this->assertStringContainsString( "define( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS', 5 );", $plugin );
+        $this->assertStringContainsString( 'MAX_CUSTOM_SHIPMENT_LOCATIONS=5', $env );
+        $this->assertStringContainsString( "grep '^MAX_CUSTOM_SHIPMENT_LOCATIONS=' .env", $makefile );
+        $this->assertStringContainsString( "KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS", $makefile );
+        $this->assertStringContainsString( "define( 'KIRIOF_ENV'", $injector );
+        $this->assertStringContainsString( 'WHERE is_default = 0', $repository );
+        $this->assertStringContainsString( 'public function canCreateCustomLocation()', $repository );
+        $this->assertStringContainsString( "empty(\$data['is_default']) && ! \$this->canCreateCustomLocation()", $repository );
+        $this->assertStringContainsString( '! $repository->canCreateCustomLocation()', $controller );
+        $this->assertStringContainsString( 'The default origin is not counted.', $controller );
+        $this->assertStringContainsString( 'The custom shipment address limit has been reached.', $controller );
+    }
 }

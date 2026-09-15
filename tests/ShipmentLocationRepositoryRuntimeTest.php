@@ -42,6 +42,43 @@ final class ShipmentLocationRepositoryRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function custom_location_limit_counts_only_non_default_rows(): void {
+        global $wpdb;
+        $wpdb = new ShipmentLocationWpdbFake(
+            array(
+                1 => array( 'id' => 1, 'name' => 'Default', 'is_default' => 1, 'is_active' => 1 ),
+                2 => array( 'id' => 2, 'name' => 'Custom 1', 'is_default' => 0, 'is_active' => 1 ),
+                3 => array( 'id' => 3, 'name' => 'Custom 2', 'is_default' => 0, 'is_active' => 0 ),
+            )
+        );
+
+        $repository = new ShipmentLocationRepository();
+
+        $this->assertSame( 2, $repository->countCustomLocations() );
+        $this->assertTrue( $repository->canCreateCustomLocation() );
+    }
+
+    #[Test]
+    public function sixth_custom_location_is_rejected_but_default_insert_is_not_counted(): void {
+        global $wpdb;
+        $wpdb = new ShipmentLocationWpdbFake(
+            array(
+                1 => array( 'id' => 1, 'name' => 'Default', 'is_default' => 1, 'is_active' => 1 ),
+                2 => array( 'id' => 2, 'name' => 'Custom 1', 'is_default' => 0, 'is_active' => 1 ),
+                3 => array( 'id' => 3, 'name' => 'Custom 2', 'is_default' => 0, 'is_active' => 1 ),
+                4 => array( 'id' => 4, 'name' => 'Custom 3', 'is_default' => 0, 'is_active' => 1 ),
+                5 => array( 'id' => 5, 'name' => 'Custom 4', 'is_default' => 0, 'is_active' => 1 ),
+                6 => array( 'id' => 6, 'name' => 'Custom 5', 'is_default' => 0, 'is_active' => 1 ),
+            )
+        );
+
+        $repository = new ShipmentLocationRepository();
+
+        $this->assertFalse( $repository->canCreateCustomLocation() );
+        $this->assertFalse( $repository->insert( array( 'name' => 'Custom 6', 'is_default' => 0 ) ) );
+    }
+
+    #[Test]
     public function stale_default_id_is_rejected_without_clearing_current_default(): void {
         global $wpdb;
         $wpdb = new ShipmentLocationWpdbFake(
@@ -248,6 +285,11 @@ final class ShipmentLocationWpdbFake {
     }
 
     public function get_var( $query ) {
+        if ( str_contains( $query, 'WHERE is_default = 0' ) ) {
+            return count( array_filter( $this->rows, static function ( $row ) {
+                return 0 === (int) ( $row['is_default'] ?? 0 );
+            } ) );
+        }
         return count( $this->rows );
     }
 }

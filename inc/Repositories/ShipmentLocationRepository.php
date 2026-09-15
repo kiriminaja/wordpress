@@ -35,6 +35,33 @@ class ShipmentLocationRepository
     }
 
     /**
+     * Count non-default/custom locations.
+     *
+     * @return int
+     */
+    public function countCustomLocations()
+    {
+        global $wpdb;
+        $table = $this->getTableName();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE is_default = 0");
+    }
+
+    /**
+     * Whether one more custom location can be created.
+     *
+     * @return bool
+     */
+    public function canCreateCustomLocation()
+    {
+        $limit = defined('KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS')
+            ? max(0, (int) KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS)
+            : 5;
+
+        return $this->countCustomLocations() < $limit;
+    }
+
+    /**
      * Insert a new location.
      *
      * @param array $data {
@@ -53,6 +80,10 @@ class ShipmentLocationRepository
     public function insert(array $data)
     {
         global $wpdb;
+
+        if (empty($data['is_default']) && ! $this->canCreateCustomLocation()) {
+            return false;
+        }
 
         $now     = current_time('mysql');
         $payload = array(
