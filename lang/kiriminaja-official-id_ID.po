@@ -197,6 +197,18 @@ msgstr "Tinjau produk"
 msgid "Search subdistrict"
 msgstr "Cari kecamatan"
 
+#: inc/Base/Enqueue.php
+msgid "Searching subdistricts..."
+msgstr "Mencari kecamatan..."
+
+#: inc/Base/Enqueue.php
+msgid "No subdistricts found."
+msgstr "Kecamatan tidak ditemukan."
+
+#: inc/Base/Enqueue.php
+msgid "Type at least 3 characters."
+msgstr "Ketik minimal 3 karakter."
+
 #: inc/Controllers/GeneralAjaxController.php
 msgid "Security check failed. Reload the page and try again."
 msgstr "Pemeriksaan keamanan gagal. Muat ulang halaman lalu coba lagi."
