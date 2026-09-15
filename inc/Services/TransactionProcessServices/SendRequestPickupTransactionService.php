@@ -103,9 +103,10 @@ class SendRequestPickupTransactionService extends BaseService
         $shippingCost = (float) ($transaction->shipping_cost ?? 0);
         $discountPercentage = $transaction->discount_percentage ?? null;
 
+        // discount_amount is the KiriminAja shipping discount returned by the
+        // latest validated rate. Do not infer it from a stale Woo shipping line.
         $discountFields = [
             'discount_amount',
-            'shipping_discount_amount',
             'woocommerce_discount_amount',
         ];
 
@@ -366,26 +367,39 @@ class SendRequestPickupTransactionService extends BaseService
         }
 
         $locationId = 0;
+        $originSnapshot = array();
         if (! empty($this->orderIds)) {
             $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
             $savedLocationIds = [];
+            $savedOrigins = [];
             $defaultLocationId = 0;
             foreach ((array) $transactions as $transaction) {
+                $transactionSnapshot = json_decode((string) ($transaction->shipment_location_snapshot ?? ''), true);
                 if (! empty($transaction->shipment_location_id)) {
-                    $savedLocationIds[] = (int) $transaction->shipment_location_id;
-                    continue;
+                    $effectiveLocationId = (int) $transaction->shipment_location_id;
+                } else {
+                    if ($defaultLocationId < 1) {
+                        $defaultLocation = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->getDefaultLocation();
+                        $defaultLocationId = (int) ($defaultLocation->id ?? 0);
+                    }
+                    $effectiveLocationId = $defaultLocationId;
                 }
-                if ($defaultLocationId < 1) {
-                    $defaultLocation = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->getDefaultLocation();
-                    $defaultLocationId = (int) ($defaultLocation->id ?? 0);
+                $savedLocationIds[] = $effectiveLocationId;
+                if (is_array($transactionSnapshot) && ! empty($transactionSnapshot['origin_sub_district_id'])) {
+                    $savedOrigins[$effectiveLocationId] = $transactionSnapshot;
                 }
-                $savedLocationIds[] = $defaultLocationId;
             }
             $savedLocationIds = array_values(array_unique($savedLocationIds));
             if (count($savedLocationIds) > 1) {
                 return array();
             }
             $locationId = (int) ($savedLocationIds[0] ?? 0);
+            $originSnapshot = is_array($savedOrigins[$locationId] ?? null) ? $savedOrigins[$locationId] : array();
+        }
+
+        if (! empty($originSnapshot)) {
+            $this->originDataCache = $originSnapshot;
+            return $this->originDataCache;
         }
 
         $location = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->getLocationOrDefault($locationId);
@@ -419,10 +433,9 @@ class SendRequestPickupTransactionService extends BaseService
         }
         
         $helper = $this->helper();
-        $weightConverter = new \KiriminAjaOfficial\Utils\WeightConverter();
         $homeUrl = get_home_url();
         
-        $packages = array_map(function ($transaction) use ($helper, $weightConverter, $homeUrl) {
+        $packages = array_map(function ($transaction) use ($helper, $homeUrl) {
             $shipping_info = json_decode($transaction->shipping_info ?? '{}');
             $order = wc_get_order($transaction->wp_wc_order_stat_order_id);
             
@@ -438,25 +451,11 @@ class SendRequestPickupTransactionService extends BaseService
             }
             
             $itemNames = [];
-            $itemsPayload = [];
             
             foreach ($order->get_items() as $item) {
                 $itemName = $item->get_name();
                 $itemNames[] = $itemName;
                 
-                $product = $item->get_product();
-                if ($product) {
-                    $weight = $weightConverter->toGram($product->get_weight());
-                    $itemsPayload[] = [
-                        "qty" => (int) $item->get_quantity(),
-                        "weight" => (int) $helper->minAmount($weight),
-                        "length" => (int) $helper->minAmount($product->get_length() ?: 0),
-                        "width" => (int) $helper->minAmount($product->get_width() ?: 0),
-                        "height" => (int) $helper->minAmount($product->get_height() ?: 0),
-                        "name" => $itemName,
-                        "price" => (int) round((float) ($product->get_price() ?: 0)),
-                    ];
-                }
             }
             // Optimize item name generation
             $combinedItemNames = implode(", ", $itemNames);
@@ -511,10 +510,6 @@ class SendRequestPickupTransactionService extends BaseService
             }
 
             $result = $this->appendPickupDiscountFields($result, $transaction);
-            
-            if (!empty($itemsPayload)) {
-                $result['items'] = $itemsPayload;
-            }
             
             return $result;
         }, $repo);

@@ -215,7 +215,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                     $kiriof_colShipCoupon   = '';
                     if ($kiriof_wcOrder) {
                         $kiriof_colItemDiscount = (float) $kiriof_wcOrder->get_discount_total();
-                        $kiriof_colShipDiscount = max(0.0, $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total());
+                        $kiriof_colShipDiscount = max(0.0, $kiriof_discountAmount);
                         $kiriof_colCoupons      = $kiriof_wcOrder->get_coupon_codes();
                         $kiriof_couponService   = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
                         $kiriof_couponScopes    = $kiriof_couponService->splitCouponCodesByScope((array) $kiriof_colCoupons);
@@ -249,7 +249,9 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                     $kiriof_origin_snapshot = array();
                     if ( ! empty( $kiriof_row->shipment_location_snapshot ) ) {
                         $kiriof_origin_snapshot = json_decode( $kiriof_row->shipment_location_snapshot, true );
-                        $kiriof_origin_label    = is_array( $kiriof_origin_snapshot ) ? (string) ( $kiriof_origin_snapshot['name'] ?? '' ) : '';
+                        $kiriof_origin_label    = is_array( $kiriof_origin_snapshot )
+                            ? (string) ( $kiriof_origin_snapshot['origin_name'] ?? $kiriof_origin_snapshot['location_name'] ?? $kiriof_origin_snapshot['name'] ?? '' )
+                            : '';
                     }
                     if ( '' === $kiriof_origin_label ) {
                         $kiriof_origin_default = ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->getDefaultLocation();

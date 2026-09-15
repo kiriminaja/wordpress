@@ -380,10 +380,10 @@ final class InsuranceFeatureTest extends TestCase
             'SendRequestPickupTransactionService must centralize optional pickup discount fields'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             "'shipping_discount_amount'",
             $content,
-            'Pickup request payload should support shipping discount amounts when they are meaningful'
+            'Pickup payload must not send a second inferred shipping discount field'
         );
 
         $this->assertStringContainsString(

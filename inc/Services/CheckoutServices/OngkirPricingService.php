@@ -99,7 +99,7 @@ class OngkirPricingService extends BaseService{
             $kiriof_raw_price = max( 0, (float) ( $option->cost ?? 0 ) );
             $kiriof_discount  = min( $kiriof_raw_price, max( 0, (float) ( $option->discount_amount ?? 0 ) ) );
             $kiriof_price     = max( 0, $kiriof_raw_price - $kiriof_discount );
-            $kiriof_service_type = (string) ( $option->service_type ?? '' );
+            $kiriof_service_type = (string) ( $option->service_type ?? $option->service_name ?? '' );
             $kiriof_courier_code = (string) ( $option->service ?? '' );
             $kiriof_display_name = kiriof_helper()->formatServiceName( $kiriof_courier_code, $kiriof_service_type );
             $rateOption = [
@@ -109,7 +109,9 @@ class OngkirPricingService extends BaseService{
                 'service' => $kiriof_service_type,
                 'service_code' => $kiriof_courier_code,
                 'service_type' => $kiriof_service_type,
-                'service_name' => (string) ( $option->service_name ?? '' ),
+                // Transactions and pickup payloads use this field as the API
+                // service type. Keep it non-empty even when service_name is omitted.
+                'service_name' => $kiriof_service_type,
                 'price' => $kiriof_price,
                 'raw_price' => $kiriof_raw_price,
                 'discount_amount' => $kiriof_discount,

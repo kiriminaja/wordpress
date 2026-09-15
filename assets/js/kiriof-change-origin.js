@@ -171,6 +171,7 @@
 			$select.select2({
 				width: '100%',
 				placeholder: $select.data('placeholder') || '',
+				dropdownParent: $modal.find('.kiriof-change-origin-modal-content'),
 			});
 		}
 
@@ -247,7 +248,10 @@
 						$modal.find('#kiriof-change-origin-confirm').prop('disabled', !comparison.available);
 						$modal.data('shipping-check', payload);
 							if ($.fn.select2) {
-								$modal.find('.kiriof-replacement-courier').select2({ width: '100%' });
+								$modal.find('.kiriof-replacement-courier').select2({
+									width: '100%',
+									dropdownParent: $modal.find('.kiriof-change-origin-modal-content'),
+								});
 							}
 					} else {
 						setResult($result, false, '<p>' + ((payload && payload.message) || text('checkFailed', 'Shipping check failed.')) + '</p>');

@@ -52,6 +52,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'locationIdCache', $service );
         $this->assertStringContainsString( 'getLocationOrDefault(', $service );
         $this->assertStringContainsString( '$transaction->shipment_location_id', $service );
+        $this->assertStringContainsString( '$transaction->shipment_location_snapshot', $service );
+        $this->assertStringContainsString( '$this->originDataCache = $originSnapshot;', $service );
         $this->assertStringContainsString( 'getDefaultLocation()', $service );
         $this->assertStringContainsString( 'array_unique($savedLocationIds)', $service );
         $this->assertStringContainsString( 'count($savedLocationIds) > 1', $service );
@@ -67,6 +69,9 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'select[name="location_id"]', $tpl );
         $this->assertStringNotContainsString( 'name="location_id"', $rp_modal );
         $this->assertStringNotContainsString( "select[name=\"location_id\"]", $rp_js );
+        $this->assertStringNotContainsString( '$itemsPayload', $service );
+        $this->assertStringNotContainsString( '$result[\'items\']', $service );
+        $this->assertStringContainsString( '"weight"                    => (int) $helper->minAmount($transaction->weight)', $service );
     }
 
     public function testTransactionSchemaStoresShipmentLocationSnapshot(): void {

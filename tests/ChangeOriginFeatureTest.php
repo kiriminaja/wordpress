@@ -83,6 +83,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'data-current-origin-address="', $template );
         $this->assertStringContainsString( 'data-current-location-id="', $template );
         $this->assertStringContainsString( '$kiriof_origin_location ? (int) $kiriof_origin_location->id : 0', $template );
+        $this->assertStringContainsString( "\$kiriof_origin_snapshot['origin_name'] ?? \$kiriof_origin_snapshot['location_name']", $template );
         $this->assertStringContainsString( 'data-nonce="', $template );
         $this->assertMatchesRegularExpression( '/\$kiriof_isProcessable\s*\?[^;]*kiriof-change-origin-button/s', $template );
         $this->assertStringContainsString( 'dashicons-location', $template );
@@ -133,6 +134,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "var hasAlternatives = \$select.find('option[value!=\"\"]')", $js );
         $this->assertStringContainsString( "String(\$(this).val()) === currentLocationId", $js );
         $this->assertStringNotContainsString( 'optionName.indexOf(currentName)', $js );
+        $this->assertStringContainsString( "dropdownParent: \$modal.find('.kiriof-change-origin-modal-content')", $js );
         $this->assertStringContainsString( 'comparison.available', $js );
 		$this->assertStringContainsString( '$kiriof_is_replacement', $source );
 		$this->assertStringContainsString( '$kiriof_selected_service !== $kiriof_previous_service', $source );
@@ -226,6 +228,7 @@ class ChangeOriginFeatureTest extends TestCase {
 
         $this->assertStringContainsString( "'raw_price' => \$kiriof_raw_price", $service );
         $this->assertStringContainsString( "'discount_amount' => \$kiriof_discount", $service );
+        $this->assertStringContainsString( "'service_name' => \$kiriof_service_type", $service );
         $this->assertStringContainsString( "\$kiriof_option['raw_price'] ?? \$kiriof_option['price']", $controller );
         $this->assertStringContainsString( "'discount_amount' => \$courier_discount", $controller );
         $this->assertStringContainsString( "array( 'service', 'service_name', 'shipping_cost', 'discount_amount' )", $repository );
@@ -249,5 +252,18 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '$wpdb->query( \'COMMIT\' )', $source );
         $this->assertStringContainsString( 'WooCommerce order not found. No shipment data was changed.', $source );
         $this->assertStringContainsString( 'Failed to update the shipment origin. No shipment data was changed.', $source );
+    }
+
+    public function testPackageDetailsUsePersistedKaDiscountInsteadOfInferringPriceIncreaseAsDiscount(): void {
+        $transaction = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+        $preview     = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+        $metabox     = $this->read( __DIR__ . '/../templates/order/metabox-shipping.php' );
+
+        $this->assertStringContainsString( '$kiriof_colShipDiscount = max(0.0, $kiriof_discountAmount);', $transaction );
+        $this->assertStringNotContainsString( '$kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total()', $transaction );
+        $this->assertStringContainsString( '$wc_shipping_discount = max(0.0, (float) ($transaction->discount_amount ?? 0));', $preview );
+        $this->assertStringNotContainsString( '$shipping_cost - (float) $order->get_shipping_total()', $preview );
+        $this->assertStringContainsString( '$kiriof_wc_shipping_discount = max(0.0, $kiriof_discount_raw);', $metabox );
+        $this->assertStringNotContainsString( 'max($kiriof_discount_raw, $wc_discount_total)', $metabox );
     }
 }

@@ -1369,7 +1369,7 @@ class TransactionProcessController
 
             // Compute discount breakdown from WC order (mirrors metabox logic).
             $wc_item_discount     = (float) $order->get_discount_total();
-            $wc_shipping_discount = max(0.0, $shipping_cost - (float) $order->get_shipping_total());
+            $wc_shipping_discount = max(0.0, (float) ($transaction->discount_amount ?? 0));
             $discounted_shipping  = max(0.0, $shipping_cost - $wc_shipping_discount);
             $wc_coupon_codes      = $order->get_coupon_codes();
             $coupon_service       = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();

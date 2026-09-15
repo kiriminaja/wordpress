@@ -40,6 +40,20 @@ final class RequestPickupDiscountPayloadRuntimeTest extends TestCase {
         $this->assertSame( 25.0, $payload['discount_percentage'] );
     }
 
+    #[Test]
+    public function stale_secondary_shipping_discount_is_never_sent(): void {
+        $payload = $this->appendDiscountFields(
+            (object) array(
+                'discount_amount'          => 0,
+                'shipping_discount_amount' => 9000,
+                'shipping_cost'            => 25000,
+            )
+        );
+
+        $this->assertArrayNotHasKey( 'shipping_discount_amount', $payload );
+        $this->assertArrayNotHasKey( 'discount_amount', $payload );
+    }
+
     private function appendDiscountFields( object $transaction ): array {
         $service = new SendRequestPickupTransactionService();
         $method  = new ReflectionMethod( $service, 'appendPickupDiscountFields' );

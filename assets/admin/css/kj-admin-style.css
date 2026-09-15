@@ -435,6 +435,34 @@ body.kiriof-change-origin-scroll-locked {
 .kj-wrap .kiriof-transaction-table .kiriof-shipto-name {
   font-weight: 600;
   margin-bottom: 2px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-container .select2-selection--single {
+  height: auto !important;
+  min-height: 42px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-container .select2-selection--single .select2-selection__rendered {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-right: 34px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-dropdown {
+  z-index: 160200;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .select2-results__option {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .kj-wrap .kiriof-transaction-table .kiriof-shipto-line {
