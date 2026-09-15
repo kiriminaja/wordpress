@@ -375,7 +375,12 @@ class SendRequestPickupTransactionService extends BaseService
             $defaultLocationId = 0;
             foreach ((array) $transactions as $transaction) {
                 $transactionSnapshot = json_decode((string) ($transaction->shipment_location_snapshot ?? ''), true);
-                if (! empty($transaction->shipment_location_id)) {
+                $snapshotLocationId = is_array($transactionSnapshot)
+                    ? (int) ($transactionSnapshot['location_id'] ?? $transactionSnapshot['id'] ?? 0)
+                    : 0;
+                if ($snapshotLocationId > 0) {
+                    $effectiveLocationId = $snapshotLocationId;
+                } elseif (! empty($transaction->shipment_location_id)) {
                     $effectiveLocationId = (int) $transaction->shipment_location_id;
                 } else {
                     if ($defaultLocationId < 1) {

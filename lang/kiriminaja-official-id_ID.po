@@ -3508,8 +3508,20 @@ msgstr "Tutup pilihan"
 msgid "Change"
 msgstr "Ganti"
 
-msgid "Calculated order total cannot be negative and is shown as Rp0."
-msgstr "Total pesanan terhitung tidak boleh negatif dan ditampilkan sebagai Rp0."
+msgid "Change cannot be processed."
+msgstr "Perubahan tidak dapat diproses."
+
+msgid "The adjusted order total would be below Rp0. Reconcile or refund the buyer {amount} before making this change."
+msgstr "Total pesanan setelah penyesuaian akan kurang dari Rp0. Lakukan rekonsiliasi atau refund kepada pembeli sebesar {amount} sebelum melakukan perubahan ini."
+
+msgid "This courier change requires buyer refund reconciliation before it can be processed."
+msgstr "Perubahan kurir ini memerlukan rekonsiliasi refund pembeli sebelum dapat diproses."
+
+msgid "Blocked"
+msgstr "Diblokir"
+
+msgid "Legacy default origin"
+msgstr "Origin default transaksi lama"
 
 msgid "Shipment Route"
 msgstr "Rute Pengiriman"

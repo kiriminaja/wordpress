@@ -31,6 +31,10 @@
   color: #646970;
 }
 
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-value-blocked strong {
+  color: #b32d2e;
+}
+
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-total-anomaly {
   margin: 10px 0 0;
   padding: 8px 10px;

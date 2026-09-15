@@ -10,6 +10,24 @@ class ShipmentLocationStructureTest extends TestCase {
         return $content;
     }
 
+    public function testCheckoutFreezesDefaultOriginOnTheTransaction(): void {
+        $service    = $this->read( __DIR__ . '/../inc/Services/CheckoutServices/CreateTransactionService.php' );
+        $repository = $this->read( __DIR__ . '/../inc/Repositories/TransactionRepository.php' );
+        $template   = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+        $pickup     = $this->read( __DIR__ . '/../inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
+
+        $this->assertStringContainsString( '$checkoutOriginLocation  = $shipmentLocationService->getDefaultLocation();', $service );
+        $this->assertStringContainsString( '$checkoutOriginSnapshot  = $shipmentLocationService->locationToOrigin( $checkoutOriginLocation );', $service );
+        $this->assertStringContainsString( "'shipment_location_id'          => (int) ( \$checkoutOriginSnapshot['location_id'] ?? 0 )", $service );
+        $this->assertStringContainsString( "'shipment_location_snapshot'    => ! empty( \$checkoutOriginSnapshot ) ? wp_json_encode( \$checkoutOriginSnapshot )", $service );
+        $this->assertStringContainsString( '`shipment_location_id`,', $repository );
+        $this->assertStringContainsString( '`shipment_location_snapshot`', $repository );
+        $this->assertStringContainsString( '$kiriof_origin_snapshot[\'location_id\']', $template );
+        $this->assertStringNotContainsString( '$kiriof_origin_location  = ! empty( $kiriof_row->shipment_location_id )\n                        ? $kiriof_location_service->repository()->getById( (int) $kiriof_row->shipment_location_id )\n                        : $kiriof_location_service->getDefaultLocation();', $template );
+        $this->assertStringContainsString( '$snapshotLocationId', $pickup );
+        $this->assertStringContainsString( '$effectiveLocationId = $snapshotLocationId;', $pickup );
+    }
+
     public function testTransactionListDisplaysShipmentRoute(): void {
         $template = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
 

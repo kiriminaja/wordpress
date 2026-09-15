@@ -254,13 +254,12 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                             : '';
                     }
                     if ( '' === $kiriof_origin_label ) {
-                        $kiriof_origin_default = ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->getDefaultLocation();
-                        $kiriof_origin_label   = ! empty( $kiriof_origin_default ) ? (string) $kiriof_origin_default->name : '';
+                        $kiriof_origin_label = __( 'Legacy default origin', 'kiriminaja-official' );
                     }
                     $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
                     $kiriof_origin_location  = ! empty( $kiriof_row->shipment_location_id )
                         ? $kiriof_location_service->repository()->getById( (int) $kiriof_row->shipment_location_id )
-                        : $kiriof_location_service->getDefaultLocation();
+                        : null;
                     $kiriof_origin_address = $kiriof_location_service->formatAddress(
                         ! empty( $kiriof_origin_snapshot ) && is_array( $kiriof_origin_snapshot )
                             ? $kiriof_origin_snapshot
@@ -442,7 +441,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                              . ' data-ka-order-id="' . esc_attr($kiriof_orderIdKA) . '"'
                              . ' data-current-origin="' . esc_attr($kiriof_origin_label) . '"'
                              . ' data-current-origin-address="' . esc_attr($kiriof_origin_address) . '"'
-                             . ' data-current-location-id="' . esc_attr($kiriof_origin_location ? (int) $kiriof_origin_location->id : 0) . '"'
+                             . ' data-current-location-id="' . esc_attr((int) ($kiriof_origin_snapshot['location_id'] ?? $kiriof_origin_snapshot['id'] ?? ($kiriof_origin_location->id ?? 0))) . '"'
                             . ' data-nonce="' . esc_attr($kiriof_adj_nonce) . '"'
                             . ' title="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '"'
                             . ' aria-label="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '">'

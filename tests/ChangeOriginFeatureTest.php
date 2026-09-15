@@ -82,7 +82,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'data-current-origin="', $template );
         $this->assertStringContainsString( 'data-current-origin-address="', $template );
         $this->assertStringContainsString( 'data-current-location-id="', $template );
-        $this->assertStringContainsString( '$kiriof_origin_location ? (int) $kiriof_origin_location->id : 0', $template );
+        $this->assertStringContainsString( '$kiriof_origin_snapshot[\'location_id\'] ?? $kiriof_origin_snapshot[\'id\']', $template );
         $this->assertStringContainsString( "\$kiriof_origin_snapshot['origin_name'] ?? \$kiriof_origin_snapshot['location_name']", $template );
         $this->assertStringContainsString( 'data-nonce="', $template );
         $this->assertMatchesRegularExpression( '/\$kiriof_isProcessable\s*\?[^;]*kiriof-change-origin-button/s', $template );
@@ -168,6 +168,11 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "var tone = next > previous ? 'increase'", $js );
         $this->assertStringContainsString( "next < previous ? 'decrease'", $js );
         $this->assertStringContainsString( 'total_was_clamped', $js );
+        $this->assertStringContainsString( 'is_total_blocked', $js );
+        $this->assertStringContainsString( 'required_refund', $js );
+        $this->assertStringContainsString( 'kiriof-change-value-blocked', $js );
+        $this->assertStringContainsString( "text('changeBlocked'", $js );
+        $this->assertStringContainsString( "text('refundRequired'", $js );
         $this->assertStringContainsString( 'Math.max(0, rawNewTotal)', $js );
         $this->assertStringContainsString( "courier-consent-granted", $js );
         $this->assertStringContainsString( '$replacement.toggle(!comparison.available)', $js );
@@ -213,6 +218,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '.kiriof-change-value-increase strong', $css );
         $this->assertStringContainsString( '.kiriof-change-value-decrease strong', $css );
         $this->assertStringContainsString( '.kiriof-total-anomaly', $css );
+        $this->assertStringContainsString( '.kiriof-change-value-blocked strong', $css );
         $this->assertStringContainsString( '.kiriof-radio-card:has(input:checked)', $css );
         $this->assertStringContainsString( '.kiriof-courier-radio-row', $css );
         $this->assertStringContainsString( '.kiriof-change-origin-replacement', $css );
@@ -232,6 +238,8 @@ class ChangeOriginFeatureTest extends TestCase {
 
         $this->assertStringContainsString( 'getTransactionByOrderIds($this->orderIds)', $service );
         $this->assertStringContainsString( '$transaction->shipment_location_id', $service );
+        $this->assertStringContainsString( '$transaction->shipment_location_snapshot', $service );
+        $this->assertStringContainsString( '$snapshotLocationId > 0', $service );
         $this->assertStringContainsString( 'count($savedLocationIds) > 1', $service );
         $this->assertStringContainsString( 'getDefaultLocation()', $service );
     }
@@ -315,6 +323,9 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'Failed to update the shipment origin. No shipment data was changed.', $source );
         $this->assertStringContainsString( '$kiriof_raw_new_total', $source );
         $this->assertStringContainsString( "'total_was_clamped'", $source );
+        $this->assertStringContainsString( "'is_total_blocked'", $source );
+        $this->assertStringContainsString( "'required_refund'", $source );
+        $this->assertStringContainsString( 'This courier change requires buyer refund reconciliation before it can be processed.', $source );
         $this->assertStringContainsString( '$kiriof_previous_non_shipping_total', $source );
         $this->assertStringContainsString( '$kiriof_order->get_shipping_total()', $source );
         $this->assertStringContainsString( 'nonShippingTotal + newPaidShipping', $js );

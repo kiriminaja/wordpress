@@ -430,7 +430,9 @@ class Enqueue extends BaseInit{
                         'shipping' => __( 'Shipping', 'kiriminaja-official' ),
                         'change' => __( 'Change', 'kiriminaja-official' ),
                         'collapse' => __( 'Collapse', 'kiriminaja-official' ),
-                        'totalClamped' => __( 'Calculated order total cannot be negative and is shown as Rp0.', 'kiriminaja-official' ),
+                        'changeBlocked' => __( 'Change cannot be processed.', 'kiriminaja-official' ),
+                        'refundRequired' => __( 'The adjusted order total would be below Rp0. Reconcile or refund the buyer {amount} before making this change.', 'kiriminaja-official' ),
+                        'blocked' => __( 'Blocked', 'kiriminaja-official' ),
                     ),
                 )
             );

@@ -64,13 +64,14 @@
 			$modal.find('.kiriof-courier-selection-section').hide();
 		}
 		var requiresConsent = $selectedOption.attr('data-replacement') === '1';
+		var isBlocked = !!(option && option.is_total_blocked);
 		if (!requiresConsent) {
 			$modal.find('.kiriof-replacement-consent').prop('checked', true);
 		} else if ($modal.data('courier-consent-granted')) {
 			$modal.find('.kiriof-replacement-consent').prop('checked', true);
 		}
 		$modal.find('.kiriof-replacement-consent-wrap').toggle(requiresConsent);
-		$modal.find('#kiriof-change-origin-confirm').prop('disabled', !$selectedOption.length || (requiresConsent && !$modal.find('.kiriof-replacement-consent').prop('checked')));
+		$modal.find('#kiriof-change-origin-confirm').prop('disabled', isBlocked || !$selectedOption.length || (requiresConsent && !$modal.find('.kiriof-replacement-consent').prop('checked')));
 	}
 
 	function buildReplacementComparison(base, option) {
@@ -94,8 +95,11 @@
 		if (!Number.isFinite(nonShippingTotal)) {
 			nonShippingTotal = Math.max(0, previousTotal - (parseFloat(base.previous_order_shipping) || previousPaidShipping));
 		}
+		var adjustedTotal = previousTotal + (newPaidShipping - previousPaidShipping);
 		var rawNewTotal = nonShippingTotal + newPaidShipping;
-		next.total_was_clamped = rawNewTotal < 0;
+		next.total_was_clamped = adjustedTotal < 0;
+		next.is_total_blocked = adjustedTotal < 0;
+		next.required_refund = Math.max(0, previousPaidShipping - newPaidShipping);
 		next.new_total = Math.max(0, rawNewTotal);
 		next.total_delta = next.new_total - previousTotal;
 		return next;
@@ -111,9 +115,12 @@
 		var previousDiscount = parseFloat(comparison.previous_discount) || 0;
 		var newDiscount = parseFloat(comparison.new_discount) || 0;
 		var discountRow = '';
-		var totalWarning = comparison.total_was_clamped
-			? '<p class="kiriof-total-anomaly">' + text('totalClamped', 'Calculated order total cannot be negative and is shown as Rp0.') + '</p>'
+		var totalWarning = comparison.is_total_blocked
+			? '<p class="kiriof-total-anomaly"><strong>' + text('changeBlocked', 'Change cannot be processed.') + '</strong><br>' + text('refundRequired', 'The adjusted order total would be below Rp0. Reconcile or refund the buyer {amount} before making this change.').replace('{amount}', money(comparison.required_refund)) + '</p>'
 			: '';
+		var totalValue = comparison.is_total_blocked
+			? '<span class="kiriof-change-value kiriof-change-value-blocked">' + money(comparison.previous_total) + ' <strong>→ ' + text('blocked', 'Blocked') + '</strong></span>'
+			: changeValue(comparison.previous_total, comparison.new_total);
 
 		if (previousDiscount !== 0 || newDiscount !== 0) {
 			discountRow = '<dt>' + text('shippingDiscount', 'Shipping discount') + '</dt><dd>' + changeValue(previousDiscount, newDiscount) + '</dd>';
@@ -126,7 +133,7 @@
 			'<dt>' + text('subTotal', 'Sub Total') + '</dt><dd>' + money(comparison.previous_subtotal) + '</dd>' +
 			'<dt>' + text('shipping', 'Shipping') + '</dt><dd>' + changeValue(comparison.previous_paid_shipping, comparison.new_paid_shipping) + '</dd>' +
 			discountRow +
-			'<dt class="kiriof-change-origin-order-total"><strong>' + text('orderTotal', 'Order total') + '</strong></dt><dd class="kiriof-change-origin-order-total"><strong>' + changeValue(comparison.previous_total, comparison.new_total) + '</strong></dd>' +
+			'<dt class="kiriof-change-origin-order-total"><strong>' + text('orderTotal', 'Order total') + '</strong></dt><dd class="kiriof-change-origin-order-total"><strong>' + totalValue + '</strong></dd>' +
 			'</dl>' +
 			totalWarning +
 		'</div>';

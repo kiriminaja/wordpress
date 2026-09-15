@@ -301,9 +301,11 @@ class TransactionRepository{
                     `woocommerce_discount_amount`,
                     `woocommerce_discount_description`,
                     `is_deficit`,
-                    `cod_minimum`
+                    `cod_minimum`,
+                    `shipment_location_id`,
+                    `shipment_location_snapshot`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s)",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -326,7 +328,9 @@ class TransactionRepository{
                 $payload['woocommerce_discount_amount'] ?? 0,
                 $payload['woocommerce_discount_description'] ?? null,
                 $payload['is_deficit'] ?? 0,
-                $payload['cod_minimum'] ?? null
+                $payload['cod_minimum'] ?? null,
+                $payload['shipment_location_id'] ?? null,
+                $payload['shipment_location_snapshot'] ?? null
             )
         );
         $this->invalidateCouriersCache();
