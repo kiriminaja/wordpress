@@ -123,6 +123,10 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString("body.set('data[search]', term)", $script);
 		$this->assertStringContainsString('payload.success === false', $script);
 		$this->assertStringContainsString('.kiriof-onboarding .choices', $css);
+		$this->assertStringContainsString('.kiriof-onboarding .choices.is-open', $css);
+		$this->assertStringContainsString('z-index: 1000;', $css);
+		$this->assertStringContainsString('z-index: 1001;', $css);
+		$this->assertStringContainsString('z-index: 0;', $css);
 		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
 		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
 		$this->assertStringContainsString('disconnectConfirm', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
