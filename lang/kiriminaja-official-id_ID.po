@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: KiriminAja Official 2.3.9\n"
+"Project-Id-Version: KiriminAja Official 2.3.11\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -177,6 +177,10 @@ msgstr "Butuh bantuan?"
 msgid "Network error. Please try again."
 msgstr "Terjadi kesalahan jaringan. Silakan coba lagi."
 
+#: inc/Base/Enqueue.php inc/Controllers/GeneralAjaxController.php
+msgid "Could not search subdistricts. Check the KiriminAja connection and try again."
+msgstr "Pencarian kecamatan gagal. Periksa koneksi KiriminAja lalu coba lagi."
+
 #: templates/onboarding/steps/shipping.php
 msgid "Open shipping settings"
 msgstr "Buka pengaturan pengiriman"
@@ -192,6 +196,22 @@ msgstr "Tinjau produk"
 #: inc/Base/Enqueue.php
 msgid "Search subdistrict"
 msgstr "Cari kecamatan"
+
+#: inc/Base/Enqueue.php
+msgid "Searching subdistricts..."
+msgstr "Mencari kecamatan..."
+
+#: inc/Base/Enqueue.php
+msgid "No subdistricts found."
+msgstr "Kecamatan tidak ditemukan."
+
+#: inc/Base/Enqueue.php
+msgid "Type at least 3 characters."
+msgstr "Ketik minimal 3 karakter."
+
+#: inc/Controllers/GeneralAjaxController.php
+msgid "Security check failed. Reload the page and try again."
+msgstr "Pemeriksaan keamanan gagal. Muat ulang halaman lalu coba lagi."
 
 #: inc/Services/OnboardingSetupStateService.php
 msgid "Select the courier services your customers can use at checkout."

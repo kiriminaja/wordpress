@@ -23,63 +23,73 @@ class GeneralAjaxController
     public function kiriminajaSubdistrictSearch()
     {
         try {
-            if (
-                isset($_POST['nonce']) &&
-                wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), KIRIOF_NONCE)
-            ) {
-                $data = ( isset( $_POST['data'] ) && is_array( $_POST['data'] ) )
-                    ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
-                    : array();
-
-                if (empty($data['search'])) {
-                    $data['search'] = isset( $data['term'] ) ? sanitize_text_field( (string) $data['term'] ) : '';
-                }
-                if ( empty( $data['search'] ) ) {
-                    $data['search'] = isset( $_POST['term'] ) ? sanitize_text_field( wp_unslash( $_POST['term'] ) ) : '';
-                }
-                if ( empty( $data['search'] ) ) {
-                    $data['search'] = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
-                }
-                $kiriminajaSubDistrictSearch = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->sub_district_search($data['search']);
-
-                if ($kiriminajaSubDistrictSearch->status !== 200) {
-                    wp_send_json_success([]);
-                }
-                $results = array();
-                foreach ( (array) $kiriminajaSubDistrictSearch->data as $item ) {
-                    $item = (array) $item;
-                    $id   = isset( $item['id'] ) ? absint( $item['id'] ) : absint( $item['sub_district_id'] ?? 0 );
-                    $text = isset( $item['text'] ) ? sanitize_text_field( $item['text'] ) : sanitize_text_field( $item['name'] ?? '' );
-
-                    if ( $id <= 0 || '' === $text ) {
-                        continue;
-                    }
-
-                    $postcode = '';
-                    foreach ( array( 'postcode', 'postal_code', 'zipcode', 'zip_code', 'kode_pos', 'kodepos' ) as $postcode_key ) {
-                        if ( ! empty( $item[ $postcode_key ] ) ) {
-                            $postcode = sanitize_text_field( $item[ $postcode_key ] );
-                            break;
-                        }
-                    }
-                    if ( '' === $postcode && preg_match( '/\b\d{5}\b/', $text, $matches ) ) {
-                        $postcode = $matches[0];
-                    }
-
-                    $results[] = array(
-                        'id'       => $id,
-                        'text'     => $text,
-                        'postcode' => $postcode,
-                    );
-                }
-                wp_send_json_success( $results );
-            } else {
-                wp_send_json_error(['code' => '401', 'msg' => wc_add_notice( __( 'Security Check Kiriminaja', 'kiriminaja-official' ), "error" )]);
+            if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), KIRIOF_NONCE ) ) {
+                wp_send_json_error(
+                    array(
+                        'code'    => '401',
+                        'message' => __( 'Security check failed. Reload the page and try again.', 'kiriminaja-official' ),
+                    ),
+                    403
+                );
             }
-            wp_die();
+
+            $data = ( isset( $_POST['data'] ) && is_array( $_POST['data'] ) )
+                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
+                : array();
+
+            $search = isset( $data['search'] ) ? sanitize_text_field( (string) $data['search'] ) : '';
+            if ( '' === $search && isset( $data['term'] ) ) {
+                $search = sanitize_text_field( (string) $data['term'] );
+            }
+            if ( '' === $search && isset( $_POST['term'] ) ) {
+                $search = sanitize_text_field( wp_unslash( $_POST['term'] ) );
+            }
+            if ( '' === $search && isset( $_POST['search'] ) ) {
+                $search = sanitize_text_field( wp_unslash( $_POST['search'] ) );
+            }
+
+            $search = trim( $search );
+            if ( strlen( $search ) < 3 ) {
+                wp_send_json_success( array() );
+            }
+
+            $subdistrict_search = ( new \KiriminAjaOfficial\Services\KiriminajaApiService() )->sub_district_search( $search );
+            if ( 200 !== $subdistrict_search->status ) {
+                kiriof_log(
+                    'warning',
+                    'Subdistrict lookup failed.',
+                    array(
+                        'source'    => 'kiriminaja_shipping',
+                        'operation' => 'sub_district_search',
+                        'message'   => $subdistrict_search->message,
+                    )
+                );
+                wp_send_json_error(
+                    array(
+                        'code'    => 'subdistrict_lookup_failed',
+                        'message' => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
+                    )
+                );
+            }
+
+            wp_send_json_success( is_array( $subdistrict_search->data ) ? $subdistrict_search->data : array() );
         } catch (\Throwable $e) {
-            wp_send_json_success([]);
-            wp_die();
+            kiriof_log(
+                'error',
+                'Subdistrict lookup threw an exception.',
+                array(
+                    'source'            => 'kiriminaja_shipping',
+                    'operation'         => 'sub_district_search',
+                    'exception_class'   => get_class( $e ),
+                    'exception_message' => $e->getMessage(),
+                )
+            );
+            wp_send_json_error(
+                array(
+                    'code'    => 'subdistrict_lookup_failed',
+                    'message' => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
+                )
+            );
         }
     }
 

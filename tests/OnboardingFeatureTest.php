@@ -53,7 +53,20 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('.kiriof-onboarding__map', $css);
 		$this->assertStringContainsString('max-width: none;', $css);
 		$this->assertStringContainsString('padding: 14px 0 152px;', $css);
-    }
+	}
+
+	#[Test]
+	public function onboarding_subdistrict_lookup_surfaces_failures_and_encodes_the_query(): void
+	{
+		$controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+		$repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
+
+		$this->assertStringContainsString("'subdistrict_lookup_failed'", $controller);
+		$this->assertStringContainsString("wp_send_json_error(", $controller);
+		$this->assertStringContainsString("'Subdistrict lookup failed.'", $controller);
+		$this->assertStringNotContainsString('wp_send_json_success([])', $controller);
+		$this->assertStringContainsString('rawurlencode( $search )', $repository);
+	}
 
     #[Test]
     public function onboarding_contains_four_interactive_required_steps(): void
@@ -62,7 +75,9 @@ final class OnboardingFeatureTest extends TestCase
         $account = file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/account.php');
         $address = file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/address.php');
         $css = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css');
-        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js');
+		$script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js');
+		$enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+		$onboarding_enqueue = substr($enqueue, strpos($enqueue, 'private function enqueueOnboarding'));
 
         foreach (['account.php', 'address.php', 'couriers.php', 'shipping.php'] as $step) {
             $this->assertStringContainsString($step, $template);
@@ -98,6 +113,27 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString("origin_sub_district_name: $('[name=\"origin_sub_district_name\"]').val()", $script);
 		$this->assertStringContainsString("postcode: item.postcode || ''", $script);
 		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
+		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.js');
+		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.css');
+		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/LICENSE');
+		$this->assertStringContainsString("'kiriof-choices-script'", $onboarding_enqueue);
+		$this->assertStringContainsString("'kiriof-choices-style'", $onboarding_enqueue);
+		$this->assertStringContainsString("'11.2.4'", $onboarding_enqueue);
+		$this->assertStringContainsString('window.kiriofChoices = window.Choices;', $onboarding_enqueue);
+		$this->assertStringNotContainsString("wp_enqueue_script( 'select2'", $onboarding_enqueue);
+		$this->assertStringNotContainsString("wp_enqueue_script( 'selectWoo'", $onboarding_enqueue);
+		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
+		$this->assertStringContainsString('new window.kiriofChoices', $script);
+		$this->assertStringContainsString('subdistrictChoices.setChoices', $script);
+		$this->assertStringContainsString("addEventListener('search'", $script);
+		$this->assertStringContainsString('new window.AbortController()', $script);
+		$this->assertStringContainsString("body.set('data[search]', term)", $script);
+		$this->assertStringContainsString('payload.success === false', $script);
+		$this->assertStringContainsString('.kiriof-onboarding .choices', $css);
+		$this->assertStringContainsString('.kiriof-onboarding .choices.is-open', $css);
+		$this->assertStringContainsString('z-index: 1000;', $css);
+		$this->assertStringContainsString('z-index: 1001;', $css);
+		$this->assertStringContainsString('z-index: 0;', $css);
 		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
 		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
 		$this->assertStringContainsString('disconnectConfirm', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
