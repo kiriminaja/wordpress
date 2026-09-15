@@ -3502,6 +3502,15 @@ msgstr "%1$d dari %2$d alamat pengiriman custom telah digunakan. Origin default 
 msgid "The custom shipment address limit has been reached. Edit or delete an existing custom address first."
 msgstr "Batas alamat pengiriman custom telah tercapai. Ubah atau hapus alamat custom yang ada terlebih dahulu."
 
+msgid "Collapse"
+msgstr "Tutup pilihan"
+
+msgid "Change"
+msgstr "Ganti"
+
+msgid "Calculated order total cannot be negative and is shown as Rp0."
+msgstr "Total pesanan terhitung tidak boleh negatif dan ditampilkan sebagai Rp0."
+
 msgid "Shipment Route"
 msgstr "Rute Pengiriman"
 

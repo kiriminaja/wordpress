@@ -658,7 +658,9 @@ class TransactionProcessController
                     'new_discounted_shipping' => $kiriof_new_paid_shipping,
                  );
                 $kiriof_comparison['total_delta'] = $kiriof_comparison['new_paid_shipping'] - $kiriof_previous_paid_shipping;
-                $kiriof_comparison['new_total'] = $kiriof_previous_total + $kiriof_comparison['total_delta'];
+                $kiriof_raw_new_total = $kiriof_previous_total + $kiriof_comparison['total_delta'];
+                $kiriof_comparison['total_was_clamped'] = $kiriof_raw_new_total < 0;
+                $kiriof_comparison['new_total'] = max( 0, $kiriof_raw_new_total );
             } else {
                 /* translators: %s: courier service name. */
                 $kiriof_unavailable_label = sprintf( __( '%s is not available from the selected origin.', 'kiriminaja-official' ), $kiriof_previous_name );
@@ -819,7 +821,7 @@ class TransactionProcessController
                 $kiriof_new_paid          = max( 0, $kiriof_new_shipping - $kiriof_new_discount );
                 $kiriof_total_delta       = $kiriof_new_paid - $kiriof_previous_paid;
                 $kiriof_previous_total    = (float) $kiriof_wc_order->get_total();
-                $kiriof_new_total         = $kiriof_previous_total + $kiriof_total_delta;
+                $kiriof_new_total         = max( 0, $kiriof_previous_total + $kiriof_total_delta );
 
                 $kiriof_format_price = static function ( $amount ) {
                     return wp_strip_all_tags( wc_price( max( 0, (float) $amount ) ) );
@@ -1301,6 +1303,14 @@ class TransactionProcessController
                                     <span class="kiriof-backbone-label">
 										<?php esc_html_e( 'Shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span>
                                     </span>
+                                    <div class="kiriof-compact-selection kiriof-origin-selection-summary">
+                                        <span class="kiriof-compact-selection-copy">
+                                            <strong class="kiriof-origin-selection-name">{{ data.current_origin }}</strong>
+                                            <small class="kiriof-origin-selection-address">{{ data.current_origin_address }}</small>
+                                        </span>
+                                        <button type="button" class="button button-small kiriof-origin-toggle"><?php esc_html_e( 'Change', 'kiriminaja-official' ); ?></button>
+                                    </div>
+                                    <div class="kiriof-choice-panel kiriof-origin-choice-panel" style="display:none;">
                                     <div class="kiriof-radio-card-group kiriof-origin-radio-group" role="radiogroup" aria-label="<?php esc_attr_e( 'Shipment origin', 'kiriminaja-official' ); ?>">
                                         <label class="kiriof-radio-card kiriof-radio-card-current">
                                             <input type="radio" name="location_id" value="{{ data.current_location_id }}" checked data-current="1">
@@ -1329,6 +1339,8 @@ class TransactionProcessController
                                             </label>
                                         <?php endforeach; ?>
                                     </div>
+                                    <button type="button" class="button button-small kiriof-origin-collapse"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></button>
+                                    </div>
                                     <p class="description kiriof-change-origin-manage">
                                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
                                     </p>
@@ -1342,6 +1354,10 @@ class TransactionProcessController
                                     <span><?php esc_html_e( 'Checking shipping route...', 'kiriminaja-official' ); ?></span>
                                 </div>
                                  <div class="kiriof-change-origin-result notice inline" style="display:none;"></div>
+                                 <div class="kiriof-courier-selection-section" style="display:none;">
+                                     <h2 class="kiriof-courier-radio-title"><?php esc_html_e( 'Courier', 'kiriminaja-official' ); ?></h2>
+                                     <div class="kiriof-compact-selection kiriof-courier-selection-summary"></div>
+                                 </div>
                                  <div class="kiriof-change-origin-replacement" style="display:none;"></div>
                                  <div class="kiriof-change-origin-breakdown kiriof-change-origin-card" style="display:none;" aria-live="polite"></div>
                                  <p class="kiriof-replacement-consent-wrap" style="display:none;">

@@ -51,10 +51,24 @@
 		var option = optionMap[courierKey] || null;
 		if (option && typeof option === 'object') {
 			$modal.find('.kiriof-change-origin-breakdown').html(renderOrderBreakdown(option)).show();
+			var impact = option.label || '';
+			var selectedName = option.new_courier || option.label || '';
+			var selectedPrice = money(option.new_paid_shipping);
+			$modal.find('.kiriof-courier-selection-summary').html(
+				'<span class="kiriof-compact-selection-copy"><strong>' + $('<span>').text(selectedName).html() + '</strong><small>' + $('<span>').text(selectedPrice).html() + '</small>' +
+				(impact ? '<em class="kiriof-pricing-impact">' + $('<span>').text(impact).html() + '</em>' : '') + '</span>' +
+				'<button type="button" class="button button-small kiriof-courier-toggle">' + text('change', 'Change') + '</button>'
+			).closest('.kiriof-courier-selection-section').show();
 		} else {
 			$modal.find('.kiriof-change-origin-breakdown').hide().empty();
+			$modal.find('.kiriof-courier-selection-section').hide();
 		}
 		var requiresConsent = $selectedOption.attr('data-replacement') === '1';
+		if (!requiresConsent) {
+			$modal.find('.kiriof-replacement-consent').prop('checked', true);
+		} else if ($modal.data('courier-consent-granted')) {
+			$modal.find('.kiriof-replacement-consent').prop('checked', true);
+		}
 		$modal.find('.kiriof-replacement-consent-wrap').toggle(requiresConsent);
 		$modal.find('#kiriof-change-origin-confirm').prop('disabled', !$selectedOption.length || (requiresConsent && !$modal.find('.kiriof-replacement-consent').prop('checked')));
 	}
@@ -76,7 +90,9 @@
 			new_total_shipping: rawPrice + (parseFloat(base.insurance_cost) || 0) + (parseFloat(base.cod_fee) || 0),
 		});
 		next.total_delta = newPaidShipping - previousPaidShipping;
-		next.new_total = (parseFloat(base.previous_total) || 0) + next.total_delta;
+		var rawNewTotal = (parseFloat(base.previous_total) || 0) + next.total_delta;
+		next.total_was_clamped = rawNewTotal < 0;
+		next.new_total = Math.max(0, rawNewTotal);
 		return next;
 	}
 
@@ -90,6 +106,9 @@
 		var previousDiscount = parseFloat(comparison.previous_discount) || 0;
 		var newDiscount = parseFloat(comparison.new_discount) || 0;
 		var discountRow = '';
+		var totalWarning = comparison.total_was_clamped
+			? '<p class="kiriof-total-anomaly">' + text('totalClamped', 'Calculated order total cannot be negative and is shown as Rp0.') + '</p>'
+			: '';
 
 		if (previousDiscount !== 0 || newDiscount !== 0) {
 			discountRow = '<dt>' + text('shippingDiscount', 'Shipping discount') + '</dt><dd>' + changeValue(previousDiscount, newDiscount) + '</dd>';
@@ -104,11 +123,12 @@
 			discountRow +
 			'<dt class="kiriof-change-origin-order-total"><strong>' + text('orderTotal', 'Order total') + '</strong></dt><dd class="kiriof-change-origin-order-total"><strong>' + changeValue(comparison.previous_total, comparison.new_total) + '</strong></dd>' +
 			'</dl>' +
+			totalWarning +
 		'</div>';
 	}
 
 	function money(value) {
-		return 'Rp' + Math.round(parseFloat(value) || 0).toLocaleString('id-ID');
+		return 'Rp' + Math.round(Math.max(0, parseFloat(value) || 0)).toLocaleString('id-ID');
 	}
 
 	function changeValue(previous, next) {
@@ -116,7 +136,8 @@
 		next = parseFloat(next) || 0;
 		var arrow = next > previous ? '↑' : (next < previous ? '↓' : '→');
 
-		return money(previous) + ' ' + arrow + ' ' + money(next);
+		var tone = next > previous ? 'increase' : (next < previous ? 'decrease' : 'neutral');
+		return '<span class="kiriof-change-value kiriof-change-value-' + tone + '">' + money(previous) + ' <strong>' + arrow + ' ' + money(next) + '</strong></span>';
 	}
 
 	function initializeModal($modal, data) {
@@ -147,7 +168,8 @@
 			$modal.find('.kiriof-change-origin-loading').hide().find('.spinner').removeClass('is-active');
 			$modal.find('.kiriof-change-origin-result').hide().empty().removeClass('notice-success notice-error');
 			$modal.find('.kiriof-change-origin-replacement, .kiriof-change-origin-breakdown').hide().empty();
-			$modal.find('.kiriof-replacement-consent').prop('checked', false);
+			$modal.find('.kiriof-courier-selection-section').hide();
+			$modal.find('.kiriof-replacement-consent').prop('checked', !!$modal.data('courier-consent-granted'));
 			$modal.data('shipping-check', { comparison: null });
 			$modal.data('courier-comparisons', {});
 		}
@@ -179,7 +201,6 @@
 					var payload = response && response.data && typeof response.data === 'object' ? response.data : null;
 					var comparison = payload && payload.comparison && typeof payload.comparison === 'object' ? payload.comparison : null;
 					if (response && response.success && comparison) {
-						var html = '<p>' + $('<span>').text(comparison.label || payload.message || '').html() + '</p>';
 						var $replacement = $modal.find('.kiriof-change-origin-replacement');
 						var $breakdown = $modal.find('.kiriof-change-origin-breakdown');
 						$replacement.empty().hide();
@@ -201,25 +222,26 @@
 						} else {
 							courierOptions = Array.isArray(payload.replacement_options) ? payload.replacement_options : [];
 						}
-						var courierHtml = '<h2 class="kiriof-courier-radio-title">' + text('courier', 'Courier') + '</h2><div class="kiriof-courier-radio-group kiriof-radio-card-group" role="radiogroup">';
+						var courierHtml = '<div class="kiriof-courier-radio-group kiriof-radio-card-group" role="radiogroup">';
 						$.each(courierOptions, function (index, option) {
 								if (!option || typeof option !== 'object') {
 									return;
 								}
 							var sameCourier = comparison.available && (option.service_code || '') === (comparison.service_code || '') && (option.service_name || '') === (comparison.service_name || '');
 							var optionComparison = sameCourier ? comparison : buildReplacementComparison(comparison, option);
-							var checked = index === 0 ? ' checked' : '';
+							var checked = comparison.available && index === 0 ? ' checked' : '';
 							var replacement = sameCourier ? '0' : '1';
 							var courierKey = String(option.service_code || '') + '|' + String(option.service_name || '');
 							courierComparisons[courierKey] = optionComparison;
 							courierHtml += '<label class="kiriof-radio-card kiriof-courier-radio-card"><input type="radio" name="courier_option" value="' + $('<span>').text(courierKey).html() + '" data-replacement="' + replacement + '"' + checked + '><span class="kiriof-courier-radio-row"><span class="kiriof-courier-radio-name">' + $('<span>').text(optionDisplayLabel(option)).html() + '</span><strong class="kiriof-courier-radio-price">' + $('<span>').text(option.price || money(option.raw_price)).html() + '</strong></span></label>';
 						});
-						courierHtml += '</div>';
+						courierHtml += '</div><button type="button" class="button button-small kiriof-courier-collapse">' + text('collapse', 'Collapse') + '</button>';
 						$replacement.html(courierHtml).show();
 						$modal.data('courier-comparisons', courierComparisons);
-						setResult($result, true, html);
+						$result.hide().empty().removeClass('notice-success notice-error');
 						$modal.data('shipping-check', payload);
 						applyCourierSelection($modal);
+						$replacement.toggle(!comparison.available);
 					} else {
 						setResult($result, false, '<p>' + ((payload && payload.message) || text('checkFailed', 'Shipping check failed.')) + '</p>');
 					}
@@ -234,8 +256,36 @@
 		}
 
 		$originRadios.on('change.kiriofChangeOrigin', checkShipping);
+		$modal.on('click.kiriofChangeOrigin', '.kiriof-origin-toggle', function () {
+			$modal.find('.kiriof-origin-choice-panel').slideDown(120);
+		});
+		$modal.on('click.kiriofChangeOrigin', '.kiriof-origin-collapse', function () {
+			$modal.find('input[name="location_id"][data-current="1"]').prop('checked', true);
+			$modal.find('.kiriof-origin-selection-name').text(data.current_origin);
+			$modal.find('.kiriof-origin-selection-address').text(data.current_origin_address);
+			resetShippingResult();
+			$modal.find('.kiriof-origin-choice-panel').slideUp(120);
+		});
+		$modal.on('click.kiriofChangeOrigin', '.kiriof-courier-toggle', function () {
+			$modal.find('.kiriof-change-origin-replacement').slideDown(120);
+		});
+		$modal.on('click.kiriofChangeOrigin', '.kiriof-courier-collapse', function () {
+			if (!$modal.find('input[name="courier_option"]:checked').length) {
+				return;
+			}
+			$modal.find('.kiriof-change-origin-replacement').slideUp(120);
+		});
 		$modal.on('change.kiriofChangeOrigin', 'input[name="courier_option"], .kiriof-replacement-consent', function () {
+			if ($(this).hasClass('kiriof-replacement-consent') && $(this).prop('checked')) {
+				$modal.data('courier-consent-granted', true);
+			}
 			applyCourierSelection($modal);
+		});
+		$modal.on('change.kiriofChangeOrigin', 'input[name="location_id"]', function () {
+			var $card = $(this).closest('.kiriof-radio-card');
+			$modal.find('.kiriof-origin-selection-name').text($card.find('strong').first().text());
+			$modal.find('.kiriof-origin-selection-address').text($card.find('small').first().text());
+			$modal.find('.kiriof-origin-choice-panel').slideUp(120);
 		});
 
 		$modal.on('click.kiriofChangeOrigin', '#kiriof-change-origin-confirm', function () {

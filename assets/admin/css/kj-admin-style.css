@@ -2,6 +2,89 @@
   min-width: 400px;
 }
 
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-value strong {
+  font-weight: 700;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-value-increase strong {
+  color: #b32d2e;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-value-decrease strong {
+  color: #008a20;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-value-neutral strong {
+  color: #646970;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-total-anomaly {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid #dba617;
+  background: #fcf9e8;
+  color: #614200;
+  font-size: 12px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-compact-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #c3c4c7;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-compact-selection-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-compact-selection-copy small {
+  color: #646970;
+  line-height: 1.35;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-compact-selection-copy em {
+  font-style: normal;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-compact-selection .button {
+  flex: 0 0 auto;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-choice-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #dcdcde;
+  border-radius: 6px;
+  background: #f6f7f7;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-choice-panel > .button,
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement > .button {
+  margin-top: 10px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-pricing-impact {
+  margin-top: 4px;
+  padding: 5px 8px;
+  border-left: 3px solid #72aee6;
+  border-radius: 2px;
+  background: #f0f6fc;
+  color: #1d2327;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-courier-selection-section {
+  margin-top: 16px;
+}
+
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap {
   position: sticky;
   bottom: 0;

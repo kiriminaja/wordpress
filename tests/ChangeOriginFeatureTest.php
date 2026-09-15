@@ -97,6 +97,9 @@ class ChangeOriginFeatureTest extends TestCase {
 		$this->assertStringNotContainsString( 'esc_html_e( \'Current shipment origin\', \'kiriminaja-official\' )', $source );
 		$this->assertStringContainsString( 'esc_html_e( \'Shipment origin\', \'kiriminaja-official\' )', $source );
         $this->assertStringContainsString( 'kiriof-origin-radio-group', $source );
+        $this->assertStringContainsString( 'kiriof-origin-selection-summary', $source );
+        $this->assertStringContainsString( 'kiriof-origin-toggle', $source );
+        $this->assertStringContainsString( 'kiriof-origin-collapse', $source );
         $this->assertStringContainsString( 'type="radio" name="location_id" value="{{ data.current_location_id }}" checked', $source );
         $this->assertStringContainsString( 'data-location-id="<?php echo esc_attr( $kiriof_location_option->id ); ?>"', $source );
         $this->assertStringNotContainsString( '<select id="kiriof-change-origin-to"', $source );
@@ -104,7 +107,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'id="kiriof-change-origin-confirm" disabled', $source );
         $this->assertStringContainsString( 'getAll( true )', $source );
         $this->assertStringContainsString( '{{ data.current_origin_address }}', $source );
-        $this->assertSame( 1, substr_count( $source, '{{ data.current_origin_address }}' ) );
+        $this->assertSame( 2, substr_count( $source, '{{ data.current_origin_address }}' ) );
         $this->assertStringNotContainsString( 'kiriof-change-origin-current', $source );
         $this->assertStringContainsString( 'Manage shipment locations', $source );
         $this->assertStringContainsString( 'No alternative shipment locations are available.', $source );
@@ -150,11 +153,22 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringNotContainsString( 'data-option=', $js );
         $this->assertStringContainsString( 'input[name="courier_option"]:checked', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-group', $js );
-        $this->assertStringContainsString( '<h2 class="kiriof-courier-radio-title">', $js );
+        $this->assertStringContainsString( '<h2 class="kiriof-courier-radio-title">', $source );
+        $this->assertStringNotContainsString( '<h2 class="kiriof-courier-radio-title">', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-card', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-row', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-name', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-price', $js );
+        $this->assertStringContainsString( 'kiriof-courier-selection-summary', $js );
+        $this->assertStringContainsString( 'kiriof-courier-toggle', $js );
+        $this->assertStringContainsString( 'kiriof-courier-collapse', $js );
+        $this->assertStringContainsString( 'kiriof-pricing-impact', $js );
+        $this->assertStringContainsString( "kiriof-change-value-increase", $js );
+        $this->assertStringContainsString( "kiriof-change-value-decrease", $js );
+        $this->assertStringContainsString( 'total_was_clamped', $js );
+        $this->assertStringContainsString( 'Math.max(0, rawNewTotal)', $js );
+        $this->assertStringContainsString( "courier-consent-granted", $js );
+        $this->assertStringContainsString( '$replacement.toggle(!comparison.available)', $js );
         $this->assertStringContainsString( 'Array.isArray(payload.options)', $js );
         $this->assertStringContainsString( 'courierOptions.unshift(courierOptions.splice(matchedIndex, 1)[0])', $js );
         $this->assertStringContainsString( 'comparison.available', $js );
@@ -190,6 +204,12 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'min-height: 0 !important;', $css );
         $this->assertStringContainsString( 'padding: 12px 28px !important;', $css );
         $this->assertStringContainsString( '.kiriof-radio-card-group', $css );
+        $this->assertStringContainsString( '.kiriof-compact-selection', $css );
+        $this->assertStringContainsString( '.kiriof-choice-panel', $css );
+        $this->assertStringContainsString( '.kiriof-pricing-impact', $css );
+        $this->assertStringContainsString( '.kiriof-change-value-increase strong', $css );
+        $this->assertStringContainsString( '.kiriof-change-value-decrease strong', $css );
+        $this->assertStringContainsString( '.kiriof-total-anomaly', $css );
         $this->assertStringContainsString( '.kiriof-radio-card:has(input:checked)', $css );
         $this->assertStringContainsString( '.kiriof-courier-radio-row', $css );
         $this->assertStringContainsString( '.kiriof-change-origin-replacement', $css );
@@ -289,6 +309,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '$wpdb->query( \'COMMIT\' )', $source );
         $this->assertStringContainsString( 'WooCommerce order not found. No shipment data was changed.', $source );
         $this->assertStringContainsString( 'Failed to update the shipment origin. No shipment data was changed.', $source );
+        $this->assertStringContainsString( '$kiriof_raw_new_total', $source );
+        $this->assertStringContainsString( "'total_was_clamped'", $source );
     }
 
     public function testPackageDetailsUsePersistedKaDiscountInsteadOfInferringPriceIncreaseAsDiscount(): void {

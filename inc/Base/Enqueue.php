@@ -428,6 +428,9 @@ class Enqueue extends BaseInit{
                         'orderBreakdown' => __( 'Order summary', 'kiriminaja-official' ),
                         'subTotal' => __( 'Sub Total', 'kiriminaja-official' ),
                         'shipping' => __( 'Shipping', 'kiriminaja-official' ),
+                        'change' => __( 'Change', 'kiriminaja-official' ),
+                        'collapse' => __( 'Collapse', 'kiriminaja-official' ),
+                        'totalClamped' => __( 'Calculated order total cannot be negative and is shown as Rp0.', 'kiriminaja-official' ),
                     ),
                 )
             );
