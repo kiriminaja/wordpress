@@ -134,7 +134,11 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "var hasAlternatives = \$select.find('option[value!=\"\"]')", $js );
         $this->assertStringContainsString( "String(\$(this).val()) === currentLocationId", $js );
         $this->assertStringNotContainsString( 'optionName.indexOf(currentName)', $js );
-        $this->assertStringContainsString( "dropdownParent: \$modal.find('.kiriof-change-origin-modal-content')", $js );
+        $this->assertStringContainsString( "dropdownParent: $('body')", $js );
+        $this->assertStringContainsString( 'function getSelectedReplacement($replacement)', $js );
+        $this->assertStringContainsString( 'function applyReplacementSelection($modal, selectedData)', $js );
+        $this->assertStringContainsString( "select2:select.kiriofChangeOrigin", $js );
+        $this->assertStringContainsString( '$replacement.val(String(selectedData.id));', $js );
         $this->assertStringContainsString( 'comparison.available', $js );
 		$this->assertStringContainsString( '$kiriof_is_replacement', $source );
 		$this->assertStringContainsString( '$kiriof_selected_service !== $kiriof_previous_service', $source );
@@ -165,6 +169,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'height: auto !important;', $css );
         $this->assertStringContainsString( 'min-height: 0 !important;', $css );
         $this->assertStringContainsString( 'padding: 12px 28px !important;', $css );
+        $this->assertStringContainsString( 'body > .select2-container--open', $css );
+        $this->assertStringContainsString( 'z-index: 160300 !important;', $css );
     }
 
     public function testPickupRequestFallsBackToStoredTransactionOrigin(): void {

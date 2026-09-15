@@ -87,6 +87,48 @@
 		return $.trim(courier + ' ' + service);
 	}
 
+	function modalSelectOptions($modal, placeholder) {
+		return {
+			width: '100%',
+			placeholder: placeholder || '',
+			// Mount outside the modal's scroll/overflow chain. The dropdown keeps
+			// its own high z-index and Select2 positions it against the document.
+			dropdownParent: $('body'),
+		};
+	}
+
+	function getSelectedReplacement($replacement) {
+		var select = $replacement.get(0);
+		var selectedIndex = select ? select.selectedIndex : -1;
+		if (!select || selectedIndex < 1) {
+			return null;
+		}
+
+		return $(select.options[selectedIndex]);
+	}
+
+	function applyReplacementSelection($modal, selectedData) {
+		var $replacement = $modal.find('.kiriof-replacement-courier');
+		if (selectedData && selectedData.id !== undefined) {
+			$replacement.val(String(selectedData.id));
+		}
+		var $selectedOption = getSelectedReplacement($replacement);
+		var selected = $selectedOption ? $selectedOption.attr('data-option') : '';
+		if (selected) {
+			var base = ($modal.data('shipping-check') || {}).comparison || {};
+			var option = null;
+			try {
+				option = JSON.parse($('<textarea>').html(selected).val() || '{}');
+			} catch (error) {
+				option = null;
+			}
+			if (option && typeof option === 'object') {
+				$modal.find('.kiriof-change-origin-breakdown').html(renderOrderBreakdown(buildReplacementComparison(base, option))).show();
+			}
+		}
+		$modal.find('#kiriof-change-origin-confirm').prop('disabled', !$selectedOption || !$modal.find('.kiriof-replacement-consent').prop('checked'));
+	}
+
 	function buildReplacementComparison(base, option) {
 		var rawPrice = Math.max(0, parseFloat(option.raw_price) || 0);
 		var optionDiscount = Math.max(0, parseFloat(option.discount_amount) || 0);
@@ -168,11 +210,7 @@
 		$modal.toggleClass('kiriof-change-origin-empty-state', !hasAlternatives);
 
 		if ($.fn.select2 && $select.length && hasAlternatives) {
-			$select.select2({
-				width: '100%',
-				placeholder: $select.data('placeholder') || '',
-				dropdownParent: $modal.find('.kiriof-change-origin-modal-content'),
-			});
+			$select.select2(modalSelectOptions($modal, $select.data('placeholder') || ''));
 		}
 
 		$modal.find('#kiriof-change-origin-confirm').prop('disabled', true);
@@ -248,10 +286,7 @@
 						$modal.find('#kiriof-change-origin-confirm').prop('disabled', !comparison.available);
 						$modal.data('shipping-check', payload);
 							if ($.fn.select2) {
-								$modal.find('.kiriof-replacement-courier').select2({
-									width: '100%',
-									dropdownParent: $modal.find('.kiriof-change-origin-modal-content'),
-								});
+								$modal.find('.kiriof-replacement-courier').select2(modalSelectOptions($modal, text('selectCourier', 'Select courier')));
 							}
 					} else {
 						setResult($result, false, '<p>' + ((payload && payload.message) || text('checkFailed', 'Shipping check failed.')) + '</p>');
@@ -268,23 +303,10 @@
 
 		$select.on('change.kiriofChangeOrigin', checkShipping);
 		$modal.on('change.kiriofChangeOrigin', '.kiriof-replacement-courier, .kiriof-replacement-consent', function () {
-			var $replacement = $modal.find('.kiriof-replacement-courier');
-			var selected = $replacement.find(':selected').attr('data-option');
-			if (selected) {
-				var base = ($modal.data('shipping-check') || {}).comparison || {};
-				var option = null;
-				try {
-					option = JSON.parse($('<textarea>').html(selected).val() || '{}');
-				} catch (error) {
-					option = null;
-				}
-				if (option && typeof option === 'object') {
-					$modal.find('.kiriof-change-origin-breakdown').html(renderOrderBreakdown(buildReplacementComparison(base, option))).show();
-				} else {
-					$replacement.val('').trigger('change.select2');
-				}
-			}
-			$modal.find('#kiriof-change-origin-confirm').prop('disabled', !$replacement.val() || !$modal.find('.kiriof-replacement-consent').prop('checked'));
+			applyReplacementSelection($modal, null);
+		});
+		$modal.on('select2:select.kiriofChangeOrigin', '.kiriof-replacement-courier', function (event) {
+			applyReplacementSelection($modal, event.params && event.params.data ? event.params.data : null);
 		});
 
 		$modal.on('click.kiriofChangeOrigin', '#kiriof-change-origin-confirm', function () {
@@ -294,13 +316,14 @@
 			var shippingCheck = $modal.data('shipping-check') || {};
 			var comparison = shippingCheck.comparison || {};
 			var $replacement = $modal.find('.kiriof-replacement-courier');
-			var serviceParts = $replacement.length && $replacement.val() ? $replacement.val().split('|') : [ comparison.service_code || '', comparison.service_name || '' ];
-			var selectedPrice = $replacement.length && $replacement.val() ? parseFloat($replacement.find(':selected').data('price')) || 0 : parseFloat($modal.find('.kiriof-selected-price').val()) || 0;
+			var $selectedReplacement = getSelectedReplacement($replacement);
+			var serviceParts = $selectedReplacement ? String($selectedReplacement.val() || '').split('|') : [ comparison.service_code || '', comparison.service_name || '' ];
+			var selectedPrice = $selectedReplacement ? parseFloat($selectedReplacement.attr('data-price')) || 0 : parseFloat($modal.find('.kiriof-selected-price').val()) || 0;
 			var selectedOption = null;
 			var selectedDiscount = parseFloat($modal.find('.kiriof-selected-discount').val()) || 0;
-			if ($replacement.length && $replacement.val()) {
+			if ($selectedReplacement) {
 				try {
-					selectedOption = JSON.parse($('<textarea>').html($replacement.find(':selected').attr('data-option') || '').val() || '{}');
+					selectedOption = JSON.parse($('<textarea>').html($selectedReplacement.attr('data-option') || '').val() || '{}');
 				} catch (error) {
 					selectedOption = null;
 				}
@@ -320,7 +343,7 @@
 				courier_service_name: serviceParts[1],
 				courier_price: selectedPrice,
 				courier_discount: selectedDiscount,
-				courier_consent: $replacement.length && $modal.find('.kiriof-replacement-consent').prop('checked') ? 1 : 0,
+				courier_consent: $selectedReplacement && $modal.find('.kiriof-replacement-consent').prop('checked') ? 1 : 0,
 				nonce: $('.kiriof-change-origin-button[data-ka-order-id="' + data.order_id + '"]').data('nonce'),
 			})
 				.done(function (response) {

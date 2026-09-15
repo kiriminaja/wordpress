@@ -617,7 +617,7 @@ body.kiriof-change-origin-scroll-locked {
 .wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
   width: min(760px, calc(100vw - 32px));
   max-width: 760px;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 8px;
 }
 
@@ -1510,11 +1510,24 @@ button.select2-selection__clear {
   transform: none !important;
   max-width: 760px !important;
   max-height: calc(100vh - 48px) !important;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal .wc-backbone-modal-main {
-  overflow: hidden;
+  overflow: visible;
+}
+
+body > .select2-container--open {
+  z-index: 160300 !important;
+}
+
+body > .select2-container--open .select2-dropdown,
+body > .select2-container--open .select2-results__options {
+  max-height: min(320px, calc(100vh - 48px));
+}
+
+body > .select2-container--open .select2-results__options {
+  overflow-y: auto;
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal.kiriof-change-origin-empty-state .kiriof-change-origin-modal-content {
