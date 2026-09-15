@@ -89,10 +89,15 @@
 			new_discounted_shipping: newPaidShipping,
 			new_total_shipping: rawPrice + (parseFloat(base.insurance_cost) || 0) + (parseFloat(base.cod_fee) || 0),
 		});
-		next.total_delta = newPaidShipping - previousPaidShipping;
-		var rawNewTotal = (parseFloat(base.previous_total) || 0) + next.total_delta;
+		var previousTotal = parseFloat(base.previous_total) || 0;
+		var nonShippingTotal = parseFloat(base.previous_non_shipping_total);
+		if (!Number.isFinite(nonShippingTotal)) {
+			nonShippingTotal = Math.max(0, previousTotal - (parseFloat(base.previous_order_shipping) || previousPaidShipping));
+		}
+		var rawNewTotal = nonShippingTotal + newPaidShipping;
 		next.total_was_clamped = rawNewTotal < 0;
 		next.new_total = Math.max(0, rawNewTotal);
+		next.total_delta = next.new_total - previousTotal;
 		return next;
 	}
 

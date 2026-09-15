@@ -2,6 +2,19 @@
   min-width: 400px;
 }
 
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-origin-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-origin-field-header > a {
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-value strong {
   font-weight: 700;
 }

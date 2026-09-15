@@ -597,6 +597,8 @@ class TransactionProcessController
             $kiriof_order = ! empty( $kiriof_transaction->wp_wc_order_stat_order_id ) ? wc_get_order( (int) $kiriof_transaction->wp_wc_order_stat_order_id ) : false;
             $kiriof_previous_paid_shipping = $kiriof_previous_price;
             $kiriof_previous_total = $kiriof_order ? (float) $kiriof_order->get_total() : 0;
+            $kiriof_previous_order_shipping = $kiriof_order ? max( 0, (float) $kiriof_order->get_shipping_total() ) : $kiriof_previous_paid_shipping;
+            $kiriof_previous_non_shipping_total = max( 0, $kiriof_previous_total - $kiriof_previous_order_shipping );
             $kiriof_matched_option   = null;
             $kiriof_normalized       = array();
             $kiriof_normalize_code   = static function ( $code ) {
@@ -646,6 +648,10 @@ class TransactionProcessController
                     'previous_discount' => $kiriof_previous_discount,
                     'previous_paid_shipping' => $kiriof_previous_paid_shipping,
                     'previous_total' => $kiriof_previous_total,
+                    'previous_order_shipping' => $kiriof_previous_order_shipping,
+                    'previous_non_shipping_total' => $kiriof_previous_non_shipping_total,
+                    'previous_order_shipping' => $kiriof_previous_order_shipping,
+                    'previous_non_shipping_total' => $kiriof_previous_non_shipping_total,
                     'previous_courier' => $kiriof_previous_name,
                     'new_courier' => kiriof_helper()->formatServiceName( (string) $kiriof_matched_option['service_code'], (string) $kiriof_matched_option['service_name'] ),
                        'new_raw_shipping' => $kiriof_new_raw_shipping,
@@ -657,10 +663,10 @@ class TransactionProcessController
                     'new_total_shipping' => $kiriof_new_raw_shipping + (float) ( $kiriof_transaction->insurance_cost ?? 0 ) + (float) ( $kiriof_transaction->cod_fee ?? 0 ),
                     'new_discounted_shipping' => $kiriof_new_paid_shipping,
                  );
-                $kiriof_comparison['total_delta'] = $kiriof_comparison['new_paid_shipping'] - $kiriof_previous_paid_shipping;
-                $kiriof_raw_new_total = $kiriof_previous_total + $kiriof_comparison['total_delta'];
+                $kiriof_raw_new_total = $kiriof_previous_non_shipping_total + $kiriof_comparison['new_paid_shipping'];
                 $kiriof_comparison['total_was_clamped'] = $kiriof_raw_new_total < 0;
                 $kiriof_comparison['new_total'] = max( 0, $kiriof_raw_new_total );
+                $kiriof_comparison['total_delta'] = $kiriof_comparison['new_total'] - $kiriof_previous_total;
             } else {
                 /* translators: %s: courier service name. */
                 $kiriof_unavailable_label = sprintf( __( '%s is not available from the selected origin.', 'kiriminaja-official' ), $kiriof_previous_name );
@@ -821,7 +827,10 @@ class TransactionProcessController
                 $kiriof_new_paid          = max( 0, $kiriof_new_shipping - $kiriof_new_discount );
                 $kiriof_total_delta       = $kiriof_new_paid - $kiriof_previous_paid;
                 $kiriof_previous_total    = (float) $kiriof_wc_order->get_total();
-                $kiriof_new_total         = max( 0, $kiriof_previous_total + $kiriof_total_delta );
+                $kiriof_previous_order_shipping = max( 0, (float) $kiriof_wc_order->get_shipping_total() );
+                $kiriof_previous_non_shipping_total = max( 0, $kiriof_previous_total - $kiriof_previous_order_shipping );
+                $kiriof_new_total         = max( 0, $kiriof_previous_non_shipping_total + $kiriof_new_paid );
+                $kiriof_total_delta       = $kiriof_new_total - $kiriof_previous_total;
 
                 $kiriof_format_price = static function ( $amount ) {
                     return wp_strip_all_tags( wc_price( max( 0, (float) $amount ) ) );
@@ -1300,8 +1309,9 @@ class TransactionProcessController
                             <form>
                                 <input type="hidden" name="order_id" value="{{ data.order_id }}">
                                 <div class="kiriof-backbone-field">
-                                    <span class="kiriof-backbone-label">
-										<?php esc_html_e( 'Shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span>
+                                    <span class="kiriof-backbone-label kiriof-origin-field-header">
+										<span><?php esc_html_e( 'Shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span></span>
+                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
                                     </span>
                                     <div class="kiriof-compact-selection kiriof-origin-selection-summary">
                                         <span class="kiriof-compact-selection-copy">
@@ -1341,9 +1351,6 @@ class TransactionProcessController
                                     </div>
                                     <button type="button" class="button button-small kiriof-origin-collapse"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></button>
                                     </div>
-                                    <p class="description kiriof-change-origin-manage">
-                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
-                                    </p>
                                     <div class="kiriof-change-origin-empty" style="display:none;">
                                         <p><?php esc_html_e( 'No alternative shipment locations are available.', 'kiriminaja-official' ); ?></p>
                                         <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Add shipment location', 'kiriminaja-official' ); ?></a>

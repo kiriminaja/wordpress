@@ -98,6 +98,8 @@ class ChangeOriginFeatureTest extends TestCase {
 		$this->assertStringContainsString( 'esc_html_e( \'Shipment origin\', \'kiriminaja-official\' )', $source );
         $this->assertStringContainsString( 'kiriof-origin-radio-group', $source );
         $this->assertStringContainsString( 'kiriof-origin-selection-summary', $source );
+        $this->assertStringContainsString( 'kiriof-origin-field-header', $source );
+        $this->assertSame( 1, substr_count( $source, 'Manage shipment locations' ) );
         $this->assertStringContainsString( 'kiriof-origin-toggle', $source );
         $this->assertStringContainsString( 'kiriof-origin-collapse', $source );
         $this->assertStringContainsString( 'type="radio" name="location_id" value="{{ data.current_location_id }}" checked', $source );
@@ -163,8 +165,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'kiriof-courier-toggle', $js );
         $this->assertStringContainsString( 'kiriof-courier-collapse', $js );
         $this->assertStringContainsString( 'kiriof-pricing-impact', $js );
-        $this->assertStringContainsString( "kiriof-change-value-increase", $js );
-        $this->assertStringContainsString( "kiriof-change-value-decrease", $js );
+        $this->assertStringContainsString( "var tone = next > previous ? 'increase'", $js );
+        $this->assertStringContainsString( "next < previous ? 'decrease'", $js );
         $this->assertStringContainsString( 'total_was_clamped', $js );
         $this->assertStringContainsString( 'Math.max(0, rawNewTotal)', $js );
         $this->assertStringContainsString( "courier-consent-granted", $js );
@@ -205,6 +207,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'padding: 12px 28px !important;', $css );
         $this->assertStringContainsString( '.kiriof-radio-card-group', $css );
         $this->assertStringContainsString( '.kiriof-compact-selection', $css );
+        $this->assertStringContainsString( '.kiriof-origin-field-header', $css );
         $this->assertStringContainsString( '.kiriof-choice-panel', $css );
         $this->assertStringContainsString( '.kiriof-pricing-impact', $css );
         $this->assertStringContainsString( '.kiriof-change-value-increase strong', $css );
@@ -294,6 +297,7 @@ class ChangeOriginFeatureTest extends TestCase {
 
     public function testServerRejectsSelectingTheCurrentOriginAndUnvalidatedConfirm(): void {
         $source = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+        $js     = $this->read( __DIR__ . '/../assets/js/kiriof-change-origin.js' );
 
         $this->assertSame( 2, substr_count( $source, 'Please select a different shipment origin.' ) );
         $this->assertStringContainsString( 'Please run the shipping check again before confirming.', $source );
@@ -311,6 +315,9 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'Failed to update the shipment origin. No shipment data was changed.', $source );
         $this->assertStringContainsString( '$kiriof_raw_new_total', $source );
         $this->assertStringContainsString( "'total_was_clamped'", $source );
+        $this->assertStringContainsString( '$kiriof_previous_non_shipping_total', $source );
+        $this->assertStringContainsString( '$kiriof_order->get_shipping_total()', $source );
+        $this->assertStringContainsString( 'nonShippingTotal + newPaidShipping', $js );
     }
 
     public function testPackageDetailsUsePersistedKaDiscountInsteadOfInferringPriceIncreaseAsDiscount(): void {
