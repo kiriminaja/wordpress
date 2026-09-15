@@ -14,31 +14,17 @@
 		var html = document.documentElement;
 		var scrollTop = window.pageYOffset || html.scrollTop || body.scrollTop || 0;
 		var scrollLeft = window.pageXOffset || html.scrollLeft || body.scrollLeft || 0;
-		var scrollbarWidth = Math.max(0, window.innerWidth - html.clientWidth);
-		var computedPaddingRight = parseFloat(window.getComputedStyle(body).paddingRight) || 0;
 
 		pageScrollState = {
 			scrollTop: scrollTop,
 			scrollLeft: scrollLeft,
 			htmlOverflow: html.style.overflow,
-			bodyPosition: body.style.position,
-			bodyTop: body.style.top,
-			bodyLeft: body.style.left,
-			bodyRight: body.style.right,
-			bodyWidth: body.style.width,
-			bodyPaddingRight: body.style.paddingRight,
+			bodyOverflow: body.style.overflow,
 		};
 
 		$('html, body').addClass('kiriof-change-origin-scroll-locked');
 		html.style.overflow = 'hidden';
-		body.style.position = 'fixed';
-		body.style.top = '-' + scrollTop + 'px';
-		body.style.left = '-' + scrollLeft + 'px';
-		body.style.right = '0';
-		body.style.width = '100%';
-		if (scrollbarWidth) {
-			body.style.paddingRight = (computedPaddingRight + scrollbarWidth) + 'px';
-		}
+		body.style.overflow = 'hidden';
 	}
 
 	function unlockPageScroll() {
@@ -52,24 +38,12 @@
 		pageScrollState = null;
 
 		html.style.overflow = state.htmlOverflow;
-		body.style.position = state.bodyPosition;
-		body.style.top = state.bodyTop;
-		body.style.left = state.bodyLeft;
-		body.style.right = state.bodyRight;
-		body.style.width = state.bodyWidth;
-		body.style.paddingRight = state.bodyPaddingRight;
+		body.style.overflow = state.bodyOverflow;
 		$('html, body').removeClass('kiriof-change-origin-scroll-locked');
 		window.scrollTo(state.scrollLeft, state.scrollTop);
 	}
 
 	function closeModal($modal) {
-		if ($.fn.select2) {
-			$modal.find('.select2-hidden-accessible').each(function () {
-				if ($(this).data('select2')) {
-					$(this).select2('destroy');
-				}
-			});
-		}
 		$modal.remove();
 		unlockPageScroll();
 	}
@@ -85,16 +59,6 @@
 			return courier;
 		}
 		return $.trim(courier + ' ' + service);
-	}
-
-	function modalSelectOptions($modal, placeholder) {
-		return {
-			width: '100%',
-			placeholder: placeholder || '',
-			// Mount outside the modal's scroll/overflow chain. The dropdown keeps
-			// its own high z-index and Select2 positions it against the document.
-			dropdownParent: $('body'),
-		};
 	}
 
 	function getSelectedReplacement($replacement) {
@@ -200,18 +164,11 @@
 			}
 		}
 
-		if ($.fn.select2 && $select.length && $select.data('select2')) {
-			$select.select2('destroy');
-		}
 		removeCurrentOriginOption();
 		var hasAlternatives = $select.find('option[value!=""]').length > 0;
 		$select.toggle(hasAlternatives);
 		$modal.find('.kiriof-change-origin-empty').toggle(!hasAlternatives);
 		$modal.toggleClass('kiriof-change-origin-empty-state', !hasAlternatives);
-
-		if ($.fn.select2 && $select.length && hasAlternatives) {
-			$select.select2(modalSelectOptions($modal, $select.data('placeholder') || ''));
-		}
 
 		$modal.find('#kiriof-change-origin-confirm').prop('disabled', true);
 		$modal.find('.kiriof-change-origin-result').hide();
@@ -285,9 +242,6 @@
 						setResult($result, true, html);
 						$modal.find('#kiriof-change-origin-confirm').prop('disabled', !comparison.available);
 						$modal.data('shipping-check', payload);
-							if ($.fn.select2) {
-								$modal.find('.kiriof-replacement-courier').select2(modalSelectOptions($modal, text('selectCourier', 'Select courier')));
-							}
 					} else {
 						setResult($result, false, '<p>' + ((payload && payload.message) || text('checkFailed', 'Shipping check failed.')) + '</p>');
 					}
@@ -304,9 +258,6 @@
 		$select.on('change.kiriofChangeOrigin', checkShipping);
 		$modal.on('change.kiriofChangeOrigin', '.kiriof-replacement-courier, .kiriof-replacement-consent', function () {
 			applyReplacementSelection($modal, null);
-		});
-		$modal.on('select2:select.kiriofChangeOrigin', '.kiriof-replacement-courier', function (event) {
-			applyReplacementSelection($modal, event.params && event.params.data ? event.params.data : null);
 		});
 
 		$modal.on('click.kiriofChangeOrigin', '#kiriof-change-origin-confirm', function () {

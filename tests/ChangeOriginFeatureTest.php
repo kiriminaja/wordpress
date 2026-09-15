@@ -89,15 +89,16 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'dashicons-location', $template );
     }
 
-    public function testChangeOriginModalTemplateUsesSelect2AndAutomaticCheckFlow(): void {
+    public function testChangeOriginModalTemplateUsesNativeSelectAndAutomaticCheckFlow(): void {
         $source = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
 
         $this->assertStringContainsString( 'tmpl-kiriof-modal-change-origin', $source );
         $this->assertStringContainsString( 'Change Shipment Origin', $source );
 		$this->assertStringContainsString( 'esc_html_e( \'Current shipment origin\', \'kiriminaja-official\' )', $source );
 		$this->assertStringContainsString( 'esc_html_e( \'New shipment origin\', \'kiriminaja-official\' )', $source );
-        $this->assertStringContainsString( 'name="location_id" class="wc-enhanced-select"', $source );
-        $this->assertStringContainsString( '<option value=""></option>', $source );
+        $this->assertStringContainsString( 'name="location_id" data-current-origin=', $source );
+        $this->assertStringNotContainsString( 'name="location_id" class="wc-enhanced-select"', $source );
+        $this->assertStringContainsString( '<option value=""><?php esc_html_e( \'Select shipment location\'', $source );
         $this->assertStringNotContainsString( 'id="kiriof-change-origin-check"', $source );
         $this->assertStringContainsString( 'id="kiriof-change-origin-confirm" disabled', $source );
         $this->assertStringContainsString( 'getAll( true )', $source );
@@ -129,16 +130,16 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "action: 'kiriof_change_origin_check',", $js );
         $this->assertStringContainsString( "action: 'kiriof_change_origin',", $js );
         $this->assertStringContainsString( ".kiriof-change-origin-button", $js );
-        $this->assertStringContainsString( "select2", $js );
+        $this->assertStringNotContainsString( "select2", $js );
         $this->assertStringContainsString( 'change.kiriofChangeOrigin', $js );
         $this->assertStringContainsString( "var hasAlternatives = \$select.find('option[value!=\"\"]')", $js );
         $this->assertStringContainsString( "String(\$(this).val()) === currentLocationId", $js );
         $this->assertStringNotContainsString( 'optionName.indexOf(currentName)', $js );
-        $this->assertStringContainsString( "dropdownParent: $('body')", $js );
         $this->assertStringContainsString( 'function getSelectedReplacement($replacement)', $js );
         $this->assertStringContainsString( 'function applyReplacementSelection($modal, selectedData)', $js );
-        $this->assertStringContainsString( "select2:select.kiriofChangeOrigin", $js );
         $this->assertStringContainsString( '$replacement.val(String(selectedData.id));', $js );
+        $this->assertStringNotContainsString( '.select2(', $js );
+        $this->assertStringNotContainsString( 'select2:select.kiriofChangeOrigin', $js );
         $this->assertStringContainsString( 'comparison.available', $js );
 		$this->assertStringContainsString( '$kiriof_is_replacement', $source );
 		$this->assertStringContainsString( '$kiriof_selected_service !== $kiriof_previous_service', $source );
@@ -159,18 +160,17 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "template: 'wc-modal-view-order'", $js );
         $this->assertStringContainsString( '$(document.body).WCBackboneModal', $js );
         $this->assertStringContainsString( 'function lockPageScroll()', $js );
-        $this->assertStringContainsString( "body.style.position = 'fixed'", $js );
-        $this->assertStringContainsString( 'body.style.top =', $js );
+        $this->assertStringContainsString( "body.style.overflow = 'hidden'", $js );
+        $this->assertStringNotContainsString( "body.style.position = 'fixed'", $js );
+        $this->assertStringNotContainsString( 'body.style.top =', $js );
         $this->assertStringContainsString( 'function unlockPageScroll()', $js );
         $this->assertStringContainsString( 'window.scrollTo(state.scrollLeft, state.scrollTop)', $js );
         $this->assertStringContainsString( 'function closeModal($modal)', $js );
-        $this->assertStringContainsString( "$(this).select2('destroy')", $js );
         $this->assertStringContainsString( "kiriof-change-origin-empty-state", $js );
         $this->assertStringContainsString( 'height: auto !important;', $css );
         $this->assertStringContainsString( 'min-height: 0 !important;', $css );
         $this->assertStringContainsString( 'padding: 12px 28px !important;', $css );
-        $this->assertStringContainsString( 'body > .select2-container--open', $css );
-        $this->assertStringContainsString( 'z-index: 160300 !important;', $css );
+        $this->assertStringNotContainsString( 'body > .select2-container--open', $css );
     }
 
     public function testPickupRequestFallsBackToStoredTransactionOrigin(): void {

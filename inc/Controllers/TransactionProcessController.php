@@ -1308,8 +1308,8 @@ class TransactionProcessController
                                     <label for="kiriof-change-origin-to" class="kiriof-backbone-label">
 										<?php esc_html_e( 'New shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span>
                                     </label>
-                                    <select id="kiriof-change-origin-to" name="location_id" class="wc-enhanced-select" data-placeholder="<?php esc_attr_e( 'Select shipment location', 'kiriminaja-official' ); ?>" data-current-origin="{{ data.current_origin }}" data-current-location-id="{{ data.current_location_id }}">
-                                        <option value=""></option>
+                                    <select id="kiriof-change-origin-to" name="location_id" data-current-origin="{{ data.current_origin }}" data-current-location-id="{{ data.current_location_id }}">
+                                        <option value=""><?php esc_html_e( 'Select shipment location', 'kiriminaja-official' ); ?></option>
                                         <?php foreach ( $kiriof_shipment_locations as $kiriof_location_option ) : ?>
                                             <?php
                                             $kiriof_location_address = $kiriof_location_service->formatAddress( $kiriof_location_option );

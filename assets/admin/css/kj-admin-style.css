@@ -1517,19 +1517,6 @@ button.select2-selection__clear {
   overflow: visible;
 }
 
-body > .select2-container--open {
-  z-index: 160300 !important;
-}
-
-body > .select2-container--open .select2-dropdown,
-body > .select2-container--open .select2-results__options {
-  max-height: min(320px, calc(100vh - 48px));
-}
-
-body > .select2-container--open .select2-results__options {
-  overflow-y: auto;
-}
-
 .wc-backbone-modal.kiriof-change-origin-modal.kiriof-change-origin-empty-state .kiriof-change-origin-modal-content {
   top: auto !important;
   transform: none !important;
