@@ -130,6 +130,9 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "'kiriminaja-transaction-process' === \$page", $enqueue );
 
         $this->assertStringContainsString( "action: 'kiriof_change_origin_check',", $js );
+        $this->assertStringContainsString( '$loading.show()', $js );
+        $this->assertStringContainsString( '$spinner.addClass(\'is-active\')', $js );
+        $this->assertStringNotContainsString( ".html('<p>' + text('checkingShipping'", $js );
         $this->assertStringContainsString( "action: 'kiriof_change_origin',", $js );
         $this->assertStringContainsString( ".kiriof-change-origin-button", $js );
         $this->assertStringNotContainsString( "select2", $js );
@@ -142,8 +145,12 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringNotContainsString( 'optionName.indexOf(currentName)', $js );
         $this->assertStringContainsString( 'function applyCourierSelection($modal)', $js );
         $this->assertStringContainsString( 'renderOrderBreakdown(option)', $js );
+        $this->assertStringContainsString( '$modal.data(\'courier-comparisons\', courierComparisons)', $js );
+        $this->assertStringContainsString( 'var optionMap = $modal.data(\'courier-comparisons\') || {}', $js );
+        $this->assertStringNotContainsString( 'data-option=', $js );
         $this->assertStringContainsString( 'input[name="courier_option"]:checked', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-group', $js );
+        $this->assertStringContainsString( '<h2 class="kiriof-courier-radio-title">', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-card', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-row', $js );
         $this->assertStringContainsString( 'kiriof-courier-radio-name', $js );
@@ -160,9 +167,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "'options' => array_values( \$kiriof_normalized )", $source );
         $this->assertStringContainsString( 'courier_discount: selectedDiscount', $js );
         $this->assertSame( 1, substr_count( $js, 'template = template.replace(/\\{\\{ data\\.current_location_id \\}\\}/g, String(currentLocationId));' ) );
-        $this->assertStringContainsString( 'try {', $js );
-        $this->assertStringContainsString( 'JSON.parse', $js );
-        $this->assertStringContainsString( '} catch (error) {', $js );
+        $this->assertStringNotContainsString( 'data-option=', $js );
+        $this->assertStringContainsString( '($modal.data(\'courier-comparisons\') || {})', $js );
         $this->assertStringNotContainsString( 'kiriof-replacement-courier', $js );
         $this->assertStringContainsString( 'kiriof-replacement-consent', $js );
         $this->assertStringContainsString( "$('#tmpl-kiriof-modal-change-origin').html()", $js );
@@ -186,9 +192,12 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '.kiriof-radio-card-group', $css );
         $this->assertStringContainsString( '.kiriof-radio-card:has(input:checked)', $css );
         $this->assertStringContainsString( '.kiriof-courier-radio-row', $css );
+        $this->assertStringContainsString( '.kiriof-change-origin-replacement', $css );
+        $this->assertStringContainsString( 'background: transparent;', $css );
         $this->assertStringContainsString( 'justify-content: space-between;', $css );
         $this->assertStringContainsString( 'margin-left: auto;', $css );
         $this->assertStringContainsString( 'aria-live="polite"', $source );
+        $this->assertStringContainsString( 'kiriof-replacement-consent-wrap', $source );
         $this->assertStringNotContainsString( 'body > .select2-container--open', $css );
 		$this->assertStringContainsString( '.kiriof-change-origin-backdrop', $css );
 		$this->assertStringContainsString( 'background: transparent !important;', $css );

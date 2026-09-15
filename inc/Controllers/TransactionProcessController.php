@@ -1341,9 +1341,12 @@ class TransactionProcessController
                                     <span class="spinner" style="float:none;"></span>
                                     <span><?php esc_html_e( 'Checking shipping route...', 'kiriminaja-official' ); ?></span>
                                 </div>
-                                <div class="kiriof-change-origin-result notice inline" style="display:none;"></div>
-                                <div class="kiriof-change-origin-replacement" style="display:none;"></div>
+                                 <div class="kiriof-change-origin-result notice inline" style="display:none;"></div>
+                                 <div class="kiriof-change-origin-replacement" style="display:none;"></div>
                                  <div class="kiriof-change-origin-breakdown kiriof-change-origin-card" style="display:none;" aria-live="polite"></div>
+                                 <p class="kiriof-replacement-consent-wrap" style="display:none;">
+                                     <label><input type="checkbox" class="kiriof-replacement-consent"> <?php esc_html_e( 'I consent to use this replacement courier.', 'kiriminaja-official' ); ?></label>
+                                 </p>
                             </form>
                         </article>
                         <footer>

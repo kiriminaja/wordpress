@@ -2,6 +2,17 @@
   min-width: 400px;
 }
 
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #dcdcde;
+  border-radius: 6px;
+  background: #fff;
+}
+
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-courier-radio-card {
   display: flex !important;
   align-items: center;
@@ -94,8 +105,19 @@
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-courier-radio-title {
-  margin: 0 0 2px;
+  margin: 16px 0 10px;
+  padding: 0;
+  color: #1d2327;
+  font-size: 14px;
   font-weight: 600;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-replacement {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap {
