@@ -362,10 +362,23 @@ class Enqueue extends BaseInit{
     }
 
 	private function enqueueOnboarding(): void {
+		$select_script_handle = wp_script_is( 'selectWoo', 'registered' ) ? 'selectWoo' : 'select2';
+
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'jquery' );
-		wp_enqueue_script( 'select2' );
+		wp_enqueue_script( $select_script_handle );
+
+		if ( ! wp_style_is( 'select2', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
+			$wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;
+			wp_register_style(
+				'select2',
+				plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/css/select2.css',
+				array(),
+				$wc_version
+			);
+		}
+
 		wp_enqueue_style( 'select2' );
 		wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
 		wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
@@ -373,7 +386,7 @@ class Enqueue extends BaseInit{
 		wp_enqueue_script(
 			'kiriof-onboarding-script',
 			$this->plugin_url . 'assets/admin/js/kj-onboarding.js',
-			array( 'jquery', 'select2', 'kiriof-leaflet-script' ),
+			array( 'jquery', $select_script_handle, 'kiriof-leaflet-script' ),
 			KIRIOF_VERSION,
 			true
 		);
@@ -394,6 +407,7 @@ class Enqueue extends BaseInit{
 				'disconnectFailed' => __( 'Disconnect failed.', 'kiriminaja-official' ),
 				'networkError'  => __( 'Network error. Please try again.', 'kiriminaja-official' ),
 				'saveFailed'    => __( 'Could not save this step.', 'kiriminaja-official' ),
+				'subdistrictSearchFailed' => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
 			)
 		);
 	}

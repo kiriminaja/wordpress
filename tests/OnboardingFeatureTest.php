@@ -53,7 +53,20 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('.kiriof-onboarding__map', $css);
 		$this->assertStringContainsString('max-width: none;', $css);
 		$this->assertStringContainsString('padding: 14px 0 152px;', $css);
-    }
+	}
+
+	#[Test]
+	public function onboarding_subdistrict_lookup_surfaces_failures_and_encodes_the_query(): void
+	{
+		$controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php');
+		$repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
+
+		$this->assertStringContainsString("'subdistrict_lookup_failed'", $controller);
+		$this->assertStringContainsString("wp_send_json_error(", $controller);
+		$this->assertStringContainsString("'Subdistrict lookup failed.'", $controller);
+		$this->assertStringNotContainsString('wp_send_json_success([])', $controller);
+		$this->assertStringContainsString('rawurlencode( $search )', $repository);
+	}
 
     #[Test]
     public function onboarding_contains_four_interactive_required_steps(): void
@@ -91,6 +104,13 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('kiriof-onboarding__field', $address);
 		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
+		$this->assertStringContainsString('var select = $.fn.selectWoo || $.fn.select2;', $script);
+		$this->assertStringContainsString("select.call(\$subdistrict, {", $script);
+		$this->assertStringContainsString('term: term', $script);
+		$this->assertStringContainsString('response.success === false', $script);
+		$this->assertStringNotContainsString("$('.kiriof-onboarding-subdistrict').select2({", $script);
+		$this->assertStringContainsString("wp_script_is( 'selectWoo', 'registered' )", file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
+		$this->assertStringContainsString("! wp_style_is( 'select2', 'registered' )", file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
 		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
 		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
 		$this->assertStringContainsString('disconnectConfirm', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
