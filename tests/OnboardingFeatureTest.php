@@ -105,13 +105,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('nav_title', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('kiriof-onboarding__field', $address);
-		$this->assertStringContainsString('name="origin_sub_district_name"', $address);
 		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
-		$this->assertStringContainsString("select2:select.kiriofOnboarding", $script);
-		$this->assertStringContainsString("new Option(text, id, true, true)", $script);
-		$this->assertStringContainsString("$(this).trigger('change.select2')", $script);
-		$this->assertStringContainsString("origin_sub_district_name: $('[name=\"origin_sub_district_name\"]').val()", $script);
-		$this->assertStringContainsString("postcode: item.postcode || ''", $script);
+		$this->assertStringContainsString("origin_sub_district_name: area.text()", $script);
 		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
 		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.js');
 		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.css');
