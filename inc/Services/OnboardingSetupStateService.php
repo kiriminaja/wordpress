@@ -21,6 +21,8 @@ class OnboardingSetupStateService {
 
 		$repo            = new SettingRepository();
 		$setup_key       = $repo->getSettingByKey( 'setup_key' );
+		$api_key         = $repo->getSettingByKey( 'api_key' );
+		$account_ready   = ! empty( $setup_key->value ?? null ) && ! empty( $api_key->value ?? null );
 		$origin_settings = $repo->getSettingByArray(
 			array(
 				'origin_name',
@@ -56,7 +58,7 @@ class OnboardingSetupStateService {
 			'account'         => array(
 				'key'      => 'account',
 				'required' => true,
-				'done'     => ! empty( $setup_key->value ?? null ),
+				'done'     => $account_ready,
 				'nav_title' => __( 'Account', 'kiriminaja-official' ),
 				'title'    => __( 'Account Connection', 'kiriminaja-official' ),
 				'description' => __( 'Connect your store to sync orders, shipments, and tracking.', 'kiriminaja-official' ),
@@ -155,8 +157,10 @@ class OnboardingSetupStateService {
 	}
 
 	public function get_connection_state(): array {
-		$setup_key_row = ( new SettingRepository() )->getSettingByKey( 'setup_key' );
-		$is_connected  = ! empty( $setup_key_row->value ?? null );
+		$repo          = new SettingRepository();
+		$setup_key_row = $repo->getSettingByKey( 'setup_key' );
+		$api_key_row   = $repo->getSettingByKey( 'api_key' );
+		$is_connected  = ! empty( $setup_key_row->value ?? null ) && ! empty( $api_key_row->value ?? null );
 		$profile       = null;
 		$profile_err   = false;
 

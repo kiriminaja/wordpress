@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.8
+Stable tag: 2.3.9
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,9 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 2.3.9 =
+- Require API credentials before marking account connected and reset
+
 = 2.3.8 =
 - Split WordPress user agent headers
 
