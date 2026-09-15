@@ -14,6 +14,7 @@
 	var couriersLoaded = false;
 	var couriersLoading = false;
 	var map;
+	var select = $.fn.selectWoo || $.fn.select2;
 
 	function parse(response) {
 		if (response && response.data) {
@@ -304,10 +305,37 @@
 		setTimeout(function () { map.invalidateSize(); }, 100);
 	}
 
-	$('.kiriof-onboarding-subdistrict').select2({
-		width: '100%', minimumInputLength: 3, placeholder: kiriofOnboarding.subdistrictPlaceholder,
-		ajax: { url: kiriofOnboarding.ajaxUrl, dataType: 'json', type: 'POST', delay: 250, data: function (params) { return { data: params, nonce: kiriofOnboarding.nonce, action: 'kiriminaja_subdistrict_search' }; }, processResults: function (response) { return { results: $.map(response.data || [], function (item) { return { id: item.id, text: item.text }; }) }; } }
-	});
+	var $subdistrict = $root.find('.kiriof-onboarding-subdistrict');
+	if ($subdistrict.length && select && typeof kiriofOnboarding !== 'undefined') {
+		select.call($subdistrict, {
+			width: '100%',
+			minimumInputLength: 3,
+			placeholder: kiriofOnboarding.subdistrictPlaceholder,
+			ajax: {
+				url: kiriofOnboarding.ajaxUrl,
+				dataType: 'json',
+				type: 'POST',
+				delay: 250,
+				data: function (params) {
+					var term = params && params.term ? params.term : '';
+					return {
+						action: 'kiriminaja_subdistrict_search',
+						nonce: kiriofOnboarding.nonce,
+						term: term,
+						data: { term: term, search: term }
+					};
+				},
+				processResults: function (response) {
+					var rows = response && response.success !== false && response.data ? response.data : [];
+					if (response && response.success === false) {
+						message('address', response.data && response.data.message ? response.data.message : kiriofOnboarding.subdistrictSearchFailed);
+					}
+					return { results: $.map(rows, function (item) { return { id: item.id, text: item.text }; }) };
+				},
+				cache: true
+			}
+		});
+	}
 
 	$('[data-kiriof-continue]').on('click', continueStep);
 	$('[data-kiriof-back]').on('click', function () { show(order[Math.max(order.indexOf(current) - 1, 0)]); });
