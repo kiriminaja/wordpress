@@ -28,7 +28,7 @@ class SetupMigration {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
             //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $sql = "CREATE TABLE `" . $table_name . "`(
+            $sql = "CREATE TABLE `" . $table_name . "` (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `key` varchar(255) NULL,
             `value` varchar(255) NULL,
@@ -243,20 +243,20 @@ class SetupMigration {
         $cities_table     = esc_sql( $wpdb->prefix . 'kiriminaja_cities' );
         $charset_collate  = $wpdb->get_charset_collate();
 
-        $provinces_sql = "CREATE TABLE `" . $provinces_table . "`(
+        $provinces_sql = "CREATE TABLE `" . $provinces_table . "` (
             `id` bigint(20) NOT NULL,
             `name` varchar(191) NOT NULL,
             `updated_at` timestamp NULL DEFAULT NULL,
-            PRIMARY KEY (`id`),
+            PRIMARY KEY  (`id`),
             KEY `name` (`name`)
         ) " . $charset_collate . ";";
 
-        $cities_sql = "CREATE TABLE `" . $cities_table . "`(
+        $cities_sql = "CREATE TABLE `" . $cities_table . "` (
             `id` bigint(20) NOT NULL,
             `province_id` bigint(20) NOT NULL,
             `name` varchar(191) NOT NULL,
             `updated_at` timestamp NULL DEFAULT NULL,
-            PRIMARY KEY (`id`),
+            PRIMARY KEY  (`id`),
             KEY `province_id` (`province_id`),
             KEY `name` (`name`)
         ) " . $charset_collate . ";";
@@ -279,7 +279,7 @@ class SetupMigration {
         $table_name      = esc_sql( $wpdb->prefix . 'kiriminaja_shipment_location' );
         $charset_collate = $wpdb->get_charset_collate();
 
-        $sql = "CREATE TABLE `" . $table_name . "`(
+        $sql = "CREATE TABLE `" . $table_name . "` (
             `id` bigint(20) NOT NULL AUTO_INCREMENT,
             `name` varchar(191) NOT NULL DEFAULT '',
             `phone` varchar(50) NOT NULL DEFAULT '',
@@ -297,7 +297,7 @@ class SetupMigration {
             `is_active` tinyint(1) NOT NULL DEFAULT 1,
             `created_at` timestamp NULL DEFAULT NULL,
             `updated_at` timestamp NULL DEFAULT NULL,
-            PRIMARY KEY (`id`),
+            PRIMARY KEY  (`id`),
             KEY `is_default` (`is_default`),
             KEY `is_active` (`is_active`)
         ) " . $charset_collate . ";";

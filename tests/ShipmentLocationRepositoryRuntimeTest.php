@@ -219,6 +219,11 @@ final class ShipmentLocationWpdbFake {
 
     public function prepare( $query, ...$values ) {
         foreach ( $values as $value ) {
+            if ( str_contains( $query, '%i' ) ) {
+                $identifier = '`' . str_replace( '`', '``', (string) $value ) . '`';
+                $query = preg_replace( '/%i/', $identifier, $query, 1 );
+                continue;
+            }
             $query = preg_replace( '/%d/', (string) (int) $value, $query, 1 );
         }
         return $query;

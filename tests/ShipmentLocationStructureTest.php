@@ -10,6 +10,35 @@ class ShipmentLocationStructureTest extends TestCase {
         return $content;
     }
 
+    public function testDbDeltaSchemasUseParseableCreateTableSpacing(): void {
+        $migration = $this->read( __DIR__ . '/../inc/Migration/SetupMigration.php' );
+        $region_start = strpos( $migration, 'private function regionCacheTables()' );
+        $shipment_start = strpos( $migration, 'private function shipmentLocationTable()' );
+        $this->assertIsInt( $region_start );
+        $this->assertIsInt( $shipment_start );
+        $region = substr( $migration, $region_start, $shipment_start - $region_start );
+        $shipment = substr( $migration, $shipment_start );
+
+        $this->assertStringContainsString( '$provinces_sql = "CREATE TABLE `" . $provinces_table . "` (', $region );
+        $this->assertStringContainsString( '$cities_sql = "CREATE TABLE `" . $cities_table . "` (', $region );
+        $this->assertStringContainsString( '$sql = "CREATE TABLE `" . $table_name . "` (', $shipment );
+        $this->assertStringNotContainsString( '`(', $region );
+        $this->assertStringNotContainsString( '`(', $shipment );
+        $this->assertStringContainsString( 'PRIMARY KEY  (`id`)', $region );
+        $this->assertStringContainsString( 'PRIMARY KEY  (`id`)', $shipment );
+    }
+
+    public function testShipmentLocationQueriesPrepareTableIdentifiers(): void {
+        $repository = $this->read( __DIR__ . '/../inc/Repositories/ShipmentLocationRepository.php' );
+
+        $this->assertStringContainsString( 'FROM %i WHERE is_default = 0', $repository );
+        $this->assertStringContainsString( 'FROM %i WHERE id = %d', $repository );
+        $this->assertStringContainsString( 'UPDATE %i SET is_default = 0 WHERE id != %d', $repository );
+        $this->assertStringNotContainsString( 'FROM {$table}', $repository );
+        $this->assertStringNotContainsString( 'UPDATE {$table}', $repository );
+        $this->assertStringNotContainsString( '$where =', $repository );
+    }
+
     public function testCheckoutFreezesDefaultOriginOnTheTransaction(): void {
         $service    = $this->read( __DIR__ . '/../inc/Services/CheckoutServices/CreateTransactionService.php' );
         $repository = $this->read( __DIR__ . '/../inc/Repositories/TransactionRepository.php' );

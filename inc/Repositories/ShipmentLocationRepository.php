@@ -42,9 +42,13 @@ class ShipmentLocationRepository
     public function countCustomLocations()
     {
         global $wpdb;
-        $table = $this->getTableName();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE is_default = 0");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i WHERE is_default = 0',
+                $this->getTableName()
+            )
+        );
     }
 
     /**
@@ -105,7 +109,7 @@ class ShipmentLocationRepository
             'updated_at'      => $now,
         );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Table insert via $wpdb.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to plugin-owned table.
         $inserted = $wpdb->insert(
             $this->getTableName(),
             $payload,
@@ -121,6 +125,7 @@ class ShipmentLocationRepository
 
         // Enforce a single default row.
         if (1 === $payload['is_default'] && ! $this->setDefault($id)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back the plugin-owned row after invariant failure.
             $wpdb->delete($this->getTableName(), array('id' => $id), array('%d'));
             return false;
         }
@@ -193,7 +198,7 @@ class ShipmentLocationRepository
         $fields['updated_at'] = current_time('mysql');
         $formats[]            = '%s';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Table update via $wpdb.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to plugin-owned table.
         $updated = $wpdb->update(
             $this->getTableName(),
             $fields,
@@ -223,13 +228,13 @@ class ShipmentLocationRepository
     public function delete($id)
     {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Table delete via $wpdb.
         $id = (int) $id;
         $location = $id > 0 ? $this->getById($id) : null;
         if (! $location || 1 === (int) $location->is_default) {
             return false;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete from plugin-owned table.
         $deleted = $wpdb->delete($this->getTableName(), array('id' => $id), array('%d'));
         if (1 !== $deleted) {
             $this->logDatabaseFailure('delete', $id);
@@ -248,9 +253,14 @@ class ShipmentLocationRepository
     public function getById($id)
     {
         global $wpdb;
-        $table = $this->getTableName();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $id));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM %i WHERE id = %d',
+                $this->getTableName(),
+                (int) $id
+            )
+        );
     }
 
     /**
@@ -262,10 +272,17 @@ class ShipmentLocationRepository
     public function getAll($activeOnly = false)
     {
         global $wpdb;
-        $table = $this->getTableName();
-        $where = $activeOnly ? 'WHERE is_active = 1' : '';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $rows = $wpdb->get_results("SELECT * FROM {$table} {$where} ORDER BY is_default DESC, id ASC");
+        $query = $activeOnly
+            ? $wpdb->prepare(
+                'SELECT * FROM %i WHERE is_active = 1 ORDER BY is_default DESC, id ASC',
+                $this->getTableName()
+            )
+            : $wpdb->prepare(
+                'SELECT * FROM %i ORDER BY is_default DESC, id ASC',
+                $this->getTableName()
+            );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        $rows = $wpdb->get_results($query);
         return is_array($rows) ? $rows : array();
     }
 
@@ -277,9 +294,13 @@ class ShipmentLocationRepository
     public function getDefault()
     {
         global $wpdb;
-        $table = $this->getTableName();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $row = $wpdb->get_row("SELECT * FROM {$table} WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM %i WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1',
+                $this->getTableName()
+            )
+        );
         if ($row) {
             return $row;
         }
@@ -294,9 +315,13 @@ class ShipmentLocationRepository
     public function count()
     {
         global $wpdb;
-        $table = $this->getTableName();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i',
+                $this->getTableName()
+            )
+        );
     }
 
     /**
@@ -315,10 +340,10 @@ class ShipmentLocationRepository
         }
 
         $table = $this->getTableName();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic invariant update for plugin-owned table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic invariant update for plugin-owned table.
         $wpdb->query('START TRANSACTION');
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Table update via $wpdb.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to plugin-owned table.
         $updated = $wpdb->update(
             $table,
             array(
@@ -333,13 +358,13 @@ class ShipmentLocationRepository
         $cleared = false !== $updated && $this->clearDefaultExcept($id);
 
         if (! $cleared) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Roll back failed invariant update.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back failed invariant update.
             $wpdb->query('ROLLBACK');
             $this->logDatabaseFailure('set_default', $id);
             return false;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Commit successful invariant update.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit successful invariant update.
         $wpdb->query('COMMIT');
         return true;
     }
@@ -352,18 +377,26 @@ class ShipmentLocationRepository
     public function ensureDefaultExists()
     {
         global $wpdb;
-        $table = $this->getTableName();
-
         // Do not use getDefault() here because its active-row fallback is not
         // necessarily flagged as the persisted default.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $default = $wpdb->get_row("SELECT * FROM {$table} WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        $default = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM %i WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1',
+                $this->getTableName()
+            )
+        );
         if ($default) {
             return $this->clearDefaultExcept((int) $default->id);
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $first_active = $wpdb->get_row("SELECT * FROM {$table} WHERE is_active = 1 ORDER BY id ASC LIMIT 1");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+        $first_active = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM %i WHERE is_active = 1 ORDER BY id ASC LIMIT 1',
+                $this->getTableName()
+            )
+        );
         if (! $first_active) {
             return 0 === $this->count();
         }
@@ -380,9 +413,14 @@ class ShipmentLocationRepository
     private function clearDefaultExcept($exceptId)
     {
         global $wpdb;
-        $table = $this->getTableName();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal static table name.
-        $updated = $wpdb->query($wpdb->prepare("UPDATE {$table} SET is_default = 0 WHERE id != %d", (int) $exceptId));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintain the default invariant in the plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                'UPDATE %i SET is_default = 0 WHERE id != %d',
+                $this->getTableName(),
+                (int) $exceptId
+            )
+        );
         return false !== $updated;
     }
 
