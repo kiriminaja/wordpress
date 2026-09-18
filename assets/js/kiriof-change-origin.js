@@ -95,10 +95,9 @@
 		if (!Number.isFinite(nonShippingTotal)) {
 			nonShippingTotal = Math.max(0, previousTotal - (parseFloat(base.previous_order_shipping) || previousPaidShipping));
 		}
-		var adjustedTotal = previousTotal + (newPaidShipping - previousPaidShipping);
 		var rawNewTotal = nonShippingTotal + newPaidShipping;
-		next.total_was_clamped = adjustedTotal < 0;
-		next.is_total_blocked = adjustedTotal < 0;
+		next.total_was_clamped = rawNewTotal < 0;
+		next.is_total_blocked = rawNewTotal < 0;
 		next.required_refund = Math.max(0, previousPaidShipping - newPaidShipping);
 		next.new_total = Math.max(0, rawNewTotal);
 		next.total_delta = next.new_total - previousTotal;
@@ -241,7 +240,7 @@
 								}
 							var sameCourier = comparison.available && (option.service_code || '') === (comparison.service_code || '') && (option.service_name || '') === (comparison.service_name || '');
 							var optionComparison = sameCourier ? comparison : buildReplacementComparison(comparison, option);
-							var checked = comparison.available && index === 0 ? ' checked' : '';
+							var checked = index === 0 ? ' checked' : '';
 							var replacement = sameCourier ? '0' : '1';
 							var courierKey = String(option.service_code || '') + '|' + String(option.service_name || '');
 							courierComparisons[courierKey] = optionComparison;

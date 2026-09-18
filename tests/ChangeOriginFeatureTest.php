@@ -72,6 +72,10 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'wp_get_current_user()', $source );
         $this->assertStringContainsString( "update_meta_data( '_kiriof_expedition_code'", $source );
         $this->assertStringContainsString( '$kiriof_wc_order->save()', $source );
+        $this->assertStringContainsString( '$kiriof_wc_order->get_items( \'shipping\' )', $source );
+        $this->assertStringContainsString( '$kiriof_shipping_item->set_total( $kiriof_new_paid )', $source );
+        $this->assertStringContainsString( '$kiriof_shipping_item->calculate_taxes()', $source );
+        $this->assertStringContainsString( '$kiriof_wc_order->calculate_totals( false )', $source );
     }
 
     public function testTransactionsListRendersChangeOriginButtonForProcessableRows(): void {
@@ -176,6 +180,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'Math.max(0, rawNewTotal)', $js );
         $this->assertStringContainsString( "courier-consent-granted", $js );
         $this->assertStringContainsString( '$replacement.toggle(!comparison.available)', $js );
+        $this->assertStringContainsString( "var checked = index === 0 ? ' checked' : '';", $js );
+        $this->assertStringNotContainsString( "var checked = comparison.available && index === 0 ? ' checked' : '';", $js );
         $this->assertStringContainsString( 'Array.isArray(payload.options)', $js );
         $this->assertStringContainsString( 'courierOptions.unshift(courierOptions.splice(matchedIndex, 1)[0])', $js );
         $this->assertStringContainsString( 'comparison.available', $js );
@@ -329,6 +335,20 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '$kiriof_previous_non_shipping_total', $source );
         $this->assertStringContainsString( '$kiriof_order->get_shipping_total()', $source );
         $this->assertStringContainsString( 'nonShippingTotal + newPaidShipping', $js );
+        $this->assertStringContainsString( '$kiriof_validated_non_shipping_total + $kiriof_validated_paid_shipping', $source );
+        $this->assertStringContainsString( '$kiriof_shipping_item->set_total( $kiriof_new_paid )', $source );
+        $this->assertStringContainsString( '$kiriof_new_total   = (float) $kiriof_wc_order->get_total()', $source );
+    }
+
+    public function testUncoveredOriginUsesActionableErrorMessage(): void {
+        $source = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
+
+        $this->assertStringContainsString( 'The selected origin is not covered by KiriminAja yet. Please choose another shipment origin.', $source );
+        $this->assertStringContainsString( 'The selected origin is not covered for this destination. Please choose another shipment origin.', $source );
+        $this->assertStringNotContainsString( 'Route is not serviceable from the selected origin:', $source );
+        $this->assertStringNotContainsString( 'Selected shipment location has no serviceable area yet.', $source );
+        $this->assertStringContainsString( 'if ( empty( $kiriof_options ) )', $source );
+        $this->assertStringContainsString( 'if ( empty( $options ) )', $source );
     }
 
     public function testPackageDetailsUsePersistedKaDiscountInsteadOfInferringPriceIncreaseAsDiscount(): void {

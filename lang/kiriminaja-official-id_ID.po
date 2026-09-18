@@ -3576,6 +3576,12 @@ msgstr "Lokasi pengiriman yang dipilih tidak tersedia."
 msgid "Selected shipment location has no serviceable area yet."
 msgstr "Lokasi pengiriman yang dipilih belum memiliki area layanan."
 
+msgid "The selected origin is not covered by KiriminAja yet. Please choose another shipment origin."
+msgstr "Origin yang dipilih belum tercover oleh KiriminAja. Silakan pilih origin pengiriman lain."
+
+msgid "The selected origin is not covered for this destination. Please choose another shipment origin."
+msgstr "Origin yang dipilih belum tercover untuk tujuan ini. Silakan pilih origin pengiriman lain."
+
 msgid "Transaction not found."
 msgstr "Transaksi tidak ditemukan."
 
@@ -3611,6 +3617,12 @@ msgstr "Gagal membuat catatan audit pengiriman."
 
 msgid "Failed to save the WooCommerce shipment data."
 msgstr "Gagal menyimpan data pengiriman WooCommerce."
+
+msgid "WooCommerce shipping item not found."
+msgstr "Item pengiriman WooCommerce tidak ditemukan."
+
+msgid "Failed to save the WooCommerce shipping total."
+msgstr "Gagal menyimpan total pengiriman WooCommerce."
 
 msgid "Failed to update the shipment origin. No shipment data was changed."
 msgstr "Gagal memperbarui origin pengiriman. Tidak ada data pengiriman yang diubah."

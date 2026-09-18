@@ -565,7 +565,7 @@ class TransactionProcessController
 
             $kiriof_origin = $kiriof_location_service->originForLocation( $location_id );
             if (empty( $kiriof_origin['origin_sub_district_id'] )) {
-                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Selected shipment location has no serviceable area yet.', 'kiriminaja-official' ) ) );
+                wp_send_json_error( array( 'status' => 422, 'message' => __( 'The selected origin is not covered by KiriminAja yet. Please choose another shipment origin.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
 
@@ -585,17 +585,20 @@ class TransactionProcessController
             if ( 200 !== $kiriof_pricing->status() ) {
                 wp_send_json_error( array(
                     'status'  => 422,
-                    'message' => sprintf(
-                        /* translators: %s: shipping check error message. */
-                        __( 'Route is not serviceable from the selected origin: %s', 'kiriminaja-official' ),
-                        $kiriof_pricing->message()
-                    ),
+                    'message' => __( 'The selected origin is not covered for this destination. Please choose another shipment origin.', 'kiriminaja-official' ),
                 ) );
                 wp_die();
             }
 
             $kiriof_pricing_data = $kiriof_pricing->data();
             $kiriof_options      = is_array( $kiriof_pricing_data['options'] ?? null ) ? $kiriof_pricing_data['options'] : array();
+            if ( empty( $kiriof_options ) ) {
+                wp_send_json_error( array(
+                    'status'  => 422,
+                    'message' => __( 'The selected origin is not covered for this destination. Please choose another shipment origin.', 'kiriminaja-official' ),
+                ) );
+                wp_die();
+            }
             $kiriof_previous_service = (string) ( $kiriof_transaction->service ?? '' );
             $kiriof_previous_name    = kiriof_helper()->formatServiceName( $kiriof_previous_service, (string) ( $kiriof_transaction->service_name ?? '' ) );
             $kiriof_previous_raw_shipping = (float) ( $kiriof_transaction->shipping_cost ?? 0 );
@@ -605,7 +608,7 @@ class TransactionProcessController
             $kiriof_previous_paid_shipping = $kiriof_previous_price;
             $kiriof_previous_total = $kiriof_order ? (float) $kiriof_order->get_total() : 0;
             $kiriof_previous_order_shipping = $kiriof_order ? max( 0, (float) $kiriof_order->get_shipping_total() ) : $kiriof_previous_paid_shipping;
-            $kiriof_previous_non_shipping_total = max( 0, $kiriof_previous_total - $kiriof_previous_order_shipping );
+            $kiriof_previous_non_shipping_total = $kiriof_previous_total - $kiriof_previous_order_shipping;
             $kiriof_matched_option   = null;
             $kiriof_normalized       = array();
             $kiriof_normalize_code   = static function ( $code ) {
@@ -657,8 +660,6 @@ class TransactionProcessController
                     'previous_total' => $kiriof_previous_total,
                     'previous_order_shipping' => $kiriof_previous_order_shipping,
                     'previous_non_shipping_total' => $kiriof_previous_non_shipping_total,
-                    'previous_order_shipping' => $kiriof_previous_order_shipping,
-                    'previous_non_shipping_total' => $kiriof_previous_non_shipping_total,
                     'previous_courier' => $kiriof_previous_name,
                     'new_courier' => kiriof_helper()->formatServiceName( (string) $kiriof_matched_option['service_code'], (string) $kiriof_matched_option['service_name'] ),
                        'new_raw_shipping' => $kiriof_new_raw_shipping,
@@ -670,10 +671,9 @@ class TransactionProcessController
                     'new_total_shipping' => $kiriof_new_raw_shipping + (float) ( $kiriof_transaction->insurance_cost ?? 0 ) + (float) ( $kiriof_transaction->cod_fee ?? 0 ),
                     'new_discounted_shipping' => $kiriof_new_paid_shipping,
                  );
-                $kiriof_adjusted_total = $kiriof_previous_total + ( $kiriof_comparison['new_paid_shipping'] - $kiriof_previous_paid_shipping );
                 $kiriof_raw_new_total = $kiriof_previous_non_shipping_total + $kiriof_comparison['new_paid_shipping'];
-                $kiriof_comparison['total_was_clamped'] = $kiriof_adjusted_total < 0;
-                $kiriof_comparison['is_total_blocked'] = $kiriof_adjusted_total < 0;
+                $kiriof_comparison['total_was_clamped'] = $kiriof_raw_new_total < 0;
+                $kiriof_comparison['is_total_blocked'] = $kiriof_raw_new_total < 0;
                 $kiriof_comparison['required_refund'] = max( 0, $kiriof_previous_paid_shipping - $kiriof_comparison['new_paid_shipping'] );
                 $kiriof_comparison['new_total'] = max( 0, $kiriof_raw_new_total );
                 $kiriof_comparison['total_delta'] = $kiriof_comparison['new_total'] - $kiriof_previous_total;
@@ -690,8 +690,13 @@ class TransactionProcessController
                     'previous_discount' => $kiriof_previous_discount,
                     'previous_paid_shipping' => $kiriof_previous_paid_shipping,
                     'previous_total' => $kiriof_previous_total,
+                    'previous_order_shipping' => $kiriof_previous_order_shipping,
+                    'previous_non_shipping_total' => $kiriof_previous_non_shipping_total,
                     'previous_courier' => $kiriof_previous_name,
                     'new_courier' => '',
+                    'previous_subtotal' => $kiriof_order ? (float) $kiriof_order->get_subtotal() : 0,
+                    'insurance_cost' => (float) ( $kiriof_transaction->insurance_cost ?? 0 ),
+                    'cod_fee' => (float) ( $kiriof_transaction->cod_fee ?? 0 ),
                 );
             }
 
@@ -778,16 +783,9 @@ class TransactionProcessController
                 : false;
             if ( $kiriof_wc_order_for_validation ) {
                 $kiriof_validated_paid_shipping = max( 0, $courier_price - $courier_discount );
-                $kiriof_validated_non_shipping_total = max(
-                    0,
-                    (float) $kiriof_wc_order_for_validation->get_total() - max( 0, (float) $kiriof_wc_order_for_validation->get_shipping_total() )
-                );
-                $kiriof_previous_validated_shipping = max(
-                    0,
-                    (float) ( $kiriof_transaction->shipping_cost ?? 0 ) - max( 0, (float) ( $kiriof_transaction->discount_amount ?? 0 ) )
-                );
-                $kiriof_adjusted_total = (float) $kiriof_wc_order_for_validation->get_total()
-                    + ( $kiriof_validated_paid_shipping - $kiriof_previous_validated_shipping );
+                $kiriof_validated_non_shipping_total = (float) $kiriof_wc_order_for_validation->get_total()
+                    - max( 0, (float) $kiriof_wc_order_for_validation->get_shipping_total() );
+                $kiriof_adjusted_total = $kiriof_validated_non_shipping_total + $kiriof_validated_paid_shipping;
                 if ( $kiriof_adjusted_total < 0 ) {
                     wp_send_json_error( array( 'status' => 422, 'message' => __( 'This courier change requires buyer refund reconciliation before it can be processed.', 'kiriminaja-official' ) ) );
                     wp_die();
@@ -862,12 +860,37 @@ class TransactionProcessController
                 $kiriof_new_discount      = min( $kiriof_new_shipping, $courier_discount );
                 $kiriof_previous_paid     = max( 0, $kiriof_previous_shipping - $kiriof_previous_discount );
                 $kiriof_new_paid          = max( 0, $kiriof_new_shipping - $kiriof_new_discount );
-                $kiriof_total_delta       = $kiriof_new_paid - $kiriof_previous_paid;
                 $kiriof_previous_total    = (float) $kiriof_wc_order->get_total();
-                $kiriof_previous_order_shipping = max( 0, (float) $kiriof_wc_order->get_shipping_total() );
-                $kiriof_previous_non_shipping_total = max( 0, $kiriof_previous_total - $kiriof_previous_order_shipping );
-                $kiriof_new_total         = max( 0, $kiriof_previous_non_shipping_total + $kiriof_new_paid );
-                $kiriof_total_delta       = $kiriof_new_total - $kiriof_previous_total;
+
+                $kiriof_shipping_items = $kiriof_wc_order->get_items( 'shipping' );
+                $kiriof_shipping_item  = null;
+                foreach ( $kiriof_shipping_items as $kiriof_candidate_shipping_item ) {
+                    $kiriof_method_id = method_exists( $kiriof_candidate_shipping_item, 'get_method_id' )
+                        ? (string) $kiriof_candidate_shipping_item->get_method_id()
+                        : '';
+                    if ( 0 === strpos( $kiriof_method_id, 'kiriminaja-official' ) ) {
+                        $kiriof_shipping_item = $kiriof_candidate_shipping_item;
+                        break;
+                    }
+                    if ( null === $kiriof_shipping_item ) {
+                        $kiriof_shipping_item = $kiriof_candidate_shipping_item;
+                    }
+                }
+                if ( ! $kiriof_shipping_item ) {
+                    throw new \RuntimeException( __( 'WooCommerce shipping item not found.', 'kiriminaja-official' ) );
+                }
+
+                $kiriof_shipping_item->set_method_title( $kiriof_new_courier );
+                $kiriof_shipping_item->set_name( $kiriof_new_courier );
+                $kiriof_shipping_item->set_total( $kiriof_new_paid );
+                $kiriof_shipping_item->calculate_taxes();
+                if ( ! $kiriof_shipping_item->save() ) {
+                    throw new \RuntimeException( __( 'Failed to save the WooCommerce shipping total.', 'kiriminaja-official' ) );
+                }
+
+                $kiriof_wc_order->calculate_totals( false );
+                $kiriof_new_total   = (float) $kiriof_wc_order->get_total();
+                $kiriof_total_delta = $kiriof_new_total - $kiriof_previous_total;
 
                 $kiriof_format_price = static function ( $amount ) {
                     return wp_strip_all_tags( wc_price( max( 0, (float) $amount ) ) );
@@ -929,18 +952,18 @@ class TransactionProcessController
                     $kiriof_format_delta( $kiriof_total_delta )
                 );
 
-                $kiriof_note_id = $kiriof_wc_order->add_order_note(
-                    implode( "\n", $kiriof_note_lines )
-                );
-                if ( ! $kiriof_note_id ) {
-                    throw new \RuntimeException( __( 'Failed to create the shipment audit note.', 'kiriminaja-official' ) );
-                }
-
                 $kiriof_wc_order->update_meta_data( '_kiriof_expedition_code', $courier_service . '_' . $courier_service_name );
                 $kiriof_wc_order->update_meta_data( '_kiriof_expedition_name', $kiriof_new_courier );
                 $kiriof_wc_order->update_meta_data( '_kiriof_expedition_cost', $kiriof_new_shipping );
                 if ( ! $kiriof_wc_order->save() ) {
                     throw new \RuntimeException( __( 'Failed to save the WooCommerce shipment data.', 'kiriminaja-official' ) );
+                }
+
+                $kiriof_note_id = $kiriof_wc_order->add_order_note(
+                    implode( "\n", $kiriof_note_lines )
+                );
+                if ( ! $kiriof_note_id ) {
+                    throw new \RuntimeException( __( 'Failed to create the shipment audit note.', 'kiriminaja-official' ) );
                 }
             } catch ( \Throwable $throwable ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -976,7 +999,7 @@ class TransactionProcessController
             $location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
             $origin           = $location_service->originForLocation( $location_id );
             if ( empty( $origin['origin_sub_district_id'] ) ) {
-                return new \WP_Error( 'kiriof_invalid_origin_area', __( 'Selected shipment location has no serviceable area yet.', 'kiriminaja-official' ) );
+                return new \WP_Error( 'kiriof_invalid_origin_area', __( 'The selected origin is not covered by KiriminAja yet. Please choose another shipment origin.', 'kiriminaja-official' ) );
             }
 
             $pricing = ( new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService( array(
@@ -993,11 +1016,14 @@ class TransactionProcessController
             ) ) )->call();
 
             if ( 200 !== $pricing->status() ) {
-                return new \WP_Error( 'kiriof_shipping_check_failed', __( 'Shipping check failed.', 'kiriminaja-official' ) );
+                return new \WP_Error( 'kiriof_shipping_check_failed', __( 'The selected origin is not covered for this destination. Please choose another shipment origin.', 'kiriminaja-official' ) );
             }
 
             $pricing_data  = $pricing->data();
             $options       = is_array( $pricing_data['options'] ?? null ) ? $pricing_data['options'] : array();
+            if ( empty( $options ) ) {
+                return new \WP_Error( 'kiriof_origin_not_covered', __( 'The selected origin is not covered for this destination. Please choose another shipment origin.', 'kiriminaja-official' ) );
+            }
             $normalize     = static function ( $value ) {
                 return strtolower( preg_replace( '/[^a-z0-9]/i', '', (string) $value ) );
             };
