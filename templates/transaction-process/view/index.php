@@ -210,9 +210,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
 
                     // Split WC discount for column badges (loaded for every row).
                     $kiriof_colItemDiscount = 0.0;
-                    $kiriof_colShipDiscount = 0.0;
-                    $kiriof_colPlatformShipDiscount = max(0.0, $kiriof_discountAmount);
-                    $kiriof_colCouponShipDiscount = 0.0;
+                    $kiriof_colShipDiscount = max(0.0, $kiriof_discountAmount);
                     $kiriof_colItemCoupon   = '';
                     $kiriof_colShipCoupon   = '';
                     if ($kiriof_wcOrder) {
@@ -222,14 +220,14 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                         $kiriof_couponScopes    = $kiriof_couponService->splitCouponCodesByScope((array) $kiriof_colCoupons);
                         $kiriof_colItemCoupon   = $kiriof_couponScopes['item'][0] ?? '';
                         $kiriof_colShipCoupon   = $kiriof_couponScopes['shipping'][0] ?? '';
-                        if ($kiriof_colShipCoupon) {
-                            $kiriof_colCouponShipDiscount = max(
-                                0.0,
-                                ($kiriof_shippingCost - $kiriof_colPlatformShipDiscount) - (float) $kiriof_wcOrder->get_shipping_total()
-                            );
-                        }
-                        $kiriof_colShipDiscount = $kiriof_colPlatformShipDiscount + $kiriof_colCouponShipDiscount;
+                        $kiriof_colShipDiscount = max(
+                            0.0,
+                            $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total()
+                        );
                     }
+                    $kiriof_colPaidShipping = $kiriof_wcOrder
+                        ? max(0.0, (float) $kiriof_wcOrder->get_shipping_total())
+                        : max(0.0, $kiriof_shippingCost - $kiriof_colShipDiscount);
                     $kiriof_paymentLabel = $kiriof_isCod ? __('COD', 'kiriminaja-official') : __('NON COD', 'kiriminaja-official');
 
                     $kiriof_weight       = (float) ($kiriof_row->weight ?? 0);
@@ -411,8 +409,8 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                         . esc_html(number_format_i18n($kiriof_weight, 0)) . ' g'
                         . ($kiriof_packageCount > 1 ? ' &times; ' . (int) $kiriof_packageCount : '')
                         . '</div>'
-                        // Shipping cost — always the primary number.
-                        . '<div style="font-weight:600;margin-top:4px">Rp' . esc_html(kiriof_money_format($kiriof_shippingCost)) . '</div>'
+                        // Buyer-paid shipping is the primary amount; raw shipping stays in the discount breakdown.
+                        . '<div style="font-weight:600;margin-top:4px">Rp' . esc_html(kiriof_money_format($kiriof_colPaidShipping)) . '</div>'
                         // Extra-fee pills: only shown when applicable.
                         . (($kiriof_insuranceCost > 0 || $kiriof_codFee > 0 || $kiriof_colItemDiscount > 0 || $kiriof_colShipDiscount > 0)
                             ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">'
@@ -431,14 +429,9 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                                 . ($kiriof_colItemCoupon ? esc_html($kiriof_colItemCoupon) . ' ' : '') . '-Rp' . esc_html(kiriof_money_format($kiriof_colItemDiscount))
                                 . '</span>'
                                 : '')
-                            . ($kiriof_colCouponShipDiscount > 0
+                            . ($kiriof_colShipDiscount > 0
                                 ? '<span style="font-size:10px;background:#fce8e8;color:#d63638;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr(($kiriof_colShipCoupon ? $kiriof_colShipCoupon . ' — ' : '') . __('Shipping Discount', 'kiriminaja-official')) . '">'
-                                . ($kiriof_colShipCoupon ? esc_html($kiriof_colShipCoupon) . ' ' : '') . '-Rp' . esc_html(kiriof_money_format($kiriof_colCouponShipDiscount))
-                                . '</span>'
-                                : '')
-                            . ($kiriof_colPlatformShipDiscount > 0
-                                ? '<span style="font-size:10px;background:#fce8e8;color:#d63638;border-radius:3px;padding:1px 5px;white-space:nowrap" title="' . esc_attr(__('Shipping Discount (from KiriminAja)', 'kiriminaja-official')) . '">'
-                                . '-Rp' . esc_html(kiriof_money_format($kiriof_colPlatformShipDiscount))
+                                . ($kiriof_colShipCoupon ? esc_html($kiriof_colShipCoupon) . ' ' : '') . '-Rp' . esc_html(kiriof_money_format($kiriof_colShipDiscount))
                                 . '</span>'
                                 : '')
                             . '</div>'

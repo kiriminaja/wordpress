@@ -4232,9 +4232,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'Discounted Shipping',
+            "__('Shipping', 'kiriminaja-official'), wc_price(\$paid_shipping",
             $preview,
-            'Transaction process preview should mirror the order metabox and show the discounted base shipping amount, excluding insurance and COD fee'
+            'Transaction process preview should label the net amount paid by the buyer as Shipping, matching WooCommerce customer totals'
         );
     }
 }

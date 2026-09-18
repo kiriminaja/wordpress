@@ -360,12 +360,19 @@ class ChangeOriginFeatureTest extends TestCase {
         $preview     = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $metabox     = $this->read( __DIR__ . '/../templates/order/metabox-shipping.php' );
 
-        $this->assertStringContainsString( 'if ($kiriof_colShipCoupon)', $transaction );
-        $this->assertStringContainsString( '($kiriof_shippingCost - $kiriof_colPlatformShipDiscount) - (float) $kiriof_wcOrder->get_shipping_total()', $transaction );
-        $this->assertStringContainsString( 'if ($second_coupon)', $preview );
-        $this->assertStringContainsString( '($shipping_cost - $ka_shipping_discount) - (float) $order->get_shipping_total()', $preview );
+        $this->assertStringContainsString( '$kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total()', $transaction );
+        $this->assertStringContainsString( '$shipping_cost - $paid_shipping', $preview );
         $this->assertStringContainsString( '$kiriof_ship_coupon', $metabox );
         $this->assertStringContainsString( '(float) $wc_shipping_discount - $kiriof_platform_shipping_discount', $metabox );
         $this->assertStringNotContainsString( 'max($kiriof_discount_raw, $wc_discount_total)', $metabox );
+        $this->assertStringContainsString( '$kiriof_colPaidShipping = $kiriof_wcOrder', $transaction );
+        $this->assertStringContainsString( '$kiriof_wcOrder->get_shipping_total()', $transaction );
+        $this->assertStringContainsString( 'kiriof_money_format($kiriof_colPaidShipping)', $transaction );
+        $this->assertStringContainsString( "__('Actual Shipping', 'kiriminaja-official')", $preview );
+        $this->assertStringContainsString( "__('Shipping Discount', 'kiriminaja-official')", $preview );
+        $this->assertStringContainsString( "__('Shipping', 'kiriminaja-official'), wc_price(\$paid_shipping", $preview );
+        $this->assertStringContainsString( "__('Sub Total', 'kiriminaja-official')", $preview );
+        $this->assertStringNotContainsString( "__('Discounted Shipping', 'kiriminaja-official')", $preview );
+        $this->assertStringNotContainsString( "__('Total Shipping', 'kiriminaja-official')", $preview );
     }
 }
