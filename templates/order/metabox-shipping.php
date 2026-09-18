@@ -24,8 +24,7 @@ $kiriof_insurance_raw = (float) ($data['insurance_cost_raw'] ?? 0);
 $kiriof_cod_fee_raw   = (float) ($data['cod_fee_raw']        ?? 0);
 $kiriof_discount_raw  = (float) ($data['discount_amount_raw'] ?? 0);
 $kiriof_total_shipping = $kiriof_shipping_raw + $kiriof_insurance_raw + $kiriof_cod_fee_raw;
-$kiriof_wc_shipping_discount = isset($wc_shipping_discount) ? (float) $wc_shipping_discount : 0.0;
-$kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_discount);
+$kiriof_platform_shipping_discount = max(0.0, $kiriof_discount_raw);
 $kiriof_is_cod        = $kiriof_cod_fee_raw > 0 || strtolower($data['payment_type'] ?? '') === 'cod';
 $kiriof_is_deficit    = ! empty($data['is_deficit']);
 $kiriof_cod_minimum   = (float) ($data['cod_minimum'] ?? 0);
@@ -37,12 +36,17 @@ $kiriof_payout   = $kiriof_cod_paid - $kiriof_shipping_raw - $kiriof_insurance_r
 // Pickup badge: only shown when a pickup has been scheduled.
 $kiriof_has_pickup = ! empty($data['pickup_id']) && '-' !== $data['pickup_id'];
 
-// Effective discount: use the larger of KA discount_amount or WC coupon discount.
-$kiriof_effective_discount = max($kiriof_discount_raw, $wc_discount_total);
+// Item discount and shipping discount are separate values.
+$kiriof_effective_discount = max(0.0, (float) $wc_discount_total);
 $kiriof_coupon_service     = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 $kiriof_coupon_scopes      = $kiriof_coupon_service->splitCouponCodesByScope((array) $wc_coupon_codes);
 $kiriof_first_coupon       = $kiriof_coupon_scopes['item'][0] ?? '';
 $kiriof_ship_coupon        = $kiriof_coupon_scopes['shipping'][0] ?? '';
+$kiriof_coupon_shipping_discount = $kiriof_ship_coupon
+    ? max(0.0, (float) $wc_shipping_discount - $kiriof_platform_shipping_discount)
+    : 0.0;
+$kiriof_wc_shipping_discount = $kiriof_platform_shipping_discount + $kiriof_coupon_shipping_discount;
+$kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_discount);
 ?>
 <style>
     #kiriminaja-shipping-info .kiriof-mb-header {
@@ -352,18 +356,22 @@ $kiriof_ship_coupon        = $kiriof_coupon_scopes['shipping'][0] ?? '';
             </tr>
         <?php endif; ?>
 
-        <?php if ($kiriof_wc_shipping_discount > 0) : ?>
+        <?php if ($kiriof_coupon_shipping_discount > 0) : ?>
             <tr>
                 <td>
-                    <?php if ($kiriof_ship_coupon) : ?>
-                        <?php echo esc_html($kiriof_ship_coupon); ?>
-                        <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></span>
-                    <?php else : ?>
-                        <?php esc_html_e('Shipping Discount (from KiriminAja)', 'kiriminaja-official'); ?>
-                    <?php endif; ?>
+                    <?php echo esc_html($kiriof_ship_coupon); ?>
+                    <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></span>
                 </td>
-                <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post(wc_price($kiriof_wc_shipping_discount)); ?></td>
+                <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post(wc_price($kiriof_coupon_shipping_discount)); ?></td>
             </tr>
+        <?php endif; ?>
+        <?php if ($kiriof_platform_shipping_discount > 0) : ?>
+            <tr>
+                <td><?php esc_html_e('Shipping Discount (from KiriminAja)', 'kiriminaja-official'); ?></td>
+                <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post(wc_price($kiriof_platform_shipping_discount)); ?></td>
+            </tr>
+        <?php endif; ?>
+        <?php if ($kiriof_wc_shipping_discount > 0) : ?>
             <tr>
                 <td><?php esc_html_e('Discounted Shipping', 'kiriminaja-official'); ?></td>
                 <td><?php echo wp_kses_post(wc_price($kiriof_discounted_shipping)); ?></td>

@@ -105,6 +105,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('nav_title', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('kiriof-onboarding__field', $address);
+		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
+		$this->assertStringContainsString("origin_sub_district_name: area.text()", $script);
 		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
 		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.js');
 		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.css');
@@ -178,6 +180,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('is_kiriminaja_admin_page', $page);
 		$this->assertStringContainsString("'kiriminaja-konfigurasi'", $page);
 		$this->assertStringContainsString("'kiriminaja-transaction-process'", $page);
+		$this->assertStringContainsString("array( 'shipping', 'kiriminaja_warehouses' )", $page);
 		$this->assertStringNotContainsString('should_gate_request', $page);
 
         foreach (['wp_doing_ajax()', 'wp_doing_cron()', 'REST_REQUEST', 'WP_CLI', "'admin-post.php'", "'plugins.php'", "'update.php'", 'is_network_admin()'] as $exception) {

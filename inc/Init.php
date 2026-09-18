@@ -19,6 +19,7 @@ final class Init {
             Pages\Onboarding::class,
             Pages\Admin::class,
             Services\PluginUpdateNoticeService::class,
+            Services\ShipmentLocationService::class,
             Controllers\ProductController::class,
             Controllers\SettingController::class,
             Controllers\CallbackController::class,
@@ -38,6 +39,10 @@ final class Init {
      * @return void
      */
     public static function register_services(){
+        if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
+            ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
+        }
+        (new Services\ShipmentLocationService())->seedDefaultFromGlobalOrigin();
         foreach (self::get_services() as $class){
             $service = self::instantiate($class);
             if (method_exists($service,'register')){

@@ -715,7 +715,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/CheckoutServices/OngkirPricingService.php');
 
         $this->assertStringContainsString(
-            'kiriof_money_format($option->cost-$option->discount_amount)',
+            'kiriof_money_format($kiriof_price)',
             $content,
             'Pricing AJAX response must use the plugin money formatter that is loaded by kiriminaja.php'
         );
@@ -4232,9 +4232,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'Discounted Shipping',
+            "__('Shipping', 'kiriminaja-official'), wc_price(\$paid_shipping",
             $preview,
-            'Transaction process preview should mirror the order metabox and show the discounted base shipping amount, excluding insurance and COD fee'
+            'Transaction process preview should label the net amount paid by the buyer as Shipping, matching WooCommerce customer totals'
         );
     }
 }
