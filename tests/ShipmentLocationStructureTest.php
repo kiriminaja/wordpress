@@ -37,6 +37,7 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'FROM {$table}', $repository );
         $this->assertStringNotContainsString( 'UPDATE {$table}', $repository );
         $this->assertStringNotContainsString( '$where =', $repository );
+        $this->assertStringNotContainsString( '$wpdb->get_results($query)', $repository );
     }
 
     public function testCheckoutFreezesDefaultOriginOnTheTransaction(): void {

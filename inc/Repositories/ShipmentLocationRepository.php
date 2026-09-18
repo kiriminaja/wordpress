@@ -272,17 +272,23 @@ class ShipmentLocationRepository
     public function getAll($activeOnly = false)
     {
         global $wpdb;
-        $query = $activeOnly
-            ? $wpdb->prepare(
-                'SELECT * FROM %i WHERE is_active = 1 ORDER BY is_default DESC, id ASC',
-                $this->getTableName()
-            )
-            : $wpdb->prepare(
-                'SELECT * FROM %i ORDER BY is_default DESC, id ASC',
-                $this->getTableName()
+        if ($activeOnly) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i WHERE is_active = 1 ORDER BY is_default DESC, id ASC',
+                    $this->getTableName()
+                )
             );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
-        $rows = $wpdb->get_results($query);
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read from a small plugin-owned table; mutations are immediately reflected.
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i ORDER BY is_default DESC, id ASC',
+                    $this->getTableName()
+                )
+            );
+        }
         return is_array($rows) ? $rows : array();
     }
 
