@@ -55,6 +55,24 @@
   background: #fff;
 }
 
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: #2c3338;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap input[type="checkbox"] {
+  position: static;
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+}
+
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-compact-selection-copy {
   display: grid;
   min-width: 0;
@@ -103,9 +121,7 @@
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  position: static;
   margin: 12px 0 0;
   padding: 12px 14px;
   border: 1px solid #dcdcde;

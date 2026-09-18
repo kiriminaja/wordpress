@@ -1465,14 +1465,22 @@ class TransactionProcessController
             $cod_paid       = (float) $order->get_total();
 
             // Compute discount breakdown from WC order (mirrors metabox logic).
-            $wc_item_discount     = (float) $order->get_discount_total();
-            $wc_shipping_discount = max(0.0, (float) ($transaction->discount_amount ?? 0));
-            $discounted_shipping  = max(0.0, $shipping_cost - $wc_shipping_discount);
+            $wc_item_discount       = (float) $order->get_discount_total();
+            $ka_shipping_discount   = max(0.0, (float) ($transaction->discount_amount ?? 0));
+            $coupon_shipping_discount = 0.0;
             $wc_coupon_codes      = $order->get_coupon_codes();
             $coupon_service       = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
             $coupon_scopes        = $coupon_service->splitCouponCodesByScope( (array) $wc_coupon_codes );
             $first_coupon         = $coupon_scopes['item'][0] ?? '';
             $second_coupon        = $coupon_scopes['shipping'][0] ?? '';
+            if ($second_coupon) {
+                $coupon_shipping_discount = max(
+                    0.0,
+                    ($shipping_cost - $ka_shipping_discount) - (float) $order->get_shipping_total()
+                );
+            }
+            $wc_shipping_discount = $ka_shipping_discount + $coupon_shipping_discount;
+            $discounted_shipping  = max(0.0, $shipping_cost - $wc_shipping_discount);
 
             $inner = '';
 
@@ -1498,14 +1506,14 @@ class TransactionProcessController
                 $inner .= $this->buildCompactPreviewRow($item_label, wc_price(-$wc_item_discount, $price_args), 'color:#d63638;');
             }
 
-            // Shipping discount row: "CODE  Shipping" (or plain "Shipping Discount" if no coupon).
+            if ($coupon_shipping_discount > 0) {
+                $ship_label = $second_coupon . ' <span style="color:#8c8f94;font-size:11px;">' . esc_html__('Shipping', 'kiriminaja-official') . '</span>';
+                $inner .= $this->buildCompactPreviewRow($ship_label, wc_price(-$coupon_shipping_discount, $price_args), 'color:#d63638;');
+            }
+            if ($ka_shipping_discount > 0) {
+                $inner .= $this->buildCompactPreviewRow(__('Shipping Discount (from KiriminAja)', 'kiriminaja-official'), wc_price(-$ka_shipping_discount, $price_args), 'color:#d63638;');
+            }
             if ($wc_shipping_discount > 0) {
-                if ($second_coupon) {
-                    $ship_label = $second_coupon . ' <span style="color:#8c8f94;font-size:11px;">' . esc_html__('Shipping', 'kiriminaja-official') . '</span>';
-                } else {
-                    $ship_label = __('Shipping Discount (from KiriminAja)', 'kiriminaja-official');
-                }
-                $inner .= $this->buildCompactPreviewRow($ship_label, wc_price(-$wc_shipping_discount, $price_args), 'color:#d63638;');
                 $inner .= $this->buildCompactPreviewRow(__('Discounted Shipping', 'kiriminaja-official'), wc_price($discounted_shipping, $price_args));
             }
 

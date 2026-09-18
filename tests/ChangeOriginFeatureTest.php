@@ -178,7 +178,8 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( "text('changeBlocked'", $js );
         $this->assertStringContainsString( "text('refundRequired'", $js );
         $this->assertStringContainsString( 'Math.max(0, rawNewTotal)', $js );
-        $this->assertStringContainsString( "courier-consent-granted", $js );
+        $this->assertStringNotContainsString( "courier-consent-granted", $js );
+        $this->assertStringContainsString( '$modal.find(\'.kiriof-replacement-consent\').prop(\'checked\', false)', $js );
         $this->assertStringContainsString( '$replacement.toggle(!comparison.available)', $js );
         $this->assertStringContainsString( "var checked = index === 0 ? ' checked' : '';", $js );
         $this->assertStringNotContainsString( "var checked = comparison.available && index === 0 ? ' checked' : '';", $js );
@@ -233,6 +234,9 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'margin-left: auto;', $css );
         $this->assertStringContainsString( 'aria-live="polite"', $source );
         $this->assertStringContainsString( 'kiriof-replacement-consent-wrap', $source );
+        $this->assertStringContainsString( '.kiriof-replacement-consent-wrap label', $css );
+        $this->assertStringContainsString( '.kiriof-replacement-consent-wrap input[type="checkbox"]', $css );
+        $this->assertStringContainsString( 'position: static;', $css );
         $this->assertStringNotContainsString( 'body > .select2-container--open', $css );
 		$this->assertStringContainsString( '.kiriof-change-origin-backdrop', $css );
 		$this->assertStringContainsString( 'background: transparent !important;', $css );
@@ -351,16 +355,17 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'if ( empty( $options ) )', $source );
     }
 
-    public function testPackageDetailsUsePersistedKaDiscountInsteadOfInferringPriceIncreaseAsDiscount(): void {
+    public function testPackageDetailsShowBuyerShippingCouponWithoutMisreportingPriceChanges(): void {
         $transaction = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
         $preview     = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $metabox     = $this->read( __DIR__ . '/../templates/order/metabox-shipping.php' );
 
-        $this->assertStringContainsString( '$kiriof_colShipDiscount = max(0.0, $kiriof_discountAmount);', $transaction );
-        $this->assertStringNotContainsString( '$kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total()', $transaction );
-        $this->assertStringContainsString( '$wc_shipping_discount = max(0.0, (float) ($transaction->discount_amount ?? 0));', $preview );
-        $this->assertStringNotContainsString( '$shipping_cost - (float) $order->get_shipping_total()', $preview );
-        $this->assertStringContainsString( '$kiriof_wc_shipping_discount = max(0.0, $kiriof_discount_raw);', $metabox );
+        $this->assertStringContainsString( 'if ($kiriof_colShipCoupon)', $transaction );
+        $this->assertStringContainsString( '($kiriof_shippingCost - $kiriof_colPlatformShipDiscount) - (float) $kiriof_wcOrder->get_shipping_total()', $transaction );
+        $this->assertStringContainsString( 'if ($second_coupon)', $preview );
+        $this->assertStringContainsString( '($shipping_cost - $ka_shipping_discount) - (float) $order->get_shipping_total()', $preview );
+        $this->assertStringContainsString( '$kiriof_ship_coupon', $metabox );
+        $this->assertStringContainsString( '(float) $wc_shipping_discount - $kiriof_platform_shipping_discount', $metabox );
         $this->assertStringNotContainsString( 'max($kiriof_discount_raw, $wc_discount_total)', $metabox );
     }
 }

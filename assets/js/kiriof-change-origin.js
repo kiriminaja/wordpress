@@ -65,11 +65,6 @@
 		}
 		var requiresConsent = $selectedOption.attr('data-replacement') === '1';
 		var isBlocked = !!(option && option.is_total_blocked);
-		if (!requiresConsent) {
-			$modal.find('.kiriof-replacement-consent').prop('checked', true);
-		} else if ($modal.data('courier-consent-granted')) {
-			$modal.find('.kiriof-replacement-consent').prop('checked', true);
-		}
 		$modal.find('.kiriof-replacement-consent-wrap').toggle(requiresConsent);
 		$modal.find('#kiriof-change-origin-confirm').prop('disabled', isBlocked || !$selectedOption.length || (requiresConsent && !$modal.find('.kiriof-replacement-consent').prop('checked')));
 	}
@@ -180,7 +175,8 @@
 			$modal.find('.kiriof-change-origin-result').hide().empty().removeClass('notice-success notice-error');
 			$modal.find('.kiriof-change-origin-replacement, .kiriof-change-origin-breakdown').hide().empty();
 			$modal.find('.kiriof-courier-selection-section').hide();
-			$modal.find('.kiriof-replacement-consent').prop('checked', !!$modal.data('courier-consent-granted'));
+			$modal.find('.kiriof-replacement-consent').prop('checked', false);
+			$modal.find('.kiriof-replacement-consent-wrap').hide();
 			$modal.data('shipping-check', { comparison: null });
 			$modal.data('courier-comparisons', {});
 		}
@@ -197,6 +193,8 @@
 			}
 
 			$modal.find('#kiriof-change-origin-confirm').prop('disabled', true);
+			$modal.find('.kiriof-replacement-consent').prop('checked', false);
+			$modal.find('.kiriof-replacement-consent-wrap').hide();
 			$spinner.addClass('is-active');
 			$loading.show();
 			$modal.data('shipping-check', { comparison: null });
@@ -286,10 +284,11 @@
 			}
 			$modal.find('.kiriof-change-origin-replacement').slideUp(120);
 		});
-		$modal.on('change.kiriofChangeOrigin', 'input[name="courier_option"], .kiriof-replacement-consent', function () {
-			if ($(this).hasClass('kiriof-replacement-consent') && $(this).prop('checked')) {
-				$modal.data('courier-consent-granted', true);
-			}
+		$modal.on('change.kiriofChangeOrigin', 'input[name="courier_option"]', function () {
+			$modal.find('.kiriof-replacement-consent').prop('checked', false);
+			applyCourierSelection($modal);
+		});
+		$modal.on('change.kiriofChangeOrigin', '.kiriof-replacement-consent', function () {
 			applyCourierSelection($modal);
 		});
 		$modal.on('change.kiriofChangeOrigin', 'input[name="location_id"]', function () {
