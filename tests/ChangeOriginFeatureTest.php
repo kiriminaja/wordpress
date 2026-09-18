@@ -234,9 +234,13 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( 'margin-left: auto;', $css );
         $this->assertStringContainsString( 'aria-live="polite"', $source );
         $this->assertStringContainsString( 'kiriof-replacement-consent-wrap', $source );
+        $this->assertStringContainsString( '<div class="kiriof-replacement-consent-wrap"', $source );
+        $this->assertStringNotContainsString( '<p class="kiriof-replacement-consent-wrap"', $source );
         $this->assertStringContainsString( '.kiriof-replacement-consent-wrap label', $css );
         $this->assertStringContainsString( '.kiriof-replacement-consent-wrap input[type="checkbox"]', $css );
-        $this->assertStringContainsString( 'position: static;', $css );
+        $this->assertStringContainsString( 'position: static !important;', $css );
+        $this->assertStringContainsString( 'float: none !important;', $css );
+        $this->assertStringContainsString( 'clear: both;', $css );
         $this->assertStringNotContainsString( 'body > .select2-container--open', $css );
 		$this->assertStringContainsString( '.kiriof-change-origin-backdrop', $css );
 		$this->assertStringContainsString( 'background: transparent !important;', $css );

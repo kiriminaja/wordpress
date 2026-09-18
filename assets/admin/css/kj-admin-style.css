@@ -68,7 +68,10 @@
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap input[type="checkbox"] {
-  position: static;
+  position: static !important;
+  inset: auto !important;
+  float: none !important;
+  transform: none !important;
   flex: 0 0 auto;
   margin: 2px 0 0;
 }
@@ -121,7 +124,14 @@
 }
 
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-replacement-consent-wrap {
-  position: static;
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: block;
+  float: none !important;
+  clear: both;
+  width: auto;
+  transform: none !important;
   margin: 12px 0 0;
   padding: 12px 14px;
   border: 1px solid #dcdcde;
