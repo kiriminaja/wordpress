@@ -65,7 +65,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString("wp_send_json_error(", $controller);
 		$this->assertStringContainsString("'Subdistrict lookup failed.'", $controller);
 		$this->assertStringNotContainsString('wp_send_json_success([])', $controller);
-		$this->assertStringContainsString('rawurlencode( $search )', $repository);
+		$this->assertStringContainsString('KiriminAja::getDistrictByName( (string) $search )', $repository);
 	}
 
     #[Test]

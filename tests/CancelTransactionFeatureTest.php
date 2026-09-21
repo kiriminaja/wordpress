@@ -184,16 +184,16 @@ final class CancelTransactionFeatureTest extends TestCase
     }
 
     #[Test]
-    public function api_repository_cancel_uses_correct_endpoint(): void
+    public function api_repository_cancel_uses_official_sdk(): void
     {
         $content = file_get_contents(
             PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php'
         );
 
         $this->assertStringContainsString(
-            '/api/mitra/v3/cancel_shipment',
+            'KiriminAja::cancelShipment(',
             $content,
-            'cancelShipment must use the /api/mitra/v3/cancel_shipment endpoint'
+            'cancelShipment must use the official KiriminAja SDK'
         );
     }
 
@@ -209,8 +209,8 @@ final class CancelTransactionFeatureTest extends TestCase
         $this->assertNotEmpty($matches, 'cancelShipment method body not found');
 
         $methodBody = $matches[1];
-        $this->assertStringContainsString("'awb'", $methodBody, 'cancelShipment must send awb parameter');
-        $this->assertStringContainsString("'reason'", $methodBody, 'cancelShipment must send reason parameter');
+        $this->assertStringContainsString('(string) $awb', $methodBody, 'cancelShipment must pass the AWB to the SDK');
+        $this->assertStringContainsString('(string) $reason', $methodBody, 'cancelShipment must pass the reason to the SDK');
     }
 
     // ------------------------------------------------------------------

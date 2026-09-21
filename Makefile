@@ -9,6 +9,7 @@ BUILD_DIR := build
 STAGE_DIR := $(BUILD_DIR)/$(PLUGIN_SLUG)
 
 RSYNC_EXCLUDES := \
+	--exclude=.git \
 	--exclude=.git/ \
 	--exclude=.github/ \
 	--exclude=.idea/ \

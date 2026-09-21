@@ -1,258 +1,195 @@
 <?php
 namespace KiriminAjaOfficial\Base;
 
-// Exit if accessed directly
+// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class KiriminAjaApi
-{
-    protected $base_url;
-    protected $default_args;
-    
-    public function __construct()
-    {
+use KiriminAja\Base\Api\Api;
+use KiriminAja\Base\Config\Cache\Mode;
+use KiriminAja\Base\Config\KiriminAjaConfig;
+use KiriminAja\Responses\ServiceResponse;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+
+class KiriminAjaApi {
+    protected string $base_url;
+
+    public function __construct() {
         $this->base_url = $this->resolve_base_url();
-        $wpAgent = $this->build_user_agent();
-        
-        $dbApiToken = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('api_key')->value ?? '';
-        
-        $this->default_args = array(
-            'timeout' => 30,
-            'redirection' => 5,
-            'httpversion' => '1.0',
-            'user-agent' => 'wordpress',
-            'blocking' => true,
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $dbApiToken,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-                'User-Agent' => 'wordpress',
-                'X-WP-Agent' => $wpAgent,
-            ),
-            'cookies' => array(),
-            'body' => null,
-            'compress' => false,
-            'decompress' => true,
-            'sslverify' => false,
-            'stream' => false,
-            'filename' => null,
-        );
+        $this->configure_sdk();
     }
 
-    private function build_user_agent(): string
-    {
-        global $wp_version;
-
-        $pluginVersion = defined('KIRIOF_VERSION') ? KIRIOF_VERSION : 'unknown';
-        $wooCommerceVersion = defined('WC_VERSION') ? WC_VERSION : 'unknown';
-        $siteUrl = get_bloginfo('url');
-
-        return sprintf(
-            'KiriminAjaOfficial/%s WordPress/%s WooCommerce/%s PHP/%s; %s',
-            $pluginVersion,
-            $wp_version,
-            $wooCommerceVersion,
-            PHP_VERSION,
-            $siteUrl
-        );
-    }
-
-    private function resolve_base_url(): string
-    {
-        $defaultBaseUrl = 'https://client.kiriminaja.com';
-
-        $settingRow = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'api_base_url' );
-        $settingBaseUrl = ( is_object( $settingRow ) && ! empty( $settingRow->value ) ) ? trim( (string) $settingRow->value ) : '';
-
-        $constantBaseUrl = '';
-        if ( defined( 'KIRIOF_API_BASE_URL' ) ) {
-            $constantValue = constant( 'KIRIOF_API_BASE_URL' );
-            if ( is_string( $constantValue ) ) {
-                $constantBaseUrl = trim( $constantValue );
+    protected function call_sdk( callable $callback, callable $success_formatter ): array {
+        try {
+            $response = $callback();
+            if ( ! $response instanceof ServiceResponse ) {
+                return $this->error_response( 'Invalid SDK response' );
             }
+
+            if ( ! $response->status ) {
+                return $this->error_response( $response->message );
+            }
+
+            $body = $success_formatter( $response->data, $response->message );
+
+            return array(
+                'status' => true,
+                'data'   => $this->objectify( $body ),
+            );
+        } catch ( \Throwable $throwable ) {
+            return $this->error_response( $throwable->getMessage() );
+        }
+    }
+
+    public function get( $endpoint, $body = array(), $log_context = array() ) {
+        return $this->request_with_sdk( 'GET', $endpoint, $body, $log_context );
+    }
+
+    public function post( $endpoint, $body = array(), $log_context = array(), $request_args = array() ) {
+        unset( $request_args );
+
+        return $this->request_with_sdk( 'POST', $endpoint, $body, $log_context );
+    }
+
+    private function request_with_sdk( string $method, string $endpoint, $body, array $log_context ): array {
+        $endpoint     = ltrim( (string) $endpoint, '/' );
+        $request_meta = $this->build_request_log_context( $method, $endpoint, $body, $log_context );
+
+        try {
+            $client = new Api();
+            if ( 'GET' === $method ) {
+                [ $transport_status, $response ] = $client->get( $endpoint, $body );
+            } else {
+                [ $transport_status, $response ] = $client->post( $endpoint, $body );
+            }
+
+            if ( ! $transport_status ) {
+                kiriof_log(
+                    'error',
+                    'KiriminAja SDK request failed.',
+                    array_merge(
+                        $request_meta,
+                        array( 'sdk_error' => is_scalar( $response ) ? (string) $response : 'Unknown SDK error' )
+                    )
+                );
+
+                return $this->error_response( is_scalar( $response ) ? (string) $response : 'KiriminAja SDK request failed' );
+            }
+
+            if ( ! is_array( $response ) ) {
+                return $this->error_response( 'Invalid SDK response' );
+            }
+
+            if ( isset( $response['status'] ) && false === $response['status'] ) {
+                return $this->error_response( $this->extract_api_error( $response ) );
+            }
+
+            return array(
+                'status' => true,
+                'data'   => $this->objectify( $response ),
+            );
+        } catch ( \Throwable $throwable ) {
+            kiriof_log(
+                'error',
+                'KiriminAja SDK request threw an exception.',
+                array_merge(
+                    $request_meta,
+                    array( 'sdk_error' => $throwable->getMessage() )
+                )
+            );
+
+            return $this->error_response( $throwable->getMessage() );
+        }
+    }
+
+    private function configure_sdk(): void {
+        $api_token_row = ( new SettingRepository() )->getSettingByKey( 'api_key' );
+        $api_token     = is_object( $api_token_row ) ? (string) ( $api_token_row->value ?? '' ) : '';
+
+        try {
+            KiriminAjaConfig::setCacheDirectory( trailingslashit( get_temp_dir() ) . 'kiriminaja-sdk' );
+            KiriminAjaConfig::setMode( Mode::Production );
+            KiriminAjaConfig::setBaseUrl( $this->base_url );
+            KiriminAjaConfig::setApiTokenKey( $api_token );
+        } catch ( \Throwable $throwable ) {
+            kiriof_log(
+                'error',
+                'KiriminAja SDK configuration failed.',
+                array(
+                    'source'    => 'kiriminaja_api',
+                    'operation' => 'configure_sdk',
+                    'sdk_error' => $throwable->getMessage(),
+                )
+            );
+        }
+    }
+
+    private function resolve_base_url(): string {
+        $default_base_url = 'https://client.kiriminaja.com';
+        $setting_row      = ( new SettingRepository() )->getSettingByKey( 'api_base_url' );
+        $setting_base_url = is_object( $setting_row ) ? trim( (string) ( $setting_row->value ?? '' ) ) : '';
+        $constant_url     = '';
+
+        if ( defined( 'KIRIOF_API_BASE_URL' ) && is_string( constant( 'KIRIOF_API_BASE_URL' ) ) ) {
+            $constant_url = trim( (string) constant( 'KIRIOF_API_BASE_URL' ) );
         }
 
-        $candidate = $constantBaseUrl ?: ( $settingBaseUrl ?: $defaultBaseUrl );
+        $candidate = $constant_url ?: ( $setting_base_url ?: $default_base_url );
 
         /**
-         * Filters the base URL used for KiriminAja API requests.
+         * Filters the base URL used by the KiriminAja SDK.
          *
          * @param string $candidate Current base URL candidate.
          */
         $candidate = (string) apply_filters( 'kiriof_api_base_url', $candidate );
 
         if ( '' === $candidate || ! preg_match( '#^https?://#i', $candidate ) ) {
-            return $defaultBaseUrl;
+            return $default_base_url;
         }
 
         return untrailingslashit( $candidate );
     }
 
-    private function populate_output($response, array $request_meta = array())
-    {
-        if (is_wp_error($response)) {
-            kiriof_log(
-                'error',
-                'KiriminAja API request failed because WordPress returned an HTTP transport error.',
-                array_merge(
-                    $request_meta,
-                    array(
-                        'wp_error_code'    => $response->get_error_code(),
-                        'wp_error_message' => $response->get_error_message(),
-                    )
-                )
-            );
-
-            return array(
-                'status' => false,
-                'data' => $response->get_error_message()
-            );
-        }
-        $body = wp_remote_retrieve_body($response);
-        $decodedBody = json_decode($body);
-
-        if (200 !== wp_remote_retrieve_response_code($response)) {
-            kiriof_log(
-                'error',
-                'KiriminAja API request returned a non-success HTTP status.',
-                array_merge(
-                    $request_meta,
-                    array(
-                        'response_code' => wp_remote_retrieve_response_code($response),
-                        'response_body' => is_string( $body ) ? substr( trim( $body ), 0, 500 ) : '',
-                    )
-                )
-            );
-
-            $message = 'Error ' . wp_remote_retrieve_response_code($response);
-            if (is_object($decodedBody) && !empty($decodedBody->text)) {
-                $message = (string) $decodedBody->text;
-            } elseif (is_string($body) && '' !== trim($body)) {
-                $message = trim($body);
-            }
-
-            return array(
-                'status' => false,
-                'data' => $message
-            );
+    private function objectify( $value ) {
+        if ( is_object( $value ) ) {
+            return $value;
         }
 
-        if (null === $decodedBody && JSON_ERROR_NONE !== json_last_error()) {
-            kiriof_log(
-                'error',
-                'KiriminAja API request returned invalid JSON.',
-                array_merge(
-                    $request_meta,
-                    array(
-                        'json_error'    => json_last_error_msg(),
-                        'response_body' => is_string( $body ) ? substr( trim( $body ), 0, 500 ) : '',
-                    )
-                )
-            );
+        return json_decode( wp_json_encode( $value ) );
+    }
 
-            return array(
-                'status' => false,
-                'data' => 'Invalid API response'
-            );
-        }
-
-        if (is_object($decodedBody) && isset($decodedBody->status) && false === $decodedBody->status) {
-            if (!empty($decodedBody->errors)) {
-                $errorMessages = [];
-                foreach ($decodedBody->errors as $field => $messages) {
-                    if (is_array($messages)) {
-                        foreach ($messages as $msg) {
-                            $errorMessages[] = $msg;
-                        }
-                    } else {
-                        $errorMessages[] = $messages;
-                    }
-                }
-                $finalMessage = "Terdapat beberapa kesalahan pada data yang dikirim: " . implode(" ", $errorMessages);
-            } else {
-                $finalMessage = isset($decodedBody->text) ? $decodedBody->text : 'Unknown error';
-            }
-
-            kiriof_log(
-                'warning',
-                'KiriminAja API request returned a business validation error.',
-                array_merge(
-                    $request_meta,
-                    array(
-                        'response_message' => $finalMessage,
-                    )
-                )
-            );
-
-            return array(
-                'status' => false,
-                'data' => $finalMessage
-            );
-        }
+    private function error_response( string $message ): array {
         return array(
-            'status' => true,
-            'data' => $decodedBody
+            'status' => false,
+            'data'   => '' !== trim( $message ) ? $message : 'Unknown error',
         );
     }
-    
-    public function get($endpoint, $body = array(), $log_context = array())
-    {
-        $args = wp_parse_args(array('body' => $body), $this->default_args);
-        $request_meta = $this->build_request_log_context( 'GET', $endpoint, $body, $log_context );
-        $response = wp_remote_get($this->base_url . $endpoint, $args);
 
-        return $this->finalize_response( $response, $request_meta );
-    }
-    public function post($endpoint, $body = array(), $log_context = array(), $request_args = array())
-    {
-        $requestBody = $body;
-        if ( is_array( $body ) && empty( $body ) ) {
-            $requestBody = (object) array();
+    private function extract_api_error( array $response ): string {
+        if ( ! empty( $response['errors'] ) && is_array( $response['errors'] ) ) {
+            $messages = array();
+            foreach ( $response['errors'] as $error ) {
+                foreach ( (array) $error as $message ) {
+                    $messages[] = (string) $message;
+                }
+            }
+
+            if ( ! empty( $messages ) ) {
+                return 'Terdapat beberapa kesalahan pada data yang dikirim: ' . implode( ' ', $messages );
+            }
         }
 
-        $args = wp_parse_args(
-            array_merge( $request_args, array( 'body' => wp_json_encode( $requestBody ) ) ),
-            $this->default_args
-        );
-        $request_meta = $this->build_request_log_context( 'POST', $endpoint, $body, $log_context );
-        $response = wp_remote_post($this->base_url . $endpoint, $args);
-
-        return $this->finalize_response( $response, $request_meta );
-    }
-
-    private function finalize_response( $response, array $request_meta ) {
-        $output = $this->populate_output( $response, $request_meta );
-
-        if ( ! empty( $output['status'] ) && apply_filters( 'kiriof_api_debug_logging', false, $request_meta, $output ) ) {
-            kiriof_log(
-                'debug',
-                'KiriminAja API request completed successfully.',
-                array_merge(
-                    $request_meta,
-                    array(
-                        'response_code' => is_wp_error( $response ) ? null : wp_remote_retrieve_response_code( $response ),
-                    )
-                )
-            );
-        }
-
-        return $output;
+        return (string) ( $response['text'] ?? $response['message'] ?? 'Unknown error' );
     }
 
     private function build_request_log_context( string $method, string $endpoint, $body, array $log_context = array() ): array {
-        $request_keys = array();
-        if ( is_array( $body ) ) {
-            $request_keys = array_values( array_keys( $body ) );
-        }
-
         return array_merge(
             array(
                 'source'       => 'kiriminaja_api',
                 'method'       => $method,
                 'endpoint'     => $endpoint,
-                'request_keys' => $request_keys,
+                'request_keys' => is_array( $body ) ? array_values( array_keys( $body ) ) : array(),
             ),
             $log_context
         );
