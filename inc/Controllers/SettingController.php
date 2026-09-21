@@ -6,8 +6,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+use KiriminAjaOfficial\Contracts\TrackingPageRepositoryInterface;
 use Throwable;
 class SettingController{
+    private TrackingPageRepositoryInterface $tracking_page_repository;
+
+    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository ) {
+        $this->tracking_page_repository = $tracking_page_repository;
+    }
+
     public function register(){
         /** getIntegrationData*/
         add_action('wp_ajax_kiriof_get_integration_data', array($this,'getIntegrationData'));
@@ -1637,19 +1644,7 @@ JS;
     }
 
     private function getTrackingShortcodePages() {
-        global $wpdb;
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return $wpdb->get_results(
-            "SELECT ID, post_title FROM {$wpdb->posts}
-             WHERE post_type = 'page'
-               AND post_status NOT IN ('trash', 'auto-draft')
-               AND (
-                   post_content LIKE '%[kiriminaja-tracking-front-page%'
-                   OR post_content LIKE '%[wp-tracking-front-page%'
-               )
-             ORDER BY post_title ASC, ID ASC"
-        );
+        return $this->tracking_page_repository->findTrackingShortcodePages();
     }
 
     private function pageHasTrackingShortcode( $page_id ) {

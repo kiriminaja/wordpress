@@ -81,6 +81,22 @@ Measured change:
 - Templates with direct `$wpdb` access: unchanged at 4.
 - Estimated overall repository-pattern maturity: 21% to 23%.
 
+#### Iteration 2: tracking page lookup
+
+- Moved tracking-shortcode page discovery out of `SettingController`.
+- Added `TrackingPageRepositoryInterface` and a read-only `TrackingPageRepository`.
+- Wired the controller dependency in `Init`.
+- Added runtime tests for query constraints, shortcode patterns, ordering, and controller delegation.
+
+Measured change from iteration 1:
+
+- Runtime files using `$wpdb`: unchanged at 21 because the query moved into a repository.
+- Database access contained in repositories or migrations: 9 of 21 (43%) to 10 of 21 (48%).
+- Persistence contracts: 1 to 2.
+- Controllers with direct `$wpdb` access: 2 to 1.
+- Templates with direct `$wpdb` access: unchanged at 4.
+- Estimated overall repository-pattern maturity: 23% to 27%.
+
 ### Plugin-owned tables
 
 - `kiriminaja_settings`

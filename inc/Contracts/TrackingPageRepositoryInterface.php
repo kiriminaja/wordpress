@@ -1,0 +1,18 @@
+<?php
+
+namespace KiriminAjaOfficial\Contracts;
+
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+interface TrackingPageRepositoryInterface
+{
+    /**
+     * Find published or editable pages containing a supported tracking shortcode.
+     *
+     * @return object[]
+     */
+    public function findTrackingShortcodePages(): array;
+}
