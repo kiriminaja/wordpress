@@ -15,6 +15,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
 	--exclude=$(BUILD_DIR)/ \
+	--exclude=docs/ \
 	--exclude=scripts/ \
 	--exclude=.DS_Store \
 	--exclude=.distignore \
