@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.11
+Stable tag: 2.4.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.0
@@ -136,6 +136,39 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 2.4.0 =
+- Update the transaction process table and preview to show the
+- Split shipping coupon discounts from KiriminAja platform discounts
+- Inline prepared sql in getAll
+- Update SetupMigration table creation syntax for dbDelta compatibility
+- Update WooCommerce shipping line item total and recalculate totals
+- # Conflicts:
+- Save the default shipment location snapshot during transaction checkout.
+- Calculate the new order total from the non-shipping total plus the new
+- Add compact collapsible summaries for origin and courier selection,
+- Store courier comparison objects in jQuery modal data instead of DOM
+- Use radio selection and limit locations
+- Merge remote-tracking branch 'origin/main' into feat/multi-origin-shipping
+- Update fulfillment note assertions and translations
+- Require consent only when the selected courier service changes. Simplify
+- Validate location data and database operations before saving, preserve a
+- Show full addresses and guide users to manage locations when no
+- Multi origin shipping
+- - New WooCommerce settings tab replaces inline General-tab location management
+- Use detail based address
+- Move the multi origin to general page
+- Move the configurations into general
+- Initialize multi-origin setup
+- Fix change origin replacement consent layout
+- Use stable native modal selects
+- Stabilize modal courier selects
+- Address QA pickup regressions
+- Use transaction shipment origins
+- Cover dev regression feedback
+- Resolve plugin check errors
+- Edit and add modal
+- Multi-row shipment glitches
+
 = 2.3.11 =
 - Add Choices.js library
 - Replace Select2/selectWoo with bundled Choices.js in the onboarding
