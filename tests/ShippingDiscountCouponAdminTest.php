@@ -30,20 +30,14 @@ final class ShippingDiscountCouponAdminTest extends TestCase
     }
 
     #[Test]
-    public function api_repository_supports_province_and_city_endpoints(): void
+    public function api_repository_uses_sdk_for_provinces_and_cities(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
 
         $this->assertStringContainsString('function getProvinces', $content);
-        $this->assertStringContainsString('/api/mitra/province', $content);
-        $this->assertStringContainsString("post('/api/mitra/province')", $content);
-        $this->assertStringContainsString("get('/api/mitra/province')", $content);
+        $this->assertStringContainsString('KiriminAja::getProvince()', $content);
         $this->assertStringContainsString('function getCitiesByProvinceId', $content);
-        $this->assertStringContainsString("post('/api/mitra/city'", $content);
-        $this->assertStringContainsString("'provinsi_id' => (int) \$provinceId", $content);
-        $this->assertStringContainsString("'province_id' => \$provinceId", $content);
-        $this->assertStringContainsString("get('/api/mitra/city?provinsi_id='", $content);
-        $this->assertStringContainsString("get('/api/mitra/city?province_id='", $content);
+        $this->assertStringContainsString('KiriminAja::getCity( (int) $province_id )', $content);
     }
 
     #[Test]
