@@ -221,4 +221,18 @@ final class PluginStructureTest extends TestCase
         $this->assertFileDoesNotExist($buildDir . '/composer.lock');
         $this->assertFileDoesNotExist($buildDir . '/vendor/bin/.phpunit.result.cache');
     }
+
+    #[Test]
+    public function packaged_plugin_excludes_internal_documentation(): void
+    {
+        $buildDir = PLUGIN_DIR . '/build/' . PLUGIN_SLUG;
+        if (!is_dir($buildDir)) {
+            $this->markTestSkipped('Build directory does not exist; run `make zip` first.');
+        }
+
+        $this->assertDirectoryDoesNotExist(
+            $buildDir . '/docs',
+            'Internal documentation must not be included in the release package'
+        );
+    }
 }
