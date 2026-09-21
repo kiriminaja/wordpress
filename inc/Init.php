@@ -57,6 +57,10 @@ final class Init {
      * @return mixed
      */
     private static function instantiate($class ){
+        if ( Controllers\ShippingProcessController::class === $class ) {
+            return new $class( new Repositories\TransactionRepository() );
+        }
+
         return new $class();
     }
 }

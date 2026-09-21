@@ -6,12 +6,20 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessDetailService;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment;
 use Throwable;
 class ShippingProcessController
 {
+    private TransactionPrintRepositoryInterface $transaction_print_repository;
+
+    public function __construct( TransactionPrintRepositoryInterface $transaction_print_repository )
+    {
+        $this->transaction_print_repository = $transaction_print_repository;
+    }
+
     public function register()
     {
         /** getShippingProcessDetail */
@@ -102,32 +110,7 @@ class ShippingProcessController
 
     private function markTransactionsPrinted( array $orderIds )
     {
-        if ( empty( $orderIds ) ) {
-            return;
-        }
-
-        global $wpdb;
-        $placeholders = implode( ',', array_fill( 0, count( $orderIds ), '%s' ) );
-        $query_args   = array_merge(
-            array(
-                1,
-                current_time( 'mysql' ),
-            ),
-            $orderIds
-        );
-
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Placeholder list is generated from sanitized order IDs above.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Print status is updated immediately after successful label fetch.
-        $wpdb->query(
-            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders match the sanitized order IDs in $query_args.
-            $wpdb->prepare(
-                "UPDATE {$wpdb->prefix}kiriminaja_transactions
-                SET is_printed = %d, printed_at = %s
-                WHERE order_id IN ({$placeholders})",
-                $query_args
-            )
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        $this->transaction_print_repository->markPrintedByOrderIds( $orderIds );
     }
 
     private function logResiPrintFailure( string $reason, array $context = array() ): void

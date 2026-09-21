@@ -62,6 +62,25 @@ Supporting inventory:
 
 The baseline should be recalculated after each migration phase using the same dimensions. The target is not the number of classes named `Repository`; the target is an enforced persistence boundary.
 
+### Progress log
+
+#### Iteration 1: transaction print state
+
+- Moved the `is_printed` and `printed_at` update out of `ShippingProcessController`.
+- Added `TransactionPrintRepositoryInterface` as the first persistence contract.
+- Made `TransactionRepository` implement the print-state operation.
+- Wired the controller dependency in `Init`, the current composition root.
+- Added runtime tests for query parameters, empty input, and controller delegation.
+
+Measured change:
+
+- Runtime files using `$wpdb`: 22 to 21.
+- Database access contained in repositories or migrations: 9 of 22 (41%) to 9 of 21 (43%).
+- Persistence contracts: 0 to 1.
+- Controllers with direct `$wpdb` access: 3 to 2.
+- Templates with direct `$wpdb` access: unchanged at 4.
+- Estimated overall repository-pattern maturity: 21% to 23%.
+
 ### Plugin-owned tables
 
 - `kiriminaja_settings`
