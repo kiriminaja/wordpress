@@ -2,15 +2,13 @@
 
 ## Status
 
-Proposed architecture plan. No runtime migration has started.
+Accepted architecture direction. No runtime migration has started.
 
 ## Decision
 
-Use repository contracts as the stable boundary for database access before adopting BerlinDB.
+Use repository contracts as the stable boundary for database access. Repository implementations may use `$wpdb`, WooCommerce data stores, or WordPress APIs depending on which mechanism owns the data.
 
-The first implementation of each contract can continue using `$wpdb`. BerlinDB may replace selected implementations after existing behavior is covered by tests and callers no longer depend on SQL details.
-
-This sequence reduces migration risk because controllers, services, and templates can be cleaned up without changing the storage engine at the same time.
+The repository pattern is the target architecture. Replacing `$wpdb` or introducing another database abstraction is outside this plan.
 
 ## Goals
 
@@ -18,16 +16,15 @@ This sequence reduces migration risk because controllers, services, and template
 - Expose persistence operations through small contracts based on application use cases.
 - Keep WooCommerce HPOS and legacy order storage behavior compatible.
 - Make database behavior testable without requiring every caller to construct a concrete repository.
-- Allow selected plugin-owned tables to move to BerlinDB later.
 - Keep complex WooCommerce reporting queries as prepared SQL when that remains the clearest implementation.
 
 ## Non-goals
 
-- Rewriting every query into BerlinDB in one release.
+- Replacing `$wpdb` with an ORM or query-builder dependency.
 - Creating a generic repository base class for unrelated domains.
 - Introducing a dependency injection container.
 - Hiding schema migrations behind repository contracts.
-- Forcing cross-table reports or WooCommerce-owned storage through BerlinDB.
+- Forcing cross-table reports or WooCommerce-owned storage through a generic CRUD repository.
 - Changing public plugin behavior as part of the structural migration.
 
 ## Current state
@@ -41,6 +38,29 @@ The plugin already has classes under `inc/Repositories`, but the current boundar
 - Remote API clients are named repositories even though they do not represent local persistence.
 - Error logging and return conventions vary between repositories.
 - Several services and controllers still access `$wpdb` directly.
+
+### Baseline maturity score
+
+Repository-pattern maturity is currently estimated at **21%**. This is an architecture score, not a measure of feature completeness.
+
+| Dimension | Weight | Current measurement | Score |
+| --- | ---: | --- | ---: |
+| Database containment | 40% | 8 of 21 non-migration files using `$wpdb` are repositories | 15.2% |
+| Persistence contracts | 15% | No persistence interfaces exist | 0% |
+| Dependency composition | 20% | 127 direct repository constructions across 39 runtime files | 0% |
+| Presentation isolation | 15% | Four templates use `$wpdb`; templates construct repositories 12 times | 0% |
+| Repository cohesion | 10% | Five of nine named repositories have no obvious policy or SQL leakage | 5.6% |
+| **Total** | **100%** | | **20.8%, rounded to 21%** |
+
+Supporting inventory:
+
+- 22 runtime files use `$wpdb`: 8 repositories, 3 controllers, 3 services, 4 templates, 1 migration, and 3 other runtime files.
+- 10 concrete persistence classes exist under `inc/Repositories`.
+- Two classes named repositories are remote API clients rather than persistence repositories.
+- `TransactionRepository` publicly exposes order-table metadata and a reusable SQL fragment.
+- `SettingRepository`, `ShipmentLocationRepository`, and `ShippingDiscountRegionRepository` contain application policy in addition to persistence.
+
+The baseline should be recalculated after each migration phase using the same dimensions. The target is not the number of classes named `Repository`; the target is an enforced persistence boundary.
 
 ### Plugin-owned tables
 
@@ -182,7 +202,7 @@ Examples:
 - `PickupGateway`
 - `CodFeeGateway`
 
-This can be done after database boundaries because it is not required for the BerlinDB decision.
+This can be done after the database boundaries because it does not block repository extraction.
 
 ## Dependency wiring
 
@@ -270,31 +290,9 @@ Prefer typed domain records or documented arrays over leaking raw, inconsistent 
 
 Exit condition: contracts document stable return and failure semantics.
 
-### Phase 6: BerlinDB pilot
+## Repository implementation rules
 
-Add BerlinDB only after the repository contracts and characterization tests are stable.
-
-Recommended pilot order:
-
-1. Shipment locations.
-2. Province and city cache.
-3. Payments.
-4. Simple transaction CRUD and lookups.
-
-For each pilot:
-
-- Keep the existing `$wpdb` adapter available during development.
-- Run the same contract tests against both implementations where practical.
-- Compare generated schema and indexes with existing production tables.
-- Verify upgrades on existing installations, not only fresh activation.
-- Benchmark bulk operations and filtered reads.
-- Confirm the packaged dependency works on the supported PHP and WordPress versions.
-
-Exit condition: BerlinDB provides a clear maintenance or correctness benefit without changing application callers.
-
-## Queries that may remain prepared SQL
-
-BerlinDB should not be a consistency goal by itself. Keep focused prepared SQL for cases where it is clearer or safer:
+Repositories and query services may use focused prepared SQL when it is the clearest or safest implementation, including:
 
 - Cross-table transaction reports.
 - HPOS and legacy order-table compatibility queries.
@@ -302,21 +300,19 @@ BerlinDB should not be a consistency goal by itself. Keep focused prepared SQL f
 - Correlated existence checks for shippable products.
 - Aggregate dashboard counts.
 - Migration and schema inspection queries.
-- Explicit transaction statements where the selected abstraction does not provide an equivalent boundary.
+- Explicit transaction statements for atomic application operations.
 
 These queries still belong behind a repository, adapter, or query-service contract.
 
-## BerlinDB adoption risks
+Additional rules:
 
-- BerlinDB becomes the first production Composer dependency shipped by this plugin.
-- Another WordPress plugin may ship a conflicting version in the same PHP process.
-- The build may need dependency prefixing or isolation.
-- Composer platform checks are currently disabled, so CI must verify the real supported PHP matrix.
-- Existing table schemas and upgrade paths must remain compatible with installed sites.
-- Bulk cache refresh may regress if row-by-row abstractions replace efficient database operations.
-- BerlinDB does not remove the need for WooCommerce HPOS compatibility logic.
-
-Before adoption, confirm the BerlinDB version, supported PHP and WordPress versions, package isolation strategy, schema ownership, and rollback plan.
+- Repository methods describe domain or application operations, not SQL verbs.
+- Repositories do not return SQL fragments, table names, or placeholder definitions.
+- Repositories do not read HTTP input or render output.
+- Templates receive prepared view data and never construct repositories.
+- Application policy remains in services unless atomic persistence requires a repository operation.
+- WooCommerce-owned data uses supported WooCommerce APIs where practical.
+- Migrations remain the only place responsible for creating or altering plugin tables.
 
 ## Pull request sequence
 
@@ -328,8 +324,6 @@ Keep changes reviewable and independently releasable:
 4. Remaining controller and service query extraction.
 5. Repository contracts and incremental constructor injection.
 6. Transaction repository split and domain-rule extraction.
-7. BerlinDB shipment-location proof of concept.
-8. BerlinDB expansion only after the pilot is accepted.
 
 Each pull request should avoid combining structural migration with unrelated feature behavior.
 
@@ -364,5 +358,4 @@ The migration is complete when:
 - Application code depends on repository, gateway, or query-service contracts.
 - HPOS and legacy behavior remain covered by tests.
 - Result and failure semantics are documented and consistent.
-- BerlinDB is adopted only for tables where its benefits are demonstrated.
 - The release ZIP excludes this `docs/` directory.
