@@ -7,12 +7,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Contracts\TrackingPageRepositoryInterface;
+use KiriminAjaOfficial\Repositories\SettingRepository;
 use Throwable;
 class SettingController{
     private TrackingPageRepositoryInterface $tracking_page_repository;
+    private SettingRepository $setting_repository;
 
-    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository ) {
+    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository, ?SettingRepository $setting_repository = null ) {
         $this->tracking_page_repository = $tracking_page_repository;
+        $this->setting_repository       = $setting_repository ?? new SettingRepository();
     }
 
     public function register(){
@@ -180,7 +183,7 @@ class SettingController{
                 ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
                 : array();
             if ( ! isset( $data['origin_whitelist_expedition_id'] ) ) {
-				$courier_settings = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByArray(
+                $courier_settings = $this->setting_repository->getSettingByArray(
 					array( 'origin_whitelist_expedition_id', 'origin_whitelist_expedition_name' )
 				);
 				$data['origin_whitelist_expedition_id']   = array();
@@ -291,7 +294,7 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
-            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['enable_cod']);
+            $repo = $this->setting_repository->getSettingByArray(['enable_cod']);
             $response = [];
             foreach ($repo as $repoItem) {
                 $response[$repoItem->key] = sanitize_text_field($repoItem->value);
@@ -361,7 +364,7 @@ class SettingController{
             }
 
             // Fetch current whitelist from DB
-            $wl_repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray([
+            $wl_repo = $this->setting_repository->getSettingByArray([
                 'origin_whitelist_expedition_id',
             ]);
 
@@ -400,7 +403,7 @@ class SettingController{
             $whitelist_ids   = isset( $data['whitelist_ids'] ) ? sanitize_text_field( (string) $data['whitelist_ids'] ) : '';
             $whitelist_names = isset( $data['whitelist_names'] ) ? sanitize_text_field( (string) $data['whitelist_names'] ) : '';
 
-            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeCourierWhitelist(array(
+            $this->setting_repository->storeCourierWhitelist(array(
                 'origin_whitelist_expedition_id'  => $whitelist_ids,
                 'origin_whitelist_expedition_name'=> $whitelist_names,
             ));
@@ -1408,7 +1411,7 @@ JS;
         update_option( 'kiriof_wc_origin_phone', $payload['origin_phone'] );
         update_option( 'kiriof_wc_origin_area', $payload['origin_sub_district_id'] );
 
-        ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+        $this->setting_repository->storeOriginMirrorData( $payload );
 
         $this->mirrorDefaultLocationToRepository( $payload );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -1583,7 +1586,7 @@ JS;
             $default_country_state = (string) $default->country . ( '' !== (string) $default->state ? ':' . (string) $default->state : '' );
             update_option( 'woocommerce_default_country', $default_country_state );
 
-            ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+            $this->setting_repository->storeOriginMirrorData( $payload );
         }
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
@@ -1620,7 +1623,7 @@ JS;
     }
 
     private function getOriginSettingValues() {
-        $rows = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByArray(
+        $rows = $this->setting_repository->getSettingByArray(
             array(
                 'origin_name',
                 'origin_phone',

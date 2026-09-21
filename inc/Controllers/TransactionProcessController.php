@@ -11,9 +11,22 @@ use KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTran
 use KiriminAjaOfficial\Services\TransactionProcessServices\CancelTransactionService;
 use KiriminAjaOfficial\Services\TransactionProcessServices\GetCreditBalanceService;
 use KiriminAjaOfficial\Services\TransactionProcessServices\ValidatePinService;
+use KiriminAjaOfficial\Contracts\DatabaseTransactionManagerInterface;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 
 class TransactionProcessController
 {
+    private TransactionRepository $transactionRepository;
+    private DatabaseTransactionManagerInterface $transactionManager;
+
+    public function __construct(
+        TransactionRepository $transactionRepository,
+        DatabaseTransactionManagerInterface $transactionManager
+    ) {
+        $this->transactionRepository = $transactionRepository;
+        $this->transactionManager    = $transactionManager;
+    }
+
     public function register()
     {
         /** getPaymentForm */
@@ -155,7 +168,7 @@ class TransactionProcessController
     public function handleWcOrderCancelled($order_id)
     {
         try {
-            $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $transactionRepo = $this->transactionRepository;
             $transaction     = $transactionRepo->getTransactionByWCOrderId($order_id);
 
             if (! $transaction) {
@@ -272,8 +285,7 @@ class TransactionProcessController
             return $order_details;
         }
 
-        $transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())
-            ->getTransactionByWCOrderNumber($order->get_id());
+        $transaction = $this->transactionRepository->getTransactionByWCOrderNumber($order->get_id());
 
         if (! $transaction) {
             return $order_details;
@@ -530,7 +542,7 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_transaction_repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $kiriof_transaction_repo = $this->transactionRepository;
             $kiriof_transaction      = $kiriof_transaction_repo->getTransactionByOrderId( $order_id );
             if (empty( $kiriof_transaction )) {
                 wp_send_json_error( array( 'status' => 404, 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ) );
@@ -739,7 +751,7 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_transaction_repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $kiriof_transaction_repo = $this->transactionRepository;
             $kiriof_transaction      = $kiriof_transaction_repo->getTransactionByOrderId( $order_id );
             if (empty( $kiriof_transaction )) {
                 wp_send_json_error( array( 'status' => 404, 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ) );
@@ -826,14 +838,11 @@ class TransactionProcessController
                 wp_die();
             }
 
-            global $wpdb;
             // Keep the transaction row, WooCommerce metadata, and private note atomic on supported database engines.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( 'START TRANSACTION' );
+            $this->transactionManager->begin();
             $kiriof_updated = $kiriof_transaction_repo->updateTransactionShipmentLocation( $order_id, $location_id, $kiriof_snapshot, $kiriof_courier_update );
             if (! $kiriof_updated) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $wpdb->query( 'ROLLBACK' );
+                $this->transactionManager->rollback();
                 wp_send_json_error( array( 'status' => 500, 'message' => __( 'Failed to update the shipment origin.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -966,15 +975,13 @@ class TransactionProcessController
                     throw new \RuntimeException( __( 'Failed to create the shipment audit note.', 'kiriminaja-official' ) );
                 }
             } catch ( \Throwable $throwable ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $wpdb->query( 'ROLLBACK' );
+                $this->transactionManager->rollback();
                 ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( 'changeOrigin rollback', array( $throwable->getMessage(), $order_id ) );
                 wp_send_json_error( array( 'status' => 500, 'message' => __( 'Failed to update the shipment origin. No shipment data was changed.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( 'COMMIT' );
+            $this->transactionManager->commit();
 
             wp_send_json_success( array( 'message' => __( 'Shipment origin updated.', 'kiriminaja-official' ) ) );
             wp_die();

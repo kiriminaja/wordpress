@@ -115,25 +115,56 @@ Measured change from iteration 2:
 - Templates with direct `$wpdb` access: unchanged at 4.
 - Estimated overall repository-pattern maturity: 27% to 29%.
 
+#### Iteration 4: application persistence boundary
+
+- Moved payment and transaction admin-list SQL into dedicated query contracts and implementations.
+- Reduced payment and transaction templates to capability checks and render-service delegation.
+- Centralized product volumetric readiness, tracking content, and shipping-zone persistence queries.
+- Removed direct `$wpdb` access from controllers, services, pages, templates, and plugin helpers.
+- Added a database transaction manager for the shipment-origin atomic update.
+- Removed all repository construction from templates.
+- Reused injected dependencies in high-construction consumers including checkout, settings, edit-order, onboarding, API, and shipping-discount flows.
+
+Measured change from iteration 3:
+
+- Application and presentation files using `$wpdb`: 10 to 0.
+- Repository/query/infrastructure containment: 50% to 100%.
+- Templates using `$wpdb`: 4 to 0.
+- Template repository constructions: 12 to 0.
+- Persistence and transaction contracts: 2 to 7.
+- Injected runtime consumers: 3 to 17.
+- Consumer-side repository constructions: 127 to 75.
+- Estimated overall repository-pattern maturity: 29% to 78%.
+
 ### Current operational scorecard
 
 The maturity percentage is directional. Use the raw metrics below to decide the next migration target and prevent superficial score improvements.
 
 | Metric | Baseline | Current | Target |
 | --- | ---: | ---: | ---: |
-| Runtime files using `$wpdb` | 22 | 20 | Migrations and persistence adapters only |
-| Repository/migration containment | 41% | 50% | 100% |
-| Controllers using `$wpdb` | 3 | 1 | 0 |
-| Services using `$wpdb` | 3 | 3 | 0 |
-| Pages using `$wpdb` | 2 | 1 | 0 |
-| Templates using `$wpdb` | 4 | 4 | 0 |
-| Persistence contracts | 0 | 2 | Contract for each application persistence boundary |
-| Injected runtime consumers | 0 | 3 | All application consumers |
-| Consumer-side repository constructions | 127 | 127 | 0 |
-| Composition-root repository constructions | 0 | 3 | Expected to increase as consumer construction decreases |
-| Template repository constructions | 12 | 12 | 0 |
+| Application files using `$wpdb` | 10 | 0 | 0 |
+| Repository/query/infrastructure containment | 41% | 100% | 100% |
+| Controllers using `$wpdb` | 3 | 0 | 0 |
+| Services using `$wpdb` | 3 | 0 | 0 |
+| Pages and root helpers using `$wpdb` | 3 | 0 | 0 |
+| Templates using `$wpdb` | 4 | 0 | 0 |
+| Persistence and transaction contracts | 0 | 7 | Contract for each application persistence boundary |
+| Injected runtime consumers | 0 | 17 | All application consumers |
+| Consumer-side repository constructions | 127 | 75 | 0 |
+| Template repository constructions | 12 | 0 | 0 |
 
-The next iterations should prioritize template isolation and consumer-side construction. Those dimensions currently limit maturity more than raw SQL containment.
+The remaining maturity gap is primarily dependency composition and repository cohesion. `TransactionRepository` and `SettingRepository` are still broad concrete dependencies, API clients still use repository naming, and 75 consumer-side construction sites remain.
+
+### Current maturity score
+
+| Dimension | Weight | Current assessment | Score |
+| --- | ---: | --- | ---: |
+| Database containment | 40% | All `$wpdb` access is inside migrations, repositories, query implementations, or transaction infrastructure | 40% |
+| Persistence contracts | 15% | Seven narrow contracts cover the extracted high-risk boundaries; broad legacy repositories remain concrete | 8% |
+| Dependency composition | 20% | Consumer-side constructions fell from 127 to 75; 17 runtime consumers now retain injected dependencies | 8% |
+| Presentation isolation | 15% | Templates contain no `$wpdb` access or repository construction | 15% |
+| Repository cohesion | 10% | Admin lists and specialized reads/writes are separated; broad transaction/settings repositories and API naming remain | 7% |
+| **Total** | **100%** | | **78%** |
 
 ### Plugin-owned tables
 
@@ -146,9 +177,9 @@ The next iterations should prioritize template isolation and consumer-side const
 
 Schema creation and upgrades remain the responsibility of `inc/Migration/SetupMigration.php` during this migration.
 
-### High-priority direct database access
+### Completed direct database extraction
 
-The first extraction targets are the queries currently outside the repository layer:
+The original extraction targets are now behind repository, query, or transaction contracts:
 
 - `templates/transaction-process/index.php`
 - `templates/request-pickup/index.php`
@@ -160,7 +191,7 @@ The first extraction targets are the queries currently outside the repository la
 - `inc/Services/OnboardingSetupStateService.php`
 - `inc/Services/WooCommerceShippingMethodRegistrationService.php`
 
-Direct database error inspection in `ShippingDiscountRegionCacheService` can remain temporarily, but the repository should eventually return or throw a consistent failure result instead.
+`ShippingDiscountRegionCacheService` now receives database errors through the region repository rather than inspecting `$wpdb` directly.
 
 ## Target boundaries
 

@@ -56,6 +56,22 @@ if ( ! function_exists( 'kiriof_helper' ) ) {
         return ( new \KiriminAjaOfficial\Base\Helper() );
     }
 }
+if ( ! function_exists( 'kiriof_tracking_page_repository' ) ) {
+    function kiriof_tracking_page_repository() {
+        static $repository = null;
+
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\TrackingPageRepository();
+        }
+
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_get_published_tracking_content' ) ) {
+    function kiriof_get_published_tracking_content() {
+        return kiriof_tracking_page_repository()->findPublishedTrackingContent();
+    }
+}
 if ( ! function_exists( 'kiriof_get_tracking_page_id' ) ) {
     function kiriof_get_tracking_page_id() {
         $page_id = absint( get_option( 'kiriof_tracking_page_id', 0 ) );
@@ -78,20 +94,9 @@ if ( ! function_exists( 'kiriof_get_tracking_page_id' ) ) {
 }
 if ( ! function_exists( 'kiriof_find_tracking_shortcode_page_id' ) ) {
     function kiriof_find_tracking_shortcode_page_id() {
-        global $wpdb;
+        $page = kiriof_tracking_page_repository()->findPreferredTrackingShortcodePage();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return (int) $wpdb->get_var(
-            "SELECT ID FROM {$wpdb->posts}
-             WHERE post_type = 'page'
-               AND post_status NOT IN ('trash', 'auto-draft')
-               AND (
-                   post_content LIKE '%[kiriminaja-tracking-front-page%'
-                   OR post_content LIKE '%[wp-tracking-front-page%'
-               )
-             ORDER BY post_status = 'publish' DESC, ID ASC
-             LIMIT 1"
-        );
+        return isset( $page->ID ) ? (int) $page->ID : 0;
     }
 }
 if ( ! function_exists( 'kiriof_get_tracking_page_url' ) ) {

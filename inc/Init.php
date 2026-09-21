@@ -57,12 +57,31 @@ final class Init {
      * @return mixed
      */
     private static function instantiate($class ){
+        if ( Pages\Admin::class === $class ) {
+            return new $class(
+                new Repositories\ProductVolumetricReadinessRepository(),
+                new Repositories\TrackingPageRepository(),
+                new Repositories\SettingRepository(),
+                new Services\WooCommerceShippingMethodRegistrationService()
+            );
+        }
+
         if ( Controllers\SettingController::class === $class ) {
-            return new $class( new Repositories\TrackingPageRepository() );
+            return new $class(
+                new Repositories\TrackingPageRepository(),
+                new Repositories\SettingRepository()
+            );
         }
 
         if ( Controllers\ShippingProcessController::class === $class ) {
             return new $class( new Repositories\TransactionRepository() );
+        }
+
+        if ( Controllers\TransactionProcessController::class === $class ) {
+            return new $class(
+                new Repositories\TransactionRepository(),
+                new Infrastructure\WordPressDatabaseTransactionManager()
+            );
         }
 
         return new $class();

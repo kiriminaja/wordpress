@@ -82,6 +82,7 @@ final class LoggingFeatureTest extends TestCase
         $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
         $indexContent = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
         $technicalContent = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/section-technical.php');
+        $providerContent = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         $this->assertFileDoesNotExist(PLUGIN_DIR . '/templates/setting/setuped/section-cache.php');
         $this->assertStringContainsString("'cache' === \$kiriof_section", $indexContent);
@@ -92,7 +93,7 @@ final class LoggingFeatureTest extends TestCase
         $this->assertStringContainsString("'kiriminaja_webhook'", $controllerContent);
         $this->assertStringContainsString("'shipping_discount_coupon'", $controllerContent);
         $this->assertStringContainsString('redactLogContent', $controllerContent);
-        $this->assertStringContainsString('kiriof_couriers_list_v2', $technicalContent);
+        $this->assertStringContainsString('kiriof_couriers_list_v2', $providerContent);
         $this->assertStringContainsString('kiriof-cache-updated', $technicalContent);
         $this->assertStringContainsString('kiriof-cache-valid-until', $technicalContent);
         $this->assertStringContainsString('kiriof-couriers-cache-updated', $technicalContent);

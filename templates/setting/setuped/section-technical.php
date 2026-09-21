@@ -10,36 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $kiriof_base_url
  */
 
-use KiriminAjaOfficial\Repositories\ShippingDiscountRegionRepository;
-use KiriminAjaOfficial\Services\KiriminajaApiService;
-use KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService;
-
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template-local variables, not globals
-$regionRepo         = new ShippingDiscountRegionRepository();
-$regionCacheService = new ShippingDiscountRegionCacheService();
-$cacheStatus        = $regionCacheService->getStatus();
-$provinceCount      = $regionRepo->getProvinceCount();
-$cityCount          = $regionRepo->getCityCount();
-$nonce              = wp_create_nonce( KIRIOF_NONCE );
-
-$state       = $cacheStatus['state'] ?? 'unknown';
-$stateColors = array( 'ready' => '#00a32a', 'error' => '#d63638' );
-$stateColor  = $stateColors[ $state ] ?? '#dba617';
-$regionValidUntil = 'ready' === $state ? __( 'Manual refresh only', 'kiriminaja-official' ) : '—';
-$downloadLogUrl = wp_nonce_url(
-    admin_url( 'admin-post.php?action=kiriof_download_plugin_logs' ),
-    'kiriof_download_plugin_logs'
-);
-
-$courierService  = new KiriminajaApiService();
-$courierResult   = $courierService->get_couriers();
-$courierCount    = ( 200 === $courierResult->status && is_array( $courierResult->data ) ) ? count( $courierResult->data ) : 0;
-$courierCached   = ( false !== get_transient( 'kiriof_couriers_list_v2' ) );
-$courierTimeout  = (int) get_option( '_transient_timeout_kiriof_couriers_list_v2', 0 );
-$courierUpdated  = ( $courierCached && $courierTimeout > DAY_IN_SECONDS ) ? wp_date( 'Y-m-d H:i:s', $courierTimeout - DAY_IN_SECONDS ) : '—';
-$courierValidUntil = ( $courierCached && $courierTimeout > 0 ) ? wp_date( 'Y-m-d H:i:s', $courierTimeout ) : '—';
-$courierBadgeBg  = $courierCached ? '#00a32a' : '#dba617';
-$courierBadgeTxt = $courierCached ? __( 'Cached', 'kiriminaja-official' ) : __( 'Not cached', 'kiriminaja-official' );
+extract( $settingsPageData->prepareTechnical(), EXTR_SKIP );
 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 <div class="wrap kj-wrap">

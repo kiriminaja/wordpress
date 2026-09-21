@@ -11,6 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class ShipmentLocationTrackingPageRepositoryFake implements TrackingPageRepositoryInterface {
+    public function hasPublishedTrackingPage(): bool {
+        return false;
+    }
+
+    public function findPublishedTrackingContent(): array {
+        return array();
+    }
+
     public function findTrackingShortcodePages(): array {
         return array();
     }

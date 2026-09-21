@@ -65,6 +65,59 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function repository_reports_published_current_tracking_page_readiness(): void
+    {
+        global $wpdb;
+        $wpdb = new TrackingPageWpdbFake( array(), null, array(), 1 );
+
+        $this->assertTrue( ( new TrackingPageRepository() )->hasPublishedTrackingPage() );
+        $this->assertStringContainsString( "post_type = 'page'", $wpdb->prepared_query );
+        $this->assertStringContainsString( "post_status = 'publish'", $wpdb->prepared_query );
+        $this->assertSame( array( '%[kiriminaja-tracking-front-page%' ), $wpdb->prepared_values );
+    }
+
+    #[Test]
+    public function repository_returns_published_tracking_pages_then_posts_with_legacy_list_shape(): void
+    {
+        global $wpdb;
+        $pages = array(
+            (object) array(
+                'ID'          => 12,
+                'post_title'  => 'Track Order',
+                'post_name'   => 'track-order',
+                'post_status' => 'publish',
+                'guid'        => 'https://example.test/?page_id=12',
+            ),
+        );
+        $posts = array(
+            (object) array(
+                'ID'          => 18,
+                'post_title'  => 'Shipment Lookup',
+                'post_name'   => 'shipment-lookup',
+                'post_status' => 'publish',
+                'guid'        => 'https://example.test/?p=18',
+            ),
+        );
+        $wpdb = new TrackingPageWpdbFake( array(), null, array( $pages, $posts ) );
+
+        $result = ( new TrackingPageRepository() )->findPublishedTrackingContent();
+
+        $this->assertSame( array_merge( $pages, $posts ), $result );
+        $this->assertCount( 2, $wpdb->prepared_queries );
+        $this->assertStringContainsString( 'SELECT ID, post_title, post_name, post_status, guid', $wpdb->prepared_queries[0] );
+        $this->assertStringContainsString( "post_status = 'publish'", $wpdb->prepared_queries[0] );
+        $this->assertStringContainsString( 'ORDER BY post_title ASC', $wpdb->prepared_queries[0] );
+        $this->assertSame(
+            array( 'page', '%[kiriminaja-tracking-front-page%', '%[wp-tracking-front-page%' ),
+            $wpdb->prepared_value_sets[0]
+        );
+        $this->assertSame(
+            array( 'post', '%[kiriminaja-tracking-front-page%', '%[wp-tracking-front-page%' ),
+            $wpdb->prepared_value_sets[1]
+        );
+    }
+
+    #[Test]
     public function activation_page_delegates_tracking_lookup_to_repository_contract(): void
     {
         $expected   = (object) array( 'ID' => 31 );
@@ -130,13 +183,19 @@ final class TrackingPageWpdbFake
     public string $posts = 'wp_posts';
     public string $prepared_query = '';
     public array $prepared_values = array();
+    public array $prepared_queries = array();
+    public array $prepared_value_sets = array();
     private array $results;
     private $row;
+    private array $result_queue;
+    private $var_result;
 
-    public function __construct( array $results, $row = null )
+    public function __construct( array $results, $row = null, array $result_queue = array(), $var_result = 0 )
     {
-        $this->results = $results;
-        $this->row     = $row;
+        $this->results      = $results;
+        $this->row          = $row;
+        $this->result_queue = $result_queue;
+        $this->var_result   = $var_result;
     }
 
     public function esc_like( $value )
@@ -148,18 +207,29 @@ final class TrackingPageWpdbFake
     {
         $this->prepared_query  = $query;
         $this->prepared_values = $values;
+        $this->prepared_queries[]   = $query;
+        $this->prepared_value_sets[] = $values;
 
         return $query;
     }
 
     public function get_results( $query )
     {
+        if ( ! empty( $this->result_queue ) ) {
+            return array_shift( $this->result_queue );
+        }
+
         return $this->results;
     }
 
     public function get_row( $query )
     {
         return $this->row;
+    }
+
+    public function get_var( $query )
+    {
+        return $this->var_result;
     }
 }
 
@@ -176,10 +246,20 @@ final class TrackingPageRepositoryFake implements TrackingPageRepositoryInterfac
         $this->preferred_result = $preferred_result;
     }
 
+    public function hasPublishedTrackingPage(): bool
+    {
+        return ! empty( $this->results );
+    }
+
     public function findTrackingShortcodePages(): array
     {
         ++$this->calls;
 
+        return $this->results;
+    }
+
+    public function findPublishedTrackingContent(): array
+    {
         return $this->results;
     }
 

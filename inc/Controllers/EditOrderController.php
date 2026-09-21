@@ -1,6 +1,10 @@
 <?php
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -8,6 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class EditOrderController{
     private $nonce = KIRIOF_NONCE ;
+    private TransactionRepository $transactionRepository;
+    private SettingRepository $settingRepository;
+    private KiriminajaApiRepository $kiriminajaApiRepository;
+
+    public function __construct(
+        ?TransactionRepository $transactionRepository = null,
+        ?SettingRepository $settingRepository = null,
+        ?KiriminajaApiRepository $kiriminajaApiRepository = null
+    ) {
+        $this->transactionRepository = $transactionRepository ?? new TransactionRepository();
+        $this->settingRepository = $settingRepository ?? new SettingRepository();
+        $this->kiriminajaApiRepository = $kiriminajaApiRepository ?? new KiriminajaApiRepository();
+    }
+
     public function register(){
         add_filter( 'wc_order_is_editable', array($this,'kiriof_custom_order_status_editable'), 9999, 2 );
         add_action( 'add_meta_boxes', array( $this, 'registerShippingMetaBox' ) );
@@ -48,8 +66,7 @@ class EditOrderController{
         if ( (float) $wc_order->get_shipping_total() > 0 ) {
             return;
         }
-        $repo = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )
-            ->getTransactionByWCOrderNumber( $order_id );
+        $repo = $this->transactionRepository->getTransactionByWCOrderNumber( $order_id );
         if ( ! $repo || empty( $repo->shipping_cost ) || (float) $repo->shipping_cost <= 0 ) {
             return;
         }
@@ -155,7 +172,7 @@ class EditOrderController{
         }
         $order_id       = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
         $destination_id = isset( $_POST['destination_id'] ) ? (int) $_POST['destination_id'] : 0;
-        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+        $settingRepo = $this->settingRepository->getSettingByKey('origin_sub_district_id');
         
         $order = wc_get_order( $order_id );
         
@@ -180,7 +197,7 @@ class EditOrderController{
             'item_value'=> $this->getOrderDiscountedProductTotal($order),
             'courier'   => null, // 'jne', 'pos', 'tiki', 'jet'
         ];
-        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
+        $kiriofPricing = $this->kiriminajaApiRepository->getPricing($payload);
         
         $return = $this->filterOptions($kiriofPricing['data']);
         if( !$return ){
@@ -192,7 +209,7 @@ class EditOrderController{
         $is_cod = !empty( WC()->session->get( 'kiriof_payment_method' ) ) ? true : false;
         $options = $pricingData->results ?? [];
         
-        $validate = (new \KiriminAjaOfficial\Repositories\SettingRepository())->validateWhiteListExpedition($options);
+        $validate = $this->settingRepository->validateWhiteListExpedition($options);
         $options = $validate;
         
         $filteredOptions = [];
@@ -259,8 +276,8 @@ class EditOrderController{
     }
     public function kiriof_calculationAdminOrder($payload){
         $order = wc_get_order( $payload['order_id'] );
-        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
-        $transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId($payload['order_id']);
+        $settingRepo = $this->settingRepository->getSettingByKey('origin_sub_district_id');
+        $transaction = $this->transactionRepository->getTransactionByWCOrderId($payload['order_id']);
         $get_payment_method = $order->get_payment_method();
     
         $insurance = 0;
@@ -294,7 +311,7 @@ class EditOrderController{
             'item_value'                => $discountedProductTotal,
             'courier'                   => [$courier[0]]
         ];
-        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $kiriofPricing = $this->kiriminajaApiRepository->getPricing($pricingPayload);
     
         if( $kiriofPricing['data'] ){
             $result_pricing = $kiriofPricing['data']->results;
@@ -328,7 +345,7 @@ class EditOrderController{
                 'cod_fee' => ($order->get_payment_method() == 'cod' ) ? $checkoutCalculation['cod_amt'] : 0,
                 'wp_wc_order_stat_order_id'=>(int) $payload['order_id'],
             ];
-            $updateTransactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->updateTransaction($payloads);
+            $updateTransactionRepo = $this->transactionRepository->updateTransaction($payloads);
             
             return $updateTransactionRepo;
         }

@@ -314,7 +314,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function payment_list_fees_column_subtracts_platform_shipping_discount(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php');
 
         $this->assertStringContainsString(
             'kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost',

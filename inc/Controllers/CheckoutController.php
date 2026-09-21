@@ -1,6 +1,10 @@
 <?php
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -9,6 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CheckoutController
 {
     private const KIRIOF_MIN_ADDRESS_LENGTH = 10;
+
+    private SettingRepository $setting_repository;
+    private TransactionRepository $transaction_repository;
+    private WpPostMetaRepository $wp_post_meta_repository;
 
     private $key_destination_id     = 'destination_id';
     private $key_destination_name   = 'destination_name';
@@ -24,6 +32,16 @@ class CheckoutController
     private $field_shipping_insurance_key  = 'kiriof_shipping_insurance';
     private $kiriof_virtual_cart_cleanup_printed = false;
     private $kiriof_classic_insurance_printed = false;
+
+    public function __construct(
+        ?SettingRepository $setting_repository = null,
+        ?TransactionRepository $transaction_repository = null,
+        ?WpPostMetaRepository $wp_post_meta_repository = null
+    ) {
+        $this->setting_repository = $setting_repository ?? new SettingRepository();
+        $this->transaction_repository = $transaction_repository ?? new TransactionRepository();
+        $this->wp_post_meta_repository = $wp_post_meta_repository ?? new WpPostMetaRepository();
+    }
 
     private function kiriof_cart_needs_shipping(): bool {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'needs_shipping' ) ) {
@@ -525,7 +543,7 @@ class CheckoutController
         $kiriof_saved_destination_map = WC()->session->get( 'kiriof_destination_postcode_map', array() );
         $kiriof_saved_checkout_postcode = WC()->session->get( 'kiriof_checkout_postcode', '' );
         
-        $insurance_setting        = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting        = $this->setting_repository->getSettingByKey('enable_insurance');
         $kiriof_global_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
         $kiriof_checkout_token     = empty($destination_id) ? false : true;
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-billing-address.php');
@@ -795,7 +813,7 @@ class CheckoutController
         }
 
         // Avoid duplicate inserts if Woo also fires the classic processed hook.
-        $existing_transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order->get_id() );
+        $existing_transaction = $this->transaction_repository->getTransactionByWCOrderId( $order->get_id() );
         if ( $existing_transaction ) {
             return;
         }
@@ -851,7 +869,7 @@ class CheckoutController
             $payment_method = $this->kiriof_get_checkout_payment_method( $order );
         }
 
-        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
         $insurance = ( $insurance_setting && 'yes' === $insurance_setting->value )
             ? 1
             : (int) WC()->session->get( 'billing_insurance', WC()->session->get( 'kiriof_insurance', 0 ) );
@@ -1068,7 +1086,7 @@ class CheckoutController
             );
 
             // Force insurance when global insurance setting is enabled
-            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+            $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
             if ( $insurance_setting && 'yes' === $insurance_setting->value ) {
                 $insurance_post = '1';
             }
@@ -1246,8 +1264,8 @@ class CheckoutController
         
     }
     function custom_content_thankyou( $order_id ) {
-        $transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId($order_id);
-        $paymentMethod = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdAndMetaKey($order_id,'_payment_method_title');
+        $transaction = $this->transaction_repository->getTransactionByWCOrderId($order_id);
+        $paymentMethod = $this->wp_post_meta_repository->getRequiredRowsByPostIdAndMetaKey($order_id,'_payment_method_title');
         $locale = get_locale();
         
         echo wp_kses_post( '
@@ -1302,7 +1320,7 @@ class CheckoutController
         if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
             return false;
         }
-        $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
+        $transactionKiriminaja = $this->transaction_repository->getTransactionByWCOrderNumber($order->get_id());
         $shipping_methods = $order->get_shipping_methods();
         $shipping_method = array_shift( $shipping_methods );
         $shipping_method_id = $shipping_method ? $shipping_method['method_id'] : '';
@@ -1427,7 +1445,7 @@ class CheckoutController
 
         $courier_filter = array();
         try {
-            $courier_filter = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getWhitelistExpeditionIds();
+            $courier_filter = $this->setting_repository->getWhitelistExpeditionIds();
         } catch ( \Throwable $th ) {
             $courier_filter = array();
         }
@@ -1738,7 +1756,7 @@ class CheckoutController
         }
         $this->kiriof_classic_insurance_printed = true;
 
-        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
         $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
         $checked           = $force_insurance || (int) WC()->session->get( 'kiriof_insurance', 0 ) === 1;
 
@@ -1889,7 +1907,7 @@ class CheckoutController
             return $gateways;
         }
 
-        $enable_cod_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_cod');
+        $enable_cod_setting = $this->setting_repository->getSettingByKey('enable_cod');
         $enable_cod = $enable_cod_setting ? $enable_cod_setting->value : 'yes';
 
         $cod_settings = get_option('woocommerce_cod_settings', array());

@@ -6,6 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use KiriminAjaOfficial\Contracts\ProductVolumetricReadinessRepositoryInterface;
+use KiriminAjaOfficial\Repositories\ProductVolumetricReadinessRepository;
 use KiriminAjaOfficial\Repositories\SettingRepository;
 
 /**
@@ -13,13 +15,29 @@ use KiriminAjaOfficial\Repositories\SettingRepository;
  */
 class OnboardingSetupStateService {
 	private ?array $steps = null;
+	private ProductVolumetricReadinessRepositoryInterface $product_readiness_repository;
+	private SettingRepository $setting_repository;
+	private ?WooCommerceShippingMethodRegistrationService $shipping_method_service;
+	private ?KiriminajaApiService $api_service;
+
+	public function __construct(
+		?ProductVolumetricReadinessRepositoryInterface $product_readiness_repository = null,
+		?SettingRepository $setting_repository = null,
+		?WooCommerceShippingMethodRegistrationService $shipping_method_service = null,
+		?KiriminajaApiService $api_service = null
+	) {
+		$this->product_readiness_repository = $product_readiness_repository ?? new ProductVolumetricReadinessRepository();
+		$this->setting_repository           = $setting_repository ?? new SettingRepository();
+		$this->shipping_method_service      = $shipping_method_service;
+		$this->api_service                  = $api_service;
+	}
 
 	public function get_steps(): array {
 		if ( null !== $this->steps ) {
 			return $this->steps;
 		}
 
-		$repo            = new SettingRepository();
+		$repo            = $this->setting_repository;
 		$setup_key       = $repo->getSettingByKey( 'setup_key' );
 		$api_key         = $repo->getSettingByKey( 'api_key' );
 		$account_ready   = ! empty( $setup_key->value ?? null ) && ! empty( $api_key->value ?? null );
@@ -45,10 +63,7 @@ class OnboardingSetupStateService {
 		}
 
 		$courier_setting = $repo->getSettingByKey( 'origin_whitelist_expedition_id' );
-		$shipping_ready  = false;
-		if ( class_exists( __NAMESPACE__ . '\\WooCommerceShippingMethodRegistrationService' ) ) {
-			$shipping_ready = ( new WooCommerceShippingMethodRegistrationService() )->hasEnabledMethod();
-		}
+		$shipping_ready = $this->get_shipping_method_service()->hasEnabledMethod();
 
 		$ship_to_countries  = get_option( 'woocommerce_ship_to_countries', '' );
 		$shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
@@ -130,7 +145,7 @@ class OnboardingSetupStateService {
 
 	public function get_origin_values(): array {
 		$values = array();
-		foreach ( ( new SettingRepository() )->getSettingByArray(
+		foreach ( $this->setting_repository->getSettingByArray(
 			array(
 				'origin_name', 'origin_phone', 'origin_address', 'origin_latitude',
 				'origin_longitude', 'origin_sub_district_id', 'origin_sub_district_name', 'origin_zip_code',
@@ -144,7 +159,7 @@ class OnboardingSetupStateService {
 
 	public function get_integration_values(): array {
 		$values = array();
-		$settings = ( new SettingRepository() )->getIntegrationData();
+		$settings = $this->setting_repository->getIntegrationData();
 		if ( ! is_iterable( $settings ) ) {
 			return $values;
 		}
@@ -157,14 +172,14 @@ class OnboardingSetupStateService {
 	}
 
 	public function get_connection_state(): array {
-		$repo          = new SettingRepository();
+		$repo          = $this->setting_repository;
 		$setup_key_row = $repo->getSettingByKey( 'setup_key' );
 		$api_key_row   = $repo->getSettingByKey( 'api_key' );
 		$is_connected  = ! empty( $setup_key_row->value ?? null ) && ! empty( $api_key_row->value ?? null );
 		$profile       = null;
 		$profile_err   = false;
 
-		if ( $is_connected && class_exists( KiriminajaApiService::class ) ) {
+		if ( $is_connected ) {
 			try {
 				$profile_service = ( new KiriminAjaApiService() )->getProfile();
 				if ( 200 === $profile_service->status && ! empty( $profile_service->data ) ) {
@@ -175,8 +190,6 @@ class OnboardingSetupStateService {
 			} catch ( \Throwable $th ) {
 				$profile_err = true;
 			}
-		} elseif ( $is_connected ) {
-			$profile_err = true;
 		}
 
 		return array(
@@ -187,38 +200,24 @@ class OnboardingSetupStateService {
 	}
 
 	private function are_products_ready(): bool {
-		global $wpdb;
+		$readiness = $this->product_readiness_repository->getReadiness();
 
-		$from = "FROM {$wpdb->posts} p
-			LEFT JOIN {$wpdb->posts} child_variation ON child_variation.post_parent = p.ID
-				AND child_variation.post_type = 'product_variation'
-				AND child_variation.post_status IN ('publish','private')
-			LEFT JOIN {$wpdb->postmeta} virtual_meta ON virtual_meta.post_id = p.ID AND virtual_meta.meta_key = '_virtual'
-			LEFT JOIN {$wpdb->postmeta} parent_virtual_meta ON parent_virtual_meta.post_id = p.post_parent AND parent_virtual_meta.meta_key = '_virtual'";
-		$where = "WHERE ((p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
-			OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL))
-			AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
-		$ready = "(
-			CAST(CASE WHEN p.post_type = 'product_variation' THEN COALESCE(NULLIF(weight_meta.meta_value, ''), parent_weight_meta.meta_value, '0') ELSE COALESCE(weight_meta.meta_value, '0') END AS DECIMAL(10,2)) > 0
-			AND CAST(CASE WHEN p.post_type = 'product_variation' THEN COALESCE(NULLIF(length_meta.meta_value, ''), parent_length_meta.meta_value, '0') ELSE COALESCE(length_meta.meta_value, '0') END AS DECIMAL(10,2)) > 0
-			AND CAST(CASE WHEN p.post_type = 'product_variation' THEN COALESCE(NULLIF(width_meta.meta_value, ''), parent_width_meta.meta_value, '0') ELSE COALESCE(width_meta.meta_value, '0') END AS DECIMAL(10,2)) > 0
-			AND CAST(CASE WHEN p.post_type = 'product_variation' THEN COALESCE(NULLIF(height_meta.meta_value, ''), parent_height_meta.meta_value, '0') ELSE COALESCE(height_meta.meta_value, '0') END AS DECIMAL(10,2)) > 0
-		)";
+		return $readiness['ready'];
+	}
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		$total = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) {$from} {$where}" );
-		$configured = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) {$from}
-			LEFT JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
-			LEFT JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
-			LEFT JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
-			LEFT JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
-			LEFT JOIN {$wpdb->postmeta} parent_weight_meta ON parent_weight_meta.post_id = p.post_parent AND parent_weight_meta.meta_key = '_weight'
-			LEFT JOIN {$wpdb->postmeta} parent_length_meta ON parent_length_meta.post_id = p.post_parent AND parent_length_meta.meta_key = '_length'
-			LEFT JOIN {$wpdb->postmeta} parent_width_meta ON parent_width_meta.post_id = p.post_parent AND parent_width_meta.meta_key = '_width'
-			LEFT JOIN {$wpdb->postmeta} parent_height_meta ON parent_height_meta.post_id = p.post_parent AND parent_height_meta.meta_key = '_height'
-			{$where} AND {$ready}" );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+	private function get_shipping_method_service(): WooCommerceShippingMethodRegistrationService {
+		if ( null === $this->shipping_method_service ) {
+			$this->shipping_method_service = new WooCommerceShippingMethodRegistrationService();
+		}
 
-		return $configured >= $total;
+		return $this->shipping_method_service;
+	}
+
+	private function get_api_service(): KiriminajaApiService {
+		if ( null === $this->api_service ) {
+			$this->api_service = new KiriminajaApiService();
+		}
+
+		return $this->api_service;
 	}
 }

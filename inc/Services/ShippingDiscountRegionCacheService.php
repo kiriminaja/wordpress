@@ -149,9 +149,9 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         if ( ! $regionRepo->upsertProvinces( $provinces ) || $regionRepo->getProvinceCount() < 1 ) {
-            global $wpdb;
-            $dbErr   = ! empty( $wpdb->last_error ) ? ' DB: ' . $wpdb->last_error : '';
-            $message = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
+            $lastError = $regionRepo->getLastError();
+            $dbErr      = '' !== $lastError ? ' DB: ' . $lastError : '';
+            $message    = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
             $this->updateStatus( 'error', $message );
             kiriof_log(
                 'error',
