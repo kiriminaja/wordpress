@@ -88,6 +88,9 @@ class CreateTransactionService extends BaseService{
                 $wooDiscountDescription = (string) $this->payload['woo_discount_description'];
             }
             // $expeditionParts already computed above for deficit detection.
+            $shipmentLocationService = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+            $checkoutOriginLocation  = $shipmentLocationService->getDefaultLocation();
+            $checkoutOriginSnapshot  = $shipmentLocationService->locationToOrigin( $checkoutOriginLocation );
             $payload = [
                 'order_id'                      => (new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId())->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
@@ -112,6 +115,8 @@ class CreateTransactionService extends BaseService{
                 'woocommerce_discount_description' => $wooDiscountDescription,
                 'is_deficit'                    => $isDeficit,
                 'cod_minimum'                   => $isCod ? $codMinimum : null,
+                'shipment_location_id'          => (int) ( $checkoutOriginSnapshot['location_id'] ?? 0 ),
+                'shipment_location_snapshot'    => ! empty( $checkoutOriginSnapshot ) ? wp_json_encode( $checkoutOriginSnapshot ) : null,
             ];
             
             /** Update WC Total Order */

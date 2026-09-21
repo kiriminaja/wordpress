@@ -129,6 +129,11 @@ zip:
 	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
 	(cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction)
 	rm -f $(STAGE_DIR)/composer.lock $(STAGE_DIR)/vendor/bin/.phpunit.result.cache
+	@CUSTOM_LOCATION_LIMIT=$$(if [ -f .env ]; then grep '^MAX_CUSTOM_SHIPMENT_LOCATIONS=' .env | head -1 | cut -d= -f2- | xargs; fi); \
+	if [ -n "$$CUSTOM_LOCATION_LIMIT" ]; then \
+		php -r '$$file=$$argv[1]; $$limit=max(1,(int)$$argv[2]); $$content=file_get_contents($$file); $$content=preg_replace("/define\\( '\''KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS'\'', \\d+ \\);/", "define( '\''KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS'\'', ".$$limit." );", $$content, 1); file_put_contents($$file,$$content);' $(STAGE_DIR)/kiriminaja.php "$$CUSTOM_LOCATION_LIMIT"; \
+		echo "  → Custom shipment address limit: $$CUSTOM_LOCATION_LIMIT"; \
+	fi
 	@if [ "$(KIRIOF_ENV)" != "prd" ] && [ -f .env ]; then \
 		API_URL=$$(grep '^$(ENV_VAR_NAME)=' .env | head -1 | cut -d= -f2- | xargs); \
 		if [ -n "$$API_URL" ]; then \

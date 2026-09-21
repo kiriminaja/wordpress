@@ -33,6 +33,7 @@ define( 'KIRIOF_ENABLE_KA_CREDIT', false );
 define( 'KIRIOF_VERSION', '2.3.11' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
+define( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS', 5 );
 
 if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
     require_once dirname( __FILE__ ) . '/vendor/autoload.php';
@@ -273,6 +274,9 @@ function kiriof_activate_plugin() {
     }
 
     (new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+    if ( class_exists( '\\KiriminAjaOfficial\\Services\\ShipmentLocationService' ) ) {
+        ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->seedDefaultFromGlobalOrigin();
+    }
     (new \KiriminAjaOfficial\Base\Activate())->activate();
     (new \KiriminAjaOfficial\Pages\AdminPost())->register();
 
@@ -312,6 +316,9 @@ function kiriof_plugin_update_migration( $upgrader_object, $options ) {
                     // Run migration only if class exists
 					if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
 						(new \KiriminAjaOfficial\Migration\SetupMigration())->register();
+					}
+					if ( class_exists( '\\KiriminAjaOfficial\\Services\\ShipmentLocationService' ) ) {
+						( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->seedDefaultFromGlobalOrigin();
 					}
 					if ( class_exists( '\KiriminAjaOfficial\Services\OnboardingSetupStateService' ) ) {
 						$state_service = new \KiriminAjaOfficial\Services\OnboardingSetupStateService();

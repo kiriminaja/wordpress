@@ -144,7 +144,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                 <th scope="col" class="manage-column column-thumb kiriof-col-order"><?php echo esc_html(__('Order / Transaction', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-expedition"><?php echo esc_html(__('Expedition & Service', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-airwaybill"><?php echo esc_html(__('Airwaybill / Order ID', 'kiriminaja-official')); ?></th>
-                <th scope="col" class="manage-column column-thumb kiriof-col-shipto"><?php echo esc_html(__('Ship To', 'kiriminaja-official')); ?></th>
+                <th scope="col" class="manage-column column-thumb kiriof-col-shipto"><?php echo esc_html(__('Shipment Route', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-packages"><?php echo esc_html(__('Packages & Fee', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-action" style="width:7rem"><?php echo esc_html(__('Action', 'kiriminaja-official')); ?></th>
             </tr>
@@ -174,6 +174,11 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                     }
 
                     $kiriof_destinationSubDistrict = $kiriof_row->destination_sub_district ?? '';
+                    $kiriof_originSnapshot = json_decode((string) ($kiriof_row->shipment_location_snapshot ?? '{}'), true);
+                    $kiriof_originName = trim((string) ($kiriof_originSnapshot['origin_name'] ?? $kiriof_originSnapshot['name'] ?? ''));
+                    if ('' === $kiriof_originName) {
+                        $kiriof_originName = __('Default origin', 'kiriminaja-official');
+                    }
                     $kiriof_wcOrder = function_exists('wc_get_order') ? wc_get_order($kiriof_row->wc_order_id) : false;
                     $kiriofBillingAddress = $kiriof_wcOrder && method_exists($kiriof_wcOrder, 'get_address') ? (array) $kiriof_wcOrder->get_address('billing') : [];
                     $kiriof_recipient = $kiriof_recipientResolver->resolve($kiriof_wcOrder, $kiriof_shippingData, $kiriof_row);
@@ -205,18 +210,24 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
 
                     // Split WC discount for column badges (loaded for every row).
                     $kiriof_colItemDiscount = 0.0;
-                    $kiriof_colShipDiscount = 0.0;
+                    $kiriof_colShipDiscount = max(0.0, $kiriof_discountAmount);
                     $kiriof_colItemCoupon   = '';
                     $kiriof_colShipCoupon   = '';
                     if ($kiriof_wcOrder) {
                         $kiriof_colItemDiscount = (float) $kiriof_wcOrder->get_discount_total();
-                        $kiriof_colShipDiscount = max(0.0, $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total());
                         $kiriof_colCoupons      = $kiriof_wcOrder->get_coupon_codes();
                         $kiriof_couponService   = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
                         $kiriof_couponScopes    = $kiriof_couponService->splitCouponCodesByScope((array) $kiriof_colCoupons);
                         $kiriof_colItemCoupon   = $kiriof_couponScopes['item'][0] ?? '';
                         $kiriof_colShipCoupon   = $kiriof_couponScopes['shipping'][0] ?? '';
+                        $kiriof_colShipDiscount = max(
+                            0.0,
+                            $kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total()
+                        );
                     }
+                    $kiriof_colPaidShipping = $kiriof_wcOrder
+                        ? max(0.0, (float) $kiriof_wcOrder->get_shipping_total())
+                        : max(0.0, $kiriof_shippingCost - $kiriof_colShipDiscount);
                     $kiriof_paymentLabel = $kiriof_isCod ? __('COD', 'kiriminaja-official') : __('NON COD', 'kiriminaja-official');
 
                     $kiriof_weight       = (float) ($kiriof_row->weight ?? 0);
@@ -240,6 +251,26 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                     $kiriof_isProcessable   = ('wc-processing' === $kiriof_postStatus && 'new' === $kiriof_row->status);
                     $kiriof_isKAOrder       = ('wc-processing' === $kiriof_postStatus);
                     $kiriof_isDeficitRow    = ! empty($kiriof_row->is_deficit);
+                    $kiriof_origin_label    = '';
+                    $kiriof_origin_snapshot = array();
+                    if ( ! empty( $kiriof_row->shipment_location_snapshot ) ) {
+                        $kiriof_origin_snapshot = json_decode( $kiriof_row->shipment_location_snapshot, true );
+                        $kiriof_origin_label    = is_array( $kiriof_origin_snapshot )
+                            ? (string) ( $kiriof_origin_snapshot['origin_name'] ?? $kiriof_origin_snapshot['location_name'] ?? $kiriof_origin_snapshot['name'] ?? '' )
+                            : '';
+                    }
+                    if ( '' === $kiriof_origin_label ) {
+                        $kiriof_origin_label = __( 'Legacy default origin', 'kiriminaja-official' );
+                    }
+                    $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+                    $kiriof_origin_location  = ! empty( $kiriof_row->shipment_location_id )
+                        ? $kiriof_location_service->repository()->getById( (int) $kiriof_row->shipment_location_id )
+                        : null;
+                    $kiriof_origin_address = $kiriof_location_service->formatAddress(
+                        ! empty( $kiriof_origin_snapshot ) && is_array( $kiriof_origin_snapshot )
+                            ? $kiriof_origin_snapshot
+                            : $kiriof_origin_location
+                    );
                     $kiriof_statusLabel     = $kiriof_isDeficitRow
                         ? __('COD Deficit', 'kiriminaja-official')
                         : ($kiriof_isKAOrder
@@ -364,6 +395,8 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                         . '<div><span style="color: #8c8f94">' . esc_html__('Order ID', 'kiriminaja-official') . ': </span><span style="font-weight: 700">' . esc_html($kiriof_orderIdKA) . '</span></div>
                                                          </td>
                                                         <td class="manage-column column-thumb kiriof-col-shipto">
+                                                            <div class="kiriof-shipto-name" title="' . esc_attr($kiriof_originName) . '">' . esc_html($kiriof_originName) . '</div>
+                                                            <div style="font-size:12px;color:#8c8f94;margin:2px 0">&#8595; ' . esc_html__('To', 'kiriminaja-official') . '</div>
                                                             <div class="kiriof-shipto-name">' . esc_html($kiriofShippingName) . '</div>
                                                             <div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddress1) . '">' . esc_html($kiriof_shippingAddress1) . '</div>'
                         . ($kiriof_shippingAddressLineTwo ? '<div class="kiriof-shipto-line" title="' . esc_attr($kiriof_shippingAddressLineTwo) . '">' . esc_html($kiriof_shippingAddressLineTwo) . '</div>' : '')
@@ -376,8 +409,8 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                         . esc_html(number_format_i18n($kiriof_weight, 0)) . ' g'
                         . ($kiriof_packageCount > 1 ? ' &times; ' . (int) $kiriof_packageCount : '')
                         . '</div>'
-                        // Shipping cost — always the primary number.
-                        . '<div style="font-weight:600;margin-top:4px">Rp' . esc_html(kiriof_money_format($kiriof_shippingCost)) . '</div>'
+                        // Buyer-paid shipping is the primary amount; raw shipping stays in the discount breakdown.
+                        . '<div style="font-weight:600;margin-top:4px">Rp' . esc_html(kiriof_money_format($kiriof_colPaidShipping)) . '</div>'
                         // Extra-fee pills: only shown when applicable.
                         . (($kiriof_insuranceCost > 0 || $kiriof_codFee > 0 || $kiriof_colItemDiscount > 0 || $kiriof_colShipDiscount > 0)
                             ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">'
@@ -407,6 +440,19 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                                                         </td>
                                                         <td class="manage-column column-thumb kiriof-col-action" style="white-space:nowrap">' .
                         '<a href="#" class="button order-preview" data-order-id="' . esc_attr($kiriof_row->wc_order_id) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none" title="' . esc_attr(__('Detail', 'kiriminaja-official')) . '" aria-label="' . esc_attr(__('Detail', 'kiriminaja-official')) . '"><span class="dashicons dashicons-visibility" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></a>' .
+                        ( $kiriof_isProcessable
+                            ? ' <button type="button"'
+                            . ' class="button kiriof-change-origin-button"'
+                            . ' style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;color:#2271b1"'
+                             . ' data-ka-order-id="' . esc_attr($kiriof_orderIdKA) . '"'
+                             . ' data-current-origin="' . esc_attr($kiriof_origin_label) . '"'
+                             . ' data-current-origin-address="' . esc_attr($kiriof_origin_address) . '"'
+                             . ' data-current-location-id="' . esc_attr((int) ($kiriof_origin_snapshot['location_id'] ?? $kiriof_origin_snapshot['id'] ?? ($kiriof_origin_location->id ?? 0))) . '"'
+                            . ' data-nonce="' . esc_attr($kiriof_adj_nonce) . '"'
+                            . ' title="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '"'
+                            . ' aria-label="' . esc_attr(__('Change Origin', 'kiriminaja-official')) . '">'
+                            . '<span class="dashicons dashicons-location" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span></button>'
+                            : '' ) .
                         (! empty($kiriof_isDeficitRow)
                             ? ' <button type="button"'
                             . ' class="button"'
@@ -463,7 +509,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                 <th scope="col" class="manage-column column-thumb kiriof-col-order"><?php echo esc_html(__('Order / Transaction', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-expedition"><?php echo esc_html(__('Expedition & Service', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-airwaybill"><?php echo esc_html(__('Airwaybill / Order ID', 'kiriminaja-official')); ?></th>
-                <th scope="col" class="manage-column column-thumb kiriof-col-shipto"><?php echo esc_html(__('Ship To', 'kiriminaja-official')); ?></th>
+                <th scope="col" class="manage-column column-thumb kiriof-col-shipto"><?php echo esc_html(__('Shipment Route', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-packages"><?php echo esc_html(__('Packages & Fee', 'kiriminaja-official')); ?></th>
                 <th scope="col" class="manage-column column-thumb kiriof-col-action" style="width:7rem"><?php echo esc_html(__('Action', 'kiriminaja-official')); ?></th>
             </tr>

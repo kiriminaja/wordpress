@@ -82,6 +82,7 @@ class TransactionRepository{
 
     /**
      * Check for database errors and log them
+     * @param array  $courier    Validated courier and shipping values.
      * @return bool
      */
     private function hasError(){
@@ -300,9 +301,11 @@ class TransactionRepository{
                     `woocommerce_discount_amount`,
                     `woocommerce_discount_description`,
                     `is_deficit`,
-                    `cod_minimum`
+                    `cod_minimum`,
+                    `shipment_location_id`,
+                    `shipment_location_snapshot`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s)",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -325,7 +328,9 @@ class TransactionRepository{
                 $payload['woocommerce_discount_amount'] ?? 0,
                 $payload['woocommerce_discount_description'] ?? null,
                 $payload['is_deficit'] ?? 0,
-                $payload['cod_minimum'] ?? null
+                $payload['cod_minimum'] ?? null,
+                $payload['shipment_location_id'] ?? null,
+                $payload['shipment_location_snapshot'] ?? null
             )
         );
         $this->invalidateCouriersCache();
@@ -550,6 +555,28 @@ class TransactionRepository{
         );
 
         return ! $this->hasError();
+    }
+
+    /**
+     * Update the shipment (pickup) origin assigned to a transaction.
+     *
+     * @param string $kaOrderId  KiriminAja order id.
+     * @param int    $locationId Shipment location id.
+     * @param string $snapshot   JSON snapshot of the chosen location.
+     * @return bool
+     */
+    public function updateTransactionShipmentLocation( string $kaOrderId, int $locationId, string $snapshot, array $courier = array() ): bool {
+        $changes = array_merge( [
+                'shipment_location_id'       => $locationId,
+                'shipment_location_snapshot' => $snapshot,
+            ], array_intersect_key( $courier, array_flip( array( 'service', 'service_name', 'shipping_cost', 'discount_amount' ) ) ) );
+
+        return $this->updateTransactionByCallbackVerified(
+            array(
+                'changes'   => $changes,
+                'condition' => array( 'order_id' => $kaOrderId ),
+            )
+        );
     }
 
     public function updateTransaction($payload){
