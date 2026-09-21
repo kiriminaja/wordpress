@@ -124,15 +124,28 @@ final class TrackingShortcodeLookupTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "post_content LIKE '%[kiriminaja-tracking-front-page%'",
+            'findPreferredTrackingShortcodePage',
             $adminPost,
-            'Activation must detect the current KiriminAja tracking shortcode'
+            'Activation must delegate tracking shortcode discovery to the repository'
+        );
+
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/TrackingPageRepository.php');
+        $this->assertStringContainsString(
+            "'[kiriminaja-tracking-front-page'",
+            $repository,
+            'Tracking page repository must detect the current KiriminAja tracking shortcode'
         );
 
         $this->assertStringContainsString(
-            "post_content LIKE '%[wp-tracking-front-page%'",
+            "'[wp-tracking-front-page'",
+            $repository,
+            'Tracking page repository must detect the legacy tracking shortcode'
+        );
+
+        $this->assertStringNotContainsString(
+            '$wpdb',
             $adminPost,
-            'Activation must detect the legacy tracking shortcode'
+            'Activation page setup must not access the database directly'
         );
 
         $this->assertStringContainsString(

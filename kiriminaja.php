@@ -278,7 +278,7 @@ function kiriof_activate_plugin() {
         ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->seedDefaultFromGlobalOrigin();
     }
     (new \KiriminAjaOfficial\Base\Activate())->activate();
-    (new \KiriminAjaOfficial\Pages\AdminPost())->register();
+    ( new \KiriminAjaOfficial\Pages\AdminPost( new \KiriminAjaOfficial\Repositories\TrackingPageRepository() ) )->register();
 
 	// Defer redirect until the next normal admin request. Activation hooks must not redirect.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only activation context detection.

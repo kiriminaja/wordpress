@@ -97,6 +97,44 @@ Measured change from iteration 1:
 - Templates with direct `$wpdb` access: unchanged at 4.
 - Estimated overall repository-pattern maturity: 23% to 27%.
 
+#### Iteration 3: activation page setup
+
+- Reused `TrackingPageRepositoryInterface` for activation-time tracking page discovery.
+- Removed duplicated tracking shortcode SQL from `AdminPost`.
+- Replaced direct writes to the WordPress options table with `update_option()`.
+- Injected the tracking page repository at the plugin activation composition boundary.
+- Added runtime tests for repository delegation and WordPress Options API usage.
+
+Measured change from iteration 2:
+
+- Runtime files using `$wpdb`: 21 to 20.
+- Database access contained in repositories or migrations: 10 of 21 (48%) to 10 of 20 (50%).
+- Pages with direct `$wpdb` access: 2 to 1.
+- Injected runtime consumers of persistence contracts: 2 to 3.
+- Persistence contracts: unchanged at 2 because the existing tracking-page contract was reused.
+- Templates with direct `$wpdb` access: unchanged at 4.
+- Estimated overall repository-pattern maturity: 27% to 29%.
+
+### Current operational scorecard
+
+The maturity percentage is directional. Use the raw metrics below to decide the next migration target and prevent superficial score improvements.
+
+| Metric | Baseline | Current | Target |
+| --- | ---: | ---: | ---: |
+| Runtime files using `$wpdb` | 22 | 20 | Migrations and persistence adapters only |
+| Repository/migration containment | 41% | 50% | 100% |
+| Controllers using `$wpdb` | 3 | 1 | 0 |
+| Services using `$wpdb` | 3 | 3 | 0 |
+| Pages using `$wpdb` | 2 | 1 | 0 |
+| Templates using `$wpdb` | 4 | 4 | 0 |
+| Persistence contracts | 0 | 2 | Contract for each application persistence boundary |
+| Injected runtime consumers | 0 | 3 | All application consumers |
+| Consumer-side repository constructions | 127 | 127 | 0 |
+| Composition-root repository constructions | 0 | 3 | Expected to increase as consumer construction decreases |
+| Template repository constructions | 12 | 12 | 0 |
+
+The next iterations should prioritize template isolation and consumer-side construction. Those dimensions currently limit maturity more than raw SQL containment.
+
 ### Plugin-owned tables
 
 - `kiriminaja_settings`

@@ -15,4 +15,11 @@ interface TrackingPageRepositoryInterface
      * @return object[]
      */
     public function findTrackingShortcodePages(): array;
+
+    /**
+     * Find the preferred existing tracking page for activation reuse.
+     *
+     * @return object|null
+     */
+    public function findPreferredTrackingShortcodePage();
 }

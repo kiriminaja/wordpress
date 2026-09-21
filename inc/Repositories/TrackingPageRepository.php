@@ -45,4 +45,32 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
             )
         );
     }
+
+    /**
+     * Find the preferred existing tracking page for activation reuse.
+     *
+     * @return object|null
+     */
+    public function findPreferredTrackingShortcodePage()
+    {
+        $current_shortcode = '%' . $this->wpdb->esc_like( '[kiriminaja-tracking-front-page' ) . '%';
+        $legacy_shortcode  = '%' . $this->wpdb->esc_like( '[wp-tracking-front-page' ) . '%';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only activation lookup against the WordPress posts table.
+        return $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                "SELECT ID FROM {$this->wpdb->posts}
+                WHERE post_type = 'page'
+                    AND post_status NOT IN ('trash', 'auto-draft')
+                    AND (
+                        post_content LIKE %s
+                        OR post_content LIKE %s
+                    )
+                ORDER BY post_status = 'publish' DESC, ID ASC
+                LIMIT 1",
+                $current_shortcode,
+                $legacy_shortcode
+            )
+        );
+    }
 }

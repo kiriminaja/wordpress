@@ -14,6 +14,10 @@ final class ShipmentLocationTrackingPageRepositoryFake implements TrackingPageRe
     public function findTrackingShortcodePages(): array {
         return array();
     }
+
+    public function findPreferredTrackingShortcodePage() {
+        return null;
+    }
 }
 
 require_once PLUGIN_DIR . '/inc/Contracts/TrackingPageRepositoryInterface.php';
