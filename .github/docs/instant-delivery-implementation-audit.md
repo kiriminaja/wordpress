@@ -680,6 +680,37 @@ array(
 - If the checkout courier is unavailable, show available Instant alternatives and let the admin select one. Do not switch automatically or fall back to Express.
 - If an admin edits the shipping address after checkout, clear the saved order coordinates and block dispatch until a new pin is selected and repricing succeeds.
 
+### Transactions workspace
+
+The KiriminAja Transactions page must separate delivery workflows with persistent tabs, following the Shopify-style interaction pattern shown in the reference image:
+
+- `Regular Delivery`
+- `International Delivery`
+- `Instant Delivery`
+- `Order Issue`
+
+The tabs are functional filters, not only visual labels. Each transaction belongs to one primary delivery tab, or to `Order Issue` when it requires intervention.
+
+Requirements:
+
+- Default to `Regular Delivery` when no tab has been selected.
+- Persist the active tab in the URL so refresh, browser back, and shared admin links preserve the current view.
+- Scope search, pagination, bulk selection, and bulk actions to the active tab.
+- Do not allow a bulk action to mix Regular, International, and Instant transactions.
+- Keep the KA Credit balance summary and payment actions available at the top of the workspace when the account supports them, including Top Up and History entry points.
+- Keep filters contextual to the active tab instead of showing Express-only filters on Instant transactions.
+- Regular Delivery filters continue to support order or AWB lookup, COD/non-COD, transaction status, print status, and courier.
+- Instant Delivery filters support WooCommerce order or KiriminAja order/tracking lookup, transaction status, courier, and payment method. Express pickup schedule filters are not required for Instant.
+- International Delivery filters and actions remain isolated from domestic Express and Instant behavior.
+- `Order Issue` collects transactions that need intervention, including missing coordinates, missing product weight, failed pricing, failed payment, stale or changed quotes, rejected booking, failed webhook processing, and failed retries.
+- An issue row shows the actionable reason, affected order, delivery type, last API error or response message, and the next retry or resolution action.
+- Instant rows show delivery type, courier/service, payment method, WooCommerce order, KiriminAja order ID, tracking code or AWB, package and fee summary, current status, and state-appropriate actions.
+- Instant actions include dispatch, safe retry, reprice, tracking, and void/cancel only when the remote shipment state allows it.
+- Show confirmation before dispatch, retry, or void actions. For price changes, show the checkout quote and current quote in the confirmation step.
+- Bulk Instant dispatch enforces the grouping rules: same origin, courier, vehicle, and payment method. Each package remains an independent API request and partial success is reported per row.
+- When a tab has no transactions, show a useful empty state with the relevant next action instead of an unfiltered generic empty table.
+- The tab and table remain keyboard accessible and usable on smaller admin screens without hiding critical status or action information.
+
 ### Order lifecycle, cancellation, and tracking
 
 - A successfully dispatched order remains `processing` during delivery.
@@ -736,6 +767,7 @@ These are implementation dependencies to confirm with KiriminAja or infrastructu
 - Add Instant tracking and live tracking URL.
 - Extend webhook processing and status transitions.
 - Add Instant-specific admin actions and labels.
+- Add delivery-type tabs and the `Order Issue` workflow to the Transactions workspace.
 
 ### Phase 4: Checkout Blocks
 
@@ -778,7 +810,17 @@ Classic and Block work may run in parallel after the normalized Instant rate and
 - The location input works without Classic Checkout fragments or jQuery checkout events.
 - Store API updates persist the Instant checkout context.
 - Store API validation rejects missing or stale Instant context.
-- Guest checkout and authenticated checkout produce the same transaction metadata.
+- Authenticated checkout persists the Instant context; guest checkout does not receive Instant rates.
+
+### Transactions workspace
+
+- The active tab is reflected in the URL and survives refresh and browser navigation.
+- A transaction appears in exactly one delivery tab or in `Order Issue` when it requires intervention.
+- Instant transactions never appear in the Regular Delivery list.
+- Bulk selection cannot span delivery tabs and cannot dispatch incompatible Instant groups.
+- Instant rows expose the correct dispatch, repricing, tracking, retry, and void actions for their state.
+- API and data-quality failures appear in `Order Issue` with an actionable reason and retry or resolution path.
+- Empty states and filters are specific to the selected tab.
 
 ### Package creation
 
