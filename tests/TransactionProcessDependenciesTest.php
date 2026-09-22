@@ -17,12 +17,17 @@ final class TransactionProcessDependenciesTest extends TestCase
         $this->assertIsString( $init );
         $this->assertStringContainsString( 'DatabaseTransactionManagerInterface $transactionManager', $controller );
         $this->assertStringContainsString( 'TransactionRepository $transactionRepository', $controller );
+        $this->assertStringContainsString( 'CheckoutServiceFactory $checkoutServiceFactory', $controller );
         $this->assertStringNotContainsString( 'global $wpdb', $controller );
         $this->assertStringNotContainsString( "'START TRANSACTION'", $controller );
         $this->assertStringNotContainsString( "'COMMIT'", $controller );
         $this->assertStringNotContainsString( "'ROLLBACK'", $controller );
         $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\TransactionRepository', $controller );
         $this->assertStringContainsString( 'new Infrastructure\\WordPressDatabaseTransactionManager()', $init );
+        $this->assertMatchesRegularExpression(
+            '/new Services\\\\TransactionProcessServices\\\\GetRequestPickupScheduleService\\([\\s\\S]*?\\),\\s*\\$checkout_service_factory\\s*\\)/',
+            $init
+        );
     }
 
     #[Test]

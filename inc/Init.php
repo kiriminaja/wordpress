@@ -43,14 +43,6 @@ final class Init {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
-        if ( Controllers\EditOrderController::class === $class ) {
-            return new $class(
-                new Repositories\TransactionRepository(),
-                new Repositories\SettingRepository(),
-                new Repositories\KiriminajaApiRepository()
-            );
-        }
-
         (new Services\ShipmentLocationService())->seedDefaultFromGlobalOrigin();
         foreach (self::get_services() as $class){
             $service = self::instantiate($class);
@@ -82,6 +74,14 @@ final class Init {
                     new Repositories\PaymentRepository(),
                     (string) ( $api_key->value ?? '' )
                 )
+            );
+        }
+
+        if ( Controllers\EditOrderController::class === $class ) {
+            return new $class(
+                new Repositories\TransactionRepository(),
+                new Repositories\SettingRepository(),
+                new Repositories\KiriminajaApiRepository()
             );
         }
 
@@ -156,7 +156,8 @@ final class Init {
                 new Services\TransactionProcessServices\GetRequestPickupScheduleService(
                     $api_repository,
                     $transaction_repository
-                )
+                ),
+                $checkout_service_factory
             );
         }
 
