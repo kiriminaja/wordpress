@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <section class="kiriof-onboarding__step" data-step-panel="couriers">
+	<div data-kiriof-couriers-panel></div>
+	<div data-kiriof-panel-fallback>
 	<p class="kiriof-onboarding__step-number"><?php echo esc_html__( 'Step 3 of 4', 'kiriminaja-official' ); ?></p>
 	<h2><?php echo esc_html( $steps['couriers']['title'] ); ?></h2>
 	<p><?php echo esc_html( $steps['couriers']['description'] ); ?></p>
@@ -17,4 +19,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 	<div class="kiriof-onboarding__couriers" data-courier-list><span class="spinner is-active"></span> <?php echo esc_html__( 'Loading couriers…', 'kiriminaja-official' ); ?></div>
 	<div class="kiriof-onboarding__message" data-step-message="couriers" role="alert"></div>
+	</div>
 </section>

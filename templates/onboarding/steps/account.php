@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <section class="kiriof-onboarding__step" data-step-panel="account">
+	<div data-kiriof-account-panel></div>
+	<div data-kiriof-panel-fallback>
 	<p class="kiriof-onboarding__step-number"><?php echo esc_html__( 'Step 1 of 4', 'kiriminaja-official' ); ?></p>
 	<h2><?php echo esc_html( $steps['account']['title'] ); ?></h2>
 	<p><?php echo esc_html( $steps['account']['description'] ); ?></p>
@@ -29,4 +31,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</table>
 	<?php endif; ?>
 	<div class="kiriof-onboarding__message" data-step-message="account" role="alert"></div>
+	</div>
 </section>

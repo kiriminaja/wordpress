@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <section class="kiriof-onboarding__step" data-step-panel="shipping">
+	<div data-kiriof-shipping-panel></div>
+	<div data-kiriof-panel-fallback>
 	<p class="kiriof-onboarding__step-number"><?php echo esc_html__( 'Step 4 of 4', 'kiriminaja-official' ); ?></p>
 	<h2><?php echo esc_html( $steps['shipping']['title'] ); ?></h2>
 	<p><?php echo esc_html( $steps['shipping']['description'] ); ?></p>
@@ -26,4 +28,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 	<p class="kiriof-onboarding__shipping-help" data-location-help><?php echo esc_html__( 'Shipping locations must be enabled in WooCommerce before rates can appear at checkout.', 'kiriminaja-official' ); ?> <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=shipping' ) ); ?>"><?php echo esc_html__( 'Open shipping settings', 'kiriminaja-official' ); ?></a></p>
 	<div class="kiriof-onboarding__message" data-step-message="shipping" role="alert"></div>
+	</div>
 </section>

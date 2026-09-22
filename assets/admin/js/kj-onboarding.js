@@ -6,6 +6,21 @@
 		return;
 	}
 
+	function publishCouriersState() {
+		window.dispatchEvent(new CustomEvent('kiriof:onboarding-couriers-state', {
+			detail: { couriers: couriers, enabled: Object.assign({}, courierMap), loading: couriersLoading }
+		}));
+	}
+
+	function publishShippingState() {
+		window.dispatchEvent(new CustomEvent('kiriof:onboarding-shipping-state', {
+			detail: {
+				shippingReady: $('[data-shipping-status]').hasClass('is-done'),
+				locationsReady: $('[data-location-status]').hasClass('is-done')
+			}
+		}));
+	}
+
 	var order = ['account', 'address', 'couriers', 'shipping', 'complete'];
 	var current = $root.data('current-step') || 'account';
 	var accountComplete = String($root.data('account-complete')) === '1';
@@ -43,6 +58,7 @@
 		}
 		updateContinueState();
 		publishEnhancedState();
+		publishCouriersState();
 	}
 
 	function post(action, data) {
@@ -119,6 +135,7 @@
 		var $check = $(selector);
 		$check.toggleClass('is-done', done).toggleClass('is-pending', !done);
 		$check.find('.dashicons').removeClass('dashicons-clock dashicons-yes-alt').addClass(done ? 'dashicons-yes-alt' : 'dashicons-clock');
+		publishShippingState();
 	}
 
 	function saveAccount() {
@@ -250,6 +267,7 @@
 		}
 
 		couriersLoading = true;
+		publishCouriersState();
 		$('[data-courier-list]').html('<span class="spinner is-active"></span> Loading couriers…');
 		message('couriers', '');
 
@@ -272,6 +290,7 @@
 			message('couriers', kiriofOnboarding.networkError);
 		}).always(function () {
 			couriersLoading = false;
+			publishCouriersState();
 		});
 	}
 
@@ -400,6 +419,25 @@
 			return;
 		}
 		show(target);
+	});
+	window.addEventListener('kiriof:onboarding-couriers-request', function () {
+		loadCouriers();
+		publishCouriersState();
+	});
+	window.addEventListener('kiriof:onboarding-courier-intent', function (event) {
+		var detail = event.detail || {};
+		if (detail.action === 'all') {
+			couriers.forEach(function (courier) { courierMap[courier.code] = courier.name; });
+		} else if (detail.action === 'none') {
+			courierMap = {};
+		} else if (detail.action === 'toggle' && detail.courier) {
+			if (detail.checked) {
+				courierMap[detail.courier.code] = detail.courier.name;
+			} else {
+				delete courierMap[detail.courier.code];
+			}
+		}
+		renderCouriers();
 	});
 	window.addEventListener('kiriof:onboarding-step', function (event) {
 		var target = event.detail && event.detail.step ? String(event.detail.step) : '';

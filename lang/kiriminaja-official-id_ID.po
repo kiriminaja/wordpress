@@ -25,6 +25,14 @@ msgstr "Memutuskan koneksi…"
 msgid "Add the KiriminAja tracking shortcode to the content editor."
 msgstr "Tambahkan shortcode pelacakan KiriminAja ke editor konten."
 
+#: templates/onboarding/index.php
+msgid "No courier services are available."
+msgstr "Tidak ada layanan kurir yang tersedia."
+
+#: templates/onboarding/index.php
+msgid "enabled"
+msgstr "aktif"
+
 #: inc/Pages/Admin.php
 msgid "Add customer shipment tracking."
 msgstr "Tambahkan pelacakan kiriman pelanggan."

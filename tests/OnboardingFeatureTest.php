@@ -218,6 +218,7 @@ final class OnboardingFeatureTest extends TestCase
         $enqueue  = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
         $legacy   = file_get_contents( PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js' );
         $template = file_get_contents( PLUGIN_DIR . '/templates/onboarding/index.php' );
+        $account  = file_get_contents( PLUGIN_DIR . '/templates/onboarding/steps/account.php' );
         $makefile = file_get_contents( PLUGIN_DIR . '/Makefile' );
 
         $this->assertFileExists( PLUGIN_DIR . '/package.json' );
@@ -230,6 +231,9 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertStringContainsString( "wp_script_add_data( 'kiriof-onboarding-progress', 'type', 'module' )", $enqueue );
         $this->assertStringContainsString( 'kiriof:onboarding-state', $legacy );
         $this->assertStringContainsString( 'kiriof:onboarding-step', $legacy );
+        $this->assertStringContainsString( 'kiriof:onboarding-couriers-state', $legacy );
+        $this->assertStringContainsString( 'kiriof:onboarding-courier-intent', $legacy );
+        $this->assertStringContainsString( 'kiriof:onboarding-shipping-state', $legacy );
         $this->assertStringContainsString( '--exclude=src/', $makefile );
         $this->assertStringContainsString( '--exclude=package.json', $makefile );
         $this->assertStringContainsString( 'zip: frontend', $makefile );
@@ -250,6 +254,13 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/.oxfmtrc.json' );
         $this->assertFileExists( PLUGIN_DIR . '/.oxlintrc.json' );
         $this->assertFileExists( PLUGIN_DIR . '/scripts/frontend-pre-commit.sh' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/AccountPanel.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/CouriersPanel.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/ShippingPanel.svelte' );
+        $this->assertStringContainsString( 'data-kiriof-onboarding-payload', $template );
+        $this->assertStringContainsString( 'data-kiriof-account-panel', $account );
+        $this->assertStringContainsString( 'data-kiriof-couriers-panel', file_get_contents( PLUGIN_DIR . '/templates/onboarding/steps/couriers.php' ) );
+        $this->assertStringContainsString( 'data-kiriof-shipping-panel', file_get_contents( PLUGIN_DIR . '/templates/onboarding/steps/shipping.php' ) );
     }
 
     #[Test]

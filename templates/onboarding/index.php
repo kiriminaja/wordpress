@@ -22,6 +22,57 @@ $kiriof_progress_steps  = array_values(
 		$kiriof_required_steps
 	)
 );
+$kiriof_onboarding_bootstrap = array(
+	'account'   => array(
+		'connected'    => (bool) $kiriof_is_connected,
+		'profileError' => (bool) $kiriof_profile_err,
+		'profile'      => $kiriof_profile ? array(
+			'name'          => (string) ( $kiriof_profile->name ?? '' ),
+			'email'         => (string) ( $kiriof_profile->email ?? '' ),
+			'status'        => (string) ( $kiriof_profile->status ?? '' ),
+			'paymentMethod' => (string) ( $kiriof_profile->metadata->payment_method ?? '' ),
+		) : null,
+		'title'        => $steps['account']['title'],
+		'description'  => $steps['account']['description'],
+		'helpUrl'      => 'https://help.kiriminaja.com/article/setup-wordpress',
+		'i18n'         => array(
+			'connection'          => __( 'Connection', 'kiriminaja-official' ),
+			'setupKey'            => __( 'Setup key', 'kiriminaja-official' ),
+			'setupKeyPlaceholder' => __( 'Paste your setup key', 'kiriminaja-official' ),
+			'findKey'             => __( 'Find this key in your KiriminAja application.', 'kiriminaja-official' ),
+			'learnHow'            => __( 'Learn how', 'kiriminaja-official' ),
+			'disconnect'          => __( 'Disconnect', 'kiriminaja-official' ),
+			'unavailable'         => __( 'Unable to load account information. Your integration may be incomplete.', 'kiriminaja-official' ),
+		),
+	),
+	'couriers'  => array(
+		'title'       => $steps['couriers']['title'],
+		'description' => $steps['couriers']['description'],
+		'i18n'        => array(
+			'enableAll'  => __( 'Enable all', 'kiriminaja-official' ),
+			'disableAll' => __( 'Disable all', 'kiriminaja-official' ),
+			'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
+			'empty'      => __( 'No courier services are available.', 'kiriminaja-official' ),
+			'enabled'    => __( 'enabled', 'kiriminaja-official' ),
+			'enable'     => __( 'Enable', 'kiriminaja-official' ),
+		),
+	),
+	'shipping'  => array(
+		'title'          => $steps['shipping']['title'],
+		'description'    => $steps['shipping']['description'],
+		'shippingReady'  => (bool) $steps['shipping']['shipping_ready'],
+		'locationsReady' => (bool) $steps['shipping']['locations_ready'],
+		'settingsUrl'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+		'i18n'           => array(
+			'methodTitle'          => __( 'KiriminAja shipping method enabled', 'kiriminaja-official' ),
+			'methodDescription'    => __( 'Adds KiriminAja as an available WooCommerce shipping method for checkout rates.', 'kiriminaja-official' ),
+			'locationsTitle'       => __( 'WooCommerce shipping locations configured', 'kiriminaja-official' ),
+			'locationsDescription' => __( 'Confirms WooCommerce can show shipping choices to customers in supported regions.', 'kiriminaja-official' ),
+			'help'                 => __( 'Shipping locations must be enabled in WooCommerce before rates can appear at checkout.', 'kiriminaja-official' ),
+			'openSettings'         => __( 'Open shipping settings', 'kiriminaja-official' ),
+		),
+	),
+);
 ?>
 <div class="kiriof-onboarding" data-kiriof-onboarding data-current-step="<?php echo esc_attr( $current_step ); ?>" data-account-complete="<?php echo ! empty( $steps['account']['done'] ) ? '1' : '0'; ?>">
 	<header class="kiriof-onboarding__header">
@@ -49,6 +100,7 @@ $kiriof_progress_steps  = array_values(
 			data-navigation-label="<?php echo esc_attr__( 'Setup progress', 'kiriminaja-official' ); ?>"
 			data-steps="<?php echo esc_attr( wp_json_encode( $kiriof_progress_steps ) ); ?>"
 		></div>
+		<script type="application/json" data-kiriof-onboarding-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_onboarding_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 		<div class="kiriof-onboarding__header-actions">
 			<a class="kiriof-onboarding__icon-link" href="https://kiriminaja.com/solusi/plugin-woocommerce" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr__( 'Need help?', 'kiriminaja-official' ); ?>" title="<?php echo esc_attr__( 'Need help?', 'kiriminaja-official' ); ?>">
 				<span class="dashicons dashicons-editor-help" aria-hidden="true"></span>
