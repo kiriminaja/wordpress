@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $kiriof_back_url
  */
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-pickup-detail-page>
 
     <?php
     // Build Print All button
@@ -19,6 +19,58 @@ if ( ! defined( 'ABSPATH' ) ) {
         if ( ! empty( $kiriof_txn->awb ) ) {
             $kiriof_print_all_ids[] = $kiriof_txn->order_id;
         }
+	$kiriof_detail_rows = array();
+	$kiriof_detail_print_nonce = wp_create_nonce( 'kiriof_resi_print' );
+	foreach ( $kiriof_transactions_data as $kiriof_idx => $kiriof_txn ) {
+		$kiriof_origin_snapshot = json_decode( (string) ( $kiriof_txn->shipment_location_snapshot ?? '{}' ), true );
+		$kiriof_origin_name = trim( (string) ( $kiriof_origin_snapshot['origin_name'] ?? $kiriof_origin_snapshot['name'] ?? __( 'Default origin', 'kiriminaja-official' ) ) );
+		$kiriof_shipping_cost  = (float) ( $kiriof_txn->shipping_cost ?? 0 );
+		$kiriof_insurance_cost = (float) ( $kiriof_txn->insurance_cost ?? 0 );
+		$kiriof_cod_fee        = (float) ( $kiriof_txn->cod_fee ?? 0 );
+		$kiriof_discount       = (float) ( $kiriof_txn->discount_amount ?? 0 );
+		$kiriof_transaction_value = (float) ( $kiriof_txn->transaction_value ?? 0 );
+		$kiriof_ship_total = $kiriof_shipping_cost + $kiriof_insurance_cost + $kiriof_cod_fee - $kiriof_discount;
+		$kiriof_cod_value  = $kiriof_shipping_cost + $kiriof_insurance_cost + ( $kiriof_cod_fee > 0 ? $kiriof_cod_fee + $kiriof_transaction_value : 0 );
+		$kiriof_detail_rows[] = array(
+			'number'       => $kiriof_idx + 1,
+			'orderId'      => (string) $kiriof_txn->order_id,
+			'orderUrl'     => admin_url( 'post.php?post=' . absint( $kiriof_txn->wp_wc_order_stat_order_id ) . '&action=edit' ),
+			'courier'      => kiriof_helper()->formatServiceName( $kiriof_txn->service, $kiriof_txn->service_name ?? '' ),
+			'awb'          => (string) ( $kiriof_txn->awb ?? '' ),
+			'origin'       => $kiriof_origin_name,
+			'destination'  => (string) ( $kiriof_txn->destination_sub_district ?? '' ),
+			'weight'       => (float) ( $kiriof_txn->weight ?? 0 ),
+			'fee'          => 'Rp' . kiriof_money_format( $kiriof_ship_total ),
+			'codValue'     => 'Rp' . kiriof_money_format( $kiriof_cod_value ),
+			'status'       => (string) ( $kiriof_txn->status ?? '' ),
+			'printUrl'     => ! empty( $kiriof_txn->awb ) ? admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $kiriof_txn->order_id ) . '&_wpnonce=' . $kiriof_detail_print_nonce ) : '',
+		);
+	}
+	$kiriof_pickup_detail_bootstrap = array(
+		'summary'     => array(
+			array( 'value' => (int) $kiriof_payment_data['package_count'], 'label' => __( 'Total Paket', 'kiriminaja-official' ) ),
+			array( 'value' => (int) $kiriof_payment_data['cod_count'], 'label' => __( 'Paket Cash on Delivery', 'kiriminaja-official' ) ),
+			array( 'value' => (int) $kiriof_payment_data['non_cod_count'], 'label' => __( 'Paket Non-COD', 'kiriminaja-official' ) ),
+		),
+		'rows'        => $kiriof_detail_rows,
+		'schedule'    => (string) ( $kiriof_payment_data['schedule'] ?? '' ),
+		'printAllUrl' => $kiriof_print_all_url ?? '',
+		'i18n'        => array(
+			'order'    => __( 'Order / Transaction', 'kiriminaja-official' ),
+			'courier'  => __( 'Expedition & Service', 'kiriminaja-official' ),
+			'airwaybill' => __( 'Airwaybill / Order ID', 'kiriminaja-official' ),
+			'route'    => __( 'Shipment Route', 'kiriminaja-official' ),
+			'packages' => __( 'Packages & Fee', 'kiriminaja-official' ),
+			'codValue' => __( 'COD Value', 'kiriminaja-official' ),
+			'status'   => __( 'Status', 'kiriminaja-official' ),
+			'action'   => __( 'Action', 'kiriminaja-official' ),
+			'pickup'   => __( 'Pickup', 'kiriminaja-official' ),
+			'print'    => __( 'Print', 'kiriminaja-official' ),
+			'detail'   => __( 'Detail', 'kiriminaja-official' ),
+			'printAll' => __( 'Print All', 'kiriminaja-official' ),
+			'empty'    => __( 'Not Found', 'kiriminaja-official' ),
+		),
+	);
     }
     if ( ! empty( $kiriof_print_all_ids ) ) {
         $kiriof_print_all_url = admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . implode( ',', array_map( 'urlencode', $kiriof_print_all_ids ) ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) );
@@ -38,8 +90,10 @@ if ( ! defined( 'ABSPATH' ) ) {
         ?>
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $kiriof_print_error ); ?></p></div>
     <?php endif; ?>
+	<div data-kiriof-pickup-detail-root></div>
+	<script type="application/json" data-kiriof-pickup-detail-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_pickup_detail_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 
-                                <div style="margin-bottom: .75rem;">
+                                <div data-kiriof-pickup-detail-fallback style="margin-bottom: .75rem;">
 
                                 <!--SUMMARY CARDS-->
                                 <div class="row gx-2">

@@ -11,6 +11,7 @@ export default defineConfig({
       input: {
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'payments-list': 'src/entries/payments-list.ts',
+        'pickup-detail': 'src/entries/pickup-detail.ts',
         'settings-root': 'src/entries/settings-root.ts',
         'transactions-filters': 'src/entries/transactions-filters.ts',
       },

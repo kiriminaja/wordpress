@@ -1,9 +1,41 @@
 [data-kiriof-payments-page],
-[data-kiriof-transactions-page] {
+[data-kiriof-transactions-page],
+[data-kiriof-pickup-detail-page] {
   --kiriof-primary: #5c2ecb;
   --kiriof-primary-soft: #f5f0ff;
   --kiriof-border: #dcdcde;
   --kiriof-muted: #646970;
+}
+
+.kiriof-pickup-detail-page--enhanced [data-kiriof-pickup-detail-fallback] {
+  display: none;
+}
+
+.kiriof-pickup-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.kiriof-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.kiriof-summary-grid article {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--kiriof-border);
+  background: #fff;
+}
+
+.kiriof-summary-grid strong {
+  font-size: 20px;
+}
+
+.kiriof-summary-grid span {
+  color: var(--kiriof-muted);
 }
 
 .kiriof-transactions-page--enhanced [data-kiriof-transactions-controls-fallback] {
@@ -159,5 +191,9 @@
     align-items: stretch;
     flex-direction: column;
     width: 100%;
+  }
+
+  .kiriof-summary-grid {
+    grid-template-columns: 1fr;
   }
 }
