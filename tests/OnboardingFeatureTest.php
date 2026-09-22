@@ -211,4 +211,44 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString('wp_safe_redirect', substr($plugin, strpos($plugin, 'function kiriof_activate_plugin'), 2500));
 		$this->assertStringContainsString('upgrader_process_complete', $plugin);
     }
+
+    #[Test]
+    public function onboarding_progressively_enhances_with_a_svelte_island(): void
+    {
+        $enqueue  = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+        $legacy   = file_get_contents( PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js' );
+        $template = file_get_contents( PLUGIN_DIR . '/templates/onboarding/index.php' );
+        $makefile = file_get_contents( PLUGIN_DIR . '/Makefile' );
+
+        $this->assertFileExists( PLUGIN_DIR . '/package.json' );
+        $this->assertFileExists( PLUGIN_DIR . '/vite.config.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/entries/onboarding-progress.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/OnboardingProgress.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/ProgressStep.svelte' );
+        $this->assertStringContainsString( 'data-kiriof-progress', $template );
+        $this->assertStringContainsString( 'kiriof-onboarding__progress-fallback', $template );
+        $this->assertStringContainsString( "wp_script_add_data( 'kiriof-onboarding-progress', 'type', 'module' )", $enqueue );
+        $this->assertStringContainsString( 'kiriof:onboarding-state', $legacy );
+        $this->assertStringContainsString( 'kiriof:onboarding-step', $legacy );
+        $this->assertStringContainsString( '--exclude=src/', $makefile );
+        $this->assertStringContainsString( '--exclude=package.json', $makefile );
+        $this->assertStringContainsString( 'zip: frontend', $makefile );
+        $this->assertStringContainsString( '--exclude=vite.config.ts', $makefile );
+        $this->assertStringContainsString( '$(BUN) run frontend:check', $makefile );
+        $this->assertStringContainsString( '"https://client.kiriminaja.com" "$(KIRIOF_ENV)"', $makefile );
+
+        $progress_step = file_get_contents( PLUGIN_DIR . '/src/lib/ui/ProgressStep.svelte' );
+        $this->assertStringContainsString( "from 'bits-ui'", $progress_step );
+        $this->assertStringContainsString( "from '@tabler/icons-svelte'", $progress_step );
+        $this->assertStringContainsString( '<Button.Root', $progress_step );
+        $this->assertStringContainsString( '<IconCheck', $progress_step );
+
+        $package = file_get_contents( PLUGIN_DIR . '/package.json' );
+        $this->assertStringContainsString( '"format:check": "oxfmt --check', $package );
+        $this->assertStringContainsString( '"lint": "oxlint', $package );
+        $this->assertStringContainsString( '"pre-commit": "./scripts/frontend-pre-commit.sh"', $package );
+        $this->assertFileExists( PLUGIN_DIR . '/.oxfmtrc.json' );
+        $this->assertFileExists( PLUGIN_DIR . '/.oxlintrc.json' );
+        $this->assertFileExists( PLUGIN_DIR . '/scripts/frontend-pre-commit.sh' );
+    }
 }

@@ -10,13 +10,25 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
 
 $kiriof_required_steps = array_filter( $steps, static function ( $kiriof_step ) { return $kiriof_step['required']; } );
 $kiriof_step_number    = 0;
+$kiriof_progress_steps  = array_values(
+	array_map(
+		static function ( $kiriof_step ) {
+			return array(
+				'key'   => $kiriof_step['key'],
+				'label' => $kiriof_step['nav_title'] ?? $kiriof_step['title'],
+				'done'  => (bool) $kiriof_step['done'],
+			);
+		},
+		$kiriof_required_steps
+	)
+);
 ?>
 <div class="kiriof-onboarding" data-kiriof-onboarding data-current-step="<?php echo esc_attr( $current_step ); ?>" data-account-complete="<?php echo ! empty( $steps['account']['done'] ) ? '1' : '0'; ?>">
 	<header class="kiriof-onboarding__header">
 		<a class="kiriof-onboarding__brand" href="<?php echo esc_url( admin_url() ); ?>" aria-label="<?php echo esc_attr__( 'WordPress Dashboard', 'kiriminaja-official' ); ?>">
 			<img src="<?php echo esc_url( KIRIOF_URL . 'assets/admin/img/logo-tagline.svg' ); ?>" alt="<?php echo esc_attr__( 'KiriminAja', 'kiriminaja-official' ); ?>">
 		</a>
-		<nav class="kiriof-onboarding__progress" aria-label="<?php echo esc_attr__( 'Setup progress', 'kiriminaja-official' ); ?>">
+		<nav class="kiriof-onboarding__progress kiriof-onboarding__progress-fallback" aria-label="<?php echo esc_attr__( 'Setup progress', 'kiriminaja-official' ); ?>">
 			<?php foreach ( $kiriof_required_steps as $kiriof_key => $kiriof_step ) : $kiriof_step_number++; ?>
 				<button type="button" class="kiriof-onboarding__progress-step <?php echo $kiriof_key === $current_step ? 'is-current' : ''; ?> <?php echo $kiriof_step['done'] ? 'is-done' : ''; ?>" data-step-target="<?php echo esc_attr( $kiriof_key ); ?>">
 					<span class="kiriof-onboarding__progress-index" aria-hidden="true">
@@ -30,6 +42,13 @@ $kiriof_step_number    = 0;
 				</button>
 			<?php endforeach; ?>
 		</nav>
+		<div
+			class="kiriof-onboarding__progress-host"
+			data-kiriof-progress
+			data-current-step="<?php echo esc_attr( $current_step ); ?>"
+			data-navigation-label="<?php echo esc_attr__( 'Setup progress', 'kiriminaja-official' ); ?>"
+			data-steps="<?php echo esc_attr( wp_json_encode( $kiriof_progress_steps ) ); ?>"
+		></div>
 		<div class="kiriof-onboarding__header-actions">
 			<a class="kiriof-onboarding__icon-link" href="https://kiriminaja.com/solusi/plugin-woocommerce" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr__( 'Need help?', 'kiriminaja-official' ); ?>" title="<?php echo esc_attr__( 'Need help?', 'kiriminaja-official' ); ?>">
 				<span class="dashicons dashicons-editor-help" aria-hidden="true"></span>

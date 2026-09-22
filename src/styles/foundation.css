@@ -1,0 +1,64 @@
+.kiriof-onboarding {
+  --kiriof-primary: #5c2ecb;
+  --kiriof-primary-strong: #37159f;
+  --kiriof-primary-soft: #f5f0ff;
+  --kiriof-ink: #241b3d;
+  --kiriof-muted: #635d75;
+  --kiriof-border: #e3ddf6;
+  --kiriof-surface: #ffffff;
+}
+
+.kiriof-onboarding--enhanced .kiriof-onboarding__progress-fallback {
+  display: none;
+}
+
+.kiriof-onboarding__progress-host {
+  display: contents;
+}
+
+.kiriof-onboarding__progress--enhanced {
+  color: var(--kiriof-primary);
+}
+
+.kiriof-onboarding__progress--enhanced .kiriof-onboarding__progress-step:focus-visible,
+.kiriof-onboarding__progress-fallback .kiriof-onboarding__progress-step:focus-visible {
+  outline: 3px solid var(--kiriof-primary);
+  outline-offset: 2px;
+}
+
+.kiriof-onboarding__progress--enhanced .kiriof-onboarding__progress-step.is-current {
+  background: var(--kiriof-primary-soft);
+  color: var(--kiriof-ink);
+}
+
+.kiriof-onboarding__progress--enhanced .kiriof-onboarding__progress-step.is-done {
+  color: var(--kiriof-primary);
+}
+
+.kiriof-onboarding__progress--enhanced .kiriof-onboarding__progress-index {
+  display: inline-grid;
+  place-items: center;
+  background: #ece5fd;
+}
+
+.kiriof-onboarding__progress--enhanced .kiriof-onboarding__progress-index svg {
+  display: block;
+}
+
+.kiriof-onboarding__progress--enhanced
+  .kiriof-onboarding__progress-step.is-current
+  .kiriof-onboarding__progress-index {
+  background: #dccdfd;
+}
+
+@media (max-width: 782px) {
+  .kiriof-onboarding__progress--enhanced {
+    position: static;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+    order: 3;
+    width: auto;
+    margin-top: 6px;
+    transform: none;
+  }
+}

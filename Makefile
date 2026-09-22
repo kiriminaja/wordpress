@@ -1,6 +1,7 @@
 # Makefile for zipping the plugin (WordPress.org friendly)
 
 PLUGIN_SLUG := kiriminaja-official
+BUN := $(shell command -v bun 2>/dev/null || printf '%s' "$$HOME/.bun/bin/bun")
 
 # Read version from kiriminaja.php KIRIOF_VERSION
 VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")
@@ -15,6 +16,16 @@ RSYNC_EXCLUDES := \
 	--exclude=.idea/ \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
+	--exclude=src/ \
+	--exclude=package.json \
+	--exclude=bun.lock \
+	--exclude=bun.lockb \
+	--exclude=.oxfmtrc.json \
+	--exclude=.oxlintignore \
+	--exclude=.oxlintrc.json \
+	--exclude=tsconfig.json \
+	--exclude=svelte.config.js \
+	--exclude=vite.config.ts \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=docs/ \
 	--exclude=scripts/ \
@@ -35,7 +46,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: zip clean changelog release test tag publish dev stg plain
+.PHONY: frontend zip clean changelog release test tag publish dev stg plain
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -83,6 +94,11 @@ endif
 test:
 	vendor/bin/paratest --configuration paratest.xml --testdox
 
+frontend:
+	@test -x "$(BUN)" || (echo "Bun is required to build frontend assets." && exit 127)
+	$(BUN) run frontend:check
+	$(BUN) run build
+
 changelog:
 	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"
 
@@ -114,7 +130,7 @@ publish: release
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
 
-zip:
+zip: frontend
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
 	@if command -v msgfmt >/dev/null 2>&1; then \
 		msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo; \
@@ -141,9 +157,11 @@ zip:
 		if [ -n "$$API_URL" ]; then \
 			php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "$$API_URL" "$(KIRIOF_ENV)"; \
 		else \
+			php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "https://client.kiriminaja.com" "$(KIRIOF_ENV)"; \
 			echo "  → Warning: .env exists but $(ENV_VAR_NAME) is not set. Using default URL."; \
 		fi; \
 	elif [ "$(KIRIOF_ENV)" != "prd" ]; then \
+		php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "https://client.kiriminaja.com" "$(KIRIOF_ENV)"; \
 		echo "  → Warning: No .env file found. Using default API base URL."; \
 	fi
 	(cd $(BUILD_DIR) && zip -r ../$(ZIP_FILE) $(PLUGIN_SLUG))

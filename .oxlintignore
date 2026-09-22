@@ -1,0 +1,4 @@
+assets/admin/dist/**
+node_modules/**
+build/**
+vendor/**

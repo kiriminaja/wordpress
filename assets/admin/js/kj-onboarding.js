@@ -42,6 +42,7 @@
 			loadCouriers();
 		}
 		updateContinueState();
+		publishEnhancedState();
 	}
 
 	function post(action, data) {
@@ -99,6 +100,19 @@
 			disabled = true;
 		}
 		$('[data-kiriof-continue]').prop('disabled', disabled);
+	}
+
+	function publishEnhancedState() {
+		var steps = $('.kiriof-onboarding__progress-fallback [data-step-target]').map(function () {
+			return {
+				key: String($(this).data('step-target')),
+				label: $(this).find('span:last-child').text(),
+				done: $(this).hasClass('is-done')
+			};
+		}).get();
+		window.dispatchEvent(new CustomEvent('kiriof:onboarding-state', {
+			detail: { currentStep: current, steps: steps }
+		}));
 	}
 
 	function setCheck(selector, done) {
@@ -227,6 +241,7 @@
 			$('[data-step-target="couriers"]').removeClass('is-done');
 		}
 		updateContinueState();
+		publishEnhancedState();
 	}
 
 	function loadCouriers() {
@@ -380,6 +395,17 @@
 	$('[data-kiriof-back]').on('click', function () { show(order[Math.max(order.indexOf(current) - 1, 0)]); });
 	$('[data-step-target]').on('click', function () {
 		var target = $(this).data('step-target');
+		if (!canVisit(target)) {
+			blockNavigation(target);
+			return;
+		}
+		show(target);
+	});
+	window.addEventListener('kiriof:onboarding-step', function (event) {
+		var target = event.detail && event.detail.step ? String(event.detail.step) : '';
+		if (!target || order.indexOf(target) === -1) {
+			return;
+		}
 		if (!canVisit(target)) {
 			blockNavigation(target);
 			return;

@@ -492,6 +492,26 @@ class Enqueue extends BaseInit{
 			KIRIOF_VERSION,
 			true
 		);
+		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
+		if ( file_exists( $progress_script ) ) {
+			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
+			if ( file_exists( $progress_style ) ) {
+				wp_enqueue_style(
+					'kiriof-onboarding-progress',
+					$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.css',
+					array( 'kiriof-onboarding-style' ),
+					(string) filemtime( $progress_style )
+				);
+			}
+			wp_enqueue_script(
+				'kiriof-onboarding-progress',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.js',
+				array( 'kiriof-onboarding-script' ),
+				(string) filemtime( $progress_script ),
+				true
+			);
+			wp_script_add_data( 'kiriof-onboarding-progress', 'type', 'module' );
+		}
 		wp_localize_script(
 			'kiriof-onboarding-script',
 			'kiriofOnboarding',
