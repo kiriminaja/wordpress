@@ -17,7 +17,7 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 | Settings couriers | Svelte | Async courier list, bulk selection, optimistic save, and rollback use existing endpoints. |
 | Settings tracking | Svelte | Tracking-page inventory and guide are rendered from a PHP bootstrap snapshot. |
 | Transactions list | Svelte with server row bridge | Filters, search, pagination, and table shell are Svelte. Escaped PHP row fragments preserve complex WooCommerce action eligibility during transition. |
-| Payments list | Svelte | Filters, status tabs, table, and pagination are Svelte; QR/payment and reschedule dialogs remain legacy bridge. |
+| Payments workspace | Svelte with legacy controller bridge | List, filters, pagination, QR modal, and reschedule modal are Svelte. Existing jQuery still owns AJAX/QR/PIN orchestration temporarily. |
 | Pickup detail | Svelte | Summary cards and shipment table use a server-generated bootstrap payload; print/detail URLs stay server-owned. |
 | Order metabox | Legacy | Port custom shipment summary/actions only; keep native WooCommerce order editing native. |
 | Coupon extension UI | Legacy | Port custom region/courier picker after settings courier primitives stabilize. |
@@ -25,10 +25,10 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 ## Ordered migration
 
 1. Replace Transactions server row fragments with typed row serializers, then progressively replace action dialogs.
-2. Port Payments QR/payment and reschedule dialogs.
-3. Port order shipment metabox.
-4. Port custom coupon extension controls.
-5. Remove legacy jQuery handlers only after each fallback has shipped and the Svelte path has equivalent tests.
+2. Port order shipment metabox.
+3. Port custom coupon extension controls.
+4. Replace jQuery modal controllers with Svelte state/actions after typed AJAX coverage exists.
+5. Remove legacy handlers only after each fallback has shipped and the Svelte path has equivalent tests.
 
 ## Boundaries
 

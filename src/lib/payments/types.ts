@@ -21,4 +21,5 @@ export type PaymentsBootstrap = {
   statusTabs: Array<{ value: string; label: string; count: number }>;
   pagination: { page: number; totalPages: number };
   i18n: Record<string, string>;
+  modals: Record<string, string>;
 };

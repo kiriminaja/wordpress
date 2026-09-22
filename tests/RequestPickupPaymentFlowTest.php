@@ -14,6 +14,9 @@ final class RequestPickupPaymentFlowTest extends TestCase
             $content,
             'Request pickup page should parse query params from location.search to avoid URLSearchParams(full href) parsing bugs'
         );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsModals.svelte' );
+		$this->assertStringContainsString( 'data-kiriof-payments-modals-root', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
+		$this->assertStringContainsString( 'PaymentsModals', file_get_contents( PLUGIN_DIR . '/src/entries/payments-list.ts' ) );
 
         $this->assertStringContainsString(
             'open === "1" || open === "true"',

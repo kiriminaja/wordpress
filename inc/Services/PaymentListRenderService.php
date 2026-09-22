@@ -86,6 +86,18 @@ class PaymentListRenderService {
 				'empty'         => __( 'Not Found', 'kiriminaja-official' ),
 				'pageOf'        => __( 'of', 'kiriminaja-official' ),
 			),
+			'modals'       => array(
+				'scanToPay'    => __( 'Scan to Pay', 'kiriminaja-official' ),
+				'code'         => __( 'Code', 'kiriminaja-official' ),
+				'codCharges'   => __( 'COD Package Charges', 'kiriminaja-official' ),
+				'nonCodCharges'=> __( 'Non-COD Package Charges', 'kiriminaja-official' ),
+				'totalCharges' => __( 'Total Charges', 'kiriminaja-official' ),
+				'expiresAt'    => __( 'QR will expire at', 'kiriminaja-official' ),
+				'refresh'      => __( 'Refresh', 'kiriminaja-official' ),
+				'error'        => __( 'Terjadi Kesalahan !', 'kiriminaja-official' ),
+				'schedule'     => __( 'Schedule for Pickup', 'kiriminaja-official' ),
+				'pickSchedule' => __( 'Pick Schedule', 'kiriminaja-official' ),
+			),
 		);
 	}
 

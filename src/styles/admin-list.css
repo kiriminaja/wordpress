@@ -7,6 +7,79 @@
   --kiriof-muted: #646970;
 }
 
+.kiriof-payment-modal {
+  width: min(420px, calc(100% - 32px));
+}
+
+.kiriof-payment-modal .closebtn-container {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.kiriof-modal-loading {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+}
+
+.kiriof-qr {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+}
+
+.kiriof-payment-code,
+.kiriof-payment-expiry {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.kiriof-payment-code .trx-pay-amount {
+  color: #2271b1;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.kiriof-payment-expiry {
+  color: #a60000;
+}
+
+.kiriof-charge-list {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--kiriof-border);
+  background: #fff;
+}
+
+.kiriof-charge-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kiriof-schedule-list {
+  overflow: auto;
+  max-height: 30vh;
+  margin: 14px 0;
+}
+
+.kiriof-modal-error {
+  padding: 40px;
+  text-align: center;
+}
+
 .kiriof-pickup-detail-page--enhanced [data-kiriof-pickup-detail-fallback] {
   display: none;
 }

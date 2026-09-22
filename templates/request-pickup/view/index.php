@@ -322,6 +322,9 @@ wp_localize_script(
                                      </div>
 								</div>
 
-    <?php include 'modal-payment.php' ?>
-    <?php include 'modal-request-pickup.php' ?>
+    <div data-kiriof-payments-modals-root></div>
+    <div data-kiriof-payments-fallback>
+        <?php include 'modal-payment.php' ?>
+        <?php include 'modal-request-pickup.php' ?>
+    </div>
 </div>
