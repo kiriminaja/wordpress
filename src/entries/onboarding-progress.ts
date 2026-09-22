@@ -1,47 +1,28 @@
 import { mount } from 'svelte';
-import OnboardingProgress from '../lib/OnboardingProgress.svelte';
-import AccountPanel from '../lib/onboarding/AccountPanel.svelte';
-import AddressPanel from '../lib/onboarding/AddressPanel.svelte';
-import CouriersPanel from '../lib/onboarding/CouriersPanel.svelte';
-import ShippingPanel from '../lib/onboarding/ShippingPanel.svelte';
+import OnboardingApp from '../lib/onboarding/OnboardingApp.svelte';
+import type { OnboardingStep } from '../lib/onboarding/OnboardingApp.svelte';
 import type { OnboardingBootstrap } from '../lib/onboarding/types';
-import '../styles/foundation.css';
+import '../styles/shadcn-onboarding.css';
+import '../styles/kj-onboarding-svelte.css';
 
-type Step = {
-  key: string;
-  label: string;
-  done: boolean;
-};
+type Step = { key: string; label: string; done: boolean };
 
-const host = document.querySelector<HTMLElement>('[data-kiriof-progress]');
+const host = document.querySelector<HTMLElement>('[data-kiriof-onboarding-app]');
 const payload = document.querySelector<HTMLScriptElement>('[data-kiriof-onboarding-payload]');
 
 if (host && payload?.textContent) {
   const bootstrap = JSON.parse(payload.textContent) as OnboardingBootstrap;
-  const steps = JSON.parse(host.dataset.steps ?? '[]') as Step[];
-  const currentStep = host.dataset.currentStep ?? steps[0]?.key ?? 'account';
-  const navigationLabel = host.dataset.navigationLabel ?? '';
+  const progressHost = document.querySelector<HTMLElement>('[data-kiriof-progress]');
+  const steps = JSON.parse(progressHost?.dataset.steps ?? '[]') as Step[];
+  const initialStep = (progressHost?.dataset.currentStep ??
+    steps[0]?.key ??
+    'account') as OnboardingStep;
 
-  mount(OnboardingProgress, {
-    target: host,
-    props: { steps, currentStep, navigationLabel },
-  });
-
-  const accountHost = document.querySelector<HTMLElement>('[data-kiriof-account-panel]');
-  const addressHost = document.querySelector<HTMLElement>('[data-kiriof-address-panel]');
-  const couriersHost = document.querySelector<HTMLElement>('[data-kiriof-couriers-panel]');
-  const shippingHost = document.querySelector<HTMLElement>('[data-kiriof-shipping-panel]');
-
-  if (accountHost)
-    mount(AccountPanel, { target: accountHost, props: { account: bootstrap.account } });
-  if (addressHost)
-    mount(AddressPanel, { target: addressHost, props: { config: bootstrap.address } });
-  if (couriersHost)
-    mount(CouriersPanel, { target: couriersHost, props: { config: bootstrap.couriers } });
-  if (shippingHost)
-    mount(ShippingPanel, { target: shippingHost, props: { config: bootstrap.shipping } });
-
+  mount(OnboardingApp, { target: host, props: { bootstrap, steps, initialStep } });
+  host.closest<HTMLElement>('[data-kiriof-onboarding]')?.classList.add('kiriof-onboarding--app');
   host
     .closest<HTMLElement>('[data-kiriof-onboarding]')
-    ?.classList.add('kiriof-onboarding--enhanced');
+    ?.querySelector('.kiriof-onboarding__progress-fallback')
+    ?.remove();
+  host.parentElement?.querySelector('[data-kiriof-onboarding-fallback]')?.remove();
 }

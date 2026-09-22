@@ -1,0 +1,16 @@
+@import 'leaflet/dist/leaflet.css';
+
+.kiriof-onboarding__map .leaflet-control-zoom a {
+  color: var(--primary);
+}
+.kiriof-onboarding__locate {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  color: var(--primary);
+  cursor: pointer;
+}

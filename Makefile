@@ -19,6 +19,7 @@ RSYNC_EXCLUDES := \
 	--exclude=src/ \
 	--exclude=package.json \
 	--exclude=bun.lock \
+	--exclude=components.json \
 	--exclude=bun.lockb \
 	--exclude=.oxfmtrc.json \
 	--exclude=.oxlintignore \

@@ -6,8 +6,8 @@
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "vite --host 127.0.0.1",
-    "format": "oxfmt src vite.config.ts svelte.config.js package.json tsconfig.json .oxlintrc.json .oxfmtrc.json",
-    "format:check": "oxfmt --check src vite.config.ts svelte.config.js package.json tsconfig.json .oxlintrc.json .oxfmtrc.json",
+    "format": "oxfmt src vite.config.ts svelte.config.js package.json components.json tsconfig.json .oxlintrc.json .oxfmtrc.json",
+    "format:check": "oxfmt --check src vite.config.ts svelte.config.js package.json components.json tsconfig.json .oxlintrc.json .oxfmtrc.json",
     "frontend:check": "bun run format:check && bun run lint && bun run check",
     "lint": "oxlint src vite.config.ts svelte.config.js --ignore-path .oxlintignore --deny-warnings",
     "lint:fix": "oxlint src vite.config.ts svelte.config.js --ignore-path .oxlintignore --fix --deny-warnings",
@@ -15,10 +15,17 @@
   },
   "dependencies": {
     "@tabler/icons-svelte": "^3.47.0",
-    "bits-ui": "^2.19.2"
+    "bits-ui": "^2.19.2",
+    "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "tailwind-merge": "^3.7.0",
+    "tailwind-variants": "^3.3.1"
   },
   "devDependencies": {
+    "@internationalized/date": "^3.12.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^24.0.0",
     "csstype": "^3.2.3",
     "oxfmt": "^0.70.0",
@@ -26,6 +33,8 @@
     "simple-git-hooks": "^2.14.0",
     "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
+    "svelte-toolbelt": "^0.10.6",
+    "tailwindcss": "^4.3.3",
     "typescript": "^6.0.0",
     "vite": "^8.3.0"
   },

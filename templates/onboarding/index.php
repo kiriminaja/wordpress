@@ -23,6 +23,33 @@ $kiriof_progress_steps  = array_values(
 	)
 );
 $kiriof_onboarding_bootstrap = array(
+	'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+	'nonce'       => wp_create_nonce( KIRIOF_NONCE ),
+	'shippingUrl' => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+	'i18n'        => array(
+		'back'                     => __( 'Back', 'kiriminaja-official' ),
+		'continue'                 => __( 'Continue', 'kiriminaja-official' ),
+		'finish'                   => __( 'Finish setup', 'kiriminaja-official' ),
+		'accountRequired'           => __( 'Connect your KiriminAja account before continuing.', 'kiriminaja-official' ),
+		'saveFailed'               => __( 'Could not save this step.', 'kiriminaja-official' ),
+		'networkError'             => __( 'Network error. Please try again.', 'kiriminaja-official' ),
+		'disconnectConfirm'        => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
+		'disconnectFailed'         => __( 'Disconnect failed.', 'kiriminaja-official' ),
+		'subdistrictLoading'       => __( 'Searching subdistricts...', 'kiriminaja-official' ),
+		'subdistrictNoResults'     => __( 'No subdistricts found.', 'kiriminaja-official' ),
+		'subdistrictTypeMore'      => __( 'Type at least 3 characters.', 'kiriminaja-official' ),
+		'subdistrictSearchFailed'  => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
+		'currentLocation'          => __( 'Use current location', 'kiriminaja-official' ),
+		'currentLocationUnavailable'=> __( 'Current location is not available in this browser.', 'kiriminaja-official' ),
+		'currentLocationFailed'    => __( 'Could not detect your current location.', 'kiriminaja-official' ),
+		'shippingAddressRequired'  => __( 'Complete all address fields and set the map pin.', 'kiriminaja-official' ),
+		'courierRequired'          => __( 'Select at least one courier service.', 'kiriminaja-official' ),
+		'shippingPrerequisite'     => __( 'Complete previous required steps before finishing.', 'kiriminaja-official' ),
+		'addressSaved'             => __( 'Shipping address saved.', 'kiriminaja-official' ),
+		'accountConnected'         => __( 'Account connected.', 'kiriminaja-official' ),
+		'couriersSaved'            => __( 'Courier services saved.', 'kiriminaja-official' ),
+		'shippingLocationsRequired' => __( 'Enable WooCommerce shipping locations before finishing.', 'kiriminaja-official' ),
+	),
 	'account'   => array(
 		'connected'    => (bool) $kiriof_is_connected,
 		'profileError' => (bool) $kiriof_profile_err,
@@ -126,6 +153,8 @@ $kiriof_onboarding_bootstrap = array(
 	</header>
 
 	<main class="kiriof-onboarding__main">
+		<div data-kiriof-onboarding-app></div>
+		<div data-kiriof-onboarding-fallback>
 		<div class="kiriof-onboarding__panel" data-kiriof-panel>
 			<?php include __DIR__ . '/steps/account.php'; ?>
 			<?php include __DIR__ . '/steps/address.php'; ?>
@@ -142,6 +171,7 @@ $kiriof_onboarding_bootstrap = array(
 		<div class="kiriof-onboarding__footer" data-kiriof-footer>
 			<button type="button" class="button" data-kiriof-back><?php echo esc_html__( 'Back', 'kiriminaja-official' ); ?></button>
 			<button type="button" class="button button-primary" data-kiriof-continue><?php echo esc_html__( 'Continue', 'kiriminaja-official' ); ?></button>
+		</div>
 		</div>
 	</main>
 </div>

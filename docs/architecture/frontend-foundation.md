@@ -2,7 +2,7 @@
 
 ## Recommendation
 
-Use **Svelte 5 + Vite + TypeScript**, with **Bits UI** for headless interactive primitives and **Tabler Icons Svelte** for icons, for new interactive admin islands.
+Use **Svelte 5 + Vite + TypeScript**, with **shadcn-svelte** source components backed by **Bits UI**, and **Tabler Icons Svelte** for icons, for new interactive admin surfaces.
 
 The plugin is a PHP-rendered WordPress application with existing jQuery, WooCommerce scripts, and server-side authorization. A full SPA would discard useful server rendering and increase migration risk. Svelte lets us compile a small island to browser JavaScript, while the current PHP markup remains the fallback when JavaScript is unavailable.
 
@@ -31,7 +31,7 @@ React's Virtual DOM is not a blocker for every product, but it is unnecessary he
 
 ## UI library decision
 
-Use Bits UI as the primitive foundation. It is unstyled, built for Svelte 5, and keeps KiriminAja in control of visual design while supplying accessible interaction behavior. Wrap vendor primitives in local components under `src/lib/ui/`; feature components should prefer those wrappers instead of importing Bits UI directly.
+Use shadcn-svelte as the component foundation. Components are committed source code built on Bits UI, so KiriminAja owns the markup, variants, tokens, and accessibility surface instead of depending on a black-box visual runtime. Keep components under `src/lib/components/ui/`; feature components should prefer those wrappers instead of importing Bits UI directly.
 
 Use `@tabler/icons-svelte` as the icon set. Import icons individually so Vite can tree-shake unused icons. Icons are supportive graphics: interactive controls still need an accessible label, and decorative icons must be hidden from assistive technology.
 
@@ -41,7 +41,7 @@ Do not add shadcn, Chakra, or Flowbite on top of this foundation.
 - Chakra brings a larger runtime and its styling assumptions are not a natural fit for an embedded WordPress admin page.
 - Flowbite is tightly coupled to Tailwind conventions and would add a second styling system beside WordPress and the plugin's existing CSS.
 
-Start with a small internal token layer and Bits UI wrappers. Add primitives only when a migrated feature needs them; do not bulk-build a speculative component catalog. Styles must remain scoped under the plugin root and must not reset the WordPress admin globally.
+Start with shadcn-svelte source components and a small internal token layer. Add primitives only when a migrated feature needs them; do not bulk-build a speculative component catalog. The onboarding Tailwind/shadcn stylesheet is imported only by its Vite entry and is scoped under `.kiriof-shadcn`; it must not reset the WordPress admin globally.
 
 ## Design decisions
 

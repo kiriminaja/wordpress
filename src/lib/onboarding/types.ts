@@ -1,4 +1,31 @@
 export type OnboardingBootstrap = {
+  ajaxUrl: string;
+  nonce: string;
+  shippingUrl: string;
+  i18n: {
+    back: string;
+    continue: string;
+    finish: string;
+    accountRequired: string;
+    saveFailed: string;
+    networkError: string;
+    disconnectConfirm: string;
+    disconnectFailed: string;
+    subdistrictLoading: string;
+    subdistrictNoResults: string;
+    subdistrictTypeMore: string;
+    subdistrictSearchFailed: string;
+    currentLocation: string;
+    currentLocationUnavailable: string;
+    currentLocationFailed: string;
+    shippingAddressRequired: string;
+    courierRequired: string;
+    shippingPrerequisite: string;
+    addressSaved: string;
+    accountConnected: string;
+    couriersSaved: string;
+    shippingLocationsRequired: string;
+  };
   account: {
     connected: boolean;
     profileError: boolean;

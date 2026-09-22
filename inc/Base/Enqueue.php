@@ -14,8 +14,38 @@ class Enqueue extends BaseInit{
         /* admin */
         add_action('admin_enqueue_scripts', array($this,'enqueueAdmin'));
         add_action( 'admin_footer', array( $this, 'renderOrderPreviewTemplate' ) );
+        add_filter( 'script_loader_tag', array( $this, 'filter_module_script_tag' ), 10, 3 );
         /* WP */
         add_action('wp_enqueue_scripts', array($this,'enqueueWp'));
+    }
+
+    /**
+     * WordPress versions before module script metadata support need an explicit
+     * type attribute for the Vite ESM entries.
+     *
+     * @param string $tag    Script tag.
+     * @param string $handle Script handle.
+     * @param string $src    Script source URL.
+     * @return string
+     */
+    public function filter_module_script_tag( string $tag, string $handle, string $src ): string {
+        unset( $src );
+
+        $module_handles = array(
+            'kiriof-coupon-panels',
+            'kiriof-onboarding-progress',
+            'kiriof-order-metabox',
+            'kiriof-payments-list',
+            'kiriof-pickup-detail',
+            'kiriof-settings-root',
+            'kiriof-transactions-filters',
+        );
+
+        if ( ! in_array( $handle, $module_handles, true ) || false !== strpos( $tag, ' type=' ) ) {
+            return $tag;
+        }
+
+        return str_replace( '<script ', '<script type="module" ', $tag );
     }
 
     /**
@@ -522,19 +552,7 @@ class Enqueue extends BaseInit{
 	private function enqueueOnboarding(): void {
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style( 'woocommerce_admin_styles' );
-		wp_enqueue_script( 'jquery' );
-		wp_enqueue_style( 'kiriof-choices-style', $this->plugin_url . 'assets/lib/choices/choices.min.css', array(), '11.2.4' );
-		wp_enqueue_script( 'kiriof-choices-script', $this->plugin_url . 'assets/lib/choices/choices.min.js', array(), '11.2.4', true );
-		wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-		wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
 		wp_enqueue_style( 'kiriof-onboarding-style', $this->plugin_url . 'assets/admin/css/kj-onboarding.css', array(), KIRIOF_VERSION );
-		wp_enqueue_script(
-			'kiriof-onboarding-script',
-			$this->plugin_url . 'assets/admin/js/kj-onboarding.js',
-			array( 'jquery', 'kiriof-choices-script', 'kiriof-leaflet-script' ),
-			KIRIOF_VERSION,
-			true
-		);
 		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
 		if ( file_exists( $progress_script ) ) {
 			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
@@ -549,35 +567,12 @@ class Enqueue extends BaseInit{
 			wp_enqueue_script(
 				'kiriof-onboarding-progress',
 				$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.js',
-				array( 'kiriof-onboarding-script' ),
+				array(),
 				(string) filemtime( $progress_script ),
 				true
 			);
 			wp_script_add_data( 'kiriof-onboarding-progress', 'type', 'module' );
 		}
-		wp_localize_script(
-			'kiriof-onboarding-script',
-			'kiriofOnboarding',
-			array(
-				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-				'nonce'         => wp_create_nonce( KIRIOF_NONCE ),
-				'settingsUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
-				'shippingUrl'   => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-				'subdistrictPlaceholder' => __( 'Search subdistrict', 'kiriminaja-official' ),
-				'subdistrictLoading' => __( 'Searching subdistricts...', 'kiriminaja-official' ),
-				'subdistrictNoResults' => __( 'No subdistricts found.', 'kiriminaja-official' ),
-				'subdistrictTypeMore' => __( 'Type at least 3 characters.', 'kiriminaja-official' ),
-				'accountRequired' => __( 'Connect your KiriminAja account before continuing.', 'kiriminaja-official' ),
-				'currentLocation' => __( 'Use current location', 'kiriminaja-official' ),
-				'currentLocationFailed' => __( 'Could not detect your current location.', 'kiriminaja-official' ),
-				'currentLocationUnavailable' => __( 'Current location is not available in this browser.', 'kiriminaja-official' ),
-				'disconnectConfirm' => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
-				'disconnectFailed' => __( 'Disconnect failed.', 'kiriminaja-official' ),
-				'networkError'  => __( 'Network error. Please try again.', 'kiriminaja-official' ),
-				'saveFailed'    => __( 'Could not save this step.', 'kiriminaja-official' ),
-				'subdistrictSearchFailed' => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
-			)
-		);
 	}
 
     /**

@@ -37,6 +37,38 @@ msgstr "aktif"
 msgid "items"
 msgstr "item"
 
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Account connected."
+msgstr "Akun terhubung."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Complete all address fields and set the map pin."
+msgstr "Lengkapi semua kolom alamat dan tentukan pin peta."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Complete previous required steps before finishing."
+msgstr "Selesaikan langkah wajib sebelumnya sebelum menyelesaikan setup."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Courier services saved."
+msgstr "Layanan kurir tersimpan."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Enable WooCommerce shipping locations before finishing."
+msgstr "Aktifkan lokasi pengiriman WooCommerce sebelum menyelesaikan setup."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Finish setup"
+msgstr "Selesaikan setup"
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Select at least one courier service."
+msgstr "Pilih setidaknya satu layanan kurir."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Shipping address saved."
+msgstr "Alamat pengiriman tersimpan."
+
 #: inc/Pages/Admin.php
 msgid "Add customer shipment tracking."
 msgstr "Tambahkan pelacakan kiriman pelanggan."
