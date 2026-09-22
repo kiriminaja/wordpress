@@ -18,13 +18,16 @@ class TransactionProcessController
 {
     private TransactionRepository $transactionRepository;
     private DatabaseTransactionManagerInterface $transactionManager;
+    private SendRequestPickupTransactionService $requestPickupService;
 
     public function __construct(
         TransactionRepository $transactionRepository,
-        DatabaseTransactionManagerInterface $transactionManager
+        DatabaseTransactionManagerInterface $transactionManager,
+        SendRequestPickupTransactionService $requestPickupService
     ) {
         $this->transactionRepository = $transactionRepository;
         $this->transactionManager    = $transactionManager;
+        $this->requestPickupService  = $requestPickupService;
     }
 
     public function register()
@@ -113,7 +116,7 @@ class TransactionProcessController
                 }
             }
 
-            $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService())
+            $service = $this->requestPickupService
                 ->orderIds($order_ids)
                 ->schedule($schedule)
                 ->paymentMethod($payment_method)

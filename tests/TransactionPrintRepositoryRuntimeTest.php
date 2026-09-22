@@ -69,7 +69,9 @@ final class TransactionPrintRepositoryRuntimeTest extends TestCase
     public function controller_delegates_print_state_to_repository_contract(): void
     {
         $repository = new TransactionPrintRepositoryFake();
-        $controller = new ShippingProcessController( $repository );
+        $controller = ( new ReflectionClass( ShippingProcessController::class ) )->newInstanceWithoutConstructor();
+        $property   = new ReflectionProperty( $controller, 'transaction_print_repository' );
+        $property->setValue( $controller, $repository );
         $method     = new ReflectionMethod( $controller, 'markTransactionsPrinted' );
 
         $method->invoke( $controller, array( 'KA-7', 'KA-8' ) );

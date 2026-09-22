@@ -1,6 +1,10 @@
 <?php
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Repositories\CodFeeApiRepository;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -14,6 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   kiriof_cancel_deficit    — Cancel a deficit order.
  */
 class CodAdjustmentController {
+    private TransactionRepository $transaction_repository;
+    private CodFeeApiRepository $cod_fee_repository;
+    private KiriminajaApiRepository $api_repository;
+
+    public function __construct(
+        TransactionRepository $transaction_repository,
+        CodFeeApiRepository $cod_fee_repository,
+        KiriminajaApiRepository $api_repository
+    ) {
+        $this->transaction_repository = $transaction_repository;
+        $this->cod_fee_repository     = $cod_fee_repository;
+        $this->api_repository         = $api_repository;
+    }
 
     public function register(): void {
         add_action( 'wp_ajax_kiriof_cod_adjust', [ $this, 'handleAdjust' ] );
@@ -43,7 +60,7 @@ class CodAdjustmentController {
             wp_die();
         }
 
-        $repo        = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $repo        = $this->transaction_repository;
         $transaction = $repo->getTransactionByOrderId( $kaOrderId );
 
         if ( ! $transaction ) {
@@ -90,7 +107,7 @@ class CodAdjustmentController {
 
         if ( ! empty( $transaction->service ) ) {
             $serviceParts = explode( '_', $transaction->service . '_' . ( $transaction->service_name ?? '' ), 2 );
-            $apiResult = ( new \KiriminAjaOfficial\Repositories\CodFeeApiRepository() )->calculateBulkCod( [
+            $apiResult = $this->cod_fee_repository->calculateBulkCod( [
                 'item_price'                    => (int) ( $transaction->transaction_value ?? 0 ),
                 'custom_cod'                    => (int) $newTotalCod,
                 'exclude_cod_amount_validation' => false,
@@ -235,7 +252,7 @@ class CodAdjustmentController {
             wp_die();
         }
 
-        $repo        = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $repo        = $this->transaction_repository;
         $transaction = $repo->getTransactionByOrderId( $kaOrderId );
 
         if ( ! $transaction ) {
@@ -254,7 +271,7 @@ class CodAdjustmentController {
         }
 
         // Cancel via KiriminAja API.
-        $apiResponse = ( new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository() )->cancelShipment(
+        $apiResponse = $this->api_repository->cancelShipment(
             $transaction->awb,
             __( 'Deficit COD order cancelled by merchant', 'kiriminaja-official' )
         );

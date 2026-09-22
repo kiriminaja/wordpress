@@ -74,13 +74,47 @@ final class Init {
         }
 
         if ( Controllers\ShippingProcessController::class === $class ) {
-            return new $class( new Repositories\TransactionRepository() );
+            $transaction_repository = new Repositories\TransactionRepository();
+            $api_repository         = new Repositories\KiriminajaApiRepository();
+
+            return new $class(
+                $transaction_repository,
+                new Services\ShippingProcessServices\GetShippingProcessPayment(
+                    $api_repository,
+                    new Repositories\PaymentRepository(),
+                    $transaction_repository
+                ),
+                $transaction_repository,
+                $api_repository
+            );
         }
 
         if ( Controllers\TransactionProcessController::class === $class ) {
+            $transaction_repository = new Repositories\TransactionRepository();
+            $setting_repository     = new Repositories\SettingRepository();
+            $api_repository         = new Repositories\KiriminajaApiRepository();
+
+            return new $class(
+                $transaction_repository,
+                new Infrastructure\WordPressDatabaseTransactionManager(),
+                new Services\TransactionProcessServices\SendRequestPickupTransactionService(
+                    $transaction_repository,
+                    new Repositories\PaymentRepository(),
+                    $setting_repository,
+                    $api_repository,
+                    new Services\ShipmentLocationService(),
+                    new Services\SettingService( $setting_repository, $api_repository ),
+                    new Services\KiriminajaApiService( $api_repository ),
+                    new Services\TransactionProcessServices\RecipientDataResolver()
+                )
+            );
+        }
+
+        if ( Controllers\CodAdjustmentController::class === $class ) {
             return new $class(
                 new Repositories\TransactionRepository(),
-                new Infrastructure\WordPressDatabaseTransactionManager()
+                new Repositories\CodFeeApiRepository(),
+                new Repositories\KiriminajaApiRepository()
             );
         }
 

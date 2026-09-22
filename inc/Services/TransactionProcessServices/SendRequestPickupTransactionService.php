@@ -7,6 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\PaymentRepository;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Services\KiriminajaApiService;
+use KiriminAjaOfficial\Services\SettingService;
+use KiriminAjaOfficial\Services\ShipmentLocationService;
 class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
@@ -15,6 +22,34 @@ class SendRequestPickupTransactionService extends BaseService
     public string $pin = '';
     private $originDataCache = null;
     private $helperCache = null;
+    private TransactionRepository $transactionRepository;
+    private PaymentRepository $paymentRepository;
+    private SettingRepository $settingRepository;
+    private KiriminajaApiRepository $apiRepository;
+    private ShipmentLocationService $shipmentLocationService;
+    private SettingService $settingService;
+    private KiriminajaApiService $apiService;
+    private RecipientDataResolver $recipientDataResolver;
+
+    public function __construct(
+        TransactionRepository $transactionRepository,
+        PaymentRepository $paymentRepository,
+        SettingRepository $settingRepository,
+        KiriminajaApiRepository $apiRepository,
+        ShipmentLocationService $shipmentLocationService,
+        SettingService $settingService,
+        KiriminajaApiService $apiService,
+        RecipientDataResolver $recipientDataResolver
+    ) {
+        $this->transactionRepository   = $transactionRepository;
+        $this->paymentRepository       = $paymentRepository;
+        $this->settingRepository       = $settingRepository;
+        $this->apiRepository           = $apiRepository;
+        $this->shipmentLocationService = $shipmentLocationService;
+        $this->settingService          = $settingService;
+        $this->apiService              = $apiService;
+        $this->recipientDataResolver   = $recipientDataResolver;
+    }
     public function orderIds($orderIds)
     {
         $this->orderIds = $orderIds;
@@ -46,11 +81,10 @@ class SendRequestPickupTransactionService extends BaseService
 
     private function isTopPaymentMethod(): bool
     {
-        $settingService = new \KiriminAjaOfficial\Services\SettingService();
-        $isTop = $settingService->isTopPaymentMethod();
+        $isTop = $this->settingService->isTopPaymentMethod();
 
         try {
-            $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
+            $profile = $this->apiService->getProfile();
             $profilePaymentMethod = strtoupper((string) ($profile->data->metadata->payment_method ?? ''));
             if ($profilePaymentMethod !== '') {
                 $isTop = $profilePaymentMethod === 'TOP';
@@ -73,7 +107,7 @@ class SendRequestPickupTransactionService extends BaseService
 
     private function buildDestinationData($shippingInfo, $order, $transaction): array
     {
-        $recipient = (new RecipientDataResolver())->resolve($order, $shippingInfo, $transaction);
+        $recipient = $this->recipientDataResolver->resolve($order, $shippingInfo, $transaction);
         $destinationName = trim($recipient['first_name'] . ' ' . $recipient['last_name']);
         $destinationAddressParts = array_filter([
             trim($recipient['address_1'] . ' ' . $recipient['address_2']),
@@ -252,7 +286,7 @@ class SendRequestPickupTransactionService extends BaseService
             ]
         );
 
-        $pickupRequest = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sendPickupRequest($payload);
+        $pickupRequest = $this->apiRepository->sendPickupRequest($payload);
         (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pickupRequest', [$pickupRequest]);
         kiriof_log('info', 'Request pickup API response received.', [
             'order_ids' => $this->orderIds,
@@ -296,7 +330,6 @@ class SendRequestPickupTransactionService extends BaseService
         $currentTime = gmdate('Y-m-d H:i:s');
         
         /** Update Package Status to Request Pickup*/
-        $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
         foreach ($this->orderIds as $orderId) {
             $payload = [
                 'changes' => [
@@ -308,9 +341,9 @@ class SendRequestPickupTransactionService extends BaseService
                     'order_id' => $orderId
                 ]
             ];
-            $transactionRepo->updateTransactionByCallback($payload);
+            $this->transactionRepository->updateTransactionByCallback($payload);
         }
-        $pickupTransactions = $transactionRepo->getTransactionByPickupNumber($pickupNumber);
+        $pickupTransactions = $this->transactionRepository->getTransactionByPickupNumber($pickupNumber);
         $hasAwbAfterPickup = $this->hasAwbInTransactions($pickupTransactions);
         /** Create Payment*/
         $paymentMethod = $isTopPaymentMethod ? 'TOP' : $this->paymentMethod;
@@ -333,7 +366,7 @@ class SendRequestPickupTransactionService extends BaseService
             $localPaymentStatus = 'unpaid';
         }
 
-        (new \KiriminAjaOfficial\Repositories\PaymentRepository())->createPayment([
+        $this->paymentRepository->createPayment([
             'pickup_number'     => $pickupNumber,
             'status'            => $localPaymentStatus,
             'method'            => $paymentMethod,
@@ -369,7 +402,7 @@ class SendRequestPickupTransactionService extends BaseService
         $locationId = 0;
         $originSnapshot = array();
         if (! empty($this->orderIds)) {
-            $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+            $transactions = $this->transactionRepository->getTransactionByOrderIds($this->orderIds);
             $savedLocationIds = [];
             $savedOrigins = [];
             $defaultLocationId = 0;
@@ -384,7 +417,7 @@ class SendRequestPickupTransactionService extends BaseService
                     $effectiveLocationId = (int) $transaction->shipment_location_id;
                 } else {
                     if ($defaultLocationId < 1) {
-                        $defaultLocation = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->getDefaultLocation();
+                        $defaultLocation = $this->shipmentLocationService->getDefaultLocation();
                         $defaultLocationId = (int) ($defaultLocation->id ?? 0);
                     }
                     $effectiveLocationId = $defaultLocationId;
@@ -407,13 +440,13 @@ class SendRequestPickupTransactionService extends BaseService
             return $this->originDataCache;
         }
 
-        $location = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->getLocationOrDefault($locationId);
+        $location = $this->shipmentLocationService->getLocationOrDefault($locationId);
         if ($location) {
-            $this->originDataCache = (new \KiriminAjaOfficial\Services\ShipmentLocationService())->locationToOrigin($location);
+            $this->originDataCache = $this->shipmentLocationService->locationToOrigin($location);
             return $this->originDataCache;
         }
 
-        $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray([
+        $repo = $this->settingRepository->getSettingByArray([
             'origin_name',
             'origin_phone',
             'origin_address',
@@ -431,7 +464,7 @@ class SendRequestPickupTransactionService extends BaseService
         return $array;
     }
     private function getPackagesData(){
-        $repo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+        $repo = $this->transactionRepository->getTransactionByOrderIds($this->orderIds);
         
         if (empty($repo)) {
             return [];

@@ -8,16 +8,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessDetailService;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment;
 use Throwable;
 class ShippingProcessController
 {
     private TransactionPrintRepositoryInterface $transaction_print_repository;
+    private GetShippingProcessPayment $shipping_process_payment;
+    private TransactionRepository $transaction_repository;
+    private KiriminajaApiRepository $api_repository;
 
-    public function __construct( TransactionPrintRepositoryInterface $transaction_print_repository )
+    public function __construct(
+        TransactionPrintRepositoryInterface $transaction_print_repository,
+        GetShippingProcessPayment $shipping_process_payment,
+        TransactionRepository $transaction_repository,
+        KiriminajaApiRepository $api_repository
+    )
     {
         $this->transaction_print_repository = $transaction_print_repository;
+        $this->shipping_process_payment      = $shipping_process_payment;
+        $this->transaction_repository        = $transaction_repository;
+        $this->api_repository                = $api_repository;
     }
 
     public function register()
@@ -165,7 +177,7 @@ class ShippingProcessController
             $this->redirectResiPrintFailure( __( 'Unable to print resi because no order was selected.', 'kiriminaja-official' ) );
         }
 
-        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
+         $transactions = $this->transaction_repository->getTransctionByOrderIds($orderIds);
         if ( empty( $transactions ) ) {
             $this->logResiPrintFailure( 'transactions_not_found', array(
                 'order_ids' => $orderIds,
@@ -203,7 +215,7 @@ class ShippingProcessController
         if (count($awbs) == 1) {
             $filename = $awbs[0] ?? 'resi';
         }
-        $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
+         $getAwbData = $this->api_repository->getPrintAwb($awbs);
         $printAwbUrl = $this->resolvePrintAwbUrl( $getAwbData );
         if ( '' !== $printAwbUrl ) {
             $this->markTransactionsPrinted( $printedOrderIds );
@@ -285,7 +297,7 @@ class ShippingProcessController
                 wp_die();
             }
             $payment_id = isset($_POST['data']['payment_id']) ? sanitize_text_field(wp_unslash($_POST['data']['payment_id'])) : '';
-            $service = (new GetShippingProcessPayment())->payment_id($payment_id)->call();
+            $service = $this->shipping_process_payment->payment_id($payment_id)->call();
             if ($service->status !== 200) {
                 wp_send_json_error($service);
             }
