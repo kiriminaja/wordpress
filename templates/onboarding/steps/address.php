@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <section class="kiriof-onboarding__step" data-step-panel="address">
+	<div data-kiriof-address-panel></div>
+	<div data-kiriof-panel-fallback>
 	<p class="kiriof-onboarding__step-number"><?php echo esc_html__( 'Step 2 of 4', 'kiriminaja-official' ); ?></p>
 	<h2><?php echo esc_html( $steps['address']['title'] ); ?></h2>
 	<p><?php echo esc_html( $steps['address']['description'] ); ?></p>
@@ -29,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<th scope="row"><label for="kiriof-origin-sub-district-id"><?php echo esc_html__( 'Subdistrict', 'kiriminaja-official' ); ?></label></th>
 				<td>
-					<select id="kiriof-origin-sub-district-id" name="origin_sub_district_id" class="kiriof-onboarding-subdistrict kiriof-onboarding__field" data-placeholder="<?php echo esc_attr__( 'Search subdistrict', 'kiriminaja-official' ); ?>">
+					<select id="kiriof-origin-sub-district-id" name="origin_sub_district_id" class="kiriof-onboarding-subdistrict kiriof-onboarding__field" data-kiriof-address-fallback data-placeholder="<?php echo esc_attr__( 'Search subdistrict', 'kiriminaja-official' ); ?>">
 						<option value="" placeholder><?php echo esc_html__( 'Search subdistrict', 'kiriminaja-official' ); ?></option>
 						<?php if ( ! empty( $origin_values['origin_sub_district_id'] ) ) : ?><option selected value="<?php echo esc_attr( $origin_values['origin_sub_district_id'] ); ?>"><?php echo esc_html( $origin_values['origin_sub_district_name'] ?? '' ); ?></option><?php endif; ?>
 					</select>
@@ -39,7 +41,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 	<input name="origin_latitude" type="hidden" value="<?php echo esc_attr( $origin_values['origin_latitude'] ?? '' ); ?>">
 	<input name="origin_longitude" type="hidden" value="<?php echo esc_attr( $origin_values['origin_longitude'] ?? '' ); ?>">
-	<div id="kiriof-onboarding-map" class="kiriof-onboarding__map"></div>
+	<div id="kiriof-onboarding-map-fallback" class="kiriof-onboarding__map" data-kiriof-address-fallback></div>
 	<p class="description"><?php echo esc_html__( 'Move the map to place the pin at your pickup location.', 'kiriminaja-official' ); ?></p>
 	<div class="kiriof-onboarding__message" data-step-message="address" role="alert"></div>
+	</div>
 </section>

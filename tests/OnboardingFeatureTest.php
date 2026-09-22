@@ -255,10 +255,13 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/.oxlintrc.json' );
         $this->assertFileExists( PLUGIN_DIR . '/scripts/frontend-pre-commit.sh' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/AccountPanel.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/AddressPanel.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/CouriersPanel.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/ShippingPanel.svelte' );
         $this->assertStringContainsString( 'data-kiriof-onboarding-payload', $template );
         $this->assertStringContainsString( 'data-kiriof-account-panel', $account );
+        $this->assertStringContainsString( 'data-kiriof-address-panel', file_get_contents( PLUGIN_DIR . '/templates/onboarding/steps/address.php' ) );
+		$this->assertStringContainsString( 'kiriof:onboarding-address-mounted', $legacy );
         $this->assertStringContainsString( 'data-kiriof-couriers-panel', file_get_contents( PLUGIN_DIR . '/templates/onboarding/steps/couriers.php' ) );
         $this->assertStringContainsString( 'data-kiriof-shipping-panel', file_get_contents( PLUGIN_DIR . '/templates/onboarding/steps/shipping.php' ) );
     }

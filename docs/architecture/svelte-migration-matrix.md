@@ -9,8 +9,7 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 | Surface | Current state | Migration strategy |
 | --- | --- | --- |
 | Onboarding progress | Svelte | Progress and navigation state use the existing event bridge. |
-| Onboarding account/courier/shipping | Svelte | Rendering is Svelte; persistence and sequencing remain in the legacy bridge during transition. |
-| Onboarding address/map | Legacy | Next onboarding slice: move fields and map state without changing origin persistence. |
+| Onboarding forms | Svelte | Account, address/map, courier, and shipping rendering are Svelte; persistence and sequencing remain in the legacy bridge during transition. |
 | Settings root / first connection | Svelte | Shared JSON bootstrap and WordPress AJAX client established. |
 | Settings webhooks | Svelte | Callback URL persistence stays on the existing AJAX action. |
 | Settings technical | Svelte | Region/courier cache jobs and diagnostics use existing AJAX actions. |
@@ -25,12 +24,11 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 
 ## Ordered migration
 
-1. Finish onboarding address/map using the same settings stores and form components.
-2. Port Transactions filters/table using shared admin-list primitives, then progressively replace action dialogs.
-3. Port Payments QR/payment and reschedule dialogs.
-4. Port order shipment metabox.
-5. Port custom coupon extension controls.
-6. Remove legacy jQuery handlers only after each fallback has shipped and the Svelte path has equivalent tests.
+1. Port Transactions table using shared admin-list primitives, then progressively replace action dialogs.
+2. Port Payments QR/payment and reschedule dialogs.
+3. Port order shipment metabox.
+4. Port custom coupon extension controls.
+5. Remove legacy jQuery handlers only after each fallback has shipped and the Svelte path has equivalent tests.
 
 ## Boundaries
 

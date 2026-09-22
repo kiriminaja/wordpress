@@ -29,6 +29,10 @@
 	var couriersLoaded = false;
 	var couriersLoading = false;
 	var map;
+	var subdistrictChoices;
+	var subdistrictElement;
+	var searchTimer;
+	var searchController;
 
 	function parse(response) {
 		if (response && response.data) {
@@ -160,7 +164,24 @@
 			$root.attr('data-account-complete', '1');
 			$('[data-step-target="account"]').addClass('is-done');
 		});
+		subdistrictElement = $subdistrict[0];
 	}
+	initSubdistrict();
+	window.addEventListener('kiriof:onboarding-address-mounted', function () {
+		if (subdistrictChoices && subdistrictElement && subdistrictElement.hasAttribute('data-kiriof-address-fallback')) {
+			subdistrictChoices.destroy();
+			subdistrictChoices = null;
+			subdistrictElement = null;
+		}
+		if (map && map.getContainer && map.getContainer().hasAttribute('data-kiriof-address-fallback')) {
+			map.remove();
+			map = null;
+		}
+		initSubdistrict();
+		if (current === 'address') {
+			initMap();
+		}
+	});
 
 	function saveAddress() {
 		var area = $('[name="origin_sub_district_id"] option:selected');
@@ -295,12 +316,13 @@
 	}
 
 	function initMap() {
-		if (map || typeof L === 'undefined' || !document.getElementById('kiriof-onboarding-map')) {
+		var container = document.getElementById('kiriof-onboarding-map') || document.getElementById('kiriof-onboarding-map-fallback');
+		if (map || typeof L === 'undefined' || !container) {
 			return;
 		}
 		var lat = parseFloat($('[name="origin_latitude"]').val()) || -6.2088;
 		var lng = parseFloat($('[name="origin_longitude"]').val()) || 106.8456;
-		map = L.map('kiriof-onboarding-map').setView([lat, lng], 15);
+		map = L.map(container).setView([lat, lng], 15);
 		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 		var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
 		function update(position) {
@@ -338,11 +360,15 @@
 		setTimeout(function () { map.invalidateSize(); }, 100);
 	}
 
-	var $subdistrict = $root.find('.kiriof-onboarding-subdistrict');
-	if ($subdistrict.length && typeof window.Choices === 'function' && typeof kiriofOnboarding !== 'undefined') {
-		var searchTimer;
-		var searchController;
-		var subdistrictChoices = new window.Choices($subdistrict[0], {
+	function initSubdistrict() {
+		var $subdistrict = $root.find('.kiriof-onboarding-subdistrict').not('[data-kiriof-address-fallback]').first();
+		if (!$subdistrict.length) {
+			$subdistrict = $root.find('.kiriof-onboarding-subdistrict[data-kiriof-address-fallback]').first();
+		}
+		if (!$subdistrict.length || subdistrictChoices || typeof window.Choices !== 'function' || typeof kiriofOnboarding === 'undefined') {
+			return;
+		}
+		subdistrictChoices = new window.Choices($subdistrict[0], {
 			allowHTML: false,
 			shouldSort: false,
 			searchEnabled: true,

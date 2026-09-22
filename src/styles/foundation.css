@@ -8,6 +8,26 @@
   --kiriof-surface: #ffffff;
 }
 
+.kiriof-onboarding__address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 22px 0 0;
+}
+
+.kiriof-onboarding__address-grid label {
+  display: grid;
+  gap: 7px;
+}
+
+.kiriof-onboarding__address-grid label > span {
+  font-weight: 600;
+}
+
+.kiriof-onboarding__address-wide {
+  grid-column: 1 / -1;
+}
+
 .kiriof-switch {
   position: relative;
   width: 40px;
@@ -156,5 +176,13 @@
     width: auto;
     margin-top: 6px;
     transform: none;
+  }
+
+  .kiriof-onboarding__address-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kiriof-onboarding__address-wide {
+    grid-column: auto;
   }
 }

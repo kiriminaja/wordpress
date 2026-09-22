@@ -45,6 +45,20 @@ $kiriof_onboarding_bootstrap = array(
 			'unavailable'         => __( 'Unable to load account information. Your integration may be incomplete.', 'kiriminaja-official' ),
 		),
 	),
+	'address'   => array(
+		'title'       => $steps['address']['title'],
+		'description' => $steps['address']['description'],
+		'values'      => array_map( 'strval', $origin_values ),
+		'i18n'        => array(
+			'senderName'        => __( 'Sender name', 'kiriminaja-official' ),
+			'senderPhone'       => __( 'Sender phone', 'kiriminaja-official' ),
+			'address'           => __( 'Address', 'kiriminaja-official' ),
+			'zipcode'           => __( 'Zipcode', 'kiriminaja-official' ),
+			'subdistrict'       => __( 'Subdistrict', 'kiriminaja-official' ),
+			'searchSubdistrict' => __( 'Search subdistrict', 'kiriminaja-official' ),
+			'mapHelp'           => __( 'Move the map to place the pin at your pickup location.', 'kiriminaja-official' ),
+		),
+	),
 	'couriers'  => array(
 		'title'       => $steps['couriers']['title'],
 		'description' => $steps['couriers']['description'],

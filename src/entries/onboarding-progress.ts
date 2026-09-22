@@ -1,6 +1,7 @@
 import { mount } from 'svelte';
 import OnboardingProgress from '../lib/OnboardingProgress.svelte';
 import AccountPanel from '../lib/onboarding/AccountPanel.svelte';
+import AddressPanel from '../lib/onboarding/AddressPanel.svelte';
 import CouriersPanel from '../lib/onboarding/CouriersPanel.svelte';
 import ShippingPanel from '../lib/onboarding/ShippingPanel.svelte';
 import type { OnboardingBootstrap } from '../lib/onboarding/types';
@@ -27,11 +28,14 @@ if (host && payload?.textContent) {
   });
 
   const accountHost = document.querySelector<HTMLElement>('[data-kiriof-account-panel]');
+  const addressHost = document.querySelector<HTMLElement>('[data-kiriof-address-panel]');
   const couriersHost = document.querySelector<HTMLElement>('[data-kiriof-couriers-panel]');
   const shippingHost = document.querySelector<HTMLElement>('[data-kiriof-shipping-panel]');
 
   if (accountHost)
     mount(AccountPanel, { target: accountHost, props: { account: bootstrap.account } });
+  if (addressHost)
+    mount(AddressPanel, { target: addressHost, props: { config: bootstrap.address } });
   if (couriersHost)
     mount(CouriersPanel, { target: couriersHost, props: { config: bootstrap.couriers } });
   if (shippingHost)

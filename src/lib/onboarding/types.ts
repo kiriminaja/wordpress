@@ -16,6 +16,20 @@ export type OnboardingBootstrap = {
       unavailable: string;
     };
   };
+  address: {
+    title: string;
+    description: string;
+    values: Record<string, string>;
+    i18n: {
+      senderName: string;
+      senderPhone: string;
+      address: string;
+      zipcode: string;
+      subdistrict: string;
+      searchSubdistrict: string;
+      mapHelp: string;
+    };
+  };
   couriers: {
     title: string;
     description: string;
