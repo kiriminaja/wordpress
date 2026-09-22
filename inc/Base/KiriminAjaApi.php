@@ -10,7 +10,6 @@ use KiriminAja\Base\Api\Api;
 use KiriminAja\Base\Config\Cache\Mode;
 use KiriminAja\Base\Config\KiriminAjaConfig;
 use KiriminAja\Responses\ServiceResponse;
-use KiriminAjaOfficial\Repositories\SettingRepository;
 
 class KiriminAjaApi {
     protected string $base_url;
@@ -104,7 +103,7 @@ class KiriminAjaApi {
     }
 
     private function configure_sdk(): void {
-        $api_token_row = ( new SettingRepository() )->getSettingByKey( 'api_key' );
+        $api_token_row = kiriof_setting_repository()->getSettingByKey( 'api_key' );
         $api_token     = is_object( $api_token_row ) ? (string) ( $api_token_row->value ?? '' ) : '';
 
         try {
@@ -127,7 +126,7 @@ class KiriminAjaApi {
 
     private function resolve_base_url(): string {
         $default_base_url = 'https://client.kiriminaja.com';
-        $setting_row      = ( new SettingRepository() )->getSettingByKey( 'api_base_url' );
+        $setting_row      = kiriof_setting_repository()->getSettingByKey( 'api_base_url' );
         $setting_base_url = is_object( $setting_row ) ? trim( (string) ( $setting_row->value ?? '' ) ) : '';
         $constant_url     = '';
 

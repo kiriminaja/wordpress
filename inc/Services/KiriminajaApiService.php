@@ -7,15 +7,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use \KiriminAjaOfficial\Base\BaseService;
-use KiriminAjaOfficial\Init;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 class KiriminajaApiService extends BaseService{
     private const KIRIOF_PROFILE_CACHE_KEY = 'kiriof_profile_cache';
     private const KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY = 'kiriof_profile_last_success_cache';
     private const KIRIOF_PROFILE_CACHE_TTL = 60;
 
+    private KiriminajaApiRepository $repository;
+
+    public function __construct( ?KiriminajaApiRepository $repository = null ) {
+        $this->repository = $repository ?? new KiriminajaApiRepository();
+    }
+
     public function sub_district_search($search)
     {
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->sub_district_search($search);
+        $repo = $this->repository->sub_district_search($search);
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
@@ -23,7 +29,7 @@ class KiriminajaApiService extends BaseService{
     }
     public function getPayment($payment_id)
     {
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPayment([
+        $repo = $this->repository->getPayment([
             'payment_id'=>$payment_id
         ]);
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
@@ -33,7 +39,7 @@ class KiriminajaApiService extends BaseService{
     }
     public function getTracking($order_id)
     {
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getTracking([
+        $repo = $this->repository->getTracking([
             'order_id'=>$order_id
         ]);
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
@@ -51,7 +57,7 @@ class KiriminajaApiService extends BaseService{
             return self::success( $cached );
         }
 
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->get_couriers();
+        $repo = $this->repository->get_couriers();
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             $last_success = get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
             if ( false !== $last_success ) {
@@ -121,7 +127,7 @@ class KiriminajaApiService extends BaseService{
         return $map;
     }
     public function getProvinces(){
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProvinces();
+        $repo = $this->repository->getProvinces();
         $rows = $this->extractListRows($repo);
         if ( empty( $repo['status'] ) || empty( $rows ) ) {
             return self::error([], $this->extractErrorMessage($repo, __('Failed to load provinces.', 'kiriminaja-official')));
@@ -130,7 +136,7 @@ class KiriminajaApiService extends BaseService{
         return self::success($rows);
     }
     public function getCitiesByProvinceId($provinceId){
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getCitiesByProvinceId($provinceId);
+        $repo = $this->repository->getCitiesByProvinceId($provinceId);
         $rows = $this->extractListRows($repo);
         if ( empty( $repo['status'] ) || ( ( ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) && empty( $rows ) ) ) {
             return self::error([], $this->extractErrorMessage($repo, __('Failed to load cities.', 'kiriminaja-official')));
@@ -144,7 +150,7 @@ class KiriminajaApiService extends BaseService{
             return self::success($cachedProfile);
         }
 
-        $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getProfile();
+        $repo = $this->repository->getProfile();
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             $cachedProfile = get_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY);
             if (false !== $cachedProfile) {

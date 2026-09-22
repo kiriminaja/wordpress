@@ -1,6 +1,7 @@
 <?php
 
 use KiriminAjaOfficial\Controllers\SettingController;
+use KiriminAjaOfficial\Contracts\TrackingPageRepositoryInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -9,6 +10,25 @@ if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
 
+final class ShipmentLocationTrackingPageRepositoryFake implements TrackingPageRepositoryInterface {
+    public function hasPublishedTrackingPage(): bool {
+        return false;
+    }
+
+    public function findPublishedTrackingContent(): array {
+        return array();
+    }
+
+    public function findTrackingShortcodePages(): array {
+        return array();
+    }
+
+    public function findPreferredTrackingShortcodePage() {
+        return null;
+    }
+}
+
+require_once PLUGIN_DIR . '/inc/Contracts/TrackingPageRepositoryInterface.php';
 require_once PLUGIN_DIR . '/inc/Controllers/SettingController.php';
 
 final class ShipmentLocationValidationRuntimeTest extends TestCase {
@@ -40,7 +60,10 @@ final class ShipmentLocationValidationRuntimeTest extends TestCase {
     }
 
     private function validate( array $payload ): bool {
-        $controller = new SettingController();
+        $setting_repository = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\SettingRepository::class )
+            ->disableOriginalConstructor()
+            ->getMock();
+        $controller = new SettingController( new ShipmentLocationTrackingPageRepositoryFake(), $setting_repository );
         $method     = new ReflectionMethod( SettingController::class, 'isValidShipmentLocationData' );
         $method->setAccessible( true );
 

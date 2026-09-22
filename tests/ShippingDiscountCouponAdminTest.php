@@ -51,6 +51,18 @@ final class ShippingDiscountCouponAdminTest extends TestCase
     }
 
     #[Test]
+    public function region_cache_service_gets_database_errors_from_repository(): void
+    {
+        $serviceContent    = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php');
+        $repositoryContent = file_get_contents(PLUGIN_DIR . '/inc/Repositories/ShippingDiscountRegionRepository.php');
+
+        $this->assertStringContainsString('$regionRepo->getLastError()', $serviceContent);
+        $this->assertStringNotContainsString('global $wpdb;', $serviceContent);
+        $this->assertStringContainsString('public function getLastError(): string', $repositoryContent);
+        $this->assertStringContainsString("' DB: ' . \$lastError", $serviceContent);
+    }
+
+    #[Test]
     public function coupon_controller_registers_required_hooks_and_meta_keys(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
@@ -96,13 +108,16 @@ final class ShippingDiscountCouponAdminTest extends TestCase
         $activation = file_get_contents(PLUGIN_DIR . '/inc/Base/Activate.php');
         $plugin = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
         $service = file_get_contents(PLUGIN_DIR . '/inc/Services/WooCommerceShippingMethodRegistrationService.php');
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/ShippingZoneMethodRepository.php');
 
         $this->assertStringContainsString('WooCommerceShippingMethodRegistrationService', $activation);
         $this->assertStringContainsString('add_shipping_method( self::METHOD_ID )', $service);
         $this->assertStringContainsString("add_location( 'ID', 'country' )", $service);
         $this->assertStringContainsString("'enabled'] = 'yes'", $service);
-        $this->assertStringContainsString('woocommerce_shipping_zone_methods', $service);
-        $this->assertStringContainsString("'is_enabled' => 1", $service);
+        $this->assertStringContainsString('ShippingZoneMethodRepositoryInterface', $service);
+        $this->assertStringNotContainsString('global $wpdb', $service);
+        $this->assertStringContainsString('woocommerce_shipping_zone_methods', $repository);
+        $this->assertStringContainsString("'is_enabled' => 1", $repository);
         $this->assertStringNotContainsString('kiriof_delete_shipping_zone();', $plugin);
     }
 

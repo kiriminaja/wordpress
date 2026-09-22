@@ -334,9 +334,9 @@ final class CancelTransactionFeatureTest extends TestCase
 
         $methodBody = substr($content, (int) $_[0][1], 2500);
         $this->assertStringContainsString(
-            'CancelTransactionService',
+            '$this->cancelTransactionService',
             $methodBody,
-            'handleWcOrderCancelled() must use CancelTransactionService'
+            'handleWcOrderCancelled() must use the injected CancelTransactionService'
         );
     }
 

@@ -2,15 +2,13 @@
 
 ## Status
 
-Proposed architecture plan. No runtime migration has started.
+Accepted architecture direction. No runtime migration has started.
 
 ## Decision
 
-Use repository contracts as the stable boundary for database access before adopting BerlinDB.
+Use repository contracts as the stable boundary for database access. Repository implementations may use `$wpdb`, WooCommerce data stores, or WordPress APIs depending on which mechanism owns the data.
 
-The first implementation of each contract can continue using `$wpdb`. BerlinDB may replace selected implementations after existing behavior is covered by tests and callers no longer depend on SQL details.
-
-This sequence reduces migration risk because controllers, services, and templates can be cleaned up without changing the storage engine at the same time.
+The repository pattern is the target architecture. Replacing `$wpdb` or introducing another database abstraction is outside this plan.
 
 ## Goals
 
@@ -18,16 +16,15 @@ This sequence reduces migration risk because controllers, services, and template
 - Expose persistence operations through small contracts based on application use cases.
 - Keep WooCommerce HPOS and legacy order storage behavior compatible.
 - Make database behavior testable without requiring every caller to construct a concrete repository.
-- Allow selected plugin-owned tables to move to BerlinDB later.
 - Keep complex WooCommerce reporting queries as prepared SQL when that remains the clearest implementation.
 
 ## Non-goals
 
-- Rewriting every query into BerlinDB in one release.
+- Replacing `$wpdb` with an ORM or query-builder dependency.
 - Creating a generic repository base class for unrelated domains.
 - Introducing a dependency injection container.
 - Hiding schema migrations behind repository contracts.
-- Forcing cross-table reports or WooCommerce-owned storage through BerlinDB.
+- Forcing cross-table reports or WooCommerce-owned storage through a generic CRUD repository.
 - Changing public plugin behavior as part of the structural migration.
 
 ## Current state
@@ -42,6 +39,193 @@ The plugin already has classes under `inc/Repositories`, but the current boundar
 - Error logging and return conventions vary between repositories.
 - Several services and controllers still access `$wpdb` directly.
 
+### Baseline maturity score
+
+Repository-pattern maturity is currently estimated at **21%**. This is an architecture score, not a measure of feature completeness.
+
+| Dimension | Weight | Current measurement | Score |
+| --- | ---: | --- | ---: |
+| Database containment | 40% | 8 of 21 non-migration files using `$wpdb` are repositories | 15.2% |
+| Persistence contracts | 15% | No persistence interfaces exist | 0% |
+| Dependency composition | 20% | 127 direct repository constructions across 39 runtime files | 0% |
+| Presentation isolation | 15% | Four templates use `$wpdb`; templates construct repositories 12 times | 0% |
+| Repository cohesion | 10% | Five of nine named repositories have no obvious policy or SQL leakage | 5.6% |
+| **Total** | **100%** | | **20.8%, rounded to 21%** |
+
+Supporting inventory:
+
+- 22 runtime files use `$wpdb`: 8 repositories, 3 controllers, 3 services, 4 templates, 1 migration, and 3 other runtime files.
+- 10 concrete persistence classes exist under `inc/Repositories`.
+- Two classes named repositories are remote API clients rather than persistence repositories.
+- `TransactionRepository` publicly exposes order-table metadata and a reusable SQL fragment.
+- `SettingRepository`, `ShipmentLocationRepository`, and `ShippingDiscountRegionRepository` contain application policy in addition to persistence.
+
+The baseline should be recalculated after each migration phase using the same dimensions. The target is not the number of classes named `Repository`; the target is an enforced persistence boundary.
+
+### Progress log
+
+#### Iteration 1: transaction print state
+
+- Moved the `is_printed` and `printed_at` update out of `ShippingProcessController`.
+- Added `TransactionPrintRepositoryInterface` as the first persistence contract.
+- Made `TransactionRepository` implement the print-state operation.
+- Wired the controller dependency in `Init`, the current composition root.
+- Added runtime tests for query parameters, empty input, and controller delegation.
+
+Measured change:
+
+- Runtime files using `$wpdb`: 22 to 21.
+- Database access contained in repositories or migrations: 9 of 22 (41%) to 9 of 21 (43%).
+- Persistence contracts: 0 to 1.
+- Controllers with direct `$wpdb` access: 3 to 2.
+- Templates with direct `$wpdb` access: unchanged at 4.
+- Estimated overall repository-pattern maturity: 21% to 23%.
+
+#### Iteration 2: tracking page lookup
+
+- Moved tracking-shortcode page discovery out of `SettingController`.
+- Added `TrackingPageRepositoryInterface` and a read-only `TrackingPageRepository`.
+- Wired the controller dependency in `Init`.
+- Added runtime tests for query constraints, shortcode patterns, ordering, and controller delegation.
+
+Measured change from iteration 1:
+
+- Runtime files using `$wpdb`: unchanged at 21 because the query moved into a repository.
+- Database access contained in repositories or migrations: 9 of 21 (43%) to 10 of 21 (48%).
+- Persistence contracts: 1 to 2.
+- Controllers with direct `$wpdb` access: 2 to 1.
+- Templates with direct `$wpdb` access: unchanged at 4.
+- Estimated overall repository-pattern maturity: 23% to 27%.
+
+#### Iteration 3: activation page setup
+
+- Reused `TrackingPageRepositoryInterface` for activation-time tracking page discovery.
+- Removed duplicated tracking shortcode SQL from `AdminPost`.
+- Replaced direct writes to the WordPress options table with `update_option()`.
+- Injected the tracking page repository at the plugin activation composition boundary.
+- Added runtime tests for repository delegation and WordPress Options API usage.
+
+Measured change from iteration 2:
+
+- Runtime files using `$wpdb`: 21 to 20.
+- Database access contained in repositories or migrations: 10 of 21 (48%) to 10 of 20 (50%).
+- Pages with direct `$wpdb` access: 2 to 1.
+- Injected runtime consumers of persistence contracts: 2 to 3.
+- Persistence contracts: unchanged at 2 because the existing tracking-page contract was reused.
+- Templates with direct `$wpdb` access: unchanged at 4.
+- Estimated overall repository-pattern maturity: 27% to 29%.
+
+#### Iteration 4: application persistence boundary
+
+- Moved payment and transaction admin-list SQL into dedicated query contracts and implementations.
+- Reduced payment and transaction templates to capability checks and render-service delegation.
+- Centralized product volumetric readiness, tracking content, and shipping-zone persistence queries.
+- Removed direct `$wpdb` access from controllers, services, pages, templates, and plugin helpers.
+- Added a database transaction manager for the shipment-origin atomic update.
+- Removed all repository construction from templates.
+- Reused injected dependencies in high-construction consumers including checkout, settings, edit-order, onboarding, API, and shipping-discount flows.
+
+Measured change from iteration 3:
+
+- Application and presentation files using `$wpdb`: 10 to 0.
+- Repository/query/infrastructure containment: 50% to 100%.
+- Templates using `$wpdb`: 4 to 0.
+- Template repository constructions: 12 to 0.
+- Persistence and transaction contracts: 2 to 7.
+- Injected runtime consumers: 3 to 17.
+- Consumer-side repository constructions: 127 to 75.
+- Estimated overall repository-pattern maturity: 29% to 78%.
+
+### Current operational scorecard
+
+The maturity percentage is directional. Use the raw metrics below to decide the next migration target and prevent superficial score improvements.
+
+| Metric | Baseline | Current | Target |
+| --- | ---: | ---: | ---: |
+| Application files using `$wpdb` | 10 | 0 | 0 |
+| Repository/query/infrastructure containment | 41% | 100% | 100% |
+| Controllers using `$wpdb` | 3 | 0 | 0 |
+| Services using `$wpdb` | 3 | 0 | 0 |
+| Pages and root helpers using `$wpdb` | 3 | 0 | 0 |
+| Templates using `$wpdb` | 4 | 0 | 0 |
+| Persistence and transaction contracts | 0 | 7 | Contract for each application persistence boundary |
+| Injected runtime consumers | 0 | 17 | All application consumers |
+| Consumer-side repository constructions | 127 | 20 | 0 |
+| Template repository constructions | 12 | 0 | 0 |
+
+The remaining maturity gap is primarily dependency composition and repository cohesion. `TransactionRepository` and `SettingRepository` are still broad concrete dependencies, API clients still use repository naming, and 20 consumer-side construction sites remain.
+
+#### Iteration 5: composition-root consolidation
+
+- Moved request-pickup dependencies into the `Init` composition root.
+- Moved COD adjustment dependencies into the `Init` composition root.
+- Moved shipping payment and print-flow dependencies into the `Init` composition root.
+- Reused transaction, payment, settings, API, and shipment-location collaborators within those flows.
+- Preserved targeted no-constructor test paths through reflection only where the test exercises an unrelated private formatter.
+
+Measured change from iteration 4:
+
+- Consumer-side repository constructions: 75 to 59.
+- Injected runtime consumers: unchanged at 20 by the conservative field-based metric; composition-root wiring increased.
+- Application `$wpdb` containment: unchanged at 100%.
+- Template isolation: unchanged at 100%.
+- Estimated overall repository-pattern maturity: 78% to 80%.
+
+#### Iteration 6: controller-owned workflow services
+
+- Moved callback-handler repositories and API token resolution into the composition root.
+- Injected cancellation and pickup-schedule services into transaction controllers.
+- Reused transaction and API repositories between request-pickup, cancellation, and schedule workflows.
+- Removed repository construction from callback, cancellation, and pickup-schedule services.
+
+Measured change from iteration 5:
+
+- Consumer-side repository constructions: 59 to 52.
+- Application `$wpdb` containment: unchanged at 100%.
+- Template isolation: unchanged at 100%.
+- Estimated overall repository-pattern maturity: 80% to 82%.
+
+#### Iteration 7: checkout service factory
+
+- Added a request-local checkout service factory with shared repository dependencies.
+- Kept calculation, pricing, cart-attribute, COD-deficit, and transaction-creation services operation scoped.
+- Removed repository construction from checkout calculation, pricing, cart attributes, COD deficit, order ID generation, and transaction creation.
+- Injected the factory into checkout, general AJAX, and transaction-origin pricing flows.
+- Reused the same factory from the WooCommerce shipping method through a framework-compatible helper.
+
+Measured change from iteration 6:
+
+- Consumer-side repository constructions: 52 to 39.
+- Application `$wpdb` containment: unchanged at 100%.
+- Template isolation: unchanged at 100%.
+- Estimated overall repository-pattern maturity: 82% to 85%.
+
+#### Iteration 8: framework-safe composition seams
+
+- Added request-local repository accessors for WordPress and WooCommerce callback boundaries.
+- Removed direct repository construction from the shipping method, WooCommerce order columns, base API configuration, and shared helper counters.
+- Made Checkout, Edit Order, and Setting controllers require dependencies from `Init`.
+- Reused one region repository and API service during region cache refreshes.
+- Kept compatibility fallbacks only in services that may still be instantiated outside the main composition root.
+
+Measured change from iteration 7:
+
+- Consumer-side repository constructions: 39 to 20.
+- Application `$wpdb` containment: unchanged at 100%.
+- Template isolation: unchanged at 100%.
+- Estimated overall repository-pattern maturity: 85% to 90%.
+
+### Current maturity score
+
+| Dimension | Weight | Current assessment | Score |
+| --- | ---: | --- | ---: |
+| Database containment | 40% | All `$wpdb` access is inside migrations, repositories, query implementations, or transaction infrastructure | 40% |
+| Persistence contracts | 15% | Seven narrow contracts cover the extracted high-risk boundaries; broad legacy repositories remain concrete | 8% |
+| Dependency composition | 20% | Consumer-side constructions fell from 127 to 20; framework callbacks use request-local accessors and internal controllers require composition | 18% |
+| Presentation isolation | 15% | Templates contain no `$wpdb` access or repository construction | 15% |
+| Repository cohesion | 10% | Admin lists and specialized reads/writes are separated; broad transaction/settings repositories and API naming remain | 7% |
+| **Total** | **100%** | | **90%** |
+
 ### Plugin-owned tables
 
 - `kiriminaja_settings`
@@ -53,9 +237,9 @@ The plugin already has classes under `inc/Repositories`, but the current boundar
 
 Schema creation and upgrades remain the responsibility of `inc/Migration/SetupMigration.php` during this migration.
 
-### High-priority direct database access
+### Completed direct database extraction
 
-The first extraction targets are the queries currently outside the repository layer:
+The original extraction targets are now behind repository, query, or transaction contracts:
 
 - `templates/transaction-process/index.php`
 - `templates/request-pickup/index.php`
@@ -67,7 +251,7 @@ The first extraction targets are the queries currently outside the repository la
 - `inc/Services/OnboardingSetupStateService.php`
 - `inc/Services/WooCommerceShippingMethodRegistrationService.php`
 
-Direct database error inspection in `ShippingDiscountRegionCacheService` can remain temporarily, but the repository should eventually return or throw a consistent failure result instead.
+`ShippingDiscountRegionCacheService` now receives database errors through the region repository rather than inspecting `$wpdb` directly.
 
 ## Target boundaries
 
@@ -182,7 +366,7 @@ Examples:
 - `PickupGateway`
 - `CodFeeGateway`
 
-This can be done after database boundaries because it is not required for the BerlinDB decision.
+This can be done after the database boundaries because it does not block repository extraction.
 
 ## Dependency wiring
 
@@ -270,31 +454,9 @@ Prefer typed domain records or documented arrays over leaking raw, inconsistent 
 
 Exit condition: contracts document stable return and failure semantics.
 
-### Phase 6: BerlinDB pilot
+## Repository implementation rules
 
-Add BerlinDB only after the repository contracts and characterization tests are stable.
-
-Recommended pilot order:
-
-1. Shipment locations.
-2. Province and city cache.
-3. Payments.
-4. Simple transaction CRUD and lookups.
-
-For each pilot:
-
-- Keep the existing `$wpdb` adapter available during development.
-- Run the same contract tests against both implementations where practical.
-- Compare generated schema and indexes with existing production tables.
-- Verify upgrades on existing installations, not only fresh activation.
-- Benchmark bulk operations and filtered reads.
-- Confirm the packaged dependency works on the supported PHP and WordPress versions.
-
-Exit condition: BerlinDB provides a clear maintenance or correctness benefit without changing application callers.
-
-## Queries that may remain prepared SQL
-
-BerlinDB should not be a consistency goal by itself. Keep focused prepared SQL for cases where it is clearer or safer:
+Repositories and query services may use focused prepared SQL when it is the clearest or safest implementation, including:
 
 - Cross-table transaction reports.
 - HPOS and legacy order-table compatibility queries.
@@ -302,21 +464,19 @@ BerlinDB should not be a consistency goal by itself. Keep focused prepared SQL f
 - Correlated existence checks for shippable products.
 - Aggregate dashboard counts.
 - Migration and schema inspection queries.
-- Explicit transaction statements where the selected abstraction does not provide an equivalent boundary.
+- Explicit transaction statements for atomic application operations.
 
 These queries still belong behind a repository, adapter, or query-service contract.
 
-## BerlinDB adoption risks
+Additional rules:
 
-- BerlinDB becomes the first production Composer dependency shipped by this plugin.
-- Another WordPress plugin may ship a conflicting version in the same PHP process.
-- The build may need dependency prefixing or isolation.
-- Composer platform checks are currently disabled, so CI must verify the real supported PHP matrix.
-- Existing table schemas and upgrade paths must remain compatible with installed sites.
-- Bulk cache refresh may regress if row-by-row abstractions replace efficient database operations.
-- BerlinDB does not remove the need for WooCommerce HPOS compatibility logic.
-
-Before adoption, confirm the BerlinDB version, supported PHP and WordPress versions, package isolation strategy, schema ownership, and rollback plan.
+- Repository methods describe domain or application operations, not SQL verbs.
+- Repositories do not return SQL fragments, table names, or placeholder definitions.
+- Repositories do not read HTTP input or render output.
+- Templates receive prepared view data and never construct repositories.
+- Application policy remains in services unless atomic persistence requires a repository operation.
+- WooCommerce-owned data uses supported WooCommerce APIs where practical.
+- Migrations remain the only place responsible for creating or altering plugin tables.
 
 ## Pull request sequence
 
@@ -328,8 +488,6 @@ Keep changes reviewable and independently releasable:
 4. Remaining controller and service query extraction.
 5. Repository contracts and incremental constructor injection.
 6. Transaction repository split and domain-rule extraction.
-7. BerlinDB shipment-location proof of concept.
-8. BerlinDB expansion only after the pilot is accepted.
 
 Each pull request should avoid combining structural migration with unrelated feature behavior.
 
@@ -364,5 +522,4 @@ The migration is complete when:
 - Application code depends on repository, gateway, or query-service contracts.
 - HPOS and legacy behavior remain covered by tests.
 - Result and failure semantics are documented and consistent.
-- BerlinDB is adopted only for tables where its benefits are demonstrated.
 - The release ZIP excludes this `docs/` directory.

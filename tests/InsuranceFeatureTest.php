@@ -469,6 +469,7 @@ final class InsuranceFeatureTest extends TestCase
     public function settings_list_checks_woocommerce_shipping_locations(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $provider = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         $this->assertStringContainsString(
             'Shipping Locations',
@@ -478,13 +479,13 @@ final class InsuranceFeatureTest extends TestCase
 
         $this->assertStringContainsString(
             "get_option( 'woocommerce_ship_to_countries'",
-            $content,
+            $provider,
             'Settings wizard must inspect WooCommerce Shipping location(s)'
         );
 
         $this->assertStringContainsString(
             'get_shipping_countries()',
-            $content,
+            $provider,
             'Settings wizard must detect empty shipping countries when Ship to specific countries has no selection'
         );
 
@@ -722,6 +723,7 @@ final class InsuranceFeatureTest extends TestCase
     public function settings_list_checks_product_volumetric_configuration_progress(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/ProductVolumetricReadinessRepository.php');
 
         $this->assertStringContainsString(
             'Product Volumetric Configurations',
@@ -737,55 +739,55 @@ final class InsuranceFeatureTest extends TestCase
 
         $this->assertStringContainsString(
             "child_variation.post_parent = p.ID",
-            $content,
+            $repository,
             'Settings wizard must detect variable products with published variations'
         );
 
         $this->assertStringContainsString(
             "p.post_type = 'product_variation' AND p.post_status IN ('publish','private')",
-            $content,
+            $repository,
             'Settings wizard must count WooCommerce variation rows, which are commonly stored as private, as volumetric-required items'
         );
 
         $this->assertStringContainsString(
             "p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL",
-            $content,
+            $repository,
             'Settings wizard must count simple products but exclude variable parents that have variations'
         );
 
         $this->assertStringContainsString(
             "virtual_meta.meta_key = '_virtual'",
-            $content,
+            $repository,
             'Settings wizard must inspect WooCommerce virtual product metadata'
         );
 
         $this->assertStringContainsString(
             "COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'",
-            $content,
+            $repository,
             'Settings wizard must exclude virtual products from product volumetric progress'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_weight'",
-            $content,
+            $repository,
             'Settings wizard must require product weight'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_length'",
-            $content,
+            $repository,
             'Settings wizard must require product length'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_width'",
-            $content,
+            $repository,
             'Settings wizard must require product width'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_height'",
-            $content,
+            $repository,
             'Settings wizard must require product height'
         );
 

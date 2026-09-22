@@ -12,6 +12,16 @@ use KiriminAjaOfficial\Repositories\ShippingDiscountRegionRepository;
 class ShippingDiscountRegionCacheService extends BaseService {
     public const CRON_HOOK = 'kiriof_refresh_coupon_regions_cache';
     private const STATUS_OPTION = 'kiriof_region_cache_status';
+    private ShippingDiscountRegionRepository $region_repository;
+    private KiriminajaApiService $api_service;
+
+    public function __construct(
+        ?ShippingDiscountRegionRepository $region_repository = null,
+        ?KiriminajaApiService $api_service = null
+    ) {
+        $this->region_repository = $region_repository ?? new ShippingDiscountRegionRepository();
+        $this->api_service       = $api_service ?? new KiriminajaApiService();
+    }
 
     public function scheduleRefresh( bool $force = false ): bool {
         if ( ! function_exists( 'wp_schedule_single_event' ) ) {
@@ -103,8 +113,8 @@ class ShippingDiscountRegionCacheService extends BaseService {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
-        $regionRepo      = new ShippingDiscountRegionRepository();
-        $provinceService = ( new KiriminajaApiService() )->getProvinces();
+        $regionRepo      = $this->region_repository;
+        $provinceService = $this->api_service->getProvinces();
 
         if ( 200 !== $provinceService->status ) {
             // API failed — try seeding from bundled JSON as fallback.
@@ -149,9 +159,9 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         if ( ! $regionRepo->upsertProvinces( $provinces ) || $regionRepo->getProvinceCount() < 1 ) {
-            global $wpdb;
-            $dbErr   = ! empty( $wpdb->last_error ) ? ' DB: ' . $wpdb->last_error : '';
-            $message = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
+            $lastError = $regionRepo->getLastError();
+            $dbErr      = '' !== $lastError ? ' DB: ' . $lastError : '';
+            $message    = __( 'Failed to save province data to database.', 'kiriminaja-official' ) . $dbErr;
             $this->updateStatus( 'error', $message );
             kiriof_log(
                 'error',
@@ -220,7 +230,7 @@ class ShippingDiscountRegionCacheService extends BaseService {
             return self::error( array(), __( 'Invalid province.', 'kiriminaja-official' ) );
         }
 
-        $cityService = ( new KiriminajaApiService() )->getCitiesByProvinceId( $provinceId );
+        $cityService = $this->api_service->getCitiesByProvinceId( $provinceId );
         if ( 200 !== $cityService->status ) {
             kiriof_log(
                 'warning',
@@ -254,7 +264,7 @@ class ShippingDiscountRegionCacheService extends BaseService {
             );
         }
 
-        $repo = new ShippingDiscountRegionRepository();
+        $repo = $this->region_repository;
         if ( ! $repo->upsertCities( $provinceId, $cities ) ) {
             kiriof_log(
                 'error',

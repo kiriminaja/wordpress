@@ -330,9 +330,9 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringNotContainsString( "\$courier_discount     = isset( \$_POST['courier_discount'] )", $source );
         $this->assertStringContainsString( "\$courier_price        = (float) \$kiriof_verified_rate['raw_price'];", $source );
         $this->assertStringContainsString( "\$courier_discount     = min( \$courier_price, max( 0, (float) \$kiriof_verified_rate['discount_amount'] ) );", $source );
-        $this->assertStringContainsString( '$wpdb->query( \'START TRANSACTION\' )', $source );
-        $this->assertStringContainsString( '$wpdb->query( \'ROLLBACK\' )', $source );
-        $this->assertStringContainsString( '$wpdb->query( \'COMMIT\' )', $source );
+        $this->assertStringContainsString( '$this->transactionManager->begin()', $source );
+        $this->assertSame( 2, substr_count( $source, '$this->transactionManager->rollback()' ) );
+        $this->assertStringContainsString( '$this->transactionManager->commit()', $source );
         $this->assertStringContainsString( 'WooCommerce order not found. No shipment data was changed.', $source );
         $this->assertStringContainsString( 'Failed to update the shipment origin. No shipment data was changed.', $source );
         $this->assertStringContainsString( '$kiriof_raw_new_total', $source );

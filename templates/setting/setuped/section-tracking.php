@@ -11,45 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $kiriof_base_url
  */
 
-// Search all published pages for the tracking shortcode.
-global $wpdb;
-$kiriof_pages = array();
-
-// Check pages
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$kiriof_results = $wpdb->get_results(
-    "SELECT ID, post_title, post_name, post_status, guid
-     FROM {$wpdb->posts}
-     WHERE post_type = 'page'
-       AND post_status = 'publish'
-       AND (
-           post_content LIKE '%[kiriminaja-tracking-front-page%'
-           OR post_content LIKE '%[wp-tracking-front-page%'
-       )
-     ORDER BY post_title ASC"
-);
-
-if ( ! empty( $kiriof_results ) ) {
-    $kiriof_pages = $kiriof_results;
-}
-
-// Also check posts
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$kiriof_post_results = $wpdb->get_results(
-    "SELECT ID, post_title, post_name, post_status, guid
-     FROM {$wpdb->posts}
-     WHERE post_type = 'post'
-       AND post_status = 'publish'
-       AND (
-           post_content LIKE '%[kiriminaja-tracking-front-page%'
-           OR post_content LIKE '%[wp-tracking-front-page%'
-       )
-     ORDER BY post_title ASC"
-);
-
-if ( ! empty( $kiriof_post_results ) ) {
-    $kiriof_pages = array_merge( $kiriof_pages, $kiriof_post_results );
-}
+$kiriof_pages = kiriof_get_published_tracking_content();
 ?>
 <div class="wrap kj-wrap">
 

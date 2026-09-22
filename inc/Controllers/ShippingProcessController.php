@@ -6,12 +6,36 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessDetailService;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment;
+use KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService;
 use Throwable;
 class ShippingProcessController
 {
+    private TransactionPrintRepositoryInterface $transaction_print_repository;
+    private GetShippingProcessPayment $shipping_process_payment;
+    private TransactionRepository $transaction_repository;
+    private KiriminajaApiRepository $api_repository;
+    private GetRequestPickupScheduleService $pickup_schedule_service;
+
+    public function __construct(
+        TransactionPrintRepositoryInterface $transaction_print_repository,
+        GetShippingProcessPayment $shipping_process_payment,
+        TransactionRepository $transaction_repository,
+        KiriminajaApiRepository $api_repository,
+        GetRequestPickupScheduleService $pickup_schedule_service
+    )
+    {
+        $this->transaction_print_repository = $transaction_print_repository;
+        $this->shipping_process_payment      = $shipping_process_payment;
+        $this->transaction_repository        = $transaction_repository;
+        $this->api_repository                = $api_repository;
+        $this->pickup_schedule_service       = $pickup_schedule_service;
+    }
+
     public function register()
     {
         /** getShippingProcessDetail */
@@ -102,32 +126,7 @@ class ShippingProcessController
 
     private function markTransactionsPrinted( array $orderIds )
     {
-        if ( empty( $orderIds ) ) {
-            return;
-        }
-
-        global $wpdb;
-        $placeholders = implode( ',', array_fill( 0, count( $orderIds ), '%s' ) );
-        $query_args   = array_merge(
-            array(
-                1,
-                current_time( 'mysql' ),
-            ),
-            $orderIds
-        );
-
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Placeholder list is generated from sanitized order IDs above.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Print status is updated immediately after successful label fetch.
-        $wpdb->query(
-            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders match the sanitized order IDs in $query_args.
-            $wpdb->prepare(
-                "UPDATE {$wpdb->prefix}kiriminaja_transactions
-                SET is_printed = %d, printed_at = %s
-                WHERE order_id IN ({$placeholders})",
-                $query_args
-            )
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        $this->transaction_print_repository->markPrintedByOrderIds( $orderIds );
     }
 
     private function logResiPrintFailure( string $reason, array $context = array() ): void
@@ -182,7 +181,7 @@ class ShippingProcessController
             $this->redirectResiPrintFailure( __( 'Unable to print resi because no order was selected.', 'kiriminaja-official' ) );
         }
 
-        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransctionByOrderIds($orderIds);
+         $transactions = $this->transaction_repository->getTransctionByOrderIds($orderIds);
         if ( empty( $transactions ) ) {
             $this->logResiPrintFailure( 'transactions_not_found', array(
                 'order_ids' => $orderIds,
@@ -220,7 +219,7 @@ class ShippingProcessController
         if (count($awbs) == 1) {
             $filename = $awbs[0] ?? 'resi';
         }
-        $getAwbData = (new KiriminajaApiRepository())->getPrintAwb($awbs);
+         $getAwbData = $this->api_repository->getPrintAwb($awbs);
         $printAwbUrl = $this->resolvePrintAwbUrl( $getAwbData );
         if ( '' !== $printAwbUrl ) {
             $this->markTransactionsPrinted( $printedOrderIds );
@@ -261,7 +260,7 @@ class ShippingProcessController
         $order_ids = array_map(function ($transaction) {
             return $transaction->order_id;
         }, $transactions_data);
-        $service_pickup = (new \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService())
+        $service_pickup = $this->pickup_schedule_service
             ->orderIds($order_ids)
             ->call();
         $service_pickup->data['transaction_summary']['order_id'] = $order_ids[0];
@@ -302,7 +301,7 @@ class ShippingProcessController
                 wp_die();
             }
             $payment_id = isset($_POST['data']['payment_id']) ? sanitize_text_field(wp_unslash($_POST['data']['payment_id'])) : '';
-            $service = (new GetShippingProcessPayment())->payment_id($payment_id)->call();
+            $service = $this->shipping_process_payment->payment_id($payment_id)->call();
             if ($service->status !== 200) {
                 wp_send_json_error($service);
             }
