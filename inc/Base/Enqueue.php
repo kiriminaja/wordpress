@@ -113,6 +113,14 @@ class Enqueue extends BaseInit{
                     'selectOption' => __( 'Select Option', 'kiriminaja-official' ),
                 )
             );
+
+			if ( $is_order_screen ) {
+				$order_metabox_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-order-metabox.js';
+				if ( file_exists( $order_metabox_script ) ) {
+					wp_enqueue_script( 'kiriof-order-metabox', $this->plugin_url . 'assets/admin/dist/kiriminaja-order-metabox.js', array( 'kiriof-cod-adjustment' ), (string) filemtime( $order_metabox_script ), true );
+					wp_script_add_data( 'kiriof-order-metabox', 'type', 'module' );
+				}
+			}
         }
 
         // Localize script to pass ajax URL and nonce

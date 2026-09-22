@@ -31,4 +31,8 @@ if (host && payload?.textContent) {
   host
     .closest<HTMLElement>('[data-kiriof-settings-page]')
     ?.classList.add('kiriof-settings-page--enhanced');
+  host
+    .closest<HTMLElement>('[data-kiriof-settings-page]')
+    ?.querySelectorAll('[data-kiriof-settings-fallback]')
+    .forEach((fallback) => fallback.remove());
 }

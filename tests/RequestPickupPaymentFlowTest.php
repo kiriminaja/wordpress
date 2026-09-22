@@ -473,6 +473,10 @@ final class RequestPickupPaymentFlowTest extends TestCase
             $metabox,
             'Admin order metabox should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
         );
+		$this->assertStringContainsString( 'data-kiriof-order-metabox-root', $metabox );
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/order-metabox.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/order-metabox/OrderMetabox.svelte' );
+		$this->assertStringContainsString( "'order-metabox': 'src/entries/order-metabox.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
     }
 
     #[Test]

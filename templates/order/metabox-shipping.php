@@ -245,6 +245,9 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
     }
 </style>
 
+<div data-kiriof-order-metabox-root></div>
+<?php ob_start(); ?>
+
 <?php /* ── Header ── */ ?>
 <div class="kiriof-mb-header">
     <div class="kiriof-mb-header-left">
@@ -444,5 +447,14 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
         </a>
     <?php endif; ?>
 </div>
+
+<?php
+$kiriof_order_metabox_fragment = (string) ob_get_clean();
+?>
+<div data-kiriof-order-metabox-fallback>
+	<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fragment is assembled from escaped values and WordPress-safe price HTML. ?>
+	<?php echo $kiriof_order_metabox_fragment; ?>
+</div>
+<script type="application/json" data-kiriof-order-metabox-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( array( 'html' => $kiriof_order_metabox_fragment ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 
 <?php require_once KIRIOF_DIR . 'templates/order/partials/cod-adjustment-modal.php'; ?>

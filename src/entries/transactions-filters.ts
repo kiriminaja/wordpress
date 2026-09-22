@@ -17,6 +17,10 @@ if (host && payload?.textContent) {
   host
     .closest<HTMLElement>('[data-kiriof-transactions-page]')
     ?.classList.add('kiriof-transactions-page--enhanced');
+  host
+    .closest<HTMLElement>('[data-kiriof-transactions-page]')
+    ?.querySelectorAll('[data-kiriof-transactions-controls-fallback]')
+    .forEach((fallback) => fallback.remove());
 }
 
 const tableHost = document.querySelector<HTMLElement>('[data-kiriof-transactions-table-root]');
@@ -29,4 +33,8 @@ if (tableHost && tablePayload?.textContent) {
   tableHost
     .closest<HTMLElement>('[data-kiriof-transactions-page]')
     ?.classList.add('kiriof-transactions-table--enhanced');
+  tableHost
+    .closest<HTMLElement>('[data-kiriof-transactions-page]')
+    ?.querySelectorAll('[data-kiriof-transactions-table-fallback]')
+    .forEach((fallback) => fallback.remove());
 }

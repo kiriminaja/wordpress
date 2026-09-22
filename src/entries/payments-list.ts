@@ -14,4 +14,8 @@ if (host && payload?.textContent) {
   host
     .closest<HTMLElement>('[data-kiriof-payments-page]')
     ?.classList.add('kiriof-payments-page--enhanced');
+  host
+    .closest<HTMLElement>('[data-kiriof-payments-page]')
+    ?.querySelectorAll('[data-kiriof-payments-fallback]')
+    .forEach((fallback) => fallback.remove());
 }
