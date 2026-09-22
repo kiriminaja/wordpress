@@ -125,6 +125,11 @@ final class ShippingDiscountCouponAdminTest extends TestCase
     public function coupon_admin_assets_exist(): void
     {
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/js/kj-coupon-admin.js');
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/coupon-panels.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/coupons/CouponPanel.svelte' );
+		$controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php' );
+		$this->assertStringContainsString( 'renderSvelteCouponPanel', $controller );
+		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-coupon-panels', 'type', 'module' )", $controller );
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/css/kj-coupon-admin.css');
     }
 

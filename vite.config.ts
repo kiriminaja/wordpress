@@ -9,6 +9,7 @@ export default defineConfig({
     outDir: 'assets/admin/dist',
     rollupOptions: {
       input: {
+        'coupon-panels': 'src/entries/coupon-panels.ts',
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'order-metabox': 'src/entries/order-metabox.ts',
         'payments-list': 'src/entries/payments-list.ts',
