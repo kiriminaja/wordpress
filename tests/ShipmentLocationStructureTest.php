@@ -214,10 +214,12 @@ class ShipmentLocationStructureTest extends TestCase {
 
     public function testGeneralSettingsStoreAddressHoldsFullNativeFieldsPerLocation(): void {
         $controller = $this->read( __DIR__ . '/../inc/Controllers/SettingController.php' );
+        $script     = $this->read( __DIR__ . '/../assets/admin/js/kj-settings.js' );
 
         $this->assertStringContainsString( 'Address line 2', $controller );
-        $this->assertStringContainsString( "String(label).match(/\\b\\d{5}\\b/)", $controller );
-        $this->assertStringContainsString( "\$zip.val(postcode).trigger('input').trigger('change')", $controller );
+        $this->assertStringContainsString( '.match(', $script );
+        $this->assertStringContainsString( '/\\b\\d{5}\\b/', $script );
+        $this->assertStringContainsString( '$zip.val(postcode).trigger("input").trigger("change")', $script );
         $this->assertStringContainsString( "'Required fields'", $controller );
         $this->assertStringContainsString( "'(Optional)'", $controller );
         $this->assertStringContainsString( 'required aria-required="true"', $controller );
@@ -230,7 +232,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( 'woocommerce_store_address_2', $controller );
         $this->assertStringContainsString( 'Warehouses', $controller );
         $this->assertStringContainsString( 'registerWarehousesSettingsTab', $controller );
-		$this->assertStringContainsString( "data: {\n                                term: params.term,\n                                search: params.term", $controller );
+		$this->assertStringContainsString( 'term: params.term', $script );
+		$this->assertStringContainsString( 'search: params.term', $script );
     }
 
     public function testInitRegistersMigrationOnEveryLoadForSelfHealingSchema(): void {

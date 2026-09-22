@@ -50,11 +50,11 @@ final class AdminCourierShipmentResilienceTest extends TestCase
     #[Test]
     public function courier_screen_displays_ajax_errors_instead_of_an_empty_state(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/section-couriers.php');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
 
-        $this->assertStringContainsString('function renderError(message)', $content);
-        $this->assertStringContainsString('.fail(function(request)', $content);
-        $this->assertStringContainsString('Could not load couriers. Reload this page and try again.', $content);
+        $this->assertStringContainsString('function error(message)', $content);
+        $this->assertStringContainsString('error(result && result.message)', $content);
+        $this->assertStringContainsString('i18n.courierLoadFailed', $content);
     }
 
     #[Test]

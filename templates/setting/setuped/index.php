@@ -279,26 +279,3 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
 <style>
 <?php include '_section-css-shared.php'; ?>
 </style>
-
-<?php ob_start(); ?>
-    <?php include '_section-js-shared.php'; ?>
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>
-
-<!-- COD Toggle (list page only) -->
-<?php ob_start(); ?>
-    jQuery(document).ready(function($){
-        var $cod=$('#kiriof_cod_toggle'), $ins=$('#kiriof_insurance_toggle');
-        function saveToggle(action, val, $el){
-            $el.prop('disabled',true);
-            jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:action,data:$.extend({nonce:kiriofAjax.nonce},val)},error:function(){$el.prop('disabled',false).prop('checked',!$el.is(':checked'))},complete:function(r){$el.prop('disabled',false);var p=kiriofParseAjaxResponse(r);if(!(p&&p.status===200))$el.prop('checked',!$el.is(':checked'))}});
-        }
-        $cod.on('change',function(){saveToggle('kiriof_store_config_data',{enable_cod:$(this).is(':checked')?'yes':'no'},$(this))});
-        $ins.on('change',function(){saveToggle('kiriof_store_insurance_data',{enable_insurance:$(this).is(':checked')?'yes':'no'},$(this))});
-    });
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>

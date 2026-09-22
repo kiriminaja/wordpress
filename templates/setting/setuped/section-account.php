@@ -162,27 +162,3 @@ $kiriof_courier_colors = array(
 
     </div>
 </div>
-
-<?php ob_start(); ?>
-    <?php include '_section-js-shared.php'; ?>
-
-    // Setup Key Connect handler
-    jQuery(document).on('click','#kiriof-setup-key-connect',function(){
-        var $btn = jQuery(this);
-        var key  = jQuery('#kiriof-setup-key-input').val().trim();
-        var $msg = jQuery('#kiriof-connect-msg');
-        if (!key) { $msg.show().css('color','#d63638').text('<?php echo esc_js(__( 'Please enter a setup key.', 'kiriminaja-official' )); ?>'); return; }
-        $btn.prop('disabled',true).text('<?php echo esc_js(__( 'Connecting…', 'kiriminaja-official' )); ?>');
-        $msg.hide();
-        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_integration_data',data:{setup_key:key,nonce:kiriofAjax.nonce}},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload()}else{$btn.prop('disabled',false).text('<?php echo esc_js(__( 'Connect', 'kiriminaja-official' )); ?>');$msg.show().css('color','#d63638').text((p&&p.message)?p.message:'<?php echo esc_js(__( 'Connection failed. Please check your setup key.', 'kiriminaja-official' )); ?>')}}});
-    });
-
-    // Disconnect handler
-    jQuery('body').on('click','.kj-disconnect',function(e){
-        if(!confirm('<?php echo esc_js(__( 'Disconnect KiriminAja integration?', 'kiriminaja-official' )); ?>')) return;
-        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_disconnect_integration',data:{nonce:kiriofAjax.nonce}},error:function(){alert('<?php echo esc_js(__( 'Network error.', 'kiriminaja-official' )); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload();return}alert((p&&p.message)?p.message:'<?php echo esc_js(__( 'Disconnect failed.', 'kiriminaja-official' )); ?>')}});
-    });
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>

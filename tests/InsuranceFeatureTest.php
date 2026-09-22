@@ -431,6 +431,7 @@ final class InsuranceFeatureTest extends TestCase
     public function settings_list_has_insurance_toggle(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
 
         $this->assertStringContainsString(
             'kiriof_insurance_toggle',
@@ -446,7 +447,7 @@ final class InsuranceFeatureTest extends TestCase
 
         $this->assertStringContainsString(
             'kiriof_store_insurance_data',
-            $content,
+            $script,
             'Settings list JS must call kiriof_store_insurance_data action'
         );
     }
@@ -498,6 +499,7 @@ final class InsuranceFeatureTest extends TestCase
     public function woocommerce_general_settings_include_kiriminaja_origin_mirror_fields(): void
     {
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
 
         $this->assertStringContainsString(
             "add_filter( 'woocommerce_general_settings'",
@@ -566,14 +568,14 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '$coords.attr(\'data-tip\'',
-            $controller,
+            '$coords.attr("data-tip"',
+            $script,
             'Pin Location coordinates should be exposed as tooltip text instead of visible description text'
         );
 
         $this->assertStringContainsString(
             'kiriminaja_subdistrict_search',
-            $controller,
+            $script,
             'Area mirror field must reuse the KiriminAja area search endpoint'
         );
 
@@ -584,26 +586,26 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'kiriofExtractPostcode',
-            $controller,
+            'extractPostcode',
+            $script,
             'Area mirror field must extract postcode from the selected KiriminAja area'
         );
 
         $this->assertStringContainsString(
             '#woocommerce_store_postcode, [name="woocommerce_store_postcode"]',
-            $controller,
+            $script,
             'Selecting a KiriminAja Area must update WooCommerce Postcode / ZIP automatically'
         );
 
         $this->assertStringContainsString(
-            'kiriofSelectedCountryIsIndonesia',
-            $controller,
+            'function toggleArea()',
+            $script,
             'Area mirror field must only show when WooCommerce Country / State is Indonesia'
         );
 
         $this->assertStringContainsString(
-            "value === 'ID' || value.indexOf('ID:') === 0",
-            $controller,
+            'value === "ID" || value.indexOf("ID:") === 0',
+            $script,
             'Area visibility must support WooCommerce default country values like ID and ID:province'
         );
 

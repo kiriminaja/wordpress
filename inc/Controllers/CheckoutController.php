@@ -139,7 +139,6 @@ class CheckoutController
             // block checkout also treats it as mandatory (shows "Phone" not "Phone (optional)").
             add_filter( 'woocommerce_get_country_locale', array( $this, 'kiriof_require_phone_locale' ), 9999 );
             add_filter( 'woocommerce_default_address_fields', array( $this, 'kiriof_default_address_labels' ), 9999 );
-            add_action( 'wp_footer', array( $this, 'kiriof_block_checkout_require_phone_label' ) );
 
             /** Control COD availability based on KiriminAja Config tab */
             add_filter( 'woocommerce_available_payment_gateways', array($this,'kiriof_filter_cod_availability'), 10, 1 );
@@ -536,74 +535,7 @@ class CheckoutController
             return;
         }
         $this->kiriof_virtual_cart_cleanup_printed = true;
-        ?>
-        <style>
-            .kiriof-virtual-cart-checkout .kiriof-block-district-field-wrapper,
-            .kiriof-virtual-cart-checkout .kiriof-block-district-source-wrapper,
-            .kiriof-virtual-cart-checkout .kiriof-block-district-select-wrapper,
-            .kiriof-virtual-cart-checkout .kiriof-block-district-warning {
-                display: none !important;
-            }
-        </style>
-        <script>
-        (function() {
-            document.documentElement.classList.add('kiriof-virtual-cart-checkout');
-
-            function kiriofHideVirtualCartDistrictFields() {
-                var selectors = [
-                    '[name*="kiriof_destination_area"]',
-                    '[id*="kiriof_destination_area"]',
-                    '.kiriof-block-district-source',
-                    '.kiriof-block-district-select'
-                ].join(',');
-
-                document.querySelectorAll(selectors).forEach(function(field) {
-                    if (!field || field.id === 'kiriof-block-district-mirror') {
-                        return;
-                    }
-
-                    field.removeAttribute('required');
-                    field.setAttribute('aria-required', 'false');
-                    if ('value' in field) {
-                        field.value = '';
-                    }
-
-                    var wrapper = field.closest(
-                        '.kiriof-block-district-field-wrapper,' +
-                        '.kiriof-block-district-source-wrapper,' +
-                        '.kiriof-block-district-select-wrapper,' +
-                        '.wc-block-components-text-input,' +
-                        '.wc-block-components-address-form__state,' +
-                        '.wc-block-components-combobox,' +
-                        '.form-row,' +
-                        'p'
-                    );
-
-                    if (wrapper && wrapper !== document.body) {
-                        wrapper.style.display = 'none';
-                        wrapper.setAttribute('hidden', 'hidden');
-                    } else {
-                        field.style.display = 'none';
-                        field.setAttribute('hidden', 'hidden');
-                    }
-                });
-
-                document.querySelectorAll('.kiriof-block-district-warning').forEach(function(warning) {
-                    warning.style.display = 'none';
-                    warning.setAttribute('hidden', 'hidden');
-                });
-            }
-
-            kiriofHideVirtualCartDistrictFields();
-            if (document.body && window.MutationObserver) {
-                new MutationObserver(kiriofHideVirtualCartDistrictFields).observe(document.body, {
-                    childList: true,
-                    subtree: true
-                });
-            }
-        })();
-        </script>
-        <?php
+        echo '<span data-kiriof-virtual-cart-cleanup hidden></span>';
     }
     function kiriof_checkout_field_validation() {
         try {
@@ -1622,46 +1554,6 @@ class CheckoutController
         return $locales;
     }
 
-    /**
-     * Block checkout renders "(optional)" via JavaScript after the label text.
-     * Inject a tiny inline script on the checkout page that strips any remaining
-     * "(optional)" suffix from the phone label via a MutationObserver, as a
-     * belt-and-suspenders fallback for themes that bypass the locale filter.
-     */
-    public function kiriof_block_checkout_require_phone_label() {
-        if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
-            return;
-        }
-        ?>
-        <script>
-        (function() {
-            var kiriofStripPhoneOptional = function() {
-                document.querySelectorAll(
-                    'label[for*="phone"], .wc-block-components-text-input label, .wc-block-components-address-form label'
-                ).forEach(function(label) {
-                    if (/phone/i.test(label.htmlFor || label.getAttribute('for') || '')) {
-                        label.childNodes.forEach(function(node) {
-                            if (node.nodeType === 3) { // Text node
-                                node.textContent = node.textContent.replace(/\s*\(optional\)/i, '');
-                            }
-                        });
-                        // Also handle span children used by some block themes.
-                        label.querySelectorAll('span').forEach(function(span) {
-                            if (/optional/i.test(span.textContent)) {
-                                span.remove();
-                            }
-                        });
-                    }
-                });
-            };
-            // Run once on load and observe DOM changes from React re-renders.
-            kiriofStripPhoneOptional();
-            var observer = new MutationObserver(kiriofStripPhoneOptional);
-            observer.observe(document.body, { childList: true, subtree: true });
-        })();
-        </script>
-        <?php
-    }
     private function kiriof_remove_fields_checkout($fields,$fields_selected){
         foreach ($fields_selected as $field_key) {
             unset( $fields['billing']['billing_'.$field_key] );

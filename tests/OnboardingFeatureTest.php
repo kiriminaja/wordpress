@@ -92,7 +92,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('data-account-complete', $template);
 		$this->assertStringContainsString('accountComplete', $script);
 		$this->assertStringContainsString('canVisit(target)', $script);
-		$this->assertStringContainsString('isStepDone(\'couriers\')', $script);
+		$this->assertStringContainsString("isStepDone('couriers')", $script);
 		$this->assertStringContainsString('blockNavigation(target)', $script);
 		$this->assertStringContainsString('Save at least one courier service before continuing.', $script);
 		$this->assertStringContainsString('Complete previous required steps before finishing.', $script);
@@ -114,12 +114,12 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString("'kiriof-choices-script'", $onboarding_enqueue);
 		$this->assertStringContainsString("'kiriof-choices-style'", $onboarding_enqueue);
 		$this->assertStringContainsString("'11.2.4'", $onboarding_enqueue);
-		$this->assertStringContainsString('window.kiriofChoices = window.Choices;', $onboarding_enqueue);
+		$this->assertStringNotContainsString('wp_add_inline_script', $onboarding_enqueue);
 		$this->assertStringNotContainsString("wp_enqueue_script( 'select2'", $onboarding_enqueue);
 		$this->assertStringNotContainsString("wp_enqueue_script( 'selectWoo'", $onboarding_enqueue);
 		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
-		$this->assertStringContainsString('new window.kiriofChoices', $script);
-		$this->assertStringContainsString('subdistrictChoices.setChoices', $script);
+		$this->assertStringContainsString('new window.Choices', $script);
+		$this->assertStringContainsString('subdistrictChoices.setChoices(', $script);
 		$this->assertStringContainsString("addEventListener('search'", $script);
 		$this->assertStringContainsString('new window.AbortController()', $script);
 		$this->assertStringContainsString("body.set('data[search]', term)", $script);
@@ -132,7 +132,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
 		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
 		$this->assertStringContainsString('disconnectConfirm', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
-		$this->assertStringContainsString('post(\'kiriof_disconnect_integration\')', $script);
+		$this->assertStringContainsString("post('kiriof_disconnect_integration')", $script);
 		$this->assertStringNotContainsString("hasClass('is-done') ||", $script);
 		$this->assertStringNotContainsString('kiriof-onboarding__intro', $template);
 		$this->assertStringNotContainsString('Set up shipping for your store', $template);

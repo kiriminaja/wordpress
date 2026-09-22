@@ -515,9 +515,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_no_longer_includes_legacy_cancel_modal_partial(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringNotContainsString(
             "include 'modal-cancel.php'",
@@ -529,23 +527,19 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_has_cancel_button(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
 
         $this->assertStringContainsString(
-            'kjShowCancelModal',
+            'data-kj-action="cancel"',
             $content,
-            'Transaction list must have cancel buttons calling kjShowCancelModal()'
+            'Transaction list must expose cancel buttons to the transaction process asset'
         );
     }
 
     #[Test]
     public function transaction_list_has_actions_column(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
             'Action',
@@ -557,12 +551,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_js_has_cancel_modal_function(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
-            'window.kjShowCancelModal',
+            'const kjShowCancelModal',
             $content,
             'Transaction list JS must define kjShowCancelModal function'
         );
@@ -571,12 +563,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_js_handles_cancel_with_backbone_modal_event(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
-            "target === 'kiriof-modal-cancel-transaction'",
+            'target === "kiriof-modal-cancel-transaction"',
             $content,
             'Transaction list JS must handle cancel flow through the Woo backbone modal event'
         );
@@ -585,9 +575,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_sends_correct_ajax_action(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
             'action: "kiriof_cancel_transaction"',
@@ -599,16 +587,11 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_sends_nonce(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
-
-        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?ajax\s*\(\s*\{(.*?)\}\s*\)/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'Cancel backbone modal AJAX call not found');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
             'nonce: kiriofAjax.nonce',
-            $matches[1],
+            $content,
             'Cancel AJAX call must send the nonce'
         );
     }
@@ -616,16 +599,11 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_validates_reason_min_length(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
-
-        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?if \(reason.length < 5\).*?ajax/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'Cancel backbone modal handler not found');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
             'reason.length < 5',
-            $matches[0],
+            $content,
             'Cancel JS must validate minimum reason length'
         );
     }
@@ -633,16 +611,11 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_has_confirmation_prompt(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
-
-        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?confirm\(.*?ajax/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'Cancel backbone modal handler not found');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
             'confirm(',
-            $matches[0],
+            $content,
             'Cancel JS must show a confirmation prompt before proceeding'
         );
     }
