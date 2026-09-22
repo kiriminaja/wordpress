@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
 
+require_once PLUGIN_DIR . '/inc/Contracts/TransactionPrintRepositoryInterface.php';
 require_once PLUGIN_DIR . '/inc/Repositories/TransactionRepository.php';
 
 final class ChangeOriginRepositoryRuntimeTest extends TestCase {

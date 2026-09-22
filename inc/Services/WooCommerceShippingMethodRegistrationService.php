@@ -1,6 +1,9 @@
 <?php
 namespace KiriminAjaOfficial\Services;
 
+use KiriminAjaOfficial\Contracts\ShippingZoneMethodRepositoryInterface;
+use KiriminAjaOfficial\Repositories\ShippingZoneMethodRepository;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -8,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WooCommerceShippingMethodRegistrationService {
     private const METHOD_ID = 'kiriminaja-official';
+
+    private ShippingZoneMethodRepositoryInterface $shipping_zone_method_repository;
+
+    public function __construct( ?ShippingZoneMethodRepositoryInterface $shipping_zone_method_repository = null ) {
+        $this->shipping_zone_method_repository = $shipping_zone_method_repository ?? new ShippingZoneMethodRepository();
+    }
 
     public function register(): bool {
         if ( ! class_exists( '\WC_Shipping_Zones' ) || ! class_exists( '\WC_Shipping_Zone' ) ) {
@@ -127,17 +136,7 @@ class WooCommerceShippingMethodRegistrationService {
 
         update_option( $option_key, $settings );
 
-        global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $updated = $wpdb->update(
-            $wpdb->prefix . 'woocommerce_shipping_zone_methods',
-            array( 'is_enabled' => 1 ),
-            array( 'instance_id' => $instance_id ),
-            array( '%d' ),
-            array( '%d' )
-        );
-
-        if ( false !== $updated ) {
+        if ( $this->shipping_zone_method_repository->enable( $instance_id ) ) {
             do_action( 'woocommerce_shipping_zone_method_status_toggled', $instance_id, self::METHOD_ID, $zone_id, 1 );
             if ( class_exists( '\WC_Cache_Helper' ) ) {
                 \WC_Cache_Helper::get_transient_version( 'shipping', true );

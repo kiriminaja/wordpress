@@ -7,19 +7,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 class GenerateOrderId extends BaseService{
     private $prefix = '';
+    private SettingRepository $setting_repository;
+    private TransactionRepository $transaction_repository;
+
+    public function __construct(
+        SettingRepository $setting_repository,
+        TransactionRepository $transaction_repository
+    ) {
+        $this->setting_repository     = $setting_repository;
+        $this->transaction_repository = $transaction_repository;
+    }
     
     
     public function call(){
-        $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('oid_prefix');
+        $repo = $this->setting_repository->getSettingByKey('oid_prefix');
         $this->prefix = @$repo->value ?? '';
         return $this->getOrderId();
     }
     
     public function getOrderId(){
         $orderId = $this->generateOrderId();
-        $searchTransaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderId($orderId);
+        $searchTransaction = $this->transaction_repository->getTransactionByOrderId($orderId);
         if ($searchTransaction){
             return $this->getOrderId();
         }

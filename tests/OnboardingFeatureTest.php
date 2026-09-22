@@ -148,7 +148,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString("Account Connection", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString("'nav_title' => __( 'Account', 'kiriminaja-official' )", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('KiriminajaApiService::class', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
+		$this->assertStringContainsString('private ?KiriminajaApiService $api_service;', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString("getSettingByKey( 'api_key' )", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString("! empty( \$setup_key->value ?? null ) && ! empty( \$api_key->value ?? null )", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
 		$this->assertStringContainsString('kiriof-onboarding__check', file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/shipping.php'));

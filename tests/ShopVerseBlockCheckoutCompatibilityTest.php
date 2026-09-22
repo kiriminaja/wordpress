@@ -1904,7 +1904,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         };
         $GLOBALS['kiriof_test_wc'] = (object) array('session' => $session);
 
-        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
         $controller->kiriof_store_api_update_checkout(array(
             'shipping_metode_id' => 'kiriminaja-official_jne_REG23',
             'destination_id'     => 44064,
@@ -3290,7 +3290,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
 
-        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
         $method = new ReflectionMethod($controller, 'kiriof_fee_cache_matches');
         $method->setAccessible(true);
 
@@ -3814,23 +3814,24 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function transaction_process_page_defaults_to_all_and_labels_payment_from_woo_order(): void
     {
-        $index = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
+        $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
         $view = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
 
         $this->assertStringContainsString(
-            '$kiriof_status_filter = \'all\';',
-            $index,
+            '$filters[\'status\'] = \'all\';',
+            $renderer,
             'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
         );
 
         $this->assertStringContainsString(
             '$status = \'all\';',
-            $index,
+            $query,
             'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
         );
 
-        $normalizePosition = strpos($index, '$status = \'all\';');
-        $isAllPosition = strpos($index, '$isAllFilter = (\'all\' === $status);');
+        $normalizePosition = strpos($query, '$status = \'all\';');
+        $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $status);');
         $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
         $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
         $this->assertLessThan(
@@ -3859,7 +3860,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function transaction_process_page_only_lists_orders_with_shippable_products(): void
     {
-        $index = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
         $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/TransactionRepository.php');
 
         $this->assertStringContainsString(
@@ -3888,13 +3889,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'Variation virtual metadata should override product metadata, with non-virtual as the default'
         );
         $this->assertStringContainsString(
-            '$shippable_order_clause = $transactionRepository->getShippableOrderExistsSql',
-            $index,
+            '$shippable_order_clause = $this->getShippableOrderExistsSql',
+            $query,
             'The transaction-process page must apply the shippable-order filter to its paginated SQL'
         );
         $this->assertGreaterThanOrEqual(
             10,
-            substr_count($index, '{$shippable_order_clause}'),
+            substr_count($query, '{$shippable_order_clause}'),
             'Every transaction-process filter branch must apply the shippable-order clause to both totals and rows'
         );
         $this->assertStringContainsString(

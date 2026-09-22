@@ -170,7 +170,7 @@ function kiriof_shipping_method(){
                     $height += (int) $_product->get_height();
                 }
 
-                $settingRepository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+                $settingRepository = kiriof_setting_repository();
                 $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
                 $locationOrigin = isset($package['origin']) && is_array($package['origin']) ? $package['origin'] : array();
                 $originSubdistrictId = !empty($locationOrigin['origin_sub_district_id'])
@@ -183,9 +183,9 @@ function kiriof_shipping_method(){
                 $courier_filter = $settingRepository->getWhitelistExpeditionIds();
 
                 /** convert unit weight */
-                $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
+                $cartAttributes = kiriof_checkout_service_factory()->cartAttributes([
                     'wc_cart_contents' => isset($package['contents']) ? $package['contents'] : WC()->cart->get_cart()
-                ]))->call();
+                ])->call();
 
                 $payload = [
                     'subdistrict_origin' => $originSubdistrictId,
@@ -206,7 +206,7 @@ function kiriof_shipping_method(){
                         'data'   => $cachedPricingData,
                     );
                 } else {
-                    $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($payload);
+                    $kiriofPricing = kiriof_api_repository()->getPricing($payload);
                     if ( ! empty( $kiriofPricing['status'] ) && ! empty( $kiriofPricing['data'] ) ) {
                         \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, $kiriofPricing['data'] );
                     }
@@ -396,7 +396,7 @@ function kiriof_shipping_method(){
                 $options = $pricingData->results ?? [];
 
                 
-                $validate = (new \KiriminAjaOfficial\Repositories\SettingRepository())->validateWhiteListExpedition($options);
+                $validate = kiriof_setting_repository()->validateWhiteListExpedition($options);
                 
                 
                 $options = $validate;
@@ -599,7 +599,7 @@ function kiriof_add_date_validation( $passed, $product_id, $quantity = 1, $varia
     $width = $product->get_width();
     $height = $product->get_height();
     
-    $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
+    $settingRepo = kiriof_setting_repository()->getSettingByKey('origin_sub_district_id');
     if(!$settingRepo||$settingRepo->value === null){
         wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
         $passed = false;
