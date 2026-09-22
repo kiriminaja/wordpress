@@ -118,6 +118,8 @@ class SettingController{
                     'disconnectFailed'     => __( 'Disconnect failed.', 'kiriminaja-official' ),
                     'saved'                => __( 'Saved.', 'kiriminaja-official' ),
                     'saveFailed'           => __( 'Save failed.', 'kiriminaja-official' ),
+                    // Translators: %1$s is the enabled courier count; %2$s is the total courier count.
+                    // Translators: %1$s is the enabled courier count; %2$s is the total courier count.
                     'courierCount'         => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
                     'noCouriers'           => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
                     'courierLoadFailed'    => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),

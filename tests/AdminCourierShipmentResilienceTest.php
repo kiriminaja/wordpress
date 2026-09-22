@@ -84,7 +84,7 @@ final class AdminCourierShipmentResilienceTest extends TestCase
         $this->assertStringContainsString('$page > $total_pages && $total_pages > 0', $content);
         $this->assertStringContainsString('$offset = ( $page - 1 ) * $items_per_page;', $content);
         $this->assertLessThan(
-            strpos($content, '$list_query ='),
+            strpos($content, 'ORDER BY kiriminaja_payments.created_at DESC'),
             strpos($content, '$total_pages = (int) ceil'),
             'Payment total and valid page must be resolved before the paginated query runs'
         );

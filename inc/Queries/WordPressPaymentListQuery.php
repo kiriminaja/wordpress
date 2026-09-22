@@ -31,26 +31,39 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
      * {@inheritDoc}
      */
     public function getPage( array $filters, int $page, int $items_per_page ): array {
+        $wpdb = $this->wpdb;
         $page           = max( 1, $page );
         $items_per_page = max( 1, $items_per_page );
-        $where          = $this->buildWhereCondition( $filters );
         $payment_table  = $this->wpdb->prefix . 'kiriminaja_payments';
         $transaction_table = $this->wpdb->prefix . 'kiriminaja_transactions';
-
-        $count_query = "SELECT
-            kiriminaja_payments.id, kiriminaja_payments.pickup_number
-            FROM %i as kiriminaja_payments
-            INNER JOIN %i as kiriminaja_transactions
-            ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-            {$where['sql']}
-            GROUP BY kiriminaja_payments.pickup_number";
+        $key_enabled    = '' !== $filters['key'] ? 1 : 0;
+        $key_like       = '%' . $wpdb->esc_like( $filters['key'] ) . '%';
+        $month_enabled  = '' !== $filters['month'] ? 1 : 0;
+        $month_like     = '%' . $wpdb->esc_like( $filters['month'] ) . '%';
+        $status_enabled = in_array( $filters['status'], array( 'unpaid', 'paid' ), true ) ? 1 : 0;
+        $status         = $status_enabled ? $filters['status'] : '';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
         $total = count(
-            (array) $this->wpdb->get_results(
-                $this->wpdb->prepare(
-                    $count_query,
-                    ...array_merge( array( $payment_table, $transaction_table ), $where['args'] )
+            (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT
+                    kiriminaja_payments.id, kiriminaja_payments.pickup_number
+                    FROM %i as kiriminaja_payments
+                    INNER JOIN %i as kiriminaja_transactions
+                    ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
+                    WHERE ( %d = 0 OR kiriminaja_payments.pickup_number LIKE %s )
+                        AND ( %d = 0 OR kiriminaja_payments.created_at LIKE %s )
+                        AND ( %d = 0 OR kiriminaja_payments.status = %s )
+                    GROUP BY kiriminaja_payments.pickup_number",
+                    $payment_table,
+                    $transaction_table,
+                    $key_enabled,
+                    $key_like,
+                    $month_enabled,
+                    $month_like,
+                    $status_enabled,
+                    $status
                 )
             )
         );
@@ -61,26 +74,31 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         }
 
         $offset = ( $page - 1 ) * $items_per_page;
-        $list_query = "SELECT
-            kiriminaja_payments.*,
-            SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
-            FROM %i as kiriminaja_payments
-            INNER JOIN %i as kiriminaja_transactions
-            ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-            {$where['sql']}
-            GROUP BY kiriminaja_payments.pickup_number
-            ORDER BY kiriminaja_payments.created_at DESC
-            LIMIT %d, %d";
-
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
-        $results = $this->wpdb->get_results(
-            $this->wpdb->prepare(
-                $list_query,
-                ...array_merge(
-                    array( $payment_table, $transaction_table ),
-                    $where['args'],
-                    array( $offset, $items_per_page )
-                )
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT
+                kiriminaja_payments.*,
+                SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+                FROM %i as kiriminaja_payments
+                INNER JOIN %i as kiriminaja_transactions
+                ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
+                WHERE ( %d = 0 OR kiriminaja_payments.pickup_number LIKE %s )
+                    AND ( %d = 0 OR kiriminaja_payments.created_at LIKE %s )
+                    AND ( %d = 0 OR kiriminaja_payments.status = %s )
+                GROUP BY kiriminaja_payments.pickup_number
+                ORDER BY kiriminaja_payments.created_at DESC
+                LIMIT %d, %d",
+                $payment_table,
+                $transaction_table,
+                $key_enabled,
+                $key_like,
+                $month_enabled,
+                $month_like,
+                $status_enabled,
+                $status,
+                $offset,
+                $items_per_page
             )
         );
 
@@ -109,11 +127,12 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
      * {@inheritDoc}
      */
     public function getOldestCreatedAt(): ?string {
+        $wpdb = $this->wpdb;
         $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
-        $created_at = $this->wpdb->get_var(
-            $this->wpdb->prepare(
+        $created_at = $wpdb->get_var(
+            $wpdb->prepare(
                 'SELECT created_at FROM %i WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1',
                 $payment_table
             )
@@ -124,53 +143,24 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
     }
 
     /**
-     * Build prepared filters shared by the count and list queries.
-     *
-     * @param array{key:string,month:string,status:string} $filters List filters.
-     */
-    private function buildWhereCondition( array $filters ): array {
-        $conditions = array();
-        $args       = array();
-
-        if ( '' !== $filters['key'] ) {
-            $conditions[] = 'kiriminaja_payments.pickup_number LIKE %s';
-            $args[]       = '%' . $this->wpdb->esc_like( $filters['key'] ) . '%';
-        }
-
-        if ( '' !== $filters['month'] ) {
-            $conditions[] = 'kiriminaja_payments.created_at LIKE %s';
-            $args[]       = '%' . $this->wpdb->esc_like( $filters['month'] ) . '%';
-        }
-
-        if ( in_array( $filters['status'], array( 'unpaid', 'paid' ), true ) ) {
-            $conditions[] = 'kiriminaja_payments.status = %s';
-            $args[]       = $filters['status'];
-        }
-
-        return array(
-            'sql'  => empty( $conditions ) ? '' : 'WHERE ' . implode( ' AND ', $conditions ),
-            'args' => $args,
-        );
-    }
-
-    /**
      * Count distinct payments by status.
      */
     private function getCountByStatus( ?string $status ): int {
+        $wpdb = $this->wpdb;
         $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
 
         if ( null === $status ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
-            $count = $this->wpdb->get_var(
-                $this->wpdb->prepare(
+            $count = $wpdb->get_var(
+                $wpdb->prepare(
                     'SELECT COUNT(DISTINCT pickup_number) FROM %i',
                     $payment_table
                 )
             );
         } else {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $count = $this->wpdb->get_var(
-                $this->wpdb->prepare(
+            $count = $wpdb->get_var(
+                $wpdb->prepare(
                     'SELECT COUNT(DISTINCT pickup_number) FROM %i WHERE status = %s',
                     $payment_table,
                     $status

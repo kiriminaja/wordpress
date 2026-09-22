@@ -24,16 +24,17 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
      */
     public function hasPublishedTrackingPage(): bool
     {
+        $wpdb = $this->wpdb;
         $shortcode = '%' . $this->wpdb->esc_like( '[kiriminaja-tracking-front-page' ) . '%';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only setup readiness query against the WordPress posts table.
-        $count = $this->wpdb->get_var(
-            $this->wpdb->prepare(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier and shortcode are passed through wpdb::prepare().
+        $count = $wpdb->get_var(
+            $wpdb->prepare(
                 "SELECT COUNT(*) FROM %i
                 WHERE post_type = 'page'
                     AND post_status = 'publish'
                     AND post_content LIKE %s",
-                $this->wpdb->posts,
+                $wpdb->posts,
                 $shortcode
             )
         );
@@ -61,12 +62,13 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
      */
     public function findTrackingShortcodePages(): array
     {
+        $wpdb = $this->wpdb;
         $current_shortcode = '%' . $this->wpdb->esc_like( '[kiriminaja-tracking-front-page' ) . '%';
         $legacy_shortcode  = '%' . $this->wpdb->esc_like( '[wp-tracking-front-page' ) . '%';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only admin query against the WordPress posts table.
-        return (array) $this->wpdb->get_results(
-            $this->wpdb->prepare(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier and shortcode values are passed through wpdb::prepare().
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
                 "SELECT ID, post_title FROM %i
                 WHERE post_type = 'page'
                     AND post_status NOT IN ('trash', 'auto-draft')
@@ -75,7 +77,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
                         OR post_content LIKE %s
                     )
                 ORDER BY post_title ASC, ID ASC",
-                $this->wpdb->posts,
+                $wpdb->posts,
                 $current_shortcode,
                 $legacy_shortcode
             )
@@ -89,12 +91,13 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
      */
     public function findPreferredTrackingShortcodePage()
     {
+        $wpdb = $this->wpdb;
         $current_shortcode = '%' . $this->wpdb->esc_like( '[kiriminaja-tracking-front-page' ) . '%';
         $legacy_shortcode  = '%' . $this->wpdb->esc_like( '[wp-tracking-front-page' ) . '%';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only activation lookup against the WordPress posts table.
-        return $this->wpdb->get_row(
-            $this->wpdb->prepare(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier and shortcode values are passed through wpdb::prepare().
+        return $wpdb->get_row(
+            $wpdb->prepare(
                 "SELECT ID FROM %i
                 WHERE post_type = 'page'
                     AND post_status NOT IN ('trash', 'auto-draft')
@@ -104,7 +107,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
                     )
                 ORDER BY post_status = 'publish' DESC, ID ASC
                 LIMIT 1",
-                $this->wpdb->posts,
+                $wpdb->posts,
                 $current_shortcode,
                 $legacy_shortcode
             )
@@ -117,12 +120,13 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
      */
     private function findPublishedTrackingContentByType( $post_type ): array
     {
+        $wpdb = $this->wpdb;
         $current_shortcode = '%' . $this->wpdb->esc_like( '[kiriminaja-tracking-front-page' ) . '%';
         $legacy_shortcode  = '%' . $this->wpdb->esc_like( '[wp-tracking-front-page' ) . '%';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only admin query against the WordPress posts table.
-        return (array) $this->wpdb->get_results(
-            $this->wpdb->prepare(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier, post type, and shortcode values are passed through wpdb::prepare().
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
                 "SELECT ID, post_title, post_name, post_status, guid
                 FROM %i
                 WHERE post_type = %s
@@ -132,7 +136,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
                         OR post_content LIKE %s
                     )
                 ORDER BY post_title ASC",
-                $this->wpdb->posts,
+                $wpdb->posts,
                 $post_type,
                 $current_shortcode,
                 $legacy_shortcode
