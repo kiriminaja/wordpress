@@ -43,7 +43,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $status_enabled = in_array( $filters['status'], array( 'unpaid', 'paid' ), true ) ? 1 : 0;
         $status         = $status_enabled ? $filters['status'] : '';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query; results are request-specific and immediately paginated.
         $total = count(
             (array) $wpdb->get_results(
                 $wpdb->prepare(
@@ -67,6 +67,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
                 )
             )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $total_pages = (int) ceil( $total / $items_per_page );
 
         if ( $page > $total_pages && $total_pages > 0 ) {

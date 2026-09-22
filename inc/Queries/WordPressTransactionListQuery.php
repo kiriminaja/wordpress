@@ -43,6 +43,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         );
     }
 
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- HPOS/legacy identifiers and the shippable-product EXISTS clause are generated from fixed internal maps, never request input.
     private function queryPage( array $filters, int $per_page, int $current_page )
     {
         $wpdb = $this->wpdb;
@@ -383,6 +384,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         return ['results' => $results, 'total' => $total];
     }
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 
     public function getStatusCounts(): array {
@@ -397,6 +399,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         );
     }
 
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- HPOS/legacy identifiers and the shippable-product EXISTS clause are generated from fixed internal maps, never request input.
     public function getCouriers(): array {
         $cache_key = 'kiriof_distinct_couriers';
         if ( function_exists( 'get_transient' ) ) {
@@ -447,6 +450,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $this->logDatabaseError();
         return (int) $count;
     }
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
     private function getCountProcessed(): int {
         $o = $this->getOrdersTable();

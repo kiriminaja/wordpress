@@ -558,7 +558,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
             $order_ids
         );
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Placeholder list is generated from normalized order IDs.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholder list is generated from normalized order IDs and receives the matching variadic replacements.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders match the normalized order IDs in $query_args.
         $updated = $this->wpdb->query(
             $this->wpdb->prepare(
