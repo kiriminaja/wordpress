@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This read model supports both legacy posts and HPOS tables. Dynamic identifiers and EXISTS fragments come exclusively from fixed internal maps, while request values are prepared separately.
+
 /**
  * WordPress database read model for the Transactions admin list.
  */
@@ -43,7 +45,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         );
     }
 
-    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- HPOS/legacy identifiers and the shippable-product EXISTS clause are generated from fixed internal maps, never request input.
     private function queryPage( array $filters, int $per_page, int $current_page )
     {
         $wpdb = $this->wpdb;
@@ -119,14 +120,12 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.awb LIKE %s', $key_like );
                     break;
                 default:
-                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic column identifier comes from trusted getOrdersTable() map.
                     $key_clause = $wpdb->prepare( "AND orders_tbl.{$o['id']} LIKE %s", $key_like );
                     break;
             }
         }
 
         if ($isDeficitFilter) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
@@ -173,9 +172,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     $offset
                 )
             );
-            // phpcs:enable ...
         } elseif ($isProcessedFilter) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
@@ -226,9 +223,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     $offset
                 )
             );
-            // phpcs:enable ...
         } elseif ($isCancelledFilter) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
@@ -275,9 +270,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     $offset
                 )
             );
-            // phpcs:enable ...
         } elseif ($isAllFilter) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
@@ -324,7 +317,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
             );
         } else {
             // Status-specific filter (wc-processing, wc-on-hold, wc-pending)
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT orders_tbl.{$o['id']})
@@ -375,7 +367,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     $offset
                 )
             );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         }
 
         if (!empty($wpdb->last_error)) {
@@ -384,7 +375,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         return ['results' => $results, 'total' => $total];
     }
-    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 
     public function getStatusCounts(): array {
@@ -399,7 +389,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         );
     }
 
-    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- HPOS/legacy identifiers and the shippable-product EXISTS clause are generated from fixed internal maps, never request input.
     public function getCouriers(): array {
         $cache_key = 'kiriof_distinct_couriers';
         if ( function_exists( 'get_transient' ) ) {
@@ -411,7 +400,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( 't.wp_wc_order_stat_order_id' );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $results = $this->wpdb->get_results( "SELECT DISTINCT service FROM {$table} t WHERE service IS NOT NULL AND service != '' {$clause} ORDER BY service ASC" );
         $this->logDatabaseError();
         if ( empty( $this->wpdb->last_error ) && function_exists( 'set_transient' ) ) {
@@ -423,7 +411,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     public function getOldestCreatedAt(): ?string {
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( 'wp_wc_order_stat_order_id' );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $created_at = $this->wpdb->get_var( "SELECT created_at FROM {$table} WHERE created_at IS NOT NULL {$clause} ORDER BY created_at ASC LIMIT 1" );
         $this->logDatabaseError();
         return null === $created_at || '' === (string) $created_at ? null : (string) $created_at;
@@ -445,19 +432,15 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 'new'
             );
         }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $count = $this->wpdb->get_var( $sql );
         $this->logDatabaseError();
         return (int) $count;
     }
-    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-
     private function getCountProcessed(): int {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $payments = $this->wpdb->prefix . 'kiriminaja_payments';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.status != 'canceled' {$clause}" );
         $this->logDatabaseError();
         return (int) $count;
@@ -468,7 +451,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
         $sql = $this->wpdb->prepare( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s {$clause}", 'wc-cancelled' );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $count = $this->wpdb->get_var( $sql );
         $this->logDatabaseError();
         return (int) $count;
@@ -478,7 +460,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.is_deficit = 1 {$clause}" );
         $this->logDatabaseError();
         return (int) $count;

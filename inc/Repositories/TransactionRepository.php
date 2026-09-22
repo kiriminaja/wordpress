@@ -8,6 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders are generated from normalized order IDs and receive matching variadic replacements.
+
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- All queries use wpdb::prepare() correctly, table names must be interpolated
 class TransactionRepository implements TransactionPrintRepositoryInterface {
     public $table;
