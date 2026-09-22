@@ -11,14 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
 
-if ( ! function_exists( 'update_option' ) ) {
-    function update_option( $option, $value ) {
-        $GLOBALS['tracking_page_test_options'][ $option ] = $value;
-
-        return true;
-    }
-}
-
 require_once PLUGIN_DIR . '/inc/Contracts/TrackingPageRepositoryInterface.php';
 require_once PLUGIN_DIR . '/inc/Repositories/TrackingPageRepository.php';
 require_once PLUGIN_DIR . '/inc/Controllers/SettingController.php';

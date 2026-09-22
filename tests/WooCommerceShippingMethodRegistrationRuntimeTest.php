@@ -24,14 +24,6 @@ if ( ! function_exists( 'get_option' ) ) {
     }
 }
 
-if ( ! function_exists( 'update_option' ) ) {
-    function update_option( $key, $value ) {
-        $GLOBALS['shipping_method_test_options'][ $key ] = $value;
-
-        return true;
-    }
-}
-
 if ( ! function_exists( 'do_action' ) ) {
     function do_action( $hook_name, ...$args ) {
         $GLOBALS['shipping_method_test_actions'][] = array( $hook_name, $args );
