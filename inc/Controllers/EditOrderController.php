@@ -17,13 +17,13 @@ class EditOrderController{
     private KiriminajaApiRepository $kiriminajaApiRepository;
 
     public function __construct(
-        ?TransactionRepository $transactionRepository = null,
-        ?SettingRepository $settingRepository = null,
-        ?KiriminajaApiRepository $kiriminajaApiRepository = null
+        TransactionRepository $transactionRepository,
+        SettingRepository $settingRepository,
+        KiriminajaApiRepository $kiriminajaApiRepository
     ) {
-        $this->transactionRepository = $transactionRepository ?? new TransactionRepository();
-        $this->settingRepository = $settingRepository ?? new SettingRepository();
-        $this->kiriminajaApiRepository = $kiriminajaApiRepository ?? new KiriminajaApiRepository();
+        $this->transactionRepository = $transactionRepository;
+        $this->settingRepository = $settingRepository;
+        $this->kiriminajaApiRepository = $kiriminajaApiRepository;
     }
 
     public function register(){

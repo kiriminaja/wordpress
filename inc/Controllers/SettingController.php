@@ -13,9 +13,9 @@ class SettingController{
     private TrackingPageRepositoryInterface $tracking_page_repository;
     private SettingRepository $setting_repository;
 
-    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository, ?SettingRepository $setting_repository = null ) {
+    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository, SettingRepository $setting_repository ) {
         $this->tracking_page_repository = $tracking_page_repository;
-        $this->setting_repository       = $setting_repository ?? new SettingRepository();
+        $this->setting_repository       = $setting_repository;
     }
 
     public function register(){

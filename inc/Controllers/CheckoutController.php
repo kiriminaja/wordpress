@@ -36,23 +36,19 @@ class CheckoutController
     private $kiriof_classic_insurance_printed = false;
 
     public function __construct(
-        ?SettingRepository $setting_repository = null,
-        ?TransactionRepository $transaction_repository = null,
-        ?WpPostMetaRepository $wp_post_meta_repository = null,
-        ?CheckoutServiceFactory $checkout_service_factory = null
+        SettingRepository $setting_repository,
+        TransactionRepository $transaction_repository,
+        WpPostMetaRepository $wp_post_meta_repository,
+        CheckoutServiceFactory $checkout_service_factory
     ) {
-        $this->setting_repository = $setting_repository ?? new SettingRepository();
-        $this->transaction_repository = $transaction_repository ?? new TransactionRepository();
-        $this->wp_post_meta_repository = $wp_post_meta_repository ?? new WpPostMetaRepository();
+        $this->setting_repository = $setting_repository;
+        $this->transaction_repository = $transaction_repository;
+        $this->wp_post_meta_repository = $wp_post_meta_repository;
         $this->checkout_service_factory = $checkout_service_factory;
     }
 
     private function checkoutServiceFactory(): CheckoutServiceFactory
     {
-        if ( null === $this->checkout_service_factory ) {
-            $this->checkout_service_factory = kiriof_checkout_service_factory();
-        }
-
         return $this->checkout_service_factory;
     }
 

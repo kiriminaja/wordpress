@@ -11,8 +11,8 @@ final class RepositoryCompositionProgressTest extends TestCase
         $source = file_get_contents( PLUGIN_DIR . '/inc/Controllers/SettingController.php' );
 
         $this->assertStringContainsString( 'private SettingRepository $setting_repository;', $source );
-        $this->assertStringContainsString( '$this->setting_repository       = $setting_repository ?? new SettingRepository();', $source );
-        $this->assertSame( 1, substr_count( $source, 'new SettingRepository()' ) );
+        $this->assertStringContainsString( '$this->setting_repository       = $setting_repository;', $source );
+        $this->assertSame( 0, substr_count( $source, 'new SettingRepository()' ) );
         $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\SettingRepository()', $source );
     }
 

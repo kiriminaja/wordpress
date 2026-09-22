@@ -1904,7 +1904,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         };
         $GLOBALS['kiriof_test_wc'] = (object) array('session' => $session);
 
-        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
         $controller->kiriof_store_api_update_checkout(array(
             'shipping_metode_id' => 'kiriminaja-official_jne_REG23',
             'destination_id'     => 44064,
@@ -3290,7 +3290,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         require_once PLUGIN_DIR . '/inc/Controllers/CheckoutController.php';
 
-        $controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+        $controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
         $method = new ReflectionMethod($controller, 'kiriof_fee_cache_matches');
         $method->setAccessible(true);
 

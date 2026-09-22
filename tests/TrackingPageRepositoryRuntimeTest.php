@@ -149,7 +149,10 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
     {
         $expected   = array( (object) array( 'ID' => 19, 'post_title' => 'Tracking' ) );
         $repository = new TrackingPageRepositoryFake( $expected );
-        $controller = new SettingController( $repository );
+        $setting_repository = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\SettingRepository::class )
+            ->disableOriginalConstructor()
+            ->getMock();
+        $controller = new SettingController( $repository, $setting_repository );
         $method     = new ReflectionMethod( $controller, 'getTrackingShortcodePages' );
 
         $this->assertSame( $expected, $method->invoke( $controller ) );

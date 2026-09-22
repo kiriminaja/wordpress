@@ -17,16 +17,16 @@ final class EditOrderDependenciesTest extends TestCase
         $controllerSource = file_get_contents( PLUGIN_DIR . '/inc/Controllers/EditOrderController.php' );
 
         $this->assertIsString( $controllerSource );
-        $this->assertSame( 1, substr_count( $controllerSource, 'new TransactionRepository()' ) );
-        $this->assertSame( 1, substr_count( $controllerSource, 'new SettingRepository()' ) );
-        $this->assertSame( 1, substr_count( $controllerSource, 'new KiriminajaApiRepository()' ) );
+        $this->assertSame( 0, substr_count( $controllerSource, 'new TransactionRepository()' ) );
+        $this->assertSame( 0, substr_count( $controllerSource, 'new SettingRepository()' ) );
+        $this->assertSame( 0, substr_count( $controllerSource, 'new KiriminajaApiRepository()' ) );
         $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\TransactionRepository', $controllerSource );
         $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\SettingRepository', $controllerSource );
         $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\KiriminajaApiRepository', $controllerSource );
     }
 
     #[Test]
-    public function constructor_accepts_injected_instances_and_keeps_optional_defaults(): void
+    public function constructor_accepts_required_injected_instances(): void
     {
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', PLUGIN_DIR . '/' );
@@ -45,10 +45,7 @@ final class EditOrderDependenciesTest extends TestCase
         $constructor           = $reflection->getConstructor();
 
         $this->assertNotNull( $constructor );
-        foreach ( $constructor->getParameters() as $parameter ) {
-            $this->assertTrue( $parameter->isDefaultValueAvailable() );
-            $this->assertNull( $parameter->getDefaultValue() );
-        }
+        $this->assertSame( 3, $constructor->getNumberOfRequiredParameters() );
 
         $this->assertSame( $transactionRepository, $reflection->getProperty( 'transactionRepository' )->getValue( $controller ) );
         $this->assertSame( $settingRepository, $reflection->getProperty( 'settingRepository' )->getValue( $controller ) );

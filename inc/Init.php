@@ -43,22 +43,14 @@ final class Init {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
-        if ( Controllers\GeneralAjaxController::class === $class ) {
-            return new $class( $checkout_service_factory );
-        }
-
-        if ( Controllers\CallbackController::class === $class ) {
-            $setting_repository = new Repositories\SettingRepository();
-            $api_key            = $setting_repository->getSettingByKey( 'api_key' );
-
+        if ( Controllers\EditOrderController::class === $class ) {
             return new $class(
-                new Services\CallbackHandlerService(
-                    new Repositories\TransactionRepository(),
-                    new Repositories\PaymentRepository(),
-                    (string) ( $api_key->value ?? '' )
-                )
+                new Repositories\TransactionRepository(),
+                new Repositories\SettingRepository(),
+                new Repositories\KiriminajaApiRepository()
             );
         }
+
         (new Services\ShipmentLocationService())->seedDefaultFromGlobalOrigin();
         foreach (self::get_services() as $class){
             $service = self::instantiate($class);
@@ -75,6 +67,23 @@ final class Init {
      */
     private static function instantiate($class ){
         $checkout_service_factory = kiriof_checkout_service_factory();
+
+        if ( Controllers\GeneralAjaxController::class === $class ) {
+            return new $class( $checkout_service_factory );
+        }
+
+        if ( Controllers\CallbackController::class === $class ) {
+            $setting_repository = new Repositories\SettingRepository();
+            $api_key            = $setting_repository->getSettingByKey( 'api_key' );
+
+            return new $class(
+                new Services\CallbackHandlerService(
+                    new Repositories\TransactionRepository(),
+                    new Repositories\PaymentRepository(),
+                    (string) ( $api_key->value ?? '' )
+                )
+            );
+        }
 
         if ( Pages\Admin::class === $class ) {
             return new $class(

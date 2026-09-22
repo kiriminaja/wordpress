@@ -21,6 +21,42 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
+if ( ! function_exists( 'kiriof_setting_repository' ) ) {
+    function kiriof_setting_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_transaction_repository' ) ) {
+    function kiriof_transaction_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_payment_repository' ) ) {
+    function kiriof_payment_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_api_repository' ) ) {
+    function kiriof_api_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
+        }
+        return $repository;
+    }
+}
 if ( ! function_exists( 'kiriof_checkout_service_factory' ) ) {
     function kiriof_checkout_service_factory() {
         static $factory = null;

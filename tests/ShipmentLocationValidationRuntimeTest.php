@@ -60,7 +60,10 @@ final class ShipmentLocationValidationRuntimeTest extends TestCase {
     }
 
     private function validate( array $payload ): bool {
-        $controller = new SettingController( new ShipmentLocationTrackingPageRepositoryFake() );
+        $setting_repository = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\SettingRepository::class )
+            ->disableOriginalConstructor()
+            ->getMock();
+        $controller = new SettingController( new ShipmentLocationTrackingPageRepositoryFake(), $setting_repository );
         $method     = new ReflectionMethod( SettingController::class, 'isValidShipmentLocationData' );
         $method->setAccessible( true );
 
