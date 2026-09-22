@@ -369,127 +369,13 @@ class TransactionProcessController
 
         public function renderWooOrderPreviewKiriminajaRelocatorScript()
         {
-            ?>
-                <script>
-                    jQuery(function($) {
-                        function kiriofPreviewStatusPalette(statusClass) {
-                            if ((statusClass || '').indexOf('primary') !== -1) {
-                                return {
-                                    background: '#2563eb',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('info') !== -1) {
-                                return {
-                                    background: '#0891b2',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('warning') !== -1) {
-                                return {
-                                    background: '#f59e0b',
-                                    color: '#1f2937'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('success') !== -1) {
-                                return {
-                                    background: '#16a34a',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('teal') !== -1) {
-                                return {
-                                    background: '#0f766e',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('orange') !== -1) {
-                                return {
-                                    background: '#ea580c',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('slate') !== -1) {
-                                return {
-                                    background: '#475569',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('rose') !== -1 || (statusClass || '').indexOf('danger') !== -1) {
-                                return {
-                                    background: '#e11d48',
-                                    color: '#ffffff'
-                                };
-                            }
-
-                            return {
-                                background: '#334155',
-                                color: '#ffffff'
-                            };
-                        }
-
-                        $(document.body).on('wc_backbone_modal_loaded', function(event, target) {
-                            if (target !== 'wc-modal-view-order') {
-                                return;
-                            }
-
-                            var $modal = $('.wc-backbone-modal.wc-order-preview');
-                            var $shipmentDetails = $modal.find('.kiriof-order-preview-shipment-details');
-                            var $header = $modal.find('.wc-backbone-modal-header');
-
-                            if (!$shipmentDetails.length) {
-                                $shipmentDetails = $();
-                            }
-
-                            var $shippingPanel = $modal.find('.wc-order-preview-addresses .wc-order-preview-address').eq(1);
-
-                            if (!$shippingPanel.length) {
-                                $shippingPanel = $modal.find('.wc-order-preview-addresses .wc-order-preview-address').eq(0);
-                            }
-
-                            if (!$shippingPanel.length) {
-                                $shippingPanel = $();
-                            }
-
-                            if ($shipmentDetails.length && $shippingPanel.length) {
-                                $shipmentDetails.appendTo($shippingPanel);
-                            }
-
-                            var $existingStatus = $header.find('.kiriof-order-preview-status');
-                            if ($existingStatus.length) {
-                                $existingStatus.remove();
-                            }
-
-                            var kiriofStatusLabel = $modal.find('.kiriof-order-preview-shipment-details').data('kiriof-status-label');
-                            var kiriofStatusClass = $modal.find('.kiriof-order-preview-shipment-details').data('kiriof-status-class');
-
-                            if (!kiriofStatusLabel || !kiriofStatusClass) {
-                                kiriofStatusLabel = $modal.find('.kiriof-order-preview-status-source').data('kiriof-status-label');
-                                kiriofStatusClass = $modal.find('.kiriof-order-preview-status-source').data('kiriof-status-class');
-                            }
-
-                            if (!kiriofStatusLabel || !kiriofStatusClass) {
-                                return;
-                            }
-
-                            var $wcStatus = $header.find('.order-status').first();
-                            var palette = kiriofPreviewStatusPalette(kiriofStatusClass);
-                            var $kiriofStatus = $(
-                                '<mark class="order-status kiriof-order-preview-status" ' +
-                                'style="margin-left:6px;margin-right:10px;background:' + palette.background + ';color:' + palette.color + ';vertical-align:middle;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);">' +
-                                '<span style="color:inherit;">' + kiriofStatusLabel + '</span>' +
-                                '</mark>'
-                           );
-
-                            if ($wcStatus.length) {
-                                $kiriofStatus.insertAfter($wcStatus);
-                            } else {
-                                $header.prepend($kiriofStatus);
-                            }
-                        });
-                    });
-                </script>
-            <?php
+            wp_enqueue_script(
+                'kiriof-order-preview',
+                KIRIOF_URL . 'assets/admin/js/kj-order-preview.js',
+                array('jquery', 'wc-backbone-modal'),
+                KIRIOF_VERSION,
+                true
+            );
         }
 
         public function renderWooOrderPreviewTemplateForKiriofPage()
@@ -1087,7 +973,7 @@ class TransactionProcessController
                 (int) ceil( $kiriof_pin_cache_ttl / MINUTE_IN_SECONDS )
             );
             ?>
-                <script type="text/template" id="tmpl-kiriof-modal-cod-adjustment">
+                <template id="tmpl-kiriof-modal-cod-adjustment">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cod-adjustment-modal">
                 <div class="wc-backbone-modal-content" style="max-width:500px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1192,9 +1078,9 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
+        </template>
 
-                <script type="text/template" id="tmpl-kiriof-modal-cancel-deficit">
+                <template id="tmpl-kiriof-modal-cancel-deficit">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-deficit-modal">
                 <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1227,10 +1113,10 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
+        </template>
 
                 <?php if ($this->isTransactionProcessPage()) : ?>
-                    <script type="text/template" id="tmpl-kiriof-modal-request-pickup">
+                    <template id="tmpl-kiriof-modal-request-pickup">
                         <div class="wc-backbone-modal kiriof-backbone-modal kiriof-request-pickup-modal">
                 <div class="wc-backbone-modal-content" style="max-width:640px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1333,9 +1219,9 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
+        </template>
 
-                    <script type="text/template" id="tmpl-kiriof-modal-cancel-transaction">
+                    <template id="tmpl-kiriof-modal-cancel-transaction">
                         <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-transaction-modal">
                 <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1377,8 +1263,8 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
-        <script type="text/template" id="tmpl-kiriof-modal-change-origin">
+        </template>
+        <template id="tmpl-kiriof-modal-change-origin">
             <div class="wc-backbone-modal kiriof-backbone-modal kiriof-change-origin-modal">
                 <div class="wc-backbone-modal-content kiriof-change-origin-modal-content">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1465,7 +1351,7 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop kiriof-change-origin-backdrop modal-close"></div>
-        </script>
+        </template>
                 <?php endif; ?>
         <?php
         }

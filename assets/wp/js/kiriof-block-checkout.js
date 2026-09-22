@@ -670,3 +670,96 @@
     scope: "woocommerce-checkout",
   });
 })(window.wp, window.wc);
+
+(function () {
+  "use strict";
+
+  function hideVirtualCartDistrictFields() {
+    if (!document.querySelector("[data-kiriof-virtual-cart-cleanup]")) {
+      return;
+    }
+
+    document.documentElement.classList.add("kiriof-virtual-cart-checkout");
+
+    var selectors = [
+      '[name*="kiriof_destination_area"]',
+      '[id*="kiriof_destination_area"]',
+      ".kiriof-block-district-source",
+      ".kiriof-block-district-select",
+    ].join(",");
+
+    document.querySelectorAll(selectors).forEach(function (field) {
+      if (!field || field.id === "kiriof-block-district-mirror") {
+        return;
+      }
+
+      field.removeAttribute("required");
+      field.setAttribute("aria-required", "false");
+      if ("value" in field) {
+        field.value = "";
+      }
+
+      var wrapper = field.closest(
+        ".kiriof-block-district-field-wrapper," +
+          ".kiriof-block-district-source-wrapper," +
+          ".kiriof-block-district-select-wrapper," +
+          ".wc-block-components-text-input," +
+          ".wc-block-components-address-form__state," +
+          ".wc-block-components-combobox," +
+          ".form-row," +
+          "p",
+      );
+
+      if (wrapper && wrapper !== document.body) {
+        wrapper.style.display = "none";
+        wrapper.setAttribute("hidden", "hidden");
+      } else {
+        field.style.display = "none";
+        field.setAttribute("hidden", "hidden");
+      }
+    });
+
+    document
+      .querySelectorAll(".kiriof-block-district-warning")
+      .forEach(function (warning) {
+        warning.style.display = "none";
+        warning.setAttribute("hidden", "hidden");
+      });
+  }
+
+  function stripPhoneOptionalLabel() {
+    document
+      .querySelectorAll(
+        'label[for*="phone"], .wc-block-components-text-input label, .wc-block-components-address-form label',
+      )
+      .forEach(function (label) {
+        if (!/phone/i.test(label.htmlFor || label.getAttribute("for") || "")) {
+          return;
+        }
+
+        label.childNodes.forEach(function (node) {
+          if (node.nodeType === 3) {
+            node.textContent = node.textContent.replace(/\s*\(optional\)/i, "");
+          }
+        });
+        label.querySelectorAll("span").forEach(function (span) {
+          if (/optional/i.test(span.textContent)) {
+            span.remove();
+          }
+        });
+      });
+  }
+
+  function syncCheckoutFields() {
+    hideVirtualCartDistrictFields();
+    stripPhoneOptionalLabel();
+  }
+
+  syncCheckoutFields();
+  if (document.body && window.MutationObserver) {
+    new MutationObserver(syncCheckoutFields).observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+})();

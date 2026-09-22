@@ -449,3 +449,10 @@ body.kiriof-no-district .wp-block-woocommerce-checkout-place-order button {
   opacity: 0.5 !important;
   cursor: not-allowed !important;
 }
+
+.kiriof-virtual-cart-checkout .kiriof-block-district-field-wrapper,
+.kiriof-virtual-cart-checkout .kiriof-block-district-source-wrapper,
+.kiriof-virtual-cart-checkout .kiriof-block-district-select-wrapper,
+.kiriof-virtual-cart-checkout .kiriof-block-district-warning {
+  display: none !important;
+}

@@ -65,9 +65,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString("assets/wp/js/form-billing-address.js", $enqueue);
         $this->assertStringContainsString("array( 'kiriof-script' )", $enqueue);
         $this->assertStringContainsString("wp_enqueue_script( 'kiriof-form-billing-address' );", $template);
-        $this->assertStringContainsString("wp_add_inline_script(\n            'kiriof-form-billing-address'", $template);
-        $this->assertStringContainsString("window.kiriofBillingAddressConfig = ", $template);
-        $this->assertStringContainsString("'before'", $template);
+        $this->assertStringContainsString("wp_localize_script(\n            'kiriof-form-billing-address'", $template);
+        $this->assertStringContainsString("'kiriofBillingAddressConfig'", $template);
+        $this->assertStringNotContainsString('wp_add_inline_script', $template);
         $this->assertStringNotContainsString('<?php', $script);
     }
 
@@ -3209,6 +3209,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     public function virtual_cart_skips_district_field_script_registration_and_validation(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
 
         foreach (array(
             'function add_custom_select_options_field_and_script' => 'Virtual-only carts must not print the District field/script template',
@@ -3240,17 +3241,17 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
         $this->assertStringContainsString(
             'kiriof-virtual-cart-checkout',
-            $content,
+            $script,
             'Virtual-only cleanup must add a page marker class for hiding District UI created by Woo Blocks'
         );
         $this->assertStringContainsString(
             '[name*="kiriof_destination_area"]',
-            $content,
+            $script,
             'Virtual-only cleanup must target raw registered District fields by name'
         );
         $this->assertStringContainsString(
             'MutationObserver',
-            $content,
+            $script,
             'Virtual-only cleanup must survive Woo Blocks React rerenders'
         );
     }
