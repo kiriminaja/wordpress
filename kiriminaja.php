@@ -21,6 +21,32 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
+if ( ! function_exists( 'kiriof_checkout_service_factory' ) ) {
+    function kiriof_checkout_service_factory() {
+        static $factory = null;
+
+        if ( null === $factory ) {
+            $setting_repository     = new \KiriminAjaOfficial\Repositories\SettingRepository();
+            $transaction_repository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $post_meta_repository   = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();
+            $api_repository         = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
+
+            $factory = new \KiriminAjaOfficial\Services\CheckoutServiceFactory(
+                $setting_repository,
+                $transaction_repository,
+                $post_meta_repository,
+                $api_repository,
+                new \KiriminAjaOfficial\Repositories\CodFeeApiRepository(),
+                new \KiriminAjaOfficial\Services\ShipmentLocationService(
+                    new \KiriminAjaOfficial\Repositories\ShipmentLocationRepository(),
+                    $setting_repository
+                )
+            );
+        }
+
+        return $factory;
+    }
+}
 
 define( 'KIRIOF_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KIRIOF_URL', plugin_dir_url( __FILE__ ) );

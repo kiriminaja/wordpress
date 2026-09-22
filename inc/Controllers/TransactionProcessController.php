@@ -13,6 +13,7 @@ use KiriminAjaOfficial\Services\TransactionProcessServices\GetCreditBalanceServi
 use KiriminAjaOfficial\Services\TransactionProcessServices\ValidatePinService;
 use KiriminAjaOfficial\Contracts\DatabaseTransactionManagerInterface;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
 
 class TransactionProcessController
 {
@@ -21,19 +22,22 @@ class TransactionProcessController
     private SendRequestPickupTransactionService $requestPickupService;
     private CancelTransactionService $cancelTransactionService;
     private \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService;
+    private CheckoutServiceFactory $checkoutServiceFactory;
 
     public function __construct(
         TransactionRepository $transactionRepository,
         DatabaseTransactionManagerInterface $transactionManager,
         SendRequestPickupTransactionService $requestPickupService,
         CancelTransactionService $cancelTransactionService,
-        \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService
+        \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService,
+        CheckoutServiceFactory $checkoutServiceFactory
     ) {
         $this->transactionRepository = $transactionRepository;
         $this->transactionManager    = $transactionManager;
         $this->requestPickupService  = $requestPickupService;
         $this->cancelTransactionService = $cancelTransactionService;
         $this->pickupScheduleService     = $pickupScheduleService;
+        $this->checkoutServiceFactory    = $checkoutServiceFactory;
     }
 
     public function register()
@@ -590,7 +594,7 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_pricing = (new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService( array(
+            $kiriof_pricing = $this->checkoutServiceFactory->pricing( array(
                 'destination_area_id'    => (int) $kiriof_transaction->destination_sub_district_id,
                 'origin_sub_district_id' => (int) $kiriof_origin['origin_sub_district_id'],
                 'package_overrides'      => array(
@@ -601,7 +605,7 @@ class TransactionProcessController
                     'item_value' => (float) ( $kiriof_transaction->transaction_value ?? 0 ),
                 ),
                 'is_cod'                 => ( (float) ( $kiriof_transaction->cod_fee ?? 0 ) > 0 ),
-            ) ))->call();
+            ) )->call();
 
             if ( 200 !== $kiriof_pricing->status() ) {
                 wp_send_json_error( array(
@@ -1018,7 +1022,7 @@ class TransactionProcessController
                 return new \WP_Error( 'kiriof_invalid_origin_area', __( 'The selected origin is not covered by KiriminAja yet. Please choose another shipment origin.', 'kiriminaja-official' ) );
             }
 
-            $pricing = ( new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService( array(
+            $pricing = $this->checkoutServiceFactory->pricing( array(
                 'destination_area_id'    => (int) $transaction->destination_sub_district_id,
                 'origin_sub_district_id' => (int) $origin['origin_sub_district_id'],
                 'package_overrides'      => array(
@@ -1029,7 +1033,7 @@ class TransactionProcessController
                     'item_value' => (float) ( $transaction->transaction_value ?? 0 ),
                 ),
                 'is_cod'                 => ( (float) ( $transaction->cod_fee ?? 0 ) > 0 ),
-            ) ) )->call();
+            ) )->call();
 
             if ( 200 !== $pricing->status() ) {
                 return new \WP_Error( 'kiriof_shipping_check_failed', __( 'The selected origin is not covered for this destination. Please choose another shipment origin.', 'kiriminaja-official' ) );

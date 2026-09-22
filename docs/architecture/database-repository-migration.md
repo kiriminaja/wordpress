@@ -150,10 +150,10 @@ The maturity percentage is directional. Use the raw metrics below to decide the 
 | Templates using `$wpdb` | 4 | 0 | 0 |
 | Persistence and transaction contracts | 0 | 7 | Contract for each application persistence boundary |
 | Injected runtime consumers | 0 | 17 | All application consumers |
-| Consumer-side repository constructions | 127 | 52 | 0 |
+| Consumer-side repository constructions | 127 | 39 | 0 |
 | Template repository constructions | 12 | 0 | 0 |
 
-The remaining maturity gap is primarily dependency composition and repository cohesion. `TransactionRepository` and `SettingRepository` are still broad concrete dependencies, API clients still use repository naming, and 52 consumer-side construction sites remain.
+The remaining maturity gap is primarily dependency composition and repository cohesion. `TransactionRepository` and `SettingRepository` are still broad concrete dependencies, API clients still use repository naming, and 39 consumer-side construction sites remain.
 
 #### Iteration 5: composition-root consolidation
 
@@ -185,16 +185,31 @@ Measured change from iteration 5:
 - Template isolation: unchanged at 100%.
 - Estimated overall repository-pattern maturity: 80% to 82%.
 
+#### Iteration 7: checkout service factory
+
+- Added a request-local checkout service factory with shared repository dependencies.
+- Kept calculation, pricing, cart-attribute, COD-deficit, and transaction-creation services operation scoped.
+- Removed repository construction from checkout calculation, pricing, cart attributes, COD deficit, order ID generation, and transaction creation.
+- Injected the factory into checkout, general AJAX, and transaction-origin pricing flows.
+- Reused the same factory from the WooCommerce shipping method through a framework-compatible helper.
+
+Measured change from iteration 6:
+
+- Consumer-side repository constructions: 52 to 39.
+- Application `$wpdb` containment: unchanged at 100%.
+- Template isolation: unchanged at 100%.
+- Estimated overall repository-pattern maturity: 82% to 85%.
+
 ### Current maturity score
 
 | Dimension | Weight | Current assessment | Score |
 | --- | ---: | --- | ---: |
 | Database containment | 40% | All `$wpdb` access is inside migrations, repositories, query implementations, or transaction infrastructure | 40% |
 | Persistence contracts | 15% | Seven narrow contracts cover the extracted high-risk boundaries; broad legacy repositories remain concrete | 8% |
-| Dependency composition | 20% | Consumer-side constructions fell from 127 to 52; callback and transaction workflow services are now composed centrally | 12% |
+| Dependency composition | 20% | Consumer-side constructions fell from 127 to 39; checkout, callback, and transaction workflows now use composition seams | 15% |
 | Presentation isolation | 15% | Templates contain no `$wpdb` access or repository construction | 15% |
 | Repository cohesion | 10% | Admin lists and specialized reads/writes are separated; broad transaction/settings repositories and API naming remain | 7% |
-| **Total** | **100%** | | **82%** |
+| **Total** | **100%** | | **85%** |
 
 ### Plugin-owned tables
 

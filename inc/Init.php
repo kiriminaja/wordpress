@@ -43,6 +43,10 @@ final class Init {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
+        if ( Controllers\GeneralAjaxController::class === $class ) {
+            return new $class( $checkout_service_factory );
+        }
+
         if ( Controllers\CallbackController::class === $class ) {
             $setting_repository = new Repositories\SettingRepository();
             $api_key            = $setting_repository->getSettingByKey( 'api_key' );
@@ -70,6 +74,8 @@ final class Init {
      * @return mixed
      */
     private static function instantiate($class ){
+        $checkout_service_factory = kiriof_checkout_service_factory();
+
         if ( Pages\Admin::class === $class ) {
             return new $class(
                 new Repositories\ProductVolumetricReadinessRepository(),
@@ -102,7 +108,17 @@ final class Init {
                 new Services\TransactionProcessServices\GetRequestPickupScheduleService(
                     $api_repository,
                     $transaction_repository
-                )
+                ),
+                $checkout_service_factory
+            );
+        }
+
+        if ( Controllers\CheckoutController::class === $class ) {
+            return new $class(
+                new Repositories\SettingRepository(),
+                new Repositories\TransactionRepository(),
+                new Repositories\WpPostMetaRepository(),
+                $checkout_service_factory
             );
         }
 

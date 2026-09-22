@@ -7,11 +7,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
+use KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId;
+use KiriminAjaOfficial\Services\ShipmentLocationService;
 use WC_Order_Item_Fee;
 class CreateTransactionService extends BaseService{
     
     private $payload;
     private $checkoutCalcCache;
+    private TransactionRepository $transaction_repository;
+    private SettingRepository $setting_repository;
+    private WpPostMetaRepository $post_meta_repository;
+    private CodDeficitService $cod_deficit_service;
+    private ShipmentLocationService $shipment_location_service;
+    private GenerateOrderId $order_id_generator;
+    private CheckoutServiceFactory $checkout_service_factory;
     
     
     /**
@@ -26,9 +39,25 @@ class CreateTransactionService extends BaseService{
     payment_method
     wc_cart_contents
      */
-    public function __construct($payload){
+    public function __construct(
+        $payload,
+        TransactionRepository $transaction_repository,
+        SettingRepository $setting_repository,
+        WpPostMetaRepository $post_meta_repository,
+        CodDeficitService $cod_deficit_service,
+        ShipmentLocationService $shipment_location_service,
+        GenerateOrderId $order_id_generator,
+        CheckoutServiceFactory $checkout_service_factory
+    ){
         $this->payload = $payload;
         $this->payload['wc_cart_contents'] = $this->normalizeCartContents( $payload['wc_cart_contents'] ?? array() );
+        $this->transaction_repository    = $transaction_repository;
+        $this->setting_repository        = $setting_repository;
+        $this->post_meta_repository      = $post_meta_repository;
+        $this->cod_deficit_service       = $cod_deficit_service;
+        $this->shipment_location_service = $shipment_location_service;
+        $this->order_id_generator        = $order_id_generator;
+        $this->checkout_service_factory  = $checkout_service_factory;
         return $this;
     }
     
@@ -65,7 +94,7 @@ class CreateTransactionService extends BaseService{
 
             // Determine deficit status via CodDeficitService.
             $expeditionParts = $this->payload['kiriof_expedition'] ? explode('_', $this->payload['kiriof_expedition'], 2) : ['', ''];
-            $deficitResult = (new \KiriminAjaOfficial\Services\CheckoutServices\CodDeficitService())->detect([
+            $deficitResult = $this->cod_deficit_service->detect([
                 'is_cod'               => $isCod,
                 'total_cod'            => $transactionValue,
                 'shipping_cost'        => $shippingCostRaw,
@@ -88,11 +117,11 @@ class CreateTransactionService extends BaseService{
                 $wooDiscountDescription = (string) $this->payload['woo_discount_description'];
             }
             // $expeditionParts already computed above for deficit detection.
-            $shipmentLocationService = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+            $shipmentLocationService = $this->shipment_location_service;
             $checkoutOriginLocation  = $shipmentLocationService->getDefaultLocation();
             $checkoutOriginSnapshot  = $shipmentLocationService->locationToOrigin( $checkoutOriginLocation );
             $payload = [
-                'order_id'                      => (new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId())->call(),
+                'order_id'                      => $this->order_id_generator->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
                 'destination_sub_district_id'   => $this->payload['kiriof_destination_area'],
                 'destination_sub_district'      => $this->payload['kiriof_destination_area_name'],
@@ -122,7 +151,7 @@ class CreateTransactionService extends BaseService{
             /** Update WC Total Order */
             $this->updateWcTotalOrder($checkoutCalc);
             
-            $createTransactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->createTransaction($payload);
+            $createTransactionRepo = $this->transaction_repository->createTransaction($payload);
             
             /** Save in Log Transaction*/
             update_post_meta( $this->payload['order_id'], 'log_after_checkout_order', compact('payload','createTransactionRepo') );
@@ -235,7 +264,7 @@ class CreateTransactionService extends BaseService{
     }
 
     private function isInsuranceRequested($forceInsurance = 0){
-        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
         $global_insurance  = ( $insurance_setting && 'yes' === $insurance_setting->value );
 
         return ! empty( $this->payload['checkout_post_data']['kiriof_insurance'] )
@@ -246,7 +275,7 @@ class CreateTransactionService extends BaseService{
     
     private function getRequiredPostMeta(){
         try {
-            $postMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostId($this->payload['order_id']);
+            $postMetaRepo = $this->post_meta_repository->getRequiredRowsByPostId($this->payload['order_id']);
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$postMetaRepo',[$postMetaRepo]);
             
             // Use array_column for more efficient mapping
@@ -279,13 +308,13 @@ class CreateTransactionService extends BaseService{
         
         $this->payload['is_insurance'] = $this->isInsuranceRequested() ? 1 : 0;
         
-        $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
+        $service = $this->checkout_service_factory->calculation([
             'destination_area_id'   => $this->payload['kiriof_destination_area'],
             'expedition'            => $this->payload['kiriof_expedition'],
             'is_insurance'          => $this->payload['is_insurance'],
             'is_cod'                => $this->payload['is_cod'] ?? 0,
             'wc_cart_contents'      => $this->payload['wc_cart_contents'],
-        ]))->call();
+        ])->call();
         
         if ($service->status !== 200){
             $result = [

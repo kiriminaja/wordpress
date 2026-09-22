@@ -121,7 +121,7 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'Selected-courier fee calculation should check the cached shipping_price response before calling the API'
         );
         $cacheLookupPosition = strpos( $checkoutCalculation, 'PricingCacheService::get( $pricingPayload )' );
-        $apiCallPosition = strpos( $checkoutCalculation, 'KiriminajaApiRepository())->getPricing($pricingPayload)' );
+        $apiCallPosition = strpos( $checkoutCalculation, '$this->api_repository->getPricing($pricingPayload)' );
         $this->assertNotFalse( $cacheLookupPosition );
         $this->assertNotFalse( $apiCallPosition );
         $this->assertLessThan(

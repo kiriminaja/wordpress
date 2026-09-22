@@ -4,6 +4,7 @@ namespace KiriminAjaOfficial\Controllers;
 use KiriminAjaOfficial\Repositories\SettingRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
@@ -17,6 +18,7 @@ class CheckoutController
     private SettingRepository $setting_repository;
     private TransactionRepository $transaction_repository;
     private WpPostMetaRepository $wp_post_meta_repository;
+    private ?CheckoutServiceFactory $checkout_service_factory;
 
     private $key_destination_id     = 'destination_id';
     private $key_destination_name   = 'destination_name';
@@ -36,11 +38,22 @@ class CheckoutController
     public function __construct(
         ?SettingRepository $setting_repository = null,
         ?TransactionRepository $transaction_repository = null,
-        ?WpPostMetaRepository $wp_post_meta_repository = null
+        ?WpPostMetaRepository $wp_post_meta_repository = null,
+        ?CheckoutServiceFactory $checkout_service_factory = null
     ) {
         $this->setting_repository = $setting_repository ?? new SettingRepository();
         $this->transaction_repository = $transaction_repository ?? new TransactionRepository();
         $this->wp_post_meta_repository = $wp_post_meta_repository ?? new WpPostMetaRepository();
+        $this->checkout_service_factory = $checkout_service_factory;
+    }
+
+    private function checkoutServiceFactory(): CheckoutServiceFactory
+    {
+        if ( null === $this->checkout_service_factory ) {
+            $this->checkout_service_factory = kiriof_checkout_service_factory();
+        }
+
+        return $this->checkout_service_factory;
     }
 
     private function kiriof_cart_needs_shipping(): bool {
@@ -241,13 +254,13 @@ class CheckoutController
         // calculate fees directly. This keeps non-COD insurance fresh too.
         if ( ! $cache_matches || ( $insurance_amt <= 0 && ( 'cod' !== $chosen_payment || $cod_amt <= 0 ) ) ) {
             try {
-                $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
+                $service = $this->checkoutServiceFactory()->calculation(array(
                     'destination_area_id' => $destination_id,
                     'expedition'          => $this->kiriof_extract_expedition_from_method( $kiriof_method ),
                     'is_insurance'        => $force_insurance,
                     'is_cod'              => ( 'cod' === $chosen_payment ),
                     'wc_cart_contents'    => WC()->cart->get_cart(),
-                )))->call();
+                ))->call();
 
                 if ( 200 === $service->status && ! empty( $service->data['calculation_result'] ) ) {
                     $result        = $service->data['calculation_result'];
@@ -988,7 +1001,7 @@ class CheckoutController
         WC()->session->set( 'kiriof_woocommerce_discount_description', null );
         /** Store Transaction*/
         try {
-            $createTransaction = (new \KiriminAjaOfficial\Services\CheckoutServices\CreateTransactionService([
+            $createTransaction = $this->checkoutServiceFactory()->createTransaction([
                 'order_id'                  => @$order_id,
                 'checkout_post_data'        => @$posted_data,
                 'kiriof_destination_area'       => @$kiriof_destination_area,
@@ -1000,7 +1013,7 @@ class CheckoutController
                 'woo_discount_amount'       => (float) $woo_discount_amount,
                 'woo_discount_description'  => (string) $woo_discount_description,
                 'destination_zipcode'       => $order ? (string) $order->get_meta( '_kiriof_checkout_postcode', true ) : '',
-            ]))->call();
+            ])->call();
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
         } catch (\Throwable $th){
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$th->getMessage()]);   
@@ -1222,11 +1235,11 @@ class CheckoutController
                 wp_send_json_error( array( 'msg' => 'Security Check Nonce Checkout' ) );
                 wp_die();
             }
-            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService([
+            $service = $this->checkoutServiceFactory()->pricing([
                 'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'])) :'',
                 'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash($_POST['data']['payment_method'])) : '' ) === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
-            ]))->call();
+            ])->call();
                 
             wp_send_json_success($service);
         }catch (\Throwable $th){
@@ -1246,13 +1259,13 @@ class CheckoutController
                 wp_send_json_error( array( 'msg' => 'Security Check Nonce Checkout' ) );
                 wp_die();
             }
-            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
+            $service = $this->checkoutServiceFactory()->calculation([
                 'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'] )) : '',
                 'expedition'            => isset($_POST['data']['expedition']) ? sanitize_text_field( wp_unslash( $_POST['data']['expedition'] )) : '',
                 'is_insurance'          => ( isset($_POST['data']['insurance']) ? sanitize_text_field( wp_unslash( $_POST['data']['insurance'] )) : '' ) === "true",
                 'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash( $_POST['data']['payment_method'])) : '') === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
-            ]))->call();
+            ])->call();
             wp_send_json_success($service);
         }catch (\Throwable $th){
             wp_send_json_success([

@@ -183,9 +183,9 @@ function kiriof_shipping_method(){
                 $courier_filter = $settingRepository->getWhitelistExpeditionIds();
 
                 /** convert unit weight */
-                $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
+                $cartAttributes = kiriof_checkout_service_factory()->cartAttributes([
                     'wc_cart_contents' => isset($package['contents']) ? $package['contents'] : WC()->cart->get_cart()
-                ]))->call();
+                ])->call();
 
                 $payload = [
                     'subdistrict_origin' => $originSubdistrictId,
