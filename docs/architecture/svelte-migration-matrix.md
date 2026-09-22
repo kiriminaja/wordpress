@@ -17,7 +17,7 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 | Settings account | Svelte | Connection status, setup-key update, disconnect, and enabled courier summary use existing endpoints. |
 | Settings couriers | Svelte | Async courier list, bulk selection, optimistic save, and rollback use existing endpoints. |
 | Settings tracking | Svelte | Tracking-page inventory and guide are rendered from a PHP bootstrap snapshot. |
-| Transactions list | Legacy | Build shared admin shell, filters, table, pagination; retain WooCommerce modal actions initially. |
+| Transactions list | Hybrid Svelte | Filters, status tabs, search, and pagination are Svelte; PHP table/action DOM remains while modal actions are still legacy. |
 | Payments list | Svelte | Filters, status tabs, table, and pagination are Svelte; QR/payment and reschedule dialogs remain legacy bridge. |
 | Pickup detail | Legacy | Port summary cards and read-only tables after list shell. |
 | Order metabox | Legacy | Port custom shipment summary/actions only; keep native WooCommerce order editing native. |

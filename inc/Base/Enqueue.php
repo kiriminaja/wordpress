@@ -78,6 +78,7 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 'all'
             );
+
         }
 
         // Option 1: Manually enqueue the wp-util library.
@@ -324,8 +325,18 @@ class Enqueue extends BaseInit{
 				array( 'jquery', 'kiriof-script', 'kiriof-pin-input', 'wc-backbone-modal' ),
 				KIRIOF_VERSION,
 				true
-			);
+            );
             wp_enqueue_script( 'kiriof-transaction-process' );
+
+			$transactions_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.js';
+			$transactions_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+			if ( file_exists( $transactions_style ) ) {
+				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array( 'kiriof-style' ), (string) filemtime( $transactions_style ) );
+			}
+			if ( file_exists( $transactions_script ) ) {
+				wp_enqueue_script( 'kiriof-transactions-filters', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.js', array( 'kiriof-transaction-process' ), (string) filemtime( $transactions_script ), true );
+				wp_script_add_data( 'kiriof-transactions-filters', 'type', 'module' );
+			}
         }
 
         /** print */
@@ -475,9 +486,9 @@ class Enqueue extends BaseInit{
 
 			if ( 'kiriminaja-request-pickup' === $page ) {
 				$payments_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.js';
-				$payments_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.css';
+				$payments_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
 				if ( file_exists( $payments_style ) ) {
-					wp_enqueue_style( 'kiriof-payments-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.css', array( 'kiriof-style' ), (string) filemtime( $payments_style ) );
+					wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array( 'kiriof-style' ), (string) filemtime( $payments_style ) );
 				}
 				if ( file_exists( $payments_script ) ) {
 					wp_enqueue_script( 'kiriof-payments-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.js', array( 'kiriof-request-pickup' ), (string) filemtime( $payments_script ), true );

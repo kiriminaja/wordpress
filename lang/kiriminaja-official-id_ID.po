@@ -33,6 +33,10 @@ msgstr "Tidak ada layanan kurir yang tersedia."
 msgid "enabled"
 msgstr "aktif"
 
+#: inc/Services/TransactionListRenderService.php
+msgid "items"
+msgstr "item"
+
 #: inc/Pages/Admin.php
 msgid "Add customer shipment tracking."
 msgstr "Tambahkan pelacakan kiriman pelanggan."

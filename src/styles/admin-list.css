@@ -1,8 +1,31 @@
-[data-kiriof-payments-page] {
+[data-kiriof-payments-page],
+[data-kiriof-transactions-page] {
   --kiriof-primary: #5c2ecb;
   --kiriof-primary-soft: #f5f0ff;
   --kiriof-border: #dcdcde;
   --kiriof-muted: #646970;
+}
+
+.kiriof-transactions-page--enhanced [data-kiriof-transactions-controls-fallback] {
+  display: none;
+}
+
+.kiriof-transaction-controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kiriof-transaction-search,
+.kiriof-transaction-selects,
+.kiriof-transaction-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiriof-transaction-pagination {
+  color: var(--kiriof-muted);
 }
 .kiriof-payments-page--enhanced [data-kiriof-payments-fallback] {
   display: none;
@@ -128,5 +151,13 @@
   }
   .kiriof-admin-list__toolbar select {
     flex: 1;
+  }
+
+  .kiriof-transaction-search,
+  .kiriof-transaction-selects,
+  .kiriof-transaction-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
   }
 }

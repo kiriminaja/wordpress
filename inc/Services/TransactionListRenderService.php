@@ -79,6 +79,48 @@ class TransactionListRenderService {
             $this->query->getCouriers()
         );
 
+		$kiriof_transactions_filters_bootstrap = array(
+			'filters'      => $filters,
+			'statusTabs'   => array(
+				array( 'value' => 'all', 'label' => __( 'All', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['all'] ?? 0 ) ),
+				array( 'value' => 'wc-processing', 'label' => __( 'New / Waiting for Shipment', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ),
+				array( 'value' => 'wc-on-hold', 'label' => __( 'On Hold', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ),
+				array( 'value' => 'wc-pending', 'label' => __( 'Pending Payment', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['wc-pending'] ?? 0 ) ),
+				array( 'value' => 'processed', 'label' => __( 'Processed', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['processed'] ?? 0 ) ),
+				array( 'value' => 'wc-cancelled', 'label' => __( 'Cancelled', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['wc-cancelled'] ?? 0 ) ),
+				array( 'value' => 'order-issue', 'label' => __( 'Order Issue', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['order-issue'] ?? 0 ) ),
+			),
+			'monthOptions' => $kiriof_monthOptions,
+			'couriers'     => array_map(
+				static function ( $courier ) {
+					return array( 'value' => (string) $courier->service, 'label' => (string) $courier->label );
+				},
+				$kiriof_couriers
+			),
+			'pagination'   => array(
+				'page'       => $kiriof_current_page,
+				'totalPages' => $kiriof_total_pages,
+				'total'      => $kiriof_total,
+			),
+			'i18n'         => array(
+				'search'       => __( 'Search order…', 'kiriminaja-official' ),
+				'orderNumber'  => __( 'Order Number', 'kiriminaja-official' ),
+				'kaOrderId'    => __( 'KA Order ID', 'kiriminaja-official' ),
+				'awb'          => __( 'AWB', 'kiriminaja-official' ),
+				'allDates'     => __( 'All Dates', 'kiriminaja-official' ),
+				'allPayment'   => __( 'All Payment', 'kiriminaja-official' ),
+				'cod'          => __( 'COD', 'kiriminaja-official' ),
+				'nonCod'       => __( 'Non-COD', 'kiriminaja-official' ),
+				'allCouriers'  => __( 'All Couriers', 'kiriminaja-official' ),
+				'allPrints'    => __( 'All Prints', 'kiriminaja-official' ),
+				'printed'      => __( 'Printed', 'kiriminaja-official' ),
+				'unprinted'    => __( 'Unprinted', 'kiriminaja-official' ),
+				'apply'        => __( 'Apply', 'kiriminaja-official' ),
+				'items'        => __( 'items', 'kiriminaja-official' ),
+				'pageOf'       => __( 'of', 'kiriminaja-official' ),
+			),
+		);
+
         include KIRIOF_DIR . 'templates/transaction-process/view/index.php';
     }
 

@@ -86,7 +86,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
  * @var string $kiriof_search_by
  */
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-transactions-page>
 
     <?php
     if (! in_array($kiriof_status_filter, ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed', 'order-issue'], true)) {
@@ -132,7 +132,10 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
         <input type="hidden" name="_wpnonce" value="<?php echo esc_attr(wp_create_nonce('kiriof_resi_print_bulk')); ?>">
     </form>
 
+    <div data-kiriof-transactions-filters-root></div>
+    <script type="application/json" data-kiriof-transactions-filters-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_transactions_filters_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 
+    <div data-kiriof-transactions-controls-fallback>
     <div class="wp-filter" style="display: flex;justify-content: space-between;">
         <ul class="filter-links">
             <li><a href="#" data-search-key="status" data-search-value="all" <?php echo $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e('All', 'kiriminaja-official'); ?> <span class="count">(<?php echo esc_html(number_format_i18n((int) ($kiriof_statusCounts['all'] ?? 0))); ?>)</span></a></li>
@@ -191,6 +194,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
             </span>
         </div>
         <br class="clear">
+    </div>
     </div>
 
     <table class="wp-list-table widefat fixed striped table-view-list posts kiriof-transaction-table">
@@ -574,7 +578,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
         </tfoot>
     </table>
     <br class="clear">
-    <div class="tablenav bottom">
+    <div class="tablenav bottom" data-kiriof-transactions-controls-fallback>
         <div class="alignleft actions" style="display:flex;align-items:center;">
             <?php $kiriof_filter_suffix = '_2';
             $kiriof_show_apply = true;

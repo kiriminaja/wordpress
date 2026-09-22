@@ -12,6 +12,7 @@ export default defineConfig({
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'payments-list': 'src/entries/payments-list.ts',
         'settings-root': 'src/entries/settings-root.ts',
+        'transactions-filters': 'src/entries/transactions-filters.ts',
       },
       output: {
         assetFileNames: 'kiriminaja-[name][extname]',
