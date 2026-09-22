@@ -19,15 +19,21 @@ class TransactionProcessController
     private TransactionRepository $transactionRepository;
     private DatabaseTransactionManagerInterface $transactionManager;
     private SendRequestPickupTransactionService $requestPickupService;
+    private CancelTransactionService $cancelTransactionService;
+    private \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService;
 
     public function __construct(
         TransactionRepository $transactionRepository,
         DatabaseTransactionManagerInterface $transactionManager,
-        SendRequestPickupTransactionService $requestPickupService
+        SendRequestPickupTransactionService $requestPickupService,
+        CancelTransactionService $cancelTransactionService,
+        \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService
     ) {
         $this->transactionRepository = $transactionRepository;
         $this->transactionManager    = $transactionManager;
         $this->requestPickupService  = $requestPickupService;
+        $this->cancelTransactionService = $cancelTransactionService;
+        $this->pickupScheduleService     = $pickupScheduleService;
     }
 
     public function register()
@@ -66,7 +72,7 @@ class TransactionProcessController
             ? array_map('sanitize_text_field', wp_unslash($_POST['data']['order_ids']))
             : []
         );
-        $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService())
+        $service = $this->pickupScheduleService
             ->orderIds($order_ids)
             ->call();
         wp_send_json_success($service);
@@ -154,7 +160,7 @@ class TransactionProcessController
             $order_id = isset($_POST['data']['order_id']) ? sanitize_text_field(wp_unslash($_POST['data']['order_id'])) : '';
             $reason   = isset($_POST['data']['reason']) ? sanitize_textarea_field(wp_unslash($_POST['data']['reason'])) : '';
 
-            $service = (new CancelTransactionService())
+            $service = $this->cancelTransactionService
                 ->orderId($order_id)
                 ->reason($reason)
                 ->call();
@@ -191,7 +197,7 @@ class TransactionProcessController
 
             $reason = __('Pesanan dibatalkan dari WooCommerce', 'kiriminaja-official');
 
-            (new CancelTransactionService())
+            $this->cancelTransactionService
                 ->orderId($transaction->order_id)
                 ->reason($reason)
                 ->call();

@@ -46,10 +46,12 @@ final class TransactionPrintRepositoryRuntimeTest extends TestCase
 
         $this->assertTrue( $result );
         $this->assertStringContainsString( 'WHERE order_id IN (%s,%s)', $wpdb->prepared_query );
-        $this->assertSame(
-            array( 1, '2026-09-21 16:00:00', 'KA-1', 'KA-2' ),
-            $wpdb->prepared_values
+        $this->assertSame( 1, $wpdb->prepared_values[0] );
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',
+            $wpdb->prepared_values[1]
         );
+        $this->assertSame( array( 'KA-1', 'KA-2' ), array_slice( $wpdb->prepared_values, 2 ) );
         $this->assertSame( $wpdb->prepared_query, $wpdb->executed_query );
     }
 

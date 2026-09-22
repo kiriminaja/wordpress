@@ -11,6 +11,7 @@ use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessDetailService;
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment;
+use KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService;
 use Throwable;
 class ShippingProcessController
 {
@@ -18,18 +19,21 @@ class ShippingProcessController
     private GetShippingProcessPayment $shipping_process_payment;
     private TransactionRepository $transaction_repository;
     private KiriminajaApiRepository $api_repository;
+    private GetRequestPickupScheduleService $pickup_schedule_service;
 
     public function __construct(
         TransactionPrintRepositoryInterface $transaction_print_repository,
         GetShippingProcessPayment $shipping_process_payment,
         TransactionRepository $transaction_repository,
-        KiriminajaApiRepository $api_repository
+        KiriminajaApiRepository $api_repository,
+        GetRequestPickupScheduleService $pickup_schedule_service
     )
     {
         $this->transaction_print_repository = $transaction_print_repository;
         $this->shipping_process_payment      = $shipping_process_payment;
         $this->transaction_repository        = $transaction_repository;
         $this->api_repository                = $api_repository;
+        $this->pickup_schedule_service       = $pickup_schedule_service;
     }
 
     public function register()
@@ -256,7 +260,7 @@ class ShippingProcessController
         $order_ids = array_map(function ($transaction) {
             return $transaction->order_id;
         }, $transactions_data);
-        $service_pickup = (new \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService())
+        $service_pickup = $this->pickup_schedule_service
             ->orderIds($order_ids)
             ->call();
         $service_pickup->data['transaction_summary']['order_id'] = $order_ids[0];

@@ -42,6 +42,19 @@ final class Init {
         if ( class_exists( '\KiriminAjaOfficial\Migration\SetupMigration' ) ) {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
+
+        if ( Controllers\CallbackController::class === $class ) {
+            $setting_repository = new Repositories\SettingRepository();
+            $api_key            = $setting_repository->getSettingByKey( 'api_key' );
+
+            return new $class(
+                new Services\CallbackHandlerService(
+                    new Repositories\TransactionRepository(),
+                    new Repositories\PaymentRepository(),
+                    (string) ( $api_key->value ?? '' )
+                )
+            );
+        }
         (new Services\ShipmentLocationService())->seedDefaultFromGlobalOrigin();
         foreach (self::get_services() as $class){
             $service = self::instantiate($class);
@@ -85,7 +98,11 @@ final class Init {
                     $transaction_repository
                 ),
                 $transaction_repository,
-                $api_repository
+                $api_repository,
+                new Services\TransactionProcessServices\GetRequestPickupScheduleService(
+                    $api_repository,
+                    $transaction_repository
+                )
             );
         }
 
@@ -106,6 +123,14 @@ final class Init {
                     new Services\SettingService( $setting_repository, $api_repository ),
                     new Services\KiriminajaApiService( $api_repository ),
                     new Services\TransactionProcessServices\RecipientDataResolver()
+                ),
+                new Services\TransactionProcessServices\CancelTransactionService(
+                    $transaction_repository,
+                    $api_repository
+                ),
+                new Services\TransactionProcessServices\GetRequestPickupScheduleService(
+                    $api_repository,
+                    $transaction_repository
                 )
             );
         }
