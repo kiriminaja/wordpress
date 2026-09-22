@@ -292,7 +292,10 @@
     setTimeout(() => map?.invalidateSize(), 100);
   }
 
-  onMount(() => { if (current === 'address') setTimeout(initMap, 0); });
+  onMount(() => {
+    if (current === 'address') setTimeout(initMap, 0);
+    if (current === 'couriers') void loadCouriers();
+  });
 </script>
 
 <div class="kiriof-shadcn kiriof-onboarding-app">
@@ -320,8 +323,8 @@
   {/if}
 </div>
 <style>
-  .kiriof-onboarding-app { display: grid; gap: 1rem; max-width: 760px; margin: 0 auto; color: var(--foreground); }
-  .kiriof-app-header { display: grid; gap: 1rem; padding: 1.5rem 0 .5rem; }
+  .kiriof-onboarding-app { display: grid; gap: 1rem; width: min(880px, calc(100vw - 48px)); max-width: 880px; margin: 0 auto; padding: 1.25rem 0 3rem; color: var(--foreground); }
+  .kiriof-app-header { display: grid; gap: 1rem; padding: 1rem 0 .5rem; }
   .kiriof-app-eyebrow { margin: 0; color: var(--primary); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
   .kiriof-app-header h1 { margin: .25rem 0; font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -.04em; }
   .kiriof-app-header p:not(.kiriof-app-eyebrow) { max-width: 58ch; margin: 0; color: var(--muted-foreground); }
@@ -341,7 +344,7 @@
   .kiriof-subdistrict-results button:hover { background: var(--accent); }
   .kiriof-courier-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .75rem; }
   .kiriof-courier-list { display: grid; gap: .5rem; }
-  .kiriof-courier-row { justify-content: space-between; padding: .75rem; border: 1px solid var(--border); border-radius: var(--radius); }
+  .kiriof-courier-row { justify-content: space-between; min-height: 3.25rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklch, var(--card), var(--muted) 18%); }
   .kiriof-courier-row > div { display: grid; gap: .2rem; }
   .kiriof-check-list { display: grid; gap: .75rem; }
   .kiriof-check { align-items: flex-start; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); }
