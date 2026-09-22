@@ -31,7 +31,7 @@ wp_localize_script(
  * @var int $items_per_page
  */
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-payments-page>
 
     <?php $kiriof_title = __('Payments','kiriminaja-official'); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
@@ -43,6 +43,9 @@ wp_localize_script(
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $kiriof_print_error ); ?></p></div>
     <?php endif; ?>
 
+                                <div data-kiriof-payments-root></div>
+                                <script type="application/json" data-kiriof-payments-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_payments_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+                                <div data-kiriof-payments-fallback>
                                 <!--CONTENT-->
                                 <form id="table-form" action="" style="display: none">
                                     <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only operation for filtering display ?>
@@ -282,7 +285,7 @@ wp_localize_script(
                                         </tfoot>
                                     </table>
 
-                                    <div class="tablenav bottom">
+                                     <div class="tablenav bottom">
                                         <div class="alignleft actions" style="display:flex;align-items:center">
                                             <select id="month_search_2" class="kiriof-month-sync" data-sync-target="month_search_1">
                                                 <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>><?php esc_html_e( 'All Dates', 'kiriminaja-official' ); ?></option>
@@ -316,7 +319,8 @@ wp_localize_script(
                                         </div>
                                         <?php endif; ?>
                                         <br class="clear">
-                                    </div>
+                                     </div>
+								</div>
 
     <?php include 'modal-payment.php' ?>
     <?php include 'modal-request-pickup.php' ?>

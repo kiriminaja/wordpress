@@ -18,7 +18,7 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 | Settings couriers | Svelte | Async courier list, bulk selection, optimistic save, and rollback use existing endpoints. |
 | Settings tracking | Svelte | Tracking-page inventory and guide are rendered from a PHP bootstrap snapshot. |
 | Transactions list | Legacy | Build shared admin shell, filters, table, pagination; retain WooCommerce modal actions initially. |
-| Payments list | Legacy | Reuse list shell, then port QR/payment and reschedule dialogs. |
+| Payments list | Svelte | Filters, status tabs, table, and pagination are Svelte; QR/payment and reschedule dialogs remain legacy bridge. |
 | Pickup detail | Legacy | Port summary cards and read-only tables after list shell. |
 | Order metabox | Legacy | Port custom shipment summary/actions only; keep native WooCommerce order editing native. |
 | Coupon extension UI | Legacy | Port custom region/courier picker after settings courier primitives stabilize. |
@@ -26,8 +26,8 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 ## Ordered migration
 
 1. Finish onboarding address/map using the same settings stores and form components.
-2. Introduce shared admin list primitives and port Payments first.
-3. Port Transactions filters/table, then progressively replace action dialogs.
+2. Port Transactions filters/table using shared admin-list primitives, then progressively replace action dialogs.
+3. Port Payments QR/payment and reschedule dialogs.
 4. Port Pickup detail and order shipment metabox.
 5. Port custom coupon extension controls.
 6. Remove legacy jQuery handlers only after each fallback has shipped and the Svelte path has equivalent tests.

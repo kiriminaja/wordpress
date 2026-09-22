@@ -1,0 +1,132 @@
+[data-kiriof-payments-page] {
+  --kiriof-primary: #5c2ecb;
+  --kiriof-primary-soft: #f5f0ff;
+  --kiriof-border: #dcdcde;
+  --kiriof-muted: #646970;
+}
+.kiriof-payments-page--enhanced [data-kiriof-payments-fallback] {
+  display: none;
+}
+.kiriof-admin-list {
+  display: grid;
+  gap: 12px;
+}
+.kiriof-admin-list__filter,
+.kiriof-admin-list__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kiriof-status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.kiriof-status-tabs button {
+  padding: 7px 9px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #2271b1;
+  cursor: pointer;
+}
+.kiriof-status-tabs button.current {
+  border-color: var(--kiriof-primary);
+  color: #1d2327;
+  font-weight: 600;
+}
+.kiriof-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 260px;
+  padding: 0 8px;
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  background: #fff;
+}
+.kiriof-search-field input {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  box-shadow: none;
+}
+.kiriof-admin-list__toolbar > div:first-child {
+  display: flex;
+  gap: 6px;
+}
+.kiriof-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kiriof-table-wrap {
+  overflow-x: auto;
+}
+.kiriof-admin-list table {
+  min-width: 920px;
+}
+.kiriof-admin-list td small {
+  display: block;
+  margin-top: 3px;
+  color: var(--kiriof-muted);
+}
+.kiriof-status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f0f0f1;
+  font-size: 12px;
+  font-weight: 600;
+}
+.kiriof-status-badge.success {
+  background: #e7f6ec;
+  color: #176b36;
+}
+.kiriof-status-badge.warning {
+  background: #fff3cd;
+  color: #7a4d00;
+}
+.kiriof-status-badge.info {
+  background: #e8f1fb;
+  color: #135e96;
+}
+.kiriof-actions-column {
+  text-align: right;
+}
+.kiriof-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.kiriof-row-actions .button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+.kiriof-empty-cell {
+  padding: 28px !important;
+  text-align: center;
+}
+.kiriof-admin-list__toolbar--bottom {
+  justify-content: flex-end;
+}
+@media (max-width: 782px) {
+  .kiriof-admin-list__filter,
+  .kiriof-admin-list__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .kiriof-search-field {
+    min-width: 0;
+  }
+  .kiriof-admin-list__toolbar > div:first-child {
+    width: 100%;
+  }
+  .kiriof-admin-list__toolbar select {
+    flex: 1;
+  }
+}

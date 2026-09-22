@@ -21,6 +21,74 @@ class PaymentListRenderService {
         $this->query = $query;
     }
 
+	/**
+	 * @param array<int, object>   $results       Payment rows.
+	 * @param array<string,string> $filters       Current filters.
+	 * @param array<string,string> $month_options Month filter options.
+	 * @param array<string,int>    $status_counts Payment status counts.
+	 * @return array<string, mixed>
+	 */
+	private function prepareSvelteBootstrap( array $results, array $filters, int $page, int $total_pages, int $items_per_page, array $month_options, array $status_counts ): array {
+		$rows = array();
+		foreach ( $results as $index => $row ) {
+			$method = strtolower( trim( (string) ( $row->method ?? '' ) ) );
+			$status = (string) ( $row->status ?? '' );
+			$pickup_number = (string) ( $row->pickup_number ?? '' );
+			$actions = array();
+			if ( 'paid' !== $status && 'top' !== $method ) {
+				$actions[] = array(
+					'type'  => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? 'pay' : 'reschedule',
+					'label' => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? __( 'Pay', 'kiriminaja-official' ) : __( 'Reschedule', 'kiriminaja-official' ),
+				);
+			}
+			$actions[] = array(
+				'type'  => 'details',
+				'label' => __( 'Details', 'kiriminaja-official' ),
+				'href'  => admin_url( 'admin.php?page=kiriminaja-request-pickup-detail&pickup_number=' . rawurlencode( $pickup_number ) ),
+			);
+
+			$rows[] = array(
+				'number'       => $index + ( ( $page - 1 ) * $items_per_page ) + 1,
+				'pickupNumber' => $pickup_number,
+				'requestedAt'  => wp_date( 'Y/m/d H:i', strtotime( (string) ( $row->created_at ?? '' ) ) ),
+				'schedule'     => gmdate( 'Y/m/d H:i', strtotime( (string) ( $row->pickup_schedule ?? '' ) ) ) . ' WIB',
+				'fees'         => 'Rp. ' . kiriof_money_format( $row->cost ?? 0 ),
+				'orders'       => (int) ( $row->order_amt ?? 0 ),
+				'method'       => '' !== $method ? strtoupper( $method ) : 'QRIS',
+				'status'       => 'paid' === $status || 'top' === $method ? 'paid' : 'unpaid',
+				'actions'      => $actions,
+			);
+		}
+
+		return array(
+			'rows'         => $rows,
+			'filters'      => $filters,
+			'monthOptions' => $month_options,
+			'statusTabs'   => array(
+				array( 'value' => '', 'label' => __( 'All', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['all'] ?? 0 ) ),
+				array( 'value' => 'unpaid', 'label' => __( 'Waiting for Payment', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['unpaid'] ?? 0 ) ),
+				array( 'value' => 'paid', 'label' => __( 'Paid', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['paid'] ?? 0 ) ),
+			),
+			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages ),
+			'i18n'         => array(
+				'search'        => __( 'Search payment…', 'kiriminaja-official' ),
+				'allDates'      => __( 'All Dates', 'kiriminaja-official' ),
+				'apply'         => __( 'Apply', 'kiriminaja-official' ),
+				'pickupNumber'  => __( 'Pickup Number', 'kiriminaja-official' ),
+				'schedule'      => __( 'Schedule', 'kiriminaja-official' ),
+				'fees'          => __( 'Fees', 'kiriminaja-official' ),
+				'orders'        => __( 'Orders', 'kiriminaja-official' ),
+				'paymentMethod' => __( 'Payment Method', 'kiriminaja-official' ),
+				'paymentStatus' => __( 'Payment Status', 'kiriminaja-official' ),
+				'action'        => __( 'Action', 'kiriminaja-official' ),
+				'requested'     => __( 'Requested', 'kiriminaja-official' ),
+				'order'         => __( 'Order', 'kiriminaja-official' ),
+				'empty'         => __( 'Not Found', 'kiriminaja-official' ),
+				'pageOf'        => __( 'of', 'kiriminaja-official' ),
+			),
+		);
+	}
+
     /**
      * Composition root used by the legacy Admin page callback.
      */
@@ -45,6 +113,15 @@ class PaymentListRenderService {
         $prev_page_link = $this->getPaginationLink( $page - 1, $page > 1 );
         $monthOptions   = $this->getMonthOptions();
         $kiriof_statusCounts = $this->query->getStatusCounts();
+		$kiriof_payments_bootstrap = $this->prepareSvelteBootstrap(
+			$results,
+			$filters,
+			$page,
+			$total_pages,
+			$items_per_page,
+			$monthOptions,
+			$kiriof_statusCounts
+		);
 
         include KIRIOF_DIR . 'templates/request-pickup/view/index.php';
     }

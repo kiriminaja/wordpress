@@ -472,6 +472,18 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 true
             );
+
+			if ( 'kiriminaja-request-pickup' === $page ) {
+				$payments_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.js';
+				$payments_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.css';
+				if ( file_exists( $payments_style ) ) {
+					wp_enqueue_style( 'kiriof-payments-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.css', array( 'kiriof-style' ), (string) filemtime( $payments_style ) );
+				}
+				if ( file_exists( $payments_script ) ) {
+					wp_enqueue_script( 'kiriof-payments-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.js', array( 'kiriof-request-pickup' ), (string) filemtime( $payments_script ), true );
+					wp_script_add_data( 'kiriof-payments-list', 'type', 'module' );
+				}
+			}
         }
    
     }

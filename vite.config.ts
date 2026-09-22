@@ -10,6 +10,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
+        'payments-list': 'src/entries/payments-list.ts',
         'settings-root': 'src/entries/settings-root.ts',
       },
       output: {

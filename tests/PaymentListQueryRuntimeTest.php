@@ -84,6 +84,13 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString( 'PaymentListQueryInterface $query', $renderer );
         $this->assertStringContainsString( 'public function render(): void', $renderer );
         $this->assertStringNotContainsString( 'PaymentRepository', $renderer );
+		$this->assertStringContainsString( 'prepareSvelteBootstrap', $renderer );
+		$this->assertStringContainsString( 'kiriof_payments_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/payments-list.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/StatusTabs.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' );
+		$this->assertStringContainsString( "'payments-list': 'src/entries/payments-list.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
     }
 }
 
