@@ -316,7 +316,7 @@ Required adjustment:
 - Send the raw `shipping_costs` value returned by Instant pricing.
 - Prevent Express and Instant transactions from being submitted in one batch action.
 - Persist the returned tracking code or AWB immediately.
-- Decide whether dispatch happens automatically after checkout or manually from the transactions screen.
+- Dispatch is manual by admin from the order detail or Transactions workspace.
 
 ## 6. The package item model is insufficient
 
@@ -354,7 +354,7 @@ Required adjustment:
 
 - Do not reuse Express COD fees or payload fields for Instant.
 - Initially hide Instant rates when WooCommerce COD is selected.
-- Confirm with the KiriminAja API team whether `payment_method: cash` represents merchant payment to KiriminAja, receiver COD collection, or another payment contract.
+- Instant receiver COD is out of scope for the MVP; do not reuse the Express `payment_method: cash` behavior.
 - Enable Instant COD only after the amount, fee, eligibility, and settlement contract is documented and tested.
 
 ## 9. Payment response parsing assumes Express shape
@@ -632,6 +632,7 @@ array(
 - Browser geolocation is requested when checkout opens.
 - The initial GPS result must report an accuracy radius of 100 meters or better to enable Instant automatically.
 - A buyer with a less accurate result may manually correct and confirm the destination pin.
+- The manually confirmed pin may not be more than 500 meters from the initial GPS coordinate. Without geocoding, this is the MVP's location consistency rule.
 - GPS failure or denied permission hides Instant rates without blocking Express checkout.
 - The pin represents the shipping recipient location, not necessarily the buyer's current device location.
 - When `ship to a different address` is enabled, the pin belongs to the shipping address.
@@ -671,39 +672,52 @@ array(
 - Instant package creation is manual by an admin.
 - Dispatch actions are available from both WooCommerce order detail and KiriminAja Transactions.
 - Only paid or `processing` WooCommerce orders may be dispatched.
-- The admin chooses the KiriminAja payment method using the existing Express-style TOP, QRIS, or KA Credit flow, subject to endpoint and account capability.
+- The admin chooses TOP, QRIS, or KA Credit for Instant dispatch. Instant payment has a separate complete flow from Express, including its own modal/UI, request state, payment status handling, PIN handling where required, polling or refresh behavior, error states, retry behavior, and success/close transitions.
 - Bulk dispatch is allowed when origin, courier, vehicle, and payment method are the same.
-- A bulk action orchestrates package requests separately and supports partial success. Successful packages remain dispatched; failed packages retain their failure reason and can be retried.
+- Bulk payment uses one Instant payment modal per compatible bulk group.
+- Bulk API submission is adaptive: prefer one v6.2 request per compatible group using `packages[]`, and fall back to one request per order when the API response or failure mode requires isolation.
+- Bulk processing supports partial success. Successful packages remain dispatched; failed packages retain their failure reason and can be retried.
 - Reprice each order before dispatch.
-- If the price changes, show the checkout quote and current quote and require admin confirmation.
+- If the price changes, show the checkout quote and current quote and require confirmation per order. Admin may continue or skip each order independently.
 - The merchant absorbs any shipping price increase. Do not modify the buyer's WooCommerce total.
 - If the checkout courier is unavailable, show available Instant alternatives and let the admin select one. Do not switch automatically or fall back to Express.
 - If an admin edits the shipping address after checkout, clear the saved order coordinates and block dispatch until a new pin is selected and repricing succeeds.
+- Send the WooCommerce shipping address as the Instant destination address. The GPS/pin supplies coordinates; it does not replace the textual shipping address.
+- Use one stable Instant `order_id` per WooCommerce order. A retry must reuse that identifier to avoid creating a duplicate shipment.
+- Use `package_type_id = 7` as the temporary MVP constant. Keep it configurable in code so it can be replaced when KiriminAja provides the production mapping.
+- Validate sender and recipient name, phone, address, and item fields against the API constraints. Block dispatch with a specific error rather than silently truncating invalid values.
+
+#### Instant payment modal
+
+- The Instant payment modal is a separate implementation from the Express payment modal, even when it shares visual components.
+- For QRIS, show the returned QR content, payment state, polling state, paid state, expired state, API error state, retry action, and close behavior.
+- Poll payment status until paid or expired, with a bounded retry/backoff policy. If the API does not provide an expiry time, use a configurable five-minute UI expiry. Do not poll indefinitely after the modal is closed; the transaction remains pending and can be refreshed from Transactions.
+- KA Credit must handle PIN input/validation, insufficient balance, invalid PIN, retry limits, cancellation, and successful booking state.
+- TOP must show the remote payment/booking state and handle pending, paid, rejected, and retryable states without assuming QRIS behavior.
+- If booking times out after payment is marked paid, check the remote order or payment status using the stable order/payment identifier before retrying.
 
 ### Transactions workspace
 
 The KiriminAja Transactions page must separate delivery workflows with persistent tabs, following the Shopify-style interaction pattern shown in the reference image:
 
 - `Regular Delivery`
-- `International Delivery`
 - `Instant Delivery`
-- `Order Issue`
+- `Order Issue` (existing COD Deficit workflow)
 
-The tabs are functional filters, not only visual labels. Each transaction belongs to one primary delivery tab, or to `Order Issue` when it requires intervention.
+International Delivery is deferred from the MVP. The tabs are functional filters, not only visual labels. Each transaction belongs to one primary delivery tab. `Order Issue` remains the existing COD Deficit workflow and is not a generic Instant operational issue inbox in the MVP.
 
 Requirements:
 
 - Default to `Regular Delivery` when no tab has been selected.
 - Persist the active tab in the URL so refresh, browser back, and shared admin links preserve the current view.
 - Scope search, pagination, bulk selection, and bulk actions to the active tab.
-- Do not allow a bulk action to mix Regular, International, and Instant transactions.
+- Do not allow a bulk action to mix Regular and Instant transactions.
 - Keep the KA Credit balance summary and payment actions available at the top of the workspace when the account supports them, including Top Up and History entry points.
 - Keep filters contextual to the active tab instead of showing Express-only filters on Instant transactions.
 - Regular Delivery filters continue to support order or AWB lookup, COD/non-COD, transaction status, print status, and courier.
 - Instant Delivery filters support WooCommerce order or KiriminAja order/tracking lookup, transaction status, courier, and payment method. Express pickup schedule filters are not required for Instant.
-- International Delivery filters and actions remain isolated from domestic Express and Instant behavior.
-- `Order Issue` collects transactions that need intervention, including missing coordinates, missing product weight, failed pricing, failed payment, stale or changed quotes, rejected booking, failed webhook processing, and failed retries.
-- An issue row shows the actionable reason, affected order, delivery type, last API error or response message, and the next retry or resolution action.
+- `Order Issue` continues to show COD Deficit transactions according to the existing workflow. It does not collect Instant pricing, booking, payment, webhook, or retry issues in the MVP.
+- Instant operational problems remain in the Instant Delivery tab and are represented by an issue badge, actionable error message, and the appropriate retry, reprice, or resolution action.
 - Instant rows show delivery type, courier/service, payment method, WooCommerce order, KiriminAja order ID, tracking code or AWB, package and fee summary, current status, and state-appropriate actions.
 - Instant actions include dispatch, safe retry, reprice, tracking, and void/cancel only when the remote shipment state allows it.
 - Show confirmation before dispatch, retry, or void actions. For price changes, show the checkout quote and current quote in the confirmation step.
@@ -718,7 +732,8 @@ Requirements:
 - A failed or remotely canceled delivery leaves the order `processing` and adds an order note for manual handling.
 - Canceling a dispatched WooCommerce order attempts the Instant void endpoint first and records the remote result.
 - Live tracking is available to administrators and the authenticated buyer who owns the order.
-- Show live tracking from My Account order detail and the plugin tracking page. The tracking page must validate order ownership or an order credential before exposing the live URL.
+- Show live tracking from My Account order detail and the plugin tracking page. The tracking page must validate the WooCommerce order key before exposing the live URL.
+- An Instant transaction with a post-dispatch API or webhook problem remains in the Instant Delivery tab and receives an issue badge; it does not move to the COD Deficit `Order Issue` tab.
 
 ### Explicit MVP exclusions
 
@@ -731,16 +746,22 @@ Requirements:
 - Automatic dispatch
 - Automatic courier replacement
 - Automatic Express fallback
+- Generic Instant operational issue inbox; Instant issues remain in the Instant Delivery tab with an issue badge in the MVP.
 
 ## External Confirmations Still Required
 
-These are implementation dependencies to confirm with KiriminAja or infrastructure owners, not open product decisions:
+These are production-readiness dependencies to confirm with KiriminAja or infrastructure owners. They are not blockers for the MVP Sandbox implementation:
 
 1. Confirm which merchant account plans and production accounts are entitled to Instant couriers.
-2. Confirm that the v6.2 Instant package endpoint supports the existing TOP, QRIS, and KA Credit flows, including the exact PIN and payment response contract.
-3. Confirm that omitting Instant insurance allowance is the correct production behavior even when pricing returns insurance options.
-4. Obtain representative Sandbox and Production responses for GoSend, Grab Express, and Borzo pricing, booking, payment, webhook, tracking, and cancellation.
-5. Confirm OpenStreetMap standard tile usage is acceptable for the expected production traffic, or provide a production tile service before launch.
+2. Confirm that omitting Instant insurance allowance is the correct production behavior even when pricing returns insurance options.
+3. Confirm OpenStreetMap standard tile usage is acceptable for the expected production traffic, or provide a production tile service before launch.
+4. Confirm the production `package_type_id` value. The MVP temporarily uses `7`, taken from the OpenAPI example.
+5. Confirm the production success and error response contract for v6.2 Instant booking. The OpenAPI page labels its success response as a mock shape, so the implementation must normalize defensively and validate Sandbox responses.
+
+The representative Instant request and response examples should be taken from the KiriminAja developer documentation and OpenAPI reference during implementation:
+
+- [KiriminAja Mitra API documentation](https://developer.kiriminaja.com/docs)
+- [KiriminAja OpenAPI JSON](https://developer.kiriminaja.com/docs/openapi/json)
 
 ## Suggested Delivery Phases
 
@@ -767,7 +788,7 @@ These are implementation dependencies to confirm with KiriminAja or infrastructu
 - Add Instant tracking and live tracking URL.
 - Extend webhook processing and status transitions.
 - Add Instant-specific admin actions and labels.
-- Add delivery-type tabs and the `Order Issue` workflow to the Transactions workspace.
+- Add Regular Delivery, Instant Delivery, and the existing COD Deficit `Order Issue` tabs to the Transactions workspace. Defer International Delivery.
 
 ### Phase 4: Checkout Blocks
 
@@ -815,11 +836,11 @@ Classic and Block work may run in parallel after the normalized Instant rate and
 ### Transactions workspace
 
 - The active tab is reflected in the URL and survives refresh and browser navigation.
-- A transaction appears in exactly one delivery tab or in `Order Issue` when it requires intervention.
+- A transaction appears in exactly one delivery tab. COD Deficit records appear in `Order Issue`; Instant operational issues remain in Instant with an issue badge.
 - Instant transactions never appear in the Regular Delivery list.
-- Bulk selection cannot span delivery tabs and cannot dispatch incompatible Instant groups.
+- Bulk selection cannot span Regular and Instant tabs and cannot dispatch incompatible Instant groups.
 - Instant rows expose the correct dispatch, repricing, tracking, retry, and void actions for their state.
-- API and data-quality failures appear in `Order Issue` with an actionable reason and retry or resolution path.
+- Instant API and data-quality failures remain visible in Instant with an actionable reason and retry or resolution path.
 - Empty states and filters are specific to the selected tab.
 
 ### Package creation
