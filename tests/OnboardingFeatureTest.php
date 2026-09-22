@@ -251,4 +251,36 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/.oxlintrc.json' );
         $this->assertFileExists( PLUGIN_DIR . '/scripts/frontend-pre-commit.sh' );
     }
+
+    #[Test]
+    public function settings_root_uses_the_shared_svelte_admin_foundation(): void
+    {
+        $controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/SettingController.php' );
+        $configured = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/index.php' );
+        $setup      = file_get_contents( PLUGIN_DIR . '/templates/setting/unsetuped/index.php' );
+        $webhooks   = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/section-webhooks.php' );
+        $technical  = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/section-technical.php' );
+        $vite       = file_get_contents( PLUGIN_DIR . '/vite.config.ts' );
+        $gitignore  = file_get_contents( PLUGIN_DIR . '/.gitignore' );
+
+        $this->assertFileExists( PLUGIN_DIR . '/src/entries/settings-root.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/wordpress/ajax.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/SettingSwitch.svelte' );
+        $this->assertStringContainsString( 'data-kiriof-settings-root', $configured );
+        $this->assertStringContainsString( 'data-kiriof-settings-payload', $configured );
+        $this->assertStringContainsString( 'data-kiriof-settings-fallback', $configured );
+        $this->assertStringContainsString( 'data-kiriof-settings-root', $setup );
+        $this->assertStringContainsString( 'data-kiriof-settings-root', $webhooks );
+        $this->assertStringContainsString( 'data-kiriof-settings-root', $technical );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
+        $this->assertStringContainsString( "'settings-root': 'src/entries/settings-root.ts'", $vite );
+        $this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' )", $controller );
+        $this->assertStringContainsString( "wp_script_add_data( 'kiriof-settings-root', 'type', 'module' )", $controller );
+        $this->assertStringContainsString( 'assets/admin/dist', $gitignore );
+    }
 }

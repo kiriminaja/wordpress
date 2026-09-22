@@ -8,13 +8,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var string $locale
  * @var array $inputValueArr
  */
+$kiriof_settings_bootstrap = $settingsPageData->prepareRootBootstrap( false );
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-settings-page>
 
     <?php $kiriof_title = __( 'KiriminAja Configuration', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
-                        <div style="max-width: 437px; width: 100%; margin: 0 auto">
+                         <div data-kiriof-settings-root></div>
+                         <script type="application/json" data-kiriof-settings-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_settings_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+                         <div data-kiriof-settings-fallback style="max-width: 437px; width: 100%; margin: 0 auto">
 
                             
                             <!--CARD START-->

@@ -13,6 +13,18 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
 
+#: inc/Services/SettingsPageData.php
+msgid "Saving…"
+msgstr "Menyimpan…"
+
+#: inc/Services/SettingsPageData.php
+msgid "Disconnecting…"
+msgstr "Memutuskan koneksi…"
+
+#: inc/Services/SettingsPageData.php
+msgid "Add the KiriminAja tracking shortcode to the content editor."
+msgstr "Tambahkan shortcode pelacakan KiriminAja ke editor konten."
+
 #: inc/Pages/Admin.php
 msgid "Add customer shipment tracking."
 msgstr "Tambahkan pelacakan kiriman pelanggan."

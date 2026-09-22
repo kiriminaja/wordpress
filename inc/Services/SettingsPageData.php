@@ -35,6 +35,288 @@ class SettingsPageData {
 	}
 
 	/**
+	 * @param array<string, mixed> $account Prepared account data.
+	 * @return array<string, mixed>
+	 */
+	public function prepareAccountBootstrap( array $account ): array {
+		$profile = $account['kiriof_profile'];
+		$couriers = array();
+		foreach ( $account['kiriof_wl_id_arr'] as $code ) {
+			$couriers[] = array(
+				'code' => $code,
+				'name' => $account['kiriof_wl_map'][ $code ] ?? strtoupper( $code ),
+			);
+		}
+
+		return array(
+			'view'         => 'account',
+			'connected'    => (bool) $account['kiriof_is_connected'],
+			'profileError' => (bool) $account['kiriof_profile_err'],
+			'profile'      => $profile ? array(
+				'name'          => (string) ( $profile->name ?? '' ),
+				'email'         => (string) ( $profile->email ?? '' ),
+				'status'        => (string) ( $profile->status ?? '' ),
+				'paymentMethod' => (string) ( $profile->metadata->payment_method ?? '' ),
+			) : null,
+			'couriers'      => $couriers,
+			'termsUrl'      => 'https://kiriminaja.com/syarat-ketentuan',
+			'privacyUrl'    => 'https://kiriminaja.com/privacy-policy',
+			'i18n'          => array(
+				'enabledCouriers'      => __( 'Enabled Couriers', 'kiriminaja-official' ),
+				'connection'           => __( 'Connection', 'kiriminaja-official' ),
+				'setupKey'             => __( 'Setup Key', 'kiriminaja-official' ),
+				'setupKeyPlaceholder'  => __( 'Input your setup key for KiriminAja', 'kiriminaja-official' ),
+				'connect'              => __( 'Connect', 'kiriminaja-official' ),
+				'connecting'           => __( 'Connecting…', 'kiriminaja-official' ),
+				'disconnect'           => __( 'Disconnect', 'kiriminaja-official' ),
+				'disconnecting'        => __( 'Disconnecting…', 'kiriminaja-official' ),
+				'disconnectConfirm'    => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
+				'accountUnavailable'   => __( 'Unable to load account information. Your integration may be incomplete.', 'kiriminaja-official' ),
+				'connectedUnavailable' => __( 'Account is connected, but profile details are unavailable right now.', 'kiriminaja-official' ),
+				'enterSetupKey'        => __( 'Please enter a setup key.', 'kiriminaja-official' ),
+				'connectionFailed'     => __( 'Connection failed. Please check your setup key.', 'kiriminaja-official' ),
+				'disconnectFailed'     => __( 'Disconnect failed.', 'kiriminaja-official' ),
+				'agreementPrefix'      => __( 'By clicking Connect, you agree to accept KiriminAja\'s', 'kiriminaja-official' ),
+				'terms'                => __( 'terms and conditions', 'kiriminaja-official' ),
+				'agreementAnd'         => __( 'and its', 'kiriminaja-official' ),
+				'privacy'              => __( 'privacy policy', 'kiriminaja-official' ),
+			),
+		);
+	}
+
+	/**
+	 * @param array<int, object> $pages Tracking pages.
+	 * @return array<string, mixed>
+	 */
+	public function prepareTrackingBootstrap( array $pages ): array {
+		$serialized_pages = array();
+		foreach ( $pages as $page ) {
+			$serialized_pages[] = array(
+				'id'      => (int) $page->ID,
+				'title'   => (string) $page->post_title,
+				'url'     => get_permalink( $page->ID ),
+				'editUrl' => get_edit_post_link( $page->ID ),
+			);
+		}
+
+		return array(
+			'view'  => 'tracking',
+			'pages' => $serialized_pages,
+			'i18n'  => array(
+				'guideTitle'       => __( 'How to Add a Tracking Page', 'kiriminaja-official' ),
+				'guideSteps'       => array(
+					__( 'Go to Pages › Add New in your WordPress admin.', 'kiriminaja-official' ),
+					__( 'Give your page a title, e.g. "Track Your Order".', 'kiriminaja-official' ),
+					__( 'Add the KiriminAja tracking shortcode to the content editor.', 'kiriminaja-official' ),
+					__( 'Publish the page.', 'kiriminaja-official' ),
+				),
+				'pagesTitle'       => __( 'Pages Using Tracking Shortcode', 'kiriminaja-official' ),
+				'emptyTitle'       => __( 'You haven\'t configured any tracking page yet.', 'kiriminaja-official' ),
+				'emptyDescription' => __( 'Add the shortcode [kiriminaja-tracking-front-page] to a page to enable order tracking for your customers.', 'kiriminaja-official' ),
+				'view'             => __( 'View', 'kiriminaja-official' ),
+				'edit'             => __( 'Edit', 'kiriminaja-official' ),
+			),
+		);
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function prepareCouriersBootstrap(): array {
+		return array(
+			'view' => 'couriers',
+			'i18n' => array(
+				'enableAll'  => __( 'Enable All', 'kiriminaja-official' ),
+				'disableAll' => __( 'Disable All', 'kiriminaja-official' ),
+				'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
+				'noCouriers' => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
+				'loadFailed' => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
+				'saveFailed' => __( 'Could not save courier settings.', 'kiriminaja-official' ),
+				'count'      => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
+			),
+		);
+	}
+
+	/**
+	 * Prepare the serializable contract for the Svelte settings root.
+	 *
+	 * @param bool                 $connected         Whether the integration is already connected.
+	 * @param array<string, mixed> $list_data         Prepared settings-list data.
+	 * @param array<string, mixed> $product_readiness Prepared product-readiness data.
+	 * @return array<string, mixed>
+	 */
+	public function prepareRootBootstrap( bool $connected, array $list_data = array(), array $product_readiness = array() ): array {
+		$base_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
+		$bootstrap = array(
+			'view'    => 'root',
+			'mode'    => $connected ? 'configured' : 'unconfigured',
+			'helpUrl' => 'https://help.kiriminaja.com/article/setup-wordpress',
+			'i18n'    => array(
+				'setupKey'            => __( 'Setup Key (Secret)', 'kiriminaja-official' ),
+				'setupKeyPlaceholder' => __( 'Put your setup key here', 'kiriminaja-official' ),
+				'connect'             => __( 'Connect Now', 'kiriminaja-official' ),
+				'connecting'          => __( 'Connecting…', 'kiriminaja-official' ),
+				'howToConnect'        => __( 'How to Connect', 'kiriminaja-official' ),
+				'enterSetupKey'       => __( 'Please enter a setup key.', 'kiriminaja-official' ),
+				'connectionFailed'    => __( 'Connection failed. Please check your setup key.', 'kiriminaja-official' ),
+				'saveFailed'          => __( 'Save failed.', 'kiriminaja-official' ),
+			),
+		);
+
+		if ( ! $connected ) {
+			return $bootstrap;
+		}
+
+		if ( empty( $list_data ) ) {
+			$list_data = $this->prepareList();
+		}
+		if ( empty( $product_readiness ) ) {
+			$product_readiness = $this->product_readiness_service->getReadiness();
+		}
+		$product_status = $product_readiness['ready']
+			? __( 'All Product Configured', 'kiriminaja-official' )
+			: sprintf(
+				/* translators: %1$d: configured products, %2$d: total products */
+				__( '%1$d / %2$d Need Action', 'kiriminaja-official' ),
+				$product_readiness['configured'],
+				$product_readiness['total']
+			);
+
+		$bootstrap['toggles'] = array(
+			'insurance' => 'yes' === $list_data['kiriof_insurance_enabled'],
+			'cod'       => 'yes' === $list_data['kiriof_cod_enabled'],
+		);
+		$bootstrap['groups'] = array(
+			array(
+				'label' => __( 'Configuration', 'kiriminaja-official' ),
+				'items' => array(
+					$this->settingsRootItem( 'account', __( 'Account Configuration', 'kiriminaja-official' ), __( 'Manage your KiriminAja account connection and profile.', 'kiriminaja-official' ), 'account', $base_url . '&section=account' ),
+				),
+			),
+			array(
+				'label' => __( 'Online Store', 'kiriminaja-official' ),
+				'items' => array(
+					$this->settingsRootItem( 'tracking', __( 'Tracking Page', 'kiriminaja-official' ), __( 'Configure the order tracking page for your customers.', 'kiriminaja-official' ), 'tracking', $base_url . '&section=tracking' ),
+				),
+			),
+			array(
+				'label' => __( 'Shipping', 'kiriminaja-official' ),
+				'items' => array(
+					$this->settingsRootItem( 'products', __( 'Product Volumetric Configurations', 'kiriminaja-official' ), __( 'Set weight, length, width, and height for every product and variation.', 'kiriminaja-official' ), 'product', admin_url( 'edit.php?post_type=product' ), $product_status, $product_readiness['ready'] ? 'ready' : 'warning' ),
+					$this->settingsRootItem( 'shipping-locations', __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), __( 'Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.', 'kiriminaja-official' ), 'shipping', admin_url( 'admin.php?page=wc-settings' ), $list_data['kiriof_shipping_locations_ready'] ? __( 'Ready', 'kiriminaja-official' ) : __( 'Action needed', 'kiriminaja-official' ), $list_data['kiriof_shipping_locations_ready'] ? 'ready' : 'warning' ),
+					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers' ),
+					$this->settingsRootItem( 'insurance', __( 'Shipping Insurance', 'kiriminaja-official' ), __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ), 'insurance', '', '', '', 'insurance' ),
+					$this->settingsRootItem( 'cod', __( 'Cash on Delivery', 'kiriminaja-official' ), __( 'Allow customers to pay when they receive their order.', 'kiriminaja-official' ), 'cod', '', '', '', 'cod' ),
+					$this->settingsRootItem( 'locations', __( 'Manage Locations', 'kiriminaja-official' ), __( 'Set your business location for accurate shipping rates.', 'kiriminaja-official' ), 'location', admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ),
+				),
+			),
+			array(
+				'label' => __( 'Others', 'kiriminaja-official' ),
+				'items' => array(
+					$this->settingsRootItem( 'webhooks', __( 'Webhooks', 'kiriminaja-official' ), __( 'Configure callback URL for shipment status updates.', 'kiriminaja-official' ), 'webhook', $base_url . '&section=webhooks' ),
+					$this->settingsRootItem( 'technical', __( 'Technical', 'kiriminaja-official' ), __( 'Manage cache and download KiriminAja plugin-only diagnostic logs.', 'kiriminaja-official' ), 'technical', $base_url . '&section=technical' ),
+				),
+			),
+		);
+
+		return $bootstrap;
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function prepareWebhooksBootstrap( string $callback_url ): array {
+		return array(
+			'view'        => 'webhooks',
+			'callbackUrl' => $callback_url,
+			'i18n'        => array(
+				'callbackUrl' => __( 'Callback URL', 'kiriminaja-official' ),
+				'save'        => __( 'Save', 'kiriminaja-official' ),
+				'saving'      => __( 'Saving…', 'kiriminaja-official' ),
+				'saved'       => __( 'Saved.', 'kiriminaja-official' ),
+				'saveFailed'  => __( 'Save failed.', 'kiriminaja-official' ),
+			),
+		);
+	}
+
+	/**
+	 * @param array<string, mixed> $technical Prepared technical diagnostics.
+	 * @return array<string, mixed>
+	 */
+	public function prepareTechnicalBootstrap( array $technical ): array {
+		return array(
+			'view'           => 'technical',
+			'downloadLogUrl' => $technical['downloadLogUrl'],
+			'region'         => array(
+				'state'         => $technical['state'],
+				'lastError'     => $technical['cacheStatus']['last_error'] ?? '',
+				'provinceCount' => $technical['provinceCount'],
+				'cityCount'     => $technical['cityCount'],
+				'updated'       => $technical['cacheStatus']['last_completed_at'] ?? '—',
+				'validUntil'    => $technical['regionValidUntil'],
+			),
+			'couriers'       => array(
+				'cached'     => $technical['courierCached'],
+				'count'      => $technical['courierCount'],
+				'updated'    => $technical['courierUpdated'],
+				'validUntil' => $technical['courierValidUntil'],
+			),
+			'i18n'           => array(
+				'regionTitle'        => __( 'Region Coverage Cache', 'kiriminaja-official' ),
+				'regionDescription'  => __( 'Province and city data used for coupon area restrictions. Re-validate to fetch the latest data from the KiriminAja API.', 'kiriminaja-official' ),
+				'courierTitle'       => __( 'Courier List Cache', 'kiriminaja-official' ),
+				'courierDescription' => __( 'Courier names and types fetched from the KiriminAja API. Used for proper labelling in the transactions filter and coupon courier restrictions. Cached for 24 hours.', 'kiriminaja-official' ),
+				'logsTitle'          => __( 'Diagnostic Logs', 'kiriminaja-official' ),
+				'logsDescription'    => __( 'Download WooCommerce logs generated only by the KiriminAja plugin. The export excludes general WooCommerce and WordPress logs.', 'kiriminaja-official' ),
+				'logsPrivacy'        => __( 'KiriminAja does not collect this diagnostic data automatically or send it directly to KiriminAja. Please download the file and send it to the KiriminAja support team only with your consent.', 'kiriminaja-official' ),
+				'status'             => __( 'Status', 'kiriminaja-official' ),
+				'provinces'          => __( 'Provinces', 'kiriminaja-official' ),
+				'cities'             => __( 'Cities', 'kiriminaja-official' ),
+				'couriers'           => __( 'couriers', 'kiriminaja-official' ),
+				'lastUpdated'        => __( 'Last Updated', 'kiriminaja-official' ),
+				'validUntil'         => __( 'Valid Until', 'kiriminaja-official' ),
+				'refreshRegion'      => __( 'Re-validate Region Cache', 'kiriminaja-official' ),
+				'scheduling'         => __( 'Scheduling…', 'kiriminaja-official' ),
+				'refreshing'         => __( 'Refreshing…', 'kiriminaja-official' ),
+				'cacheUpdated'       => __( 'Cache updated successfully.', 'kiriminaja-official' ),
+				'refreshFailed'      => __( 'Re-validate failed.', 'kiriminaja-official' ),
+				'flushCouriers'      => __( 'Flush & Re-fetch Couriers', 'kiriminaja-official' ),
+				'flushing'           => __( 'Flushing…', 'kiriminaja-official' ),
+				'cacheRefreshed'     => __( 'Cache refreshed.', 'kiriminaja-official' ),
+				'flushFailed'        => __( 'Flush failed. Please try again.', 'kiriminaja-official' ),
+				'cached'             => __( 'Cached', 'kiriminaja-official' ),
+				'notCached'          => __( 'Not cached', 'kiriminaja-official' ),
+				'downloadLog'        => __( 'Download Log', 'kiriminaja-official' ),
+			),
+		);
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function settingsRootItem( string $key, string $label, string $description, string $icon, string $href = '', string $status = '', string $status_tone = '', string $toggle = '' ): array {
+		$item = array(
+			'key'         => $key,
+			'label'       => $label,
+			'description' => $description,
+			'icon'        => $icon,
+		);
+
+		if ( '' !== $href ) {
+			$item['href'] = $href;
+		}
+		if ( '' !== $status ) {
+			$item['status'] = $status;
+			$item['statusTone'] = $status_tone;
+		}
+		if ( '' !== $toggle ) {
+			$item['toggle'] = $toggle;
+		}
+
+		return $item;
+	}
+
+	/**
 	 * Prepare data shared by the setup and connected settings views.
 	 *
 	 * @return array<string, mixed>

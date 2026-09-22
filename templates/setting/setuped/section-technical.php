@@ -13,8 +13,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template-local variables, not globals
 extract( $settingsPageData->prepareTechnical(), EXTR_SKIP );
 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+$kiriof_settings_bootstrap = $settingsPageData->prepareTechnicalBootstrap(
+	array(
+		'cacheStatus'       => $cacheStatus,
+		'provinceCount'     => $provinceCount,
+		'cityCount'         => $cityCount,
+		'state'             => $state,
+		'regionValidUntil'  => $regionValidUntil,
+		'downloadLogUrl'    => $downloadLogUrl,
+		'courierCount'      => $courierCount,
+		'courierCached'     => $courierCached,
+		'courierUpdated'    => $courierUpdated,
+		'courierValidUntil' => $courierValidUntil,
+	)
+);
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-settings-page>
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
@@ -26,7 +40,10 @@ extract( $settingsPageData->prepareTechnical(), EXTR_SKIP );
     ?>
     <hr class="wp-header-end">
 
-    <div class="kj-detail" style="display:flex;flex-direction:column;gap:16px">
+    <div data-kiriof-settings-root></div>
+    <script type="application/json" data-kiriof-settings-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_settings_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+    <div class="kj-detail" data-kiriof-settings-fallback style="display:flex;flex-direction:column;gap:16px">
 
         <div style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px 20px;">
             <h3 style="margin-top:0"><?php esc_html_e( 'Region Coverage Cache', 'kiriminaja-official' ); ?></h3>

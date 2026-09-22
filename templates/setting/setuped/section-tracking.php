@@ -12,15 +12,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 $kiriof_pages = kiriof_get_published_tracking_content();
+$kiriof_settings_bootstrap = $settingsPageData->prepareTrackingBootstrap( $kiriof_pages );
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-settings-page>
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
     <?php $kiriof_title = __( 'Tracking Page', 'kiriminaja-official' ); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = __( 'Settings', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
-    <div class="kj-detail">
+    <div data-kiriof-settings-root></div>
+    <script type="application/json" data-kiriof-settings-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_settings_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+    <div class="kj-detail" data-kiriof-settings-fallback>
 
         <!-- Guide -->
         <div class="kj-account-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">

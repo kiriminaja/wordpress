@@ -1,0 +1,492 @@
+[data-kiriof-settings-page] {
+  --kiriof-primary: #5c2ecb;
+  --kiriof-primary-strong: #37159f;
+  --kiriof-primary-soft: #f5f0ff;
+  --kiriof-ink: #241b3d;
+  --kiriof-muted: #635d75;
+  --kiriof-border: #ddd7ee;
+  --kiriof-surface: #fff;
+  --kiriof-danger: #b42318;
+}
+
+.kiriof-account {
+  display: grid;
+  gap: 16px;
+  max-width: 920px;
+}
+
+.kiriof-courier-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kiriof-courier-chips span {
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 5px;
+  background: var(--kiriof-primary-soft);
+  color: var(--kiriof-muted);
+}
+
+.kiriof-courier-chips strong {
+  color: var(--kiriof-primary-strong);
+}
+
+.kiriof-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.kiriof-profile__avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--kiriof-primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.kiriof-profile > div {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-profile > div span {
+  color: var(--kiriof-muted);
+}
+
+.kiriof-danger-button {
+  border-color: var(--kiriof-danger) !important;
+  color: var(--kiriof-danger) !important;
+}
+
+.kiriof-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kiriof-courier-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.kiriof-courier-toolbar span {
+  color: var(--kiriof-muted);
+}
+
+.kiriof-courier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.kiriof-courier-grid article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 6px;
+}
+
+.kiriof-courier-grid article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-courier-grid article span {
+  color: var(--kiriof-muted);
+}
+
+.kiriof-guide-list {
+  max-width: 70ch;
+  line-height: 1.7;
+}
+
+.kiriof-shortcode {
+  display: inline-block;
+  padding: 5px 8px;
+  user-select: all;
+}
+
+.kiriof-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px;
+  color: var(--kiriof-muted);
+  text-align: center;
+}
+
+.kiriof-tracking-pages {
+  display: grid;
+  gap: 8px;
+}
+
+.kiriof-tracking-pages article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 6px;
+}
+
+.kiriof-tracking-pages article > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kiriof-tracking-pages article > div:first-child span {
+  overflow: hidden;
+  color: var(--kiriof-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kiriof-technical {
+  display: grid;
+  gap: 16px;
+  max-width: 920px;
+}
+
+.kiriof-section-card {
+  box-sizing: border-box;
+  max-width: 920px;
+  padding: 20px;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 8px;
+  background: var(--kiriof-surface);
+}
+
+.kiriof-section-card h2 {
+  margin: 0 0 8px;
+  color: var(--kiriof-ink);
+  font-size: 16px;
+}
+
+.kiriof-section-card > p {
+  max-width: 72ch;
+  color: var(--kiriof-muted);
+}
+
+.kiriof-section-input {
+  width: min(100%, 520px);
+}
+
+.kiriof-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.kiriof-section-actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiriof-section-message {
+  color: #176b36;
+}
+
+.kiriof-section-message.error {
+  color: var(--kiriof-danger);
+}
+
+.kiriof-diagnostics {
+  display: grid;
+  margin: 18px 0;
+  border-top: 1px solid var(--kiriof-border);
+}
+
+.kiriof-diagnostics div {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--kiriof-border);
+}
+
+.kiriof-diagnostics dt {
+  color: var(--kiriof-muted);
+  font-weight: 600;
+}
+
+.kiriof-diagnostics dd {
+  margin: 0;
+  color: var(--kiriof-ink);
+}
+
+.kiriof-diagnostics__badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #e7f6ec;
+  color: #176b36;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kiriof-diagnostics__badge.warning {
+  background: #fff3cd;
+  color: #7a4d00;
+}
+
+.kiriof-diagnostics__badge.error {
+  background: #fff1f0;
+  color: var(--kiriof-danger);
+}
+
+.kiriof-settings-page--enhanced [data-kiriof-settings-fallback] {
+  display: none;
+}
+
+.kiriof-settings-root {
+  max-width: 920px;
+}
+
+.kiriof-settings-group {
+  margin: 0 0 26px;
+}
+
+.kiriof-settings-group__title {
+  margin: 0 0 8px;
+  color: var(--kiriof-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kiriof-settings-group__items {
+  overflow: hidden;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 8px;
+  background: var(--kiriof-surface);
+}
+
+.kiriof-setting-item {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--kiriof-border);
+  color: var(--kiriof-ink);
+  text-decoration: none;
+}
+
+.kiriof-setting-item:last-child {
+  border-bottom: 0;
+}
+
+a.kiriof-setting-item:hover,
+a.kiriof-setting-item:focus-visible {
+  background: var(--kiriof-primary-soft);
+  color: var(--kiriof-ink);
+}
+
+a.kiriof-setting-item:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--kiriof-primary);
+  outline-offset: -3px;
+}
+
+.kiriof-setting-item__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background: var(--kiriof-primary-soft);
+  color: var(--kiriof-primary-strong);
+}
+
+.kiriof-setting-item__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kiriof-setting-item__copy strong {
+  font-size: 14px;
+}
+
+.kiriof-setting-item__copy span {
+  color: var(--kiriof-muted);
+  line-height: 1.45;
+}
+
+.kiriof-setting-item__status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #e7f6ec;
+  color: #176b36;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.kiriof-setting-item__status.warning {
+  background: #fff3cd;
+  color: #7a4d00;
+}
+
+.kiriof-setting-item__chevron {
+  color: var(--kiriof-muted);
+}
+
+.kiriof-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #8c8f94;
+  border-radius: 999px;
+  background: #8c8f94;
+  cursor: pointer;
+}
+
+.kiriof-switch[data-state='checked'] {
+  border-color: var(--kiriof-primary);
+  background: var(--kiriof-primary);
+}
+
+.kiriof-switch:focus-visible {
+  outline: 3px solid var(--kiriof-primary);
+  outline-offset: 2px;
+}
+
+.kiriof-switch:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.kiriof-switch__thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateX(2px);
+}
+
+.kiriof-switch__thumb[data-state='checked'] {
+  transform: translateX(20px);
+}
+
+.kiriof-settings-root__message {
+  max-width: 920px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--kiriof-danger);
+  background: #fff1f0;
+  color: var(--kiriof-danger);
+}
+
+.kiriof-connect {
+  box-sizing: border-box;
+  width: min(440px, 100%);
+  margin: 5vh auto 0;
+  padding: 28px;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 10px;
+  background: var(--kiriof-surface);
+}
+
+.kiriof-connect__identity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.kiriof-connect__identity > span:not(.kiriof-connect__link) {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.kiriof-connect__identity > span:first-child {
+  background: #1d2327;
+  color: #fff;
+}
+
+.kiriof-connect__brand {
+  background: var(--kiriof-primary);
+  color: #fff;
+}
+
+.kiriof-connect__link {
+  color: var(--kiriof-muted);
+}
+
+.kiriof-connect h2 {
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.kiriof-connect__label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--kiriof-ink);
+  font-weight: 600;
+}
+
+.kiriof-connect__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+}
+
+.kiriof-connect__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.kiriof-connect__actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 600px) {
+  .kiriof-setting-item {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .kiriof-setting-item__status {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .kiriof-setting-item__chevron {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

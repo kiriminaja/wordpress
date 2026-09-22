@@ -4,16 +4,16 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [svelte()],
   build: {
-    emptyOutDir: false,
+    emptyOutDir: true,
     manifest: false,
     outDir: 'assets/admin/dist',
     rollupOptions: {
-      input: 'src/entries/onboarding-progress.ts',
+      input: {
+        'onboarding-progress': 'src/entries/onboarding-progress.ts',
+        'settings-root': 'src/entries/settings-root.ts',
+      },
       output: {
-        assetFileNames: (assetInfo) =>
-          assetInfo.name?.endsWith('.css')
-            ? 'kiriminaja-onboarding-progress.css'
-            : 'kiriminaja-[name][extname]',
+        assetFileNames: 'kiriminaja-[name][extname]',
         entryFileNames: 'kiriminaja-[name].js',
         format: 'es',
       },

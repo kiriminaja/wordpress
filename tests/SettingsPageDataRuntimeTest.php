@@ -113,6 +113,16 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$provider = new SettingsPageData( $settings, $readiness, $api, $region, $cache );
 		$shared   = $provider->prepare();
 		$account  = $provider->prepareAccount();
+		$webhooks = $provider->prepareWebhooksBootstrap( 'https://example.test/hook' );
+		$root     = $provider->prepareRootBootstrap(
+			true,
+			array(
+				'kiriof_cod_enabled'              => 'yes',
+				'kiriof_insurance_enabled'        => 'yes',
+				'kiriof_shipping_locations_ready' => true,
+			),
+			array( 'total' => 4, 'configured' => 3, 'ready' => false )
+		);
 
 		$this->assertSame( $setup_key, $shared['approvedSetupKey'] );
 		$this->assertSame( 'https://example.test/callback', $shared['inputValueArr']['callback_url'] );
@@ -122,6 +132,12 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertTrue( $account['kiriof_is_connected'] );
 		$this->assertSame( 'JNE', $account['kiriof_wl_map']['jne'] );
 		$this->assertSame( 'J&T Express', $account['kiriof_wl_map']['jnt'] );
+		$this->assertSame( 'configured', $root['mode'] );
+		$this->assertTrue( $root['toggles']['insurance'] );
+		$this->assertSame( '3 / 4 Need Action', $root['groups'][2]['items'][0]['status'] );
+		$this->assertSame( 'insurance', $root['groups'][2]['items'][3]['toggle'] );
+		$this->assertSame( 'webhooks', $webhooks['view'] );
+		$this->assertSame( 'https://example.test/hook', $webhooks['callbackUrl'] );
 	}
 
 	#[Test]
@@ -147,6 +163,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$provider  = new SettingsPageData( $settings, $readiness, $api, $region, $cache );
 		$list      = $provider->prepareList();
 		$technical = $provider->prepareTechnical();
+		$technical_bootstrap = $provider->prepareTechnicalBootstrap( $technical );
 
 		$this->assertSame( 'no', $list['kiriof_cod_enabled'] );
 		$this->assertSame( 'yes', $list['kiriof_insurance_enabled'] );
@@ -155,6 +172,9 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( 2, $technical['courierCount'] );
 		$this->assertSame( 'Cached', $technical['courierBadgeTxt'] );
 		$this->assertSame( 'Manual refresh only', $technical['regionValidUntil'] );
+		$this->assertSame( 'technical', $technical_bootstrap['view'] );
+		$this->assertSame( 38, $technical_bootstrap['region']['provinceCount'] );
+		$this->assertTrue( $technical_bootstrap['couriers']['cached'] );
 	}
 
 	#[Test]

@@ -13,6 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 extract( $settingsPageData->prepareAccount(), EXTR_SKIP );
+$kiriof_settings_bootstrap = $settingsPageData->prepareAccountBootstrap(
+	array(
+		'kiriof_is_connected' => $kiriof_is_connected,
+		'kiriof_profile'      => $kiriof_profile,
+		'kiriof_profile_err'  => $kiriof_profile_err,
+		'kiriof_wl_id_arr'    => $kiriof_wl_id_arr,
+		'kiriof_wl_map'       => $kiriof_wl_map,
+	)
+);
 
 // Brand colors for courier chips (fallback gradient based on code hash)
 $kiriof_courier_colors = array(
@@ -24,14 +33,17 @@ $kiriof_courier_colors = array(
     'gosend' => '#000000', 'shopee' => '#EE4D2D', 'sentral' => '#A71E22',
 );
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-settings-page>
 
     <style><?php include '_section-css-shared.php'; ?></style>
 
     <?php $kiriof_title = __( 'Account Configuration', 'kiriminaja-official' ); $kiriof_parent_url = $kiriof_base_url; $kiriof_parent_title = __( 'Settings', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
 
-    <div class="kj-detail" style="max-width:720px;">
+    <div data-kiriof-settings-root></div>
+    <script type="application/json" data-kiriof-settings-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_settings_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+    <div class="kj-detail" data-kiriof-settings-fallback style="max-width:720px;">
 
         <!-- Enabled Couriers -->
         <?php if ( ! empty( $kiriof_wl_id_arr ) ) : ?>

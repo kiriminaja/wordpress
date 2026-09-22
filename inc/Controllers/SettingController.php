@@ -84,6 +84,8 @@ class SettingController{
         $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing.
         $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing.
+        $section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
 
         $is_plugin_settings = 'kiriminaja-konfigurasi' === $page;
         $is_wc_settings     = 'woocommerce_page_wc-settings' === $screen_id
@@ -148,6 +150,31 @@ class SettingController{
                 ),
             )
         );
+
+		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
+			$settings_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.js';
+			$settings_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.css';
+
+			if ( file_exists( $settings_style ) ) {
+				wp_enqueue_style(
+					'kiriof-settings-root',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.css',
+					array( 'kiriof-style' ),
+					(string) filemtime( $settings_style )
+				);
+			}
+
+			if ( file_exists( $settings_script ) ) {
+				wp_enqueue_script(
+					'kiriof-settings-root',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.js',
+					array( 'kiriof-settings' ),
+					(string) filemtime( $settings_script ),
+					true
+				);
+				wp_script_add_data( 'kiriof-settings-root', 'type', 'module' );
+			}
+		}
     }
 
     private function isValidShipmentLocationData( $data ) {

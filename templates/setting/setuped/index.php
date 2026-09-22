@@ -46,8 +46,17 @@ $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
         $kiriof_product_volumetric_total
     );
 $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
+$kiriof_settings_bootstrap = $settingsPageData->prepareRootBootstrap(
+    true,
+    array(
+        'kiriof_cod_enabled'              => $kiriof_cod_enabled,
+        'kiriof_insurance_enabled'        => $kiriof_insurance_enabled,
+        'kiriof_shipping_locations_ready' => $kiriof_shipping_locations_ready,
+    ),
+    $productVolumetricReadiness
+);
 ?>
-<div class="wrap kj-wrap">
+<div class="wrap kj-wrap" data-kiriof-settings-page>
 
     <?php $kiriof_title = __( 'Settings', 'kiriminaja-official' ); include KIRIOF_DIR . 'templates/_header.php'; ?>
     <hr class="wp-header-end">
@@ -58,7 +67,10 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
     </div>
     <?php endif; ?>
 
-    <div class="kj-settings">
+    <div data-kiriof-settings-root></div>
+    <script type="application/json" data-kiriof-settings-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_settings_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+    <div class="kj-settings" data-kiriof-settings-fallback>
 
         <!-- Configuration -->
         <div class="kj-group-header"><?php echo esc_html( __( 'Configuration', 'kiriminaja-official' ) ); ?></div>
