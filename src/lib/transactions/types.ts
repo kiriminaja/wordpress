@@ -14,3 +14,8 @@ export type TransactionFiltersBootstrap = {
   pagination: { page: number; totalPages: number; total: number };
   i18n: Record<string, string>;
 };
+
+export type TransactionTableBootstrap = {
+  rowsHtml: string[];
+  i18n: Record<string, string>;
+};

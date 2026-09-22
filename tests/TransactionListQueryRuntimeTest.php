@@ -105,6 +105,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'kiriof_transactions_filters_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/transaction-process/view/index.php' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/entries/transactions-filters.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionFilters.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionTable.svelte' );
+		$this->assertStringContainsString( 'data-kiriof-transactions-table-root', file_get_contents( PLUGIN_DIR . '/templates/transaction-process/view/index.php' ) );
+		$this->assertStringContainsString( 'kiriof_transactions_table_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/transaction-process/view/index.php' ) );
 		$this->assertStringContainsString( "'transactions-filters': 'src/entries/transactions-filters.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
 		$this->assertStringContainsString( 'kiriminaja-admin-list.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
     }

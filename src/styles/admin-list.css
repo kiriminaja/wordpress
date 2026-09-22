@@ -42,6 +42,10 @@
   display: none;
 }
 
+.kiriof-transactions-table--enhanced [data-kiriof-transactions-table-fallback] {
+  display: none;
+}
+
 .kiriof-transaction-controls {
   display: grid;
   gap: 12px;

@@ -16,7 +16,7 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 | Settings account | Svelte | Connection status, setup-key update, disconnect, and enabled courier summary use existing endpoints. |
 | Settings couriers | Svelte | Async courier list, bulk selection, optimistic save, and rollback use existing endpoints. |
 | Settings tracking | Svelte | Tracking-page inventory and guide are rendered from a PHP bootstrap snapshot. |
-| Transactions list | Hybrid Svelte | Filters, status tabs, search, and pagination are Svelte; PHP table/action DOM remains while modal actions are still legacy. |
+| Transactions list | Svelte with server row bridge | Filters, search, pagination, and table shell are Svelte. Escaped PHP row fragments preserve complex WooCommerce action eligibility during transition. |
 | Payments list | Svelte | Filters, status tabs, table, and pagination are Svelte; QR/payment and reschedule dialogs remain legacy bridge. |
 | Pickup detail | Svelte | Summary cards and shipment table use a server-generated bootstrap payload; print/detail URLs stay server-owned. |
 | Order metabox | Legacy | Port custom shipment summary/actions only; keep native WooCommerce order editing native. |
@@ -24,7 +24,7 @@ Native WooCommerce settings fields, product editor controls, checkout UI, and Wo
 
 ## Ordered migration
 
-1. Port Transactions table using shared admin-list primitives, then progressively replace action dialogs.
+1. Replace Transactions server row fragments with typed row serializers, then progressively replace action dialogs.
 2. Port Payments QR/payment and reschedule dialogs.
 3. Port order shipment metabox.
 4. Port custom coupon extension controls.

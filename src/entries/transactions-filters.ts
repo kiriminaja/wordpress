@@ -1,6 +1,10 @@
 import { mount } from 'svelte';
 import TransactionFilters from '../lib/transactions/TransactionFilters.svelte';
-import type { TransactionFiltersBootstrap } from '../lib/transactions/types';
+import TransactionTable from '../lib/transactions/TransactionTable.svelte';
+import type {
+  TransactionFiltersBootstrap,
+  TransactionTableBootstrap,
+} from '../lib/transactions/types';
 import '../styles/admin-list.css';
 
 const host = document.querySelector<HTMLElement>('[data-kiriof-transactions-filters-root]');
@@ -13,4 +17,16 @@ if (host && payload?.textContent) {
   host
     .closest<HTMLElement>('[data-kiriof-transactions-page]')
     ?.classList.add('kiriof-transactions-page--enhanced');
+}
+
+const tableHost = document.querySelector<HTMLElement>('[data-kiriof-transactions-table-root]');
+const tablePayload = document.querySelector<HTMLScriptElement>(
+  '[data-kiriof-transactions-table-payload]',
+);
+if (tableHost && tablePayload?.textContent) {
+  const bootstrap = JSON.parse(tablePayload.textContent) as TransactionTableBootstrap;
+  mount(TransactionTable, { target: tableHost, props: { bootstrap } });
+  tableHost
+    .closest<HTMLElement>('[data-kiriof-transactions-page]')
+    ?.classList.add('kiriof-transactions-table--enhanced');
 }

@@ -197,7 +197,8 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
     </div>
     </div>
 
-    <table class="wp-list-table widefat fixed striped table-view-list posts kiriof-transaction-table">
+    <div data-kiriof-transactions-table-root></div>
+    <table class="wp-list-table widefat fixed striped table-view-list posts kiriof-transaction-table" data-kiriof-transactions-table-fallback>
         <thead>
             <tr>
                 <th style="width: 24px;" scope="col" class="manage-column column-thumb kiriof-col-select">
@@ -218,6 +219,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
             $kiriof_print_nonce = wp_create_nonce('kiriof_resi_print');
             $kiriof_print_base_url = admin_url('admin-post.php?action=kiriof_resi_print');
             $kiriof_adj_nonce = wp_create_nonce(KIRIOF_NONCE);
+			$kiriof_transaction_row_fragments = array();
             if (!empty($kiriof_results)) {
                 $kiriof_recipientResolver = new \KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver();
                 foreach ($kiriof_results as $id => $kiriof_row) {
@@ -417,6 +419,7 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                         ? '<span class="kiriof-print-status printed" style="display:inline-block;font-size:11px;background:#e7f5e9;color:#008a20;border-radius:3px;padding:1px 5px">' . esc_html__('Printed', 'kiriminaja-official') . '</span>'
                         : '<span class="kiriof-print-status unprinted" style="display:inline-block;font-size:11px;background:#f6f7f7;color:#646970;border-radius:3px;padding:1px 5px">' . esc_html__('Unprinted', 'kiriminaja-official') . '</span>';
 
+					ob_start();
                     echo '
                                                       <tr>
                                                         <td class="manage-column column-thumb kiriof-col-select">
@@ -556,9 +559,15 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
                                                         </td>
                                                     </tr>
                                                     ';
+					$kiriof_transaction_row_fragment = (string) ob_get_clean();
+					$kiriof_transaction_row_fragments[] = $kiriof_transaction_row_fragment;
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fragment is assembled above from individually escaped values.
+					echo $kiriof_transaction_row_fragment;
                 }
             } else {
-                echo '<tr><td colspan="7" style="text-align: center" class="manage-column column-thumb">' . esc_html(__('Not Found', 'kiriminaja-official')) . '</td></tr>';
+				$kiriof_transaction_row_fragments[] = '<tr><td colspan="7" style="text-align:center" class="manage-column column-thumb">' . esc_html( __( 'Not Found', 'kiriminaja-official' ) ) . '</td></tr>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static row contains an escaped translated string.
+				echo $kiriof_transaction_row_fragments[0];
             }
             ?>
 
@@ -577,6 +586,20 @@ if ($kiriof_pin_cache_ttl < MINUTE_IN_SECONDS) {
             </tr>
         </tfoot>
     </table>
+	<?php
+	$kiriof_transactions_table_bootstrap = array(
+		'rowsHtml' => $kiriof_transaction_row_fragments,
+		'i18n'     => array(
+			'order'      => __( 'Order / Transaction', 'kiriminaja-official' ),
+			'expedition' => __( 'Expedition & Service', 'kiriminaja-official' ),
+			'airwaybill' => __( 'Airwaybill / Order ID', 'kiriminaja-official' ),
+			'route'      => __( 'Shipment Route', 'kiriminaja-official' ),
+			'packages'   => __( 'Packages & Fee', 'kiriminaja-official' ),
+			'action'     => __( 'Action', 'kiriminaja-official' ),
+		),
+	);
+	?>
+	<script type="application/json" data-kiriof-transactions-table-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_transactions_table_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
     <br class="clear">
     <div class="tablenav bottom" data-kiriof-transactions-controls-fallback>
         <div class="alignleft actions" style="display:flex;align-items:center;">
