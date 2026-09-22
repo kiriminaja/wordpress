@@ -565,7 +565,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                 "UPDATE {$this->table}
                 SET is_printed = %d, printed_at = %s
                 WHERE order_id IN ({$placeholders})",
-                $query_args
+                ...$query_args
             )
         );
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared

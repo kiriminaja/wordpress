@@ -29,10 +29,11 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only setup readiness query against the WordPress posts table.
         $count = $this->wpdb->get_var(
             $this->wpdb->prepare(
-                "SELECT COUNT(*) FROM {$this->wpdb->posts}
+                "SELECT COUNT(*) FROM %i
                 WHERE post_type = 'page'
                     AND post_status = 'publish'
                     AND post_content LIKE %s",
+                $this->wpdb->posts,
                 $shortcode
             )
         );
@@ -66,7 +67,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only admin query against the WordPress posts table.
         return (array) $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT ID, post_title FROM {$this->wpdb->posts}
+                "SELECT ID, post_title FROM %i
                 WHERE post_type = 'page'
                     AND post_status NOT IN ('trash', 'auto-draft')
                     AND (
@@ -74,6 +75,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
                         OR post_content LIKE %s
                     )
                 ORDER BY post_title ASC, ID ASC",
+                $this->wpdb->posts,
                 $current_shortcode,
                 $legacy_shortcode
             )
@@ -93,7 +95,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Read-only activation lookup against the WordPress posts table.
         return $this->wpdb->get_row(
             $this->wpdb->prepare(
-                "SELECT ID FROM {$this->wpdb->posts}
+                "SELECT ID FROM %i
                 WHERE post_type = 'page'
                     AND post_status NOT IN ('trash', 'auto-draft')
                     AND (
@@ -102,6 +104,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
                     )
                 ORDER BY post_status = 'publish' DESC, ID ASC
                 LIMIT 1",
+                $this->wpdb->posts,
                 $current_shortcode,
                 $legacy_shortcode
             )
@@ -121,7 +124,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
         return (array) $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT ID, post_title, post_name, post_status, guid
-                FROM {$this->wpdb->posts}
+                FROM %i
                 WHERE post_type = %s
                     AND post_status = 'publish'
                     AND (
@@ -129,6 +132,7 @@ class TrackingPageRepository implements TrackingPageRepositoryInterface
                         OR post_content LIKE %s
                     )
                 ORDER BY post_title ASC",
+                $this->wpdb->posts,
                 $post_type,
                 $current_shortcode,
                 $legacy_shortcode

@@ -108,13 +108,15 @@ final class PaymentListQueryWpdbFake
     public function prepare( $sql, ...$values ): string
     {
         foreach ( $values as $value ) {
-            $position = strpos( $sql, is_int( $value ) ? '%d' : '%s' );
+            $position = preg_match( '/%[ids]/', $sql, $match, PREG_OFFSET_CAPTURE ) ? $match[0][1] : false;
             if ( false === $position ) {
                 continue;
             }
 
             $placeholder = substr( $sql, $position, 2 );
-            $replacement = '%d' === $placeholder ? (string) $value : "'" . str_replace( "'", "''", (string) $value ) . "'";
+            $replacement = '%d' === $placeholder
+                ? (string) $value
+                : ( '%i' === $placeholder ? (string) $value : "'" . str_replace( "'", "''", (string) $value ) . "'" );
             $sql         = substr_replace( $sql, $replacement, $position, 2 );
         }
 

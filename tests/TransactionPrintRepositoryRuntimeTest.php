@@ -91,7 +91,7 @@ final class TransactionPrintWpdbFake
     public string $executed_query = '';
     public int $query_count = 0;
 
-    public function prepare( $query, $values )
+    public function prepare( $query, ...$values )
     {
         $this->prepared_query  = $query;
         $this->prepared_values = $values;

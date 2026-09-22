@@ -37,16 +37,23 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $payment_table  = $this->wpdb->prefix . 'kiriminaja_payments';
         $transaction_table = $this->wpdb->prefix . 'kiriminaja_transactions';
 
-        $count_sql = "SELECT
+        $count_query = "SELECT
             kiriminaja_payments.id, kiriminaja_payments.pickup_number
-            FROM {$payment_table} as kiriminaja_payments
-            INNER JOIN {$transaction_table} as kiriminaja_transactions
+            FROM %i as kiriminaja_payments
+            INNER JOIN %i as kiriminaja_transactions
             ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-            {$where}
+            {$where['sql']}
             GROUP BY kiriminaja_payments.pickup_number";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Dynamic conditions are individually prepared in buildWhereCondition().
-        $total       = count( (array) $this->wpdb->get_results( $count_sql ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
+        $total = count(
+            (array) $this->wpdb->get_results(
+                $this->wpdb->prepare(
+                    $count_query,
+                    ...array_merge( array( $payment_table, $transaction_table ), $where['args'] )
+                )
+            )
+        );
         $total_pages = (int) ceil( $total / $items_per_page );
 
         if ( $page > $total_pages && $total_pages > 0 ) {
@@ -54,19 +61,28 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         }
 
         $offset = ( $page - 1 ) * $items_per_page;
-        $list_sql = "SELECT
+        $list_query = "SELECT
             kiriminaja_payments.*,
             SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
-            FROM {$payment_table} as kiriminaja_payments
-            INNER JOIN {$transaction_table} as kiriminaja_transactions
+            FROM %i as kiriminaja_payments
+            INNER JOIN %i as kiriminaja_transactions
             ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-            {$where}
+            {$where['sql']}
             GROUP BY kiriminaja_payments.pickup_number
             ORDER BY kiriminaja_payments.created_at DESC
             LIMIT %d, %d";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- SQL conditions are prepared above; pagination placeholders are prepared here.
-        $results = $this->wpdb->get_results( $this->wpdb->prepare( $list_sql, $offset, $items_per_page ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                $list_query,
+                ...array_merge(
+                    array( $payment_table, $transaction_table ),
+                    $where['args'],
+                    array( $offset, $items_per_page )
+                )
+            )
+        );
 
         $this->logDatabaseError();
 
@@ -95,8 +111,13 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
     public function getOldestCreatedAt(): ?string {
         $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $created_at = $this->wpdb->get_var( "SELECT created_at FROM {$payment_table} WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
+        $created_at = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                'SELECT created_at FROM %i WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1',
+                $payment_table
+            )
+        );
         $this->logDatabaseError();
 
         return null === $created_at || '' === (string) $created_at ? null : (string) $created_at;
@@ -107,28 +128,29 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
      *
      * @param array{key:string,month:string,status:string} $filters List filters.
      */
-    private function buildWhereCondition( array $filters ): string {
+    private function buildWhereCondition( array $filters ): array {
         $conditions = array();
+        $args       = array();
 
         if ( '' !== $filters['key'] ) {
-            $conditions[] = $this->wpdb->prepare(
-                'kiriminaja_payments.pickup_number LIKE %s',
-                '%' . $this->wpdb->esc_like( $filters['key'] ) . '%'
-            );
+            $conditions[] = 'kiriminaja_payments.pickup_number LIKE %s';
+            $args[]       = '%' . $this->wpdb->esc_like( $filters['key'] ) . '%';
         }
 
         if ( '' !== $filters['month'] ) {
-            $conditions[] = $this->wpdb->prepare(
-                'kiriminaja_payments.created_at LIKE %s',
-                '%' . $this->wpdb->esc_like( $filters['month'] ) . '%'
-            );
+            $conditions[] = 'kiriminaja_payments.created_at LIKE %s';
+            $args[]       = '%' . $this->wpdb->esc_like( $filters['month'] ) . '%';
         }
 
         if ( in_array( $filters['status'], array( 'unpaid', 'paid' ), true ) ) {
-            $conditions[] = $this->wpdb->prepare( 'kiriminaja_payments.status = %s', $filters['status'] );
+            $conditions[] = 'kiriminaja_payments.status = %s';
+            $args[]       = $filters['status'];
         }
 
-        return empty( $conditions ) ? '' : 'WHERE ' . implode( ' AND ', $conditions );
+        return array(
+            'sql'  => empty( $conditions ) ? '' : 'WHERE ' . implode( ' AND ', $conditions ),
+            'args' => $args,
+        );
     }
 
     /**
@@ -138,14 +160,19 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
 
         if ( null === $status ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT pickup_number) FROM {$payment_table}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
+            $count = $this->wpdb->get_var(
+                $this->wpdb->prepare(
+                    'SELECT COUNT(DISTINCT pickup_number) FROM %i',
+                    $payment_table
+                )
+            );
         } else {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $count = $this->wpdb->get_var(
                 $this->wpdb->prepare(
-                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                    "SELECT COUNT(DISTINCT pickup_number) FROM {$payment_table} WHERE status = %s",
+                    'SELECT COUNT(DISTINCT pickup_number) FROM %i WHERE status = %s',
+                    $payment_table,
                     $status
                 )
             );

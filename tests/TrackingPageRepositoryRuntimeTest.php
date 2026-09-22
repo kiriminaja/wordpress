@@ -49,6 +49,7 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
         $this->assertStringContainsString( 'ORDER BY post_title ASC, ID ASC', $wpdb->prepared_query );
         $this->assertSame(
             array(
+                'wp_posts',
                 '%[kiriminaja-tracking-front-page%',
                 '%[wp-tracking-front-page%',
             ),
@@ -65,7 +66,7 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
         $this->assertTrue( ( new TrackingPageRepository() )->hasPublishedTrackingPage() );
         $this->assertStringContainsString( "post_type = 'page'", $wpdb->prepared_query );
         $this->assertStringContainsString( "post_status = 'publish'", $wpdb->prepared_query );
-        $this->assertSame( array( '%[kiriminaja-tracking-front-page%' ), $wpdb->prepared_values );
+        $this->assertSame( array( 'wp_posts', '%[kiriminaja-tracking-front-page%' ), $wpdb->prepared_values );
     }
 
     #[Test]
@@ -100,11 +101,11 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
         $this->assertStringContainsString( "post_status = 'publish'", $wpdb->prepared_queries[0] );
         $this->assertStringContainsString( 'ORDER BY post_title ASC', $wpdb->prepared_queries[0] );
         $this->assertSame(
-            array( 'page', '%[kiriminaja-tracking-front-page%', '%[wp-tracking-front-page%' ),
+            array( 'wp_posts', 'page', '%[kiriminaja-tracking-front-page%', '%[wp-tracking-front-page%' ),
             $wpdb->prepared_value_sets[0]
         );
         $this->assertSame(
-            array( 'post', '%[kiriminaja-tracking-front-page%', '%[wp-tracking-front-page%' ),
+            array( 'wp_posts', 'post', '%[kiriminaja-tracking-front-page%', '%[wp-tracking-front-page%' ),
             $wpdb->prepared_value_sets[1]
         );
     }
@@ -165,6 +166,7 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
         $this->assertStringContainsString( 'LIMIT 1', $wpdb->prepared_query );
         $this->assertSame(
             array(
+                'wp_posts',
                 '%[kiriminaja-tracking-front-page%',
                 '%[wp-tracking-front-page%',
             ),
