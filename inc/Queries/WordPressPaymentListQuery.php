@@ -70,6 +70,8 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
             )
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $total_pages = (int) ceil( $total / $items_per_page );
 
         if ( $page > $total_pages && $total_pages > 0 ) {
@@ -77,7 +79,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         }
 
         $offset = ( $page - 1 ) * $items_per_page;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT
@@ -133,7 +135,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $wpdb = $this->wpdb;
         $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
         $created_at = $wpdb->get_var(
             $wpdb->prepare(
                 'SELECT created_at FROM %i WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1',
@@ -153,15 +155,17 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
 
         if ( null === $status ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
             $count = $wpdb->get_var(
                 $wpdb->prepare(
                     'SELECT COUNT(DISTINCT pickup_number) FROM %i',
                     $payment_table
                 )
             );
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         } else {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
             $count = $wpdb->get_var(
                 $wpdb->prepare(
                     'SELECT COUNT(DISTINCT pickup_number) FROM %i WHERE status = %s',
