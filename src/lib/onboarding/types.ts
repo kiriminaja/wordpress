@@ -2,6 +2,9 @@ export type OnboardingBootstrap = {
   ajaxUrl: string;
   nonce: string;
   shippingUrl: string;
+  logoUrl?: string;
+  dashboardUrl?: string;
+  helpUrl?: string;
   i18n: {
     back: string;
     continue: string;

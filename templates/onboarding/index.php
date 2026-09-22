@@ -23,9 +23,12 @@ $kiriof_progress_steps  = array_values(
 	)
 );
 $kiriof_onboarding_bootstrap = array(
-	'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-	'nonce'       => wp_create_nonce( KIRIOF_NONCE ),
-	'shippingUrl' => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+	'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+	'nonce'        => wp_create_nonce( KIRIOF_NONCE ),
+	'shippingUrl'  => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+	'logoUrl'      => esc_url( KIRIOF_URL . 'assets/admin/img/logo-tagline.svg' ),
+	'dashboardUrl' => esc_url( admin_url() ),
+	'helpUrl'      => 'https://kiriminaja.com/solusi/plugin-woocommerce',
 	'i18n'        => array(
 		'back'                     => __( 'Back', 'kiriminaja-official' ),
 		'continue'                 => __( 'Continue', 'kiriminaja-official' ),
