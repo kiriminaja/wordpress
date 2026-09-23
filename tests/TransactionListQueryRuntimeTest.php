@@ -122,7 +122,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString('date_created_gmt', $query);
 		$app = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
 		$this->assertStringContainsString( 'kiriof_transactions_bootstrap', $renderer );
-		$this->assertFileExists( PLUGIN_DIR . '/src/entries/transactions-filters.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php' );
 		$this->assertStringContainsString( 'data-kiriof-transactions-root', $app );
@@ -130,12 +130,10 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $app );
 		$this->assertStringNotContainsString( 'data-kiriof-transactions-table-fallback', $app );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/templates/transaction-process/view/index.php' );
-		$this->assertStringContainsString( "'transactions-filters': 'src/entries/transactions-filters.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
-		$this->assertStringContainsString( 'kiriminaja-admin-list.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( 'kiriminaja-shadcn-onboarding.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( 'kiriminaja-transactions-filters.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( 'kiriminaja-toolbar.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( "array( 'kiriof-shadcn' )", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
+		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( '$this->enqueue_workspace_style();', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( '#screen-meta-links', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'padding-left: 0 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
@@ -170,7 +168,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '{#if hasActiveFilters}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'aria-label={bootstrap.i18n.apply}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/transactions-filters.ts' ) );
+		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
 		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'display: flex !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
@@ -180,10 +178,19 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString( 'isOrderIssue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '{selectedCount} selected', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'background: #3f3f46 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( 'history.pushState', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "window.addEventListener('popstate'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "fetch(url", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringNotContainsString( 'window.location.assign(url.toString())', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$workspace = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
+		$this->assertStringContainsString( 'history.pushState', $workspace );
+		$this->assertStringContainsString( "window.addEventListener('popstate'", $workspace );
+		$this->assertStringContainsString( 'fetch(url', $workspace );
+		$this->assertStringContainsString( 'kiriminaja-transaction-process', $workspace );
+		$this->assertStringContainsString( 'kiriminaja-request-pickup', $workspace );
+		$this->assertStringContainsString( 'kiriminaja-konfigurasi', $workspace );
+		$this->assertStringNotContainsString( 'kiriminaja-request-pickup-detail', $workspace );
+		$this->assertStringNotContainsString( 'legacy_coupon_menu', $workspace );
+		$this->assertStringContainsString( 'workspacePages.has', $workspace );
+		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $workspace );
+		$this->assertStringContainsString( 'data-kiriof-payments-payload', $workspace );
+		$this->assertStringContainsString( 'data-kiriof-settings-payload', $workspace );
     }
 
     private function filters(string $status): array

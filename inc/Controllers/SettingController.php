@@ -96,45 +96,33 @@ class SettingController{
         }
 
 		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
-			$settings_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.js';
-			$settings_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.css';
-			$toolbar_style   = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-toolbar.css';
-
-			if ( file_exists( $toolbar_style ) ) {
+			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
+			$workspace_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
+			if ( file_exists( $workspace_style ) ) {
 				wp_enqueue_style(
-					'kiriof-toolbar',
-					KIRIOF_URL . 'assets/admin/dist/kiriminaja-toolbar.css',
+					'kiriof-admin-workspace',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-workspace.css',
 					array(),
-					(string) filemtime( $toolbar_style )
+					(string) filemtime( $workspace_style )
 				);
 			}
-
-			if ( file_exists( $settings_style ) ) {
-				wp_enqueue_style(
-					'kiriof-settings-root',
-					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.css',
-					array(),
-					(string) filemtime( $settings_style )
-				);
-			}
-
-			if ( file_exists( $settings_script ) ) {
+			if ( file_exists( $workspace_script ) ) {
 				wp_enqueue_script(
-					'kiriof-settings-root',
-					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.js',
+					'kiriof-admin-workspace',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-workspace.js',
 					array(),
-					(string) filemtime( $settings_script ),
+					(string) filemtime( $workspace_script ),
 					true
 				);
 				wp_localize_script(
-					'kiriof-settings-root',
+					'kiriof-admin-workspace',
 					'kiriofSettings',
 					array(
 						'ajaxurl' => admin_url( 'admin-ajax.php' ),
 						'nonce'   => wp_create_nonce( KIRIOF_NONCE ),
 					)
 				);
-				wp_script_add_data( 'kiriof-settings-root', 'type', 'module' );
+				wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' );
 			}
 
 			return;

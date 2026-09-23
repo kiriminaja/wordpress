@@ -86,7 +86,7 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertStringNotContainsString( 'PaymentRepository', $renderer );
 		$this->assertStringContainsString( 'prepareSvelteBootstrap', $renderer );
 		$this->assertStringContainsString( 'kiriof_payments_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
-		$this->assertFileExists( PLUGIN_DIR . '/src/entries/payments-list.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/StatusTabs.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' );
@@ -99,7 +99,7 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'kiriof-workspace-shell', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
 		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( "'payments-list': 'src/entries/payments-list.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
+		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
     }
 }
 

@@ -11,7 +11,13 @@
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
-  let { initialBootstrap }: { initialBootstrap: PaymentsBootstrap } = $props();
+  let {
+    initialBootstrap,
+    onNavigate,
+  }: {
+    initialBootstrap: PaymentsBootstrap;
+    onNavigate?: (href: string | URL) => Promise<void> | void;
+  } = $props();
   function initialWorkspace(): PaymentsBootstrap {
     return structuredClone(initialBootstrap);
   }
@@ -24,7 +30,6 @@
     month = bootstrap.filters.month;
   });
   let refreshing = $state(false);
-  let controller: AbortController | null = null;
   let searchTimer: number | null = null;
 
   const currentStatus = $derived(bootstrap.filters.status === 'all' ? '' : bootstrap.filters.status);
@@ -40,23 +45,12 @@
     return url;
   }
 
-  async function navigate(values: Record<string, string>, push = true): Promise<void> {
+  async function navigate(values: Record<string, string>): Promise<void> {
     const url = buildUrl(values);
-    controller?.abort();
-    controller = new AbortController();
     refreshing = true;
     try {
-      const response = await fetch(url, { credentials: 'same-origin', signal: controller.signal });
-      const documentHtml = new DOMParser().parseFromString(await response.text(), 'text/html');
-      const nextPayload = documentHtml.querySelector<HTMLScriptElement>('[data-kiriof-payments-payload]');
-      if (!response.ok || !nextPayload?.textContent) throw new Error('Unable to load payments.');
-      bootstrap = JSON.parse(nextPayload.textContent) as PaymentsBootstrap;
-      search = bootstrap.filters.key;
-      month = bootstrap.filters.month;
-      if (push) history.pushState({ kiriofPayments: true }, '', url);
-      document.title = documentHtml.title || document.title;
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') window.location.assign(url);
+      if (onNavigate) await onNavigate(url);
+      else window.location.assign(url);
     } finally {
       refreshing = false;
     }
@@ -83,15 +77,8 @@
     return IconEye;
   }
 
-  function handlePopState(): void {
-    void navigate(Object.fromEntries(new URL(window.location.href).searchParams.entries()), false);
-  }
-
-  window.addEventListener('popstate', handlePopState);
   onDestroy(() => {
-    controller?.abort();
     if (searchTimer) window.clearTimeout(searchTimer);
-    window.removeEventListener('popstate', handlePopState);
   });
 </script>
 

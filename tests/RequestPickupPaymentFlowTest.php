@@ -16,7 +16,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsModals.svelte' );
 		$this->assertStringContainsString( 'data-kiriof-payments-modals-root', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
-		$this->assertStringContainsString( 'PaymentsModals', file_get_contents( PLUGIN_DIR . '/src/entries/payments-list.ts' ) );
+		$this->assertStringContainsString( 'PaymentsModals', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
 
         $this->assertStringContainsString(
             'open === "1" || open === "true"',

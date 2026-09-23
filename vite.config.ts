@@ -19,10 +19,8 @@ export default defineConfig({
         'coupon-panels': 'src/entries/coupon-panels.ts',
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'order-metabox': 'src/entries/order-metabox.ts',
-        'payments-list': 'src/entries/payments-list.ts',
+        'admin-workspace': 'src/entries/admin-workspace.ts',
         'pickup-detail': 'src/entries/pickup-detail.ts',
-        'settings-root': 'src/entries/settings-root.ts',
-        'transactions-filters': 'src/entries/transactions-filters.ts',
       },
       output: {
         assetFileNames: 'kiriminaja-[name][extname]',

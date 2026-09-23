@@ -156,12 +156,12 @@ final class OnboardingFeatureTest extends TestCase
         $configured = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/index.php' );
         $setup      = file_get_contents( PLUGIN_DIR . '/templates/setting/unsetuped/index.php' );
 		$app         = file_get_contents( PLUGIN_DIR . '/templates/setting/app.php' );
-		$entry       = file_get_contents( PLUGIN_DIR . '/src/entries/settings-root.ts' );
+		$entry       = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
 		$styles      = file_get_contents( PLUGIN_DIR . '/src/styles/settings-root.css' );
         $vite       = file_get_contents( PLUGIN_DIR . '/vite.config.ts' );
         $gitignore  = file_get_contents( PLUGIN_DIR . '/.gitignore' );
 
-        $this->assertFileExists( PLUGIN_DIR . '/src/entries/settings-root.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/wordpress/ajax.ts' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/SettingSwitch.svelte' );
@@ -172,7 +172,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $app );
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $configured );
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $setup );
-		$this->assertStringNotContainsString( 'querySelectorAll', $entry );
+		$this->assertStringContainsString( 'querySelectorAll', $entry );
 		$this->assertStringContainsString( 'margin: 0 auto;', $styles );
 		$this->assertStringContainsString( "[data-slot='switch-thumb'][data-state='checked']", $styles );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
@@ -195,13 +195,11 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );
 		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( "remove_all_actions( 'admin_notices' )", file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
-        $this->assertStringContainsString( "'settings-root': 'src/entries/settings-root.ts'", $vite );
+		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", $vite );
         $this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' )", $controller );
-		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-settings-root', 'type', 'module' )", $controller );
-		$this->assertStringContainsString( "'kiriof-toolbar',", $controller );
-		$this->assertStringContainsString( "KIRIOF_URL . 'assets/admin/dist/kiriminaja-toolbar.css',", $controller );
-		$this->assertStringNotContainsString( "'kiriof-toolbar' )", $controller );
-		$this->assertStringContainsString( 'kiriminaja-toolbar.css', $controller );
+		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' )", $controller );
+		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', $controller );
+		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', $controller );
         $this->assertStringContainsString( 'assets/admin/dist', $gitignore );
     }
 }

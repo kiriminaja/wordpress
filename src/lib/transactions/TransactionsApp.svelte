@@ -28,7 +28,13 @@
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
-  let { bootstrap: initialBootstrap }: { bootstrap: TransactionsBootstrap } = $props();
+  let {
+    bootstrap: initialBootstrap,
+    onNavigate,
+  }: {
+    bootstrap: TransactionsBootstrap;
+    onNavigate?: (href: string | URL) => Promise<void> | void;
+  } = $props();
   function initialWorkspace(): TransactionsBootstrap {
     return structuredClone(initialBootstrap);
   }
@@ -52,7 +58,6 @@
   let filters = $state<TransactionFilters>(initialFilters());
   let selected = $state<Record<string, boolean>>({});
   let refreshing = $state(false);
-  let navigationController: AbortController | null = null;
   let searchTimer: number | null = null;
   let pickupDialogOpen = $state(false);
 
@@ -100,34 +105,13 @@
     return url;
   }
 
-  function syncFilters(next: TransactionFilters): void {
-    filters = { ...next };
-    selected = {};
-  }
-
-  async function navigate(values: Record<string, string>, push = true): Promise<void> {
+  async function navigate(values: Record<string, string>): Promise<void> {
     const url = buildUrl(values);
-    navigationController?.abort();
-    navigationController = new AbortController();
     refreshing = true;
 
     try {
-      const response = await fetch(url, {
-        credentials: 'same-origin',
-        signal: navigationController.signal,
-        headers: { 'X-KiriminAja-Workspace': 'transactions' },
-      });
-      const documentHtml = new DOMParser().parseFromString(await response.text(), 'text/html');
-      const payload = documentHtml.querySelector<HTMLScriptElement>('[data-kiriof-transactions-payload]');
-      if (!response.ok || !payload?.textContent) throw new Error('Unable to load transactions.');
-
-      const nextBootstrap = JSON.parse(payload.textContent) as TransactionsBootstrap;
-      bootstrap = nextBootstrap;
-      syncFilters(nextBootstrap.filters);
-      if (push) history.pushState({ kiriofTransactions: true }, '', url);
-      document.title = documentHtml.title || document.title;
-    } catch (requestError) {
-      if ((requestError as Error).name !== 'AbortError') window.location.assign(url);
+      if (onNavigate) await onNavigate(url);
+      else window.location.assign(url);
     } finally {
       refreshing = false;
     }
@@ -185,15 +169,8 @@
     if (value === 'regular') void navigate({ status: 'all' });
   }
 
-  function handlePopState(): void {
-    void navigate(Object.fromEntries(new URL(window.location.href).searchParams.entries()), false);
-  }
-
-  window.addEventListener('popstate', handlePopState);
   onDestroy(() => {
-    navigationController?.abort();
     if (searchTimer) window.clearTimeout(searchTimer);
-    window.removeEventListener('popstate', handlePopState);
   });
 </script>
 

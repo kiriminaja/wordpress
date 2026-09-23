@@ -19,6 +19,47 @@ class Enqueue extends BaseInit{
         add_action('wp_enqueue_scripts', array($this,'enqueueWp'));
     }
 
+	/**
+	 * Enqueue the single Svelte entry shared by the internal KiriminAja workspace pages.
+	 *
+	 * @param string $workspace_script Absolute path to the generated entry.
+	 * @param array  $dependencies    Legacy scripts required by the active route.
+	 * @return void
+	 */
+	private function enqueue_workspace_script( string $workspace_script, array $dependencies = array() ): void {
+		if ( ! file_exists( $workspace_script ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'kiriof-admin-workspace',
+			$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-workspace.js',
+			$dependencies,
+			(string) filemtime( $workspace_script ),
+			true
+		);
+		wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' );
+	}
+
+	/**
+	 * Enqueue styles emitted by the one shared workspace entry.
+	 *
+	 * @return void
+	 */
+	private function enqueue_workspace_style(): void {
+		$workspace_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
+		if ( ! file_exists( $workspace_style ) ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'kiriof-admin-workspace',
+			$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-workspace.css',
+			array(),
+			(string) filemtime( $workspace_style )
+		);
+	}
+
     /**
      * WordPress versions before module script metadata support need an explicit
      * type attribute for the Vite ESM entries.
@@ -32,13 +73,11 @@ class Enqueue extends BaseInit{
         unset( $src );
 
         $module_handles = array(
-            'kiriof-coupon-panels',
-            'kiriof-onboarding-progress',
-            'kiriof-order-metabox',
-            'kiriof-payments-list',
-            'kiriof-pickup-detail',
-            'kiriof-settings-root',
-            'kiriof-transactions-filters',
+			'kiriof-coupon-panels',
+			'kiriof-admin-workspace',
+			'kiriof-onboarding-progress',
+			'kiriof-order-metabox',
+			'kiriof-pickup-detail',
         );
 
         if ( ! in_array( $handle, $module_handles, true ) || false !== strpos( $tag, ' type=' ) ) {
@@ -314,6 +353,8 @@ class Enqueue extends BaseInit{
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
 
+
+
         $needs_leaflet = 'kiriminaja-konfigurasi' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
 
         if ( $needs_leaflet ) {
@@ -366,29 +407,9 @@ class Enqueue extends BaseInit{
             );
             wp_enqueue_script( 'kiriof-transaction-process' );
 
-			$transactions_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.js';
-			$transactions_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
-			$transactions_entry_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.css';
-			$shadcn_style        = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
-			$toolbar_style       = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-toolbar.css';
-			if ( file_exists( $shadcn_style ) ) {
-				wp_enqueue_style( 'kiriof-shadcn', $this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
-			}
-			if ( file_exists( $transactions_style ) ) {
-				$transactions_dependencies = file_exists( $shadcn_style ) ? array( 'kiriof-shadcn' ) : array();
-				if ( file_exists( $toolbar_style ) ) {
-					wp_enqueue_style( 'kiriof-toolbar', $this->plugin_url . 'assets/admin/dist/kiriminaja-toolbar.css', array(), (string) filemtime( $toolbar_style ) );
-					$transactions_dependencies[] = 'kiriof-toolbar';
-				}
-				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', $transactions_dependencies, (string) filemtime( $transactions_style ) );
-			}
-			if ( file_exists( $transactions_entry_style ) ) {
-				wp_enqueue_style( 'kiriof-transactions-entry', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.css', array( 'kiriof-admin-list' ), (string) filemtime( $transactions_entry_style ) );
-			}
-			if ( file_exists( $transactions_script ) ) {
-				wp_enqueue_script( 'kiriof-transactions-filters', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.js', array( 'kiriof-transaction-process' ), (string) filemtime( $transactions_script ), true );
-				wp_script_add_data( 'kiriof-transactions-filters', 'type', 'module' );
-			}
+			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
+			$this->enqueue_workspace_style();
+			$this->enqueue_workspace_script( $workspace_script, array( 'kiriof-transaction-process' ) );
         }
 
         /** print */
@@ -549,34 +570,9 @@ class Enqueue extends BaseInit{
 			}
 
 			if ( 'kiriminaja-request-pickup' === $page ) {
-				$payments_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.js';
-				$payments_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
-				$payments_entry_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.css';
-				$shadcn_style    = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
-				$toolbar_style   = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-toolbar.css';
-				if ( file_exists( $shadcn_style ) ) {
-					wp_enqueue_style( 'kiriof-shadcn', $this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
-				}
-				if ( file_exists( $toolbar_style ) ) {
-					wp_enqueue_style( 'kiriof-toolbar', $this->plugin_url . 'assets/admin/dist/kiriminaja-toolbar.css', array(), (string) filemtime( $toolbar_style ) );
-				}
-				if ( file_exists( $payments_style ) ) {
-					$payment_style_dependencies = array( 'kiriof-style' );
-					if ( file_exists( $shadcn_style ) ) {
-						$payment_style_dependencies[] = 'kiriof-shadcn';
-					}
-					if ( file_exists( $toolbar_style ) ) {
-						$payment_style_dependencies[] = 'kiriof-toolbar';
-					}
-					wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', $payment_style_dependencies, (string) filemtime( $payments_style ) );
-				}
-				if ( file_exists( $payments_entry_style ) ) {
-					wp_enqueue_style( 'kiriof-payments-list-style', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.css', array( 'kiriof-admin-list' ), (string) filemtime( $payments_entry_style ) );
-				}
-				if ( file_exists( $payments_script ) ) {
-					wp_enqueue_script( 'kiriof-payments-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.js', array( 'kiriof-request-pickup' ), (string) filemtime( $payments_script ), true );
-					wp_script_add_data( 'kiriof-payments-list', 'type', 'module' );
-				}
+				$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
+				$this->enqueue_workspace_style();
+				$this->enqueue_workspace_script( $workspace_script, array( 'kiriof-request-pickup' ) );
 			}
         }
    
