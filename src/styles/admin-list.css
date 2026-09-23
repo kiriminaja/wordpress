@@ -20,6 +20,41 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+.kiriof-transactions-app [data-slot='checkbox'] {
+  position: relative !important;
+  display: inline-flex !important;
+  width: 16px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #8c8894 !important;
+  border-radius: 4px !important;
+  background: #fff !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  appearance: none !important;
+}
+.kiriof-transactions-app [data-slot='checkbox'][data-state='checked'],
+.kiriof-transactions-app [data-slot='checkbox'][data-state='indeterminate'] {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+}
+.kiriof-transactions-app [data-slot='checkbox-indicator'] {
+  display: grid !important;
+  width: 14px !important;
+  height: 14px !important;
+  place-items: center !important;
+}
+.kiriof-transactions-app [data-slot='checkbox-indicator'] svg {
+  display: block !important;
+  width: 12px !important;
+  height: 12px !important;
+  stroke-width: 3 !important;
+}
 body:has([data-kiriof-transactions-page]) #screen-meta-links,
 body:has([data-kiriof-transactions-page]) .update-nag,
 body:has([data-kiriof-transactions-page]) .notice,
@@ -174,9 +209,35 @@ body:has([data-kiriof-transactions-page]) .error {
   margin-left: auto;
 }
 .kiriof-transactions-toolbar [data-slot='button'] {
-  min-height: 32px;
+  display: inline-flex !important;
+  min-height: 34px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
   margin: 0;
+  padding-right: 12px !important;
+  padding-left: 12px !important;
+  line-height: 1 !important;
   text-decoration: none;
+}
+.kiriof-transactions-toolbar [data-slot='button'] > svg {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+}
+.kiriof-transactions-toolbar [data-slot='button'] > span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+.kiriof-action-count {
+  min-width: 18px;
+  justify-content: center;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 18%);
+  font-size: 10px;
+  font-weight: 700;
 }
 .kiriof-transactions-card {
   overflow: hidden;
@@ -392,7 +453,42 @@ body:has([data-kiriof-transactions-page]) .error {
   margin-top: 5px;
 }
 .kiriof-row-actions {
+  display: inline-flex !important;
+  width: auto !important;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 4px !important;
+}
+.kiriof-row-actions [data-slot='button'] {
+  display: inline-flex !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--kiriof-border) !important;
+  border-radius: 7px !important;
+  background: #fff !important;
+  color: #342b45 !important;
+  box-shadow: none !important;
+}
+.kiriof-row-actions [data-slot='button']:hover {
+  border-color: #b9afd6 !important;
+  background: var(--kiriof-primary-soft) !important;
+  color: var(--kiriof-primary) !important;
+}
+.kiriof-row-actions [data-slot='button'][class*='text-destructive'] {
+  border-color: #efc7c7 !important;
+  background: #fff5f5 !important;
+  color: #b42318 !important;
+}
+.kiriof-row-actions [data-slot='button'] svg {
+  display: block;
+  width: 15px !important;
+  height: 15px !important;
 }
 .kiriof-transaction-status,
 .kiriof-print-status,

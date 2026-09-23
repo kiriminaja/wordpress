@@ -107,13 +107,13 @@
     </div>
     <div class="kiriof-transactions-toolbar__actions">
       <Button id="kj-print-btn" variant="outline" disabled={selectedPrintCount === 0} onclick={printSelected}>
-        <IconPrinter />
-        {bootstrap.i18n.print}
-        {#if selectedPrintCount}<span>{selectedPrintCount}</span>{/if}
+        <IconPrinter data-icon="inline-start" />
+        <span>{bootstrap.i18n.print}</span>
+        {#if selectedPrintCount}<span class="kiriof-action-count">{selectedPrintCount}</span>{/if}
       </Button>
       <Button id="kj-request-pickup-btn" data-kj-action="request-pickup" disabled={selectedPickupCount === 0}>
-        {bootstrap.i18n.requestPickup}
-        {#if selectedPickupCount}<span>{selectedPickupCount}</span>{/if}
+        <span>{bootstrap.i18n.requestPickup}</span>
+        {#if selectedPickupCount}<span class="kiriof-action-count">{selectedPickupCount}</span>{/if}
       </Button>
     </div>
   </header>
@@ -275,7 +275,7 @@
                   </div>
                 </Table.Cell>
                 <Table.Cell class="is-actions">
-                  <div class="kiriof-row-actions">
+                  <ButtonGroup.Root class="kiriof-row-actions">
                     {#if row.actions.preview}
                       <Button variant="outline" size="icon-sm" class="order-preview" data-order-id={row.wcOrderId} title={bootstrap.i18n.detail} aria-label={bootstrap.i18n.detail}><IconEye /></Button>
                     {/if}
@@ -289,7 +289,7 @@
                       {#if row.actions.print}<Button variant="outline" size="icon-sm" href={row.actions.printUrl} target="_blank" title={bootstrap.i18n.print} aria-label={bootstrap.i18n.print}><IconPrinter /></Button>{/if}
                       {#if row.actions.cancel}<Button variant="destructive" size="icon-sm" data-kj-action="cancel" data-order-id={row.kaOrderId} title={bootstrap.i18n.cancel} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button>{/if}
                     {/if}
-                  </div>
+                  </ButtonGroup.Root>
                 </Table.Cell>
               </Table.Row>
             {/each}
