@@ -142,6 +142,10 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '{selectedCount} selected', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'background: #3f3f46 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+		$this->assertStringContainsString( 'history.pushState', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( "window.addEventListener('popstate'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( "fetch(url", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringNotContainsString( 'window.location.assign(url.toString())', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
     }
 
     private function filters(string $status): array

@@ -20,6 +20,15 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+.kiriof-transactions-card:has(.kiriof-transactions-search[data-disabled='true'])::after {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgb(255 255 255 / 38%);
+  content: '';
+  cursor: progress;
+  pointer-events: none;
+}
 .kiriof-courier-trigger {
   min-height: 34px !important;
   border-color: #c7c3cc !important;
@@ -284,6 +293,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   font-weight: 700;
 }
 .kiriof-transactions-card {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--kiriof-border);
   border-radius: 12px;

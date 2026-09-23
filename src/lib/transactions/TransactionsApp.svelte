@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import {
     IconAdjustmentsHorizontal,
     IconCalendar,
@@ -24,12 +25,18 @@
   import CourierCombobox from './CourierCombobox.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
-  let { bootstrap }: { bootstrap: TransactionsBootstrap } = $props();
+  let { bootstrap: initialBootstrap }: { bootstrap: TransactionsBootstrap } = $props();
+  function initialWorkspace(): TransactionsBootstrap {
+    return structuredClone(initialBootstrap);
+  }
+  let bootstrap = $state<TransactionsBootstrap>(initialWorkspace());
   function initialFilters(): TransactionFilters {
     return { ...bootstrap.filters };
   }
   let filters = $state<TransactionFilters>(initialFilters());
   let selected = $state<Record<string, boolean>>({});
+  let refreshing = $state(false);
+  let navigationController: AbortController | null = null;
 
   const selectedRows = $derived(bootstrap.rows.filter((row) => selected[row.kaOrderId]));
   const selectableRows = $derived(bootstrap.rows.filter((row) => !row.selection.disabled));
@@ -45,18 +52,51 @@
   const searchByLabel = $derived(filters.search_by === 'ka_order_id' ? bootstrap.i18n.kaOrderId : filters.search_by === 'awb' ? bootstrap.i18n.awb : bootstrap.i18n.orderNumber);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
 
-  function navigate(values: Record<string, string>): void {
+  function buildUrl(values: Record<string, string>): URL {
     const url = new URL(window.location.href);
     for (const [key, value] of Object.entries(values)) {
       if (value) url.searchParams.set(key, value);
       else url.searchParams.delete(key);
     }
     if (!('cpage' in values)) url.searchParams.set('cpage', '1');
-    window.location.assign(url.toString());
+    return url;
+  }
+
+  function syncFilters(next: TransactionFilters): void {
+    filters = { ...next };
+    selected = {};
+  }
+
+  async function navigate(values: Record<string, string>, push = true): Promise<void> {
+    const url = buildUrl(values);
+    navigationController?.abort();
+    navigationController = new AbortController();
+    refreshing = true;
+
+    try {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        signal: navigationController.signal,
+        headers: { 'X-KiriminAja-Workspace': 'transactions' },
+      });
+      const documentHtml = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const payload = documentHtml.querySelector<HTMLScriptElement>('[data-kiriof-transactions-payload]');
+      if (!response.ok || !payload?.textContent) throw new Error('Unable to load transactions.');
+
+      const nextBootstrap = JSON.parse(payload.textContent) as TransactionsBootstrap;
+      bootstrap = nextBootstrap;
+      syncFilters(nextBootstrap.filters);
+      if (push) history.pushState({ kiriofTransactions: true }, '', url);
+      document.title = documentHtml.title || document.title;
+    } catch (requestError) {
+      if ((requestError as Error).name !== 'AbortError') window.location.assign(url);
+    } finally {
+      refreshing = false;
+    }
   }
 
   function applyFilters(): void {
-    navigate({
+    void navigate({
       key: filters.key,
       search_by: filters.search_by,
       month: filters.month === 'all' ? '' : filters.month,
@@ -69,7 +109,7 @@
   }
 
   function clearFilters(): void {
-    navigate({ key: '', month: '', status: 'all', cod: '', courier: '', print_status: '', search_by: 'wc_order_id' });
+    void navigate({ key: '', month: '', status: 'all', cod: '', courier: '', print_status: '', search_by: 'wc_order_id' });
   }
 
   function toggleAll(checked: boolean): void {
@@ -101,6 +141,16 @@
   function toneClass(tone: TransactionRow['status']['tone']): string {
     return `is-${tone}`;
   }
+
+  function handlePopState(): void {
+    void navigate(Object.fromEntries(new URL(window.location.href).searchParams.entries()), false);
+  }
+
+  window.addEventListener('popstate', handlePopState);
+  onDestroy(() => {
+    navigationController?.abort();
+    window.removeEventListener('popstate', handlePopState);
+  });
 </script>
 
 <div class="kiriof-shadcn kiriof-transactions-app">
@@ -111,11 +161,11 @@
       <strong>{bootstrap.toolbar.title}</strong>
     </div>
     <div class="kiriof-transactions-toolbar__actions">
-      <Button id="kj-print-btn" variant="outline" disabled={selectedPrintCount === 0} onclick={printSelected}>
+      <Button id="kj-print-btn" variant="outline" disabled={refreshing || selectedPrintCount === 0} onclick={printSelected}>
         <IconPrinter data-icon="inline-start" />
         <span>{bootstrap.i18n.print} ({selectedPrintCount} of {selectedCount})</span>
       </Button>
-      <Button id="kj-request-pickup-btn" data-kj-action="request-pickup" disabled={selectedPickupCount === 0}>
+      <Button id="kj-request-pickup-btn" data-kj-action="request-pickup" disabled={refreshing || selectedPickupCount === 0}>
         <span>{bootstrap.i18n.requestPickup} ({selectedPickupCount} of {selectedCount})</span>
       </Button>
     </div>
@@ -129,13 +179,13 @@
           <Button variant="ghost" disabled title="International delivery is not available in this workspace">International Delivery</Button>
           <Button variant="ghost" disabled title="Instant delivery is not available in this workspace">Instant Delivery</Button>
           {#if orderIssueOption}
-            <Button variant={filters.status === 'order-issue' ? 'secondary' : 'ghost'} onclick={() => navigate({ status: 'order-issue' })}>
+            <Button variant={filters.status === 'order-issue' ? 'secondary' : 'ghost'} disabled={refreshing} onclick={() => void navigate({ status: 'order-issue' })}>
               Order Issue{orderIssueOption.count > 0 ? ` (${orderIssueOption.count})` : ''}
             </Button>
           {/if}
         </ButtonGroup.Root>
         <div class="kiriof-transactions-list-tools">
-          <Select.Root type="single" bind:value={filters.month} onValueChange={() => applyFilters()}>
+          <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={() => applyFilters()}>
             <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
               <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
@@ -144,7 +194,7 @@
               {/each}
             </Select.Content>
           </Select.Root>
-          <Select.Root type="single" value={String(bootstrap.pagination.perPage)} onValueChange={(value: string) => navigate({ per_page: value || '25' })}>
+          <Select.Root type="single" value={String(bootstrap.pagination.perPage)} disabled={refreshing} onValueChange={(value: string) => void navigate({ per_page: value || '25' })}>
             <Select.Trigger hideIcon><IconListNumbers /><Select.Value>{bootstrap.pagination.perPage}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
               {#each ['10', '25', '50', '100'] as size}<Select.Item value={size}>{size}</Select.Item>{/each}
@@ -159,9 +209,9 @@
           applyFilters();
         }}
       >
-        <InputGroup.Root class="kiriof-transactions-search">
+        <InputGroup.Root class="kiriof-transactions-search" data-disabled={refreshing ? 'true' : undefined}>
           <InputGroup.Addon class="kiriof-search-prefix p-0">
-            <Select.Root type="single" bind:value={filters.search_by}>
+            <Select.Root type="single" bind:value={filters.search_by} disabled={refreshing}>
               <Select.Trigger hideIcon class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
               <Select.Content class="kiriof-shadcn">
                 <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
@@ -170,10 +220,10 @@
               </Select.Content>
             </Select.Root>
           </InputGroup.Addon>
-          <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} />
+          <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} />
           <InputGroup.Addon class="kiriof-search-suffix" align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>
-        <Select.Root type="single" bind:value={filters.cod}>
+        <Select.Root type="single" bind:value={filters.cod} disabled={refreshing}>
           <Select.Trigger hideIcon><IconCash /><Select.Value>{paymentLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPayment}</Select.Item>
@@ -181,7 +231,7 @@
             <Select.Item value="0">{bootstrap.i18n.nonCod}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <Select.Root type="single" bind:value={filters.status}>
+        <Select.Root type="single" bind:value={filters.status} disabled={refreshing}>
           <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             {#each bootstrap.statusOptions as option}
@@ -189,7 +239,7 @@
             {/each}
           </Select.Content>
         </Select.Root>
-        <Select.Root type="single" bind:value={filters.print_status}>
+        <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing}>
           <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPrints}</Select.Item>
@@ -197,10 +247,10 @@
             <Select.Item value="0">{bootstrap.i18n.unprinted}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <CourierCombobox value={filters.courier} options={courierOptions} placeholder={bootstrap.i18n.allCouriers} onChange={(value) => (filters.courier = value)} />
+        <CourierCombobox value={filters.courier} options={courierOptions} placeholder={bootstrap.i18n.allCouriers} disabled={refreshing} onChange={(value) => (filters.courier = value)} />
         <ButtonGroup.Root>
-          <Button variant="outline" size="icon" onclick={applyFilters} aria-label={bootstrap.i18n.apply} title={bootstrap.i18n.apply}><IconSearch /></Button>
-          <Button variant="outline" size="icon" onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
+          <Button variant="outline" size="icon" disabled={refreshing} onclick={applyFilters} aria-label={bootstrap.i18n.apply} title={bootstrap.i18n.apply}><IconSearch /></Button>
+          <Button variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
         </ButtonGroup.Root>
       </form>
     </div>
@@ -311,9 +361,9 @@
     <footer class="kiriof-transactions-pagination">
       <span>{bootstrap.pagination.total} {bootstrap.i18n.items}</span>
       <div>
-        <Button variant="outline" size="icon-sm" disabled={bootstrap.pagination.page <= 1} onclick={() => navigate({ cpage: String(bootstrap.pagination.page - 1) })}><IconChevronLeft /></Button>
+        <Button variant="outline" size="icon-sm" disabled={refreshing || bootstrap.pagination.page <= 1} onclick={() => void navigate({ cpage: String(bootstrap.pagination.page - 1) })}><IconChevronLeft /></Button>
         <span>{bootstrap.pagination.page} {bootstrap.i18n.pageOf} {bootstrap.pagination.totalPages}</span>
-        <Button variant="outline" size="icon-sm" disabled={bootstrap.pagination.page >= bootstrap.pagination.totalPages} onclick={() => navigate({ cpage: String(bootstrap.pagination.page + 1) })}><IconChevronRight /></Button>
+        <Button variant="outline" size="icon-sm" disabled={refreshing || bootstrap.pagination.page >= bootstrap.pagination.totalPages} onclick={() => void navigate({ cpage: String(bootstrap.pagination.page + 1) })}><IconChevronRight /></Button>
       </div>
     </footer>
   </section>
