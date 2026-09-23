@@ -20,6 +20,37 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+.kiriof-courier-trigger {
+  min-height: 34px !important;
+  border-color: #c7c3cc !important;
+  background: #fff !important;
+  color: #29252e !important;
+}
+.kiriof-courier-trigger > span {
+  min-width: 0;
+}
+.kiriof-transactions-filterrow [data-slot='button-group'] [data-slot='button'] {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border-color: #c7c3cc !important;
+  background: #fff !important;
+  color: #342b45 !important;
+}
+.kiriof-transactions-filterrow [data-slot='button-group'] [data-slot='button']:hover {
+  border-color: #a99ccf !important;
+  background: var(--kiriof-primary-soft) !important;
+  color: var(--kiriof-primary) !important;
+}
+.kiriof-transactions-app .kiriof-select-chevron {
+  display: block !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin-left: auto;
+  color: #716b79;
+}
 .kiriof-selection-summary th {
   background: #f5f5f5 !important;
   color: #5f5f66 !important;
@@ -350,9 +381,6 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   width: 15px !important;
   height: 15px !important;
 }
-.kiriof-transactions-app [data-slot='select-trigger'] > svg:last-child {
-  display: none !important;
-}
 .kiriof-transactions-app [data-slot='select-value'] {
   min-width: 0;
   align-items: center !important;
@@ -394,7 +422,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   height: 32px !important;
   border: 0 !important;
   border-radius: calc(var(--radius) - 1px) 0 0 calc(var(--radius) - 1px) !important;
-  background: #f6f5f7 !important;
+  background: #fff !important;
   padding-right: 10px !important;
   padding-left: 10px !important;
   font-weight: 600;

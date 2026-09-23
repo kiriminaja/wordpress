@@ -1,6 +1,8 @@
 <script lang="ts">
   import {
     IconAdjustmentsHorizontal,
+    IconCalendar,
+    IconCash,
     IconChevronLeft,
     IconChevronRight,
     IconEye,
@@ -8,6 +10,8 @@
     IconPrinter,
     IconRefresh,
     IconSearch,
+    IconListNumbers,
+    IconChevronDown,
     IconTrash,
     IconX,
   } from '@tabler/icons-svelte';
@@ -132,7 +136,7 @@
         </ButtonGroup.Root>
         <div class="kiriof-transactions-list-tools">
           <Select.Root type="single" bind:value={filters.month} onValueChange={() => applyFilters()}>
-            <Select.Trigger><Select.Value>{monthLabel}</Select.Value></Select.Trigger>
+            <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
               <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
               {#each Object.entries(bootstrap.monthOptions) as [value, label]}
@@ -141,7 +145,7 @@
             </Select.Content>
           </Select.Root>
           <Select.Root type="single" value={String(bootstrap.pagination.perPage)} onValueChange={(value: string) => navigate({ per_page: value || '25' })}>
-            <Select.Trigger><Select.Value>{bootstrap.pagination.perPage}</Select.Value></Select.Trigger>
+            <Select.Trigger hideIcon><IconListNumbers /><Select.Value>{bootstrap.pagination.perPage}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
               {#each ['10', '25', '50', '100'] as size}<Select.Item value={size}>{size}</Select.Item>{/each}
             </Select.Content>
@@ -158,7 +162,7 @@
         <InputGroup.Root class="kiriof-transactions-search">
           <InputGroup.Addon class="kiriof-search-prefix p-0">
             <Select.Root type="single" bind:value={filters.search_by}>
-              <Select.Trigger class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value></Select.Trigger>
+              <Select.Trigger hideIcon class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
               <Select.Content class="kiriof-shadcn">
                 <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
                 <Select.Item value="ka_order_id">{bootstrap.i18n.kaOrderId}</Select.Item>
@@ -170,7 +174,7 @@
           <InputGroup.Addon class="kiriof-search-suffix" align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>
         <Select.Root type="single" bind:value={filters.cod}>
-          <Select.Trigger><Select.Value>{paymentLabel}</Select.Value></Select.Trigger>
+          <Select.Trigger hideIcon><IconCash /><Select.Value>{paymentLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPayment}</Select.Item>
             <Select.Item value="1">{bootstrap.i18n.cod}</Select.Item>
@@ -178,7 +182,7 @@
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.status}>
-          <Select.Trigger><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value></Select.Trigger>
+          <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             {#each bootstrap.statusOptions as option}
               <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
@@ -186,7 +190,7 @@
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.print_status}>
-          <Select.Trigger><Select.Value>{printLabel}</Select.Value></Select.Trigger>
+          <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPrints}</Select.Item>
             <Select.Item value="1">{bootstrap.i18n.printed}</Select.Item>
@@ -195,7 +199,7 @@
         </Select.Root>
         <CourierCombobox value={filters.courier} options={courierOptions} placeholder={bootstrap.i18n.allCouriers} onChange={(value) => (filters.courier = value)} />
         <ButtonGroup.Root>
-          <Button onclick={applyFilters}>{bootstrap.i18n.apply}</Button>
+          <Button variant="outline" size="icon" onclick={applyFilters} aria-label={bootstrap.i18n.apply} title={bootstrap.i18n.apply}><IconSearch /></Button>
           <Button variant="outline" size="icon" onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
         </ButtonGroup.Root>
       </form>

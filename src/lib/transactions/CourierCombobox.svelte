@@ -35,7 +35,7 @@
 <Popover.Root bind:open>
   <Popover.Trigger bind:ref={triggerRef}>
     {#snippet child({ props })}
-      <Button {...props} variant="outline" class="h-9 w-full justify-between px-3 font-normal" role="combobox" aria-expanded={open}>
+      <Button {...props} variant="outline" class="kiriof-courier-trigger h-9 w-full justify-between px-3 font-normal" role="combobox" aria-expanded={open}>
         <span class="flex min-w-0 items-center gap-2"><IconTruck class="size-4 shrink-0 text-muted-foreground" /><span class="truncate">{selectedLabel}</span></span>
         <IconChevronDown class="size-4 shrink-0 text-muted-foreground" />
       </Button>

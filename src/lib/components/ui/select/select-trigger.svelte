@@ -8,9 +8,11 @@
 		class: className,
 		children,
 		size = "default",
+		hideIcon = false,
 		...restProps
 	}: WithoutChild<SelectPrimitive.TriggerProps> & {
 		size?: "sm" | "default";
+		hideIcon?: boolean;
 	} = $props();
 </script>
 
@@ -25,5 +27,7 @@
 	{...restProps}
 >
 	{@render children?.()}
-	<IconSelector class="text-muted-foreground size-4 pointer-events-none" />
+	{#if !hideIcon}
+		<IconSelector class="text-muted-foreground size-4 pointer-events-none" />
+	{/if}
 </SelectPrimitive.Trigger>
