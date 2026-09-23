@@ -22,8 +22,16 @@ export type SettingItem = {
   toggle?: 'insurance' | 'cod';
 };
 
+export type SettingsToolbar = {
+  logoUrl: string;
+  rootUrl: string;
+  rootLabel: string;
+  title: string;
+};
+
 export type WebhooksBootstrap = {
   view: 'webhooks';
+  toolbar: SettingsToolbar;
   callbackUrl: string;
   i18n: {
     callbackUrl: string;
@@ -36,6 +44,7 @@ export type WebhooksBootstrap = {
 
 export type TechnicalBootstrap = {
   view: 'technical';
+  toolbar: SettingsToolbar;
   downloadLogUrl: string;
   region: {
     state: string;
@@ -82,6 +91,7 @@ export type TechnicalBootstrap = {
 
 export type TrackingBootstrap = {
   view: 'tracking';
+  toolbar: SettingsToolbar;
   pages: Array<{ id: number; title: string; url: string; editUrl: string }>;
   i18n: {
     guideTitle: string;
@@ -96,6 +106,7 @@ export type TrackingBootstrap = {
 
 export type AccountBootstrap = {
   view: 'account';
+  toolbar: SettingsToolbar;
   connected: boolean;
   profileError: boolean;
   profile: null | {
@@ -131,6 +142,7 @@ export type AccountBootstrap = {
 
 export type CouriersBootstrap = {
   view: 'couriers';
+  toolbar: SettingsToolbar;
   i18n: {
     enableAll: string;
     disableAll: string;
@@ -157,6 +169,7 @@ export type SettingsGroup = {
 
 export type SettingsBootstrap = {
   view: 'root';
+  toolbar: SettingsToolbar;
   mode: 'configured' | 'unconfigured';
   groups?: SettingsGroup[];
   toggles?: {

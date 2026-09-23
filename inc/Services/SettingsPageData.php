@@ -50,6 +50,7 @@ class SettingsPageData {
 
 		return array(
 			'view'         => 'account',
+			'toolbar'      => $this->settingsToolbar( __( 'Account Configuration', 'kiriminaja-official' ) ),
 			'connected'    => (bool) $account['kiriof_is_connected'],
 			'profileError' => (bool) $account['kiriof_profile_err'],
 			'profile'      => $profile ? array(
@@ -101,6 +102,7 @@ class SettingsPageData {
 
 		return array(
 			'view'  => 'tracking',
+			'toolbar' => $this->settingsToolbar( __( 'Tracking Page', 'kiriminaja-official' ) ),
 			'pages' => $serialized_pages,
 			'i18n'  => array(
 				'guideTitle'       => __( 'How to Add a Tracking Page', 'kiriminaja-official' ),
@@ -120,11 +122,28 @@ class SettingsPageData {
 	}
 
 	/**
+	 * @return array<string, string>
+	 */
+	private function settingsToolbar( string $title ): array {
+		$logo_url = defined( 'KIRIOF_URL' )
+			? KIRIOF_URL . 'assets/admin/img/icon-128x128.png'
+			: 'assets/admin/img/icon-128x128.png';
+
+		return array(
+			'logoUrl'   => $logo_url,
+			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+			'rootLabel' => __( 'Settings', 'kiriminaja-official' ),
+			'title'     => $title,
+		);
+	}
+
+	/**
 	 * @return array<string, mixed>
 	 */
 	public function prepareCouriersBootstrap(): array {
 		return array(
 			'view' => 'couriers',
+			'toolbar' => $this->settingsToolbar( __( 'Courier List', 'kiriminaja-official' ) ),
 			'i18n' => array(
 				'enableAll'  => __( 'Enable All', 'kiriminaja-official' ),
 				'disableAll' => __( 'Disable All', 'kiriminaja-official' ),
@@ -149,6 +168,7 @@ class SettingsPageData {
 		$base_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
 		$bootstrap = array(
 			'view'    => 'root',
+			'toolbar' => $this->settingsToolbar( __( 'Settings', 'kiriminaja-official' ) ),
 			'mode'    => $connected ? 'configured' : 'unconfigured',
 			'helpUrl' => 'https://help.kiriminaja.com/article/setup-wordpress',
 			'i18n'    => array(
@@ -228,6 +248,7 @@ class SettingsPageData {
 	public function prepareWebhooksBootstrap( string $callback_url ): array {
 		return array(
 			'view'        => 'webhooks',
+			'toolbar'     => $this->settingsToolbar( __( 'Webhooks', 'kiriminaja-official' ) ),
 			'callbackUrl' => $callback_url,
 			'i18n'        => array(
 				'callbackUrl' => __( 'Callback URL', 'kiriminaja-official' ),
@@ -246,6 +267,7 @@ class SettingsPageData {
 	public function prepareTechnicalBootstrap( array $technical ): array {
 		return array(
 			'view'           => 'technical',
+			'toolbar'        => $this->settingsToolbar( __( 'Technical', 'kiriminaja-official' ) ),
 			'downloadLogUrl' => $technical['downloadLogUrl'],
 			'region'         => array(
 				'state'         => $technical['state'],

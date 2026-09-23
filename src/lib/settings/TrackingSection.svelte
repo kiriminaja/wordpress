@@ -2,11 +2,13 @@
   import { IconExternalLink, IconFileDescription } from '@tabler/icons-svelte';
   import { Button } from 'bits-ui';
   import type { TrackingBootstrap } from './types';
+  import SettingsToolbar from './SettingsToolbar.svelte';
 
   let { bootstrap }: { bootstrap: TrackingBootstrap } = $props();
 </script>
 
-<div class="kiriof-technical">
+<SettingsToolbar toolbar={bootstrap.toolbar} />
+<div class="kiriof-technical kiriof-settings-content">
   <section class="kiriof-section-card">
     <h2>{bootstrap.i18n.guideTitle}</h2>
     <ol class="kiriof-guide-list">

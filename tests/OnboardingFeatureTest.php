@@ -178,7 +178,13 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
-        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/SettingsToolbar.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/assets/admin/img/icon-128x128.png' );
+		$this->assertStringContainsString( 'kiriof-app-toolbar', $styles );
+		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $styles );
+		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
+		$this->assertStringContainsString( "remove_all_actions( 'admin_notices' )", file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
         $this->assertStringContainsString( "'settings-root': 'src/entries/settings-root.ts'", $vite );
         $this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' )", $controller );
         $this->assertStringContainsString( "wp_script_add_data( 'kiriof-settings-root', 'type', 'module' )", $controller );

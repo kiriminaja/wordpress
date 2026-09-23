@@ -3,6 +3,7 @@
   import { Button } from 'bits-ui';
   import { postWordPressAction } from '../wordpress/ajax';
   import type { WebhooksBootstrap } from './types';
+  import SettingsToolbar from './SettingsToolbar.svelte';
 
   let { bootstrap }: { bootstrap: WebhooksBootstrap } = $props();
   function initialCallbackUrl(): string {
@@ -30,7 +31,13 @@
   }
 </script>
 
-<section class="kiriof-section-card" aria-labelledby="kiriof-webhooks-title">
+<SettingsToolbar toolbar={bootstrap.toolbar}>
+  <Button.Root class="button button-primary" disabled={saving} onclick={save}>
+    <IconDeviceFloppy size={16} stroke={2} aria-hidden="true" />
+    {saving ? bootstrap.i18n.saving : bootstrap.i18n.save}
+  </Button.Root>
+</SettingsToolbar>
+<section class="kiriof-section-card kiriof-settings-content" aria-labelledby="kiriof-webhooks-title">
   <h2 id="kiriof-webhooks-title">{bootstrap.i18n.callbackUrl}</h2>
   <label class="screen-reader-text" for="kiriof-callback-url">{bootstrap.i18n.callbackUrl}</label>
   <input
@@ -41,10 +48,6 @@
     placeholder="https://"
   />
   <div class="kiriof-section-actions">
-    <Button.Root class="button button-primary" disabled={saving} onclick={save}>
-      <IconDeviceFloppy size={16} stroke={2} aria-hidden="true" />
-      {saving ? bootstrap.i18n.saving : bootstrap.i18n.save}
-    </Button.Root>
     {#if message}
       <span class:error class="kiriof-section-message" role={error ? 'alert' : 'status'}>{message}</span>
     {/if}

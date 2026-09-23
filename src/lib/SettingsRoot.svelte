@@ -6,6 +6,7 @@
   } from '@tabler/icons-svelte';
   import { Button } from 'bits-ui';
   import SettingsIcon from './settings/SettingsIcon.svelte';
+  import SettingsToolbar from './settings/SettingsToolbar.svelte';
   import type { SettingsBootstrap } from './settings/types';
   import { postWordPressAction } from './wordpress/ajax';
   import SettingSwitch from './ui/SettingSwitch.svelte';
@@ -70,8 +71,10 @@
   }
 </script>
 
+<SettingsToolbar toolbar={bootstrap.toolbar} />
+
 {#if bootstrap.mode === 'unconfigured'}
-  <section class="kiriof-connect" aria-labelledby="kiriof-connect-title">
+  <section class="kiriof-connect kiriof-settings-content" aria-labelledby="kiriof-connect-title">
     <div class="kiriof-connect__identity" aria-hidden="true">
       <span>W</span>
       <span class="kiriof-connect__link"><IconLink size={18} stroke={2} /></span>
@@ -102,7 +105,7 @@
     </div>
   </section>
 {:else}
-  <div class="kiriof-settings-root">
+  <div class="kiriof-settings-root kiriof-settings-content">
     {#if error}
       <p class="kiriof-settings-root__message is-error" role="alert">{error}</p>
     {/if}

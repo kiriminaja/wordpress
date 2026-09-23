@@ -3,6 +3,7 @@
   import { postWordPressAction } from '../wordpress/ajax';
   import SettingSwitch from '../ui/SettingSwitch.svelte';
   import type { CouriersBootstrap } from './types';
+  import SettingsToolbar from './SettingsToolbar.svelte';
 
   type Courier = { code: string; name: string; type?: string };
   type CourierPayload = { couriers: Courier[]; whitelist_ids: string[] };
@@ -61,8 +62,12 @@
   });
 </script>
 
-<section class="kiriof-section-card">
-  <div class="kiriof-courier-toolbar"><button class="button" disabled={loading || saving} onclick={() => setAll(true)}>{bootstrap.i18n.enableAll}</button><button class="button" disabled={loading || saving} onclick={() => setAll(false)}>{bootstrap.i18n.disableAll}</button><span>{countText()}</span></div>
+<SettingsToolbar toolbar={bootstrap.toolbar}>
+  <button class="button" disabled={loading || saving} onclick={() => setAll(true)}>{bootstrap.i18n.enableAll}</button>
+  <button class="button" disabled={loading || saving} onclick={() => setAll(false)}>{bootstrap.i18n.disableAll}</button>
+</SettingsToolbar>
+<section class="kiriof-section-card kiriof-settings-content">
+  <div class="kiriof-courier-toolbar"><span>{countText()}</span></div>
   {#if loading}<p>{bootstrap.i18n.loading}</p>{:else if error && couriers.length === 0}<p class="kiriof-settings-root__message is-error">{error}</p>{:else if couriers.length === 0}<p>{bootstrap.i18n.noCouriers}</p>{:else}<div class="kiriof-courier-grid">{#each couriers as courier}<article><div><strong>{courier.name}</strong><span>{courier.type ?? ''}</span></div><SettingSwitch label={courier.name} checked={Object.hasOwn(enabled, courier.code)} disabled={saving} onCheckedChange={(checked) => toggle(courier, checked)} /></article>{/each}</div>{/if}
   {#if error && couriers.length}<p class="kiriof-section-message error" role="alert">{error}</p>{/if}
 </section>

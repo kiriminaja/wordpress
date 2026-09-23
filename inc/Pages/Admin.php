@@ -31,6 +31,28 @@ class Admin extends BaseInit{
         $this->shipping_method_registration_service = $shipping_method_registration_service;
     }
 
+	public function kiriof_prepare_settings_workspace( $screen = null ): void {
+		if ( ! $this->is_settings_workspace() ) {
+			return;
+		}
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
+		remove_all_actions( 'network_admin_notices' );
+		remove_all_actions( 'user_admin_notices' );
+	}
+
+	public function kiriof_hide_settings_screen_options( bool $show, $screen = null ): bool {
+		unset( $screen );
+		return $this->is_settings_workspace() ? false : $show;
+	}
+
+	private function is_settings_workspace(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		return 'kiriminaja-konfigurasi' === $page;
+	}
+
     public function register(){
         /** add pages*/
         
@@ -39,6 +61,8 @@ class Admin extends BaseInit{
         // Screen Options: items per page for transaction list
         add_action( 'current_screen', array( $this, 'kiriof_add_transaction_screen_options' ) );
         add_action( 'in_admin_header', array( $this, 'kiriof_add_transaction_screen_options' ), 5 );
+		add_action( 'current_screen', array( $this, 'kiriof_prepare_settings_workspace' ), 1 );
+		add_filter( 'screen_options_show_screen', array( $this, 'kiriof_hide_settings_screen_options' ), 10, 2 );
         if ( KIRIOF_ENABLE_KA_CREDIT ) {
             add_action( 'admin_bar_menu', array( $this, 'kiriof_add_credit_balance_admin_bar' ), 61 );
         }

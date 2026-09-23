@@ -175,6 +175,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( 'technical', $technical_bootstrap['view'] );
 		$this->assertSame( 38, $technical_bootstrap['region']['provinceCount'] );
 		$this->assertTrue( $technical_bootstrap['couriers']['cached'] );
+		$this->assertStringContainsString( 'icon-128x128.png', $technical_bootstrap['toolbar']['logoUrl'] );
 	}
 
 	#[Test]
