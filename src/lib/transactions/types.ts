@@ -63,7 +63,7 @@ export type TransactionRow = {
 };
 
 export type TransactionsBootstrap = {
-  toolbar: { logoUrl: string; title: string };
+  toolbar: { logoUrl: string; rootUrl: string; rootLabel: string; title: string };
   filters: TransactionFilters;
   statusOptions: TransactionStatusOption[];
   monthOptions: Record<string, string>;

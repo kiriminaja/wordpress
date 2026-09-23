@@ -23,6 +23,7 @@
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
+  import SettingsToolbar from '$lib/settings/SettingsToolbar.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
@@ -167,12 +168,7 @@
 </script>
 
 <div class="kiriof-shadcn kiriof-transactions-app">
-  <header class="kiriof-transactions-toolbar">
-    <div class="kiriof-transactions-toolbar__title">
-      <img src={bootstrap.toolbar.logoUrl} alt="" />
-      <span aria-hidden="true">›</span>
-      <strong>{bootstrap.toolbar.title}</strong>
-    </div>
+  <SettingsToolbar toolbar={bootstrap.toolbar}>
     <div class="kiriof-transactions-toolbar__actions">
       <Button id="kj-print-btn" variant="outline" disabled={refreshing || selectedPrintCount === 0} onclick={printSelected}>
         <IconPrinter data-icon="inline-start" />
@@ -182,7 +178,7 @@
         <span>{bootstrap.i18n.requestPickup} ({selectedPickupCount} of {selectedCount})</span>
       </Button>
     </div>
-  </header>
+  </SettingsToolbar>
 
   <section class="kiriof-transactions-card">
     <div class="kiriof-transactions-filterbar">

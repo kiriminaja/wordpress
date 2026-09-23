@@ -15,6 +15,12 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+body:has([data-kiriof-settings-page]) .kiriof-app-toolbar {
+  width: calc(100% + 20px);
+  margin-left: -20px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
 
 body:has([data-kiriof-settings-page]) #wpcontent {
   padding-left: 0 !important;

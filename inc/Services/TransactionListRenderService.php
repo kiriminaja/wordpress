@@ -83,8 +83,10 @@ class TransactionListRenderService {
 
 		$kiriof_transactions_bootstrap = array(
 			'toolbar'      => array(
-				'logoUrl' => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
-				'title'   => __( 'Transactions', 'kiriminaja-official' ),
+				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
+				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+				'rootLabel' => __( 'KiriminAja', 'kiriminaja-official' ),
+				'title'     => __( 'Transactions', 'kiriminaja-official' ),
 			),
 			'filters'      => $filters,
 			'statusOptions'=> array(
