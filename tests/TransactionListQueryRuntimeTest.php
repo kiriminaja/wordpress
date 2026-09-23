@@ -123,7 +123,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/button-group/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' );
 		$this->assertStringContainsString( '<Table.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<InputGroup.Root>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( '<InputGroup.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<ButtonGroup.Root>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'Order Issue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
     }

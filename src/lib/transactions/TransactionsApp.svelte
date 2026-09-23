@@ -98,7 +98,7 @@
   }
 </script>
 
-<div class="kiriof-transactions-app">
+<div class="kiriof-shadcn kiriof-transactions-app">
   <header class="kiriof-transactions-toolbar">
     <div class="kiriof-transactions-toolbar__title">
       <img src={bootstrap.toolbar.logoUrl} alt="" />
@@ -121,25 +121,42 @@
   <section class="kiriof-transactions-card">
     <div class="kiriof-transactions-filterbar">
       <nav class="kiriof-transactions-scopes" aria-label="Transaction scope">
-        <ButtonGroup.Root>
+        <ButtonGroup.Root class="kiriof-transactions-scope-group">
           <Button variant="secondary" aria-current="page">Regular Delivery</Button>
           <Button variant="ghost" disabled title="International delivery is not available in this workspace">International Delivery</Button>
           <Button variant="ghost" disabled title="Instant delivery is not available in this workspace">Instant Delivery</Button>
+          {#if orderIssueOption}
+            <Button variant={filters.status === 'order-issue' ? 'secondary' : 'ghost'} onclick={() => navigate({ status: 'order-issue' })}>
+              Order Issue{orderIssueOption.count > 0 ? ` (${orderIssueOption.count})` : ''}
+            </Button>
+          {/if}
         </ButtonGroup.Root>
-        {#if orderIssueOption}
-          <Button variant={filters.status === 'order-issue' ? 'secondary' : 'ghost'} onclick={() => navigate({ status: 'order-issue' })}>
-            Order Issue{orderIssueOption.count > 0 ? ` (${orderIssueOption.count})` : ''}
-          </Button>
-        {/if}
+        <div class="kiriof-transactions-list-tools">
+          <Select.Root type="single" bind:value={filters.month} onValueChange={() => applyFilters()}>
+            <Select.Trigger><Select.Value>{monthLabel}</Select.Value></Select.Trigger>
+            <Select.Content class="kiriof-shadcn">
+              <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
+              {#each Object.entries(bootstrap.monthOptions) as [value, label]}
+                <Select.Item {value}>{label}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+          <Select.Root type="single" value={String(bootstrap.pagination.perPage)} onValueChange={(value: string) => navigate({ per_page: value || '25' })}>
+            <Select.Trigger><Select.Value>{bootstrap.pagination.perPage}</Select.Value></Select.Trigger>
+            <Select.Content class="kiriof-shadcn">
+              {#each ['10', '25', '50', '100'] as size}<Select.Item value={size}>{size}</Select.Item>{/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
       </nav>
       <form
-        class="kiriof-transactions-search"
+        class="kiriof-transactions-filterrow"
         onsubmit={(event) => {
           event.preventDefault();
           applyFilters();
         }}
       >
-        <InputGroup.Root>
+        <InputGroup.Root class="kiriof-transactions-search">
           <InputGroup.Addon class="p-0">
             <Select.Root type="single" bind:value={filters.search_by}>
               <Select.Trigger class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value></Select.Trigger>
@@ -153,32 +170,20 @@
           <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} />
           <InputGroup.Addon align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>
-      </form>
-
-      <div class="kiriof-transactions-filtergrid">
-        <Select.Root type="single" bind:value={filters.status}>
-          <Select.Trigger><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value></Select.Trigger>
-          <Select.Content class="kiriof-shadcn">
-            {#each bootstrap.statusOptions as option}
-              <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
-        <Select.Root type="single" bind:value={filters.month}>
-          <Select.Trigger><Select.Value>{monthLabel}</Select.Value></Select.Trigger>
-          <Select.Content class="kiriof-shadcn">
-            <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
-            {#each Object.entries(bootstrap.monthOptions) as [value, label]}
-              <Select.Item {value}>{label}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
         <Select.Root type="single" bind:value={filters.cod}>
           <Select.Trigger><Select.Value>{paymentLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPayment}</Select.Item>
             <Select.Item value="1">{bootstrap.i18n.cod}</Select.Item>
             <Select.Item value="0">{bootstrap.i18n.nonCod}</Select.Item>
+          </Select.Content>
+        </Select.Root>
+        <Select.Root type="single" bind:value={filters.status}>
+          <Select.Trigger><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value></Select.Trigger>
+          <Select.Content class="kiriof-shadcn">
+            {#each bootstrap.statusOptions as option}
+              <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
+            {/each}
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.print_status}>
@@ -194,17 +199,11 @@
           <Button onclick={applyFilters}>{bootstrap.i18n.apply}</Button>
           <Button variant="outline" size="icon" onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
         </ButtonGroup.Root>
-      </div>
+      </form>
     </div>
 
     <div class="kiriof-transactions-meta">
       <span>{bootstrap.pagination.total} {bootstrap.i18n.items}</span>
-      <Select.Root type="single" value={String(bootstrap.pagination.perPage)} onValueChange={(value: string) => navigate({ per_page: value || '25' })}>
-        <Select.Trigger size="sm"><Select.Value /></Select.Trigger>
-        <Select.Content class="kiriof-shadcn">
-          {#each ['10', '25', '50', '100'] as size}<Select.Item value={size}>{size}</Select.Item>{/each}
-        </Select.Content>
-      </Select.Root>
     </div>
 
     <div class="kiriof-transactions-tablewrap">

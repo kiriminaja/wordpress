@@ -20,17 +20,6 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
-.kiriof-transactions-scopes {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  overflow-x: auto;
-}
-.kiriof-transactions-scopes [data-slot='button'] {
-  min-height: 34px;
-  margin: 0;
-}
 body:has([data-kiriof-transactions-page]) #screen-meta-links,
 body:has([data-kiriof-transactions-page]) .update-nag,
 body:has([data-kiriof-transactions-page]) .notice,
@@ -203,9 +192,41 @@ body:has([data-kiriof-transactions-page]) .error {
   border-bottom: 1px solid var(--kiriof-border);
   background: #fff;
 }
+.kiriof-transactions-scopes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+}
+.kiriof-transactions-scope-group {
+  flex-wrap: nowrap;
+}
+.kiriof-transactions-scopes [data-slot='button'] {
+  min-height: 34px;
+  margin: 0;
+}
+.kiriof-transactions-list-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.kiriof-transactions-list-tools [data-slot='select-trigger'] {
+  width: auto;
+  min-width: 96px;
+}
+.kiriof-transactions-filterrow {
+  display: grid;
+  grid-template-columns: minmax(270px, 1.2fr) repeat(3, minmax(160px, 1fr)) minmax(
+      190px,
+      1.1fr
+    ) auto;
+  gap: 8px;
+  align-items: center;
+}
 .kiriof-transactions-search {
-  display: block;
-  max-width: 680px;
+  width: 100%;
 }
 .kiriof-transactions-search [data-slot='input-group'] {
   height: 34px;
@@ -215,23 +236,65 @@ body:has([data-kiriof-transactions-page]) .error {
   min-width: 180px;
 }
 .kiriof-filter-search-by,
-.kiriof-transactions-filtergrid [data-slot='select-trigger'] {
+.kiriof-transactions-filterrow [data-slot='select-trigger'] {
   width: 100%;
   min-width: 0;
   height: 34px;
   margin: 0;
   box-sizing: border-box;
 }
-.kiriof-transactions-filtergrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr)) minmax(180px, 1.15fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-.kiriof-transactions-filtergrid [data-slot='button'],
+.kiriof-transactions-filterrow [data-slot='button'],
 .kiriof-transactions-meta [data-slot='select-trigger'] {
   min-height: 34px;
   margin: 0;
+}
+
+/* WordPress admin form rules are global; pin this workspace to shadcn geometry. */
+.kiriof-transactions-app [data-slot='button'],
+.kiriof-transactions-app [data-slot='select-trigger'],
+.kiriof-transactions-app [data-slot='input-group'],
+.kiriof-transactions-app [data-slot='input-group-control'] {
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border-radius: var(--radius) !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  box-shadow: none;
+}
+.kiriof-transactions-app [data-slot='button'],
+.kiriof-transactions-app [data-slot='select-trigger'] {
+  min-height: 34px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.kiriof-transactions-app [data-slot='select-trigger'] {
+  border-color: #c7c3cc !important;
+  background: #fff !important;
+  color: #29252e !important;
+}
+.kiriof-transactions-app [data-slot='select-trigger'] > svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+.kiriof-transactions-app [data-slot='input-group'] {
+  min-height: 34px !important;
+  border-color: #c7c3cc !important;
+  background: #fff !important;
+}
+.kiriof-transactions-app [data-slot='input-group-control'] {
+  min-height: 32px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.kiriof-transactions-scope-group [data-slot='button'][aria-current='page'] {
+  background: #ededee;
+  color: #241f29;
+  font-weight: 650;
+}
+.kiriof-transactions-scope-group [data-slot='button']:disabled {
+  background: transparent;
+  color: #9b97a1;
+  opacity: 1;
 }
 .kiriof-transactions-meta {
   display: flex;
@@ -438,8 +501,8 @@ body:has([data-kiriof-transactions-page]) .error {
 }
 
 @media (max-width: 1200px) {
-  .kiriof-transactions-filtergrid {
-    grid-template-columns: repeat(3, minmax(150px, 1fr));
+  .kiriof-transactions-filterrow {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
   }
 }
 @media (max-width: 782px) {
@@ -462,10 +525,16 @@ body:has([data-kiriof-transactions-page]) .error {
   .kiriof-transactions-toolbar__actions [data-slot='button'] {
     flex: 1;
   }
-  .kiriof-transactions-search,
-  .kiriof-transactions-filtergrid {
+  .kiriof-transactions-filterrow {
     grid-template-columns: 1fr;
     max-width: none;
+  }
+  .kiriof-transactions-scopes {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .kiriof-transactions-list-tools {
+    margin-left: 0;
   }
   .kiriof-summary-grid {
     grid-template-columns: 1fr;
