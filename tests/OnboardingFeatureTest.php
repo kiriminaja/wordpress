@@ -23,6 +23,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString("add_action( 'admin_menu', array( \$this, 'hide_page' )", $page);
         $this->assertStringContainsString("'kiriminaja-onboarding' === \$page", $enqueue);
         $this->assertStringContainsString('enqueueOnboarding', $enqueue);
+		$this->assertStringContainsString('kiriminaja-shadcn-onboarding.css', $enqueue);
 		$this->assertStringNotContainsString("wp_enqueue_style( 'woocommerce_admin_styles' )", substr( $enqueue, strpos( $enqueue, 'private function enqueueOnboarding' ) ) );
 		$this->assertStringNotContainsString('kj-onboarding.css', $enqueue);
 		$this->assertStringContainsString('#adminmenumain', $css);

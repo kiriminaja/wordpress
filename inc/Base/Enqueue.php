@@ -368,8 +368,16 @@ class Enqueue extends BaseInit{
 
 			$transactions_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.js';
 			$transactions_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+			$transactions_entry_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.css';
+			$shadcn_style        = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
+			if ( file_exists( $shadcn_style ) ) {
+				wp_enqueue_style( 'kiriof-shadcn', $this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
+			}
 			if ( file_exists( $transactions_style ) ) {
-				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array(), (string) filemtime( $transactions_style ) );
+				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', file_exists( $shadcn_style ) ? array( 'kiriof-shadcn' ) : array(), (string) filemtime( $transactions_style ) );
+			}
+			if ( file_exists( $transactions_entry_style ) ) {
+				wp_enqueue_style( 'kiriof-transactions-entry', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.css', array( 'kiriof-admin-list' ), (string) filemtime( $transactions_entry_style ) );
 			}
 			if ( file_exists( $transactions_script ) ) {
 				wp_enqueue_script( 'kiriof-transactions-filters', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.js', array( 'kiriof-transaction-process' ), (string) filemtime( $transactions_script ), true );
@@ -553,11 +561,20 @@ class Enqueue extends BaseInit{
 		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
 		if ( file_exists( $progress_script ) ) {
 			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
+			$shadcn_style   = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
+			if ( file_exists( $shadcn_style ) ) {
+				wp_enqueue_style(
+					'kiriof-shadcn',
+					$this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css',
+					array(),
+					(string) filemtime( $shadcn_style )
+				);
+			}
 			if ( file_exists( $progress_style ) ) {
 				wp_enqueue_style(
 					'kiriof-onboarding-progress',
 					$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.css',
-					array(),
+					file_exists( $shadcn_style ) ? array( 'kiriof-shadcn' ) : array(),
 					(string) filemtime( $progress_style )
 				);
 			}
