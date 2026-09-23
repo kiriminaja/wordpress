@@ -19,6 +19,7 @@
   import { Separator } from '$lib/components/ui/separator';
   import { Switch } from '$lib/components/ui/switch';
   import { Textarea } from '$lib/components/ui/textarea';
+  import SubdistrictCombobox from './SubdistrictCombobox.svelte';
   import {
     IconCheck,
     IconChevronLeft,
@@ -68,7 +69,6 @@
   let subdistrictQuery = $state('');
   let subdistricts = $state<Area[]>([]);
   let subdistrictLoading = $state(false);
-  let showSubdistricts = $state(false);
   let mapElement = $state<HTMLDivElement>();
   let map: L.Map | undefined;
   let marker: L.CircleMarker | undefined;
@@ -234,7 +234,6 @@
 
   async function searchSubdistrict(value: string): Promise<void> {
     subdistrictQuery = value;
-    showSubdistricts = true;
     if (searchTimer) clearTimeout(searchTimer);
     if (value.trim().length < 3) {
       subdistricts = [];
@@ -279,7 +278,6 @@
     address.origin_sub_district_id = id;
     address.origin_sub_district_name = label;
     subdistrictQuery = label;
-    showSubdistricts = false;
   }
 
   async function saveAddress(): Promise<void> {
@@ -444,24 +442,13 @@
     setTimeout(() => map?.invalidateSize(), 150);
   }
 
-  function handleDocumentClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement | null;
-    if (!target?.closest('.kiriof-subdistrict-container')) {
-      showSubdistricts = false;
-    }
-  }
-
   onMount(() => {
     prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.addEventListener('click', handleDocumentClick);
     if (current === 'address') setTimeout(initMap, 50);
     if (current === 'couriers') void loadCouriers();
   });
 
   onDestroy(() => {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('click', handleDocumentClick);
-    }
     if (searchTimer) clearTimeout(searchTimer);
     if (map) {
       map.remove();
@@ -595,13 +582,13 @@
                 </div>
               </div>
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onclick={disconnect}
                 disabled={busy}
-                class="shrink-0 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                class="shrink-0"
               >
-                Disconnect
+                {account.i18n.disconnect}
               </Button>
             </div>
           {:else}
@@ -646,7 +633,12 @@
 
               <Field>
                 <FieldLabel for="origin-address">{bootstrap.address.i18n.address}</FieldLabel>
-                <Textarea id="origin-address" bind:value={address.origin_address} rows={2} />
+                <Textarea
+                  id="origin-address"
+                  bind:value={address.origin_address}
+                  rows={3}
+                  class="min-h-20 resize-none"
+                />
               </Field>
 
               <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -654,41 +646,19 @@
                   <FieldLabel for="origin-zip">{bootstrap.address.i18n.zipcode}</FieldLabel>
                   <Input id="origin-zip" bind:value={address.origin_zip_code} />
                 </Field>
-                <Field class="kiriof-subdistrict-container relative">
-                  <FieldLabel for="subdistrict">{bootstrap.address.i18n.subdistrict}</FieldLabel>
-                  <Input
-                    id="subdistrict"
+                <Field>
+                  <FieldLabel>{bootstrap.address.i18n.subdistrict}</FieldLabel>
+                  <SubdistrictCombobox
                     value={subdistrictQuery || address.origin_sub_district_name || ''}
+                    areas={subdistricts}
+                    loading={subdistrictLoading}
                     placeholder={bootstrap.address.i18n.searchSubdistrict}
-                    oninput={(event: Event) =>
-                      searchSubdistrict((event.currentTarget as HTMLInputElement).value)}
-                    onfocus={() => (showSubdistricts = true)}
+                    loadingText={bootstrap.i18n.subdistrictLoading}
+                    noResultsText={bootstrap.i18n.subdistrictNoResults}
+                    typeMoreText={bootstrap.i18n.subdistrictTypeMore}
+                    onSearch={searchSubdistrict}
+                    onSelect={selectSubdistrict}
                   />
-                  {#if showSubdistricts && (subdistricts.length || subdistrictLoading)}
-                    <div
-                      class="kiriof-subdistrict-results absolute top-full right-0 left-0 z-30 mt-1 max-h-48 overflow-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg"
-                      role="listbox"
-                    >
-                      {#if subdistrictLoading}
-                        <div class="flex items-center gap-1.5 p-2 text-xs text-muted-foreground">
-                          <IconLoader2 class="h-3.5 w-3.5 animate-spin" />
-                          <span>{bootstrap.i18n.subdistrictLoading}</span>
-                        </div>
-                      {:else}
-                        {#each subdistricts as area (area.id)}
-                          <button
-                            type="button"
-                            role="option"
-                            aria-selected={false}
-                            class="w-full rounded p-2 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground"
-                            onclick={() => selectSubdistrict(area)}
-                          >
-                            {area.text ?? area.label}
-                          </button>
-                        {/each}
-                      {/if}
-                    </div>
-                  {/if}
                 </Field>
               </div>
             </FieldGroup>
@@ -714,10 +684,10 @@
         {:else if current === 'couriers'}
           <div class="mb-3 flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <Button variant="outline" size="sm" onclick={() => setAllCouriers(true)}>
+              <Button variant="secondary" size="sm" onclick={() => setAllCouriers(true)}>
                 {bootstrap.couriers.i18n.enableAll || 'Enable all'}
               </Button>
-              <Button variant="outline" size="sm" onclick={() => setAllCouriers(false)}>
+              <Button variant="ghost" size="sm" onclick={() => setAllCouriers(false)}>
                 {bootstrap.couriers.i18n.disableAll || 'Disable all'}
               </Button>
             </div>
