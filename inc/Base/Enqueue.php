@@ -551,8 +551,27 @@ class Enqueue extends BaseInit{
 			if ( 'kiriminaja-request-pickup' === $page ) {
 				$payments_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.js';
 				$payments_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+				$payments_entry_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-payments-list.css';
+				$shadcn_style    = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
+				$toolbar_style   = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-toolbar.css';
+				if ( file_exists( $shadcn_style ) ) {
+					wp_enqueue_style( 'kiriof-shadcn', $this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
+				}
+				if ( file_exists( $toolbar_style ) ) {
+					wp_enqueue_style( 'kiriof-toolbar', $this->plugin_url . 'assets/admin/dist/kiriminaja-toolbar.css', array(), (string) filemtime( $toolbar_style ) );
+				}
 				if ( file_exists( $payments_style ) ) {
-					wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array( 'kiriof-style' ), (string) filemtime( $payments_style ) );
+					$payment_style_dependencies = array( 'kiriof-style' );
+					if ( file_exists( $shadcn_style ) ) {
+						$payment_style_dependencies[] = 'kiriof-shadcn';
+					}
+					if ( file_exists( $toolbar_style ) ) {
+						$payment_style_dependencies[] = 'kiriof-toolbar';
+					}
+					wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', $payment_style_dependencies, (string) filemtime( $payments_style ) );
+				}
+				if ( file_exists( $payments_entry_style ) ) {
+					wp_enqueue_style( 'kiriof-payments-list-style', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.css', array( 'kiriof-admin-list' ), (string) filemtime( $payments_entry_style ) );
 				}
 				if ( file_exists( $payments_script ) ) {
 					wp_enqueue_script( 'kiriof-payments-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-payments-list.js', array( 'kiriof-request-pickup' ), (string) filemtime( $payments_script ), true );

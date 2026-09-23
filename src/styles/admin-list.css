@@ -772,17 +772,6 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   text-align: center !important;
 }
 
-.kiriof-admin-list {
-  display: grid;
-  gap: 12px;
-}
-.kiriof-admin-list__filter,
-.kiriof-admin-list__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
 @media (max-width: 1200px) {
   .kiriof-transactions-filterrow {
     grid-template-columns: repeat(3, minmax(160px, 1fr));

@@ -119,16 +119,16 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function top_payment_rows_do_not_render_scan_to_pay_actions(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php');
 
         $this->assertStringContainsString(
-            "\$kiriof_is_top_method = 'top' === \$kiriof_method;",
+            "if ( 'paid' !== \$status && 'top' !== \$method )",
             $content,
             'Request pickup list should classify TOP rows before deciding payment actions'
         );
 
         $this->assertStringContainsString(
-            '@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method',
+            "if ( 'paid' !== \$status && 'top' !== \$method )",
             $content,
             'TOP rows should not enter the unpaid action branch that renders Scan to Pay'
         );
@@ -237,7 +237,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
     public function cod_only_pickup_does_not_fall_back_to_qris(): void
     {
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
-        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php');
 
         $this->assertStringContainsString(
             "if (isset(\$package['is_cod']))",
@@ -264,7 +264,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "elseif (\$kiriof_method === 'cod')",
+            "'method'       => '' !== \$method ? strtoupper( \$method ) : 'QRIS'",
             $requestPickupTemplate,
             'Request pickup list should not display COD-only payment rows as QRIS'
         );

@@ -61,6 +61,12 @@ class PaymentListRenderService {
 		}
 
 		return array(
+			'toolbar'      => array(
+				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
+				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+				'rootLabel' => __( 'KiriminAja', 'kiriminaja-official' ),
+				'title'     => __( 'Payments', 'kiriminaja-official' ),
+			),
 			'rows'         => $rows,
 			'filters'      => $filters,
 			'monthOptions' => $month_options,
@@ -83,6 +89,7 @@ class PaymentListRenderService {
 				'action'        => __( 'Action', 'kiriminaja-official' ),
 				'requested'     => __( 'Requested', 'kiriminaja-official' ),
 				'order'         => __( 'Order', 'kiriminaja-official' ),
+				'no'            => __( 'No', 'kiriminaja-official' ),
 				'empty'         => __( 'Not Found', 'kiriminaja-official' ),
 				'pageOf'        => __( 'of', 'kiriminaja-official' ),
 			),
@@ -113,7 +120,6 @@ class PaymentListRenderService {
      * Prepare the existing view variables and include the view.
      */
     public function render(): void {
-        $locale         = get_locale();
         $filters        = $this->getFilters();
         $items_per_page = 20;
         $page_data      = $this->query->getPage( $filters, $this->getRequestedPage(), $items_per_page );
@@ -121,8 +127,6 @@ class PaymentListRenderService {
         $page           = $page_data['page'];
         $items_per_page = $page_data['items_per_page'];
         $total_pages    = $page_data['total_pages'];
-        $next_page_link = $this->getPaginationLink( $page + 1, $page < $total_pages );
-        $prev_page_link = $this->getPaginationLink( $page - 1, $page > 1 );
         $monthOptions   = $this->getMonthOptions();
         $kiriof_statusCounts = $this->query->getStatusCounts();
 		$kiriof_payments_bootstrap = $this->prepareSvelteBootstrap(
@@ -159,27 +163,6 @@ class PaymentListRenderService {
     private function getRequestedPage(): int {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination value.
         return isset( $_GET['cpage'] ) ? max( 1, absint( $_GET['cpage'] ) ) : 1;
-    }
-
-    /**
-     * Preserve the existing query string while changing the list page.
-     */
-    private function getPaginationLink( int $target_page, bool $available ): string {
-        if ( ! $available ) {
-            return '';
-        }
-
-        $link = admin_url( 'admin.php?' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination link building.
-        foreach ( $_GET as $key => $value ) {
-            if ( 'cpage' === $key || ! is_scalar( $value ) ) {
-                continue;
-            }
-
-            $link .= sanitize_key( $key ) . '=' . urlencode( sanitize_text_field( wp_unslash( (string) $value ) ) ) . '&';
-        }
-
-        return esc_url( $link . 'cpage=' . $target_page );
     }
 
     /**

@@ -15,6 +15,7 @@ export type PaymentRow = {
   actions: PaymentAction[];
 };
 export type PaymentsBootstrap = {
+  toolbar: ToolbarConfig;
   rows: PaymentRow[];
   filters: { key: string; month: string; status: string };
   monthOptions: Record<string, string>;
@@ -23,3 +24,4 @@ export type PaymentsBootstrap = {
   i18n: Record<string, string>;
   modals: Record<string, string>;
 };
+import type { ToolbarConfig } from '$lib/ui/toolbar';
