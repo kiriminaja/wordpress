@@ -3,7 +3,8 @@
   import { Button } from 'bits-ui';
   import { getWordPressAction, postWordPressRawAction } from '../wordpress/ajax';
   import type { TechnicalBootstrap } from './types';
-  import SettingsToolbar from './SettingsToolbar.svelte';
+  import Toolbar from '$lib/ui/Toolbar.svelte';
+  import { navigateSettings } from './navigation';
 
   type RegionStatus = {
     status: {
@@ -102,7 +103,7 @@
   }
 </script>
 
-<SettingsToolbar toolbar={bootstrap.toolbar} />
+<Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
 <div class="kiriof-technical kiriof-settings-content">
   <section class="kiriof-section-card" aria-labelledby="kiriof-region-cache-title">
     <h2 id="kiriof-region-cache-title">{bootstrap.i18n.regionTitle}</h2>

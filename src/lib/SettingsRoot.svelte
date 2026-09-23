@@ -6,7 +6,7 @@
   } from '@tabler/icons-svelte';
   import { Button } from 'bits-ui';
   import SettingsIcon from './settings/SettingsIcon.svelte';
-  import SettingsToolbar from './settings/SettingsToolbar.svelte';
+  import Toolbar from './ui/Toolbar.svelte';
   import type { SettingsBootstrap } from './settings/types';
   import { postWordPressAction } from './wordpress/ajax';
   import SettingSwitch from './ui/SettingSwitch.svelte';
@@ -72,7 +72,7 @@
   }
 </script>
 
-<SettingsToolbar toolbar={bootstrap.toolbar} />
+<Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
 
 {#if bootstrap.mode === 'unconfigured'}
   <section class="kiriof-connect kiriof-settings-content" aria-labelledby="kiriof-connect-title">

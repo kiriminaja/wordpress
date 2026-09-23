@@ -180,11 +180,12 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/SettingsToolbar.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/Toolbar.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/toolbar.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/assets/admin/img/icon-128x128.png' );
 		$this->assertStringContainsString( 'kiriof-app-toolbar', $styles );
 		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $styles );
-		$this->assertStringContainsString( 'padding: 8px 0;', $styles );
+		$this->assertStringContainsString( 'padding: 8px 20px;', $styles );
 		$this->assertStringContainsString( 'padding-left: 0 !important;', $styles );
 		$this->assertStringContainsString( 'padding-bottom: 0 !important;', $styles );
 		$this->assertMatchesRegularExpression( '/\.kiriof-settings-shell\s*\{[^}]*padding:\s*0;/s', $styles );

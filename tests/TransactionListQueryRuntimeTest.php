@@ -142,7 +142,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'IconCalendar', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'IconCash', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'kiriof-courier-trigger', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' ) );
-		$this->assertStringContainsString( '<SettingsToolbar toolbar={bootstrap.toolbar}>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'display: flex !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

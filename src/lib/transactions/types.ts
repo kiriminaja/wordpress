@@ -63,7 +63,7 @@ export type TransactionRow = {
 };
 
 export type TransactionsBootstrap = {
-  toolbar: { logoUrl: string; rootUrl: string; rootLabel: string; title: string };
+  toolbar: ToolbarConfig;
   filters: TransactionFilters;
   statusOptions: TransactionStatusOption[];
   monthOptions: Record<string, string>;
@@ -73,3 +73,4 @@ export type TransactionsBootstrap = {
   bulk: { showPrint: boolean; printAction: string; printNonce: string };
   i18n: Record<string, string>;
 };
+import type { ToolbarConfig } from '$lib/ui/toolbar';

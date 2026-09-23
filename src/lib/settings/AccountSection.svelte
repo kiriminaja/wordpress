@@ -2,7 +2,8 @@
   import { Button } from 'bits-ui';
   import { postWordPressAction } from '../wordpress/ajax';
   import type { AccountBootstrap } from './types';
-  import SettingsToolbar from './SettingsToolbar.svelte';
+  import Toolbar from '$lib/ui/Toolbar.svelte';
+  import { navigateSettings } from './navigation';
 
   let { bootstrap }: { bootstrap: AccountBootstrap } = $props();
   let setupKey = $state('');
@@ -39,7 +40,7 @@
   }
 </script>
 
-<SettingsToolbar toolbar={bootstrap.toolbar} />
+<Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
 <div class="kiriof-account kiriof-settings-content">
   {#if bootstrap.couriers.length}
     <section class="kiriof-section-card"><h2>{bootstrap.i18n.enabledCouriers}</h2><div class="kiriof-courier-chips">{#each bootstrap.couriers as courier}<span><strong>{courier.code.toUpperCase()}</strong>{courier.name}</span>{/each}</div></section>

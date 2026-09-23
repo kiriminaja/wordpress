@@ -3,7 +3,8 @@
   import { Button } from 'bits-ui';
   import { postWordPressAction } from '../wordpress/ajax';
   import type { WebhooksBootstrap } from './types';
-  import SettingsToolbar from './SettingsToolbar.svelte';
+  import Toolbar from '$lib/ui/Toolbar.svelte';
+  import { navigateSettings } from './navigation';
 
   let { bootstrap }: { bootstrap: WebhooksBootstrap } = $props();
   function initialCallbackUrl(): string {
@@ -31,12 +32,12 @@
   }
 </script>
 
-<SettingsToolbar toolbar={bootstrap.toolbar}>
+<Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings}>
   <Button.Root class="button button-primary" disabled={saving} onclick={save}>
     <IconDeviceFloppy size={16} stroke={2} aria-hidden="true" />
     {saving ? bootstrap.i18n.saving : bootstrap.i18n.save}
   </Button.Root>
-</SettingsToolbar>
+</Toolbar>
 <section class="kiriof-section-card kiriof-settings-content" aria-labelledby="kiriof-webhooks-title">
   <h2 id="kiriof-webhooks-title">{bootstrap.i18n.callbackUrl}</h2>
   <label class="screen-reader-text" for="kiriof-callback-url">{bootstrap.i18n.callbackUrl}</label>
