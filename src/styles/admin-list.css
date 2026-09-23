@@ -126,20 +126,26 @@ body:has([data-kiriof-transactions-page]) #wpcontent {
 body:has([data-kiriof-transactions-page]) #wpbody-content {
   padding-bottom: 0 !important;
 }
+.kiriof-transactions-app [data-slot='input-group-addon'] svg {
+  width: 16px !important;
+  height: 16px !important;
+  color: #716b79;
+}
 
 .kiriof-payment-modal {
   width: min(420px, calc(100% - 32px));
 }
 .kiriof-payment-modal .closebtn-container {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
+  display: inline-flex;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
   margin-left: auto;
   padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+  border-radius: 8px;
 }
 .kiriof-modal-loading,
 .kiriof-qr {
@@ -369,6 +375,13 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   min-height: 34px;
   margin: 0;
 }
+.kiriof-transactions-filterrow .kiriof-clear-filters {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+}
 
 /* WordPress admin form rules are global; pin this workspace to shadcn geometry. */
 .kiriof-transactions-app [data-slot='button'],
@@ -440,17 +453,6 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   margin: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-}
-.kiriof-search-suffix {
-  flex: 0 0 34px !important;
-  border-left: 1px solid #dedbe3;
-  padding-right: 9px !important;
-  padding-left: 9px !important;
-}
-.kiriof-search-suffix svg {
-  display: block;
-  width: 15px !important;
-  height: 15px !important;
 }
 .kiriof-transactions-app [data-slot='input-group-control'] {
   min-height: 32px !important;

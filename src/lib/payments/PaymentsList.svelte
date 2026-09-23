@@ -104,7 +104,7 @@
       <form class="kiriof-payments-search" onsubmit={(event) => { event.preventDefault(); applyFilters(); }}>
         <label class="sr-only" for="kiriof-svelte-payment-search">{bootstrap.i18n.search}</label>
         <InputGroup.Root>
-          <InputGroup.Addon><IconSearch aria-hidden="true" /></InputGroup.Addon>
+          <InputGroup.Addon align="inline-start"><IconSearch aria-hidden="true" /></InputGroup.Addon>
           <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
         </InputGroup.Root>
       </form>

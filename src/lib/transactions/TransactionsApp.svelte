@@ -240,8 +240,8 @@
         }}
       >
         <InputGroup.Root class="kiriof-transactions-search" data-disabled={refreshing ? 'true' : undefined}>
+          <InputGroup.Addon align="inline-start"><IconSearch /></InputGroup.Addon>
           <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
-          <InputGroup.Addon class="kiriof-search-suffix" align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>
         <Select.Root type="single" bind:value={filters.cod} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconCash /><Select.Value>{paymentLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
@@ -278,7 +278,7 @@
           }}
         />
         {#if hasActiveFilters}
-          <Button variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
+          <Button class="kiriof-clear-filters" variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
         {/if}
       </form>
     </div>

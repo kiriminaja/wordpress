@@ -25,6 +25,10 @@
   @apply h-9;
 }
 
+.kiriof-payments-search [data-slot='input-group-addon'] {
+  @apply border-0 bg-transparent pl-3 text-muted-foreground;
+}
+
 .kiriof-payments-month-filter {
   @apply flex items-center gap-2;
 }

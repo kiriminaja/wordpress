@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconRefresh, IconX } from '@tabler/icons-svelte';
+  import { Button } from '$lib/components/ui/button';
 
   let { i18n }: { i18n: Record<string, string> } = $props();
 </script>
@@ -8,7 +9,7 @@
   <div class="modal-container">
     <div class="media-modal kiriof-payment-modal" tabindex="0" role="dialog" aria-modal="true" aria-label={i18n.scanToPay}>
       <div class="media-modal-container">
-        <button type="button" class="closebtn-container" aria-label="Close"><IconX size={22} /></button>
+        <Button variant="ghost" size="icon" class="closebtn-container" aria-label="Close"><IconX /></Button>
         <div class="content-header"><h1>{i18n.scanToPay}</h1></div>
         <div class="content-body">
           <div class="kj-modal-loader"><div class="kiriof-modal-loading"><div class="kj-loader"></div></div></div>
@@ -31,7 +32,7 @@
   <div class="modal-container">
     <div class="media-modal kiriof-payment-modal" tabindex="0" role="dialog" aria-modal="true" aria-label={i18n.schedule}>
       <div class="media-modal-container">
-        <button type="button" class="closebtn-container" aria-label="Close"><IconX size={22} /></button>
+        <Button variant="ghost" size="icon" class="closebtn-container" aria-label="Close"><IconX /></Button>
         <div class="content-header"><h1>{i18n.schedule}</h1></div>
         <div class="content-body">
           <div class="kj-modal-loader"><div class="kiriof-modal-loading"><div class="kj-loader"></div></div></div>
