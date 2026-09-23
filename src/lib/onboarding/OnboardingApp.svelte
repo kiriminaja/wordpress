@@ -26,6 +26,7 @@
     IconExternalLink,
     IconHelp,
     IconLoader2,
+    IconPlugConnected,
     IconX,
   } from '@tabler/icons-svelte';
   import type { OnboardingBootstrap, OnboardingCourier, OnboardingStep } from './types';
@@ -76,6 +77,8 @@
   const order: Step[] = ['account', 'address', 'couriers', 'shipping', 'complete'];
   const currentIndex = $derived(order.indexOf(current));
   const account = $derived(bootstrap.account);
+  const accountReady = $derived(Boolean(account.connected || done.account));
+  const canSubmitAccount = $derived(Boolean(accountReady || setupKey.trim()));
 
   const stepTitle = $derived.by(() => {
     switch (current) {
@@ -535,12 +538,12 @@
     <Card
       class="flex flex-col w-full max-h-[calc(100vh-5.5rem)] overflow-hidden rounded-2xl border border-white/40 bg-white/95 shadow-2xl shadow-purple-950/30 backdrop-blur-xl transition-all dark:border-border dark:bg-card/95"
     >
-      <CardHeader class="shrink-0 px-6 pt-5 pb-3">
-        <div class="space-y-1">
-          <CardTitle class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+      <CardHeader class="shrink-0 border-b border-border/60 bg-muted/10 px-6 pt-5 pb-4">
+        <div class="max-w-[540px] space-y-1.5">
+          <CardTitle class="text-lg font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-xl">
             {stepTitle}
           </CardTitle>
-          <CardDescription class="text-xs sm:text-sm text-muted-foreground">
+          <CardDescription class="max-w-[48ch] text-sm leading-5 text-muted-foreground">
             {stepDescription}
           </CardDescription>
         </div>
@@ -567,24 +570,28 @@
       <!-- Step Content Panels (scrollable internally if viewport is small) -->
       <CardContent class="flex-1 min-h-0 overflow-y-auto px-6 py-3">
         {#if current === 'account'}
-          {#if account.connected && account.profile}
+          {#if accountReady}
             <div
-              class="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card/60 p-4 sm:flex-row sm:items-center"
+              class="flex flex-col justify-between gap-4 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center"
             >
               <div class="flex items-center gap-3">
-                <div
-                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm"
-                >
-                  {account.profile.name.slice(0, 1).toUpperCase()}
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <IconPlugConnected class="h-5 w-5" />
                 </div>
-                <div class="space-y-0.5">
+                <div class="space-y-1">
                   <div class="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <span>{account.profile.name}</span>
-                    <Badge variant="secondary" class="text-xs">
-                      {account.profile.status || 'Connected'}
-                    </Badge>
+                    <span>{account.profile?.name || 'KiriminAja account connected'}</span>
+                    <Badge class="bg-primary/10 text-primary hover:bg-primary/15">Connected</Badge>
                   </div>
-                  <div class="text-xs text-muted-foreground">{account.profile.email}</div>
+                  <div class="text-xs leading-5 text-muted-foreground">
+                    {#if account.profile?.email}
+                      {account.profile.email}
+                    {:else if account.profileError}
+                      The account is connected. Profile details are temporarily unavailable.
+                    {:else}
+                      Your setup key is active and this store can continue onboarding.
+                    {/if}
+                  </div>
                 </div>
               </div>
               <Button
@@ -844,12 +851,12 @@
 
         <div>
           {#if current === 'account'}
-            <Button onclick={saveAccount} disabled={busy}>
+            <Button onclick={saveAccount} disabled={busy || !canSubmitAccount}>
               {#if busy}
                 <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
                 <span>Connecting…</span>
               {:else}
-                <span>{bootstrap.i18n.continue || 'Continue'}</span>
+                <span>{accountReady ? bootstrap.i18n.continue || 'Continue' : 'Connect account'}</span>
                 <IconChevronRight class="ml-1 h-4 w-4" />
               {/if}
             </Button>

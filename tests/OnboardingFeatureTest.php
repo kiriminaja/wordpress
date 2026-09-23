@@ -63,6 +63,10 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertStringContainsString( 'from \'$lib/components/ui/card\'', $app );
         $this->assertStringContainsString( 'from \'$lib/components/ui/field\'', $app );
         $this->assertStringContainsString( 'from \'$lib/components/ui/switch\'', $app );
+		$this->assertStringContainsString( 'const canSubmitAccount = $derived', $app );
+		$this->assertStringContainsString( 'disabled={busy || !canSubmitAccount}', $app );
+		$this->assertStringContainsString( 'KiriminAja account connected', $app );
+		$this->assertStringContainsString( 'Profile details are temporarily unavailable.', $app );
         $this->assertStringContainsString( 'kiriof_store_origin_data', $app );
         $this->assertStringContainsString( 'kiriof_store_courier_whitelist', $app );
         $this->assertStringContainsString( 'kiriof_enable_shipping_method', $app );

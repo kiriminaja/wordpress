@@ -27,5 +27,7 @@ final class RepositoryCompositionProgressTest extends TestCase
         $this->assertSame( 1, substr_count( $source, 'new SettingRepository()' ) );
         $this->assertSame( 1, substr_count( $source, 'new WooCommerceShippingMethodRegistrationService()' ) );
         $this->assertSame( 1, substr_count( $source, 'new KiriminajaApiService()' ) );
+		$this->assertStringContainsString( '$this->get_api_service()->getProfile()', $source );
+		$this->assertStringNotContainsString( '( new KiriminajaApiService() )->getProfile()', $source );
     }
 }
