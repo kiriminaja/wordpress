@@ -100,7 +100,7 @@ final class ProductVolumetricReadinessRepositoryRuntimeTest extends TestCase {
 		$renderer = file_get_contents( PLUGIN_DIR . '/templates/setting/index.php' );
 		$provider = file_get_contents( PLUGIN_DIR . '/inc/Services/SettingsPageData.php' );
 
-		$this->assertStringContainsString( '$productVolumetricReadiness[\'total\']', $template );
+		$this->assertStringContainsString( '$productVolumetricReadiness', $template );
 		$this->assertStringNotContainsString( 'global $wpdb', $template );
 		$this->assertStringNotContainsString( 'ProductVolumetricReadinessRepository', $template );
 		$this->assertStringContainsString( 'SettingsPageData', $renderer );

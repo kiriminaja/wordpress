@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Switch } from 'bits-ui';
+  import { Switch } from '$lib/components/ui/switch';
 
   let {
     checked,
@@ -14,12 +14,9 @@
   } = $props();
 </script>
 
-<Switch.Root
-  class="kiriof-switch"
+<Switch
   {checked}
   {disabled}
   aria-label={label}
   {onCheckedChange}
->
-  <Switch.Thumb class="kiriof-switch__thumb" />
-</Switch.Root>
+/>

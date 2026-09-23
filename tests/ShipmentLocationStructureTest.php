@@ -195,7 +195,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'ShipmentLocationController', $init );
         $this->assertStringNotContainsString( 'kiriminaja-shipment-locations', $pages );
         $this->assertStringNotContainsString( "\$kiriof_base_url . '&section=address'", $admin );
-        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $admin );
+        $provider = $this->read( __DIR__ . '/../inc/Services/SettingsPageData.php' );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $provider );
     }
 
     public function testLocationSchemaStoresSubDistrictName(): void {

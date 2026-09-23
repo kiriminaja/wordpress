@@ -182,8 +182,8 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$templates = array(
 			'templates/setting/index.php',
 			'templates/setting/setuped/index.php',
-			'templates/setting/setuped/section-account.php',
-			'templates/setting/setuped/section-technical.php',
+			'templates/setting/unsetuped/index.php',
+			'templates/setting/app.php',
 		);
 
 		foreach ( $templates as $template ) {

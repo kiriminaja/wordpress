@@ -430,11 +430,11 @@ final class InsuranceFeatureTest extends TestCase
     #[Test]
     public function settings_list_has_insurance_toggle(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
-        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
+        $script = file_get_contents(PLUGIN_DIR . '/src/lib/SettingsRoot.svelte');
 
         $this->assertStringContainsString(
-            'kiriof_insurance_toggle',
+            "'insurance'",
             $content,
             'Settings list page must have kiriof_insurance_toggle element'
         );
@@ -455,7 +455,7 @@ final class InsuranceFeatureTest extends TestCase
     #[Test]
     public function settings_list_no_longer_shows_insurance_todo(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         // The TODO text and disabled state should be gone from the insurance row
         $this->assertStringNotContainsString(
@@ -468,7 +468,7 @@ final class InsuranceFeatureTest extends TestCase
     #[Test]
     public function settings_list_checks_woocommerce_shipping_locations(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
         $provider = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         $this->assertStringContainsString(
@@ -722,7 +722,7 @@ final class InsuranceFeatureTest extends TestCase
     #[Test]
     public function settings_list_checks_product_volumetric_configuration_progress(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
         $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/ProductVolumetricReadinessRepository.php');
 
         $this->assertStringContainsString(

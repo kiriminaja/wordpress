@@ -95,6 +95,41 @@ class SettingController{
             return;
         }
 
+		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
+			$settings_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.js';
+			$settings_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.css';
+
+			if ( file_exists( $settings_style ) ) {
+				wp_enqueue_style(
+					'kiriof-settings-root',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.css',
+					array(),
+					(string) filemtime( $settings_style )
+				);
+			}
+
+			if ( file_exists( $settings_script ) ) {
+				wp_enqueue_script(
+					'kiriof-settings-root',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.js',
+					array(),
+					(string) filemtime( $settings_script ),
+					true
+				);
+				wp_localize_script(
+					'kiriof-settings-root',
+					'kiriofSettings',
+					array(
+						'ajaxurl' => admin_url( 'admin-ajax.php' ),
+						'nonce'   => wp_create_nonce( KIRIOF_NONCE ),
+					)
+				);
+				wp_script_add_data( 'kiriof-settings-root', 'type', 'module' );
+			}
+
+			return;
+		}
+
         wp_enqueue_script(
             'kiriof-settings',
             KIRIOF_URL . 'assets/admin/js/kj-settings.js',
@@ -151,30 +186,6 @@ class SettingController{
             )
         );
 
-		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
-			$settings_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.js';
-			$settings_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.css';
-
-			if ( file_exists( $settings_style ) ) {
-				wp_enqueue_style(
-					'kiriof-settings-root',
-					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.css',
-					array( 'kiriof-style' ),
-					(string) filemtime( $settings_style )
-				);
-			}
-
-			if ( file_exists( $settings_script ) ) {
-				wp_enqueue_script(
-					'kiriof-settings-root',
-					KIRIOF_URL . 'assets/admin/dist/kiriminaja-settings-root.js',
-					array( 'kiriof-settings' ),
-					(string) filemtime( $settings_script ),
-					true
-				);
-				wp_script_add_data( 'kiriof-settings-root', 'type', 'module' );
-			}
-		}
     }
 
     private function isValidShipmentLocationData( $data ) {

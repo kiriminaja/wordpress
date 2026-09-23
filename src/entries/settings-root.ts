@@ -28,11 +28,6 @@ if (host && payload?.textContent) {
     mount(SettingsRoot, { target: host, props: { bootstrap } });
   }
 
-  host
-    .closest<HTMLElement>('[data-kiriof-settings-page]')
-    ?.classList.add('kiriof-settings-page--enhanced');
-  host
-    .closest<HTMLElement>('[data-kiriof-settings-page]')
-    ?.querySelectorAll('[data-kiriof-settings-fallback]')
-    .forEach((fallback) => fallback.remove());
+  host.removeAttribute('aria-busy');
+  host.classList.add('is-mounted');
 }

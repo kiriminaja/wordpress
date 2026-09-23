@@ -7,6 +7,77 @@
   --kiriof-border: #ddd7ee;
   --kiriof-surface: #fff;
   --kiriof-danger: #b42318;
+  --radius: 0.5rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.2 0.035 290);
+  --primary: oklch(0.48 0.23 292);
+  --primary-foreground: oklch(0.99 0 0);
+  --input: oklch(0.82 0.025 292);
+  --ring: oklch(0.48 0.23 292);
+}
+
+@media (max-width: 782px) {
+  .kiriof-settings-shell {
+    padding: 20px 12px 36px;
+  }
+}
+
+.kiriof-settings-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 28px 24px 48px;
+}
+
+[data-kiriof-settings-root] {
+  width: 100%;
+}
+
+[data-kiriof-settings-page] [data-slot='switch'] {
+  position: relative !important;
+  display: inline-flex !important;
+  width: 2.25rem !important;
+  min-width: 2.25rem !important;
+  height: 1.25rem !important;
+  min-height: 1.25rem !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background: var(--input) !important;
+  box-shadow: none !important;
+}
+
+[data-kiriof-settings-page] [data-slot='switch'][data-state='checked'] {
+  background: var(--primary) !important;
+}
+
+[data-kiriof-settings-page] [data-slot='switch-thumb'] {
+  position: absolute !important;
+  top: 0.125rem !important;
+  left: 0.125rem !important;
+  display: block !important;
+  width: 1rem !important;
+  min-width: 1rem !important;
+  height: 1rem !important;
+  min-height: 1rem !important;
+  border-radius: 9999px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 20%) !important;
+  transform: none !important;
+  transition: left 0.2s ease !important;
+}
+
+[data-kiriof-settings-page] [data-slot='switch-thumb'][data-state='checked'] {
+  left: 1.125rem !important;
+}
+
+[data-kiriof-settings-root][aria-busy='true'] {
+  min-height: 180px;
 }
 
 .kiriof-account {
@@ -255,12 +326,10 @@
   color: var(--kiriof-danger);
 }
 
-.kiriof-settings-page--enhanced [data-kiriof-settings-fallback] {
-  display: none;
-}
-
 .kiriof-settings-root {
+  width: min(920px, 100%);
   max-width: 920px;
+  margin: 0 auto;
 }
 
 .kiriof-settings-group {
@@ -353,45 +422,6 @@ a.kiriof-setting-item:focus-visible {
 
 .kiriof-setting-item__chevron {
   color: var(--kiriof-muted);
-}
-
-.kiriof-switch {
-  position: relative;
-  width: 40px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid #8c8f94;
-  border-radius: 999px;
-  background: #8c8f94;
-  cursor: pointer;
-}
-
-.kiriof-switch[data-state='checked'] {
-  border-color: var(--kiriof-primary);
-  background: var(--kiriof-primary);
-}
-
-.kiriof-switch:focus-visible {
-  outline: 3px solid var(--kiriof-primary);
-  outline-offset: 2px;
-}
-
-.kiriof-switch:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.kiriof-switch__thumb {
-  display: block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  transform: translateX(2px);
-}
-
-.kiriof-switch__thumb[data-state='checked'] {
-  transform: translateX(20px);
 }
 
 .kiriof-settings-root__message {
