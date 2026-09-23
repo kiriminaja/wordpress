@@ -12,9 +12,12 @@
     IconX,
   } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
+  import * as ButtonGroup from '$lib/components/ui/button-group';
   import { Checkbox } from '$lib/components/ui/checkbox';
-  import { Input } from '$lib/components/ui/input';
+  import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
+  import * as Table from '$lib/components/ui/table';
+  import CourierCombobox from './CourierCombobox.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let { bootstrap }: { bootstrap: TransactionsBootstrap } = $props();
@@ -33,8 +36,9 @@
   const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
-  const courierLabel = $derived(bootstrap.couriers.find((courier) => courier.value === filters.courier)?.label ?? bootstrap.i18n.allCouriers);
+  const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
   const searchByLabel = $derived(filters.search_by === 'ka_order_id' ? bootstrap.i18n.kaOrderId : filters.search_by === 'awb' ? bootstrap.i18n.awb : bootstrap.i18n.orderNumber);
+  const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
 
   function navigate(values: Record<string, string>): void {
     const url = new URL(window.location.href);
@@ -116,6 +120,18 @@
 
   <section class="kiriof-transactions-card">
     <div class="kiriof-transactions-filterbar">
+      <nav class="kiriof-transactions-scopes" aria-label="Transaction scope">
+        <ButtonGroup.Root>
+          <Button variant="secondary" aria-current="page">Regular Delivery</Button>
+          <Button variant="ghost" disabled title="International delivery is not available in this workspace">International Delivery</Button>
+          <Button variant="ghost" disabled title="Instant delivery is not available in this workspace">Instant Delivery</Button>
+        </ButtonGroup.Root>
+        {#if orderIssueOption}
+          <Button variant={filters.status === 'order-issue' ? 'secondary' : 'ghost'} onclick={() => navigate({ status: 'order-issue' })}>
+            Order Issue{orderIssueOption.count > 0 ? ` (${orderIssueOption.count})` : ''}
+          </Button>
+        {/if}
+      </nav>
       <form
         class="kiriof-transactions-search"
         onsubmit={(event) => {
@@ -123,18 +139,20 @@
           applyFilters();
         }}
       >
-        <Select.Root type="single" bind:value={filters.search_by}>
-          <Select.Trigger class="kiriof-filter-search-by"><Select.Value>{searchByLabel}</Select.Value></Select.Trigger>
-          <Select.Content class="kiriof-shadcn">
-            <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
-            <Select.Item value="ka_order_id">{bootstrap.i18n.kaOrderId}</Select.Item>
-            <Select.Item value="awb">{bootstrap.i18n.awb}</Select.Item>
-          </Select.Content>
-        </Select.Root>
-        <div class="kiriof-transactions-search__input">
-          <IconSearch />
-          <Input bind:value={filters.key} placeholder={bootstrap.i18n.search} />
-        </div>
+        <InputGroup.Root>
+          <InputGroup.Addon class="p-0">
+            <Select.Root type="single" bind:value={filters.search_by}>
+              <Select.Trigger class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value></Select.Trigger>
+              <Select.Content class="kiriof-shadcn">
+                <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
+                <Select.Item value="ka_order_id">{bootstrap.i18n.kaOrderId}</Select.Item>
+                <Select.Item value="awb">{bootstrap.i18n.awb}</Select.Item>
+              </Select.Content>
+            </Select.Root>
+          </InputGroup.Addon>
+          <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} />
+          <InputGroup.Addon align="inline-end"><IconSearch /></InputGroup.Addon>
+        </InputGroup.Root>
       </form>
 
       <div class="kiriof-transactions-filtergrid">
@@ -171,19 +189,11 @@
             <Select.Item value="0">{bootstrap.i18n.unprinted}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <Select.Root type="single" bind:value={filters.courier}>
-          <Select.Trigger><Select.Value>{courierLabel}</Select.Value></Select.Trigger>
-          <Select.Content class="kiriof-shadcn">
-            <Select.Item value="all">{bootstrap.i18n.allCouriers}</Select.Item>
-            {#each bootstrap.couriers as courier}
-              <Select.Item value={courier.value}>{courier.label}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
-        <Button onclick={applyFilters}>{bootstrap.i18n.apply}</Button>
-        <Button variant="ghost" size="icon" onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}>
-          <IconX />
-        </Button>
+        <CourierCombobox value={filters.courier} options={courierOptions} placeholder={bootstrap.i18n.allCouriers} onChange={(value) => (filters.courier = value)} />
+        <ButtonGroup.Root>
+          <Button onclick={applyFilters}>{bootstrap.i18n.apply}</Button>
+          <Button variant="outline" size="icon" onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
+        </ButtonGroup.Root>
       </div>
     </div>
 
@@ -198,25 +208,25 @@
     </div>
 
     <div class="kiriof-transactions-tablewrap">
-      <table class="kiriof-transactions-table">
-        <thead>
-          <tr>
-            <th class="is-check"><Checkbox checked={allSelected} indeterminate={selectedRows.length > 0 && !allSelected} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></th>
-            <th>{bootstrap.i18n.order}</th>
-            <th>{bootstrap.i18n.expedition}</th>
-            <th>{bootstrap.i18n.airwaybill}</th>
-            <th>{bootstrap.i18n.route}</th>
-            <th>{bootstrap.i18n.packages}</th>
-            <th class="is-actions">{bootstrap.i18n.action}</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table.Root class="kiriof-transactions-table">
+        <Table.Header>
+          <Table.Row>
+            <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={selectedRows.length > 0 && !allSelected} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
+            <Table.Head>{bootstrap.i18n.order}</Table.Head>
+            <Table.Head>{bootstrap.i18n.expedition}</Table.Head>
+            <Table.Head>{bootstrap.i18n.airwaybill}</Table.Head>
+            <Table.Head>{bootstrap.i18n.route}</Table.Head>
+            <Table.Head>{bootstrap.i18n.packages}</Table.Head>
+            <Table.Head class="is-actions">{bootstrap.i18n.action}</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
           {#if bootstrap.rows.length === 0}
-            <tr><td colspan="7" class="kiriof-empty-cell">{bootstrap.i18n.notFound}</td></tr>
+            <Table.Row><Table.Cell colspan={7} class="kiriof-empty-cell">{bootstrap.i18n.notFound}</Table.Cell></Table.Row>
           {:else}
             {#each bootstrap.rows as row (row.id)}
-              <tr class:is-selected={selected[row.kaOrderId]}>
-                <td class="is-check">
+              <Table.Row class={selected[row.kaOrderId] ? 'is-selected' : undefined}>
+                <Table.Cell class="is-check">
                   <Checkbox
                     checked={Boolean(selected[row.kaOrderId])}
                     disabled={row.selection.disabled}
@@ -228,34 +238,34 @@
                     title={row.selection.title}
                     onCheckedChange={(checked) => toggleRow(row, Boolean(checked))}
                   />
-                </td>
-                <td>
+                </Table.Cell>
+                <Table.Cell>
                   <a class="kiriof-order-link" href={row.wcOrderUrl} target="_blank">#{row.wcOrderId}</a>
                   <strong class="kiriof-row-title">{row.customer.name}</strong>
                   {#if row.customer.phone}<a class="kiriof-row-muted" href={`tel:${row.customer.phone}`}>{row.customer.phone}</a>{/if}
                   <span class="kiriof-row-muted">{row.createdAt}</span>
-                </td>
-                <td>
+                </Table.Cell>
+                <Table.Cell>
                   <strong class="kiriof-row-title">{row.courier.service}</strong>
                   <div class="kiriof-row-badges">
                     <span class="kiriof-transaction-status {toneClass(row.status.tone)}" title={row.status.deficit ? 'COD settlement requires action' : undefined}>{row.status.label}</span>
                     <span class="kiriof-row-muted">via {row.courier.paymentLabel}</span>
                   </div>
                   <span class="kiriof-print-status {row.printStatus}">{row.printStatus === 'printed' ? bootstrap.i18n.printedLabel : bootstrap.i18n.unprintedLabel}</span>
-                </td>
-                <td>
+                </Table.Cell>
+                <Table.Cell>
                   <span class="kiriof-row-label">AWB</span>
                   <strong>{row.awb || '—'}</strong>
                   <span class="kiriof-row-label">KA Order ID</span>
                   <code>{row.kaOrderId}</code>
-                </td>
-                <td>
+                </Table.Cell>
+                <Table.Cell>
                   <strong class="kiriof-row-title">{row.route.origin}</strong>
                   <span class="kiriof-route-arrow">↓ To</span>
                   <strong class="kiriof-row-title">{row.route.destination}</strong>
                   {#each row.route.addressLines as line}<span class="kiriof-row-muted">{line}</span>{/each}
-                </td>
-                <td>
+                </Table.Cell>
+                <Table.Cell>
                   <span class="kiriof-row-muted">{row.package.weight} g{row.package.quantity > 1 ? ` × ${row.package.quantity}` : ''}</span>
                   <strong class="kiriof-row-title">{currency(row.package.paidShipping)}</strong>
                   <div class="kiriof-fee-pills">
@@ -264,8 +274,8 @@
                     {#if row.package.itemDiscount > 0}<span class="is-discount">{row.package.itemCoupon} −{currency(row.package.itemDiscount)}</span>{/if}
                     {#if row.package.shippingDiscount > 0}<span class="is-discount">{row.package.shippingCoupon} −{currency(row.package.shippingDiscount)}</span>{/if}
                   </div>
-                </td>
-                <td class="is-actions">
+                </Table.Cell>
+                <Table.Cell class="is-actions">
                   <div class="kiriof-row-actions">
                     {#if row.actions.preview}
                       <Button variant="outline" size="icon-sm" class="order-preview" data-order-id={row.wcOrderId} title={bootstrap.i18n.detail} aria-label={bootstrap.i18n.detail}><IconEye /></Button>
@@ -281,12 +291,12 @@
                       {#if row.actions.cancel}<Button variant="destructive" size="icon-sm" data-kj-action="cancel" data-order-id={row.kaOrderId} title={bootstrap.i18n.cancel} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button>{/if}
                     {/if}
                   </div>
-                </td>
-              </tr>
+                </Table.Cell>
+              </Table.Row>
             {/each}
           {/if}
-        </tbody>
-      </table>
+        </Table.Body>
+      </Table.Root>
     </div>
 
     <footer class="kiriof-transactions-pagination">

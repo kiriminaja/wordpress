@@ -20,6 +20,17 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+.kiriof-transactions-scopes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+}
+.kiriof-transactions-scopes [data-slot='button'] {
+  min-height: 34px;
+  margin: 0;
+}
 body:has([data-kiriof-transactions-page]) #screen-meta-links,
 body:has([data-kiriof-transactions-page]) .update-nag,
 body:has([data-kiriof-transactions-page]) .notice,
@@ -193,26 +204,15 @@ body:has([data-kiriof-transactions-page]) .error {
   background: #fff;
 }
 .kiriof-transactions-search {
-  display: grid;
-  grid-template-columns: minmax(132px, 170px) minmax(220px, 1fr);
-  gap: 8px;
+  display: block;
   max-width: 680px;
 }
-.kiriof-transactions-search__input {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.kiriof-transactions-search__input > svg {
-  position: absolute;
-  left: 10px;
-  z-index: 1;
-  width: 16px;
-  color: var(--kiriof-muted);
-}
-.kiriof-transactions-search__input input {
+.kiriof-transactions-search [data-slot='input-group'] {
   height: 34px;
-  padding-left: 34px;
+  margin: 0;
+}
+.kiriof-transactions-search [data-slot='input-group-control'] {
+  min-width: 180px;
 }
 .kiriof-filter-search-by,
 .kiriof-transactions-filtergrid [data-slot='select-trigger'] {
@@ -224,7 +224,7 @@ body:has([data-kiriof-transactions-page]) .error {
 }
 .kiriof-transactions-filtergrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(130px, 1fr)) auto auto;
+  grid-template-columns: repeat(4, minmax(130px, 1fr)) minmax(180px, 1.15fr) auto;
   gap: 8px;
   align-items: center;
 }
@@ -246,6 +246,9 @@ body:has([data-kiriof-transactions-page]) .error {
 }
 .kiriof-transactions-tablewrap {
   overflow-x: auto;
+}
+.kiriof-transactions-tablewrap [data-slot='table-container'] {
+  overflow: visible;
 }
 .kiriof-transactions-table {
   width: 100%;
