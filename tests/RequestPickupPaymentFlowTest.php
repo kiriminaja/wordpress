@@ -482,29 +482,30 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function deficit_rows_with_non_negative_effective_cod_payout_remain_pickup_processable(): void
     {
-        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+		$transactionProcessView = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
+		$app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            '$kiriof_effectiveShippingCost = max(0.0, $kiriof_shippingCost - $kiriof_wcShippingDiscount);',
+			'$effective_payout',
             $transactionProcessView,
             'Request pickup eligibility must use discounted shipping when evaluating COD payout'
         );
 
         $this->assertStringContainsString(
-            '$kiriof_effectiveCodPayout    = $kiriof_wcTotal - $kiriof_effectiveShippingCost - $kiriof_insuranceCost - $kiriof_codFee;',
+			'$wc_total - max( 0.0, $shipping_cost - $shipping_discount ) - $insurance_cost - $cod_fee',
             $transactionProcessView,
             'Request pickup eligibility must evaluate the effective COD payout'
         );
 
         $this->assertStringContainsString(
-            '$kiriof_canRequestPickup      = $kiriof_isProcessable && (! $kiriof_isDeficitRow || $kiriof_effectiveCodPayout >= 0);',
+			'$can_request_pickup    = $is_processable && ( ! $is_deficit || $effective_payout >= 0 );',
             $transactionProcessView,
             'Deficit rows should remain pickup-processable when the effective COD payout is non-negative'
         );
 
         $this->assertStringContainsString(
-            'data-can-pickup="\' . ($kiriof_canRequestPickup ? \'1\' : \'0\')',
-            $transactionProcessView,
+			"data-can-pickup={row.selection.canPickup ? '1' : '0'}",
+			$app,
             'Request pickup checkbox must use effective processability instead of the raw deficit flag'
         );
     }

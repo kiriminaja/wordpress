@@ -102,12 +102,15 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringNotContainsString('TransactionRepository', $template);
         $this->assertStringContainsString('wc_orders', $query);
         $this->assertStringContainsString('date_created_gmt', $query);
-		$this->assertStringContainsString( 'kiriof_transactions_filters_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/transaction-process/view/index.php' ) );
+		$app = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
+		$this->assertStringContainsString( 'kiriof_transactions_bootstrap', $renderer );
 		$this->assertFileExists( PLUGIN_DIR . '/src/entries/transactions-filters.ts' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionFilters.svelte' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionTable.svelte' );
-		$this->assertStringContainsString( 'data-kiriof-transactions-table-root', file_get_contents( PLUGIN_DIR . '/templates/transaction-process/view/index.php' ) );
-		$this->assertStringContainsString( 'kiriof_transactions_table_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/transaction-process/view/index.php' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php' );
+		$this->assertStringContainsString( 'data-kiriof-transactions-root', $app );
+		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $app );
+		$this->assertStringNotContainsString( 'data-kiriof-transactions-table-fallback', $app );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/templates/transaction-process/view/index.php' );
 		$this->assertStringContainsString( "'transactions-filters': 'src/entries/transactions-filters.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
 		$this->assertStringContainsString( 'kiriminaja-admin-list.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
     }

@@ -369,7 +369,7 @@ class Enqueue extends BaseInit{
 			$transactions_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.js';
 			$transactions_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
 			if ( file_exists( $transactions_style ) ) {
-				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array( 'kiriof-style' ), (string) filemtime( $transactions_style ) );
+				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array(), (string) filemtime( $transactions_style ) );
 			}
 			if ( file_exists( $transactions_script ) ) {
 				wp_enqueue_script( 'kiriof-transactions-filters', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.js', array( 'kiriof-transaction-process' ), (string) filemtime( $transactions_script ), true );

@@ -16,9 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TransactionListRenderService {
     private TransactionListQueryInterface $query;
+	private TransactionListViewModelFactory $view_model_factory;
 
-    public function __construct( TransactionListQueryInterface $query ) {
+	public function __construct( TransactionListQueryInterface $query, ?TransactionListViewModelFactory $view_model_factory = null ) {
         $this->query = $query;
+		$this->view_model_factory = $view_model_factory ?? new TransactionListViewModelFactory();
     }
 
     /**
@@ -79,9 +81,13 @@ class TransactionListRenderService {
             $this->query->getCouriers()
         );
 
-		$kiriof_transactions_filters_bootstrap = array(
+		$kiriof_transactions_bootstrap = array(
+			'toolbar'      => array(
+				'logoUrl' => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
+				'title'   => __( 'Transactions', 'kiriminaja-official' ),
+			),
 			'filters'      => $filters,
-			'statusTabs'   => array(
+			'statusOptions'=> array(
 				array( 'value' => 'all', 'label' => __( 'All', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['all'] ?? 0 ) ),
 				array( 'value' => 'wc-processing', 'label' => __( 'New / Waiting for Shipment', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['wc-processing'] ?? 0 ) ),
 				array( 'value' => 'wc-on-hold', 'label' => __( 'On Hold', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['wc-on-hold'] ?? 0 ) ),
@@ -101,6 +107,13 @@ class TransactionListRenderService {
 				'page'       => $kiriof_current_page,
 				'totalPages' => $kiriof_total_pages,
 				'total'      => $kiriof_total,
+				'perPage'    => $kiriof_per_page,
+			),
+			'rows'         => $this->view_model_factory->createRows( $kiriof_results, $kiriof_status_filter ),
+			'bulk'         => array(
+				'showPrint'   => in_array( $kiriof_status_filter, array( 'all', 'processed' ), true ),
+				'printAction' => admin_url( 'admin-post.php' ),
+				'printNonce'  => wp_create_nonce( 'kiriof_resi_print_bulk' ),
 			),
 			'i18n'         => array(
 				'search'       => __( 'Search order…', 'kiriminaja-official' ),
@@ -118,10 +131,27 @@ class TransactionListRenderService {
 				'apply'        => __( 'Apply', 'kiriminaja-official' ),
 				'items'        => __( 'items', 'kiriminaja-official' ),
 				'pageOf'       => __( 'of', 'kiriminaja-official' ),
+				'status'       => __( 'All Status', 'kiriminaja-official' ),
+				'requestPickup'=> __( 'Request Pickup', 'kiriminaja-official' ),
+				'print'        => __( 'Print Labels', 'kiriminaja-official' ),
+				'clear'        => __( 'Clear filters', 'kiriminaja-official' ),
+				'order'        => __( 'Order / Transaction', 'kiriminaja-official' ),
+				'expedition'   => __( 'Expedition & Service', 'kiriminaja-official' ),
+				'airwaybill'   => __( 'Airwaybill / Order ID', 'kiriminaja-official' ),
+				'route'        => __( 'Shipment Route', 'kiriminaja-official' ),
+				'packages'     => __( 'Packages & Fee', 'kiriminaja-official' ),
+				'action'       => __( 'Action', 'kiriminaja-official' ),
+				'notFound'     => __( 'No transactions found.', 'kiriminaja-official' ),
+				'detail'       => __( 'Detail', 'kiriminaja-official' ),
+				'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ),
+				'adjustDeficit'=> __( 'Adjust Deficit', 'kiriminaja-official' ),
+				'cancel'       => __( 'Cancel', 'kiriminaja-official' ),
+				'printedLabel' => __( 'Printed', 'kiriminaja-official' ),
+				'unprintedLabel'=> __( 'Unprinted', 'kiriminaja-official' ),
 			),
 		);
 
-        include KIRIOF_DIR . 'templates/transaction-process/view/index.php';
+		include KIRIOF_DIR . 'templates/transaction-process/app.php';
     }
 
     /**

@@ -515,7 +515,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_no_longer_includes_legacy_cancel_modal_partial(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+		$content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringNotContainsString(
             "include 'modal-cancel.php'",
@@ -527,7 +527,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_has_cancel_button(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+		$content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
             'data-kj-action="cancel"',
@@ -539,10 +539,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_has_actions_column(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'Action',
+            'bootstrap.i18n.action',
             $content,
             'Transaction list table must have an Actions column header'
         );
@@ -623,12 +623,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_button_only_shown_when_awb_exists(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+		$content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '! empty( $kiriof_awb )',
+			"'' !== \$awb",
             $content,
             'Cancel button must only show when AWB exists'
         );
@@ -637,9 +635,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_button_only_shown_for_cancelable_statuses(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+		$content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         // The cancel button should be behind a status check
         $nonCancelable = ['shipped', 'finished', 'returned', 'return', 'canceled'];

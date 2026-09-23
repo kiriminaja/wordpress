@@ -79,18 +79,19 @@ class ChangeOriginFeatureTest extends TestCase {
     }
 
     public function testTransactionsListRendersChangeOriginButtonForProcessableRows(): void {
-        $template = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+		$template = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
+		$factory = $this->read( __DIR__ . '/../inc/Services/TransactionListViewModelFactory.php' );
 
         $this->assertStringContainsString( 'kiriof-change-origin-button', $template );
-        $this->assertStringContainsString( 'data-ka-order-id="', $template );
-        $this->assertStringContainsString( 'data-current-origin="', $template );
-        $this->assertStringContainsString( 'data-current-origin-address="', $template );
-        $this->assertStringContainsString( 'data-current-location-id="', $template );
-        $this->assertStringContainsString( '$kiriof_origin_snapshot[\'location_id\'] ?? $kiriof_origin_snapshot[\'id\']', $template );
-        $this->assertStringContainsString( "\$kiriof_origin_snapshot['origin_name'] ?? \$kiriof_origin_snapshot['location_name']", $template );
-        $this->assertStringContainsString( 'data-nonce="', $template );
-        $this->assertMatchesRegularExpression( '/\$kiriof_isProcessable\s*\?[^;]*kiriof-change-origin-button/s', $template );
-        $this->assertStringContainsString( 'dashicons-location', $template );
+		$this->assertStringContainsString( 'data-ka-order-id={row.kaOrderId}', $template );
+		$this->assertStringContainsString( 'data-current-origin={row.actionData.currentOrigin}', $template );
+		$this->assertStringContainsString( 'data-current-origin-address={row.actionData.currentOriginAddress}', $template );
+		$this->assertStringContainsString( 'data-current-location-id={row.actionData.currentLocationId}', $template );
+		$this->assertStringContainsString( "'currentLocationId'", $factory );
+		$this->assertStringContainsString( "'currentOrigin'", $factory );
+		$this->assertStringContainsString( 'data-nonce={row.actionData.nonce}', $template );
+		$this->assertStringContainsString( '{#if row.actions.changeOrigin}', $template );
+		$this->assertStringContainsString( '<IconMapPin />', $template );
     }
 
     public function testChangeOriginModalTemplateUsesRadioCardsAndAutomaticCheckFlow(): void {
@@ -360,18 +361,19 @@ class ChangeOriginFeatureTest extends TestCase {
     }
 
     public function testPackageDetailsShowBuyerShippingCouponWithoutMisreportingPriceChanges(): void {
-        $transaction = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+		$transaction = $this->read( __DIR__ . '/../inc/Services/TransactionListViewModelFactory.php' );
+		$app = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
         $preview     = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $metabox     = $this->read( __DIR__ . '/../templates/order/metabox-shipping.php' );
 
-        $this->assertStringContainsString( '$kiriof_shippingCost - (float) $kiriof_wcOrder->get_shipping_total()', $transaction );
+		$this->assertStringContainsString( '$shipping_cost - (float) $wc_order->get_shipping_total()', $transaction );
         $this->assertStringContainsString( '$shipping_cost - $paid_shipping', $preview );
         $this->assertStringContainsString( '$kiriof_ship_coupon', $metabox );
         $this->assertStringContainsString( '(float) $wc_shipping_discount - $kiriof_platform_shipping_discount', $metabox );
         $this->assertStringNotContainsString( 'max($kiriof_discount_raw, $wc_discount_total)', $metabox );
-        $this->assertStringContainsString( '$kiriof_colPaidShipping = $kiriof_wcOrder', $transaction );
-        $this->assertStringContainsString( '$kiriof_wcOrder->get_shipping_total()', $transaction );
-        $this->assertStringContainsString( 'kiriof_money_format($kiriof_colPaidShipping)', $transaction );
+		$this->assertStringContainsString( '$paid_shipping', $transaction );
+		$this->assertStringContainsString( '$wc_order->get_shipping_total()', $transaction );
+		$this->assertStringContainsString( 'currency(row.package.paidShipping)', $app );
         $this->assertStringContainsString( "__('Actual Shipping', 'kiriminaja-official')", $preview );
         $this->assertStringContainsString( "__('Shipping Discount', 'kiriminaja-official')", $preview );
         $this->assertStringContainsString( "__('Shipping', 'kiriminaja-official'), wc_price(\$paid_shipping", $preview );

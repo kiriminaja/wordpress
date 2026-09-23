@@ -3817,7 +3817,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
         $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
-        $view = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+		$view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
             '$filters[\'status\'] = \'all\';',
@@ -3842,13 +3842,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'wc_get_order($kiriof_row->wc_order_id)',
+			"wc_get_order( \$row->wc_order_id )",
             $view,
             'Transaction list payment label should read the final Woo order payment method, not stale shipping_info meta'
         );
 
-        $wooPaymentPosition = strpos($view, '$kiriof_wcOrder->get_payment_method()');
-        $shippingInfoPosition = strpos($view, '$kiriof_shippingData->_payment_method');
+		$wooPaymentPosition = strpos($view, '$wc_order->get_payment_method()');
+		$shippingInfoPosition = strpos($view, '$shipping_info->_payment_method');
         $this->assertNotFalse($wooPaymentPosition, 'Transaction list must read Woo order payment method');
         $this->assertNotFalse($shippingInfoPosition, 'Transaction list may retain shipping_info payment as fallback');
         $this->assertLessThan(

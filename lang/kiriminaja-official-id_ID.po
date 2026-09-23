@@ -3815,3 +3815,19 @@ msgstr "tidak berubah"
 #: inc/Controllers/SettingController.php
 msgid "Flush & Re-fetch Couriers"
 msgstr "Hapus Cache & Ambil Ulang Kurir"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "All Status"
+msgstr "Semua Status"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Clear filters"
+msgstr "Hapus filter"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "No transactions found."
+msgstr "Tidak ada transaksi ditemukan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Print Labels"
+msgstr "Cetak Label"

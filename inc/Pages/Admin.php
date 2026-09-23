@@ -42,6 +42,18 @@ class Admin extends BaseInit{
 		remove_all_actions( 'user_admin_notices' );
 	}
 
+	public function kiriof_prepare_transactions_workspace( $screen = null ): void {
+		unset( $screen );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'kiriminaja-transaction-process' !== $page ) {
+			return;
+		}
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
+	}
+
 	public function kiriof_hide_settings_screen_options( bool $show, $screen = null ): bool {
 		unset( $screen );
 		return $this->is_settings_workspace() ? false : $show;
@@ -63,6 +75,7 @@ class Admin extends BaseInit{
         add_action( 'in_admin_header', array( $this, 'kiriof_add_transaction_screen_options' ), 5 );
 		add_action( 'current_screen', array( $this, 'kiriof_prepare_settings_workspace' ), 1 );
 		add_filter( 'screen_options_show_screen', array( $this, 'kiriof_hide_settings_screen_options' ), 10, 2 );
+		add_action( 'current_screen', array( $this, 'kiriof_prepare_transactions_workspace' ), 1 );
         if ( KIRIOF_ENABLE_KA_CREDIT ) {
             add_action( 'admin_bar_menu', array( $this, 'kiriof_add_credit_balance_admin_bar' ), 61 );
         }

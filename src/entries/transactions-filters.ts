@@ -1,40 +1,15 @@
 import { mount } from 'svelte';
-import TransactionFilters from '../lib/transactions/TransactionFilters.svelte';
-import TransactionTable from '../lib/transactions/TransactionTable.svelte';
-import type {
-  TransactionFiltersBootstrap,
-  TransactionTableBootstrap,
-} from '../lib/transactions/types';
+import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
+import type { TransactionsBootstrap } from '../lib/transactions/types';
+import '../styles/shadcn-onboarding.css';
 import '../styles/admin-list.css';
 
-const host = document.querySelector<HTMLElement>('[data-kiriof-transactions-filters-root]');
-const payload = document.querySelector<HTMLScriptElement>(
-  '[data-kiriof-transactions-filters-payload]',
-);
-if (host && payload?.textContent) {
-  const bootstrap = JSON.parse(payload.textContent) as TransactionFiltersBootstrap;
-  mount(TransactionFilters, { target: host, props: { bootstrap } });
-  host
-    .closest<HTMLElement>('[data-kiriof-transactions-page]')
-    ?.classList.add('kiriof-transactions-page--enhanced');
-  host
-    .closest<HTMLElement>('[data-kiriof-transactions-page]')
-    ?.querySelectorAll('[data-kiriof-transactions-controls-fallback]')
-    .forEach((fallback) => fallback.remove());
-}
+const host = document.querySelector<HTMLElement>('[data-kiriof-transactions-root]');
+const payload = document.querySelector<HTMLScriptElement>('[data-kiriof-transactions-payload]');
 
-const tableHost = document.querySelector<HTMLElement>('[data-kiriof-transactions-table-root]');
-const tablePayload = document.querySelector<HTMLScriptElement>(
-  '[data-kiriof-transactions-table-payload]',
-);
-if (tableHost && tablePayload?.textContent) {
-  const bootstrap = JSON.parse(tablePayload.textContent) as TransactionTableBootstrap;
-  mount(TransactionTable, { target: tableHost, props: { bootstrap } });
-  tableHost
-    .closest<HTMLElement>('[data-kiriof-transactions-page]')
-    ?.classList.add('kiriof-transactions-table--enhanced');
-  tableHost
-    .closest<HTMLElement>('[data-kiriof-transactions-page]')
-    ?.querySelectorAll('[data-kiriof-transactions-table-fallback]')
-    .forEach((fallback) => fallback.remove());
+if (host && payload?.textContent) {
+  const bootstrap = JSON.parse(payload.textContent) as TransactionsBootstrap;
+  mount(TransactionsApp, { target: host, props: { bootstrap } });
+  host.removeAttribute('aria-busy');
+  host.classList.add('is-mounted');
 }
