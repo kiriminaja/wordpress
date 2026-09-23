@@ -370,11 +370,17 @@ class Enqueue extends BaseInit{
 			$transactions_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
 			$transactions_entry_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-transactions-filters.css';
 			$shadcn_style        = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
+			$toolbar_style       = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-toolbar.css';
 			if ( file_exists( $shadcn_style ) ) {
 				wp_enqueue_style( 'kiriof-shadcn', $this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
 			}
 			if ( file_exists( $transactions_style ) ) {
-				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', file_exists( $shadcn_style ) ? array( 'kiriof-shadcn' ) : array(), (string) filemtime( $transactions_style ) );
+				$transactions_dependencies = file_exists( $shadcn_style ) ? array( 'kiriof-shadcn' ) : array();
+				if ( file_exists( $toolbar_style ) ) {
+					wp_enqueue_style( 'kiriof-toolbar', $this->plugin_url . 'assets/admin/dist/kiriminaja-toolbar.css', array(), (string) filemtime( $toolbar_style ) );
+					$transactions_dependencies[] = 'kiriof-toolbar';
+				}
+				wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', $transactions_dependencies, (string) filemtime( $transactions_style ) );
 			}
 			if ( file_exists( $transactions_entry_style ) ) {
 				wp_enqueue_style( 'kiriof-transactions-entry', $this->plugin_url . 'assets/admin/dist/kiriminaja-transactions-filters.css', array( 'kiriof-admin-list' ), (string) filemtime( $transactions_entry_style ) );

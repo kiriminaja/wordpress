@@ -241,6 +241,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 .kiriof-transactions-app .kiriof-app-toolbar {
   width: calc(100% + 40px);
   margin: 0 -20px 18px;
+  padding: 8px 20px;
 }
 .kiriof-transactions-app .kiriof-app-toolbar [data-slot='button'] {
   display: inline-flex !important;

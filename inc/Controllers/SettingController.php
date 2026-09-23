@@ -98,6 +98,16 @@ class SettingController{
 		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
 			$settings_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.js';
 			$settings_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-settings-root.css';
+			$toolbar_style   = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-toolbar.css';
+
+			if ( file_exists( $toolbar_style ) ) {
+				wp_enqueue_style(
+					'kiriof-toolbar',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-toolbar.css',
+					file_exists( $toolbar_style ) ? array( 'kiriof-toolbar' ) : array(),
+					(string) filemtime( $toolbar_style )
+				);
+			}
 
 			if ( file_exists( $settings_style ) ) {
 				wp_enqueue_style(

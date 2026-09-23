@@ -183,12 +183,13 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/Toolbar.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/toolbar.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/assets/admin/img/icon-128x128.png' );
-		$this->assertStringContainsString( 'kiriof-app-toolbar', $styles );
-		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $styles );
-		$this->assertStringContainsString( 'padding: 8px 20px;', $styles );
+		$toolbarStyles = file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' );
+		$this->assertStringContainsString( 'kiriof-app-toolbar', $toolbarStyles );
+		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $toolbarStyles );
+		$this->assertStringContainsString( 'padding: 8px 0;', $toolbarStyles );
+		$this->assertStringContainsString( "import '../styles/toolbar.css'", $entry );
 		$this->assertStringContainsString( 'padding-left: 0 !important;', $styles );
 		$this->assertStringContainsString( 'padding-bottom: 0 !important;', $styles );
-		$this->assertMatchesRegularExpression( '/\.kiriof-settings-shell\s*\{[^}]*padding:\s*0;/s', $styles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
 		$this->assertStringContainsString( 'history.pushState', $entry );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );
@@ -196,7 +197,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( "remove_all_actions( 'admin_notices' )", file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
         $this->assertStringContainsString( "'settings-root': 'src/entries/settings-root.ts'", $vite );
         $this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' )", $controller );
-        $this->assertStringContainsString( "wp_script_add_data( 'kiriof-settings-root', 'type', 'module' )", $controller );
+		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-settings-root', 'type', 'module' )", $controller );
+		$this->assertStringContainsString( 'kiriminaja-toolbar.css', $controller );
         $this->assertStringContainsString( 'assets/admin/dist', $gitignore );
     }
 }

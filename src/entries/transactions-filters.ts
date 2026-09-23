@@ -2,6 +2,7 @@ import { mount } from 'svelte';
 import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
 import type { TransactionsBootstrap } from '../lib/transactions/types';
 import '../styles/shadcn-onboarding.css';
+import '../styles/toolbar.css';
 import '../styles/admin-list.css';
 
 const host = document.querySelector<HTMLElement>('[data-kiriof-transactions-root]');

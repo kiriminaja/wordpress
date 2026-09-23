@@ -6,6 +6,7 @@ import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import WebhooksSection from '../lib/settings/WebhooksSection.svelte';
 import TrackingSection from '../lib/settings/TrackingSection.svelte';
+import '../styles/toolbar.css';
 import '../styles/settings-root.css';
 
 const host = document.querySelector<HTMLElement>('[data-kiriof-settings-root]');
