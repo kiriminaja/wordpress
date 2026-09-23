@@ -37,6 +37,14 @@
   border-color: #c7c3cc !important;
   background: #fff !important;
   color: #29252e !important;
+  padding-right: 10px !important;
+  padding-left: 9px !important;
+}
+.kiriof-courier-trigger > span:first-child {
+  gap: 6px !important;
+}
+.kiriof-courier-trigger > span:first-child > svg {
+  margin-left: 0 !important;
 }
 .kiriof-courier-trigger > span {
   min-width: 0;
@@ -434,10 +442,12 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   padding-bottom: 0 !important;
 }
 .kiriof-search-prefix {
+  flex: 0 0 128px !important;
   border-right: 1px solid #dedbe3;
 }
 .kiriof-search-prefix [data-slot='select-trigger'] {
-  min-width: 118px !important;
+  width: 128px !important;
+  min-width: 128px !important;
   height: 32px !important;
   border: 0 !important;
   border-radius: calc(var(--radius) - 1px) 0 0 calc(var(--radius) - 1px) !important;
@@ -447,6 +457,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   font-weight: 600;
 }
 .kiriof-search-suffix {
+  flex: 0 0 34px !important;
   border-left: 1px solid #dedbe3;
   padding-right: 9px !important;
   padding-left: 9px !important;

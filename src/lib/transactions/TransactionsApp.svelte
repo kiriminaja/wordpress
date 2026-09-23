@@ -31,6 +31,15 @@
   function initialWorkspace(): TransactionsBootstrap {
     return structuredClone(initialBootstrap);
   }
+
+  function scheduleSearch(): void {
+    if (searchTimer) window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(applyFilters, 350);
+  }
+
+  function applySelectFilter(): void {
+    if (!refreshing) applyFilters();
+  }
   let bootstrap = $state<TransactionsBootstrap>(initialWorkspace());
   function initialFilters(): TransactionFilters {
     return { ...bootstrap.filters };
@@ -39,6 +48,7 @@
   let selected = $state<Record<string, boolean>>({});
   let refreshing = $state(false);
   let navigationController: AbortController | null = null;
+  let searchTimer: number | null = null;
 
   const selectedRows = $derived(bootstrap.rows.filter((row) => selected[row.kaOrderId]));
   const selectableRows = $derived(bootstrap.rows.filter((row) => !row.selection.disabled));
@@ -53,6 +63,17 @@
   const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
   const searchByLabel = $derived(filters.search_by === 'ka_order_id' ? bootstrap.i18n.kaOrderId : filters.search_by === 'awb' ? bootstrap.i18n.awb : bootstrap.i18n.orderNumber);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
+  const hasActiveFilters = $derived(
+    Boolean(
+      filters.key.trim() ||
+        filters.month ||
+        (filters.status && filters.status !== 'all') ||
+        filters.cod ||
+        filters.courier ||
+        filters.print_status ||
+        (filters.search_by && filters.search_by !== 'wc_order_id'),
+    ),
+  );
   const scopeValue = $derived(filters.status === 'order-issue' ? 'order-issue' : 'regular');
   const scopeTabs = $derived([
     { value: 'regular', label: 'Regular Delivery' },
@@ -163,6 +184,7 @@
   window.addEventListener('popstate', handlePopState);
   onDestroy(() => {
     navigationController?.abort();
+    if (searchTimer) window.clearTimeout(searchTimer);
     window.removeEventListener('popstate', handlePopState);
   });
 </script>
@@ -185,7 +207,7 @@
       <nav class="kiriof-transactions-scopes" aria-label="Transaction scope">
         <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
         <div class="kiriof-transactions-list-tools">
-          <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={() => applyFilters()}>
+          <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={applySelectFilter}>
             <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
               <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
@@ -211,7 +233,7 @@
       >
         <InputGroup.Root class="kiriof-transactions-search" data-disabled={refreshing ? 'true' : undefined}>
           <InputGroup.Addon class="kiriof-search-prefix p-0">
-            <Select.Root type="single" bind:value={filters.search_by} disabled={refreshing}>
+            <Select.Root type="single" bind:value={filters.search_by} disabled={refreshing} onValueChange={applySelectFilter}>
               <Select.Trigger hideIcon class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
               <Select.Content class="kiriof-shadcn">
                 <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
@@ -220,10 +242,10 @@
               </Select.Content>
             </Select.Root>
           </InputGroup.Addon>
-          <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} />
+          <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
           <InputGroup.Addon class="kiriof-search-suffix" align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>
-        <Select.Root type="single" bind:value={filters.cod} disabled={refreshing}>
+        <Select.Root type="single" bind:value={filters.cod} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconCash /><Select.Value>{paymentLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPayment}</Select.Item>
@@ -231,7 +253,7 @@
             <Select.Item value="0">{bootstrap.i18n.nonCod}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <Select.Root type="single" bind:value={filters.status} disabled={refreshing}>
+        <Select.Root type="single" bind:value={filters.status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             {#each bootstrap.statusOptions as option}
@@ -239,7 +261,7 @@
             {/each}
           </Select.Content>
         </Select.Root>
-        <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing}>
+        <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPrints}</Select.Item>
@@ -247,11 +269,19 @@
             <Select.Item value="0">{bootstrap.i18n.unprinted}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <CourierCombobox value={filters.courier} options={courierOptions} placeholder={bootstrap.i18n.allCouriers} disabled={refreshing} onChange={(value) => (filters.courier = value)} />
-        <ButtonGroup.Root>
-          <Button variant="outline" size="icon" disabled={refreshing} onclick={applyFilters} aria-label={bootstrap.i18n.apply} title={bootstrap.i18n.apply}><IconSearch /></Button>
+        <CourierCombobox
+          value={filters.courier}
+          options={courierOptions}
+          placeholder={bootstrap.i18n.allCouriers}
+          disabled={refreshing}
+          onChange={(value) => {
+            filters.courier = value;
+            applySelectFilter();
+          }}
+        />
+        {#if hasActiveFilters}
           <Button variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
-        </ButtonGroup.Root>
+        {/if}
       </form>
     </div>
 
