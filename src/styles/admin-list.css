@@ -343,15 +343,71 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   width: 15px !important;
   height: 15px !important;
 }
+.kiriof-transactions-app [data-slot='select-trigger'] > svg:last-child {
+  display: none !important;
+}
+.kiriof-transactions-app [data-slot='select-value'] {
+  min-width: 0;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+.kiriof-transactions-app input[aria-hidden='true'],
+.kiriof-transactions-app select[aria-hidden='true'] {
+  position: absolute !important;
+  width: 1px !important;
+  min-width: 0 !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+  appearance: none !important;
+}
 .kiriof-transactions-app [data-slot='input-group'] {
   min-height: 34px !important;
   border-color: #c7c3cc !important;
   background: #fff !important;
 }
+.kiriof-transactions-app [data-slot='input-group-addon'] {
+  align-self: stretch !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.kiriof-search-prefix {
+  border-right: 1px solid #dedbe3;
+}
+.kiriof-search-prefix [data-slot='select-trigger'] {
+  min-width: 118px !important;
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: calc(var(--radius) - 1px) 0 0 calc(var(--radius) - 1px) !important;
+  background: #f6f5f7 !important;
+  padding-right: 10px !important;
+  padding-left: 10px !important;
+  font-weight: 600;
+}
+.kiriof-search-suffix {
+  border-left: 1px solid #dedbe3;
+  padding-right: 9px !important;
+  padding-left: 9px !important;
+}
+.kiriof-search-suffix svg {
+  display: block;
+  width: 15px !important;
+  height: 15px !important;
+}
 .kiriof-transactions-app [data-slot='input-group-control'] {
   min-height: 32px !important;
   border: 0 !important;
   background: transparent !important;
+  padding-right: 10px !important;
+  padding-left: 10px !important;
 }
 .kiriof-transactions-scope-group [data-slot='button'][aria-current='page'] {
   background: #ededee;

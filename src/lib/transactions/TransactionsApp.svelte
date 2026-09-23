@@ -157,7 +157,7 @@
         }}
       >
         <InputGroup.Root class="kiriof-transactions-search">
-          <InputGroup.Addon class="p-0">
+          <InputGroup.Addon class="kiriof-search-prefix p-0">
             <Select.Root type="single" bind:value={filters.search_by}>
               <Select.Trigger class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value></Select.Trigger>
               <Select.Content class="kiriof-shadcn">
@@ -168,7 +168,7 @@
             </Select.Root>
           </InputGroup.Addon>
           <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} />
-          <InputGroup.Addon align="inline-end"><IconSearch /></InputGroup.Addon>
+          <InputGroup.Addon class="kiriof-search-suffix" align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>
         <Select.Root type="single" bind:value={filters.cod}>
           <Select.Trigger><Select.Value>{paymentLabel}</Select.Value></Select.Trigger>
