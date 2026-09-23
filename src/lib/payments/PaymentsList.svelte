@@ -160,9 +160,9 @@
                     {#each row.actions as action}
                       {@const ActionIcon = actionIcon(action.type)}
                       {#if action.type === 'details'}
-                        <Button variant="outline" size="icon-sm" href={action.href} title={action.label} aria-label={action.label}><ActionIcon /></Button>
+                        <Button variant="outline" size="icon" href={action.href} title={action.label} aria-label={action.label}><ActionIcon /></Button>
                       {:else}
-                        <Button variant="outline" size="icon-sm" class={actionClass(action.type)} type="button" data-pickup-number={row.pickupNumber} title={action.label} aria-label={action.label}><ActionIcon /></Button>
+                        <Button variant="outline" size="icon" class={actionClass(action.type)} type="button" data-pickup-number={row.pickupNumber} title={action.label} aria-label={action.label}><ActionIcon /></Button>
                       {/if}
                     {/each}
                   </div>

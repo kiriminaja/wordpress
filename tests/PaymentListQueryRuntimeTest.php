@@ -90,6 +90,11 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/StatusTabs.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/pagination/index.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/styles/payments-list.css' );
+		$this->assertStringContainsString( 'import * as Pagination from \'$lib/components/ui/pagination\'', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );
+		$this->assertStringContainsString( "@apply", file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
+		$this->assertStringContainsString( "body:has([data-kiriof-payments-page]) .update-nag", file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
 		$this->assertStringContainsString( "'payments-list': 'src/entries/payments-list.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
     }
 }

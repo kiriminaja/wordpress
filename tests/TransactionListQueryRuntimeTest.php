@@ -159,7 +159,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( "[data-slot='checkbox'][data-state='checked']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '.kiriof-row-actions [data-slot=\'button\']', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( "input[aria-hidden='true']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-        $this->assertStringContainsString( '.kiriof-search-suffix', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+        $this->assertStringContainsString( '<InputGroup.Addon align="inline-start"><IconSearch', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'hideIcon', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/select/select-trigger.svelte' ) );
 		$this->assertStringContainsString( 'IconCalendar', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'IconCash', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

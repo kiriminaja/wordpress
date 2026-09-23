@@ -1,19 +1,27 @@
 <script lang="ts">
-  import { IconChevronLeft, IconChevronRight } from '@tabler/icons-svelte';
-  import * as ButtonGroup from '$lib/components/ui/button-group';
-  import { Button } from '$lib/components/ui/button';
+  import * as Pagination from '$lib/components/ui/pagination';
 
   let { page, totalPages, label, onChange }: { page: number; totalPages: number; label: string; onChange: (page: number) => void } = $props();
 </script>
 
 {#if totalPages > 1}
-  <ButtonGroup.Root aria-label="Pagination">
-    <Button variant="outline" size="icon" disabled={page <= 1} onclick={() => onChange(page - 1)} aria-label="Previous page">
-      <IconChevronLeft data-icon="inline-start" />
-    </Button>
-    <ButtonGroup.Text>{page} {label} {totalPages}</ButtonGroup.Text>
-    <Button variant="outline" size="icon" disabled={page >= totalPages} onclick={() => onChange(page + 1)} aria-label="Next page">
-      <IconChevronRight data-icon="inline-end" />
-    </Button>
-  </ButtonGroup.Root>
+  <Pagination.Root count={totalPages} perPage={1} {page} onPageChange={onChange} class="w-auto">
+    {#snippet children({ pages, currentPage })}
+      <Pagination.Content>
+        <Pagination.Item><Pagination.Previous /></Pagination.Item>
+        {#each pages as paginationPage (paginationPage.key)}
+          {#if paginationPage.type === 'ellipsis'}
+            <Pagination.Item><Pagination.Ellipsis /></Pagination.Item>
+          {:else}
+            <Pagination.Item>
+              <Pagination.Link page={paginationPage} isActive={currentPage === paginationPage.value} aria-label={`${paginationPage.value} ${label} ${totalPages}`}>
+                {paginationPage.value}
+              </Pagination.Link>
+            </Pagination.Item>
+          {/if}
+        {/each}
+        <Pagination.Item><Pagination.Next /></Pagination.Item>
+      </Pagination.Content>
+    {/snippet}
+  </Pagination.Root>
 {/if}
