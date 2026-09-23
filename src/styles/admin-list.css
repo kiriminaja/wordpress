@@ -314,12 +314,37 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   gap: 12px;
   overflow-x: auto;
 }
-.kiriof-transactions-scope-group {
-  flex-wrap: nowrap;
+.kiriof-workspace-tabs {
+  flex-shrink: 0;
 }
-.kiriof-transactions-scopes [data-slot='button'] {
-  min-height: 34px;
-  margin: 0;
+.kiriof-workspace-tabs__list {
+  height: 36px !important;
+  gap: 3px !important;
+  padding: 3px !important;
+  border: 1px solid #e3e1e6;
+  border-radius: 10px !important;
+  background: #f4f4f5 !important;
+}
+.kiriof-workspace-tabs__trigger {
+  min-height: 28px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #6f6975 !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  box-shadow: none !important;
+}
+.kiriof-workspace-tabs__trigger[data-active] {
+  background: #fff !important;
+  color: #241f29 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgb(24 24 27 / 12%) !important;
+}
+.kiriof-workspace-tabs__trigger:disabled {
+  color: #aaa6ae !important;
+  opacity: 1 !important;
 }
 .kiriof-transactions-list-tools {
   display: flex;
@@ -453,16 +478,6 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   background: transparent !important;
   padding-right: 10px !important;
   padding-left: 10px !important;
-}
-.kiriof-transactions-scope-group [data-slot='button'][aria-current='page'] {
-  background: #ededee;
-  color: #241f29;
-  font-weight: 650;
-}
-.kiriof-transactions-scope-group [data-slot='button']:disabled {
-  background: transparent;
-  color: #9b97a1;
-  opacity: 1;
 }
 .kiriof-transactions-meta {
   display: flex;

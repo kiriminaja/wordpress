@@ -128,6 +128,10 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '<InputGroup.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<ButtonGroup.Root>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'Order Issue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/tabs/index.ts' );
+		$this->assertStringContainsString( '<WorkspaceTabs', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( "filters.status === 'order-issue' ? 'order-issue' : 'regular'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<ButtonGroup.Root class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( "[data-slot='checkbox'][data-state='checked']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '.kiriof-row-actions [data-slot=\'button\']', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );

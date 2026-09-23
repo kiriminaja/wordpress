@@ -22,6 +22,7 @@
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
+  import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
@@ -51,6 +52,13 @@
   const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
   const searchByLabel = $derived(filters.search_by === 'ka_order_id' ? bootstrap.i18n.kaOrderId : filters.search_by === 'awb' ? bootstrap.i18n.awb : bootstrap.i18n.orderNumber);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
+  const scopeValue = $derived(filters.status === 'order-issue' ? 'order-issue' : 'regular');
+  const scopeTabs = $derived([
+    { value: 'regular', label: 'Regular Delivery' },
+    { value: 'international', label: 'International Delivery', disabled: true, title: 'International delivery is not available in this workspace' },
+    { value: 'instant', label: 'Instant Delivery', disabled: true, title: 'Instant delivery is not available in this workspace' },
+    { value: 'order-issue', label: 'Order Issue', count: orderIssueOption?.count ?? 0 },
+  ]);
 
   function buildUrl(values: Record<string, string>): URL {
     const url = new URL(window.location.href);
@@ -142,6 +150,11 @@
     return `is-${tone}`;
   }
 
+  function changeScope(value: string): void {
+    if (value === 'order-issue') void navigate({ status: 'order-issue' });
+    if (value === 'regular') void navigate({ status: 'all' });
+  }
+
   function handlePopState(): void {
     void navigate(Object.fromEntries(new URL(window.location.href).searchParams.entries()), false);
   }
@@ -174,16 +187,7 @@
   <section class="kiriof-transactions-card">
     <div class="kiriof-transactions-filterbar">
       <nav class="kiriof-transactions-scopes" aria-label="Transaction scope">
-        <ButtonGroup.Root class="kiriof-transactions-scope-group">
-          <Button variant="secondary" aria-current="page">Regular Delivery</Button>
-          <Button variant="ghost" disabled title="International delivery is not available in this workspace">International Delivery</Button>
-          <Button variant="ghost" disabled title="Instant delivery is not available in this workspace">Instant Delivery</Button>
-          {#if orderIssueOption}
-            <Button variant={filters.status === 'order-issue' ? 'secondary' : 'ghost'} disabled={refreshing} onclick={() => void navigate({ status: 'order-issue' })}>
-              Order Issue{orderIssueOption.count > 0 ? ` (${orderIssueOption.count})` : ''}
-            </Button>
-          {/if}
-        </ButtonGroup.Root>
+        <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
         <div class="kiriof-transactions-list-tools">
           <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={() => applyFilters()}>
             <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
