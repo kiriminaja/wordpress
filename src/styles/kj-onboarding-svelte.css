@@ -15,6 +15,12 @@ body.kiriof-onboarding-screen #wpbody-content {
   overflow: hidden !important;
 }
 
+/* Reset WordPress typography margins; layout spacing is owned by utility classes. */
+.kiriof-onboarding-app :where(h1, h2, h3, h4, h5, h6, p) {
+  margin: 0;
+  color: inherit;
+}
+
 /* WordPress admin ships global form controls. Keep the Svelte surface on shadcn geometry. */
 .kiriof-onboarding-app [data-slot='button'] {
   min-height: 2rem;
@@ -23,6 +29,16 @@ body.kiriof-onboarding-screen #wpbody-content {
   border-radius: var(--radius);
   line-height: 1;
   box-shadow: none;
+  text-decoration: none !important;
+}
+
+.kiriof-onboarding-app a[data-slot='button'],
+.kiriof-onboarding-app a[data-slot='button']:hover,
+.kiriof-onboarding-app a[data-slot='button']:focus,
+.kiriof-onboarding-app a[data-slot='button']:active,
+.kiriof-onboarding-app a[data-slot='button']:visited {
+  color: var(--primary-foreground);
+  text-decoration: none !important;
 }
 
 .kiriof-onboarding-app [data-slot='input'],

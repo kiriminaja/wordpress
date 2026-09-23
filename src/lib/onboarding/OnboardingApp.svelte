@@ -525,16 +525,18 @@
     <Card
       class="flex flex-col w-full max-h-[calc(100vh-5.5rem)] overflow-hidden rounded-2xl border border-white/40 bg-white/95 shadow-2xl shadow-purple-950/30 backdrop-blur-xl transition-all dark:border-border dark:bg-card/95"
     >
-      <CardHeader class="shrink-0 border-b border-border/60 bg-muted/10 px-6 pt-5 pb-4">
-        <div class="max-w-[540px] space-y-1.5">
-          <CardTitle class="text-lg font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-xl">
-            {stepTitle}
-          </CardTitle>
-          <CardDescription class="max-w-[48ch] text-sm leading-5 text-muted-foreground">
-            {stepDescription}
-          </CardDescription>
-        </div>
-      </CardHeader>
+      {#if current !== 'complete'}
+        <CardHeader class="shrink-0 border-b border-border/60 bg-muted/10 px-6 pt-5 pb-4">
+          <div class="max-w-[540px] space-y-1.5">
+            <CardTitle class="text-lg font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-xl">
+              {stepTitle}
+            </CardTitle>
+            <CardDescription class="max-w-[48ch] text-sm leading-5 text-muted-foreground">
+              {stepDescription}
+            </CardDescription>
+          </div>
+        </CardHeader>
+      {/if}
 
       <!-- Feedback Alerts -->
       {#if error}
@@ -791,17 +793,15 @@
             </a>
           </div>
         {:else}
-          <div class="space-y-4 py-6 text-center">
+          <div class="flex min-h-[300px] flex-col items-center justify-center gap-5 py-10 text-center">
             <div
               class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary"
             >
               <IconCheck class="h-8 w-8 stroke-[2.5]" />
             </div>
-            <div class="space-y-2">
-              <p class="mx-auto max-w-md text-sm text-muted-foreground">
-                KiriminAja is configured. You can now manage shipments from your WordPress dashboard.
-              </p>
-            </div>
+            <p class="m-0 max-w-md text-sm leading-6 text-muted-foreground">
+              {stepDescription}
+            </p>
           </div>
         {/if}
       </CardContent>
@@ -861,7 +861,10 @@
               {/if}
             </Button>
           {:else}
-            <Button href={bootstrap.dashboardUrl || 'admin.php?page=kiriminaja-konfigurasi'}>
+            <Button
+              href={bootstrap.dashboardUrl || 'admin.php?page=kiriminaja-konfigurasi'}
+              class="no-underline hover:no-underline focus:no-underline"
+            >
               Go to KiriminAja
             </Button>
           {/if}

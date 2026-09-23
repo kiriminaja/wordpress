@@ -66,6 +66,9 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'SubdistrictCombobox', $app );
 		$this->assertStringContainsString( 'variant="destructive"', $app );
 		$this->assertStringContainsString( 'class="min-h-20 resize-none"', $app );
+		$this->assertStringContainsString( "{#if current !== 'complete'}", $app );
+		$this->assertStringContainsString( 'class="m-0 max-w-md text-sm leading-6 text-muted-foreground"', $app );
+		$this->assertStringContainsString( 'no-underline hover:no-underline focus:no-underline', $app );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/command/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/popover/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' );
