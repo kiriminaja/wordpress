@@ -31,6 +31,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 
         $sql = $wpdb->queries[3];
         $this->assertStringContainsString('FROM wp_posts as orders_tbl', $sql);
+        $this->assertStringContainsString("orders_tbl.ID = 'KA-10'", $sql);
+        $this->assertStringContainsString("kiriminaja_transactions.awb LIKE 'KA-10%'", $sql);
         $this->assertStringContainsString("kiriminaja_transactions.order_id LIKE '%KA-10%'", $sql);
         $this->assertStringContainsString("kiriminaja_transactions.service = 'jne'", $sql);
         $this->assertStringContainsString('kiriminaja_transactions.cod_fee > 0', $sql);
@@ -38,6 +40,21 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString("orders_tbl.post_date LIKE '2025-02%'", $sql);
         $this->assertStringContainsString("COALESCE(NULLIF(pm_var.meta_value, ''), pm_prod.meta_value, 'no') <> 'yes'", $sql);
         $this->assertStringContainsString('LIMIT 25 OFFSET 50', $sql);
+    }
+
+    #[Test]
+    public function numeric_keyword_uses_an_exact_order_number_comparison(): void
+    {
+        $wpdb = new TransactionListQueryWpdbFake();
+        $query = new WordPressTransactionListQuery($wpdb);
+        $filters = $this->filters('all');
+        $filters['key'] = '10';
+
+        $query->getPage($filters, 1, 25);
+
+        $this->assertStringContainsString('orders_tbl.ID = 10', $wpdb->queries[1]);
+        $this->assertStringContainsString("kiriminaja_transactions.awb LIKE '10%'", $wpdb->queries[1]);
+        $this->assertStringContainsString("kiriminaja_transactions.order_id LIKE '%10%'", $wpdb->queries[1]);
     }
 
     #[Test]
@@ -128,7 +145,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '<Table.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<InputGroup.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<ButtonGroup.Root class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'Order Issue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( 'Order Issue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringNotContainsString( 'filters.search_by', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringNotContainsString( 'kiriof-search-prefix', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/tabs/index.ts' );
 		$this->assertStringContainsString( '<WorkspaceTabs', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
@@ -137,8 +156,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( "[data-slot='checkbox'][data-state='checked']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '.kiriof-row-actions [data-slot=\'button\']', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( "input[aria-hidden='true']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '.kiriof-search-prefix', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '.kiriof-search-suffix', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+        $this->assertStringContainsString( '.kiriof-search-suffix', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'hideIcon', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/select/select-trigger.svelte' ) );
 		$this->assertStringContainsString( 'IconCalendar', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'IconCash', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
@@ -170,7 +188,6 @@ final class TransactionListQueryRuntimeTest extends TestCase
             'cod' => '1',
             'courier' => 'jne',
             'print_status' => '0',
-            'search_by' => 'ka_order_id',
         );
     }
 }

@@ -5,7 +5,6 @@ export type TransactionFilters = {
   cod: string;
   courier: string;
   print_status: string;
-  search_by: string;
 };
 
 export type TransactionStatusOption = { value: string; label: string; count: number };

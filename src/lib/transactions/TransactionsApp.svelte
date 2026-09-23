@@ -61,7 +61,6 @@
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
   const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
-  const searchByLabel = $derived(filters.search_by === 'ka_order_id' ? bootstrap.i18n.kaOrderId : filters.search_by === 'awb' ? bootstrap.i18n.awb : bootstrap.i18n.orderNumber);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
   const hasActiveFilters = $derived(
     Boolean(
@@ -70,8 +69,7 @@
         (filters.status && filters.status !== 'all') ||
         filters.cod ||
         filters.courier ||
-        filters.print_status ||
-        (filters.search_by && filters.search_by !== 'wc_order_id'),
+        filters.print_status,
     ),
   );
   const scopeValue = $derived(filters.status === 'order-issue' ? 'order-issue' : 'regular');
@@ -88,6 +86,7 @@
       if (value) url.searchParams.set(key, value);
       else url.searchParams.delete(key);
     }
+    url.searchParams.delete('search_by');
     if (!('cpage' in values)) url.searchParams.set('cpage', '1');
     return url;
   }
@@ -128,7 +127,6 @@
   function applyFilters(): void {
     void navigate({
       key: filters.key,
-      search_by: filters.search_by,
       month: filters.month === 'all' ? '' : filters.month,
       status: filters.status,
       cod: filters.cod === 'all' ? '' : filters.cod,
@@ -139,7 +137,7 @@
   }
 
   function clearFilters(): void {
-    void navigate({ key: '', month: '', status: 'all', cod: '', courier: '', print_status: '', search_by: 'wc_order_id' });
+    void navigate({ key: '', month: '', status: 'all', cod: '', courier: '', print_status: '' });
   }
 
   function toggleAll(checked: boolean): void {
@@ -232,16 +230,6 @@
         }}
       >
         <InputGroup.Root class="kiriof-transactions-search" data-disabled={refreshing ? 'true' : undefined}>
-          <InputGroup.Addon class="kiriof-search-prefix p-0">
-            <Select.Root type="single" bind:value={filters.search_by} disabled={refreshing} onValueChange={applySelectFilter}>
-              <Select.Trigger hideIcon class="kiriof-filter-search-by border-0 shadow-none"><Select.Value>{searchByLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
-              <Select.Content class="kiriof-shadcn">
-                <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
-                <Select.Item value="ka_order_id">{bootstrap.i18n.kaOrderId}</Select.Item>
-                <Select.Item value="awb">{bootstrap.i18n.awb}</Select.Item>
-              </Select.Content>
-            </Select.Root>
-          </InputGroup.Addon>
           <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
           <InputGroup.Addon class="kiriof-search-suffix" align="inline-end"><IconSearch /></InputGroup.Addon>
         </InputGroup.Root>

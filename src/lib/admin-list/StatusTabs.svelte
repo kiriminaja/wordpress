@@ -1,4 +1,6 @@
 <script lang="ts">
+  import * as Tabs from '$lib/components/ui/tabs';
+
   let {
     tabs,
     value,
@@ -10,10 +12,12 @@
   } = $props();
 </script>
 
-<nav class="kiriof-status-tabs" aria-label="Status filters">
-  {#each tabs as tab}
-    <button type="button" class:current={tab.value === value} aria-current={tab.value === value ? 'page' : undefined} onclick={() => onChange(tab.value)}>
-      {tab.label} <span>({tab.count})</span>
-    </button>
-  {/each}
-</nav>
+<Tabs.Root value={value} onValueChange={onChange} aria-label="Status filters">
+  <Tabs.List variant="line" class="flex-wrap">
+    {#each tabs as tab (tab.value)}
+      <Tabs.Trigger value={tab.value}>
+        {tab.label} ({tab.count})
+      </Tabs.Trigger>
+    {/each}
+  </Tabs.List>
+</Tabs.Root>

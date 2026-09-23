@@ -14,7 +14,7 @@ interface TransactionListQueryInterface {
     /**
      * Fetch a filtered and paginated transaction list.
      *
-     * @param array{key:string,month:string,status:string,cod:string,courier:string,print_status:string,search_by:string} $filters List filters.
+      * @param array{key:string,month:string,status:string,cod:string,courier:string,print_status:string} $filters List filters.
      * @param int $page Requested page.
      * @param int $items_per_page Page size.
      * @return array{results:array,total:int,page:int,items_per_page:int,total_pages:int}

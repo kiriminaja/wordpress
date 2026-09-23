@@ -59,7 +59,6 @@ class TransactionListRenderService {
         $kiriof_total_pages      = $page_data['total_pages'];
         $kiriof_statusCounts     = $this->query->getStatusCounts();
         $kiriof_monthOptions     = $this->getMonthOptions();
-        $kiriof_search_by        = $filters['search_by'];
         $kiriof_status_filter    = $filters['status'];
         $kiriof_cod_filter       = $filters['cod'];
         $kiriof_courier_filter   = $filters['courier'];
@@ -159,7 +158,7 @@ class TransactionListRenderService {
     /**
      * Read, sanitize, and normalize list filters.
      *
-     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string,search_by:string}
+     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string}
      */
     private function getFilters(): array {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin list filters.
@@ -170,15 +169,11 @@ class TransactionListRenderService {
             'cod'          => sanitize_text_field( wp_unslash( $_GET['cod'] ?? '' ) ),
             'courier'      => sanitize_text_field( wp_unslash( $_GET['courier'] ?? '' ) ),
             'print_status' => sanitize_text_field( wp_unslash( $_GET['print_status'] ?? '' ) ),
-            'search_by'    => sanitize_text_field( wp_unslash( $_GET['search_by'] ?? 'wc_order_id' ) ),
         );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
         if ( ! in_array( $filters['status'], array( 'all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed', 'order-issue' ), true ) ) {
             $filters['status'] = 'all';
-        }
-        if ( ! in_array( $filters['search_by'], array( 'wc_order_id', 'ka_order_id', 'awb' ), true ) ) {
-            $filters['search_by'] = 'wc_order_id';
         }
         if ( ! in_array( $filters['print_status'], array( '0', '1' ), true ) ) {
             $filters['print_status'] = '';

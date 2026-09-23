@@ -57,7 +57,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $cod          = $filters['cod'];
         $courier      = $filters['courier'];
         $print_status = $filters['print_status'];
-        $search_by    = $filters['search_by'];
         $month_like   = '';
         if ( '' !== $month ) {
             $month_like = $wpdb->esc_like( $month ) . '%';
@@ -105,24 +104,17 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $key_clause = '';
         if ('' !== $key) {
-            $key_escaped = $wpdb->esc_like($key);
-            $key_like    = '%' . $key_escaped . '%';
-        } else {
-            $key_like = '';
-        }
-
-        if ('' !== $key) {
-            switch ( $search_by ) {
-                case 'ka_order_id':
-                    $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.order_id LIKE %s', $key_like );
-                    break;
-                case 'awb':
-                    $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.awb LIKE %s', $key_like );
-                    break;
-                default:
-                    $key_clause = $wpdb->prepare( "AND orders_tbl.{$o['id']} LIKE %s", $key_like );
-                    break;
-            }
+            $key_escaped       = $wpdb->esc_like($key);
+            $key_prefix        = $key_escaped . '%';
+            $key_contains      = '%' . $key_escaped . '%';
+            $order_number_type = ctype_digit($key) ? '%d' : '%s';
+            $order_number      = ctype_digit($key) ? (int) $key : $key;
+            $key_clause        = $wpdb->prepare(
+                "AND (orders_tbl.{$o['id']} = {$order_number_type} OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
+                $order_number,
+                $key_prefix,
+                $key_contains
+            );
         }
 
         if ($isDeficitFilter) {
