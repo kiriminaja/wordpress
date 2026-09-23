@@ -32,6 +32,7 @@
   const allSelected = $derived(selectableRows.length > 0 && selectableRows.every((row) => selected[row.kaOrderId]));
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
+  const selectedCount = $derived(selectedRows.length);
   const statusLabel = $derived(bootstrap.statusOptions.find((option) => option.value === filters.status)?.label ?? bootstrap.i18n.status);
   const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
@@ -108,12 +109,10 @@
     <div class="kiriof-transactions-toolbar__actions">
       <Button id="kj-print-btn" variant="outline" disabled={selectedPrintCount === 0} onclick={printSelected}>
         <IconPrinter data-icon="inline-start" />
-        <span>{bootstrap.i18n.print}</span>
-        {#if selectedPrintCount}<span class="kiriof-action-count">{selectedPrintCount}</span>{/if}
+        <span>{bootstrap.i18n.print} ({selectedPrintCount} of {selectedCount})</span>
       </Button>
       <Button id="kj-request-pickup-btn" data-kj-action="request-pickup" disabled={selectedPickupCount === 0}>
-        <span>{bootstrap.i18n.requestPickup}</span>
-        {#if selectedPickupCount}<span class="kiriof-action-count">{selectedPickupCount}</span>{/if}
+        <span>{bootstrap.i18n.requestPickup} ({selectedPickupCount} of {selectedCount})</span>
       </Button>
     </div>
   </header>
@@ -209,15 +208,22 @@
     <div class="kiriof-transactions-tablewrap">
       <Table.Root class="kiriof-transactions-table">
         <Table.Header>
-          <Table.Row>
-            <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={selectedRows.length > 0 && !allSelected} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
-            <Table.Head>{bootstrap.i18n.order}</Table.Head>
-            <Table.Head>{bootstrap.i18n.expedition}</Table.Head>
-            <Table.Head>{bootstrap.i18n.airwaybill}</Table.Head>
-            <Table.Head>{bootstrap.i18n.route}</Table.Head>
-            <Table.Head>{bootstrap.i18n.packages}</Table.Head>
-            <Table.Head class="is-actions">{bootstrap.i18n.action}</Table.Head>
-          </Table.Row>
+          {#if selectedCount > 0}
+            <Table.Row class="kiriof-selection-summary">
+              <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={!allSelected} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
+              <Table.Head colspan={6}>{selectedCount} selected</Table.Head>
+            </Table.Row>
+          {:else}
+            <Table.Row>
+              <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={false} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
+              <Table.Head>{bootstrap.i18n.order}</Table.Head>
+              <Table.Head>{bootstrap.i18n.expedition}</Table.Head>
+              <Table.Head>{bootstrap.i18n.airwaybill}</Table.Head>
+              <Table.Head>{bootstrap.i18n.route}</Table.Head>
+              <Table.Head>{bootstrap.i18n.packages}</Table.Head>
+              <Table.Head class="is-actions">{bootstrap.i18n.action}</Table.Head>
+            </Table.Row>
+          {/if}
         </Table.Header>
         <Table.Body>
           {#if bootstrap.rows.length === 0}
