@@ -110,7 +110,7 @@ body:has([data-kiriof-transactions-page]) .error {
   display: none !important;
 }
 body:has([data-kiriof-transactions-page]) #wpcontent {
-  padding-right: 0 !important;
+  padding-left: 0 !important;
 }
 body:has([data-kiriof-transactions-page]) #wpbody-content {
   padding-bottom: 0 !important;

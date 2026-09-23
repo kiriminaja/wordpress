@@ -17,7 +17,7 @@
 }
 
 body:has([data-kiriof-settings-page]) #wpcontent {
-  padding-right: 0 !important;
+  padding-left: 0 !important;
 }
 
 body:has([data-kiriof-settings-page]) #wpbody-content {
@@ -25,10 +25,6 @@ body:has([data-kiriof-settings-page]) #wpbody-content {
 }
 
 @media (max-width: 782px) {
-  .kiriof-settings-shell {
-    padding: 0 12px 36px;
-  }
-
   .kiriof-app-toolbar {
     top: 46px;
     width: 100%;
@@ -44,7 +40,7 @@ body:has([data-kiriof-settings-page]) #wpbody-content {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 0 24px 48px;
+  padding: 0;
 }
 
 [data-kiriof-settings-root] {

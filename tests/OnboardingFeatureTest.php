@@ -185,8 +185,9 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'kiriof-app-toolbar', $styles );
 		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $styles );
 		$this->assertStringContainsString( 'padding: 8px 0;', $styles );
-		$this->assertStringContainsString( 'padding-right: 0 !important;', $styles );
+		$this->assertStringContainsString( 'padding-left: 0 !important;', $styles );
 		$this->assertStringContainsString( 'padding-bottom: 0 !important;', $styles );
+		$this->assertMatchesRegularExpression( '/\.kiriof-settings-shell\s*\{[^}]*padding:\s*0;/s', $styles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
 		$this->assertStringContainsString( 'history.pushState', $entry );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );
