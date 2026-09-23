@@ -1,0 +1,92 @@
+@reference './shadcn-onboarding.css';
+
+.kiriof-payments-app {
+  @apply min-w-0;
+}
+
+.kiriof-payments-card {
+  @apply flex flex-col gap-3 rounded-lg border border-border bg-background p-4;
+}
+
+.kiriof-payments-filterbar,
+.kiriof-payments-toolbar {
+  @apply flex items-center justify-between gap-3;
+}
+
+.kiriof-payments-filterbar {
+  @apply flex-wrap;
+}
+
+.kiriof-payments-search {
+  @apply ml-auto w-full max-w-sm;
+}
+
+.kiriof-payments-search [data-slot='input-group'] {
+  @apply h-9;
+}
+
+.kiriof-payments-month-filter {
+  @apply flex items-center gap-2;
+}
+
+.kiriof-payments-month-filter [data-slot='select-trigger'] {
+  @apply min-w-40;
+}
+
+.kiriof-payments-table-wrap {
+  @apply overflow-x-auto rounded-md border border-border;
+}
+
+.kiriof-payments-table-wrap [data-slot='table'] {
+  @apply min-w-[900px];
+}
+
+.kiriof-payments-table-wrap [data-slot='table-head'] {
+  @apply whitespace-nowrap bg-muted text-xs font-semibold;
+}
+
+.kiriof-payments-table-wrap [data-slot='table-cell'] {
+  @apply align-top text-sm;
+}
+
+.kiriof-payments-table-wrap [data-slot='table-cell'] small {
+  @apply mt-1 block text-xs text-muted-foreground;
+}
+
+.kiriof-payments-toolbar--bottom {
+  @apply justify-end;
+}
+
+.kiriof-payments-app .kiriof-row-actions {
+  @apply inline-flex flex-wrap justify-end gap-1;
+}
+
+.kiriof-payments-app .kiriof-row-actions [data-slot='button'] {
+  @apply size-7 rounded-md border-border p-0;
+}
+
+.kiriof-payments-app .kiriof-row-actions [data-slot='button']:hover {
+  @apply border-primary/40 bg-primary/10 text-primary;
+}
+
+.kiriof-payments-app [aria-busy='true'] {
+  @apply opacity-60;
+}
+
+@media (max-width: 782px) {
+  .kiriof-payments-search {
+    @apply ml-0 max-w-none;
+  }
+
+  .kiriof-payments-month-filter {
+    @apply w-full;
+  }
+
+  .kiriof-payments-month-filter [data-slot='select-trigger'] {
+    @apply min-w-0 flex-1;
+  }
+
+  .kiriof-payments-toolbar {
+    @apply flex-wrap;
+  }
+}
