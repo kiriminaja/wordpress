@@ -10,7 +10,7 @@ final class OnboardingFeatureTest extends TestCase
     {
         $page = file_get_contents(PLUGIN_DIR . '/inc/Pages/Onboarding.php');
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
-        $css = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css');
+        $css = file_get_contents(PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css');
         $template = file_get_contents(PLUGIN_DIR . '/templates/onboarding/index.php');
 
         $this->assertStringContainsString("'kiriminaja-onboarding'", $page);
@@ -23,36 +23,19 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString("add_action( 'admin_menu', array( \$this, 'hide_page' )", $page);
         $this->assertStringContainsString("'kiriminaja-onboarding' === \$page", $enqueue);
         $this->assertStringContainsString('enqueueOnboarding', $enqueue);
-		$this->assertStringContainsString("wp_enqueue_style( 'woocommerce_admin_styles' )", $enqueue);
+		$this->assertStringNotContainsString("wp_enqueue_style( 'woocommerce_admin_styles' )", substr( $enqueue, strpos( $enqueue, 'private function enqueueOnboarding' ) ) );
+		$this->assertStringNotContainsString('kj-onboarding.css', $enqueue);
 		$this->assertStringContainsString('#adminmenumain', $css);
 		$this->assertStringContainsString('#wpadminbar', $css);
-		$this->assertStringContainsString('position: sticky', $css);
-		$this->assertStringContainsString('top: 0;', $css);
-		$this->assertStringContainsString('bottom: 0;', $css);
-		$this->assertStringContainsString('z-index: 20;', $css);
-		$this->assertStringContainsString('left: 50%;', $css);
-		$this->assertStringContainsString('transform: translateX(-50%);', $css);
-		$this->assertStringContainsString('width: min(760px, calc(100% - 420px));', $css);
+		$this->assertStringContainsString('[data-kiriof-onboarding-app]', $css);
+		$this->assertStringContainsString('position: fixed;', $css);
+		$this->assertStringContainsString('overflow: hidden !important;', $css);
 		$this->assertFileExists(PLUGIN_DIR . '/assets/admin/img/logo-tagline.svg');
-		$this->assertStringContainsString('assets/admin/img/logo-tagline.svg', $template);
-		$this->assertStringContainsString('kiriof-onboarding__header-actions', $template);
-		$this->assertStringContainsString('https://kiriminaja.com/solusi/plugin-woocommerce', $template);
-		$this->assertStringContainsString('dashicons-editor-help', $template);
-		$this->assertStringContainsString('dashicons-no-alt', $template);
-		$this->assertStringNotContainsString('kiriof-onboarding__mark', $template);
-		$this->assertStringContainsString('.kiriof-onboarding__brand img', $css);
-		$this->assertStringContainsString('width: 132px;', $css);
-		$this->assertStringContainsString('background: #fff;', $css);
-		$this->assertStringContainsString('min-height: 34px;', $css);
-		$this->assertStringContainsString('border-top: 1px solid #e3ddf6;', $css);
-		$this->assertStringContainsString('env(safe-area-inset-bottom)', $css);
-		$this->assertStringContainsString('line-height: 1;', $css);
-		$this->assertStringContainsString('display: block;', $css);
-		$this->assertStringContainsString('max-height: none;', $css);
-		$this->assertStringContainsString('overflow: visible;', $css);
-		$this->assertStringContainsString('.kiriof-onboarding__map', $css);
-		$this->assertStringContainsString('max-width: none;', $css);
-		$this->assertStringContainsString('padding: 14px 0 152px;', $css);
+		$this->assertStringContainsString("'logoUrl'", $page);
+		$this->assertStringContainsString("'helpUrl'", $page);
+		$this->assertStringContainsString("'initialStep'", $page);
+		$this->assertStringContainsString("'steps'", $page);
+		$this->assertStringContainsString('aria-busy="true"', $template);
 	}
 
 	#[Test]
@@ -143,6 +126,12 @@ final class OnboardingFeatureTest extends TestCase
         $template = file_get_contents( PLUGIN_DIR . '/templates/onboarding/index.php' );
         $this->assertStringContainsString( 'data-kiriof-onboarding-app', $template );
         $this->assertStringContainsString( 'data-kiriof-onboarding-payload', $template );
+		$this->assertSame( 1, substr_count( $template, 'data-kiriof-onboarding-app' ) );
+		$this->assertStringNotContainsString( 'data-kiriof-onboarding-fallback', $template );
+		$this->assertStringNotContainsString( 'data-step-panel', $template );
+		$this->assertStringNotContainsString( 'include __DIR__ . \'/steps/', $template );
+		$this->assertDirectoryDoesNotExist( PLUGIN_DIR . '/templates/onboarding/steps' );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css' );
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js' );
     }
 

@@ -1,5 +1,84 @@
 @import 'leaflet/dist/leaflet.css';
 
+html:has(body.kiriof-onboarding-screen),
+body.kiriof-onboarding-screen,
+body.kiriof-onboarding-screen #wpwrap,
+body.kiriof-onboarding-screen #wpcontent,
+body.kiriof-onboarding-screen #wpbody,
+body.kiriof-onboarding-screen #wpbody-content {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+html:has(body.kiriof-onboarding-screen) {
+  padding-top: 0 !important;
+  background: #090514 !important;
+}
+
+body.kiriof-onboarding-screen {
+  background: #090514 !important;
+}
+
+body.kiriof-onboarding-screen #wpadminbar,
+body.kiriof-onboarding-screen #adminmenumain,
+body.kiriof-onboarding-screen #screen-meta-links,
+body.kiriof-onboarding-screen #wpfooter,
+body.kiriof-onboarding-screen .notice,
+body.kiriof-onboarding-screen .updated,
+body.kiriof-onboarding-screen .error {
+  display: none !important;
+}
+
+body.kiriof-onboarding-screen #wpcontent {
+  margin-left: 0 !important;
+}
+
+body.kiriof-onboarding-screen #wpbody-content {
+  float: none !important;
+}
+
+[data-kiriof-onboarding-app] {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #090514;
+}
+
+[data-kiriof-onboarding-app][aria-busy='true']::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2rem;
+  height: 2rem;
+  margin: -1rem 0 0 -1rem;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #a78bfa;
+  border-radius: 9999px;
+  content: '';
+  animation: kiriof-onboarding-spin 0.8s linear infinite;
+}
+
+@keyframes kiriof-onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-kiriof-onboarding-app][aria-busy='true']::before {
+    animation-duration: 1.8s;
+  }
+}
+
 /* Enforce shadcn Switch styling and distinct checked state */
 .kiriof-onboarding-app [data-slot='switch'],
 .kiriof-shadcn [data-slot='switch'] {

@@ -28,26 +28,21 @@
     IconLoader2,
     IconX,
   } from '@tabler/icons-svelte';
-  import type { OnboardingBootstrap, OnboardingCourier } from './types';
+  import type { OnboardingBootstrap, OnboardingCourier, OnboardingStep } from './types';
 
-  export type OnboardingStep = 'account' | 'address' | 'couriers' | 'shipping' | 'complete';
   type Step = OnboardingStep;
   type Area = { id: string | number; text?: string; label?: string };
 
   let {
     bootstrap,
-    steps,
-    initialStep,
   }: {
     bootstrap: OnboardingBootstrap;
-    steps: Array<{ key: string; label: string; done: boolean }>;
-    initialStep: Step;
   } = $props();
 
   function getInitialState(): { current: Step; done: Record<string, boolean> } {
     return {
-      current: initialStep,
-      done: Object.fromEntries(steps.map((step) => [step.key, step.done])),
+      current: bootstrap.initialStep,
+      done: Object.fromEntries(bootstrap.steps.map((step) => [step.key, step.done])),
     };
   }
 

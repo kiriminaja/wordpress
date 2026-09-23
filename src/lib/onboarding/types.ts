@@ -1,4 +1,6 @@
 export type OnboardingBootstrap = {
+  initialStep: OnboardingStep;
+  steps: Array<{ key: OnboardingStep; label: string; done: boolean }>;
   ajaxUrl: string;
   nonce: string;
   shippingUrl: string;
@@ -89,4 +91,5 @@ export type OnboardingBootstrap = {
   };
 };
 
+export type OnboardingStep = 'account' | 'address' | 'couriers' | 'shipping' | 'complete';
 export type OnboardingCourier = { code: string; name: string; type?: string };

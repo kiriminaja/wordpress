@@ -550,9 +550,6 @@ class Enqueue extends BaseInit{
     }
 
 	private function enqueueOnboarding(): void {
-		wp_enqueue_style( 'dashicons' );
-		wp_enqueue_style( 'woocommerce_admin_styles' );
-		wp_enqueue_style( 'kiriof-onboarding-style', $this->plugin_url . 'assets/admin/css/kj-onboarding.css', array(), KIRIOF_VERSION );
 		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
 		if ( file_exists( $progress_script ) ) {
 			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
@@ -560,7 +557,7 @@ class Enqueue extends BaseInit{
 				wp_enqueue_style(
 					'kiriof-onboarding-progress',
 					$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.css',
-					array( 'kiriof-onboarding-style' ),
+					array(),
 					(string) filemtime( $progress_style )
 				);
 			}
