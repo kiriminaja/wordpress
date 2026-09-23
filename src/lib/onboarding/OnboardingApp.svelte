@@ -331,13 +331,18 @@
     }
   }
 
+  function isCourierSelected(code: string): boolean {
+    return Boolean(selectedCouriers[code]);
+  }
+
   function toggleCourier(courier: OnboardingCourier, checked: boolean): void {
+    const nextCouriers = { ...selectedCouriers };
     if (checked) {
-      selectedCouriers[courier.code] = courier.name;
+      nextCouriers[courier.code] = courier.name;
     } else {
-      delete selectedCouriers[courier.code];
+      delete nextCouriers[courier.code];
     }
-    selectedCouriers = { ...selectedCouriers };
+    selectedCouriers = nextCouriers;
   }
 
   function setAllCouriers(checked: boolean): void {
@@ -468,7 +473,7 @@
 </script>
 
 <div
-  class="kiriof-shadcn kiriof-onboarding-app relative z-10 flex min-h-screen w-full flex-col items-center justify-between p-4 sm:p-6 lg:p-8"
+  class="kiriof-shadcn kiriof-onboarding-app relative z-10 flex h-full max-h-screen w-full flex-col items-center justify-between overflow-hidden box-border p-3 sm:p-4 md:p-6"
 >
   <!-- Full Viewport Animated Dither Background -->
   <div class="fixed inset-0 -z-0 pointer-events-none overflow-hidden bg-[#090514]" aria-hidden="true">
@@ -490,9 +495,9 @@
   </div>
 
   <!-- Centered Wizard Wrapper -->
-  <div class="relative z-10 my-auto flex w-full max-w-[680px] flex-col items-center justify-center py-4">
+  <div class="relative z-10 my-auto flex w-full max-w-[640px] flex-col items-center justify-center min-h-0">
     <!-- Top Utility Bar -->
-    <header class="mb-3 flex w-full items-center justify-between px-1">
+    <header class="mb-2 flex shrink-0 w-full items-center justify-between px-1">
       <a
         href={bootstrap.dashboardUrl || '#'}
         class="group inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/95 px-3.5 py-1.5 shadow-md backdrop-blur-md transition-all hover:scale-[1.02] hover:bg-white hover:shadow-lg dark:bg-card/90"
@@ -533,69 +538,14 @@
 
     <!-- Centered Wizard Card -->
     <Card
-      class="w-full overflow-hidden rounded-2xl border border-white/40 bg-white/95 shadow-2xl shadow-purple-950/30 backdrop-blur-xl transition-all dark:border-border dark:bg-card/95"
+      class="flex flex-col w-full max-h-[calc(100vh-5.5rem)] overflow-hidden rounded-2xl border border-white/40 bg-white/95 shadow-2xl shadow-purple-950/30 backdrop-blur-xl transition-all dark:border-border dark:bg-card/95"
     >
-      <!-- Step Navigation Header -->
-      <div class="px-6 pt-6 pb-2" aria-label="Setup progress">
-        <div class="mb-2 grid grid-cols-4 gap-2">
-          {#each steps as step, index (step.key)}
-            {@const isActive = step.key === current}
-            {@const isDone = done[step.key]}
-            {@const isClickable = canVisit(step.key as Step)}
-            <button
-              type="button"
-              onclick={() => go(step.key as Step)}
-              disabled={!isClickable}
-              class="group flex flex-col items-start gap-1 rounded-lg p-2 text-left transition-all {isActive
-                ? 'border border-primary/25 bg-primary/10'
-                : isDone
-                  ? 'hover:bg-muted/60'
-                  : 'cursor-not-allowed opacity-55'}"
-            >
-              <div class="flex w-full items-center gap-1.5">
-                <span
-                  class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold {isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : isDone
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-muted text-muted-foreground'}"
-                >
-                  {#if isDone}
-                    <IconCheck class="h-3 w-3 stroke-[2.5]" />
-                  {:else}
-                    {index + 1}
-                  {/if}
-                </span>
-                <span
-                  class="truncate text-xs font-medium {isActive
-                    ? 'font-semibold text-primary'
-                    : isDone
-                      ? 'text-foreground'
-                      : 'text-muted-foreground'}"
-                >
-                  {step.label}
-                </span>
-              </div>
-              <div class="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted/60">
-                <div
-                  class="h-full transition-all duration-300 {isDone
-                    ? 'w-full bg-primary'
-                    : isActive
-                      ? 'w-1/2 bg-primary/70'
-                      : 'w-0'}"
-                ></div>
-              </div>
-            </button>
-          {/each}
-        </div>
-      </div>
-
-      <CardHeader class="px-6 pt-2 pb-4">
+      <CardHeader class="shrink-0 px-6 pt-5 pb-3">
         <div class="space-y-1">
           <CardTitle class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             {stepTitle}
           </CardTitle>
-          <CardDescription class="text-sm text-muted-foreground">
+          <CardDescription class="text-xs sm:text-sm text-muted-foreground">
             {stepDescription}
           </CardDescription>
         </div>
@@ -603,7 +553,7 @@
 
       <!-- Feedback Alerts -->
       {#if error}
-        <div class="px-6 pb-2">
+        <div class="shrink-0 px-6 pb-2">
           <Alert variant="destructive">
             <AlertTitle>Unable to continue</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -611,7 +561,7 @@
         </div>
       {/if}
       {#if success}
-        <div class="px-6 pb-2">
+        <div class="shrink-0 px-6 pb-2">
           <Alert>
             <AlertTitle>Saved</AlertTitle>
             <AlertDescription>{success}</AlertDescription>
@@ -619,8 +569,8 @@
         </div>
       {/if}
 
-      <!-- Step Content Panels -->
-      <CardContent class="px-6 py-4">
+      <!-- Step Content Panels (scrollable internally if viewport is small) -->
+      <CardContent class="flex-1 min-h-0 overflow-y-auto px-6 py-3">
         {#if current === 'account'}
           {#if account.connected && account.profile}
             <div
@@ -680,8 +630,8 @@
           {/if}
         {:else if current === 'address'}
           <FieldSet>
-            <FieldGroup class="space-y-3">
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FieldGroup class="space-y-2.5">
+              <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <Field>
                   <FieldLabel for="origin-name">{bootstrap.address.i18n.senderName}</FieldLabel>
                   <Input id="origin-name" bind:value={address.origin_name} />
@@ -697,7 +647,7 @@
                 <Textarea id="origin-address" bind:value={address.origin_address} rows={2} />
               </Field>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <Field>
                   <FieldLabel for="origin-zip">{bootstrap.address.i18n.zipcode}</FieldLabel>
                   <Input id="origin-zip" bind:value={address.origin_zip_code} />
@@ -742,12 +692,12 @@
             </FieldGroup>
           </FieldSet>
 
-          <Separator class="my-4" />
+          <Separator class="my-3" />
 
           <div class="space-y-1.5">
             <div
               bind:this={mapElement}
-              class="kiriof-map h-52 w-full overflow-hidden rounded-lg border border-border"
+              class="kiriof-map h-40 sm:h-44 w-full overflow-hidden rounded-lg border border-border"
               aria-label={bootstrap.address.i18n.mapHelp}
             ></div>
             <FieldDescription class="flex items-center justify-between text-xs text-muted-foreground">
@@ -760,7 +710,7 @@
             </FieldDescription>
           </div>
         {:else if current === 'couriers'}
-          <div class="mb-4 flex items-center justify-between">
+          <div class="mb-3 flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Button variant="outline" size="sm" onclick={() => setAllCouriers(true)}>
                 {bootstrap.couriers.i18n.enableAll || 'Enable all'}
@@ -785,19 +735,22 @@
               <p>{bootstrap.couriers.i18n.empty || 'No courier services are available.'}</p>
             </div>
           {:else}
-            <div class="max-h-[300px] space-y-2 overflow-y-auto pr-1">
+            <div class="max-h-[320px] space-y-2 overflow-y-auto pr-1">
               {#each couriers as courier (courier.code)}
+                {@const selected = isCourierSelected(courier.code)}
                 <div
-                  class="flex items-center justify-between rounded-lg border border-border bg-card/60 p-3 transition-colors hover:bg-muted/30"
+                  class="flex items-center justify-between rounded-xl border p-3.5 transition-all {selected
+                    ? 'border-primary/50 bg-primary/5 shadow-xs'
+                    : 'border-border bg-card/60 hover:bg-muted/40'}"
                 >
                   <div class="space-y-0.5">
-                    <div class="text-sm font-medium text-foreground">{courier.name}</div>
+                    <div class="text-sm font-semibold text-foreground">{courier.name}</div>
                     {#if courier.type}
                       <div class="text-xs text-muted-foreground">{courier.type}</div>
                     {/if}
                   </div>
                   <Switch
-                    checked={Object.hasOwn(selectedCouriers, courier.code)}
+                    checked={selected}
                     onCheckedChange={(checked: boolean) => toggleCourier(courier, checked)}
                     aria-label={`Enable ${courier.name}`}
                   />
@@ -883,7 +836,7 @@
 
       <!-- Navigation Footer -->
       <CardFooter
-        class="flex items-center justify-between rounded-b-2xl border-t border-border/60 bg-muted/20 px-6 py-4"
+        class="shrink-0 flex items-center justify-between rounded-b-2xl border-t border-border/60 bg-muted/20 px-6 py-3.5"
       >
         <div>
           {#if currentIndex > 0 && current !== 'complete'}
@@ -945,7 +898,7 @@
     </Card>
 
     <!-- Bottom Footnote -->
-    <footer class="mt-4 text-center text-xs font-medium tracking-wide text-white/50">
+    <footer class="mt-2 shrink-0 text-center text-[11px] font-medium tracking-wide text-white/50">
       KiriminAja Official WooCommerce Extension
     </footer>
   </div>

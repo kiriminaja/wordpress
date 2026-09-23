@@ -1,5 +1,69 @@
 @import 'leaflet/dist/leaflet.css';
 
+/* Enforce shadcn Switch styling and distinct checked state */
+.kiriof-onboarding-app [data-slot='switch'],
+.kiriof-shadcn [data-slot='switch'] {
+  position: relative !important;
+  display: inline-flex !important;
+  height: 1.25rem !important;
+  width: 2.25rem !important;
+  min-height: 1.25rem !important;
+  min-width: 2.25rem !important;
+  padding: 2px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  align-items: center !important;
+  border-radius: 9999px !important;
+  border: 2px solid transparent !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease !important;
+}
+
+.kiriof-onboarding-app [data-slot='switch'][data-state='unchecked'],
+.kiriof-shadcn [data-slot='switch'][data-state='unchecked'] {
+  background-color: var(--input, #d9cff5) !important;
+}
+
+.kiriof-onboarding-app [data-slot='switch'][data-state='checked'],
+.kiriof-shadcn [data-slot='switch'][data-state='checked'] {
+  background-color: var(--primary, #5c2ecb) !important;
+}
+
+.kiriof-onboarding-app [data-slot='switch-thumb'],
+.kiriof-shadcn [data-slot='switch-thumb'] {
+  pointer-events: none !important;
+  display: block !important;
+  height: 1rem !important;
+  width: 1rem !important;
+  min-height: 1rem !important;
+  min-width: 1rem !important;
+  border-radius: 9999px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: transform 0.2s ease !important;
+  transform: translateX(0) !important;
+}
+
+.kiriof-onboarding-app [data-slot='switch-thumb'][data-state='checked'],
+.kiriof-shadcn [data-slot='switch-thumb'][data-state='checked'],
+.kiriof-onboarding-app [data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'],
+.kiriof-shadcn [data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'] {
+  transform: translateX(1rem) !important;
+}
+
+.kiriof-onboarding-app [data-slot='switch-thumb'][data-state='unchecked'],
+.kiriof-shadcn [data-slot='switch-thumb'][data-state='unchecked'],
+.kiriof-onboarding-app [data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'],
+.kiriof-shadcn [data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'] {
+  transform: translateX(0) !important;
+}
+
 .kiriof-onboarding__locate {
   display: grid;
   place-items: center;

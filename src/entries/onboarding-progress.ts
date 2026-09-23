@@ -20,6 +20,8 @@ if (host && payload?.textContent) {
 
   mount(OnboardingApp, { target: host, props: { bootstrap, steps, initialStep } });
   host.closest<HTMLElement>('[data-kiriof-onboarding]')?.classList.add('kiriof-onboarding--app');
+  document.documentElement.classList.add('kiriof-onboarding-html--app');
+  document.body.classList.add('kiriof-onboarding-body--app');
   host
     .closest<HTMLElement>('[data-kiriof-onboarding]')
     ?.querySelector('.kiriof-onboarding__progress-fallback')

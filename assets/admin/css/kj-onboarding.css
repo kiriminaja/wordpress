@@ -516,15 +516,48 @@ body.kiriof-onboarding-screen #wpbody-content {
 }
 
 /* Svelte App Mode: Full viewport canvas with centered wizard */
-body.kiriof-onboarding-screen:has(.kiriof-onboarding--app) {
-	background: #090514;
-	overflow-x: hidden;
+html:has(.kiriof-onboarding--app),
+html.kiriof-onboarding-html--app {
+	height: 100% !important;
+	max-height: 100vh !important;
+	overflow: hidden !important;
+	padding-top: 0 !important;
+	margin: 0 !important;
+}
+
+body.kiriof-onboarding-screen:has(.kiriof-onboarding--app),
+body.kiriof-onboarding-body--app {
+	height: 100% !important;
+	max-height: 100vh !important;
+	overflow: hidden !important;
+	background: #090514 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+body.kiriof-onboarding-body--app #wpwrap,
+body.kiriof-onboarding-body--app #wpcontent,
+body.kiriof-onboarding-body--app #wpbody,
+body.kiriof-onboarding-body--app #wpbody-content,
+body.kiriof-onboarding-screen:has(.kiriof-onboarding--app) #wpwrap,
+body.kiriof-onboarding-screen:has(.kiriof-onboarding--app) #wpcontent,
+body.kiriof-onboarding-screen:has(.kiriof-onboarding--app) #wpbody,
+body.kiriof-onboarding-screen:has(.kiriof-onboarding--app) #wpbody-content {
+	height: 100% !important;
+	min-height: 100% !important;
+	max-height: 100vh !important;
+	overflow: hidden !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	float: none !important;
 }
 
 .kiriof-onboarding.kiriof-onboarding--app {
 	position: relative;
-	min-height: 100vh;
+	height: 100vh;
+	max-height: 100vh;
 	width: 100%;
+	overflow: hidden;
 	background: #090514;
 }
 
@@ -540,12 +573,16 @@ body.kiriof-onboarding-screen:has(.kiriof-onboarding--app) {
 	max-width: 100%;
 	margin: 0;
 	padding: 0;
-	min-height: 100vh;
+	height: 100vh;
+	max-height: 100vh;
+	overflow: hidden;
 }
 
 .kiriof-onboarding--app [data-kiriof-onboarding-app] {
 	display: flex;
 	flex: 1;
 	width: 100%;
-	min-height: 100vh;
+	height: 100vh;
+	max-height: 100vh;
+	overflow: hidden;
 }
