@@ -220,6 +220,10 @@ final class PluginStructureTest extends TestCase
         );
         $this->assertFileDoesNotExist($buildDir . '/composer.lock');
         $this->assertFileDoesNotExist($buildDir . '/vendor/bin/.phpunit.result.cache');
+        $this->assertFileExists(
+            $buildDir . '/vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php',
+            'The packaged KiriminAja SDK must include its API client source.'
+        );
     }
 
     #[Test]

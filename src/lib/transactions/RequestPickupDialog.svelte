@@ -180,7 +180,7 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="max-w-xl">
+  <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content max-w-xl">
     <Dialog.Header>
       <Dialog.Title>{label('schedulePickupTitle', 'Schedule for Pickup')}</Dialog.Title>
       <Dialog.Description>
@@ -195,7 +195,7 @@
     {:else if phase === 'error'}
       <div class="flex flex-col gap-3" role="alert">
         <p class="text-sm text-destructive">{errorMessage}</p>
-        <Button variant="outline" onclick={load}>{label('retry', 'Retry')}</Button>
+        <Button class="kiriof-dialog-secondary" variant="outline" onclick={load}>{label('retry', 'Retry')}</Button>
       </div>
     {:else if phase === 'pin'}
       <Field.FieldGroup>
@@ -218,7 +218,7 @@
           <Field.FieldLabel for="kiriof-pickup-schedule">{label('availableSchedules', 'Available Schedules')}</Field.FieldLabel>
           <Select.Root type="single" bind:value={selectedSchedule}>
             <Select.Trigger id="kiriof-pickup-schedule"><Select.Value placeholder={label('selectSchedulePlaceholder', 'Select a pickup schedule')} /></Select.Trigger>
-            <Select.Content>
+            <Select.Content class="kiriof-shadcn">
               <Select.Group>
                 {#each schedules as schedule (schedule.clock)}
                   <Select.Item value={schedule.clock}>{schedule.label}</Select.Item>
@@ -233,7 +233,7 @@
             <Field.FieldLabel for="kiriof-pickup-payment">{label('paymentMethod', 'Payment Method')}</Field.FieldLabel>
             <Select.Root type="single" bind:value={paymentMethod}>
               <Select.Trigger id="kiriof-pickup-payment"><Select.Value placeholder={label('selectPaymentPlaceholder', 'Select a payment method')} /></Select.Trigger>
-              <Select.Content>
+              <Select.Content class="kiriof-shadcn">
                 <Select.Group>
                   <Select.Item value="qris">QRIS</Select.Item>
                   {#if creditAvailable}<Select.Item value="credit">KA Credit</Select.Item>{/if}
@@ -249,11 +249,11 @@
     {/if}
 
     <Dialog.Footer>
-      <Button variant="outline" onclick={close}>{label('close', 'Close')}</Button>
+      <Button class="kiriof-dialog-secondary" variant="outline" onclick={close}>{label('close', 'Close')}</Button>
       {#if phase === 'pin'}
-        <Button onclick={submit} disabled={!canSubmitPin}>{label('confirmPickup', 'Confirm & Process')}</Button>
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canSubmitPin}>{label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}
-        <Button onclick={submit} disabled={!canContinue || !schedules.length}>{paymentMethod === 'credit' ? label('confirmPin', 'Confirm PIN') : label('pickSchedule', 'Pick Schedule')}</Button>
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canContinue || !schedules.length}>{paymentMethod === 'credit' ? label('confirmPin', 'Confirm PIN') : label('pickSchedule', 'Pick Schedule')}</Button>
       {/if}
     </Dialog.Footer>
   </Dialog.Content>

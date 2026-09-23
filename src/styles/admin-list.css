@@ -518,6 +518,101 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   color: var(--kiriof-muted);
   text-align: center;
 }
+.kiriof-transaction-dialog-content {
+  box-sizing: border-box !important;
+  width: min(600px, calc(100vw - 32px)) !important;
+  max-height: calc(100vh - 48px) !important;
+  overflow-y: auto !important;
+  border: 1px solid #dcdcde !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #1d2327 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  opacity: 1 !important;
+  z-index: 100000 !important;
+}
+body [data-slot='dialog-overlay'] {
+  z-index: 99999 !important;
+  background: rgb(0 0 0 / 55%) !important;
+}
+.kiriof-transaction-dialog-content [data-slot='dialog-header'] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin: 0 !important;
+}
+.kiriof-transaction-dialog-content .kiriof-dialog-primary {
+  border-color: #5b21b6 !important;
+  background: #5b21b6 !important;
+  color: #fff !important;
+}
+.kiriof-transaction-dialog-content .kiriof-dialog-primary:hover:not(:disabled) {
+  background: #4c1d95 !important;
+}
+.kiriof-transaction-dialog-content .kiriof-dialog-secondary {
+  border-color: #c3c4c7 !important;
+  background: #fff !important;
+  color: #1d2327 !important;
+}
+.kiriof-transaction-dialog-content .kiriof-dialog-secondary:hover:not(:disabled) {
+  border-color: #8c8f94 !important;
+  background: #f6f7f7 !important;
+}
+.kiriof-transaction-dialog-content [data-slot='dialog-title'] {
+  margin: 0 !important;
+  color: #1d2327 !important;
+  font-size: 20px !important;
+  font-weight: 650 !important;
+  line-height: 1.25 !important;
+}
+.kiriof-transaction-dialog-content [data-slot='dialog-description'] {
+  margin: 0 !important;
+  color: #646970 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+.kiriof-transaction-dialog-content [data-slot='dialog-footer'] {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin: 0 !important;
+}
+.kiriof-transaction-dialog-content [data-slot='dialog-close'] {
+  color: #646970 !important;
+}
+.kiriof-transaction-dialog-content [role='alert'] {
+  margin: 0 !important;
+  color: #b32d2e !important;
+}
+.kiriof-transaction-dialog-content [data-slot='field-group'] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+.kiriof-transaction-dialog-content [data-slot='field'] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+}
+.kiriof-transaction-dialog-content [data-slot='field-label'] {
+  color: #1d2327 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+.kiriof-transaction-dialog-content [data-slot='field-description'] {
+  color: #646970 !important;
+  font-size: 12px !important;
+}
+.kiriof-transaction-dialog-content [data-slot='select-trigger'],
+.kiriof-transaction-dialog-content input {
+  min-height: 38px !important;
+  box-sizing: border-box !important;
+  border-color: #c3c4c7 !important;
+  background: #fff !important;
+  color: #1d2327 !important;
+}
 .kiriof-transactions-table .is-actions {
   width: 120px;
   text-align: right;
