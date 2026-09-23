@@ -10,6 +10,7 @@
   import type { SettingsBootstrap } from './settings/types';
   import { postWordPressAction } from './wordpress/ajax';
   import SettingSwitch from './ui/SettingSwitch.svelte';
+  import { isInternalSettingsUrl, navigateSettings } from './settings/navigation';
 
   let { bootstrap }: { bootstrap: SettingsBootstrap } = $props();
   function initialToggle(kind: 'insurance' | 'cod'): boolean {
@@ -134,6 +135,12 @@
                 href={item.href}
                 target={item.external ? '_blank' : undefined}
                 rel={item.external ? 'noopener noreferrer' : undefined}
+                onclick={(event) => {
+                  if (isInternalSettingsUrl(item.href)) {
+                    event.preventDefault();
+                    navigateSettings(item.href!);
+                  }
+                }}
               >
                 <span class="kiriof-setting-item__icon"><SettingsIcon name={item.icon} /></span>
                 <span class="kiriof-setting-item__copy">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { IconChevronRight } from '@tabler/icons-svelte';
   import type { SettingsToolbar } from './types';
+  import { navigateSettings } from './navigation';
 
   let {
     toolbar,
@@ -13,11 +14,11 @@
 
 <header class="kiriof-app-toolbar">
   <nav class="kiriof-app-toolbar__breadcrumbs" aria-label="Breadcrumb">
-    <a class="kiriof-app-toolbar__home" href={toolbar.rootUrl} aria-label={toolbar.rootLabel}>
+    <a class="kiriof-app-toolbar__home" href={toolbar.rootUrl} aria-label={toolbar.rootLabel} onclick={(event) => { event.preventDefault(); navigateSettings(toolbar.rootUrl); }}>
       <img src={toolbar.logoUrl} alt="" />
     </a>
     {#if toolbar.title !== toolbar.rootLabel}
-      <a href={toolbar.rootUrl}>{toolbar.rootLabel}</a>
+      <a href={toolbar.rootUrl} onclick={(event) => { event.preventDefault(); navigateSettings(toolbar.rootUrl); }}>{toolbar.rootLabel}</a>
       <IconChevronRight size={14} stroke={2} aria-hidden="true" />
     {/if}
     <strong>{toolbar.title}</strong>

@@ -183,6 +183,10 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/assets/admin/img/icon-128x128.png' );
 		$this->assertStringContainsString( 'kiriof-app-toolbar', $styles );
 		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $styles );
+		$this->assertStringContainsString( 'padding: 8px 0;', $styles );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
+		$this->assertStringContainsString( 'history.pushState', $entry );
+		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );
 		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( "remove_all_actions( 'admin_notices' )", file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
         $this->assertStringContainsString( "'settings-root': 'src/entries/settings-root.ts'", $vite );

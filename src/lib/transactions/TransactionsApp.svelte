@@ -29,6 +29,12 @@
   const allSelected = $derived(selectableRows.length > 0 && selectableRows.every((row) => selected[row.kaOrderId]));
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
+  const statusLabel = $derived(bootstrap.statusOptions.find((option) => option.value === filters.status)?.label ?? bootstrap.i18n.status);
+  const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
+  const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
+  const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
+  const courierLabel = $derived(bootstrap.couriers.find((courier) => courier.value === filters.courier)?.label ?? bootstrap.i18n.allCouriers);
+  const searchByLabel = $derived(filters.search_by === 'ka_order_id' ? bootstrap.i18n.kaOrderId : filters.search_by === 'awb' ? bootstrap.i18n.awb : bootstrap.i18n.orderNumber);
 
   function navigate(values: Record<string, string>): void {
     const url = new URL(window.location.href);
@@ -118,7 +124,7 @@
         }}
       >
         <Select.Root type="single" bind:value={filters.search_by}>
-          <Select.Trigger class="kiriof-filter-search-by"><Select.Value /></Select.Trigger>
+          <Select.Trigger class="kiriof-filter-search-by"><Select.Value>{searchByLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="wc_order_id">{bootstrap.i18n.orderNumber}</Select.Item>
             <Select.Item value="ka_order_id">{bootstrap.i18n.kaOrderId}</Select.Item>
@@ -133,7 +139,7 @@
 
       <div class="kiriof-transactions-filtergrid">
         <Select.Root type="single" bind:value={filters.status}>
-          <Select.Trigger><IconAdjustmentsHorizontal /><Select.Value placeholder={bootstrap.i18n.status} /></Select.Trigger>
+          <Select.Trigger><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             {#each bootstrap.statusOptions as option}
               <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
@@ -141,7 +147,7 @@
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.month}>
-          <Select.Trigger><Select.Value placeholder={bootstrap.i18n.allDates} /></Select.Trigger>
+          <Select.Trigger><Select.Value>{monthLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
             {#each Object.entries(bootstrap.monthOptions) as [value, label]}
@@ -150,7 +156,7 @@
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.cod}>
-          <Select.Trigger><Select.Value placeholder={bootstrap.i18n.allPayment} /></Select.Trigger>
+          <Select.Trigger><Select.Value>{paymentLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPayment}</Select.Item>
             <Select.Item value="1">{bootstrap.i18n.cod}</Select.Item>
@@ -158,7 +164,7 @@
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.print_status}>
-          <Select.Trigger><Select.Value placeholder={bootstrap.i18n.allPrints} /></Select.Trigger>
+          <Select.Trigger><Select.Value>{printLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allPrints}</Select.Item>
             <Select.Item value="1">{bootstrap.i18n.printed}</Select.Item>
@@ -166,7 +172,7 @@
           </Select.Content>
         </Select.Root>
         <Select.Root type="single" bind:value={filters.courier}>
-          <Select.Trigger><Select.Value placeholder={bootstrap.i18n.allCouriers} /></Select.Trigger>
+          <Select.Trigger><Select.Value>{courierLabel}</Select.Value></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
             <Select.Item value="all">{bootstrap.i18n.allCouriers}</Select.Item>
             {#each bootstrap.couriers as courier}
@@ -214,11 +220,14 @@
                   <Checkbox
                     checked={Boolean(selected[row.kaOrderId])}
                     disabled={row.selection.disabled}
+                    name="transaction_id[]"
+                    value={row.kaOrderId}
+                    data-can-pickup={row.selection.canPickup ? '1' : '0'}
+                    data-can-print={row.selection.canPrint ? '1' : '0'}
                     aria-label={`Select order ${row.wcOrderId}`}
                     title={row.selection.title}
                     onCheckedChange={(checked) => toggleRow(row, Boolean(checked))}
                   />
-                  <input type="checkbox" name="transaction_id[]" value={row.kaOrderId} checked={Boolean(selected[row.kaOrderId])} data-can-pickup={row.selection.canPickup ? '1' : '0'} data-can-print={row.selection.canPrint ? '1' : '0'} hidden readonly />
                 </td>
                 <td>
                   <a class="kiriof-order-link" href={row.wcOrderUrl} target="_blank">#{row.wcOrderId}</a>

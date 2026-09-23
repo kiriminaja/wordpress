@@ -9,6 +9,8 @@
 		checked = $bindable(false),
 		indeterminate = $bindable(false),
 		onCheckedChange,
+		name,
+		value,
 		class: className,
 		...restProps
 	}: WithoutChildrenOrChild<CheckboxPrimitive.RootProps> = $props();
@@ -27,6 +29,8 @@
 		onCheckedChange?.(value);
 	}}
 	bind:indeterminate
+	{name}
+	{value}
 	{...restProps}
 >
 	{#snippet children({ checked, indeterminate })}

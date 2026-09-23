@@ -20,6 +20,13 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+body:has([data-kiriof-transactions-page]) #screen-meta-links,
+body:has([data-kiriof-transactions-page]) .update-nag,
+body:has([data-kiriof-transactions-page]) .notice,
+body:has([data-kiriof-transactions-page]) .updated,
+body:has([data-kiriof-transactions-page]) .error {
+  display: none !important;
+}
 
 .kiriof-payment-modal {
   width: min(420px, calc(100% - 32px));
