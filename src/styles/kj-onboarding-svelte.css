@@ -115,17 +115,18 @@ body.kiriof-onboarding-screen #wpbody-content {
   width: 2.25rem !important;
   min-height: 1.25rem !important;
   min-width: 2.25rem !important;
-  padding: 2px !important;
+  padding: 0 !important;
   margin: 0 !important;
   flex-shrink: 0 !important;
   cursor: pointer !important;
   align-items: center !important;
   border-radius: 9999px !important;
-  border: 2px solid transparent !important;
+  border: 0 !important;
   box-sizing: border-box !important;
   line-height: 1 !important;
   box-shadow: none !important;
   outline: none !important;
+  overflow: hidden !important;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease !important;
@@ -144,6 +145,9 @@ body.kiriof-onboarding-screen #wpbody-content {
 .kiriof-onboarding-app [data-slot='switch-thumb'],
 .kiriof-shadcn [data-slot='switch-thumb'] {
   pointer-events: none !important;
+  position: absolute !important;
+  top: 0.125rem !important;
+  left: 0.125rem !important;
   display: block !important;
   height: 1rem !important;
   width: 1rem !important;
@@ -152,22 +156,24 @@ body.kiriof-onboarding-screen #wpbody-content {
   border-radius: 9999px !important;
   background-color: #ffffff !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
-  transition: transform 0.2s ease !important;
-  transform: translateX(0) !important;
+  transition: left 0.2s ease !important;
+  transform: none !important;
 }
 
 .kiriof-onboarding-app [data-slot='switch-thumb'][data-state='checked'],
 .kiriof-shadcn [data-slot='switch-thumb'][data-state='checked'],
 .kiriof-onboarding-app [data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'],
 .kiriof-shadcn [data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'] {
-  transform: translateX(1rem) !important;
+  left: 1.125rem !important;
+  transform: none !important;
 }
 
 .kiriof-onboarding-app [data-slot='switch-thumb'][data-state='unchecked'],
 .kiriof-shadcn [data-slot='switch-thumb'][data-state='unchecked'],
 .kiriof-onboarding-app [data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'],
 .kiriof-shadcn [data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'] {
-  transform: translateX(0) !important;
+  left: 0.125rem !important;
+  transform: none !important;
 }
 
 .kiriof-onboarding__locate {
