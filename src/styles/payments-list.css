@@ -4,10 +4,6 @@
   @apply min-w-0;
 }
 
-.kiriof-payments-shell {
-  @apply m-0 px-5 pb-12;
-}
-
 body:has([data-kiriof-payments-page]) #screen-meta-links,
 body:has([data-kiriof-payments-page]) .update-nag,
 body:has([data-kiriof-payments-page]) .notice,
@@ -25,7 +21,7 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 }
 
 .kiriof-payments-app .kiriof-app-toolbar {
-  @apply -mx-5 mb-6 w-[calc(100%+2.5rem)] px-5 py-2;
+  @apply mb-6;
 }
 
 .kiriof-payments-card {
@@ -117,14 +113,6 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 @media (max-width: 782px) {
   .kiriof-payments-search {
     @apply ml-0 max-w-none;
-  }
-
-  .kiriof-payments-shell {
-    @apply px-2.5 pb-9;
-  }
-
-  .kiriof-payments-app .kiriof-app-toolbar {
-    @apply -mx-2.5 w-[calc(100%+1.25rem)] px-2.5;
   }
 
   .kiriof-payments-month-filter {

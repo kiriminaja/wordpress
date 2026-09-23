@@ -218,13 +218,6 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   color: var(--kiriof-muted);
 }
 
-.kiriof-transactions-shell {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0 20px 48px;
-}
 [data-kiriof-transactions-root] {
   width: 100%;
 }
@@ -245,9 +238,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   margin-left: auto;
 }
 .kiriof-transactions-app .kiriof-app-toolbar {
-  width: calc(100% + 40px);
-  margin: 0 -20px 18px;
-  padding: 8px 20px;
+  margin-bottom: 18px;
 }
 .kiriof-transactions-app .kiriof-app-toolbar [data-slot='button'] {
   display: inline-flex !important;
@@ -780,18 +771,9 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   }
 }
 @media (max-width: 782px) {
-  .kiriof-transactions-shell {
-    padding: 0 10px 36px;
-  }
   .kiriof-transactions-app .kiriof-app-toolbar {
-    top: 46px;
     align-items: stretch;
     flex-direction: column;
-    width: calc(100% + 20px);
-    margin-right: -10px;
-    margin-left: -10px;
-    padding-right: 10px;
-    padding-left: 10px;
   }
   .kiriof-transactions-toolbar__actions {
     width: 100%;

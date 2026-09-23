@@ -1,3 +1,11 @@
+.kiriof-workspace-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 20px 48px;
+}
+
 .kiriof-app-toolbar {
   position: sticky;
   top: 32px;
@@ -14,6 +22,14 @@
   border-bottom: 1px solid #dcdcde;
   background: rgb(255 255 255 / 94%);
   backdrop-filter: blur(12px);
+}
+
+.kiriof-workspace-shell .kiriof-app-toolbar {
+  width: calc(100% + 40px);
+  margin-right: -20px;
+  margin-left: -20px;
+  padding-right: 20px;
+  padding-left: 20px;
 }
 
 .kiriof-app-toolbar__breadcrumbs,
@@ -74,5 +90,18 @@
 @media (max-width: 782px) {
   .kiriof-app-toolbar {
     top: 46px;
+  }
+
+  .kiriof-workspace-shell {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .kiriof-workspace-shell .kiriof-app-toolbar {
+    width: calc(100% + 20px);
+    margin-right: -10px;
+    margin-left: -10px;
+    padding-right: 10px;
+    padding-left: 10px;
   }
 }
