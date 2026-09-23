@@ -32,6 +32,7 @@
   let selectedTime = $state('');
   let paymentMethod = $state('');
   let paymentRequired = $state(false);
+  let creditEnabled = $state(false);
   let creditAvailable = $state(false);
   let pin = $state('');
   let errorMessage = $state('');
@@ -138,6 +139,7 @@
     selectedTime = pickupDates[0]?.times[0]?.value ?? '';
     paymentMethod = '';
     paymentRequired = false;
+    creditEnabled = false;
     creditAvailable = false;
     pin = '';
 
@@ -151,8 +153,10 @@
       const hasNonCodFee = Number(summary.sum_fee_non_cod || 0) > 0;
       const isTop = paymentConfig.is_top === true;
       paymentRequired = hasNonCodFee && !isTop;
+      creditEnabled = paymentConfig.ka_credit_enabled === true;
+      paymentMethod = paymentRequired ? 'qris' : '';
 
-      if (paymentRequired && paymentConfig.ka_credit_enabled === true && paymentConfig.has_pin === true) {
+      if (paymentRequired && creditEnabled && paymentConfig.has_pin === true) {
         const balanceResult = await call('kiriof_get_credit_balance', { nonce }, false);
         const balanceData = balanceResult.data || {};
         creditAvailable = balanceResult.status === 200 && Number(balanceData.balance || 0) >= totalFee;
@@ -296,7 +300,7 @@
               <Select.Content class="kiriof-shadcn">
                 <Select.Group>
                   <Select.Item value="qris">QRIS</Select.Item>
-                  {#if creditAvailable}<Select.Item value="credit">KA Credit</Select.Item>{/if}
+                  {#if creditEnabled && creditAvailable}<Select.Item value="credit">KA Credit</Select.Item>{/if}
                 </Select.Group>
               </Select.Content>
             </Select.Root>

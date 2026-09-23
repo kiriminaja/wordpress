@@ -537,6 +537,9 @@ body [data-slot='dialog-overlay'] {
   z-index: 99999 !important;
   background: rgb(0 0 0 / 55%) !important;
 }
+body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
+  z-index: 100001 !important;
+}
 .kiriof-transaction-dialog-content [data-slot='dialog-header'] {
   display: flex !important;
   flex-direction: column !important;
