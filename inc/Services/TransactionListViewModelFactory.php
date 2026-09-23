@@ -79,7 +79,7 @@ class TransactionListViewModelFactory {
 		$can_print             = $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
 		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
 		$can_cancel            = '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
-		$checkbox_disabled     = $print_capable_filter ? ( ! $can_print && ! $can_request_pickup ) : ! $can_request_pickup;
+		$checkbox_disabled     = ! $can_print && ! $can_request_pickup;
 		$origin_snapshot       = json_decode( (string) ( $row->shipment_location_snapshot ?? '{}' ), true );
 		$origin_snapshot       = is_array( $origin_snapshot ) ? $origin_snapshot : array();
 		$origin_label          = trim( (string) ( $origin_snapshot['origin_name'] ?? $origin_snapshot['location_name'] ?? $origin_snapshot['name'] ?? '' ) );

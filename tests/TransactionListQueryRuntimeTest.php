@@ -34,6 +34,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString("orders_tbl.ID = 'KA-10'", $sql);
         $this->assertStringContainsString("kiriminaja_transactions.awb LIKE 'KA-10%'", $sql);
         $this->assertStringContainsString("kiriminaja_transactions.order_id LIKE '%KA-10%'", $sql);
+        $this->assertStringContainsString('kiriminaja_transactions.is_deficit = 0', $sql);
         $this->assertStringContainsString("kiriminaja_transactions.service = 'jne'", $sql);
         $this->assertStringContainsString('kiriminaja_transactions.cod_fee > 0', $sql);
         $this->assertStringContainsString('kiriminaja_transactions.is_printed = 0', $sql);
@@ -141,7 +142,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringNotContainsString( '<input type="checkbox" name="transaction_id[]"', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/table/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/button-group/index.ts' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/dialog/index.ts' );
 		$this->assertStringContainsString( '<Table.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<InputGroup.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<ButtonGroup.Root class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
@@ -170,7 +173,10 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'padding: 8px 20px;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'display: flex !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( 'onclick={openPickupDialog}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( 'disabled={!row.selection.canPrint && !row.selection.canPickup}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( 'isOrderIssue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '{selectedCount} selected', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'background: #3f3f46 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'history.pushState', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

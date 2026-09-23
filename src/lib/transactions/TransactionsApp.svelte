@@ -25,11 +25,16 @@
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
+  import RequestPickupDialog from './RequestPickupDialog.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let { bootstrap: initialBootstrap }: { bootstrap: TransactionsBootstrap } = $props();
   function initialWorkspace(): TransactionsBootstrap {
     return structuredClone(initialBootstrap);
+  }
+
+  function openPickupDialog(): void {
+    if (pickupOrderIds.length > 0) pickupDialogOpen = true;
   }
 
   function scheduleSearch(): void {
@@ -49,9 +54,11 @@
   let refreshing = $state(false);
   let navigationController: AbortController | null = null;
   let searchTimer: number | null = null;
+  let pickupDialogOpen = $state(false);
 
-  const selectedRows = $derived(bootstrap.rows.filter((row) => selected[row.kaOrderId]));
-  const selectableRows = $derived(bootstrap.rows.filter((row) => !row.selection.disabled));
+  const isOrderIssue = $derived(filters.status === 'order-issue');
+  const selectedRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => selected[row.kaOrderId]));
+  const selectableRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => !row.selection.disabled));
   const allSelected = $derived(selectableRows.length > 0 && selectableRows.every((row) => selected[row.kaOrderId]));
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
@@ -62,6 +69,8 @@
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
   const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
+  const visibleStatusOptions = $derived(bootstrap.statusOptions.filter((option) => (isOrderIssue ? option.value === 'order-issue' : option.value !== 'order-issue')));
+  const pickupOrderIds = $derived(selectedRows.filter((row) => row.selection.canPickup).map((row) => row.kaOrderId));
   const hasActiveFilters = $derived(
     Boolean(
       filters.key.trim() ||
@@ -149,6 +158,7 @@
   }
 
   function printSelected(): void {
+    if (selectedPrintCount === 0) return;
     const form = document.querySelector<HTMLFormElement>('#kiriof-print-bulk-form');
     if (!form) return;
     form.querySelectorAll('input[name="oids[]"]').forEach((input) => input.remove());
@@ -194,7 +204,7 @@
         <IconPrinter data-icon="inline-start" />
         <span>{bootstrap.i18n.print} ({selectedPrintCount} of {selectedCount})</span>
       </Button>
-      <Button id="kj-request-pickup-btn" data-kj-action="request-pickup" disabled={refreshing || selectedPickupCount === 0}>
+      <Button id="kj-request-pickup-btn" disabled={refreshing || selectedPickupCount === 0} onclick={openPickupDialog}>
         <span>{bootstrap.i18n.requestPickup} ({selectedPickupCount} of {selectedCount})</span>
       </Button>
     </div>
@@ -244,7 +254,7 @@
         <Select.Root type="single" bind:value={filters.status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
-            {#each bootstrap.statusOptions as option}
+            {#each visibleStatusOptions as option}
               <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
             {/each}
           </Select.Content>
@@ -287,7 +297,7 @@
             </Table.Row>
           {:else}
             <Table.Row>
-              <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={false} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
+              {#if isOrderIssue}<Table.Head class="is-row-number">#</Table.Head>{:else}<Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={false} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>{/if}
               <Table.Head>{bootstrap.i18n.order}</Table.Head>
               <Table.Head>{bootstrap.i18n.expedition}</Table.Head>
               <Table.Head>{bootstrap.i18n.airwaybill}</Table.Head>
@@ -301,21 +311,25 @@
           {#if bootstrap.rows.length === 0}
             <Table.Row><Table.Cell colspan={7} class="kiriof-empty-cell">{bootstrap.i18n.notFound}</Table.Cell></Table.Row>
           {:else}
-            {#each bootstrap.rows as row (row.id)}
+            {#each bootstrap.rows as row, rowIndex (row.id)}
               <Table.Row class={selected[row.kaOrderId] ? 'is-selected' : undefined}>
-                <Table.Cell class="is-check">
-                  <Checkbox
-                    checked={Boolean(selected[row.kaOrderId])}
-                    disabled={row.selection.disabled}
-                    name="transaction_id[]"
-                    value={row.kaOrderId}
-                    data-can-pickup={row.selection.canPickup ? '1' : '0'}
-                    data-can-print={row.selection.canPrint ? '1' : '0'}
-                    aria-label={`Select order ${row.wcOrderId}`}
-                    title={row.selection.title}
-                    onCheckedChange={(checked) => toggleRow(row, Boolean(checked))}
-                  />
-                </Table.Cell>
+                {#if isOrderIssue}
+                  <Table.Cell class="is-row-number">{(bootstrap.pagination.page - 1) * bootstrap.pagination.perPage + rowIndex + 1}</Table.Cell>
+                {:else}
+                  <Table.Cell class="is-check">
+                    <Checkbox
+                      checked={Boolean(selected[row.kaOrderId])}
+                      disabled={!row.selection.canPrint && !row.selection.canPickup}
+                      name="transaction_id[]"
+                      value={row.kaOrderId}
+                      data-can-pickup={row.selection.canPickup ? '1' : '0'}
+                      data-can-print={row.selection.canPrint ? '1' : '0'}
+                      aria-label={`Select order ${row.wcOrderId}`}
+                      title={row.selection.title}
+                      onCheckedChange={(checked) => toggleRow(row, Boolean(checked))}
+                    />
+                  </Table.Cell>
+                {/if}
                 <Table.Cell>
                   <a class="kiriof-order-link" href={row.wcOrderUrl} target="_blank">#{row.wcOrderId}</a>
                   <strong class="kiriof-row-title">{row.customer.name}</strong>
@@ -385,4 +399,12 @@
       </div>
     </footer>
   </section>
+  <RequestPickupDialog
+    bind:open={pickupDialogOpen}
+    orderIds={pickupOrderIds}
+    ajaxUrl={bootstrap.bulk.ajaxUrl}
+    nonce={bootstrap.bulk.nonce}
+    pickupUrl={bootstrap.bulk.pickupUrl}
+    i18n={bootstrap.i18n}
+  />
 </div>

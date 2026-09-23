@@ -513,6 +513,11 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   padding-right: 4px;
   text-align: center;
 }
+.kiriof-transactions-table .is-row-number {
+  width: 42px;
+  color: var(--kiriof-muted);
+  text-align: center;
+}
 .kiriof-transactions-table .is-actions {
   width: 120px;
   text-align: right;

@@ -115,6 +115,9 @@ class TransactionListRenderService {
 				'showPrint'   => in_array( $kiriof_status_filter, array( 'all', 'processed' ), true ),
 				'printAction' => admin_url( 'admin-post.php' ),
 				'printNonce'  => wp_create_nonce( 'kiriof_resi_print_bulk' ),
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( KIRIOF_NONCE ),
+				'pickupUrl'   => admin_url( 'admin.php?page=kiriminaja-request-pickup' ),
 			),
 			'i18n'         => array(
 				'search'       => __( 'Search order…', 'kiriminaja-official' ),

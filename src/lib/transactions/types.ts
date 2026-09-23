@@ -69,7 +69,14 @@ export type TransactionsBootstrap = {
   couriers: Array<{ value: string; label: string }>;
   pagination: { page: number; totalPages: number; total: number; perPage: number };
   rows: TransactionRow[];
-  bulk: { showPrint: boolean; printAction: string; printNonce: string };
+  bulk: {
+    showPrint: boolean;
+    printAction: string;
+    printNonce: string;
+    ajaxUrl: string;
+    nonce: string;
+    pickupUrl: string;
+  };
   i18n: Record<string, string>;
 };
 import type { ToolbarConfig } from '$lib/ui/toolbar';
