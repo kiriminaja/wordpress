@@ -152,6 +152,10 @@ class TransactionListRenderService {
 				'cancel'       => __( 'Cancel', 'kiriminaja-official' ),
 				'printedLabel' => __( 'Printed', 'kiriminaja-official' ),
 				'unprintedLabel'=> __( 'Unprinted', 'kiriminaja-official' ),
+				'pickupDate'  => __( 'Pickup Date', 'kiriminaja-official' ),
+				'pickupTime'  => __( 'Pickup Time', 'kiriminaja-official' ),
+				'selectDatePlaceholder' => __( 'Select a pickup date', 'kiriminaja-official' ),
+				'selectTimePlaceholder' => __( 'Select a pickup time', 'kiriminaja-official' ),
 			),
 		);
 

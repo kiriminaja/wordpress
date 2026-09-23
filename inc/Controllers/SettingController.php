@@ -104,7 +104,7 @@ class SettingController{
 				wp_enqueue_style(
 					'kiriof-toolbar',
 					KIRIOF_URL . 'assets/admin/dist/kiriminaja-toolbar.css',
-					file_exists( $toolbar_style ) ? array( 'kiriof-toolbar' ) : array(),
+					array(),
 					(string) filemtime( $toolbar_style )
 				);
 			}

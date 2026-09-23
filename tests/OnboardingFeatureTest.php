@@ -198,6 +198,9 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertStringContainsString( "'settings-root': 'src/entries/settings-root.ts'", $vite );
         $this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' )", $controller );
 		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-settings-root', 'type', 'module' )", $controller );
+		$this->assertStringContainsString( "'kiriof-toolbar',", $controller );
+		$this->assertStringContainsString( "KIRIOF_URL . 'assets/admin/dist/kiriminaja-toolbar.css',", $controller );
+		$this->assertStringNotContainsString( "'kiriof-toolbar' )", $controller );
 		$this->assertStringContainsString( 'kiriminaja-toolbar.css', $controller );
         $this->assertStringContainsString( 'assets/admin/dist', $gitignore );
     }

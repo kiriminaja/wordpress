@@ -5,7 +5,7 @@
   import * as Select from '$lib/components/ui/select';
   import { Button } from '$lib/components/ui/button';
 
-  type Schedule = { clock: string; label: string };
+  type PickupDate = { value: string; label: string; times: Array<{ value: string; label: string }> };
   type Summary = { sum_fee_cod?: number | string; sum_fee_non_cod?: number | string };
   type ApiResult = { status?: number; message?: string; data?: Record<string, any> };
 
@@ -26,9 +26,10 @@
   } = $props();
 
   let phase = $state<'loading' | 'schedule' | 'pin' | 'submitting' | 'error'>('loading');
-  let schedules = $state<Schedule[]>([]);
+  let pickupDates = $state<PickupDate[]>([]);
   let summary = $state<Summary>({});
-  let selectedSchedule = $state('');
+  let selectedDate = $state('');
+  let selectedTime = $state('');
   let paymentMethod = $state('');
   let paymentRequired = $state(false);
   let creditAvailable = $state(false);
@@ -39,13 +40,61 @@
   const totalFee = $derived(Number(summary.sum_fee_cod ?? 0) + Number(summary.sum_fee_non_cod ?? 0));
   const canContinue = $derived(
     phase === 'schedule' &&
-      Boolean(selectedSchedule) &&
+      Boolean(selectedDate && selectedTime) &&
       (!paymentRequired || Boolean(paymentMethod))
   );
   const canSubmitPin = $derived(phase === 'pin' && /^\d{6}$/.test(pin));
 
   function label(key: string, fallback: string): string {
     return i18n[key] || fallback;
+  }
+
+  function localDateValue(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function createPickupDates(): PickupDate[] {
+    const now = new Date();
+    const earliest = new Date(now.getTime() + 60 * 60 * 1000);
+    const dates: PickupDate[] = [];
+
+    for (let offset = 0; offset <= 7; offset += 1) {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+      const value = localDateValue(date);
+      const firstHour = offset === 0 ? Math.max(8, Math.ceil(earliest.getHours() + earliest.getMinutes() / 60)) : 8;
+      const times = [];
+
+      for (let hour = firstHour; hour <= 21; hour += 1) {
+        const slot = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour);
+        if (slot.getTime() < earliest.getTime()) continue;
+        const start = `${String(hour).padStart(2, '0')}:00`;
+        const end = `${String(Math.min(hour + 5, 22)).padStart(2, '0')}:00`;
+        times.push({ value: start, label: `${start} - ${end}` });
+      }
+
+      if (times.length) {
+        dates.push({
+          value,
+          label: new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date),
+          times,
+        });
+      }
+    }
+
+    return dates;
+  }
+
+  const selectedDateOption = $derived(pickupDates.find((date) => date.value === selectedDate));
+  const availableTimes = $derived(selectedDateOption?.times ?? []);
+  const selectedSchedule = $derived(selectedDate && selectedTime ? `${selectedDate} ${selectedTime}:00` : '');
+
+  function selectDate(value: string): void {
+    selectedDate = value;
+    const nextTimes = pickupDates.find((date) => date.value === value)?.times ?? [];
+    if (!nextTimes.some((time) => time.value === selectedTime)) selectedTime = nextTimes[0]?.value ?? '';
   }
 
   function money(value: number | string): string {
@@ -83,24 +132,19 @@
   async function load(): Promise<void> {
     phase = 'loading';
     errorMessage = '';
-    schedules = [];
+    pickupDates = createPickupDates();
     summary = {};
-    selectedSchedule = '';
+    selectedDate = pickupDates[0]?.value ?? '';
+    selectedTime = pickupDates[0]?.times[0]?.value ?? '';
     paymentMethod = '';
     paymentRequired = false;
     creditAvailable = false;
     pin = '';
 
     try {
-      const scheduleResult = await call('kiriof_request_pickup_schedule', { order_ids: orderIds, nonce });
-      const scheduleData = ensureSuccess(scheduleResult);
-      if (scheduleData.pickup_number) {
-        window.location.href = `${pickupUrl}&pickup_number=${encodeURIComponent(String(scheduleData.pickup_number))}`;
-        return;
-      }
-
-      schedules = Array.isArray(scheduleData.schedules) ? scheduleData.schedules : [];
-      summary = scheduleData.transaction_summary || {};
+      const summaryResult = await call('kiriof_request_pickup_summary', { order_ids: orderIds, nonce });
+      const summaryData = ensureSuccess(summaryResult);
+      summary = summaryData.transaction_summary || {};
 
       const configResult = await call('kiriof_get_payment_method_config', { nonce }, false);
       const paymentConfig = ensureSuccess(configResult);
@@ -115,7 +159,7 @@
       }
 
       phase = 'schedule';
-      if (!schedules.length) errorMessage = label('noSchedule', 'No pickup schedule is available.');
+      if (!pickupDates.length) errorMessage = label('noSchedule', 'No pickup time is available in the next seven days.');
     } catch (error) {
       phase = 'error';
       errorMessage = error instanceof Error ? error.message : label('genericError', 'An error occurred.');
@@ -124,7 +168,7 @@
 
   async function submit(): Promise<void> {
     if (!selectedSchedule) {
-      errorMessage = label('selectSchedule', 'Please select a pickup schedule.');
+      errorMessage = label('selectSchedule', 'Please select a pickup date and time.');
       return;
     }
     if (paymentRequired && !paymentMethod) {
@@ -184,7 +228,7 @@
     <Dialog.Header>
       <Dialog.Title>{label('schedulePickupTitle', 'Schedule for Pickup')}</Dialog.Title>
       <Dialog.Description>
-        {label('schedulePickupDescription', 'Choose a pickup schedule and payment method for the selected transactions.')}
+        {label('schedulePickupDescription', 'Choose a pickup date and time for the selected transactions.')}
       </Dialog.Description>
     </Dialog.Header>
 
@@ -214,19 +258,35 @@
           <div class="flex items-center justify-between gap-4 border-t pt-2 font-semibold"><span>{label('totalCharges', 'Total Charges')}</span><strong>{money(totalFee)}</strong></div>
         </div>
 
-        <Field.Field>
-          <Field.FieldLabel for="kiriof-pickup-schedule">{label('availableSchedules', 'Available Schedules')}</Field.FieldLabel>
-          <Select.Root type="single" bind:value={selectedSchedule}>
-            <Select.Trigger id="kiriof-pickup-schedule"><Select.Value placeholder={label('selectSchedulePlaceholder', 'Select a pickup schedule')} /></Select.Trigger>
-            <Select.Content class="kiriof-shadcn">
-              <Select.Group>
-                {#each schedules as schedule (schedule.clock)}
-                  <Select.Item value={schedule.clock}>{schedule.label}</Select.Item>
-                {/each}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
-        </Field.Field>
+        <Field.FieldGroup class="kiriof-pickup-datetime">
+          <Field.Field>
+            <Field.FieldLabel for="kiriof-pickup-date">{label('pickupDate', 'Pickup Date')}</Field.FieldLabel>
+            <Select.Root type="single" value={selectedDate} onValueChange={selectDate}>
+              <Select.Trigger id="kiriof-pickup-date"><Select.Value placeholder={label('selectDatePlaceholder', 'Select a pickup date')} /></Select.Trigger>
+              <Select.Content class="kiriof-shadcn">
+                <Select.Group>
+                  {#each pickupDates as date (date.value)}
+                    <Select.Item value={date.value}>{date.label}</Select.Item>
+                  {/each}
+                </Select.Group>
+              </Select.Content>
+            </Select.Root>
+          </Field.Field>
+
+          <Field.Field>
+            <Field.FieldLabel for="kiriof-pickup-time">{label('pickupTime', 'Pickup Time')}</Field.FieldLabel>
+            <Select.Root type="single" bind:value={selectedTime}>
+              <Select.Trigger id="kiriof-pickup-time"><Select.Value placeholder={label('selectTimePlaceholder', 'Select a pickup time')} /></Select.Trigger>
+              <Select.Content class="kiriof-shadcn">
+                <Select.Group>
+                  {#each availableTimes as time (time.value)}
+                    <Select.Item value={time.value}>{time.label}</Select.Item>
+                  {/each}
+                </Select.Group>
+              </Select.Content>
+            </Select.Root>
+          </Field.Field>
+        </Field.FieldGroup>
 
         {#if paymentRequired}
           <Field.Field>
@@ -253,7 +313,7 @@
       {#if phase === 'pin'}
         <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canSubmitPin}>{label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}
-        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canContinue || !schedules.length}>{paymentMethod === 'credit' ? label('confirmPin', 'Confirm PIN') : label('pickSchedule', 'Pick Schedule')}</Button>
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canContinue || !pickupDates.length}>{paymentMethod === 'credit' ? label('confirmPin', 'Confirm PIN') : label('pickSchedule', 'Continue')}</Button>
       {/if}
     </Dialog.Footer>
   </Dialog.Content>

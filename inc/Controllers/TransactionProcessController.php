@@ -44,6 +44,7 @@ class TransactionProcessController
     {
         /** getPaymentForm */
         add_action('wp_ajax_kiriof_request_pickup_schedule', array($this, 'getRequestPickupSchedule'));
+        add_action('wp_ajax_kiriof_request_pickup_summary', array($this, 'getRequestPickupSummary'));
         add_action('wp_ajax_kiriof_request_pickup_transaction', array($this, 'sendRequestPickupTransaction'));
         add_action('wp_ajax_kiriof_cancel_transaction', array($this, 'cancelTransaction'));
         add_action('wp_ajax_kiriof_change_origin_check', array($this, 'changeOriginCheck'));
@@ -80,6 +81,24 @@ class TransactionProcessController
             ->orderIds($order_ids)
             ->call();
         wp_send_json_success($service);
+    }
+
+    public function getRequestPickupSummary()
+    {
+        if (! current_user_can( 'manage_woocommerce' )) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
+            wp_die();
+        }
+        if (! isset($_POST['data']['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE)) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Security check failed', 'kiriminaja-official')));
+            wp_die();
+        }
+
+        $order_ids = isset($_POST['data']['order_ids']) && ! empty($_POST['data']['order_ids'])
+            ? array_map('sanitize_text_field', wp_unslash($_POST['data']['order_ids']))
+            : array();
+
+        wp_send_json_success($this->pickupScheduleService->orderIds($order_ids)->summary());
     }
 
     public function sendRequestPickupTransaction()

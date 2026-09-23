@@ -591,6 +591,12 @@ body [data-slot='dialog-overlay'] {
   flex-direction: column !important;
   gap: 16px !important;
 }
+.kiriof-transaction-dialog-content .kiriof-pickup-datetime {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.36fr);
+  align-items: end;
+  gap: 12px !important;
+}
 .kiriof-transaction-dialog-content [data-slot='field'] {
   display: flex !important;
   flex-direction: column !important;

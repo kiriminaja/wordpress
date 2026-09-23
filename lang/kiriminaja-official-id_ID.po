@@ -594,6 +594,30 @@ msgstr "Tidak ada jadwal pickup yang tersedia."
 msgid "Please select a pickup schedule."
 msgstr "Silakan pilih jadwal pickup."
 
+msgid "Pickup must be scheduled at least one hour from now."
+msgstr "Pickup harus dijadwalkan setidaknya satu jam dari sekarang."
+
+msgid "Pickup must be scheduled within the next seven days."
+msgstr "Pickup harus dijadwalkan dalam tujuh hari ke depan."
+
+msgid "Please choose a valid pickup date and time."
+msgstr "Silakan pilih tanggal dan waktu pickup yang valid."
+
+msgid "Please choose one of the available pickup time slots."
+msgstr "Silakan pilih salah satu waktu pickup yang tersedia."
+
+msgid "Pickup Date"
+msgstr "Tanggal Pickup"
+
+msgid "Pickup Time"
+msgstr "Waktu Pickup"
+
+msgid "Select a pickup date"
+msgstr "Pilih tanggal pickup"
+
+msgid "Select a pickup time"
+msgstr "Pilih waktu pickup"
+
 #, php-format
 msgid "Remember PIN on this browser for %d minutes"
 msgstr "Ingat PIN di browser ini selama %d menit"
