@@ -208,18 +208,28 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-toolbar-menu__trigger {
-  display: inline-flex;
+  display: inline-flex !important;
+  box-sizing: border-box;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 32px;
+  min-width: 32px;
   height: 32px;
+  min-height: 32px;
   margin: 0;
-  padding: 0;
+  padding: 0 !important;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--kiriof-muted, #646970);
+  line-height: 1;
   cursor: pointer;
+}
+
+.kiriof-toolbar-menu__trigger svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .kiriof-toolbar-menu__trigger:hover,
