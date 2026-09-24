@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import Dither from '$lib/backgrounds/Dither.svelte';
+  import DotField from '$lib/backgrounds/DotField.svelte';
   import L from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -478,17 +478,18 @@
     <div
       class="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(92,46,203,0.35),rgba(9,5,20,0.98)_75%)]"
     ></div>
-    <Dither
-      waveColor={[0.42, 0.2, 0.88]}
-      waveSpeed={0.035}
-      waveFrequency={2.6}
-      waveAmplitude={0.32}
-      colorNum={4}
-      pixelSize={2}
+    <DotField
+      dotRadius={2}
+      dotSpacing={17}
+      cursorRadius={280}
+      bulgeStrength={42}
+      glowRadius={210}
+      waveAmplitude={1.2}
+      gradientFrom="rgba(196, 181, 253, 0.72)"
+      gradientTo="rgba(126, 34, 206, 0.38)"
+      glowColor="rgba(88, 28, 135, 0.5)"
       disableAnimation={prefersReducedMotion}
-      enableMouseInteraction={true}
-      mouseRadius={1.2}
-      class="absolute inset-0 h-full w-full opacity-85"
+      class="absolute inset-0 h-full w-full opacity-90"
     />
   </div>
 
