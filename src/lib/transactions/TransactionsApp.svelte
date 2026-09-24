@@ -4,8 +4,6 @@
     IconAdjustmentsHorizontal,
     IconCalendar,
     IconCash,
-    IconChevronLeft,
-    IconChevronRight,
     IconEye,
     IconMapPin,
     IconPrinter,
@@ -24,6 +22,7 @@
   import * as Table from '$lib/components/ui/table';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
@@ -260,10 +259,6 @@
       </form>
     </div>
 
-    <div class="kiriof-transactions-meta">
-      <span>{bootstrap.pagination.total} {bootstrap.i18n.items}</span>
-    </div>
-
     <div class="kiriof-transactions-tablewrap">
       <Table.Root class="kiriof-transactions-table">
         <Table.Header>
@@ -367,14 +362,14 @@
       </Table.Root>
     </div>
 
-    <footer class="kiriof-transactions-pagination">
-      <span>{bootstrap.pagination.total} {bootstrap.i18n.items}</span>
-      <div>
-        <Button variant="outline" size="icon-sm" disabled={refreshing || bootstrap.pagination.page <= 1} onclick={() => void navigate({ cpage: String(bootstrap.pagination.page - 1) })}><IconChevronLeft /></Button>
-        <span>{bootstrap.pagination.page} {bootstrap.i18n.pageOf} {bootstrap.pagination.totalPages}</span>
-        <Button variant="outline" size="icon-sm" disabled={refreshing || bootstrap.pagination.page >= bootstrap.pagination.totalPages} onclick={() => void navigate({ cpage: String(bootstrap.pagination.page + 1) })}><IconChevronRight /></Button>
-      </div>
-    </footer>
+    <DataTableFooter
+      count={bootstrap.pagination.total}
+      countLabel={bootstrap.i18n.items}
+      page={bootstrap.pagination.page}
+      totalPages={bootstrap.pagination.totalPages}
+      pageLabel={bootstrap.i18n.pageOf}
+      onPageChange={(page) => void navigate({ cpage: String(page) })}
+    />
   </section>
   <RequestPickupDialog
     bind:open={pickupDialogOpen}

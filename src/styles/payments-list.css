@@ -62,27 +62,23 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 }
 
 .kiriof-payments-table-wrap {
-  @apply overflow-x-auto rounded-md border border-border;
+  @apply overflow-x-auto;
 }
 
 .kiriof-payments-table-wrap [data-slot='table'] {
-  @apply min-w-[900px];
+  @apply min-w-[1040px] border-0;
 }
 
 .kiriof-payments-table-wrap [data-slot='table-head'] {
-  @apply whitespace-nowrap bg-muted text-xs font-semibold;
+  @apply whitespace-nowrap bg-[#f7f7f8] px-3.5 py-2.5 text-[11px] font-semibold text-[#5f596f];
 }
 
 .kiriof-payments-table-wrap [data-slot='table-cell'] {
-  @apply align-top text-sm;
+  @apply border-b border-[#eceaf3] px-3.5 py-3 align-top text-xs text-[#241b3d];
 }
 
 .kiriof-payments-table-wrap [data-slot='table-cell'] small {
   @apply mt-1 block text-xs text-muted-foreground;
-}
-
-.kiriof-payments-toolbar--bottom {
-  @apply justify-end;
 }
 
 .kiriof-payments-app .kiriof-row-actions {
@@ -99,15 +95,6 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 
 .kiriof-payments-app [aria-busy='true'] {
   @apply opacity-60;
-}
-
-.kiriof-payments-app [data-slot='pagination-content'] {
-  @apply gap-1;
-}
-
-.kiriof-payments-app [data-slot='pagination-link'],
-.kiriof-payments-app [data-slot='pagination'] button {
-  @apply size-8 rounded-lg;
 }
 
 @media (max-width: 782px) {

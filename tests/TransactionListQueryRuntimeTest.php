@@ -123,6 +123,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$app = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
 		$this->assertStringContainsString( 'kiriof_transactions_bootstrap', $renderer );
 		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/DataTableFooter.svelte' );
+		$this->assertStringContainsString( 'DataTableFooter', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringNotContainsString( 'kiriof-transactions-meta', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php' );
 		$this->assertStringContainsString( 'data-kiriof-transactions-root', $app );
@@ -134,6 +137,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( '$this->enqueue_workspace_style();', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( "'kiriof-admin-workspace-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( "'kiriof-workspace-admin-list-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( "'kiriof-workspace-shadcn-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( '#screen-meta-links', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'padding-left: 0 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
@@ -191,6 +197,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-payments-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-settings-payload', $workspace );
+		$this->assertStringContainsString( 'installWorkspaceStyles', $workspace );
+		$this->assertStringContainsString( "admin-list.css?inline", $workspace );
     }
 
     private function filters(string $status): array

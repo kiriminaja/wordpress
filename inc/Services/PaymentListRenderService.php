@@ -28,7 +28,7 @@ class PaymentListRenderService {
 	 * @param array<string,int>    $status_counts Payment status counts.
 	 * @return array<string, mixed>
 	 */
-	private function prepareSvelteBootstrap( array $results, array $filters, int $page, int $total_pages, int $items_per_page, array $month_options, array $status_counts ): array {
+	private function prepareSvelteBootstrap( array $results, array $filters, int $page, int $total_pages, int $total, int $items_per_page, array $month_options, array $status_counts ): array {
 		$rows = array();
 		foreach ( $results as $index => $row ) {
 			$method = strtolower( trim( (string) ( $row->method ?? '' ) ) );
@@ -75,7 +75,7 @@ class PaymentListRenderService {
 				array( 'value' => 'unpaid', 'label' => __( 'Waiting for Payment', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['unpaid'] ?? 0 ) ),
 				array( 'value' => 'paid', 'label' => __( 'Paid', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['paid'] ?? 0 ) ),
 			),
-			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages ),
+			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages, 'total' => $total, 'perPage' => $items_per_page ),
 			'i18n'         => array(
 				'search'        => __( 'Search payment…', 'kiriminaja-official' ),
 				'allDates'      => __( 'All Dates', 'kiriminaja-official' ),
@@ -92,6 +92,7 @@ class PaymentListRenderService {
 				'no'            => __( 'No', 'kiriminaja-official' ),
 				'empty'         => __( 'Not Found', 'kiriminaja-official' ),
 				'pageOf'        => __( 'of', 'kiriminaja-official' ),
+				'items'         => __( 'items', 'kiriminaja-official' ),
 			),
 			'modals'       => array(
 				'scanToPay'    => __( 'Scan to Pay', 'kiriminaja-official' ),
@@ -127,6 +128,7 @@ class PaymentListRenderService {
         $page           = $page_data['page'];
         $items_per_page = $page_data['items_per_page'];
         $total_pages    = $page_data['total_pages'];
+		$total          = $page_data['total'];
         $monthOptions   = $this->getMonthOptions();
         $kiriof_statusCounts = $this->query->getStatusCounts();
 		$kiriof_payments_bootstrap = $this->prepareSvelteBootstrap(
@@ -134,6 +136,7 @@ class PaymentListRenderService {
 			$filters,
 			$page,
 			$total_pages,
+			$total,
 			$items_per_page,
 			$monthOptions,
 			$kiriof_statusCounts

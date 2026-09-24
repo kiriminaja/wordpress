@@ -98,11 +98,22 @@ class SettingController{
 		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
 			$workspace_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
+			$admin_list_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+			$shadcn_style     = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
 			if ( file_exists( $workspace_style ) ) {
+				$style_dependencies = array();
+				if ( file_exists( $shadcn_style ) ) {
+					wp_enqueue_style( 'kiriof-workspace-shadcn-style', KIRIOF_URL . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
+					$style_dependencies[] = 'kiriof-workspace-shadcn-style';
+				}
+				if ( file_exists( $admin_list_style ) ) {
+					wp_enqueue_style( 'kiriof-workspace-admin-list-style', KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-list.css', $style_dependencies, (string) filemtime( $admin_list_style ) );
+					$style_dependencies[] = 'kiriof-workspace-admin-list-style';
+				}
 				wp_enqueue_style(
-					'kiriof-admin-workspace',
+					'kiriof-admin-workspace-style',
 					KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-workspace.css',
-					array(),
+					$style_dependencies,
 					(string) filemtime( $workspace_style )
 				);
 			}

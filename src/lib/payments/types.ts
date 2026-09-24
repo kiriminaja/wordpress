@@ -20,7 +20,7 @@ export type PaymentsBootstrap = {
   filters: { key: string; month: string; status: string };
   monthOptions: Record<string, string>;
   statusTabs: Array<{ value: string; label: string; count: number }>;
-  pagination: { page: number; totalPages: number };
+  pagination: { page: number; totalPages: number; total: number; perPage: number };
   i18n: Record<string, string>;
   modals: Record<string, string>;
 };

@@ -5,7 +5,7 @@
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
-  import ListPagination from '../admin-list/ListPagination.svelte';
+  import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
   import StatusTabs from '../admin-list/StatusTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
@@ -112,7 +112,6 @@
           <IconRefresh data-icon="inline-start" />{bootstrap.i18n.apply}
         </Button>
       </div>
-      <ListPagination page={bootstrap.pagination.page} totalPages={bootstrap.pagination.totalPages} label={bootstrap.i18n.pageOf} onChange={(page) => void navigate({ cpage: String(page) })} />
     </div>
 
     <div class="kiriof-payments-table-wrap" aria-busy={refreshing}>
@@ -161,9 +160,13 @@
       </Table.Root>
     </div>
 
-    <div class="kiriof-payments-toolbar kiriof-payments-toolbar--bottom">
-      <span></span>
-      <ListPagination page={bootstrap.pagination.page} totalPages={bootstrap.pagination.totalPages} label={bootstrap.i18n.pageOf} onChange={(page) => void navigate({ cpage: String(page) })} />
-    </div>
+    <DataTableFooter
+      count={bootstrap.pagination.total}
+      countLabel={bootstrap.i18n.items}
+      page={bootstrap.pagination.page}
+      totalPages={bootstrap.pagination.totalPages}
+      pageLabel={bootstrap.i18n.pageOf}
+      onPageChange={(page) => void navigate({ cpage: String(page) })}
+    />
   </section>
 </div>

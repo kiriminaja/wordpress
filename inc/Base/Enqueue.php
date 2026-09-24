@@ -48,14 +48,36 @@ class Enqueue extends BaseInit{
 	 */
 	private function enqueue_workspace_style(): void {
 		$workspace_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
+		$admin_list_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+		$shadcn_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
 		if ( ! file_exists( $workspace_style ) ) {
 			return;
 		}
 
+		$dependencies = array();
+		if ( file_exists( $shadcn_style ) ) {
+			wp_enqueue_style(
+				'kiriof-workspace-shadcn-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css',
+				array(),
+				(string) filemtime( $shadcn_style )
+			);
+			$dependencies[] = 'kiriof-workspace-shadcn-style';
+		}
+		if ( file_exists( $admin_list_style ) ) {
+			wp_enqueue_style(
+				'kiriof-workspace-admin-list-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css',
+				$dependencies,
+				(string) filemtime( $admin_list_style )
+			);
+			$dependencies[] = 'kiriof-workspace-admin-list-style';
+		}
+
 		wp_enqueue_style(
-			'kiriof-admin-workspace',
+			'kiriof-admin-workspace-style',
 			$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-workspace.css',
-			array(),
+			$dependencies,
 			(string) filemtime( $workspace_style )
 		);
 	}
@@ -559,9 +581,9 @@ class Enqueue extends BaseInit{
 
 			if ( 'kiriminaja-request-pickup-detail' === $page ) {
 				$pickup_detail_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-pickup-detail.js';
-				$admin_list_style     = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
-				if ( file_exists( $admin_list_style ) ) {
-					wp_enqueue_style( 'kiriof-admin-list', $this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css', array( 'kiriof-style' ), (string) filemtime( $admin_list_style ) );
+				$pickup_detail_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-pickup-detail.css';
+				if ( file_exists( $pickup_detail_style ) ) {
+					wp_enqueue_style( 'kiriof-pickup-detail-style', $this->plugin_url . 'assets/admin/dist/kiriminaja-pickup-detail.css', array( 'kiriof-style' ), (string) filemtime( $pickup_detail_style ) );
 				}
 				if ( file_exists( $pickup_detail_script ) ) {
 					wp_enqueue_script( 'kiriof-pickup-detail', $this->plugin_url . 'assets/admin/dist/kiriminaja-pickup-detail.js', array( 'kiriof-request-pickup' ), (string) filemtime( $pickup_detail_script ), true );

@@ -11,11 +11,11 @@ import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { TransactionsBootstrap } from '../lib/transactions/types';
-import '../styles/shadcn-onboarding.css';
-import '../styles/toolbar.css';
-import '../styles/admin-list.css';
-import '../styles/payments-list.css';
-import '../styles/settings-root.css';
+import shadcnStyles from '../styles/shadcn-onboarding.css?inline';
+import toolbarStyles from '../styles/toolbar.css?inline';
+import adminListStyles from '../styles/admin-list.css?inline';
+import paymentsStyles from '../styles/payments-list.css?inline';
+import settingsStyles from '../styles/settings-root.css?inline';
 
 const workspacePages = new Set([
   'kiriminaja-transaction-process',
@@ -61,6 +61,21 @@ const routes: RouteDefinition[] = [
 let mounted: MountedComponent[] = [];
 let controller: AbortController | null = null;
 let activeShell: HTMLElement | null = null;
+
+function installWorkspaceStyles(): void {
+  if (document.querySelector('[data-kiriof-workspace-styles]')) return;
+
+  const style = document.createElement('style');
+  style.dataset.kiriofWorkspaceStyles = 'true';
+  style.textContent = [
+    shadcnStyles,
+    toolbarStyles,
+    adminListStyles,
+    paymentsStyles,
+    settingsStyles,
+  ].join('\n');
+  document.head.append(style);
+}
 
 function routeForUrl(url: URL): RouteDefinition | undefined {
   return routes.find((route) => route.page === url.searchParams.get('page'));
@@ -255,6 +270,7 @@ function handleClick(event: MouseEvent): void {
 function start(): void {
   const route = routeForDocument(document);
   if (!route) return;
+  installWorkspaceStyles();
   activeShell = document.querySelector<HTMLElement>(route.shell);
   if (!activeShell) return;
 
