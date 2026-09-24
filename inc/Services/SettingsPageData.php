@@ -245,11 +245,10 @@ class SettingsPageData {
 			array(
 				'label' => __( 'Shipping', 'kiriminaja-official' ),
 				'items' => array(
-					$this->settingsRootItem( 'shipping-locations', __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), __( 'Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.', 'kiriminaja-official' ), 'shipping', admin_url( 'admin.php?page=wc-settings' ), $list_data['kiriof_shipping_locations_ready'] ? __( 'Ready', 'kiriminaja-official' ) : __( 'Action needed', 'kiriminaja-official' ), $list_data['kiriof_shipping_locations_ready'] ? 'ready' : 'warning' ),
 					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers' ),
 					$this->settingsRootItem( 'insurance', __( 'Shipping Insurance', 'kiriminaja-official' ), __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ), 'insurance', '', '', '', 'insurance' ),
 					$this->settingsRootItem( 'cod', __( 'Cash on Delivery', 'kiriminaja-official' ), __( 'Allow customers to pay when they receive their order.', 'kiriminaja-official' ), 'cod', '', '', '', 'cod' ),
-					$this->settingsRootItem( 'locations', __( 'Manage Locations', 'kiriminaja-official' ), __( 'Set your business location for accurate shipping rates.', 'kiriminaja-official' ), 'location', admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ),
+					$this->settingsRootItem( 'locations', __( 'Manage Locations', 'kiriminaja-official' ), __( 'Set your default and additional pickup addresses for accurate shipping rates.', 'kiriminaja-official' ), 'location', admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? __( 'Default address ready', 'kiriminaja-official' ) : __( 'Add default address', 'kiriminaja-official' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? 'ready' : 'warning' ),
 				),
 			),
 			array(
@@ -419,6 +418,25 @@ class SettingsPageData {
 		$insurance_setting = $this->setting_repository->getSettingByKey( 'enable_insurance' );
 		$ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
 		$shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
+		$origin_settings = $this->setting_repository->getSettingByArray(
+			array(
+				'origin_name',
+				'origin_phone',
+				'origin_address',
+				'origin_latitude',
+				'origin_longitude',
+				'origin_sub_district_id',
+				'origin_sub_district_name',
+				'origin_zip_code',
+			)
+		);
+		$default_address_ready = 8 === count( $origin_settings );
+		foreach ( $origin_settings as $setting ) {
+			if ( empty( $setting->value ?? null ) ) {
+				$default_address_ready = false;
+				break;
+			}
+		}
 
 		return array(
 			'kiriof_cod_settings'             => $cod_settings,
@@ -428,6 +446,7 @@ class SettingsPageData {
 			'kiriof_ship_to_countries'        => $ship_to_countries,
 			'kiriof_shipping_countries'       => $shipping_countries,
 			'kiriof_shipping_locations_ready' => ( 'disabled' !== $ship_to_countries && ! empty( $shipping_countries ) ),
+			'kiriof_default_address_ready'    => $default_address_ready,
 		);
 	}
 

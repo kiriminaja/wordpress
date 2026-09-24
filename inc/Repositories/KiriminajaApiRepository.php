@@ -217,14 +217,14 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function getProfile() {
-		return $this->get_with_wordpress(
-			'/api/mitra/v6.2/profile',
-			array(),
-			array(
-				'source'    => 'kiriminaja_api',
-				'operation' => 'get_profile',
-			)
-		);
+        return $this->call_sdk(
+            static fn() => KiriminAja::getProfile(),
+            static fn( $data, $message ) => array(
+                'status'  => true,
+                'text'    => $message,
+                'results' => $data,
+            )
+        );
     }
 
     public function getCreditBalance() {
