@@ -759,9 +759,9 @@ Requirements:
 - Instant Delivery filters support WooCommerce order or KiriminAja order/tracking lookup, transaction status, courier, and payment method. Express pickup schedule filters are not required for Instant.
 - `Order Issue` continues to show COD Deficit transactions according to the existing workflow. It does not collect Instant pricing, booking, payment, webhook, or retry issues in the MVP.
 - Instant operational problems remain in the Instant Delivery tab and are represented by an issue badge, actionable error message, and the appropriate retry, reprice, or resolution action.
-- Instant has a special `Find New Driver` status/state. When this status is shown, the Instant table row must expose a `Find New Driver` action/button.
+- Instant has a special `Find New Driver` status/state. It is automatic by the system, so the user cannot trigger it manually. When this status is shown, the Instant table row must show it as a non-actionable status with a tooltip or popover explaining that the system is automatically finding a new driver; do not expose a manual `Find New Driver` button.
 - Instant rows show delivery type, courier/service, vehicle used to send the package, payment method, WooCommerce order, KiriminAja order ID, tracking code or AWB, package and fee summary, current status, and state-appropriate actions. There is no COD/non-COD display for Instant rows.
-- Instant actions include dispatch, safe retry, reprice, tracking, `Find New Driver` when that status applies, and void/cancel only when the remote shipment state allows it.
+- Instant actions include dispatch, safe retry, reprice, and tracking, plus void/cancel only when the remote shipment state allows it. `Find New Driver` is not an action; it is a system-automatic status shown with an explanatory tooltip or popover.
 - Show confirmation before dispatch, retry, or void actions. For price changes, show the checkout quote and current quote in the confirmation step.
 - Bulk Instant dispatch enforces the grouping rules: same origin, courier, vehicle, and payment method. Each package remains an independent API request and partial success is reported per row.
 - When a tab has no transactions, show a useful empty state with the relevant next action instead of an unfiltered generic empty table.
@@ -772,7 +772,7 @@ Requirements:
 - A successfully dispatched order remains `processing` during delivery.
 - A successful Instant delivery webhook moves the WooCommerce order to `completed` automatically.
 - A failed or remotely canceled delivery leaves the order `processing` and adds an order note for manual handling.
-- Instant has a special `Find New Driver` state. When present, the Instant table exposes the `Find New Driver` action while the order remains actionable; the implementation must confirm the KiriminAja trigger/endpoint and terminal-state rules for this action.
+- Instant has a special `Find New Driver` state. It is automatic by the system, so when present the Instant table shows it as a status with an explanatory tooltip or popover while the order remains actionable; the implementation must confirm the KiriminAja trigger and terminal-state rules for this state.
 - Canceling a dispatched WooCommerce order attempts the Instant void endpoint first and records the remote result.
 - Live tracking is available to administrators and the authenticated buyer who owns the order.
 - Show live tracking from My Account order detail and the plugin tracking page. The tracking page must validate the WooCommerce order key before exposing the live URL.
@@ -801,7 +801,7 @@ These are production-readiness dependencies to confirm with KiriminAja or infras
 3. Confirm OpenStreetMap standard tile usage is acceptable for the expected production traffic, or provide a production tile service before launch.
 4. Confirm the production `package_type_id` value. The MVP temporarily uses `7`, taken from the OpenAPI example.
 5. Confirm the production success and error response contract for v6.2 Instant booking. The OpenAPI page labels its success response as a mock shape, so the implementation must normalize defensively and validate Sandbox responses.
-6. Confirm the KiriminAja trigger, payload/status value, endpoint/action, retry semantics, and terminal-state transitions for the special Instant `Find New Driver` state.
+6. Confirm the KiriminAja trigger, payload/status value, and terminal-state transitions for the special Instant `Find New Driver` state. There is no merchant-facing endpoint/action: it is system-automatic, so the plugin only explains it via tooltip or popover copy.
 
 The representative Instant request and response examples should be taken from the KiriminAja developer documentation and OpenAPI reference during implementation:
 
@@ -884,7 +884,7 @@ Classic and Block work may run in parallel after the normalized Instant rate and
 - A transaction appears in exactly one delivery tab. COD Deficit records appear in `Order Issue`; Instant operational issues remain in Instant with an issue badge.
 - Instant transactions never appear in the Regular Delivery list.
 - Bulk selection cannot span Regular and Instant tabs and cannot dispatch incompatible Instant groups.
-- Instant rows expose the correct dispatch, repricing, tracking, retry, `Find New Driver`, and void actions for their state.
+- Instant rows expose the correct dispatch, repricing, tracking, retry, and void actions for their state. `Find New Driver` is a system-automatic status with an explanatory tooltip or popover, not a manual action.
 - The COD/non-COD transaction column is replaced by the vehicle for Instant rows.
 - Instant API and data-quality failures remain visible in Instant with an actionable reason and retry or resolution path.
 - Empty states and filters are specific to the selected tab.
