@@ -265,18 +265,64 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
-.kiriof-summary-grid article {
+.kiriof-pickup-summary-card {
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%) !important;
+}
+.kiriof-pickup-summary-card [data-slot='card-content'] {
   display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--kiriof-border);
-  background: #fff;
+  gap: 7px;
+  padding: 14px !important;
 }
-.kiriof-summary-grid strong {
+.kiriof-pickup-summary-card strong {
   font-size: 20px;
+  line-height: 1;
 }
-.kiriof-summary-grid span {
+.kiriof-pickup-summary-card span {
   color: var(--kiriof-muted);
+}
+.kiriof-pickup-detail-print-all {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+.kiriof-pickup-detail-print-all:hover,
+.kiriof-pickup-detail-print-all:focus,
+.kiriof-pickup-detail-print-all:visited {
+  color: var(--primary-foreground) !important;
+  text-decoration: none !important;
+}
+.kiriof-pickup-detail-print-all > span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+.kiriof-pickup-detail-print-all .kiriof-pickup-detail-print-all__icon {
+  display: block !important;
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 15px !important;
+  margin: 0 !important;
 }
 .kiriof-pickup-detail-alert {
   padding: 10px 12px;

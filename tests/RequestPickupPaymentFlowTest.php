@@ -101,6 +101,9 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$this->assertStringNotContainsString( 'kiriminaja-pickup-detail.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
 		$this->assertStringContainsString( 'kiriof-admin-list-table', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( '<Card.Root size="sm" class="kiriof-pickup-summary-card">', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-pickup-detail-print-all__icon', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( '.kiriof-pickup-summary-card', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
     }
 
     #[Test]

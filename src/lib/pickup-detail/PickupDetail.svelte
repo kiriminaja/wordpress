@@ -1,6 +1,7 @@
 <script lang="ts">
   import { IconCash, IconCreditCard, IconEye, IconMapPin, IconPrinter } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
@@ -36,8 +37,8 @@
 <div class="kiriof-shadcn kiriof-admin-list-app kiriof-pickup-detail-app">
   <Toolbar toolbar={bootstrap.toolbar} onNavigate={(href) => void onNavigate?.(href)}>
     {#if bootstrap.printAllUrl}
-      <Button href={bootstrap.printAllUrl} target="_blank" rel="noopener noreferrer">
-        <IconPrinter data-icon="inline-start" />
+      <Button class="kiriof-pickup-detail-print-all" href={bootstrap.printAllUrl} target="_blank" rel="noopener noreferrer">
+        <IconPrinter class="kiriof-pickup-detail-print-all__icon" aria-hidden="true" />
         <span>{bootstrap.i18n.printAll}</span>
       </Button>
     {/if}
@@ -49,7 +50,12 @@
 
   <section class="kiriof-summary-grid" aria-label="Pickup summary">
     {#each bootstrap.summary as item}
-      <article><strong>{item.value}</strong><span>{item.label}</span></article>
+      <Card.Root size="sm" class="kiriof-pickup-summary-card">
+        <Card.Content>
+          <strong>{item.value}</strong>
+          <span>{item.label}</span>
+        </Card.Content>
+      </Card.Root>
     {/each}
   </section>
 
