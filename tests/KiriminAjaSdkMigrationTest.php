@@ -17,7 +17,7 @@ final class KiriminAjaSdkMigrationTest extends TestCase
             JSON_THROW_ON_ERROR
         );
 
-        $this->assertSame('^2.1', $composer['require']['kiriminaja/kiriminaja-php'] ?? null);
+        $this->assertSame('^2.1.4', $composer['require']['kiriminaja/kiriminaja-php'] ?? null);
     }
 
     #[Test]

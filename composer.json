@@ -30,7 +30,7 @@
     "php-stubs/woocommerce-stubs": "^10.0"
   },
   "require": {
-    "kiriminaja/kiriminaja-php": "^2.1"
+    "kiriminaja/kiriminaja-php": "^2.1.4"
   },
   "scripts": {
     "phpstan": "phpstan analyse --memory-limit=1G"

@@ -389,16 +389,16 @@
         },
         {
             "name": "kiriminaja/kiriminaja-php",
-            "version": "2.1.3",
+            "version": "2.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/kiriminaja/php.git",
-                "reference": "0ab8faf1f80c7478e455a75823b9ad0ccb165c64"
+                "reference": "af392c7f1ecba3983e23c2411462cbbb4ae0c8a9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kiriminaja/php/zipball/0ab8faf1f80c7478e455a75823b9ad0ccb165c64",
-                "reference": "0ab8faf1f80c7478e455a75823b9ad0ccb165c64",
+                "url": "https://api.github.com/repos/kiriminaja/php/zipball/af392c7f1ecba3983e23c2411462cbbb4ae0c8a9",
+                "reference": "af392c7f1ecba3983e23c2411462cbbb4ae0c8a9",
                 "shasum": ""
             },
             "require": {

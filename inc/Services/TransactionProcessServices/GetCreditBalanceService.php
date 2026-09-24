@@ -16,6 +16,7 @@ class GetCreditBalanceService extends BaseService {
                 return self::error( [ 'balance' => 0 ], $result['data'] ?? 'Failed to get credit balance' );
             }
 
+            // SDK >= 2.1.4 normalizes the payload to [ 'balance' => int ].
             $balance = $this->extract_balance( $result['data'] );
             return self::success( [ 'balance' => $balance ], 'success' );
         } catch ( \Throwable $th ) {
@@ -24,9 +25,8 @@ class GetCreditBalanceService extends BaseService {
     }
 
     /**
-     * The credit/balance API returns { status, text, results: { balance } }.
-     * Accept object/array payloads plus legacy shapes so the UI never shows Rp0
-     * when the API actually returned a balance.
+     * Defensive unwrap for the SDK payload. SDK >= 2.1.4 returns
+     * [ 'balance' => int ]; older shapes nested it under results/data.
      *
      * @param mixed $data SDK response payload.
      */
