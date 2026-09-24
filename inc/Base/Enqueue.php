@@ -120,7 +120,7 @@ class Enqueue extends BaseInit{
     public function renderOrderPreviewTemplate() {
         $page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
 
-        if ( 'kiriminaja-transaction-process' !== $page ) {
+        if ( 'kiriminaja-transaction' !== $page ) {
             return;
         }
 
@@ -347,8 +347,9 @@ class Enqueue extends BaseInit{
 		}
 
         $is_plugin_page = in_array( $page, array(
-            'kiriminaja-konfigurasi',
-            'kiriminaja-transaction-process',
+            'kiriminaja-setting',
+            'kiriminaja-transaction',
+            'kiriminaja-transaction-detail',
             'kiriminaja-request-pickup',
             'kiriminaja-request-pickup-detail',
         ), true );
@@ -378,7 +379,7 @@ class Enqueue extends BaseInit{
 
 
 
-        $needs_leaflet = 'kiriminaja-konfigurasi' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
+        $needs_leaflet = 'kiriminaja-setting' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
 
         if ( $needs_leaflet ) {
             wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
@@ -406,7 +407,7 @@ class Enqueue extends BaseInit{
         
         wp_enqueue_style( 'kiriof-grid-style', $this->plugin_url . 'assets/admin/css/bootstrap-grid.css', array(), KIRIOF_VERSION );
 
-        if ( 'kiriminaja-transaction-process' === $page ) {
+        if ( in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) ) {
             wp_enqueue_style( 'woocommerce_admin_styles' );
             // Load only the native order-preview scripts. Do not enqueue the
             // `woocommerce_admin` bundle: WC localizes its global only on native
@@ -478,7 +479,7 @@ class Enqueue extends BaseInit{
         /**
          * COD Adjustment JS — enqueued on the order edit screen and transaction process page.
          */
-        if ( $is_order_screen || 'kiriminaja-transaction-process' === $page ) {
+        if ( $is_order_screen || in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) ) {
             wp_enqueue_script(
                 'kiriof-cod-adjustment',
                 $this->plugin_url . 'assets/js/kiriof-cod-adjustment.js',
@@ -507,7 +508,7 @@ class Enqueue extends BaseInit{
         /**
          * Change Origin JS — enqueued on the transaction process page.
          */
-        if ( 'kiriminaja-transaction-process' === $page ) {
+        if ( 'kiriminaja-transaction' === $page || 'kiriminaja-transaction-detail' === $page ) {
             wp_enqueue_script(
                 'kiriof-change-origin',
                 $this->plugin_url . 'assets/js/kiriof-change-origin.js',

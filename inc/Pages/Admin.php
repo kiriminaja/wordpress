@@ -46,7 +46,7 @@ class Admin extends BaseInit{
 		unset( $screen );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		if ( 'kiriminaja-transaction-process' !== $page ) {
+		if ( 'kiriminaja-transaction' !== $page ) {
 			return;
 		}
 
@@ -58,7 +58,7 @@ class Admin extends BaseInit{
 		unset( $screen );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		return 'kiriminaja-transaction-process' === $page ? false : $show;
+		return 'kiriminaja-transaction' === $page ? false : $show;
 	}
 
 	public function kiriof_hide_settings_screen_options( bool $show, $screen = null ): bool {
@@ -69,7 +69,7 @@ class Admin extends BaseInit{
 	private function is_settings_workspace(): bool {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		return 'kiriminaja-konfigurasi' === $page;
+		return 'kiriminaja-setting' === $page;
 	}
 
     public function register(){
@@ -102,17 +102,17 @@ class Admin extends BaseInit{
         if( kiriof_check_woocommerce() ){
             $subPages = [
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'KiriminAja Transactions', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Transactions', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-transaction-process',
+                    'menu_slug'=>'kiriminaja-transaction',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/transaction-process/index.php';
                     }
                 ],
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
@@ -122,7 +122,7 @@ class Admin extends BaseInit{
                     }
                 ],
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
@@ -133,11 +133,22 @@ class Admin extends BaseInit{
                     'hidden'=>true,
                 ],
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
+                    'page_title'=>__( 'Transaction Detail', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Transaction Detail', 'kiriminaja-official' ),
+                    'capability'=>'manage_woocommerce',
+                    'menu_slug'=>'kiriminaja-transaction-detail',
+                    'callback'=> function() use ($plugin_path) {
+                        require_once $plugin_path.'templates/transaction-detail/index.php';
+                    },
+                    'hidden'=>true,
+                ],
+                [
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'KiriminAja Settings', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Settings', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-konfigurasi',
+                    'menu_slug'=>'kiriminaja-setting',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/setting/index.php';
                     }
@@ -152,7 +163,7 @@ class Admin extends BaseInit{
                     'page_title'=>'KiriminAja',
                     'menu_title'=> 'KiriminAja' . ( defined('KIRIOF_ENV') && KIRIOF_ENV !== 'prd' ? ' [' . strtoupper(KIRIOF_ENV) . ']' : '' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-konfigurasi',
+                    'menu_slug'=>'kiriminaja-setting',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/setting/index.php';
                     },
@@ -168,7 +179,7 @@ class Admin extends BaseInit{
         if ( kiriof_check_woocommerce() ) {
             add_action( 'admin_menu', function () {
                 global $submenu;
-                $slug = 'kiriminaja-konfigurasi';
+                $slug = 'kiriminaja-setting';
                 if ( empty( $submenu[ $slug ] ) ) {
                     return;
                 }
@@ -201,7 +212,7 @@ class Admin extends BaseInit{
     
         /** Add pages link in plugin menu links*/
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">' . esc_html__( 'Settings', 'kiriminaja-official' ) . '</a>';
+            $settings_link = '<a href="admin.php?page=kiriminaja-setting">' . esc_html__( 'Settings', 'kiriminaja-official' ) . '</a>';
             array_push($links,$settings_link);
             return $links;
         });
@@ -217,6 +228,9 @@ class Admin extends BaseInit{
             $screen = get_current_screen();
             if ( $screen && 'kiriminaja_page_kiriminaja-request-pickup-detail' === $screen->id ) {
                 return 'kiriminaja-request-pickup';
+            }
+            if ( $screen && 'kiriminaja_page_kiriminaja-transaction-detail' === $screen->id ) {
+                return 'kiriminaja-transaction';
             }
             return $submenu_file;
         });
@@ -241,20 +255,20 @@ class Admin extends BaseInit{
     function kiriof_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {
             global $submenu;
-            if ( empty( $submenu['kiriminaja-konfigurasi'] ) ) {
+            if ( empty( $submenu['kiriminaja-setting'] ) ) {
                 return;
             }
 
             /**
              * WordPress auto-prepends a sub-item that mirrors the parent
-             * menu (slug "kiriminaja-konfigurasi") whenever any sub-pages
+             * menu (slug "kiriminaja-setting") whenever any sub-pages
              * are registered.  Instead of the duplicate "KiriminAja" label,
              * rename it to "Settings" so the settings page stays accessible
              * from the submenu.
              */
-            foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
-                if ( isset( $menu_item[2] ) && 'kiriminaja-konfigurasi' === $menu_item[2] ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] = __( 'Settings', 'kiriminaja-official' );
+            foreach ( $submenu['kiriminaja-setting'] as $key => $menu_item ) {
+                if ( isset( $menu_item[2] ) && 'kiriminaja-setting' === $menu_item[2] ) {
+                    $submenu['kiriminaja-setting'][ $key ][0] = __( 'Settings', 'kiriminaja-official' );
                     break;
                 }
             }
@@ -262,13 +276,13 @@ class Admin extends BaseInit{
             $transaction_count_new = (int) kiriof_helper()->kjCountTransactionProcess();
             $shipment_unpaid_count = (int) kiriof_helper()->kjCountShipmentUnpaid();
 
-            foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
+            foreach ( $submenu['kiriminaja-setting'] as $key => $menu_item ) {
                 if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], __( 'Transactions', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-setting'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
                 if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], __( 'Payments', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-setting'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
             }
@@ -349,12 +363,12 @@ class Admin extends BaseInit{
         $tracking_ready = $this->tracking_page_repository->hasPublishedTrackingPage();
 
         $step_urls = array(
-            'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+            'account'            => admin_url( 'admin.php?page=kiriminaja-setting&section=account' ),
             'products'           => admin_url( 'edit.php?post_type=product' ),
             'origin'             => admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ),
-            'couriers'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=couriers' ),
+            'couriers'           => admin_url( 'admin.php?page=kiriminaja-setting&section=couriers' ),
             'shipping_option'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-            'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),
+            'tracking'           => admin_url( 'admin.php?page=kiriminaja-setting&section=tracking' ),
         );
         $steps = array(
             array(
@@ -493,7 +507,7 @@ class Admin extends BaseInit{
 				'<div class="notice notice-info is-dismissible"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
 				esc_html__( 'Add customer shipment tracking.', 'kiriminaja-official' ),
 				esc_html__( 'Create or select a tracking page when you are ready.', 'kiriminaja-official' ),
-				esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ) ),
+				esc_url( admin_url( 'admin.php?page=kiriminaja-setting&section=tracking' ) ),
 				esc_html__( 'Configure tracking', 'kiriminaja-official' )
 			);
 		}
@@ -517,7 +531,7 @@ class Admin extends BaseInit{
             array(
                 'id'    => 'kiriof-ka-credit-balance',
                 'title' => $title,
-                'href'  => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+                'href'  => admin_url( 'admin.php?page=kiriminaja-setting&section=account' ),
                 'meta'  => array(
                     'title' => esc_attr__( 'KA Credit', 'kiriminaja-official' ) . ': ' . esc_attr( kiriof_money_format( $balance ) ),
                 ),

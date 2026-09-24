@@ -52,6 +52,7 @@ class TransactionProcessController
         add_action('wp_ajax_kiriof_get_credit_balance', array($this, 'getCreditBalance'));
         add_action('wp_ajax_kiriof_validate_pin', array($this, 'validatePin'));
         add_action('wp_ajax_kiriof_get_payment_method_config', array($this, 'getPaymentMethodConfig'));
+        add_action( 'wp_ajax_kiriof_transaction_detail_tracking', array( $this, 'getTransactionDetailTracking' ) );
         add_filter('woocommerce_admin_order_preview_get_order_details', array($this, 'extendWooOrderPreviewDetails'), 10, 2);
         add_action('woocommerce_admin_order_preview_end', array($this, 'renderWooOrderPreviewKiriminajaDetails'));
         add_action('admin_footer', array($this, 'renderWooOrderPreviewKiriminajaRelocatorScript'));
@@ -60,6 +61,30 @@ class TransactionProcessController
 
         /** Auto-cancel KA transaction when WC order is cancelled */
         add_action('woocommerce_order_status_cancelled', array($this, 'handleWcOrderCancelled'), 10, 1);
+    }
+
+    /**
+     * Return tracking history for a transaction-detail page.
+     *
+     * @return void
+     */
+    public function getTransactionDetailTracking(): void {
+        check_ajax_referer( KIRIOF_NONCE, 'nonce' );
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'You do not have sufficient permissions to access this page.', 'kiriminaja-official' ) ), 403 );
+        }
+
+        $order_id = isset( $_POST['order_id'] ) ? sanitize_text_field( wp_unslash( $_POST['order_id'] ) ) : '';
+        if ( '' === $order_id ) {
+            wp_send_json_error( array( 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ), 400 );
+        }
+
+        $service = ( new \KiriminAjaOfficial\Services\KiriminAjaTrackingService() )->order_number( $order_id )->call();
+        if ( 200 !== (int) ( $service->status ?? 0 ) ) {
+            wp_send_json_error( array( 'message' => (string) ( $service->message ?? __( 'Unable to load tracking history.', 'kiriminaja-official' ) ) ), 400 );
+        }
+
+        wp_send_json_success( $service->data );
     }
 
     public function getRequestPickupSchedule()
@@ -1487,6 +1512,6 @@ class TransactionProcessController
         {
             $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page slug check, no data processed
 
-            return 'kiriminaja-transaction-process' === $page;
+            return 'kiriminaja-transaction' === $page;
         }
     }

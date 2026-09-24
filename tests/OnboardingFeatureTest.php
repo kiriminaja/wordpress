@@ -112,8 +112,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('UPDATE_REDIRECT_OPTION', $page);
 		$this->assertStringContainsString('should_consume_activation_redirect', $page);
 		$this->assertStringContainsString('is_kiriminaja_admin_page', $page);
-		$this->assertStringContainsString("'kiriminaja-konfigurasi'", $page);
-		$this->assertStringContainsString("'kiriminaja-transaction-process'", $page);
+		$this->assertStringContainsString("'kiriminaja-setting'", $page);
+		$this->assertStringContainsString("'kiriminaja-transaction'", $page);
 		$this->assertStringContainsString("array( 'shipping', 'kiriminaja_warehouses' )", $page);
 		$this->assertStringNotContainsString('should_gate_request', $page);
 

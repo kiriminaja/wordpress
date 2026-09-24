@@ -865,7 +865,7 @@
             </Button>
           {:else}
             <Button
-              href={bootstrap.dashboardUrl || 'admin.php?page=kiriminaja-konfigurasi'}
+              href={bootstrap.dashboardUrl || 'admin.php?page=kiriminaja-setting'}
               class="no-underline hover:no-underline focus:no-underline"
             >
               Go to KiriminAja

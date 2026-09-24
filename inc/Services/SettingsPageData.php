@@ -147,7 +147,7 @@ class SettingsPageData {
 
 		$toolbar = array(
 			'logoUrl'   => $logo_url,
-			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-setting' ),
 			'rootLabel' => __( 'Settings', 'kiriminaja-official' ),
 			'title'     => $title,
 		);
@@ -202,7 +202,7 @@ class SettingsPageData {
 	 * @return array<string, mixed>
 	 */
 	public function prepareRootBootstrap( bool $connected, array $list_data = array(), array $product_readiness = array() ): array {
-		$base_url = admin_url( 'admin.php?page=kiriminaja-konfigurasi' );
+		$base_url = admin_url( 'admin.php?page=kiriminaja-setting' );
 		$bootstrap = array(
 			'view'    => 'root',
 			'toolbar' => $this->settingsToolbar( __( 'Settings', 'kiriminaja-official' ) ),

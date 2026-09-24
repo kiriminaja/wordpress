@@ -115,6 +115,23 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->hasError() ? false : $query;
     }
     
+    public function getTransactionById( int $id ) {
+        $id = absint( $id );
+        if ( 0 === $id ) {
+            return false;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $query = $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "SELECT * FROM {$this->table} WHERE `id` = %d",
+                $id
+            )
+        );
+
+        return $this->hasError() ? false : $query;
+    }
+
     public function getTransactionByOrderId($orderId){
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row( 

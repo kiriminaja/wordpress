@@ -25,7 +25,7 @@ class Onboarding extends BaseInit {
 
 	public function register_page(): void {
 		add_submenu_page(
-			'kiriminaja-konfigurasi',
+			'kiriminaja-setting',
 			__( 'KiriminAja Setup', 'kiriminaja-official' ),
 			__( 'Setup', 'kiriminaja-official' ),
 			'manage_woocommerce',
@@ -35,7 +35,7 @@ class Onboarding extends BaseInit {
 	}
 
 	public function hide_page(): void {
-		remove_submenu_page( 'kiriminaja-konfigurasi', self::PAGE_SLUG );
+		remove_submenu_page( 'kiriminaja-setting', self::PAGE_SLUG );
 	}
 
 	public function suppress_admin_notices( $screen = null ): void {
@@ -266,8 +266,8 @@ class Onboarding extends BaseInit {
 		return in_array(
 			$page,
 			array(
-				'kiriminaja-konfigurasi',
-				'kiriminaja-transaction-process',
+				'kiriminaja-setting',
+				'kiriminaja-transaction',
 				'kiriminaja-request-pickup',
 				'kiriminaja-request-pickup-detail',
 			),

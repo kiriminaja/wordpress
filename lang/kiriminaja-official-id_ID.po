@@ -3943,3 +3943,87 @@ msgstr "Beri Nilai untuk KiriminAja"
 #: inc/Services/RevampAnnouncementService.php
 msgid "Continue to KiriminAja"
 msgstr "Lanjut ke KiriminAja"
+
+#: templates/transaction-detail/view/index.php
+msgid "Loading transaction details…"
+msgstr "Memuat detail transaksi…"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Transaction Detail"
+msgstr "Detail Transaksi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Created"
+msgstr "Dibuat"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Shipment Request"
+msgstr "Permintaan Pengiriman"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Customer note"
+msgstr "Catatan pelanggan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order note"
+msgstr "Catatan pesanan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Print Label"
+msgstr "Cetak Label"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Live Tracking"
+msgstr "Pelacakan Langsung"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recipient"
+msgstr "Penerima"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Package"
+msgstr "Paket"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Products"
+msgstr "Produk"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order notes"
+msgstr "Catatan Pesanan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Airwaybill"
+msgstr "Resi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Drop-off"
+msgstr "Drop-off"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Dimensions"
+msgstr "Dimensi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "COD value"
+msgstr "Nilai COD"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Tracking history"
+msgstr "Riwayat pelacakan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "No tracking history is available yet."
+msgstr "Riwayat pelacakan belum tersedia."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Unable to load tracking history."
+msgstr "Tidak dapat memuat riwayat pelacakan."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Shipped"
+msgstr "Dikirim"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Return"
+msgstr "Retur"

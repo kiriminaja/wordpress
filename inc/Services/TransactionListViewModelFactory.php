@@ -112,6 +112,7 @@ class TransactionListViewModelFactory {
 			'id'              => (int) ( $row->id ?? $row->wc_order_id ),
 			'wcOrderId'       => (int) $row->wc_order_id,
 			'wcOrderUrl'      => admin_url( 'post.php?post=' . (int) $row->wc_order_id . '&action=edit' ),
+			'detailUrl'       => admin_url( 'admin.php?page=kiriminaja-transaction-detail&id=' . absint( $row->id ?? 0 ) ),
 			'createdAt'       => wp_date( 'M d, Y H:i', strtotime( (string) $row->wc_date_created ), new DateTimeZone( 'UTC' ) ),
 			'customer'        => array( 'name' => $billing_name, 'phone' => (string) $recipient['phone'] ),
 			'courier'         => array(

@@ -137,7 +137,7 @@ class ChangeOriginFeatureTest extends TestCase {
             hash_file( 'sha256', __DIR__ . '/../build/kiriminaja-official/assets/js/kiriof-change-origin.js' ),
             'Packaged Change Origin JavaScript must match source.'
         );
-        $this->assertStringContainsString( "'kiriminaja-transaction-process' === \$page", $enqueue );
+        $this->assertStringContainsString( "'kiriminaja-transaction' === \$page", $enqueue );
 
         $this->assertStringContainsString( "action: 'kiriof_change_origin_check',", $js );
         $this->assertStringContainsString( '$loading.show()', $js );

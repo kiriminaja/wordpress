@@ -8,10 +8,12 @@ import PaymentsList from '../lib/payments/PaymentsList.svelte';
 import PaymentsModals from '../lib/payments/PaymentsModals.svelte';
 import PickupDetail from '../lib/pickup-detail/PickupDetail.svelte';
 import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
+import TransactionDetail from '../lib/transaction-detail/TransactionDetail.svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
 import type { TransactionsBootstrap } from '../lib/transactions/types';
+import type { TransactionDetailBootstrap } from '../lib/transaction-detail/types';
 import shadcnStyles from '../styles/shadcn-onboarding.css?inline';
 import toolbarStyles from '../styles/toolbar.css?inline';
 import adminListStyles from '../styles/admin-list.css?inline';
@@ -19,13 +21,19 @@ import paymentsStyles from '../styles/payments-list.css?inline';
 import settingsStyles from '../styles/settings-root.css?inline';
 
 const workspacePages = new Set([
-  'kiriminaja-transaction-process',
+  'kiriminaja-transaction',
+  'kiriminaja-transaction-detail',
   'kiriminaja-request-pickup',
   'kiriminaja-request-pickup-detail',
-  'kiriminaja-konfigurasi',
+  'kiriminaja-setting',
 ]);
 
-type WorkspaceRoute = 'transactions' | 'payments' | 'pickup-detail' | 'settings';
+type WorkspaceRoute =
+  | 'transactions'
+  | 'transaction-detail'
+  | 'payments'
+  | 'pickup-detail'
+  | 'settings';
 type MountedComponent = ReturnType<typeof mount>;
 
 type RouteDefinition = {
@@ -38,11 +46,18 @@ type RouteDefinition = {
 
 const routes: RouteDefinition[] = [
   {
-    page: 'kiriminaja-transaction-process',
+    page: 'kiriminaja-transaction',
     shell: '[data-kiriof-transactions-page]',
     root: '[data-kiriof-transactions-root]',
     payload: '[data-kiriof-transactions-payload]',
     route: 'transactions',
+  },
+  {
+    page: 'kiriminaja-transaction-detail',
+    shell: '[data-kiriof-transaction-detail-page]',
+    root: '[data-kiriof-transaction-detail-root]',
+    payload: '[data-kiriof-transaction-detail-payload]',
+    route: 'transaction-detail',
   },
   {
     page: 'kiriminaja-request-pickup-detail',
@@ -59,7 +74,7 @@ const routes: RouteDefinition[] = [
     route: 'payments',
   },
   {
-    page: 'kiriminaja-konfigurasi',
+    page: 'kiriminaja-setting',
     shell: '[data-kiriof-settings-page]',
     root: '[data-kiriof-settings-root]',
     payload: '[data-kiriof-settings-payload]',
@@ -221,6 +236,10 @@ function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): voi
   else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
 }
 
+function renderTransactionDetail(host: HTMLElement, bootstrap: TransactionDetailBootstrap): void {
+  mounted = [mount(TransactionDetail, { target: host, props: { bootstrap } })];
+}
+
 function clearBootSkeleton(host: HTMLElement): void {
   // Server-rendered placeholder (templates/_workspace-boot.php) keeps the WP
   // content area from flashing blank. Svelte appends into the host, so remove
@@ -252,6 +271,8 @@ function render(source: ParentNode, route: RouteDefinition): void {
     host
       .closest<HTMLElement>('[data-kiriof-payments-page]')
       ?.classList.add('kiriof-payments-page--enhanced');
+  } else if (route.route === 'transaction-detail') {
+    renderTransactionDetail(host, parsePayload<TransactionDetailBootstrap>(source, route));
   } else if (route.route === 'pickup-detail') {
     const bootstrap = parsePayload<PickupDetailBootstrap>(source, route);
     mounted = [mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } })];
@@ -273,8 +294,8 @@ function isWorkspaceUrl(value: string | URL): value is string | URL {
 }
 
 function syncPluginMenu(source: Document): void {
-  const nextMenu = source.querySelector<HTMLElement>('#toplevel_page_kiriminaja-konfigurasi');
-  const currentMenu = document.querySelector<HTMLElement>('#toplevel_page_kiriminaja-konfigurasi');
+  const nextMenu = source.querySelector<HTMLElement>('#toplevel_page_kiriminaja-setting');
+  const currentMenu = document.querySelector<HTMLElement>('#toplevel_page_kiriminaja-setting');
   if (!nextMenu || !currentMenu) return;
 
   currentMenu.className = nextMenu.className;

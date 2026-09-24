@@ -85,7 +85,7 @@ class SettingController{
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing.
         $section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
 
-        $is_plugin_settings = 'kiriminaja-konfigurasi' === $page;
+        $is_plugin_settings = 'kiriminaja-setting' === $page;
         $is_wc_settings     = 'woocommerce_page_wc-settings' === $screen_id
             && ( '' === $tab || 'general' === $tab || 'kiriminaja_warehouses' === $tab );
 

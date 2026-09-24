@@ -4,7 +4,7 @@ export function isInternalSettingsUrl(href: string | undefined): boolean {
   return (
     url.origin === window.location.origin &&
     url.pathname === window.location.pathname &&
-    url.searchParams.get('page') === 'kiriminaja-konfigurasi'
+    url.searchParams.get('page') === 'kiriminaja-setting'
   );
 }
 

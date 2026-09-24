@@ -501,18 +501,63 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   min-width: 96px;
 }
 /* Auto-refresh countdown beside page-size: joined refresh + chevron buttons
-   with a compact interval popover, mirroring Shopify's s-button-group. */
+   with a compact interval popover, mirroring Shopify's s-button-group.
+   NOTE: bits-ui renders the popover trigger as a wrapper <button> around
+   the chevron, so the generic button-group `> *` fusion selectors miss the
+   inner button — fuse the segments explicitly here. */
 .kiriof-auto-refresh {
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+/* Refresh segment: flat right edge, no double border with the chevron. */
+.kiriof-auto-refresh > [data-slot='button']:first-child {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: 0 !important;
+}
+/* Neutralize the trigger wrapper so only the inner chevron button paints. */
+.kiriof-auto-refresh > [data-slot='popover-trigger'] {
+  display: inline-flex !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+/* Chevron segment: flat left edge, rounded right edge like the selects. */
+.kiriof-auto-refresh [data-slot='popover-trigger'] > [data-slot='button'] {
+  margin: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: var(--radius) !important;
+  border-bottom-right-radius: var(--radius) !important;
 }
 .kiriof-auto-refresh [data-slot='button'] {
   min-height: 34px !important;
   height: 34px !important;
+  margin: 0 !important;
+  border-color: #c7c3cc !important;
+  background: #fff !important;
+  color: #29252e !important;
   font-size: 13px !important;
+  box-shadow: none !important;
+}
+.kiriof-auto-refresh [data-slot='button']:hover:not(:disabled) {
+  border-color: #a99ccf !important;
+  background: var(--kiriof-primary-soft) !important;
+  color: var(--kiriof-primary) !important;
 }
 .kiriof-auto-refresh [data-slot='button'] > svg {
   width: 14px !important;
   height: 14px !important;
+  margin: 0 !important;
 }
 .kiriof-auto-refresh .kiriof-auto-refresh__chevron {
   padding-right: 6px !important;
@@ -1216,6 +1261,614 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
     margin-left: 0;
   }
   .kiriof-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Transaction detail workspace — mirrors the Shopify detail hierarchy while
+ * using the existing WordPress/Svelte surface tokens. */
+.kiriof-transaction-detail-app {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+}
+
+.kiriof-transaction-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: -10px 0 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--kiriof-primary, #5c2ecb);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kiriof-transaction-detail-back svg {
+  width: 16px;
+  height: 16px;
+}
+
+.kiriof-transaction-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 20px;
+}
+
+.kiriof-transaction-detail-main,
+.kiriof-transaction-detail-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.kiriof-transaction-detail-app [data-slot='card'] {
+  border-color: var(--kiriof-border, #ddd7ee);
+  box-shadow: 0 1px 2px rgb(36 27 61 / 4%);
+}
+
+.kiriof-transaction-detail-app [data-slot='card-header'] {
+  display: flex;
+  min-height: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 0;
+}
+
+.kiriof-transaction-detail-app [data-slot='card-title'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 14px;
+}
+
+.kiriof-transaction-detail-app [data-slot='card-title'] > svg {
+  width: 17px;
+  height: 17px;
+  color: var(--kiriof-primary, #5c2ecb);
+}
+
+.kiriof-transaction-detail-status [data-slot='card-content'] {
+  padding: 18px;
+}
+
+.kiriof-transaction-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kiriof-transaction-detail-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-transaction-detail-heading span,
+.kiriof-transaction-detail-heading small {
+  color: var(--kiriof-muted, #646970);
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-heading strong {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 17px;
+}
+
+.kiriof-transaction-detail-steps {
+  display: flex;
+  margin-top: 24px;
+}
+
+.kiriof-transaction-detail-step {
+  position: relative;
+  display: grid;
+  flex: 1 1 0;
+  gap: 5px;
+  min-width: 0;
+  color: var(--kiriof-muted, #646970);
+}
+
+.kiriof-transaction-detail-step > span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--kiriof-border, #ddd7ee);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.kiriof-transaction-detail-step > span svg {
+  width: 15px;
+  height: 15px;
+}
+
+.kiriof-transaction-detail-step.complete > span {
+  border-color: var(--kiriof-primary, #5c2ecb);
+  background: var(--kiriof-primary, #5c2ecb);
+  color: #fff;
+}
+
+.kiriof-transaction-detail-step > i {
+  position: absolute;
+  top: 13px;
+  right: 3px;
+  left: 28px;
+  height: 2px;
+  background: var(--kiriof-border, #ddd7ee);
+}
+
+.kiriof-transaction-detail-step.complete > i {
+  background: var(--kiriof-primary, #5c2ecb);
+}
+
+.kiriof-transaction-detail-step strong {
+  overflow: hidden;
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 12px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kiriof-transaction-detail-step small {
+  min-height: 15px;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.kiriof-transaction-detail-addresses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kiriof-transaction-detail-addresses [data-slot='card-content'] {
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px 18px;
+  color: var(--kiriof-muted, #646970);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.kiriof-transaction-detail-addresses strong {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+}
+
+.kiriof-transaction-detail-addresses a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--kiriof-primary, #5c2ecb);
+  text-decoration: none;
+}
+
+.kiriof-transaction-detail-addresses a svg {
+  width: 13px;
+  height: 13px;
+}
+
+.kiriof-transaction-detail-package {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+
+.kiriof-transaction-detail-package div {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-transaction-detail-package span,
+.kiriof-transaction-detail-products small,
+.kiriof-transaction-detail-notes strong {
+  color: var(--kiriof-muted, #646970);
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-package strong {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+}
+
+.kiriof-transaction-detail-products {
+  display: grid;
+  padding: 6px 18px 12px;
+}
+
+.kiriof-transaction-detail-products > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 18px;
+  align-items: center;
+  padding: 11px 0;
+  border-top: 1px solid #eeeaf8;
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-products > div > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-transaction-detail-products p,
+.kiriof-transaction-detail-notes > p,
+.kiriof-transaction-detail-tracking p {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--kiriof-muted, #646970);
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-order-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--kiriof-primary, #5c2ecb);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kiriof-transaction-detail-order-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.kiriof-transaction-detail-notes {
+  display: grid;
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+
+.kiriof-transaction-detail-notes div {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-transaction-detail-notes p {
+  margin: 0;
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.kiriof-transaction-detail-shipment [data-slot='card-content'] {
+  display: grid;
+  gap: 14px;
+  padding: 14px 18px 18px;
+}
+
+.kiriof-transaction-detail-courier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+}
+
+.kiriof-transaction-detail-courier img {
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  border: 1px solid var(--kiriof-border, #ddd7ee);
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.kiriof-transaction-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kiriof-transaction-detail-awb {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 7px;
+  background: #f7f5fb;
+}
+
+.kiriof-transaction-detail-awb span,
+.kiriof-transaction-detail-awb code {
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-awb span {
+  color: var(--kiriof-muted, #646970);
+}
+
+.kiriof-transaction-detail-awb code {
+  overflow-wrap: anywhere;
+  color: var(--kiriof-ink, #241b3d);
+  font-weight: 650;
+}
+
+.kiriof-transaction-detail-costs {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.kiriof-transaction-detail-costs div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--kiriof-muted, #646970);
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-costs dd {
+  margin: 0;
+  color: var(--kiriof-ink, #241b3d);
+  font-weight: 600;
+}
+
+.kiriof-transaction-detail-costs .discount dd {
+  color: #147d45;
+}
+
+.kiriof-transaction-detail-costs .total,
+.kiriof-transaction-detail-costs .cod {
+  padding-top: 9px;
+  border-top: 1px solid #eeeaf8;
+}
+
+.kiriof-transaction-detail-costs .total dt,
+.kiriof-transaction-detail-costs .total dd,
+.kiriof-transaction-detail-costs .cod dt,
+.kiriof-transaction-detail-costs .cod dd {
+  color: var(--kiriof-ink, #241b3d);
+  font-weight: 700;
+}
+
+.kiriof-transaction-detail-shipment [data-slot='button'] {
+  width: 100%;
+  justify-content: center;
+}
+
+.kiriof-transaction-detail-tracking [data-slot='card-content'] {
+  padding: 8px 18px 18px;
+}
+
+.kiriof-transaction-detail-tracking ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kiriof-transaction-detail-tracking li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.kiriof-transaction-detail-tracking li:not(:last-child)::after {
+  position: absolute;
+  top: 31px;
+  bottom: -1px;
+  left: 9px;
+  width: 2px;
+  background: #e5dffc;
+  content: '';
+}
+
+.kiriof-transaction-detail-tracking li > span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--kiriof-primary-soft, #f5f0ff);
+  color: var(--kiriof-primary, #5c2ecb);
+}
+
+.kiriof-transaction-detail-tracking li svg {
+  width: 13px;
+  height: 13px;
+}
+
+.kiriof-transaction-detail-tracking li div {
+  display: grid;
+  gap: 3px;
+}
+
+.kiriof-transaction-detail-tracking li strong {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.kiriof-transaction-detail-tracking li small {
+  color: var(--kiriof-muted, #646970);
+  font-size: 11px;
+}
+
+.kiriof-transaction-detail-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 960px) {
+  .kiriof-transaction-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kiriof-transaction-detail-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .kiriof-transaction-detail-addresses,
+  .kiriof-transaction-detail-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .kiriof-transaction-detail-steps {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .kiriof-transaction-detail-step {
+    flex-basis: 130px;
+    min-width: 130px;
+  }
+
+  .kiriof-transaction-detail-products > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .kiriof-transaction-detail-products > div > strong {
+    grid-column: 2;
+  }
+}
+
+/* Detail screens use the same full-width workspace and list-card surface as
+ * Transactions. These rules intentionally follow the first detail pass. */
+.kiriof-workspace-shell .kiriof-transaction-detail-app {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.kiriof-transaction-detail-app .kiriof-app-toolbar {
+  margin-bottom: 18px;
+}
+
+.kiriof-transaction-detail-app .kiriof-app-toolbar [data-slot='button'] {
+  min-height: 34px;
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 14px;
+}
+
+.kiriof-transaction-detail-main,
+.kiriof-transaction-detail-sidebar {
+  gap: 14px;
+}
+
+.kiriof-transaction-detail-app .kiriof-admin-list-card[data-slot='card'] {
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-header'] {
+  min-height: 48px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eeeaf8;
+}
+
+.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-content'] {
+  padding: 14px 16px;
+}
+
+.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-title'] {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-title'] > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.kiriof-transaction-detail-status [data-slot='card-content'] {
+  padding: 12px 16px 16px !important;
+}
+
+.kiriof-transaction-detail-reference {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--kiriof-muted, #646970);
+  font-size: 12px;
+}
+
+.kiriof-transaction-detail-reference strong {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.kiriof-transaction-detail-reference span {
+  font-size: 11px;
+}
+
+.kiriof-transaction-detail-steps {
+  margin-top: 16px;
+}
+
+.kiriof-transaction-detail-step strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.kiriof-transaction-detail-addresses [data-slot='card-content'] {
+  padding: 14px 16px 16px !important;
+}
+
+.kiriof-transaction-detail-address strong,
+.kiriof-transaction-detail-courier strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.kiriof-transaction-detail-package,
+.kiriof-transaction-detail-notes {
+  padding: 14px 16px 16px !important;
+}
+
+.kiriof-transaction-detail-products {
+  padding: 0 16px 4px !important;
+}
+
+.kiriof-transaction-detail-products > div {
+  padding: 10px 0;
+}
+
+.kiriof-transaction-detail-shipment [data-slot='card-content'] {
+  padding: 14px 16px 16px !important;
+}
+
+.kiriof-transaction-detail-tracking [data-slot='card-content'] {
+  padding: 6px 16px 14px !important;
+}
+
+.kiriof-transaction-detail-back {
+  margin: -4px 0 14px;
+  font-size: 12px;
+}
+
+@media (max-width: 960px) {
+  .kiriof-transaction-detail-grid {
     grid-template-columns: 1fr;
   }
 }
