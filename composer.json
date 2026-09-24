@@ -24,9 +24,14 @@
   },
   "require-dev": {
     "brianium/paratest": "~7.3.0",
-    "php-stubs/wordpress-stubs": "^7.1"
+    "php-stubs/wordpress-stubs": "^7.1",
+    "phpstan/phpstan": "^2.2",
+    "szepeviktor/phpstan-wordpress": "^2.0"
   },
   "require": {
     "kiriminaja/kiriminaja-php": "^2.1"
+  },
+  "scripts": {
+    "phpstan": "phpstan analyse --memory-limit=1G"
   }
 }
