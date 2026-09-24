@@ -59,8 +59,33 @@ Maximum package weight is 40,000 grams.
 | Cancel Instant package | `DELETE /api/mitra/v4/instant/pickup/void/{order_id}` |
 | Payment status | `POST /api/mitra/v2/get_payment` |
 | Register callback | `POST /api/mitra/set_callback` |
+| Instant shipment events | Instant webhook: `POST instantShipmentEvent` (see OpenAPI `webhooks.instantShipmentEvent`) |
 
 The v6.2 Instant request pickup endpoint should be the default target unless KiriminAja requires the legacy v4 endpoint for a specific account or rollout.
+
+### Instant webhook contract
+
+The Instant webhook handler is very different from the Express delivery webhook. The authoritative contract is:
+
+- [`POST instantShipmentEvent`](https://developer.kiriminaja.com/docs#webhook/POST/instantshipmentevent)
+
+Key differences confirmed from the OpenAPI `instantShipmentEvent` schema:
+
+- Allowed `method` values are only:
+  - `shipped_packages`
+  - `canceled_packages`
+  - `finished_packages`
+- There is no Instant equivalent of Express `processed_packages`, `returned_packages`, `validated_packages`, `rejected_packages`, `problem_packages`, or `return_finished_packages`.
+- The `packages[]` entries expose a different model from Express, including:
+  - `awb`
+  - `order_id`
+  - `service`
+  - `service_type`
+  - `status`
+  - `live_tracking_url`
+  - `poly_line`
+- Instant tracking is intentionally thin: do not render the Express-style tracking history. Persist and render `live_tracking_url` from the Instant webhook instead.
+- Prefer Instant webhook events for shipment status; use `GET /api/mitra/v4/instant/tracking/{order_id}` only as a fallback when webhook delivery is unavailable.
 
 ### Pricing field mapping
 
@@ -167,6 +192,11 @@ Required adjustment:
 - Keep Express and Instant eligibility distinct.
 - Store courier type alongside courier code in the settings layer.
 - Only expose Instant couriers when the account and plugin configuration support Instant delivery.
+- Separate the courier settings/list UI into delivery-type tabs:
+  - `Express`
+  - `Instant`
+  - `International (Coming soon, not rendered)` in the MVP; the International tab shows only the Coming soon state and does not render a courier list.
+- Relevant courier list/settings entry points include `kiriof_get_courier_whitelist`, `kiriof_store_courier_whitelist`, `kiriminaja_search_expedition`, and the onboarding courier step.
 
 ## 2. Checkout does not capture destination coordinates
 
@@ -418,14 +448,22 @@ Required adjustment:
 
 - Route tracking and cancellation by `delivery_type`.
 - Add an Instant tracking response normalizer.
-- Render a shared tracking view from normalized tracking data.
+- Do not render Express-style tracking history for Instant; render the Instant `live_tracking_url` supplied by the Instant webhook instead.
+- Only use `GET /api/mitra/v4/instant/tracking/{order_id}` as a fallback for fetching `live_tracking_url` when webhook delivery is unavailable.
 - Preserve `live_tracking_url` when present.
 - Treat Instant body `code: 0` as success and `code: 2` as data not found.
 - Prefer webhooks and use tracking polling as fallback because tracking is rate-limited.
 
-## 11. Webhook handling only covers the basic shared lifecycle
+## 11. Instant webhook handling is a separate contract
 
-The current callback handler understands package lifecycle events such as shipped, finished, and canceled. It normally receives and stores an AWB through an Express processed event.
+The current callback handler is Express-oriented. Express supports `processed_packages`, `shipped_packages`, `canceled_packages`, `finished_packages`, `returned_packages`, `problem_packages`, and deprecated `return_finished_packages`.
+
+The Instant webhook contract is different and narrower. The authoritative reference is [`POST instantShipmentEvent`](https://developer.kiriminaja.com/docs#webhook/POST/instantshipmentevent):
+
+- Allowed Instant methods are only `shipped_packages`, `canceled_packages`, and `finished_packages`.
+- Instant `packages[]` entries contain `awb`, `order_id`, `service`, `service_type`, `status`, `live_tracking_url`, and `poly_line`.
+- There is no Instant `processed_packages` AWB event; persist tracking code/AWB from the Instant booking response.
+- There is no COD/non-COD distinction in the Instant webhook payload.
 
 Relevant implementation:
 
@@ -435,9 +473,12 @@ Instant webhooks may provide summary data and package data in separate root prop
 
 Required adjustment:
 
+- Add a separate Instant webhook branch/handler instead of reusing Express lifecycle handling.
+- Accept only `shipped_packages`, `canceled_packages`, and `finished_packages` for Instant.
 - Persist the tracking code or AWB from the Instant booking response instead of waiting for an Express processed event.
 - Merge webhook `data` and `packages` by `order_id` when both are available.
 - Persist live tracking URL, package status, and other useful Instant fields.
+- Do not reuse Express COD/non-COD transaction labeling for Instant. In the transaction row section that currently shows COD/non-COD, show the vehicle used to send the package instead.
 - Keep webhook processing idempotent.
 - Handle duplicate and out-of-order events.
 - Define WooCommerce order status transitions for allocated, shipped, finished, canceled, and failed Instant deliveries.
@@ -718,8 +759,9 @@ Requirements:
 - Instant Delivery filters support WooCommerce order or KiriminAja order/tracking lookup, transaction status, courier, and payment method. Express pickup schedule filters are not required for Instant.
 - `Order Issue` continues to show COD Deficit transactions according to the existing workflow. It does not collect Instant pricing, booking, payment, webhook, or retry issues in the MVP.
 - Instant operational problems remain in the Instant Delivery tab and are represented by an issue badge, actionable error message, and the appropriate retry, reprice, or resolution action.
-- Instant rows show delivery type, courier/service, payment method, WooCommerce order, KiriminAja order ID, tracking code or AWB, package and fee summary, current status, and state-appropriate actions.
-- Instant actions include dispatch, safe retry, reprice, tracking, and void/cancel only when the remote shipment state allows it.
+- Instant has a special `Find New Driver` status/state. When this status is shown, the Instant table row must expose a `Find New Driver` action/button.
+- Instant rows show delivery type, courier/service, vehicle used to send the package, payment method, WooCommerce order, KiriminAja order ID, tracking code or AWB, package and fee summary, current status, and state-appropriate actions. There is no COD/non-COD display for Instant rows.
+- Instant actions include dispatch, safe retry, reprice, tracking, `Find New Driver` when that status applies, and void/cancel only when the remote shipment state allows it.
 - Show confirmation before dispatch, retry, or void actions. For price changes, show the checkout quote and current quote in the confirmation step.
 - Bulk Instant dispatch enforces the grouping rules: same origin, courier, vehicle, and payment method. Each package remains an independent API request and partial success is reported per row.
 - When a tab has no transactions, show a useful empty state with the relevant next action instead of an unfiltered generic empty table.
@@ -730,9 +772,11 @@ Requirements:
 - A successfully dispatched order remains `processing` during delivery.
 - A successful Instant delivery webhook moves the WooCommerce order to `completed` automatically.
 - A failed or remotely canceled delivery leaves the order `processing` and adds an order note for manual handling.
+- Instant has a special `Find New Driver` state. When present, the Instant table exposes the `Find New Driver` action while the order remains actionable; the implementation must confirm the KiriminAja trigger/endpoint and terminal-state rules for this action.
 - Canceling a dispatched WooCommerce order attempts the Instant void endpoint first and records the remote result.
 - Live tracking is available to administrators and the authenticated buyer who owns the order.
 - Show live tracking from My Account order detail and the plugin tracking page. The tracking page must validate the WooCommerce order key before exposing the live URL.
+- For Instant, render only the webhook-supplied tracking URL; do not render Express-style tracking history.
 - An Instant transaction with a post-dispatch API or webhook problem remains in the Instant Delivery tab and receives an issue badge; it does not move to the COD Deficit `Order Issue` tab.
 
 ### Explicit MVP exclusions
@@ -757,6 +801,7 @@ These are production-readiness dependencies to confirm with KiriminAja or infras
 3. Confirm OpenStreetMap standard tile usage is acceptable for the expected production traffic, or provide a production tile service before launch.
 4. Confirm the production `package_type_id` value. The MVP temporarily uses `7`, taken from the OpenAPI example.
 5. Confirm the production success and error response contract for v6.2 Instant booking. The OpenAPI page labels its success response as a mock shape, so the implementation must normalize defensively and validate Sandbox responses.
+6. Confirm the KiriminAja trigger, payload/status value, endpoint/action, retry semantics, and terminal-state transitions for the special Instant `Find New Driver` state.
 
 The representative Instant request and response examples should be taken from the KiriminAja developer documentation and OpenAPI reference during implementation:
 
@@ -839,7 +884,8 @@ Classic and Block work may run in parallel after the normalized Instant rate and
 - A transaction appears in exactly one delivery tab. COD Deficit records appear in `Order Issue`; Instant operational issues remain in Instant with an issue badge.
 - Instant transactions never appear in the Regular Delivery list.
 - Bulk selection cannot span Regular and Instant tabs and cannot dispatch incompatible Instant groups.
-- Instant rows expose the correct dispatch, repricing, tracking, retry, and void actions for their state.
+- Instant rows expose the correct dispatch, repricing, tracking, retry, `Find New Driver`, and void actions for their state.
+- The COD/non-COD transaction column is replaced by the vehicle for Instant rows.
 - Instant API and data-quality failures remain visible in Instant with an actionable reason and retry or resolution path.
 - Empty states and filters are specific to the selected tab.
 
@@ -856,6 +902,7 @@ Classic and Block work may run in parallel after the normalized Instant rate and
 - Instant orders use Instant endpoints.
 - Express orders continue to use Express endpoints.
 - Instant tracking displays driver and live tracking data when available.
+- Instant tracking does not render Express-style history; it renders the webhook-supplied tracking URL.
 - Cancellation records the remote result and local transaction state consistently.
 
 ### Webhooks
@@ -864,6 +911,7 @@ Classic and Block work may run in parallel after the normalized Instant rate and
 - Out-of-order webhooks do not move a finished order back to an earlier state.
 - Instant package data is merged by `order_id`.
 - Live tracking and package status are retained when supplied.
+- Instant webhooks accept only `shipped_packages`, `canceled_packages`, and `finished_packages`; Express-only methods are not reused for Instant.
 
 ## Test Coverage Required
 
