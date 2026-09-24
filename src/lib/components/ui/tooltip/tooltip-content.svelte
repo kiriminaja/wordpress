@@ -6,7 +6,7 @@
 	let {
 		ref = $bindable(null),
 		class: className,
-		sideOffset = 2,
+		sideOffset = 5,
 		children,
 		...restProps
 	}: WithoutChildrenOrChild<TooltipPrimitive.ContentProps> & { children?: Snippet } = $props();
