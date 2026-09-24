@@ -35,25 +35,6 @@ class SettingsPageData {
 	}
 
 	/**
-	 * Build a stable connected-account shell when the live profile endpoint is
-	 * temporarily unavailable.
-	 */
-	private function fallbackConnectedProfile(): object {
-		$store_name = (string) get_option( 'blogname', __( 'Connected KiriminAja Account', 'kiriminaja-official' ) );
-		$email      = (string) get_option( 'admin_email', '' );
-		$is_top_row = $this->setting_repository->getSettingByKey( 'is_top' );
-
-		return (object) array(
-			'name'     => '' !== trim( $store_name ) ? $store_name : __( 'Connected KiriminAja Account', 'kiriminaja-official' ),
-			'email'    => $email,
-			'status'   => 'connected',
-			'metadata' => (object) array(
-				'payment_method' => is_object( $is_top_row ) && 'yes' === (string) ( $is_top_row->value ?? '' ) ? 'TOP' : '',
-			),
-		);
-	}
-
-	/**
 	 * @param array<string, mixed> $account Prepared account data.
 	 * @return array<string, mixed>
 	 */
@@ -66,13 +47,6 @@ class SettingsPageData {
 				'code' => $code,
 				'name' => $account['kiriof_wl_map'][ $code ] ?? strtoupper( $code ),
 			);
-		}
-
-		// The credentials are the source of truth for connection state. A
-		// temporary profile API failure must not regress the account page into
-		// the old disconnect-only error state.
-		if ( $is_connected && ! $profile ) {
-			$profile = $this->fallbackConnectedProfile();
 		}
 
 		return array(

@@ -22,7 +22,7 @@ class KiriminajaApiService extends BaseService{
     public function sub_district_search($search)
     {
         $repo = $this->repository->sub_district_search($search);
-        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
+        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) ) {
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
         return self::success($repo['data']->result);
@@ -168,7 +168,14 @@ class KiriminajaApiService extends BaseService{
             return self::error( array(), $this->extractErrorMessage( $repo, 'Failed to load profile' ) );
         }
 
-        $profile = $repo['data']->results;
+        $body = $repo['data'];
+        $profile = $body->results ?? $body->result ?? $body->data ?? null;
+        if ( null === $profile && ( isset( $body->name ) || isset( $body->email ) || isset( $body->metadata ) ) ) {
+            $profile = $body;
+        }
+        if ( empty( $profile ) ) {
+            return self::error( array(), $this->extractErrorMessage( $repo, 'Failed to load profile' ) );
+        }
         set_transient(self::KIRIOF_PROFILE_CACHE_KEY, $profile, self::KIRIOF_PROFILE_CACHE_TTL);
         set_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY, $profile, DAY_IN_SECONDS);
 

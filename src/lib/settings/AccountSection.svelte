@@ -97,6 +97,7 @@
         <div class="kiriof-setup-key-field">
           <Input
             id="kiriof-account-key"
+            class="kiriof-setup-key-input"
             type={revealSetupKey ? 'text' : 'password'}
             bind:value={setupKey}
             placeholder={bootstrap.i18n.setupKeyPlaceholder}
@@ -123,8 +124,8 @@
         {#if message}<p class="kiriof-section-message error" role="alert">{message}</p>{/if}
 
         <Button class="kiriof-update-connection" disabled={busy || !setupKey.trim()} onclick={updateConnection}>
-          <IconLink data-icon="inline-start" />
-          {busy ? bootstrap.i18n.connecting : connected ? bootstrap.i18n.updateConnection : bootstrap.i18n.connect}
+          <IconLink class="kiriof-update-connection__icon" aria-hidden="true" />
+          <span>{busy ? bootstrap.i18n.connecting : connected ? bootstrap.i18n.updateConnection : bootstrap.i18n.connect}</span>
         </Button>
       </div>
 

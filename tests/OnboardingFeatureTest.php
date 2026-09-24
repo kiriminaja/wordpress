@@ -189,6 +189,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'kiriof-account-courier-grid', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
 		$this->assertStringContainsString( 'kiriof-credentials-guide', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
 		$this->assertStringContainsString( 'updateConnection', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'class="kiriof-setup-key-input"', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-update-connection__icon', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/Toolbar.svelte' );
@@ -203,6 +205,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) #wpcontent', $toolbarStyles );
 		$this->assertStringContainsString( '.kiriof-connection-layout', $styles );
+		$this->assertStringContainsString( "[data-slot='input'].kiriof-setup-key-input", $styles );
+		$this->assertStringContainsString( 'display: inline-flex !important;', $styles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
 		$this->assertStringContainsString( 'history.pushState', $entry );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );

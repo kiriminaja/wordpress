@@ -13,10 +13,77 @@ use KiriminAja\Responses\ServiceResponse;
 
 class KiriminAjaApi {
     protected string $base_url;
+    protected string $api_token = '';
 
     public function __construct() {
         $this->base_url = $this->resolve_base_url();
         $this->configure_sdk();
+    }
+
+    private function build_wordpress_agent(): string {
+        global $wp_version;
+
+        return sprintf(
+            'KiriminAjaOfficial/%s WordPress/%s WooCommerce/%s PHP/%s; %s',
+            defined( 'KIRIOF_VERSION' ) ? KIRIOF_VERSION : 'unknown',
+            isset( $wp_version ) ? (string) $wp_version : 'unknown',
+            defined( 'WC_VERSION' ) ? WC_VERSION : 'unknown',
+            PHP_VERSION,
+            function_exists( 'get_bloginfo' ) ? (string) get_bloginfo( 'url' ) : ''
+        );
+    }
+
+    /**
+     * Use WordPress HTTP for endpoints whose SDK normalizer is not compatible
+     * with all currently deployed response envelopes.
+     */
+    protected function get_with_wordpress( string $endpoint, array $body = array(), array $log_context = array() ): array {
+        $request_meta = $this->build_request_log_context( 'GET', $endpoint, $body, $log_context );
+        $url          = $this->base_url . '/' . ltrim( $endpoint, '/' );
+
+        $response = wp_remote_get(
+            $url,
+            array(
+                'timeout'     => 30,
+                'redirection' => 5,
+                'headers'     => array(
+                    'Authorization' => 'Bearer ' . $this->api_token,
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => 'application/json',
+                    'User-Agent'    => 'wordpress',
+                    'X-WP-Agent'    => $this->build_wordpress_agent(),
+                ),
+                'body'        => $body,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $this->error_response( $response->get_error_message() );
+        }
+
+        $status_code = (int) wp_remote_retrieve_response_code( $response );
+        $raw_body    = wp_remote_retrieve_body( $response );
+        $decoded     = json_decode( $raw_body, true );
+        if ( $status_code < 200 || $status_code >= 300 ) {
+            return $this->error_response(
+                is_array( $decoded ) ? $this->extract_api_error( $decoded ) : 'Error ' . $status_code
+            );
+        }
+        if ( ! is_array( $decoded ) ) {
+            return $this->error_response( 'Invalid API response' );
+        }
+        if ( isset( $decoded['status'] ) && false === $decoded['status'] ) {
+            return $this->error_response( $this->extract_api_error( $decoded ) );
+        }
+
+        if ( apply_filters( 'kiriof_api_debug_logging', false, $request_meta, $decoded ) ) {
+            kiriof_log( 'debug', 'KiriminAja WordPress HTTP request completed successfully.', $request_meta );
+        }
+
+        return array(
+            'status' => true,
+            'data'   => $this->objectify( $decoded ),
+        );
     }
 
     protected function call_sdk( callable $callback, callable $success_formatter ): array {
@@ -105,6 +172,7 @@ class KiriminAjaApi {
     private function configure_sdk(): void {
         $api_token_row = kiriof_setting_repository()->getSettingByKey( 'api_key' );
         $api_token     = is_object( $api_token_row ) ? (string) ( $api_token_row->value ?? '' ) : '';
+        $this->api_token = $api_token;
 
         try {
             KiriminAjaConfig::setCacheDirectory( trailingslashit( get_temp_dir() ) . 'kiriminaja-sdk' );

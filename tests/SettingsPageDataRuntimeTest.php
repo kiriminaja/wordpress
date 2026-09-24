@@ -71,37 +71,6 @@ if ( ! function_exists( 'wp_date' ) ) {
 
 final class SettingsPageDataRuntimeTest extends TestCase {
 	#[Test]
-	public function connected_account_keeps_a_profile_shell_when_the_remote_profile_is_unavailable(): void {
-		$GLOBALS['kiriof_settings_page_options'] = array(
-			'blogname'    => 'Fallback Store',
-			'admin_email' => 'owner@example.test',
-		);
-		$settings = $this->createMock( SettingRepository::class );
-		$settings->method( 'getSettingByKey' )->willReturnMap(
-			array(
-				array( 'setup_key', (object) array( 'value' => 'setup-123' ) ),
-				array( 'is_top', (object) array( 'value' => 'yes' ) ),
-			)
-		);
-		$settings->method( 'getSettingByArray' )->willReturn( array() );
-		$readiness = $this->createMock( ProductVolumetricReadinessService::class );
-		$api = $this->createMock( KiriminajaApiService::class );
-		$api->method( 'getProfile' )->willReturn( (object) array( 'status' => 400, 'data' => array() ) );
-		$region = $this->createMock( ShippingDiscountRegionRepository::class );
-		$cache = $this->createMock( ShippingDiscountRegionCacheService::class );
-
-		$provider = new SettingsPageData( $settings, $readiness, $api, $region, $cache );
-		$account = $provider->prepareAccount();
-		$bootstrap = $provider->prepareAccountBootstrap( $account );
-
-		$this->assertTrue( $bootstrap['connected'] );
-		$this->assertSame( 'Fallback Store', $bootstrap['profile']['name'] );
-		$this->assertSame( 'owner@example.test', $bootstrap['profile']['email'] );
-		$this->assertSame( 'TOP', $bootstrap['profile']['paymentMethod'] );
-		$this->assertTrue( $bootstrap['profileError'] );
-	}
-
-	#[Test]
 	public function prepares_existing_setting_shapes_and_whitelist_names(): void {
 		$setup_key = (object) array( 'key' => 'setup_key', 'value' => 'setup-123' );
 		$shipping  = array(

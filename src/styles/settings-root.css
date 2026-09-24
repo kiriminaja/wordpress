@@ -187,10 +187,37 @@
   position: relative;
 }
 
-.kiriof-setup-key-field [data-slot='input'] {
-  width: 100%;
-  height: 36px;
-  padding-right: 38px;
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input {
+  box-sizing: border-box !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 7px 38px 7px 11px !important;
+  border: 1px solid var(--input) !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: var(--foreground) !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 20px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  appearance: none !important;
+}
+
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 1 !important;
+}
+
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input:focus,
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input:focus-visible {
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent) !important;
 }
 
 .kiriof-setup-key-toggle {
@@ -247,7 +274,61 @@
 }
 
 .kiriof-update-connection {
-  width: fit-content;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  width: fit-content !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.kiriof-update-connection:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--primary) 84%, black) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.kiriof-update-connection:focus-visible {
+  border-color: var(--ring) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 22%, transparent) !important;
+}
+
+.kiriof-update-connection:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
+
+.kiriof-update-connection > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+.kiriof-update-connection .kiriof-update-connection__icon {
+  display: block !important;
+  width: 15px !important;
+  min-width: 15px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  flex: 0 0 15px !important;
+  margin: 0 !important;
+  stroke-width: 2 !important;
 }
 
 .kiriof-credentials-guide {

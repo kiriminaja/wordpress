@@ -28,8 +28,7 @@ final class KiriminAjaSdkMigrationTest extends TestCase
         $this->assertStringContainsString('use KiriminAja\\Base\\Api\\Api;', $api);
         $this->assertStringContainsString('use KiriminAja\\Base\\Config\\KiriminAjaConfig;', $api);
         $this->assertStringContainsString('new Api()', $api);
-        $this->assertStringNotContainsString('wp_remote_get', $api);
-        $this->assertStringNotContainsString('wp_remote_post', $api);
+        $this->assertStringContainsString('wp_remote_get', $api);
     }
 
     #[Test]
@@ -48,12 +47,12 @@ final class KiriminAjaSdkMigrationTest extends TestCase
                 'KiriminAja::getProvince()',
                 'KiriminAja::getCity(',
                 'KiriminAja::cancelShipment(',
-                'KiriminAja::getProfile()',
                 'KiriminAja::getCreditBalance()',
             ) as $sdk_call
         ) {
             $this->assertStringContainsString($sdk_call, $repository);
         }
+		$this->assertStringContainsString("get_with_wordpress(\n\t\t\t'/api/mitra/v6.2/profile'", $repository);
     }
 
     #[Test]

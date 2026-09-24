@@ -217,50 +217,13 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function getProfile() {
-        $sdk_response = $this->call_sdk(
-            static fn() => KiriminAja::getProfile(),
-            static fn( $data, $message ) => array(
-                'status'  => true,
-                'text'    => $message,
-                'results' => $data,
-            )
-        );
-
-		if ( ! empty( $sdk_response['status'] ) && ! empty( $sdk_response['data']->results ) ) {
-			return $sdk_response;
-		}
-
-		// Some profile API versions return `result` or `data` instead of
-		// `results`. The SDK currently discards those successful payloads, so
-		// retain a direct, authenticated fallback and normalize it here.
-		$fallback = $this->get(
+		return $this->get_with_wordpress(
 			'/api/mitra/v6.2/profile',
 			array(),
 			array(
-				'source'    => 'kiriminaja_settings',
-				'operation' => 'get_profile_fallback',
+				'source'    => 'kiriminaja_api',
+				'operation' => 'get_profile',
 			)
-		);
-		if ( empty( $fallback['status'] ) || ! is_object( $fallback['data'] ?? null ) ) {
-			return $sdk_response;
-		}
-
-		$body    = $fallback['data'];
-		$profile = $body->results ?? $body->result ?? $body->data ?? null;
-		if ( null === $profile && ( isset( $body->name ) || isset( $body->email ) || isset( $body->metadata ) ) ) {
-			$profile = $body;
-		}
-		if ( empty( $profile ) ) {
-			return $sdk_response;
-		}
-
-		return array(
-			'status' => true,
-			'data'   => (object) array(
-				'status'  => true,
-				'text'    => (string) ( $body->text ?? $body->message ?? 'Profile loaded' ),
-				'results' => $profile,
-			),
 		);
     }
 
