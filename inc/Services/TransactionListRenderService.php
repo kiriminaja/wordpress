@@ -82,7 +82,7 @@ class TransactionListRenderService {
 
 		$toolbar = array(
 				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
-				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-setting' ),
 				'rootLabel' => __( 'Transactions', 'kiriminaja-official' ),
 				'title'     => __( 'Transactions', 'kiriminaja-official' ),
 		);
@@ -103,6 +103,7 @@ class TransactionListRenderService {
 				),
 			),
 		);
+		$toolbar = RevampAnnouncementService::attach_announcement( $toolbar );
 
 		$kiriof_transactions_bootstrap = array(
 			'toolbar'      => $toolbar,
@@ -171,6 +172,12 @@ class TransactionListRenderService {
 				'cancel'       => __( 'Cancel', 'kiriminaja-official' ),
 				'printedLabel' => __( 'Printed', 'kiriminaja-official' ),
 				'unprintedLabel'=> __( 'Not Printed', 'kiriminaja-official' ),
+				'autoRefresh'  => __( 'Auto Refresh Timer', 'kiriminaja-official' ),
+				'refreshLabels'=> array(
+					'60'  => __( '1 minute', 'kiriminaja-official' ),
+					'180' => __( '3 minutes', 'kiriminaja-official' ),
+					'300' => __( '5 minutes', 'kiriminaja-official' ),
+				),
 				'pickupDate'  => __( 'Pickup Date', 'kiriminaja-official' ),
 				'pickupTime'  => __( 'Pickup Time', 'kiriminaja-official' ),
 				'weight'      => __( 'Weight', 'kiriminaja-official' ),

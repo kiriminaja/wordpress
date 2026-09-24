@@ -2500,6 +2500,30 @@ msgstr "Sudah Dicetak"
 msgid "Unprinted"
 msgstr "Belum Dicetak"
 
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "Auto Refresh Timer"
+msgstr "Timer Penyegaran Otomatis"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "1 minute"
+msgstr "1 menit"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "3 minutes"
+msgstr "3 menit"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "5 minutes"
+msgstr "5 menit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Not Printed"
+msgstr "Belum Dicetak"
+
 #: templates/transaction-process/view/index.php:401
 msgid "Order must have an AWB and request pickup status before it can be printed."
 msgstr "Pesanan harus memiliki resi dan status request pickup sebelum dapat dicetak."
@@ -3903,3 +3927,19 @@ msgstr "Dapatkan Bantuan"
 #: inc/Services/PickupDetailPageData.php
 msgid "Go to Dashboard"
 msgstr "Ke Dasbor"
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "KiriminAja is now easier to use"
+msgstr "KiriminAja kini lebih mudah digunakan"
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "We updated the Transactions, Pickup, Settings, and Tracking pages so you can find what you need more quickly."
+msgstr "Kami memperbarui halaman Transaksi, Pickup, Pengaturan, dan Pelacakan agar Anda lebih cepat menemukan yang dibutuhkan."
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Share Your Feedback"
+msgstr "Bagikan Masukan Anda"
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Start Using KiriminAja"
+msgstr "Mulai Gunakan KiriminAja"

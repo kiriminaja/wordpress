@@ -500,6 +500,33 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   width: auto;
   min-width: 96px;
 }
+/* Auto-refresh countdown beside page-size: joined refresh + chevron buttons
+   with a compact interval popover, mirroring Shopify's s-button-group. */
+.kiriof-auto-refresh {
+  flex-shrink: 0;
+}
+.kiriof-auto-refresh [data-slot='button'] {
+  min-height: 34px !important;
+  height: 34px !important;
+  font-size: 13px !important;
+}
+.kiriof-auto-refresh [data-slot='button'] > svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+.kiriof-auto-refresh .kiriof-auto-refresh__chevron {
+  padding-right: 6px !important;
+  padding-left: 6px !important;
+}
+.kiriof-auto-refresh__popover {
+  width: auto !important;
+  min-width: 140px !important;
+  padding: 4px !important;
+}
+.kiriof-auto-refresh__popover [data-slot='button'] {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
 .kiriof-transactions-filterrow {
   display: grid;
   grid-template-columns: minmax(270px, 1.2fr) repeat(3, minmax(160px, 1fr)) minmax(190px, 1.1fr);

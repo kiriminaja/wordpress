@@ -34,6 +34,7 @@
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
+  import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
   import { courierImage } from './courier-images';
@@ -53,6 +54,11 @@
 
   function openPickupDialog(): void {
     if (pickupOrderIds.length > 0) pickupDialogOpen = true;
+  }
+
+  /** Re-run the current list query, preserving every filter + pagination state. */
+  function refreshList(): void {
+    void navigate({});
   }
 
   function scheduleSearch(): void {
@@ -296,6 +302,14 @@
               {#each ['10', '25', '50', '100'] as size}<Select.Item value={size}>{size}</Select.Item>{/each}
             </Select.Content>
           </Select.Root>
+          <AutoRefresh
+            storageKey="kiriof-transactions-refresh-interval"
+            loading={refreshing}
+            disabled={pickupDialogOpen}
+            hint={bootstrap.i18n.autoRefresh}
+            options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
+            onRefresh={refreshList}
+          />
         </div>
       </nav>
       <form
@@ -465,7 +479,7 @@
                 <Table.Cell class="is-actions">
                   <ButtonGroup.Root class="kiriof-row-actions">
                     {#if row.actions.preview}
-                      <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" class="order-preview" data-order-id={row.wcOrderId} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.changeOrigin}
                       <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" class="kiriof-change-origin-button" data-ka-order-id={row.kaOrderId} data-current-origin={row.actionData.currentOrigin} data-current-origin-address={row.actionData.currentOriginAddress} data-current-location-id={row.actionData.currentLocationId} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.changeOrigin}><IconMapPin /></Button></ActionTooltip>

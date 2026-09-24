@@ -13,6 +13,7 @@ export type TransactionRow = {
   id: number;
   wcOrderId: number;
   wcOrderUrl: string;
+  detailUrl: string;
   createdAt: string;
   customer: { name: string; phone: string };
   courier: { code: string; service: string; paymentLabel: string };
@@ -94,6 +95,8 @@ export type TransactionsBootstrap = {
     copyAwb: string;
     copyKaOrderId: string;
     copied: string;
+    autoRefresh: string;
+    refreshLabels: Record<string, string>;
   };
 };
 import type { ToolbarConfig } from '$lib/ui/toolbar';

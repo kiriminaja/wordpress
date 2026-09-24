@@ -222,9 +222,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'history.pushState', $workspace );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $workspace );
 		$this->assertStringContainsString( 'fetch(url', $workspace );
-		$this->assertStringContainsString( 'kiriminaja-transaction-process', $workspace );
+		$this->assertStringContainsString( 'kiriminaja-transaction', $workspace );
 		$this->assertStringContainsString( 'kiriminaja-request-pickup', $workspace );
-		$this->assertStringContainsString( 'kiriminaja-konfigurasi', $workspace );
+		$this->assertStringContainsString( 'kiriminaja-setting', $workspace );
 		$this->assertStringContainsString( 'kiriminaja-request-pickup-detail', $workspace );
 		$this->assertStringNotContainsString( 'legacy_coupon_menu', $workspace );
 		$this->assertStringContainsString( 'workspacePages.has', $workspace );
@@ -238,6 +238,10 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '.kiriof-loading-indicator', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( "admin-list.css?inline", $workspace );
+		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( "'autoRefresh'", $renderer );
+		$this->assertStringContainsString( "'refreshLabels'", $renderer );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/AutoRefresh.svelte' );
     }
 
     private function filters(string $status): array

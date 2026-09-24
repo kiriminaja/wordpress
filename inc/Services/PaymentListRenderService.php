@@ -61,7 +61,7 @@ class PaymentListRenderService {
 		}
 		$toolbar = array(
 			'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
-			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-setting' ),
 			'rootLabel' => __( 'Payments', 'kiriminaja-official' ),
 			'title'     => __( 'Payments', 'kiriminaja-official' ),
 		);
@@ -82,6 +82,7 @@ class PaymentListRenderService {
 				),
 			),
 		);
+		$toolbar = RevampAnnouncementService::attach_announcement( $toolbar );
 
 		return array(
 			'toolbar'      => $toolbar,
@@ -111,6 +112,12 @@ class PaymentListRenderService {
 				'empty'         => __( 'Not Found', 'kiriminaja-official' ),
 				'pageOf'        => __( 'of', 'kiriminaja-official' ),
 				'items'         => __( 'items', 'kiriminaja-official' ),
+				'autoRefresh'   => __( 'Auto Refresh Timer', 'kiriminaja-official' ),
+				'refreshLabels' => array(
+					'60'  => __( '1 minute', 'kiriminaja-official' ),
+					'180' => __( '3 minutes', 'kiriminaja-official' ),
+					'300' => __( '5 minutes', 'kiriminaja-official' ),
+				),
 			),
 			'modals'       => array(
 				'scanToPay'    => __( 'Scan to Pay', 'kiriminaja-official' ),

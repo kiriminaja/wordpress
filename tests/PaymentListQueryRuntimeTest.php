@@ -117,6 +117,9 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'kiriof-workspace-shell', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
 		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
+		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
+		$this->assertStringContainsString( "'autoRefresh'", $renderer );
+		$this->assertStringContainsString( "'refreshLabels'", $renderer );
     }
 }
 

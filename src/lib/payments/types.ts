@@ -21,7 +21,10 @@ export type PaymentsBootstrap = {
   monthOptions: Record<string, string>;
   statusTabs: Array<{ value: string; label: string; count: number }>;
   pagination: { page: number; totalPages: number; total: number; perPage: number };
-  i18n: Record<string, string>;
+  i18n: Record<string, string> & {
+    autoRefresh: string;
+    refreshLabels: Record<string, string>;
+  };
   modals: Record<string, string>;
 };
 import type { ToolbarConfig } from '$lib/ui/toolbar';

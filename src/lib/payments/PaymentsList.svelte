@@ -10,6 +10,7 @@
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
+  import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -76,6 +77,11 @@
     searchTimer = window.setTimeout(applyFilters, 350);
   }
 
+  /** Re-run the current list query, preserving every filter + pagination state. */
+  function refreshList(): void {
+    void navigate({});
+  }
+
   function actionClass(type: PaymentRow['actions'][number]['type']): string {
     if (type === 'pay') return 'kiriof-payment-button';
     if (type === 'reschedule') return 'kiriof-reschedule-button';
@@ -110,6 +116,13 @@
               {/each}
             </Select.Content>
           </Select.Root>
+          <AutoRefresh
+            storageKey="kiriof-payments-refresh-interval"
+            loading={refreshing}
+            hint={bootstrap.i18n.autoRefresh}
+            options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
+            onRefresh={refreshList}
+          />
         </div>
       </nav>
       <form class="kiriof-payments-filterrow" onsubmit={(event) => { event.preventDefault(); applyFilters(); }}>
