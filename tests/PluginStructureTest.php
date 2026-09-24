@@ -219,6 +219,10 @@ final class PluginStructureTest extends TestCase
             'Packaged Composer vendor files need composer.json for Plugin Check attribution'
         );
         $this->assertFileDoesNotExist($buildDir . '/composer.lock');
+		$this->assertFileDoesNotExist($buildDir . '/phpstan.neon');
+		$this->assertFileDoesNotExist($buildDir . '/phpstan.neon.dist');
+		$this->assertFileDoesNotExist($buildDir . '/phpstan-baseline.neon');
+		$this->assertFileDoesNotExist($buildDir . '/phpstan-baseline.neon.dist');
         $this->assertFileDoesNotExist($buildDir . '/vendor/bin/.phpunit.result.cache');
         $this->assertFileExists(
             $buildDir . '/vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php',
