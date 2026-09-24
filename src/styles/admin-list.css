@@ -502,9 +502,8 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 }
 /* Auto-refresh countdown beside page-size: joined refresh + chevron buttons
    with a compact interval popover, mirroring Shopify's s-button-group.
-   NOTE: bits-ui renders the popover trigger as a wrapper <button> around
-   the chevron, so the generic button-group `> *` fusion selectors miss the
-   inner button — fuse the segments explicitly here. */
+   NOTE: bits-ui merges data-slot='popover-trigger' onto the chevron button
+   itself (no wrapper), so the chevron must be styled directly. */
 .kiriof-auto-refresh {
   flex-shrink: 0 !important;
   gap: 0 !important;
@@ -519,42 +518,39 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 .kiriof-auto-refresh > [data-slot='button']:first-child {
   border-top-right-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
-  border-right: 0 !important;
+  border-right-width: 0 !important;
 }
-/* Neutralize the trigger wrapper so only the inner chevron button paints. */
-.kiriof-auto-refresh > [data-slot='popover-trigger'] {
-  display: inline-flex !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-/* Chevron segment: flat left edge, rounded right edge like the selects. */
-.kiriof-auto-refresh [data-slot='popover-trigger'] > [data-slot='button'] {
+/* Chevron segment: the trigger IS the button (bits-ui merges
+   data-slot='popover-trigger' onto it, overwriting data-slot='button'),
+   so style it directly — flat left edge, rounded right edge. */
+.kiriof-auto-refresh > [data-slot='popover-trigger']:last-child {
   margin: 0 !important;
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-top-right-radius: var(--radius) !important;
   border-bottom-right-radius: var(--radius) !important;
 }
-.kiriof-auto-refresh [data-slot='button'] {
+.kiriof-auto-refresh > [data-slot='button'],
+.kiriof-auto-refresh > [data-slot='popover-trigger'] {
   min-height: 34px !important;
   height: 34px !important;
   margin: 0 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
   border-color: #c7c3cc !important;
   background: #fff !important;
   color: #29252e !important;
   font-size: 13px !important;
   box-shadow: none !important;
 }
-.kiriof-auto-refresh [data-slot='button']:hover:not(:disabled) {
+.kiriof-auto-refresh > [data-slot='button']:hover:not(:disabled),
+.kiriof-auto-refresh > [data-slot='popover-trigger']:hover:not(:disabled) {
   border-color: #a99ccf !important;
   background: var(--kiriof-primary-soft) !important;
   color: var(--kiriof-primary) !important;
 }
-.kiriof-auto-refresh [data-slot='button'] > svg {
+.kiriof-auto-refresh > [data-slot='button'] > svg,
+.kiriof-auto-refresh > [data-slot='popover-trigger'] > svg {
   width: 14px !important;
   height: 14px !important;
   margin: 0 !important;
