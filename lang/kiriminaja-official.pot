@@ -44,6 +44,10 @@ msgid "Street address (min. %d char)"
 msgstr ""
 
 #: inc/Services/PluginUpdateNoticeService.php
+msgid "Plugin Update Available"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
 msgid "KiriminAja Official %s is available."
 msgstr ""
 

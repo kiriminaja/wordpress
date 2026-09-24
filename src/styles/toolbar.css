@@ -13,11 +13,52 @@
   line-height: 1;
 }
 
-[data-slot='tooltip-content'] {
+[data-slot='tooltip-content'].kiriof-tooltip-content {
   box-sizing: border-box;
   pointer-events: none;
-  border: 0;
+  width: max-content !important;
+  max-width: 18rem !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 6px 10px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: #09090b !important;
+  color: #fff !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 18px !important;
   text-align: center;
+  white-space: nowrap !important;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 24%) !important;
+}
+
+.kiriof-tooltip-content .kiriof-tooltip-arrow {
+  display: block !important;
+  width: 12px !important;
+  height: 5px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #09090b !important;
+  fill: #09090b !important;
+  background: transparent !important;
+}
+
+.kiriof-tooltip-content .kiriof-tooltip-arrow [data-arrow] {
+  display: block !important;
+  width: 12px !important;
+  height: 5px !important;
+  margin: 0 !important;
+  fill: #09090b !important;
+}
+
+.kiriof-tooltip-content[data-side='bottom'] .kiriof-tooltip-arrow {
+  margin-top: -1px !important;
+}
+
+.kiriof-tooltip-content[data-side='top'] .kiriof-tooltip-arrow {
+  margin-bottom: -1px !important;
 }
 
 .kiriof-loading-indicator {

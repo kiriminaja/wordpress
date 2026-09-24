@@ -3348,6 +3348,9 @@ msgstr "Layanan kurir yang dipilih tidak mendukung Cash on Delivery. Silakan pil
 msgid "Street address (min. %d char)"
 msgstr "Alamat jalan (min. %d karakter)"
 
+msgid "Plugin Update Available"
+msgstr "Pembaruan Plugin Tersedia"
+
 msgid "KiriminAja Official %s is available."
 msgstr "KiriminAja Official %s sudah tersedia."
 

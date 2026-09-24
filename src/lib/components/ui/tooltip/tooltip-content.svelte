@@ -6,7 +6,7 @@
 	let {
 		ref = $bindable(null),
 		class: className,
-		sideOffset = 6,
+		sideOffset = 2,
 		children,
 		...restProps
 	}: WithoutChildrenOrChild<TooltipPrimitive.ContentProps> & { children?: Snippet } = $props();
@@ -18,12 +18,12 @@
 		data-slot="tooltip-content"
 		{sideOffset}
 		class={cn(
-			"bg-[#09090b] text-white data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 z-[100002] w-max max-w-72 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium leading-5 shadow-lg",
+			"kiriof-tooltip-content bg-[#09090b] text-white data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 z-[100002] w-max max-w-72 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium leading-5 shadow-lg",
 			className
 		)}
 		{...restProps}
 	>
 		{@render children?.()}
-		<TooltipPrimitive.Arrow class="fill-[#09090b]" />
+		<TooltipPrimitive.Arrow class="kiriof-tooltip-arrow text-[#09090b]" />
 	</TooltipPrimitive.Content>
 </TooltipPrimitive.Portal>

@@ -133,6 +133,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringNotContainsString( 'title=', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( "bg-[#09090b] text-white", file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
 		$this->assertStringContainsString( 'TooltipPrimitive.Arrow', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
+		$this->assertStringContainsString( 'border-radius: 6px !important;', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
+		$this->assertStringContainsString( 'sideOffset = 2', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.png' );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.svg' );
