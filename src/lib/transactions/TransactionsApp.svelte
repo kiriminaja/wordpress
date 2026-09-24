@@ -377,10 +377,11 @@
                     {:else}
                       <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><IconPackage />{row.status.label}</span>
                     {/if}
-                    <span class="kiriof-print-status {row.printStatus}">
-                      {#if row.printStatus === 'printed'}<IconCircleCheck />{:else}<IconClock />{/if}
-                      {row.printStatus === 'printed' ? bootstrap.i18n.printedLabel : bootstrap.i18n.unprintedLabel}
-                    </span>
+                    {#if row.printStatus === 'unprinted'}
+                      <ActionTooltip label={bootstrap.i18n.unprintedLabel}>
+                        <span class="kiriof-print-status {row.printStatus}" aria-label={bootstrap.i18n.unprintedLabel}><IconPrinter /></span>
+                      </ActionTooltip>
+                    {/if}
                   </div>
                 </Table.Cell>
                 <Table.Cell>
