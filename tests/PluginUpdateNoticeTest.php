@@ -38,5 +38,14 @@ final class PluginUpdateNoticeTest extends TestCase
         $this->assertStringContainsString("WordPress.org can take up to 24 hours to publish new plugin releases through the update system.", $content);
         $this->assertStringContainsString("View on WordPress.org", $content);
         $this->assertStringContainsString("Open Plugins screen", $content);
+        $this->assertStringContainsString('public function get_toolbar_update(): ?array', $content);
+        $this->assertStringContainsString("'label'           => __( 'Plugin Update Available'", $content);
+        $this->assertStringContainsString("'dismissUrl'      => $dismiss_url", $content);
+
+        $toolbar = file_get_contents( PLUGIN_DIR . '/src/lib/ui/Toolbar.svelte' );
+        $dialog   = file_get_contents( PLUGIN_DIR . '/src/lib/ui/PluginUpdateDialog.svelte' );
+        $this->assertStringContainsString( 'PluginUpdateDialog', $toolbar );
+        $this->assertStringContainsString( 'Dialog.Trigger', $dialog );
+        $this->assertStringContainsString( 'update.dismissUrl', $dialog );
     }
 }
