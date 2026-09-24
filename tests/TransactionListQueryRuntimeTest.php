@@ -145,6 +145,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'kiriof-package-fees', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'row.package.actualShipping', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'Math.abs(row.package.actualShipping - row.package.paidShipping) > 0.01', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'row.package.codValue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'align-items: baseline;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'kiriof-payment-type', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<IconPackage />', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

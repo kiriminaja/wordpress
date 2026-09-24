@@ -411,6 +411,7 @@
                     {/if}
                     {#if row.package.insurance > 0}<div><span>{bootstrap.i18n.insurance}:</span><strong>{currency(row.package.insurance)}</strong></div>{/if}
                     {#if row.package.codFee > 0}<div><span>{bootstrap.i18n.codFee}:</span><strong>{currency(row.package.codFee)}</strong></div>{/if}
+                    {#if row.package.codValue > 0}<div><span>{bootstrap.i18n.cod}:</span><strong>{currency(row.package.codValue)}</strong></div>{/if}
                     {#if row.package.itemDiscount > 0}<div class="is-discount"><span>{row.package.itemCoupon || bootstrap.i18n.itemDiscount}:</span><strong>−{currency(row.package.itemDiscount)}</strong></div>{/if}
                   </div>
                 </Table.Cell>

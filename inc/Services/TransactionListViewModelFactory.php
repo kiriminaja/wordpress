@@ -60,6 +60,8 @@ class TransactionListViewModelFactory {
 		$insurance_cost        = (float) ( $row->insurance_cost ?? 0 );
 		$discount_amount       = (float) ( $row->discount_amount ?? 0 );
 		$cod_fee               = (float) ( $row->cod_fee ?? 0 );
+		$transaction_value     = (float) ( $row->transaction_value ?? 0 );
+		$cod_value             = $cod_fee > 0 ? $shipping_cost + $insurance_cost + $cod_fee + $transaction_value : 0.0;
 		$is_deficit            = ! empty( $row->is_deficit );
 		$item_discount         = $wc_order ? (float) $wc_order->get_discount_total() : 0.0;
 		$coupon_codes          = $wc_order ? (array) $wc_order->get_coupon_codes() : array();
@@ -129,6 +131,7 @@ class TransactionListViewModelFactory {
 				'paidShipping'     => $paid_shipping,
 				'insurance'        => $insurance_cost,
 				'codFee'           => $cod_fee,
+				'codValue'         => $cod_value,
 				'itemDiscount'     => $item_discount,
 				'shippingDiscount' => $shipping_discount,
 				'itemCoupon'       => (string) ( $coupon_scopes['item'][0] ?? '' ),

@@ -28,6 +28,7 @@ export type TransactionRow = {
     paidShipping: number;
     insurance: number;
     codFee: number;
+    codValue: number;
     itemDiscount: number;
     shippingDiscount: number;
     itemCoupon: string;
