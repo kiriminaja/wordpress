@@ -77,6 +77,16 @@ export type TransactionsBootstrap = {
     nonce: string;
     pickupUrl: string;
   };
-  i18n: Record<string, string>;
+  i18n: Record<string, string> & {
+    weight: string;
+    shippingCost: string;
+    insurance: string;
+    codFee: string;
+    itemDiscount: string;
+    shippingDiscount: string;
+    copyAwb: string;
+    copyKaOrderId: string;
+    copied: string;
+  };
 };
 import type { ToolbarConfig } from '$lib/ui/toolbar';

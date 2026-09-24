@@ -127,6 +127,14 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'DataTableFooter', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'kiriof-transactions-meta', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.png' );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.svg' );
+		$this->assertStringContainsString( 'formatPhone(row.customer.phone)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'courierImage(row.courier.code, row.courier.service)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'navigator.clipboard.writeText(value)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-package-fees', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringNotContainsString( '<div class="kiriof-fee-pills">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php' );
 		$this->assertStringContainsString( 'data-kiriof-transactions-root', $app );
 		$this->assertStringContainsString( 'kiriof-workspace-shell', $app );
@@ -174,7 +182,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '{#if hasActiveFilters}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'aria-label={bootstrap.i18n.apply}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringContainsString( "import toolbarStyles from '../styles/toolbar.css?inline'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
 		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'display: flex !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

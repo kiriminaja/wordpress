@@ -4,6 +4,8 @@
     IconAdjustmentsHorizontal,
     IconCalendar,
     IconCash,
+    IconCheck,
+    IconCopy,
     IconEye,
     IconMapPin,
     IconPrinter,
@@ -24,6 +26,7 @@
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
+  import { courierImage } from './courier-images';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
@@ -59,6 +62,8 @@
   let refreshing = $state(false);
   let searchTimer: number | null = null;
   let pickupDialogOpen = $state(false);
+  let copiedValue = $state('');
+  let copyTimer: number | null = null;
 
   const isOrderIssue = $derived(filters.status === 'order-issue');
   const selectedRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => selected[row.kaOrderId]));
@@ -159,6 +164,41 @@
     return `Rp${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount)}`;
   }
 
+  function formatPhone(phone: string): string {
+    const value = phone.trim();
+    if (!value) return '';
+
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return value;
+    if (digits.startsWith('62')) return `+${digits}`;
+    if (digits.startsWith('0')) return `+62${digits.slice(1)}`;
+    if (digits.startsWith('8')) return `+62${digits}`;
+    return `+${digits}`;
+  }
+
+  async function copyText(value: string): Promise<void> {
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.append(input);
+      input.select();
+      document.execCommand('copy');
+      input.remove();
+    }
+
+    copiedValue = value;
+    if (copyTimer) window.clearTimeout(copyTimer);
+    copyTimer = window.setTimeout(() => {
+      copiedValue = '';
+    }, 1600);
+  }
+
   function toneClass(tone: TransactionRow['status']['tone']): string {
     return `is-${tone}`;
   }
@@ -170,6 +210,7 @@
 
   onDestroy(() => {
     if (searchTimer) window.clearTimeout(searchTimer);
+    if (copyTimer) window.clearTimeout(copyTimer);
   });
 </script>
 
@@ -305,22 +346,33 @@
                 <Table.Cell>
                   <a class="kiriof-order-link" href={row.wcOrderUrl} target="_blank">#{row.wcOrderId}</a>
                   <strong class="kiriof-row-title">{row.customer.name}</strong>
-                  {#if row.customer.phone}<a class="kiriof-row-muted" href={`tel:${row.customer.phone}`}>{row.customer.phone}</a>{/if}
+                  {#if row.customer.phone}<a class="kiriof-customer-phone" href={`tel:${formatPhone(row.customer.phone)}`}>{formatPhone(row.customer.phone)}</a>{/if}
                   <span class="kiriof-row-muted">{row.createdAt}</span>
                 </Table.Cell>
                 <Table.Cell>
-                  <strong class="kiriof-row-title">{row.courier.service}</strong>
+                  <div class="kiriof-courier-summary">
+                    {#if courierImage(row.courier.code, row.courier.service)}
+                      <img class="kiriof-courier-logo" src={courierImage(row.courier.code, row.courier.service)} alt="" />
+                    {/if}
+                    <div class="kiriof-courier-summary__content">
+                      <strong class="kiriof-row-title">{row.courier.service}</strong>
+                      <span class="kiriof-row-muted">{row.courier.paymentLabel}</span>
+                    </div>
+                  </div>
                   <div class="kiriof-row-badges">
                     <span class="kiriof-transaction-status {toneClass(row.status.tone)}" title={row.status.deficit ? 'COD settlement requires action' : undefined}>{row.status.label}</span>
-                    <span class="kiriof-row-muted">via {row.courier.paymentLabel}</span>
                   </div>
                   <span class="kiriof-print-status {row.printStatus}">{row.printStatus === 'printed' ? bootstrap.i18n.printedLabel : bootstrap.i18n.unprintedLabel}</span>
                 </Table.Cell>
                 <Table.Cell>
-                  <span class="kiriof-row-label">AWB</span>
-                  <strong>{row.awb || '—'}</strong>
-                  <span class="kiriof-row-label">KA Order ID</span>
-                  <code>{row.kaOrderId}</code>
+                  <div class="kiriof-copy-field">
+                    <span class="kiriof-row-label">{bootstrap.i18n.awb}</span>
+                    <span class="kiriof-copy-field__value"><strong>{row.awb || '—'}</strong>{#if row.awb}<button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.awb)} title={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb} aria-label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}>{#if copiedValue === row.awb}<IconCheck />{:else}<IconCopy />{/if}</button>{/if}</span>
+                  </div>
+                  <div class="kiriof-copy-field">
+                    <span class="kiriof-row-label">{bootstrap.i18n.kaOrderId}</span>
+                    <span class="kiriof-copy-field__value"><code>{row.kaOrderId}</code><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.kaOrderId)} title={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId} aria-label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}>{#if copiedValue === row.kaOrderId}<IconCheck />{:else}<IconCopy />{/if}</button></span>
+                  </div>
                 </Table.Cell>
                 <Table.Cell>
                   <strong class="kiriof-row-title">{row.route.origin}</strong>
@@ -329,13 +381,13 @@
                   {#each row.route.addressLines as line}<span class="kiriof-row-muted">{line}</span>{/each}
                 </Table.Cell>
                 <Table.Cell>
-                  <span class="kiriof-row-muted">{row.package.weight} g{row.package.quantity > 1 ? ` × ${row.package.quantity}` : ''}</span>
-                  <strong class="kiriof-row-title">{currency(row.package.paidShipping)}</strong>
-                  <div class="kiriof-fee-pills">
-                    {#if row.package.insurance > 0}<span>Ins {currency(row.package.insurance)}</span>{/if}
-                    {#if row.package.codFee > 0}<span>COD {currency(row.package.codFee)}</span>{/if}
-                    {#if row.package.itemDiscount > 0}<span class="is-discount">{row.package.itemCoupon} −{currency(row.package.itemDiscount)}</span>{/if}
-                    {#if row.package.shippingDiscount > 0}<span class="is-discount">{row.package.shippingCoupon} −{currency(row.package.shippingDiscount)}</span>{/if}
+                  <div class="kiriof-package-fees">
+                    <div><span>{bootstrap.i18n.weight}</span><strong>{row.package.weight} g{row.package.quantity > 1 ? ` × ${row.package.quantity}` : ''}</strong></div>
+                    <div><span>{bootstrap.i18n.shippingCost}</span><strong>{currency(row.package.paidShipping)}</strong></div>
+                    {#if row.package.insurance > 0}<div><span>{bootstrap.i18n.insurance}</span><strong>{currency(row.package.insurance)}</strong></div>{/if}
+                    {#if row.package.codFee > 0}<div><span>{bootstrap.i18n.codFee}</span><strong>{currency(row.package.codFee)}</strong></div>{/if}
+                    {#if row.package.itemDiscount > 0}<div class="is-discount"><span>{row.package.itemCoupon || bootstrap.i18n.itemDiscount}</span><strong>−{currency(row.package.itemDiscount)}</strong></div>{/if}
+                    {#if row.package.shippingDiscount > 0}<div class="is-discount"><span>{row.package.shippingCoupon || bootstrap.i18n.shippingDiscount}</span><strong>−{currency(row.package.shippingDiscount)}</strong></div>{/if}
                   </div>
                 </Table.Cell>
                 <Table.Cell class="is-actions">

@@ -620,6 +620,95 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-row-label {
   display: block;
 }
+.kiriof-customer-phone {
+  display: block;
+  margin-top: 2px;
+  color: #17834b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-decoration: none;
+}
+.kiriof-customer-phone:hover {
+  color: #12683c;
+  text-decoration: underline;
+}
+.kiriof-courier-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+.kiriof-courier-logo {
+  display: block;
+  width: 44px;
+  height: 30px;
+  flex: 0 0 44px;
+  object-fit: contain;
+}
+.kiriof-courier-summary__content {
+  min-width: 0;
+}
+.kiriof-copy-field {
+  display: grid;
+  gap: 2px;
+}
+.kiriof-copy-field + .kiriof-copy-field {
+  margin-top: 8px;
+}
+.kiriof-copy-field__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.kiriof-copy-button {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #646970;
+  cursor: pointer;
+}
+.kiriof-copy-button:hover {
+  background: #f0ecfa;
+  color: var(--kiriof-primary);
+}
+.kiriof-copy-button svg {
+  width: 14px;
+  height: 14px;
+}
+.kiriof-package-fees {
+  display: grid;
+  min-width: 165px;
+  gap: 4px;
+}
+.kiriof-package-fees > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  line-height: 1.35;
+}
+.kiriof-package-fees span {
+  color: var(--kiriof-muted);
+  font-size: 11px;
+}
+.kiriof-package-fees strong {
+  color: #241b3d;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+.kiriof-package-fees .is-discount span,
+.kiriof-package-fees .is-discount strong {
+  color: #b42318;
+}
 .kiriof-row-title {
   margin-top: 2px;
   line-height: 1.4;
@@ -684,8 +773,7 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   height: 15px !important;
 }
 .kiriof-transaction-status,
-.kiriof-print-status,
-.kiriof-fee-pills span {
+.kiriof-print-status {
   display: inline-flex;
   align-items: center;
   min-height: 20px;
@@ -709,8 +797,7 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   background: #fff2c7;
   color: #7a4d00;
 }
-.kiriof-transaction-status.is-danger,
-.kiriof-fee-pills .is-discount {
+.kiriof-transaction-status.is-danger {
   background: #fce8e8;
   color: #b42318;
 }

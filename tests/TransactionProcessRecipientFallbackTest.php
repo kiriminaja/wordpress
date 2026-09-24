@@ -47,7 +47,7 @@ final class TransactionProcessRecipientFallbackTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'href={`tel:${row.customer.phone}`}',
+            'href={`tel:${formatPhone(row.customer.phone)}`}',
             $app,
             'Order column should render the resolved recipient phone when one can be recovered from WooCommerce'
         );
