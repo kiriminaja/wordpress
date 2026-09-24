@@ -125,14 +125,19 @@ class PickupDetailPageData {
 		$print_all_url = empty( $print_ids )
 			? ''
 			: admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . implode( ',', array_map( 'rawurlencode', $print_ids ) ) . '&_wpnonce=' . $print_nonce );
+		$toolbar = array(
+			'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
+			'rootUrl'   => $back_url,
+			'rootLabel' => __( 'Payments', 'kiriminaja-official' ),
+			'title'     => (string) ( $payment_data['pickup_number'] ?? '' ),
+		);
+		$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
+		if ( $toolbar_update ) {
+			$toolbar['update'] = $toolbar_update;
+		}
 
 		return array(
-			'toolbar'     => array(
-				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
-				'rootUrl'   => $back_url,
-				'rootLabel' => __( 'Payments', 'kiriminaja-official' ),
-				'title'     => (string) ( $payment_data['pickup_number'] ?? '' ),
-			),
+			'toolbar'     => $toolbar,
 			'summary'     => array(
 				array( 'value' => (int) ( $payment_data['package_count'] ?? 0 ), 'label' => __( 'Total Packages', 'kiriminaja-official' ) ),
 				array( 'value' => (int) ( $payment_data['cod_count'] ?? 0 ), 'label' => __( 'Cash on Delivery', 'kiriminaja-official' ) ),

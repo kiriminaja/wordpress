@@ -145,12 +145,20 @@ class SettingsPageData {
 			? KIRIOF_URL . 'assets/admin/img/icon-128x128.png'
 			: 'assets/admin/img/icon-128x128.png';
 
-		return array(
+		$toolbar = array(
 			'logoUrl'   => $logo_url,
 			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
 			'rootLabel' => __( 'Settings', 'kiriminaja-official' ),
 			'title'     => $title,
 		);
+		if ( defined( 'HOUR_IN_SECONDS' ) && class_exists( PluginUpdateNoticeService::class ) ) {
+			$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
+			if ( $toolbar_update ) {
+				$toolbar['update'] = $toolbar_update;
+			}
+		}
+
+		return $toolbar;
 	}
 
 	/**

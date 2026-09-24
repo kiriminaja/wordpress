@@ -77,7 +77,11 @@
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
   const selectedCount = $derived(selectedRows.length);
-  const statusLabel = $derived(bootstrap.statusOptions.find((option) => option.value === filters.status)?.label ?? bootstrap.i18n.status);
+  const statusLabel = $derived(
+    filters.status && filters.status !== 'all'
+      ? bootstrap.statusOptions.find((option) => option.value === filters.status)?.label ?? bootstrap.i18n.status
+      : bootstrap.i18n.status,
+  );
   const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);

@@ -59,14 +59,19 @@ class PaymentListRenderService {
 				'actions'      => $actions,
 			);
 		}
+		$toolbar = array(
+			'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
+			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
+			'rootLabel' => __( 'KiriminAja', 'kiriminaja-official' ),
+			'title'     => __( 'Payments', 'kiriminaja-official' ),
+		);
+		$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
+		if ( $toolbar_update ) {
+			$toolbar['update'] = $toolbar_update;
+		}
 
 		return array(
-			'toolbar'      => array(
-				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
-				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
-				'rootLabel' => __( 'KiriminAja', 'kiriminaja-official' ),
-				'title'     => __( 'Payments', 'kiriminaja-official' ),
-			),
+			'toolbar'      => $toolbar,
 			'rows'         => $rows,
 			'filters'      => $filters,
 			'monthOptions' => $month_options,

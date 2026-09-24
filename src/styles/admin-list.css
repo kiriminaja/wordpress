@@ -498,12 +498,15 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 }
 .kiriof-transactions-filterrow {
   display: grid;
+  grid-template-columns: minmax(270px, 1.2fr) repeat(3, minmax(160px, 1fr)) minmax(190px, 1.1fr);
+  gap: 8px;
+  align-items: center;
+}
+.kiriof-transactions-filterrow:has(.kiriof-clear-filters) {
   grid-template-columns: minmax(270px, 1.2fr) repeat(3, minmax(160px, 1fr)) minmax(
       190px,
       1.1fr
     ) auto;
-  gap: 8px;
-  align-items: center;
 }
 .kiriof-admin-list-search {
   width: 100%;

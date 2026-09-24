@@ -80,13 +80,19 @@ class TransactionListRenderService {
             $this->query->getCouriers()
         );
 
-		$kiriof_transactions_bootstrap = array(
-			'toolbar'      => array(
+		$toolbar = array(
 				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
 				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
 				'rootLabel' => __( 'KiriminAja', 'kiriminaja-official' ),
 				'title'     => __( 'Transactions', 'kiriminaja-official' ),
-			),
+		);
+		$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
+		if ( $toolbar_update ) {
+			$toolbar['update'] = $toolbar_update;
+		}
+
+		$kiriof_transactions_bootstrap = array(
+			'toolbar'      => $toolbar,
 			'filters'      => $filters,
 			'statusOptions'=> array(
 				array( 'value' => 'all', 'label' => __( 'All', 'kiriminaja-official' ), 'count' => (int) ( $kiriof_statusCounts['all'] ?? 0 ) ),

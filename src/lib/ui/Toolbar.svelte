@@ -1,5 +1,6 @@
 <script lang="ts">
   import { IconChevronRight } from '@tabler/icons-svelte';
+  import PluginUpdateDialog from './PluginUpdateDialog.svelte';
   import type { ToolbarConfig } from './toolbar';
 
   let {
@@ -30,9 +31,14 @@
     {/if}
     <strong>{toolbar.title}</strong>
   </nav>
-  {#if children}
+  {#if toolbar.update || children}
     <div class="kiriof-app-toolbar__actions">
-      {@render children()}
+      {#if toolbar.update}
+        <PluginUpdateDialog update={toolbar.update} />
+      {/if}
+      {#if children}
+        {@render children()}
+      {/if}
     </div>
   {/if}
 </header>

@@ -18,11 +18,12 @@
 		data-slot="tooltip-content"
 		{sideOffset}
 		class={cn(
-			"bg-primary text-primary-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 z-[100002] max-w-64 rounded-md px-2.5 py-1.5 text-xs leading-snug shadow-md",
+			"bg-[#09090b] text-white data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 z-[100002] w-max max-w-72 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium leading-5 shadow-lg",
 			className
 		)}
 		{...restProps}
 	>
 		{@render children?.()}
+		<TooltipPrimitive.Arrow class="fill-[#09090b]" />
 	</TooltipPrimitive.Content>
 </TooltipPrimitive.Portal>
