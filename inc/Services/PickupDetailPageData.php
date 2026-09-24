@@ -135,6 +135,19 @@ class PickupDetailPageData {
 		if ( $toolbar_update ) {
 			$toolbar['update'] = $toolbar_update;
 		}
+		$toolbar['menu'] = array(
+			'label' => __( 'More actions', 'kiriminaja-official' ),
+			'items' => array(
+				array(
+					'label' => __( 'Get Help', 'kiriminaja-official' ),
+					'href'  => 'https://help.kiriminaja.com/category/plugin',
+				),
+				array(
+					'label' => __( 'Go to Dashboard', 'kiriminaja-official' ),
+					'href'  => 'https://app.kiriminaja.com',
+				),
+			),
+		);
 
 		return array(
 			'toolbar'     => $toolbar,

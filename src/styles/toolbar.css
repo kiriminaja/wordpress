@@ -202,6 +202,78 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
   margin-left: auto;
 }
 
+.kiriof-toolbar-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.kiriof-toolbar-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kiriof-muted, #646970);
+  cursor: pointer;
+}
+
+.kiriof-toolbar-menu__trigger:hover,
+.kiriof-toolbar-menu__trigger:focus-visible,
+.kiriof-toolbar-menu__trigger[aria-expanded='true'] {
+  border-color: var(--kiriof-border, #ddd7ee);
+  background: var(--kiriof-primary-soft, #f5f0ff);
+  color: var(--kiriof-primary-strong, #37159f);
+}
+
+.kiriof-toolbar-menu__trigger:focus-visible {
+  outline: 2px solid var(--kiriof-primary, #5c2ecb);
+  outline-offset: 1px;
+}
+
+.kiriof-toolbar-menu__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: grid;
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--kiriof-border, #ddd7ee);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(36 27 61 / 14%);
+}
+
+.kiriof-toolbar-menu__dropdown a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.kiriof-toolbar-menu__dropdown a:hover,
+.kiriof-toolbar-menu__dropdown a:focus-visible {
+  background: var(--kiriof-primary-soft, #f5f0ff);
+  color: var(--kiriof-primary-strong, #37159f);
+}
+
+.kiriof-toolbar-menu__dropdown a svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
 .kiriof-plugin-update-trigger {
   display: inline-flex;
   min-height: 32px;

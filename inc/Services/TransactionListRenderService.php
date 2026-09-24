@@ -83,13 +83,26 @@ class TransactionListRenderService {
 		$toolbar = array(
 				'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
 				'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
-				'rootLabel' => __( 'KiriminAja', 'kiriminaja-official' ),
+				'rootLabel' => __( 'Transactions', 'kiriminaja-official' ),
 				'title'     => __( 'Transactions', 'kiriminaja-official' ),
 		);
 		$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
 		if ( $toolbar_update ) {
 			$toolbar['update'] = $toolbar_update;
 		}
+		$toolbar['menu'] = array(
+			'label' => __( 'More actions', 'kiriminaja-official' ),
+			'items' => array(
+				array(
+					'label' => __( 'Get Help', 'kiriminaja-official' ),
+					'href'  => 'https://help.kiriminaja.com/category/plugin',
+				),
+				array(
+					'label' => __( 'Go to Dashboard', 'kiriminaja-official' ),
+					'href'  => 'https://app.kiriminaja.com',
+				),
+			),
+		);
 
 		$kiriof_transactions_bootstrap = array(
 			'toolbar'      => $toolbar,

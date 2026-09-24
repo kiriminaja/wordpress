@@ -15,10 +15,21 @@ export type ToolbarUpdate = {
   closeLabel: string;
 };
 
+export type ToolbarMenuItem = {
+  label: string;
+  href: string;
+};
+
+export type ToolbarMenu = {
+  label: string;
+  items: ToolbarMenuItem[];
+};
+
 export type ToolbarConfig = {
   logoUrl: string;
   rootUrl: string;
   rootLabel: string;
   title: string;
   update?: ToolbarUpdate;
+  menu?: ToolbarMenu;
 };

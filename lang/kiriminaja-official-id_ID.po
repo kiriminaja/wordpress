@@ -3882,3 +3882,24 @@ msgstr "Memuat pembayaran…"
 #: templates/request-pickup-detail/view/index.php
 msgid "Loading pickup details…"
 msgstr "Memuat detail penjemputan…"
+
+#: inc/Services/SettingsPageData.php
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+#: inc/Services/PickupDetailPageData.php
+msgid "More actions"
+msgstr "Tindakan lainnya"
+
+#: inc/Services/SettingsPageData.php
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+#: inc/Services/PickupDetailPageData.php
+msgid "Get Help"
+msgstr "Dapatkan Bantuan"
+
+#: inc/Services/SettingsPageData.php
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+#: inc/Services/PickupDetailPageData.php
+msgid "Go to Dashboard"
+msgstr "Ke Dasbor"
