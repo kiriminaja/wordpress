@@ -7,11 +7,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 
 class CancelTransactionService extends BaseService {
 
     private string $orderId = '';
     private string $reason  = '';
+    private TransactionRepository $transaction_repository;
+    private KiriminajaApiRepository $api_repository;
+
+    public function __construct(
+        TransactionRepository $transaction_repository,
+        KiriminajaApiRepository $api_repository
+    ) {
+        $this->transaction_repository = $transaction_repository;
+        $this->api_repository         = $api_repository;
+    }
 
     public function orderId( string $orderId ) {
         $this->orderId = $orderId;
@@ -37,7 +49,7 @@ class CancelTransactionService extends BaseService {
                 return self::error( [], 'Reason is too long (maximum 200 characters)' );
             }
 
-            $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $transactionRepo = $this->transaction_repository;
             $transaction     = $transactionRepo->getTransactionByOrderId( $this->orderId );
 
             if ( ! $transaction ) {
@@ -56,8 +68,7 @@ class CancelTransactionService extends BaseService {
             }
 
             // Call Mitra API to cancel the shipment
-            $apiRepo  = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
-            $response = $apiRepo->cancelShipment( $transaction->awb, $this->reason );
+            $response = $this->api_repository->cancelShipment( $transaction->awb, $this->reason );
 
             ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( 'cancelShipment', [ $response ] );
 

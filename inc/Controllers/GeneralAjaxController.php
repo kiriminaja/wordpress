@@ -2,6 +2,8 @@
 
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -9,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class GeneralAjaxController
 {
+    private CheckoutServiceFactory $checkout_service_factory;
+
+    public function __construct( CheckoutServiceFactory $checkout_service_factory )
+    {
+        $this->checkout_service_factory = $checkout_service_factory;
+    }
     public function register()
     {
         add_action('wp_ajax_kiriminaja_subdistrict_search', array($this, 'kiriminajaSubdistrictSearch'));
@@ -181,7 +189,7 @@ class GeneralAjaxController
                 'is_cod'                => $payment_method === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
             ];
-            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
+            $service = $this->checkout_service_factory->calculation($payload)->call();
 
             if (!empty($service->data)) {
 

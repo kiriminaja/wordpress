@@ -7,9 +7,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 class GetRequestPickupScheduleService extends BaseService {
     
     public array $orderIds = [];
+    private KiriminajaApiRepository $api_repository;
+    private TransactionRepository $transaction_repository;
+
+    public function __construct(
+        KiriminajaApiRepository $api_repository,
+        TransactionRepository $transaction_repository
+    ) {
+        $this->api_repository         = $api_repository;
+        $this->transaction_repository = $transaction_repository;
+    }
     
     public function orderIds($orderIds){
         $this->orderIds = $orderIds;
@@ -17,7 +29,7 @@ class GetRequestPickupScheduleService extends BaseService {
     }
     
     public function call(){
-        $scheduleRepo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getRequestPickupSchedule();
+        $scheduleRepo = $this->api_repository->getRequestPickupSchedule();
         if (!@$scheduleRepo['status'] || !@$scheduleRepo['data']->status){
             return self::error([],@$scheduleRepo['data']->text ?? 'Something is wrong');
         }
@@ -31,7 +43,7 @@ class GetRequestPickupScheduleService extends BaseService {
     }
     
     private function transactionSummaryData(){
-        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByOrderIds($this->orderIds);
+        $transactions = $this->transaction_repository->getTransactionByOrderIds($this->orderIds);
                 
         $count_cod = 0;
         $count_non_cod = 0;

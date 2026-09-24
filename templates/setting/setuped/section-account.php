@@ -12,57 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var object|null $approvedSetupKey
  */
 
-// Check integration status
-$kiriof_setup_key_row = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('setup_key');
-$kiriof_is_connected  = ! empty( $kiriof_setup_key_row->value ?? null );
-
-// Fetch profile if connected
-$kiriof_profile     = null;
-$kiriof_profile_err = false;
-if ( $kiriof_is_connected ) {
-    try {
-        $kiriof_profile_svc = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
-        if ( 200 === $kiriof_profile_svc->status && ! empty( $kiriof_profile_svc->data ) ) {
-            $kiriof_profile = $kiriof_profile_svc->data;
-        } else {
-            $kiriof_profile_err = true;
-        }
-    } catch ( \Throwable $th ) {
-        $kiriof_profile_err = true;
-    }
-}
-
-// Fetch enabled couriers for display
-$kiriof_wl = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['origin_whitelist_expedition_id','origin_whitelist_expedition_name']);
-$kiriof_wl_ids   = '';
-$kiriof_wl_names  = '';
-foreach ( $kiriof_wl as $kiriof_wl_row ) {
-    if ( 'origin_whitelist_expedition_id' === $kiriof_wl_row->key ) {
-        $kiriof_wl_ids = $kiriof_wl_row->value;
-    }
-    if ( 'origin_whitelist_expedition_name' === $kiriof_wl_row->key ) {
-        $kiriof_wl_names = $kiriof_wl_row->value;
-    }
-}
-$kiriof_wl_id_arr   = $kiriof_wl_ids ? array_map( 'trim', explode( ',', $kiriof_wl_ids ) ) : array();
-$kiriof_wl_name_arr  = $kiriof_wl_names ? array_map( 'trim', explode( ',', $kiriof_wl_names ) ) : array();
-$kiriof_wl_map       = array_combine( $kiriof_wl_id_arr, array_pad( $kiriof_wl_name_arr, count( $kiriof_wl_id_arr ), '' ) );
-
-// Fallback: try fetching all couriers from API to get names for IDs
-if ( ! empty( $kiriof_wl_id_arr ) ) {
-    try {
-        $kiriof_couriers_svc = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers();
-        if ( 200 === $kiriof_couriers_svc->status && ! empty( $kiriof_couriers_svc->data ) ) {
-            foreach ( $kiriof_couriers_svc->data as $kiriof_courier ) {
-                if ( in_array( $kiriof_courier->code, $kiriof_wl_id_arr, true ) && empty( $kiriof_wl_map[ $kiriof_courier->code ] ) ) {
-                    $kiriof_wl_map[ $kiriof_courier->code ] = $kiriof_courier->name;
-                }
-            }
-        }
-    } catch ( \Throwable $th ) {
-        // Non-critical — use whatever names we have
-    }
-}
+extract( $settingsPageData->prepareAccount(), EXTR_SKIP );
 
 // Brand colors for courier chips (fallback gradient based on code hash)
 $kiriof_courier_colors = array(
@@ -162,27 +112,3 @@ $kiriof_courier_colors = array(
 
     </div>
 </div>
-
-<?php ob_start(); ?>
-    <?php include '_section-js-shared.php'; ?>
-
-    // Setup Key Connect handler
-    jQuery(document).on('click','#kiriof-setup-key-connect',function(){
-        var $btn = jQuery(this);
-        var key  = jQuery('#kiriof-setup-key-input').val().trim();
-        var $msg = jQuery('#kiriof-connect-msg');
-        if (!key) { $msg.show().css('color','#d63638').text('<?php echo esc_js(__( 'Please enter a setup key.', 'kiriminaja-official' )); ?>'); return; }
-        $btn.prop('disabled',true).text('<?php echo esc_js(__( 'Connecting…', 'kiriminaja-official' )); ?>');
-        $msg.hide();
-        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_store_integration_data',data:{setup_key:key,nonce:kiriofAjax.nonce}},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload()}else{$btn.prop('disabled',false).text('<?php echo esc_js(__( 'Connect', 'kiriminaja-official' )); ?>');$msg.show().css('color','#d63638').text((p&&p.message)?p.message:'<?php echo esc_js(__( 'Connection failed. Please check your setup key.', 'kiriminaja-official' )); ?>')}}});
-    });
-
-    // Disconnect handler
-    jQuery('body').on('click','.kj-disconnect',function(e){
-        if(!confirm('<?php echo esc_js(__( 'Disconnect KiriminAja integration?', 'kiriminaja-official' )); ?>')) return;
-        jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:'kiriof_disconnect_integration',data:{nonce:kiriofAjax.nonce}},error:function(){alert('<?php echo esc_js(__( 'Network error.', 'kiriminaja-official' )); ?>')},complete:function(r){var p=kiriofParseAjaxResponse(r);if(p&&p.status===200){window.location.reload();return}alert((p&&p.message)?p.message:'<?php echo esc_js(__( 'Disconnect failed.', 'kiriminaja-official' )); ?>')}});
-    });
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>

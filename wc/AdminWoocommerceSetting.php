@@ -53,7 +53,7 @@ class Kiriof_AdminWoocommerceSettings
             return;
         }
 
-        $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
+        $transactionKiriminaja = kiriof_transaction_repository()->getTransactionByWCOrderNumber($order->get_id());
         
         $shipping_methods = $order->get_shipping_methods();
         $shipping_method    = array_shift( $shipping_methods );
@@ -171,7 +171,7 @@ class Kiriof_AdminWoocommerceSettings
         if ( ! $order ) {
             return;
         }
-        $transaction = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )->getTransactionByWCOrderNumber( $order->get_id() );
+        $transaction = kiriof_transaction_repository()->getTransactionByWCOrderNumber( $order->get_id() );
         if ( ! $transaction || empty( $transaction->is_deficit ) ) {
             return;
         }
@@ -191,7 +191,7 @@ class Kiriof_AdminWoocommerceSettings
         if ( ! $order instanceof \WC_Order ) {
             return;
         }
-        $transaction = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )->getTransactionByWCOrderNumber( $order->get_id() );
+        $transaction = kiriof_transaction_repository()->getTransactionByWCOrderNumber( $order->get_id() );
         if ( ! $transaction || empty( $transaction->is_deficit ) ) {
             return;
         }

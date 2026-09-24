@@ -316,8 +316,16 @@ class Enqueue extends BaseInit{
             if ( wp_script_is( 'wc-backbone-modal', 'registered' ) ) {
                 wp_enqueue_script( 'wc-backbone-modal' );
             }
-            wp_enqueue_script( 'kiriof-pin-input', $this->plugin_url . 'assets/lib/pin-input/pin-input.js', array(), '0.2.0', true );
-            wp_script_add_data( 'kiriof-pin-input', 'type', 'module' );
+			wp_enqueue_script( 'kiriof-pin-input', $this->plugin_url . 'assets/lib/pin-input/pin-input.js', array(), '0.2.0', true );
+			wp_script_add_data( 'kiriof-pin-input', 'type', 'module' );
+			wp_register_script(
+				'kiriof-transaction-process',
+				$this->plugin_url . 'assets/admin/js/kj-transaction-process.js',
+				array( 'jquery', 'kiriof-script', 'kiriof-pin-input', 'wc-backbone-modal' ),
+				KIRIOF_VERSION,
+				true
+			);
+            wp_enqueue_script( 'kiriof-transaction-process' );
         }
 
         /** print */
@@ -457,6 +465,13 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 true
             );
+            wp_enqueue_script(
+                'kiriof-request-pickup',
+                $this->plugin_url . 'assets/admin/js/kj-request-pickup.js',
+                array( 'jquery', 'kiriof-script', 'wc-qrcode', 'kiriof-qr-code-styling' ),
+                KIRIOF_VERSION,
+                true
+            );
         }
    
     }
@@ -467,7 +482,6 @@ class Enqueue extends BaseInit{
 		wp_enqueue_script( 'jquery' );
 		wp_enqueue_style( 'kiriof-choices-style', $this->plugin_url . 'assets/lib/choices/choices.min.css', array(), '11.2.4' );
 		wp_enqueue_script( 'kiriof-choices-script', $this->plugin_url . 'assets/lib/choices/choices.min.js', array(), '11.2.4', true );
-		wp_add_inline_script( 'kiriof-choices-script', 'window.kiriofChoices = window.Choices;', 'after' );
 		wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
 		wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
 		wp_enqueue_style( 'kiriof-onboarding-style', $this->plugin_url . 'assets/admin/css/kj-onboarding.css', array(), KIRIOF_VERSION );

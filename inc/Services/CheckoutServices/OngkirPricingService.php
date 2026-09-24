@@ -7,6 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
+use KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService;
 class OngkirPricingService extends BaseService{
     
     private bool $is_cod = false;
@@ -14,7 +18,15 @@ class OngkirPricingService extends BaseService{
     private array $wc_cart_contents = [];
     private int $origin_sub_district_id = 0;
     private array $package_overrides = [];
-    public function __construct($payload)
+    private SettingRepository $setting_repository;
+    private KiriminajaApiRepository $api_repository;
+    private WpPostMetaRepository $post_meta_repository;
+    public function __construct(
+        $payload,
+        SettingRepository $setting_repository,
+        KiriminajaApiRepository $api_repository,
+        WpPostMetaRepository $post_meta_repository
+    )
     {
         $this->is_cod               = @$payload['is_cod'];
         $this->destination_area_id  = @$payload['destination_area_id'];
@@ -23,11 +35,14 @@ class OngkirPricingService extends BaseService{
             : [];
         $this->origin_sub_district_id = ! empty( $payload['origin_sub_district_id'] ) ? (int) $payload['origin_sub_district_id'] : 0;
         $this->package_overrides    = ! empty( $payload['package_overrides'] ) && is_array( $payload['package_overrides'] ) ? $payload['package_overrides'] : [];
+        $this->setting_repository   = $setting_repository;
+        $this->api_repository       = $api_repository;
+        $this->post_meta_repository = $post_meta_repository;
         return $this;
     }
     public function call(){
         
-        $settingRepository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+        $settingRepository = $this->setting_repository;
         $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
         if ( 0 === $this->origin_sub_district_id && ( ! $settingRepo || $settingRepo->value === null ) ) {
             return self::error([],'Terjadi Kesalahan!');
@@ -41,9 +56,9 @@ class OngkirPricingService extends BaseService{
             $height     = (float) ( $this->package_overrides['height'] ?? 0 );
             $item_value = (int) ( $this->package_overrides['item_value'] ?? 0 );
         } else {
-            $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
+            $cartAttributes = (new GetWCCartAttributeService([
                 'wc_cart_contents' => $this->wc_cart_contents
-            ]))->call();
+            ], $this->post_meta_repository))->call();
             if ($cartAttributes->status !== 200){
                 return self::error([],'Terjadi Kesalahan!');
             }
@@ -75,7 +90,7 @@ class OngkirPricingService extends BaseService{
                 'data'   => $cachedPricingData,
             );
         } else {
-            $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+            $kiriofPricing = $this->api_repository->getPricing($pricingPayload);
             if ( ! empty( $kiriofPricing['status'] ) && ! empty( $kiriofPricing['data'] ) ) {
                 PricingCacheService::put( $pricingPayload, $kiriofPricing['data'] );
             }

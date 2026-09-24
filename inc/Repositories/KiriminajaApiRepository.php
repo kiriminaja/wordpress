@@ -1,179 +1,173 @@
 <?php
 namespace KiriminAjaOfficial\Repositories;
 
-// Exit if accessed directly
+// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+use KiriminAja\Services\KiriminAja;
 use KiriminAjaOfficial\Base\KiriminAjaApi;
 
-const DEFAULT_PICKUP_OPTION = ['PICKUP'];
+const DEFAULT_PICKUP_OPTION = array( 'PICKUP' );
 
-class KiriminajaApiRepository extends KiriminAjaApi{
-    public function sub_district_search($search)
-    {
-        return $this->get('/api/mitra/kelurahan_by_name?search=' . rawurlencode( $search ), array(), array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'sub_district_search',
-        ));
-    }
-    public function setCallback($callbackUrl)
-    {
-        return $this->post('/api/mitra/set_callback',[
-            'url'    => $callbackUrl,
-            'status' => '1'
-        ], array(
-            'source'    => 'kiriminaja_settings',
-            'operation' => 'set_callback',
-        ));
-    }
-    public function processSetupKey($payload){
-        return $this->post('/api/service/api-request/integrate',[
-            'setup_key'     => $payload['setup_key'],
-            'callback_url'  => $payload['callback_url']
-        ], array(
-            'source'    => 'kiriminaja_settings',
-            'operation' => 'process_setup_key',
-        ));
-    }
-    public function getPayment($payload){
-        return $this->post('/api/mitra/v2/get_payment',[
-            'payment_id'     => $payload['payment_id']
-        ], array(
-            'source'    => 'kiriminaja_payment',
-            'operation' => 'get_payment',
-        ));
-    }
-    public function getTracking($payload){
-        return $this->post('/api/mitra/tracking',[
-            'order_id'     => $payload['order_id']
-        ], array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'get_tracking',
-        ));
-    }
-    
-    public function getPricing($payload){
-        return $this->post('/api/mitra/v6.1/shipping_price',[
-            'subdistrict_origin'            => $payload['subdistrict_origin'],
-            'subdistrict_destination'       => $payload['subdistrict_destination'],
-            'weight'                        => $payload['weight'],
-            'length'                        => $payload['length'],
-            'width'                         => $payload['width'],
-            'height'                        => $payload['height'],
-            'insurance'                     => $payload['insurance'],
-            'item_value'                    => $payload['item_value'],
-            'courier'                       => $payload['courier'],
-            'pickup_option'                 => isset($payload['pickup_option']) ? $payload['pickup_option'] : DEFAULT_PICKUP_OPTION
-        ], array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'get_pricing',
-        ), array(
-            'timeout'     => (int) apply_filters( 'kiriof_pricing_api_timeout', 8 ),
-            'httpversion' => '1.1',
-        ));
-    }
-    
-    public function getRequestPickupSchedule(){
-        return $this->post('/api/mitra/v2/schedules', array(), array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'get_request_pickup_schedule',
-        ));
-    }
-    public function sendPickupRequest($payload){
-        return $this->post('/api/mitra/v6.1/request_pickup',$payload, array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'send_pickup_request',
-        ));
-    }
-    public function get_couriers(){
-        return $this->post('/api/mitra/couriers', array(), array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'get_couriers',
-        ));
-    }
-
-    public function getProvinces(){
-        $responses = array(
-            $this->post('/api/mitra/province'),
-            $this->get('/api/mitra/province'),
-        );
-
-        return $this->pickBestListResponse( $responses );
-    }
-
-    public function getCitiesByProvinceId($provinceId){
-        $responses = array(
-            $this->post('/api/mitra/city', array(
-                'provinsi_id' => (int) $provinceId,
-            )),
-            $this->post('/api/mitra/city', array(
-                'province_id' => $provinceId,
-            )),
-            $this->get('/api/mitra/city?provinsi_id=' . rawurlencode((string) $provinceId)),
-            $this->get('/api/mitra/city?province_id=' . rawurlencode((string) $provinceId)),
-        );
-
-        return $this->pickBestListResponse( $responses );
-    }
-
-    private function pickBestListResponse( array $responses ) {
-        foreach ( $responses as $response ) {
-            if ( $this->responseHasListData( $response ) ) {
-                return $response;
-            }
-        }
-
-        foreach ( $responses as $response ) {
-            if ( ! empty( $response['status'] ) ) {
-                return $response;
-            }
-        }
-
-        return end( $responses ) ?: array(
-            'status' => false,
-            'data' => 'No valid API response',
+class KiriminajaApiRepository extends KiriminAjaApi {
+    public function sub_district_search( $search ) {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getDistrictByName( (string) $search ),
+            static fn( $data, $message ) => array(
+                'status' => true,
+                'text'   => $message,
+                'result' => $data,
+            )
         );
     }
 
-    private function responseHasListData( $response ): bool {
-        if ( empty( $response['status'] ) || empty( $response['data'] ) || ! is_object( $response['data'] ) ) {
-            return false;
-        }
-
-        $data = $response['data'];
-        $candidates = array(
-            $data->datas ?? null,
-            $data->result ?? null,
-            $data->results ?? null,
-            $data->data ?? null,
+    public function setCallback( $callback_url ) {
+        return $this->call_sdk(
+            static fn() => KiriminAja::setCallback( (string) $callback_url ),
+            static fn( $data, $message ) => array(
+                'status' => true,
+                'text'   => $message,
+                'data'   => $data,
+            )
         );
+    }
 
-        foreach ( $candidates as $candidate ) {
-            if ( is_array( $candidate ) && ! empty( $candidate ) ) {
-                return true;
-            }
+    public function processSetupKey( $payload ) {
+        return $this->post(
+            '/api/service/api-request/integrate',
+            array(
+                'setup_key'    => $payload['setup_key'],
+                'callback_url' => $payload['callback_url'],
+            ),
+            array(
+                'source'    => 'kiriminaja_settings',
+                'operation' => 'process_setup_key',
+            )
+        );
+    }
 
-            if ( $candidate instanceof \Traversable ) {
-                foreach ( $candidate as $unused ) {
-                    return true;
+    public function getPayment( $payload ) {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getPayment( (string) $payload['payment_id'] ),
+            static fn( $data, $message ) => array(
+                'status' => true,
+                'text'   => $message,
+                'data'   => $data,
+            )
+        );
+    }
+
+    public function getTracking( $payload ) {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getTracking( (string) $payload['order_id'] ),
+            static fn( $data, $message ) => array_merge(
+                array(
+                    'status' => true,
+                    'text'   => $message,
+                ),
+                is_array( $data ) ? $data : array()
+            )
+        );
+    }
+
+    public function getPricing( $payload ) {
+        return $this->post(
+            '/api/mitra/v6.1/shipping_price',
+            array(
+                'subdistrict_origin'      => (int) $payload['subdistrict_origin'],
+                'subdistrict_destination' => (int) $payload['subdistrict_destination'],
+                'weight'                  => (int) $payload['weight'],
+                'length'                  => (int) $payload['length'],
+                'width'                   => (int) $payload['width'],
+                'height'                  => (int) $payload['height'],
+                'insurance'               => (int) $payload['insurance'],
+                'item_value'              => (int) $payload['item_value'],
+                'courier'                 => $payload['courier'],
+                'pickup_option'            => $payload['pickup_option'] ?? DEFAULT_PICKUP_OPTION,
+            ),
+            array(
+                'source'    => 'kiriminaja_shipping',
+                'operation' => 'get_pricing',
+            )
+        );
+    }
+
+    public function getRequestPickupSchedule() {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getSchedules(),
+            static fn( $data, $message ) => array(
+                'status'    => true,
+                'text'      => $message,
+                'schedules' => $data,
+            )
+        );
+    }
+
+    public function sendPickupRequest( $payload ) {
+        return $this->post(
+            '/api/mitra/v6.1/request_pickup',
+            $payload,
+            array(
+                'source'    => 'kiriminaja_shipping',
+                'operation' => 'send_pickup_request',
+            )
+        );
+    }
+
+    public function get_couriers() {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getCouriers(),
+            static fn( $data, $message ) => array(
+                'status' => true,
+                'text'   => $message,
+                'datas'  => $data,
+            )
+        );
+    }
+
+    public function getProvinces() {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getProvince(),
+            static fn( $data, $message ) => array(
+                'status' => true,
+                'text'   => $message,
+                'datas'  => $data,
+            )
+        );
+    }
+
+    public function getCitiesByProvinceId( $province_id ) {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getCity( (int) $province_id ),
+            static function ( $data, $message ) {
+                if ( is_array( $data ) && array_key_exists( 'status', $data ) ) {
+                    return $data;
                 }
-            }
-        }
 
-        return false;
+                return array(
+                    'status' => true,
+                    'text'   => $message,
+                    'datas'  => $data,
+                );
+            }
+        );
     }
 
-    public function getPrintAwb($awb){
-        $awbs = is_array( $awb )
-            ? array_values( array_filter( array_map( 'strval', $awb ) ) )
-            : array_values( array_filter( array( (string) $awb ) ) );
+    public function getPrintAwb( $awb ) {
+        $awbs = is_array( $awb ) ? $awb : array( $awb );
+        $awbs = array_values( array_filter( array_map( 'strval', $awbs ) ) );
+
+        if ( empty( $awbs ) ) {
+            return array(
+                'status' => false,
+                'data'   => 'AWB is empty',
+            );
+        }
 
         $payloads = array();
-        if ( ! empty( $awbs ) ) {
-            $payloads[] = array( 'awb' => $awbs );
-        }
+        $payloads[] = array( 'awb' => $awbs );
         if ( 1 === count( $awbs ) ) {
             $payloads[] = array( 'awb' => $awbs[0] );
             $payloads[] = array( 'awbs' => $awbs );
@@ -184,17 +178,16 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         }
 
         $attempts = array();
-        $response = array(
-            'status' => false,
-            'data'   => 'AWB is empty',
-        );
-        $payloads = array_values( array_unique( $payloads, SORT_REGULAR ) );
         foreach ( $payloads as $attempt => $payload ) {
-            $response = $this->post('/api/mitra/v6.1/awb/print', $payload, array(
-                'source'    => 'kiriminaja_shipping',
-                'operation' => 'get_print_awb',
-                'attempt'   => $attempt + 1,
-            ));
+            $response = $this->post(
+                '/api/mitra/v6.1/awb/print',
+                $payload,
+                array(
+                    'source'    => 'kiriminaja_shipping',
+                    'operation' => 'get_print_awb',
+                    'attempt'   => $attempt + 1,
+                )
+            );
             $attempts[] = array(
                 'payload_keys'  => array_keys( $payload ),
                 'payload_shape' => is_array( reset( $payload ) ) ? 'array' : 'scalar',
@@ -211,43 +204,59 @@ class KiriminajaApiRepository extends KiriminAjaApi{
         $response['attempts'] = $attempts;
         return $response;
     }
-    public function cancelShipment($awb, $reason){
-        return $this->post('/api/mitra/v3/cancel_shipment',[
-            'awb'    => $awb,
-            'reason' => $reason,
-        ], array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'cancel_shipment',
-        ));
-    }
-    public function getProfile(){
-        return $this->get('/api/mitra/v6.2/profile', array(), array(
-            'source'    => 'kiriminaja_api',
-            'operation' => 'get_profile',
-        ));
+
+    public function cancelShipment( $awb, $reason ) {
+        return $this->call_sdk(
+            static fn() => KiriminAja::cancelShipment( (string) $awb, (string) $reason ),
+            static fn( $data, $message ) => array(
+                'status' => true,
+                'text'   => $message,
+                'data'   => $data,
+            )
+        );
     }
 
-    public function getCreditBalance(){
-        return $this->get('/api/mitra/v6.2/credit/balance', array(), array(
-            'source'    => 'kiriminaja_api',
-            'operation' => 'get_credit_balance',
-        ));
+    public function getProfile() {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getProfile(),
+            static fn( $data, $message ) => array(
+                'status'  => true,
+                'text'    => $message,
+                'results' => $data,
+            )
+        );
     }
 
-    public function pinValidate($pin){
-        return $this->post('/api/mitra/v6.2/pin/validate', array(
-            'pin' => $pin,
-        ), array(
-            'source'    => 'kiriminaja_api',
-            'operation' => 'pin_validate',
-        ));
+    public function getCreditBalance() {
+        return $this->call_sdk(
+            static fn() => KiriminAja::getCreditBalance(),
+            static fn( $data, $message ) => array(
+                'status'  => true,
+                'text'    => $message,
+                'results' => $data,
+            )
+        );
     }
 
-    public function sendPickupRequestV2($payload){
-        return $this->post('/api/mitra/v6.2/request_pickup', $payload, array(
-            'source'    => 'kiriminaja_shipping',
-            'operation' => 'send_pickup_request_v2',
-        ));
+    public function pinValidate( $pin ) {
+        return $this->post(
+            '/api/mitra/v6.2/pin/validate',
+            array( 'pin' => $pin ),
+            array(
+                'source'    => 'kiriminaja_api',
+                'operation' => 'pin_validate',
+            )
+        );
     }
 
+    public function sendPickupRequestV2( $payload ) {
+        return $this->post(
+            '/api/mitra/v6.2/request_pickup',
+            $payload,
+            array(
+                'source'    => 'kiriminaja_shipping',
+                'operation' => 'send_pickup_request_v2',
+            )
+        );
+    }
 }

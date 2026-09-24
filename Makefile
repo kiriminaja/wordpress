@@ -9,12 +9,14 @@ BUILD_DIR := build
 STAGE_DIR := $(BUILD_DIR)/$(PLUGIN_SLUG)
 
 RSYNC_EXCLUDES := \
+	--exclude=.git \
 	--exclude=.git/ \
 	--exclude=.github/ \
 	--exclude=.idea/ \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
 	--exclude=$(BUILD_DIR)/ \
+	--exclude=docs/ \
 	--exclude=scripts/ \
 	--exclude=.DS_Store \
 	--exclude=.distignore \

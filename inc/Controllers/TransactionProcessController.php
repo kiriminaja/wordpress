@@ -11,9 +11,35 @@ use KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTran
 use KiriminAjaOfficial\Services\TransactionProcessServices\CancelTransactionService;
 use KiriminAjaOfficial\Services\TransactionProcessServices\GetCreditBalanceService;
 use KiriminAjaOfficial\Services\TransactionProcessServices\ValidatePinService;
+use KiriminAjaOfficial\Contracts\DatabaseTransactionManagerInterface;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
 
 class TransactionProcessController
 {
+    private TransactionRepository $transactionRepository;
+    private DatabaseTransactionManagerInterface $transactionManager;
+    private SendRequestPickupTransactionService $requestPickupService;
+    private CancelTransactionService $cancelTransactionService;
+    private \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService;
+    private CheckoutServiceFactory $checkoutServiceFactory;
+
+    public function __construct(
+        TransactionRepository $transactionRepository,
+        DatabaseTransactionManagerInterface $transactionManager,
+        SendRequestPickupTransactionService $requestPickupService,
+        CancelTransactionService $cancelTransactionService,
+        \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService $pickupScheduleService,
+        CheckoutServiceFactory $checkoutServiceFactory
+    ) {
+        $this->transactionRepository = $transactionRepository;
+        $this->transactionManager    = $transactionManager;
+        $this->requestPickupService  = $requestPickupService;
+        $this->cancelTransactionService = $cancelTransactionService;
+        $this->pickupScheduleService     = $pickupScheduleService;
+        $this->checkoutServiceFactory    = $checkoutServiceFactory;
+    }
+
     public function register()
     {
         /** getPaymentForm */
@@ -50,7 +76,7 @@ class TransactionProcessController
             ? array_map('sanitize_text_field', wp_unslash($_POST['data']['order_ids']))
             : []
         );
-        $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService())
+        $service = $this->pickupScheduleService
             ->orderIds($order_ids)
             ->call();
         wp_send_json_success($service);
@@ -100,7 +126,7 @@ class TransactionProcessController
                 }
             }
 
-            $service = (new \KiriminAjaOfficial\Services\TransactionProcessServices\SendRequestPickupTransactionService())
+            $service = $this->requestPickupService
                 ->orderIds($order_ids)
                 ->schedule($schedule)
                 ->paymentMethod($payment_method)
@@ -138,7 +164,7 @@ class TransactionProcessController
             $order_id = isset($_POST['data']['order_id']) ? sanitize_text_field(wp_unslash($_POST['data']['order_id'])) : '';
             $reason   = isset($_POST['data']['reason']) ? sanitize_textarea_field(wp_unslash($_POST['data']['reason'])) : '';
 
-            $service = (new CancelTransactionService())
+            $service = $this->cancelTransactionService
                 ->orderId($order_id)
                 ->reason($reason)
                 ->call();
@@ -155,7 +181,7 @@ class TransactionProcessController
     public function handleWcOrderCancelled($order_id)
     {
         try {
-            $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $transactionRepo = $this->transactionRepository;
             $transaction     = $transactionRepo->getTransactionByWCOrderId($order_id);
 
             if (! $transaction) {
@@ -175,7 +201,7 @@ class TransactionProcessController
 
             $reason = __('Pesanan dibatalkan dari WooCommerce', 'kiriminaja-official');
 
-            (new CancelTransactionService())
+            $this->cancelTransactionService
                 ->orderId($transaction->order_id)
                 ->reason($reason)
                 ->call();
@@ -272,8 +298,7 @@ class TransactionProcessController
             return $order_details;
         }
 
-        $transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())
-            ->getTransactionByWCOrderNumber($order->get_id());
+        $transaction = $this->transactionRepository->getTransactionByWCOrderNumber($order->get_id());
 
         if (! $transaction) {
             return $order_details;
@@ -344,127 +369,13 @@ class TransactionProcessController
 
         public function renderWooOrderPreviewKiriminajaRelocatorScript()
         {
-            ?>
-                <script>
-                    jQuery(function($) {
-                        function kiriofPreviewStatusPalette(statusClass) {
-                            if ((statusClass || '').indexOf('primary') !== -1) {
-                                return {
-                                    background: '#2563eb',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('info') !== -1) {
-                                return {
-                                    background: '#0891b2',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('warning') !== -1) {
-                                return {
-                                    background: '#f59e0b',
-                                    color: '#1f2937'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('success') !== -1) {
-                                return {
-                                    background: '#16a34a',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('teal') !== -1) {
-                                return {
-                                    background: '#0f766e',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('orange') !== -1) {
-                                return {
-                                    background: '#ea580c',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('slate') !== -1) {
-                                return {
-                                    background: '#475569',
-                                    color: '#ffffff'
-                                };
-                            }
-                            if ((statusClass || '').indexOf('rose') !== -1 || (statusClass || '').indexOf('danger') !== -1) {
-                                return {
-                                    background: '#e11d48',
-                                    color: '#ffffff'
-                                };
-                            }
-
-                            return {
-                                background: '#334155',
-                                color: '#ffffff'
-                            };
-                        }
-
-                        $(document.body).on('wc_backbone_modal_loaded', function(event, target) {
-                            if (target !== 'wc-modal-view-order') {
-                                return;
-                            }
-
-                            var $modal = $('.wc-backbone-modal.wc-order-preview');
-                            var $shipmentDetails = $modal.find('.kiriof-order-preview-shipment-details');
-                            var $header = $modal.find('.wc-backbone-modal-header');
-
-                            if (!$shipmentDetails.length) {
-                                $shipmentDetails = $();
-                            }
-
-                            var $shippingPanel = $modal.find('.wc-order-preview-addresses .wc-order-preview-address').eq(1);
-
-                            if (!$shippingPanel.length) {
-                                $shippingPanel = $modal.find('.wc-order-preview-addresses .wc-order-preview-address').eq(0);
-                            }
-
-                            if (!$shippingPanel.length) {
-                                $shippingPanel = $();
-                            }
-
-                            if ($shipmentDetails.length && $shippingPanel.length) {
-                                $shipmentDetails.appendTo($shippingPanel);
-                            }
-
-                            var $existingStatus = $header.find('.kiriof-order-preview-status');
-                            if ($existingStatus.length) {
-                                $existingStatus.remove();
-                            }
-
-                            var kiriofStatusLabel = $modal.find('.kiriof-order-preview-shipment-details').data('kiriof-status-label');
-                            var kiriofStatusClass = $modal.find('.kiriof-order-preview-shipment-details').data('kiriof-status-class');
-
-                            if (!kiriofStatusLabel || !kiriofStatusClass) {
-                                kiriofStatusLabel = $modal.find('.kiriof-order-preview-status-source').data('kiriof-status-label');
-                                kiriofStatusClass = $modal.find('.kiriof-order-preview-status-source').data('kiriof-status-class');
-                            }
-
-                            if (!kiriofStatusLabel || !kiriofStatusClass) {
-                                return;
-                            }
-
-                            var $wcStatus = $header.find('.order-status').first();
-                            var palette = kiriofPreviewStatusPalette(kiriofStatusClass);
-                            var $kiriofStatus = $(
-                                '<mark class="order-status kiriof-order-preview-status" ' +
-                                'style="margin-left:6px;margin-right:10px;background:' + palette.background + ';color:' + palette.color + ';vertical-align:middle;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);">' +
-                                '<span style="color:inherit;">' + kiriofStatusLabel + '</span>' +
-                                '</mark>'
-                           );
-
-                            if ($wcStatus.length) {
-                                $kiriofStatus.insertAfter($wcStatus);
-                            } else {
-                                $header.prepend($kiriofStatus);
-                            }
-                        });
-                    });
-                </script>
-            <?php
+            wp_enqueue_script(
+                'kiriof-order-preview',
+                KIRIOF_URL . 'assets/admin/js/kj-order-preview.js',
+                array('jquery', 'wc-backbone-modal'),
+                KIRIOF_VERSION,
+                true
+            );
         }
 
         public function renderWooOrderPreviewTemplateForKiriofPage()
@@ -530,7 +441,7 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_transaction_repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $kiriof_transaction_repo = $this->transactionRepository;
             $kiriof_transaction      = $kiriof_transaction_repo->getTransactionByOrderId( $order_id );
             if (empty( $kiriof_transaction )) {
                 wp_send_json_error( array( 'status' => 404, 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ) );
@@ -569,7 +480,7 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_pricing = (new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService( array(
+            $kiriof_pricing = $this->checkoutServiceFactory->pricing( array(
                 'destination_area_id'    => (int) $kiriof_transaction->destination_sub_district_id,
                 'origin_sub_district_id' => (int) $kiriof_origin['origin_sub_district_id'],
                 'package_overrides'      => array(
@@ -580,7 +491,7 @@ class TransactionProcessController
                     'item_value' => (float) ( $kiriof_transaction->transaction_value ?? 0 ),
                 ),
                 'is_cod'                 => ( (float) ( $kiriof_transaction->cod_fee ?? 0 ) > 0 ),
-            ) ))->call();
+            ) )->call();
 
             if ( 200 !== $kiriof_pricing->status() ) {
                 wp_send_json_error( array(
@@ -739,7 +650,7 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_transaction_repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $kiriof_transaction_repo = $this->transactionRepository;
             $kiriof_transaction      = $kiriof_transaction_repo->getTransactionByOrderId( $order_id );
             if (empty( $kiriof_transaction )) {
                 wp_send_json_error( array( 'status' => 404, 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ) );
@@ -826,14 +737,11 @@ class TransactionProcessController
                 wp_die();
             }
 
-            global $wpdb;
             // Keep the transaction row, WooCommerce metadata, and private note atomic on supported database engines.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( 'START TRANSACTION' );
+            $this->transactionManager->begin();
             $kiriof_updated = $kiriof_transaction_repo->updateTransactionShipmentLocation( $order_id, $location_id, $kiriof_snapshot, $kiriof_courier_update );
             if (! $kiriof_updated) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $wpdb->query( 'ROLLBACK' );
+                $this->transactionManager->rollback();
                 wp_send_json_error( array( 'status' => 500, 'message' => __( 'Failed to update the shipment origin.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
@@ -966,15 +874,13 @@ class TransactionProcessController
                     throw new \RuntimeException( __( 'Failed to create the shipment audit note.', 'kiriminaja-official' ) );
                 }
             } catch ( \Throwable $throwable ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $wpdb->query( 'ROLLBACK' );
+                $this->transactionManager->rollback();
                 ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( 'changeOrigin rollback', array( $throwable->getMessage(), $order_id ) );
                 wp_send_json_error( array( 'status' => 500, 'message' => __( 'Failed to update the shipment origin. No shipment data was changed.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( 'COMMIT' );
+            $this->transactionManager->commit();
 
             wp_send_json_success( array( 'message' => __( 'Shipment origin updated.', 'kiriminaja-official' ) ) );
             wp_die();
@@ -1002,7 +908,7 @@ class TransactionProcessController
                 return new \WP_Error( 'kiriof_invalid_origin_area', __( 'The selected origin is not covered by KiriminAja yet. Please choose another shipment origin.', 'kiriminaja-official' ) );
             }
 
-            $pricing = ( new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService( array(
+            $pricing = $this->checkoutServiceFactory->pricing( array(
                 'destination_area_id'    => (int) $transaction->destination_sub_district_id,
                 'origin_sub_district_id' => (int) $origin['origin_sub_district_id'],
                 'package_overrides'      => array(
@@ -1013,7 +919,7 @@ class TransactionProcessController
                     'item_value' => (float) ( $transaction->transaction_value ?? 0 ),
                 ),
                 'is_cod'                 => ( (float) ( $transaction->cod_fee ?? 0 ) > 0 ),
-            ) ) )->call();
+            ) )->call();
 
             if ( 200 !== $pricing->status() ) {
                 return new \WP_Error( 'kiriof_shipping_check_failed', __( 'The selected origin is not covered for this destination. Please choose another shipment origin.', 'kiriminaja-official' ) );
@@ -1067,7 +973,7 @@ class TransactionProcessController
                 (int) ceil( $kiriof_pin_cache_ttl / MINUTE_IN_SECONDS )
             );
             ?>
-                <script type="text/template" id="tmpl-kiriof-modal-cod-adjustment">
+                <template id="tmpl-kiriof-modal-cod-adjustment">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cod-adjustment-modal">
                 <div class="wc-backbone-modal-content" style="max-width:500px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1172,9 +1078,9 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
+        </template>
 
-                <script type="text/template" id="tmpl-kiriof-modal-cancel-deficit">
+                <template id="tmpl-kiriof-modal-cancel-deficit">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-deficit-modal">
                 <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1207,10 +1113,10 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
+        </template>
 
                 <?php if ($this->isTransactionProcessPage()) : ?>
-                    <script type="text/template" id="tmpl-kiriof-modal-request-pickup">
+                    <template id="tmpl-kiriof-modal-request-pickup">
                         <div class="wc-backbone-modal kiriof-backbone-modal kiriof-request-pickup-modal">
                 <div class="wc-backbone-modal-content" style="max-width:640px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1313,9 +1219,9 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
+        </template>
 
-                    <script type="text/template" id="tmpl-kiriof-modal-cancel-transaction">
+                    <template id="tmpl-kiriof-modal-cancel-transaction">
                         <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-transaction-modal">
                 <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1357,8 +1263,8 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </script>
-        <script type="text/template" id="tmpl-kiriof-modal-change-origin">
+        </template>
+        <template id="tmpl-kiriof-modal-change-origin">
             <div class="wc-backbone-modal kiriof-backbone-modal kiriof-change-origin-modal">
                 <div class="wc-backbone-modal-content kiriof-change-origin-modal-content">
                     <section class="wc-backbone-modal-main" role="main">
@@ -1445,7 +1351,7 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop kiriof-change-origin-backdrop modal-close"></div>
-        </script>
+        </template>
                 <?php endif; ?>
         <?php
         }

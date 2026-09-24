@@ -412,8 +412,7 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
     <?php if ($kiriof_is_deficit) : ?>
         <button
             type="button"
-            class="button kiriof-btn--adjust-cod"
-            onclick="kjShowCodAdjustModal(this)"
+            class="button kiriof-btn--adjust-cod kiriof-open-cod-adjustment"
             data-ka-order-id="<?php echo esc_attr($data['ka_order_id'] ?? ''); ?>"
             data-current-cod="<?php echo esc_attr($wc_total); ?>"
             data-cod-minimum="<?php echo esc_attr($data['cod_minimum'] ?? 0); ?>"
@@ -431,8 +430,7 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
         </button>
         <button
             type="button"
-            class="button kiriof-btn--cancel-deficit"
-            onclick="kjShowCancelDeficitModal(this)"
+            class="button kiriof-btn--cancel-deficit kiriof-open-cancel-deficit"
             data-ka-order-id="<?php echo esc_attr($data['ka_order_id'] ?? ''); ?>"
             data-nonce="<?php echo esc_attr(wp_create_nonce(KIRIOF_NONCE)); ?>">
             <?php esc_html_e('Cancel Deficit Order', 'kiriminaja-official'); ?>
