@@ -5,9 +5,13 @@
     IconCalendar,
     IconCash,
     IconCheck,
+    IconCircleCheck,
+    IconClock,
     IconCopy,
+    IconCreditCard,
     IconEye,
     IconMapPin,
+    IconPackage,
     IconPrinter,
     IconRefresh,
     IconSearch,
@@ -356,13 +360,22 @@
                     {/if}
                     <div class="kiriof-courier-summary__content">
                       <strong class="kiriof-row-title">{row.courier.service}</strong>
-                      <span class="kiriof-row-muted">{row.courier.paymentLabel}</span>
+                      <span class="kiriof-payment-type {row.courier.paymentLabel === 'COD' ? 'is-cod' : 'is-non-cod'}">
+                        {#if row.courier.paymentLabel === 'COD'}<IconCash />{:else}<IconCreditCard />{/if}
+                        {row.courier.paymentLabel}
+                      </span>
                     </div>
                   </div>
-                  <div class="kiriof-row-badges">
-                    <span class="kiriof-transaction-status {toneClass(row.status.tone)}" title={row.status.deficit ? 'COD settlement requires action' : undefined}>{row.status.label}</span>
+                  <div class="kiriof-shipment-states">
+                    <span class="kiriof-transaction-status {toneClass(row.status.tone)}" title={row.status.deficit ? 'COD settlement requires action' : undefined}>
+                      <IconPackage />
+                      {row.status.label}
+                    </span>
+                    <span class="kiriof-print-status {row.printStatus}">
+                      {#if row.printStatus === 'printed'}<IconCircleCheck />{:else}<IconClock />{/if}
+                      {row.printStatus === 'printed' ? bootstrap.i18n.printedLabel : bootstrap.i18n.unprintedLabel}
+                    </span>
                   </div>
-                  <span class="kiriof-print-status {row.printStatus}">{row.printStatus === 'printed' ? bootstrap.i18n.printedLabel : bootstrap.i18n.unprintedLabel}</span>
                 </Table.Cell>
                 <Table.Cell>
                   <div class="kiriof-copy-field">
