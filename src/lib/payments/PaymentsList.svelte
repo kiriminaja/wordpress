@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { IconCalendar, IconCalendarClock, IconCreditCardPay, IconEye, IconRefresh, IconSearch } from '@tabler/icons-svelte';
+  import { IconCalendar, IconCalendarClock, IconChevronDown, IconCreditCardPay, IconEye, IconSearch } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
-  import StatusTabs from '../admin-list/StatusTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -23,17 +23,18 @@
   }
   let bootstrap = $state<PaymentsBootstrap>(initialWorkspace());
   let search = $state('');
-  let month = $state('');
+  let month = $state('all');
 
   $effect(() => {
     search = bootstrap.filters.key;
-    month = bootstrap.filters.month;
+    month = bootstrap.filters.month || 'all';
   });
   let refreshing = $state(false);
   let searchTimer: number | null = null;
 
-  const currentStatus = $derived(bootstrap.filters.status === 'all' ? '' : bootstrap.filters.status);
-  const monthLabel = $derived(month ? bootstrap.monthOptions[month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
+  const currentStatus = $derived(bootstrap.filters.status || 'all');
+  const paymentTabs = $derived(bootstrap.statusTabs.map((tab) => ({ ...tab, value: tab.value || 'all' })));
+  const monthLabel = $derived(month !== 'all' ? bootstrap.monthOptions[month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
 
   function buildUrl(values: Record<string, string>): URL {
     const url = new URL(window.location.href);
@@ -57,7 +58,16 @@
   }
 
   function applyFilters(): void {
-    void navigate({ key: search, month });
+    void navigate({ key: search, month: month === 'all' ? '' : month });
+  }
+
+  function changeMonth(value: string): void {
+    month = value || 'all';
+    if (!refreshing) applyFilters();
+  }
+
+  function changeStatus(status: string): void {
+    if (!refreshing) void navigate({ status: status === 'all' ? '' : status });
   }
 
   function scheduleSearch(): void {
@@ -82,40 +92,36 @@
   });
 </script>
 
-<div class="kiriof-shadcn kiriof-payments-app">
+<div class="kiriof-shadcn kiriof-admin-list-app kiriof-payments-app">
   <Toolbar toolbar={bootstrap.toolbar} />
 
-  <section class="kiriof-payments-card">
-    <div class="kiriof-payments-filterbar">
-      <StatusTabs tabs={bootstrap.statusTabs} value={currentStatus} onChange={(status) => void navigate({ status })} />
-      <form class="kiriof-payments-search" onsubmit={(event) => { event.preventDefault(); applyFilters(); }}>
+  <section class="kiriof-admin-list-card kiriof-payments-card">
+    <div class="kiriof-admin-list-filterbar kiriof-payments-filterbar">
+      <nav class="kiriof-admin-list-scopes" aria-label="Payment status">
+        <WorkspaceTabs value={currentStatus} tabs={paymentTabs} onChange={changeStatus} />
+        <div class="kiriof-admin-list-tools">
+          <Select.Root type="single" value={month} disabled={refreshing} onValueChange={changeMonth}>
+            <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
+            <Select.Content class="kiriof-shadcn">
+              <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
+              {#each Object.entries(bootstrap.monthOptions) as [value, label]}
+                <Select.Item {value}>{label}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
+      </nav>
+      <form class="kiriof-payments-filterrow" onsubmit={(event) => { event.preventDefault(); applyFilters(); }}>
         <label class="sr-only" for="kiriof-svelte-payment-search">{bootstrap.i18n.search}</label>
-        <InputGroup.Root>
+        <InputGroup.Root class="kiriof-admin-list-search" data-disabled={refreshing ? 'true' : undefined}>
           <InputGroup.Addon align="inline-start"><IconSearch aria-hidden="true" /></InputGroup.Addon>
           <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
         </InputGroup.Root>
       </form>
     </div>
 
-    <div class="kiriof-payments-toolbar">
-      <div class="kiriof-payments-month-filter">
-        <Select.Root type="single" bind:value={month} disabled={refreshing} onValueChange={applyFilters}>
-          <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value></Select.Trigger>
-          <Select.Content class="kiriof-shadcn">
-            <Select.Item value="">{bootstrap.i18n.allDates}</Select.Item>
-            {#each Object.entries(bootstrap.monthOptions) as [value, label]}
-              <Select.Item {value}>{label}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
-        <Button variant="outline" disabled={refreshing} onclick={applyFilters}>
-          <IconRefresh data-icon="inline-start" />{bootstrap.i18n.apply}
-        </Button>
-      </div>
-    </div>
-
-    <div class="kiriof-payments-table-wrap" aria-busy={refreshing}>
-      <Table.Root>
+    <div class="kiriof-admin-list-tablewrap kiriof-payments-table-wrap" aria-busy={refreshing}>
+      <Table.Root class="kiriof-admin-list-table kiriof-payments-table">
         <Table.Header>
           <Table.Row>
             <Table.Head>{bootstrap.i18n.no}</Table.Head>

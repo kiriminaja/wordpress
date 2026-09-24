@@ -6,6 +6,25 @@
   padding: 0 20px 48px;
 }
 
+/* Every Svelte workspace owns its page chrome; WordPress/plugin notices must not
+ * create a second header or leave vertical whitespace above the shared toolbar. */
+body:has(.kiriof-workspace-shell) #screen-meta-links,
+body:has(.kiriof-workspace-shell) #screen-meta,
+body:has(.kiriof-workspace-shell) .update-nag,
+body:has(.kiriof-workspace-shell) .notice,
+body:has(.kiriof-workspace-shell) .updated,
+body:has(.kiriof-workspace-shell) .error {
+  display: none !important;
+}
+
+body:has(.kiriof-workspace-shell) #wpcontent {
+  padding-left: 0 !important;
+}
+
+body:has(.kiriof-workspace-shell) #wpbody-content {
+  padding-bottom: 0 !important;
+}
+
 .kiriof-app-toolbar {
   position: sticky;
   top: 32px;

@@ -169,6 +169,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( "include KIRIOF_DIR . 'templates/setting/app.php'", $setup );
 		$this->assertStringContainsString( 'data-kiriof-settings-root', $app );
 		$this->assertStringContainsString( 'data-kiriof-settings-payload', $app );
+		$this->assertStringContainsString( 'kiriof-workspace-shell', $app );
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $app );
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $configured );
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $setup );
@@ -187,9 +188,10 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'kiriof-app-toolbar', $toolbarStyles );
 		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $toolbarStyles );
 		$this->assertStringContainsString( 'padding: 8px 0;', $toolbarStyles );
-		$this->assertStringContainsString( "import '../styles/toolbar.css'", $entry );
-		$this->assertStringContainsString( 'padding-left: 0 !important;', $styles );
-		$this->assertStringContainsString( 'padding-bottom: 0 !important;', $styles );
+		$this->assertStringContainsString( "import toolbarStyles from '../styles/toolbar.css?inline'", $entry );
+		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .update-nag', $toolbarStyles );
+		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
+		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) #wpcontent', $toolbarStyles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
 		$this->assertStringContainsString( 'history.pushState', $entry );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );

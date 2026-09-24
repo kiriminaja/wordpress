@@ -1,7 +1,5 @@
-@reference './shadcn-onboarding.css';
-
 .kiriof-payments-app {
-  @apply min-w-0;
+  min-width: 0;
 }
 
 body:has([data-kiriof-payments-page]) #screen-meta-links,
@@ -9,108 +7,73 @@ body:has([data-kiriof-payments-page]) .update-nag,
 body:has([data-kiriof-payments-page]) .notice,
 body:has([data-kiriof-payments-page]) .updated,
 body:has([data-kiriof-payments-page]) .error {
-  @apply hidden;
+  display: none;
 }
 
 body:has([data-kiriof-payments-page]) #wpcontent {
-  @apply pl-0;
+  padding-left: 0;
 }
 
 body:has([data-kiriof-payments-page]) #wpbody-content {
-  @apply pb-0;
+  padding-bottom: 0;
 }
 
-.kiriof-payments-app .kiriof-app-toolbar {
-  @apply mb-6;
+.kiriof-payments-filterrow {
+  display: flex;
+  align-items: center;
 }
 
-.kiriof-payments-card {
-  @apply flex flex-col gap-3 rounded-lg border border-border bg-background p-4;
+.kiriof-payments-filterrow .kiriof-admin-list-search {
+  width: min(100%, 420px);
 }
 
-.kiriof-payments-filterbar,
-.kiriof-payments-toolbar {
-  @apply flex items-center justify-between gap-3;
+.kiriof-payments-table {
+  min-width: 1040px;
 }
 
-.kiriof-payments-filterbar {
-  @apply flex-wrap;
+.kiriof-payments-table [data-slot='table-cell'] small {
+  display: block;
+  margin-top: 3px;
+  color: var(--kiriof-muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
-.kiriof-payments-search {
-  @apply ml-auto w-full max-w-sm;
-}
-
-.kiriof-payments-search [data-slot='input-group'] {
-  @apply h-9 border-input bg-background;
-}
-
-.kiriof-payments-search [data-slot='input-group-addon'] {
-  @apply border-0 bg-transparent pl-3 text-muted-foreground;
-}
-
-.kiriof-payments-search [data-slot='input-group-control'] {
-  @apply border-0 bg-transparent shadow-none outline-none;
-}
-
-.kiriof-payments-month-filter {
-  @apply flex items-center gap-2;
-}
-
-.kiriof-payments-month-filter [data-slot='select-trigger'] {
-  @apply min-w-40;
-}
-
-.kiriof-payments-table-wrap {
-  @apply overflow-x-auto;
-}
-
-.kiriof-payments-table-wrap [data-slot='table'] {
-  @apply min-w-[1040px] border-0;
-}
-
-.kiriof-payments-table-wrap [data-slot='table-head'] {
-  @apply whitespace-nowrap bg-[#f7f7f8] px-3.5 py-2.5 text-[11px] font-semibold text-[#5f596f];
-}
-
-.kiriof-payments-table-wrap [data-slot='table-cell'] {
-  @apply border-b border-[#eceaf3] px-3.5 py-3 align-top text-xs text-[#241b3d];
-}
-
-.kiriof-payments-table-wrap [data-slot='table-cell'] small {
-  @apply mt-1 block text-xs text-muted-foreground;
+.kiriof-payments-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .kiriof-payments-app .kiriof-row-actions {
-  @apply inline-flex flex-wrap justify-end gap-1;
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .kiriof-payments-app .kiriof-row-actions [data-slot='button'] {
-  @apply size-8 rounded-lg p-0;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 7px;
+  background: #fff;
+  color: #342b45;
 }
 
 .kiriof-payments-app .kiriof-row-actions [data-slot='button']:hover {
-  @apply border-primary/40 bg-primary/10 text-primary;
+  border-color: #b9afd6;
+  background: var(--kiriof-primary-soft);
+  color: var(--kiriof-primary);
 }
 
 .kiriof-payments-app [aria-busy='true'] {
-  @apply opacity-60;
+  opacity: 0.6;
 }
 
 @media (max-width: 782px) {
-  .kiriof-payments-search {
-    @apply ml-0 max-w-none;
-  }
-
-  .kiriof-payments-month-filter {
-    @apply w-full;
-  }
-
-  .kiriof-payments-month-filter [data-slot='select-trigger'] {
-    @apply min-w-0 flex-1;
-  }
-
-  .kiriof-payments-toolbar {
-    @apply flex-wrap;
+  .kiriof-payments-filterrow .kiriof-admin-list-search {
+    width: 100%;
   }
 }

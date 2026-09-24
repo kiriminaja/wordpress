@@ -15,14 +15,6 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
-body:has([data-kiriof-settings-page]) #wpcontent {
-  padding-left: 0 !important;
-}
-
-body:has([data-kiriof-settings-page]) #wpbody-content {
-  padding-bottom: 0 !important;
-}
-
 .kiriof-settings-content {
   width: min(920px, 100%);
   margin-right: auto;

@@ -218,7 +218,7 @@
   });
 </script>
 
-<div class="kiriof-shadcn kiriof-transactions-app">
+<div class="kiriof-shadcn kiriof-admin-list-app kiriof-transactions-app">
   <Toolbar toolbar={bootstrap.toolbar}>
     <div class="kiriof-transactions-toolbar__actions">
       <Button id="kj-print-btn" variant="outline" disabled={refreshing || selectedPrintCount === 0} onclick={printSelected}>
@@ -231,11 +231,11 @@
     </div>
   </Toolbar>
 
-  <section class="kiriof-transactions-card">
-    <div class="kiriof-transactions-filterbar">
-      <nav class="kiriof-transactions-scopes" aria-label="Transaction scope">
+  <section class="kiriof-admin-list-card kiriof-transactions-card">
+    <div class="kiriof-admin-list-filterbar kiriof-transactions-filterbar">
+      <nav class="kiriof-admin-list-scopes kiriof-transactions-scopes" aria-label="Transaction scope">
         <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
-        <div class="kiriof-transactions-list-tools">
+        <div class="kiriof-admin-list-tools kiriof-transactions-list-tools">
           <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={applySelectFilter}>
             <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
@@ -260,7 +260,7 @@
           applyFilters();
         }}
       >
-        <InputGroup.Root class="kiriof-transactions-search" data-disabled={refreshing ? 'true' : undefined}>
+        <InputGroup.Root class="kiriof-admin-list-search kiriof-transactions-search" data-disabled={refreshing ? 'true' : undefined}>
           <InputGroup.Addon align="inline-start"><IconSearch /></InputGroup.Addon>
           <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
         </InputGroup.Root>
@@ -304,8 +304,8 @@
       </form>
     </div>
 
-    <div class="kiriof-transactions-tablewrap">
-      <Table.Root class="kiriof-transactions-table">
+    <div class="kiriof-admin-list-tablewrap kiriof-transactions-tablewrap">
+      <Table.Root class="kiriof-admin-list-table kiriof-transactions-table">
         <Table.Header>
           {#if selectedCount > 0}
             <Table.Row class="kiriof-selection-summary">
