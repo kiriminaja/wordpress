@@ -3,7 +3,6 @@
   import {
     IconBox,
     IconCheck,
-    IconChevronLeft,
     IconCircleCheck,
     IconExternalLink,
     IconMapPin,
@@ -40,10 +39,6 @@
     if (digits.startsWith('62')) return `+${digits}`;
     if (digits.startsWith('0')) return `+62${digits.slice(1)}`;
     return `+${digits}`;
-  }
-
-  function back(): void {
-    window.location.assign(bootstrap.toolbar.rootUrl);
   }
 
   async function loadTracking(): Promise<void> {
@@ -110,11 +105,6 @@
     {/if}
   </Toolbar>
 
-  <button type="button" class="kiriof-transaction-detail-back" onclick={back}>
-    <IconChevronLeft />
-    {i18n.backToTransactions}
-  </button>
-
   <div class="kiriof-transaction-detail-grid">
     <main class="kiriof-transaction-detail-main">
       <Card.Root class="kiriof-admin-list-card kiriof-transaction-detail-status">
@@ -149,7 +139,7 @@
                 <Button
                   variant="outline"
                   size="sm"
-                  class="kiriof-change-origin-button"
+                  class="kiriof-transaction-detail-change-origin kiriof-change-origin-button"
                   data-ka-order-id={transaction.actions.data.kaOrderId}
                   data-current-origin={transaction.actions.data.currentOrigin}
                   data-current-origin-address={transaction.actions.data.currentOriginAddress}
@@ -213,14 +203,24 @@
 
     <aside class="kiriof-transaction-detail-sidebar">
       <Card.Root class="kiriof-admin-list-card kiriof-transaction-detail-shipment">
-        <Card.Header><Card.Title><IconTruck />{i18n.shipment}</Card.Title></Card.Header>
+        <Card.Header>
+          <Card.Title><IconTruck />{i18n.shipment}</Card.Title>
+          <Card.Action>
+            <div class="kiriof-transaction-detail-badges">
+              <StatusBadge label={transaction.paymentLabel} tone={transaction.isCod ? 'info' : 'neutral'} />
+              <StatusBadge label={transaction.pickupNumber ? i18n.pickup : i18n.dropoff} tone="neutral" />
+              {#if transaction.shipment.isPaid}<StatusBadge label={i18n.paid} tone="success" />{/if}
+            </div>
+          </Card.Action>
+        </Card.Header>
         <Card.Content>
-          <div class="kiriof-transaction-detail-courier">
+          <div class="kiriof-transaction-detail-3pl">
             {#if courierImage(transaction.shipment.courier.code, transaction.shipment.courier.service)}<img src={courierImage(transaction.shipment.courier.code, transaction.shipment.courier.service)} alt="" />{/if}
-            <strong>{transaction.shipment.courier.service || '—'}</strong>
+            <div>
+              <strong>{transaction.shipment.courier.service || '—'}</strong>
+              <div class="kiriof-transaction-detail-awb"><span>{i18n.airwaybill}</span><code>{transaction.shipment.awb || '—'}</code></div>
+            </div>
           </div>
-          <div class="kiriof-transaction-detail-badges"><StatusBadge label={transaction.paymentLabel} tone={transaction.isCod ? 'info' : 'neutral'} /><StatusBadge label={transaction.pickupNumber ? i18n.pickup : i18n.dropoff} tone="neutral" /></div>
-          <div class="kiriof-transaction-detail-awb"><span>{i18n.airwaybill}</span><code>{transaction.shipment.awb || '—'}</code></div>
           <dl class="kiriof-transaction-detail-costs">
             <div><dt>{i18n.shipping}</dt><dd>{currency(transaction.shipment.costs.shipping)}</dd></div>
             {#if transaction.shipment.costs.insurance > 0}<div><dt>{i18n.insurance}</dt><dd>{currency(transaction.shipment.costs.insurance)}</dd></div>{/if}
@@ -230,8 +230,8 @@
             {#if transaction.isCod}<div class="cod"><dt>{i18n.codValue}</dt><dd>{currency(transaction.shipment.codValue)}</dd></div>{/if}
           </dl>
           {#if transaction.actions.adjustDeficit}<Button variant="outline" onclick={() => legacyAction('cod-adjust')}><IconRefresh data-icon="inline-start" />{i18n.adjustDeficit}</Button>{/if}
-          {#if transaction.actions.cancelDeficit}<Button variant="destructive" onclick={() => legacyAction('cancel-deficit')}><IconX data-icon="inline-start" />{i18n.cancel}</Button>{/if}
-          {#if transaction.actions.cancel}<Button variant="destructive" onclick={() => legacyAction('cancel')}><IconX data-icon="inline-start" />{i18n.cancel}</Button>{/if}
+          {#if transaction.actions.cancelDeficit}<Button variant="destructive" class="kiriof-transaction-detail-destructive-action" onclick={() => legacyAction('cancel-deficit')}><IconX data-icon="inline-start" />{i18n.cancel}</Button>{/if}
+          {#if transaction.actions.cancel}<Button variant="destructive" class="kiriof-transaction-detail-destructive-action" onclick={() => legacyAction('cancel')}><IconX data-icon="inline-start" />{i18n.cancel}</Button>{/if}
         </Card.Content>
       </Card.Root>
 

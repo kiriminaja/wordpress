@@ -43,6 +43,7 @@ class TransactionDetailPageData {
 		$payment_label = $cod_fee > 0 ? __( 'COD', 'kiriminaja-official' ) : __( 'Non-COD', 'kiriminaja-official' );
 		$status        = (string) ( $transaction->status ?? 'new' );
 		$order_url     = $wc_order && method_exists( $wc_order, 'get_edit_order_url' ) ? (string) $wc_order->get_edit_order_url() : '';
+		$is_paid       = $wc_order && method_exists( $wc_order, 'is_paid' ) ? (bool) $wc_order->is_paid() : 'finished' === $status;
 		$items         = $this->items( $wc_order );
 		$notes         = $this->notes( $wc_order );
 		$action_data   = $this->action_data( $transaction, $wc_order, $shipping, $insurance, $cod_fee );
@@ -96,6 +97,7 @@ class TransactionDetailPageData {
 				'shipment'      => array(
 					'courier'       => array( 'code' => strtolower( (string) ( $transaction->service ?? '' ) ), 'service' => (string) ( $transaction->service_name ?? $transaction->service ?? '' ) ),
 					'awb'           => (string) ( $transaction->awb ?? '' ),
+					'isPaid'        => $is_paid,
 					'costs'         => array( 'shipping' => $shipping, 'insurance' => $insurance, 'codFee' => $cod_fee, 'discount' => $discount, 'total' => max( 0, $shipping + $insurance + $cod_fee - $discount ) ),
 					'codValue'      => $cod_value,
 					'printUrl'      => $print_url,

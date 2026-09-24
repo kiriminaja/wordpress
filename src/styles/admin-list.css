@@ -444,6 +444,17 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   background: #fff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
 }
+
+/* This class is also applied to shadcn Card.Root in workspace detail views.
+ * It normalizes Card.Root's ring, padding, and flex gap to the list surface. */
+.kiriof-admin-list-card[data-slot='card'] {
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
 .kiriof-admin-list-filterbar {
   display: grid;
   gap: 10px;
@@ -1268,25 +1279,6 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   margin: 0 auto;
 }
 
-.kiriof-transaction-detail-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin: -10px 0 18px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--kiriof-primary, #5c2ecb);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.kiriof-transaction-detail-back svg {
-  width: 16px;
-  height: 16px;
-}
-
 .kiriof-transaction-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -1298,34 +1290,6 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-transaction-detail-sidebar {
   display: grid;
   gap: 16px;
-}
-
-.kiriof-transaction-detail-app [data-slot='card'] {
-  border-color: var(--kiriof-border, #ddd7ee);
-  box-shadow: 0 1px 2px rgb(36 27 61 / 4%);
-}
-
-.kiriof-transaction-detail-app [data-slot='card-header'] {
-  display: flex;
-  min-height: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px 0;
-}
-
-.kiriof-transaction-detail-app [data-slot='card-title'] {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 14px;
-}
-
-.kiriof-transaction-detail-app [data-slot='card-title'] > svg {
-  width: 17px;
-  height: 17px;
-  color: var(--kiriof-primary, #5c2ecb);
 }
 
 .kiriof-transaction-detail-status [data-slot='card-content'] {
@@ -1766,17 +1730,7 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   gap: 14px;
 }
 
-.kiriof-transaction-detail-app .kiriof-admin-list-card[data-slot='card'] {
-  gap: 0;
-  padding: 0;
-  border: 1px solid var(--kiriof-border);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
-}
-
 .kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-header'] {
-  min-height: 48px;
   padding: 14px 16px;
   border-bottom: 1px solid #eeeaf8;
 }
@@ -1858,13 +1812,48 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   padding: 6px 16px 14px !important;
 }
 
-.kiriof-transaction-detail-back {
-  margin: -4px 0 14px;
-  font-size: 12px;
-}
-
 @media (max-width: 960px) {
   .kiriof-transaction-detail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Preserve the legacy class used by Change Origin JS, but re-apply the
+ * installed shadcn Button geometry after WordPress admin button resets. */
+.kiriof-transaction-detail-app .kiriof-transaction-detail-change-origin[data-slot='button'] {
+  display: inline-flex !important;
+  box-sizing: border-box;
+  min-height: 28px;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: min(var(--radius-md), 12px) !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+}
+
+.kiriof-transaction-detail-app .kiriof-transaction-detail-change-origin[data-slot='button']:hover {
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+
+.kiriof-transaction-detail-app .kiriof-transaction-detail-change-origin[data-slot='button'] svg,
+.kiriof-transaction-detail-app
+  .kiriof-transaction-detail-destructive-action[data-slot='button']
+  svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.kiriof-transaction-detail-shipment
+  .kiriof-transaction-detail-destructive-action[data-slot='button'] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  line-height: 1 !important;
 }
