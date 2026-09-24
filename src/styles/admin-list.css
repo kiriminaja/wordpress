@@ -865,6 +865,17 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-copy-field + .kiriof-copy-field {
   margin-top: 8px;
 }
+.kiriof-copy-field--inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kiriof-copy-field--inline + .kiriof-copy-field--inline {
+  margin-top: 6px;
+}
+.kiriof-copy-field--inline .kiriof-row-label {
+  flex-shrink: 0;
+}
 .kiriof-copy-field__value {
   display: inline-flex;
   align-items: center;

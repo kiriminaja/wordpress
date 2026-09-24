@@ -415,11 +415,11 @@
                   </div>
                 </Table.Cell>
                 <Table.Cell>
-                  <div class="kiriof-copy-field">
+                  <div class="kiriof-copy-field kiriof-copy-field--inline">
                     <span class="kiriof-row-label">{bootstrap.i18n.awb}</span>
-                     <span class="kiriof-copy-field__value"><strong>{row.awb || '—'}</strong>{#if row.awb}<ActionTooltip label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.awb)} aria-label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}>{#if copiedValue === row.awb}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip>{/if}</span>
+                     <span class="kiriof-copy-field__value"><code>{row.awb || '—'}</code>{#if row.awb}<ActionTooltip label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.awb)} aria-label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}>{#if copiedValue === row.awb}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip>{/if}</span>
                   </div>
-                  <div class="kiriof-copy-field">
+                  <div class="kiriof-copy-field kiriof-copy-field--inline">
                     <span class="kiriof-row-label">{bootstrap.i18n.kaOrderId}</span>
                      <span class="kiriof-copy-field__value"><code>{row.kaOrderId}</code><ActionTooltip label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.kaOrderId)} aria-label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}>{#if copiedValue === row.kaOrderId}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip></span>
                   </div>
