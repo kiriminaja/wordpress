@@ -18,7 +18,6 @@ import sap from '../../assets/images/kiriminaja-kurir/SAPX.png';
 import sentralCargo from '../../assets/images/kiriminaja-kurir/Sentral Cargo.png';
 import shopeeExpress from '../../assets/images/kiriminaja-kurir/shopee-express.png';
 import sicepat from '../../assets/images/kiriminaja-kurir/Sicepat.png';
-import spx from '../../assets/images/kiriminaja-kurir/SPX.png';
 import tiki from '../../assets/images/kiriminaja-kurir/TIKI.png';
 
 export const courierImages: Record<string, string> = {
@@ -43,7 +42,7 @@ export const courierImages: Record<string, string> = {
   sentral: sentralCargo,
   shopee_express: shopeeExpress,
   sicepat,
-  spx,
+  spx: shopeeExpress,
   tiki,
 };
 
