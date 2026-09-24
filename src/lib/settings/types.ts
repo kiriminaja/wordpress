@@ -111,12 +111,18 @@ export type AccountBootstrap = {
   couriers: Array<{ code: string; name: string }>;
   termsUrl: string;
   privacyUrl: string;
+  dashboardUrl: string;
   i18n: {
     enabledCouriers: string;
     connection: string;
     setupKey: string;
     setupKeyPlaceholder: string;
     connect: string;
+    updateConnection: string;
+    linkedAccount: string;
+    credentialsTitle: string;
+    privacyTitle: string;
+    credentialsSteps: string[];
     connecting: string;
     disconnect: string;
     disconnecting: string;

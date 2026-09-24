@@ -64,7 +64,7 @@
     {/snippet}
   </Popover.Trigger>
   <Popover.Content
-    class="kiriof-shadcn w-[var(--bits-popover-anchor-width)] p-0"
+    class="kiriof-shadcn kiriof-onboarding-subdistrict-popover z-[100001] w-[var(--bits-popover-anchor-width)] p-0"
     align="start"
   >
     <Command.Root shouldFilter={false}>

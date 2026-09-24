@@ -35,11 +35,31 @@ class SettingsPageData {
 	}
 
 	/**
+	 * Build a stable connected-account shell when the live profile endpoint is
+	 * temporarily unavailable.
+	 */
+	private function fallbackConnectedProfile(): object {
+		$store_name = (string) get_option( 'blogname', __( 'Connected KiriminAja Account', 'kiriminaja-official' ) );
+		$email      = (string) get_option( 'admin_email', '' );
+		$is_top_row = $this->setting_repository->getSettingByKey( 'is_top' );
+
+		return (object) array(
+			'name'     => '' !== trim( $store_name ) ? $store_name : __( 'Connected KiriminAja Account', 'kiriminaja-official' ),
+			'email'    => $email,
+			'status'   => 'connected',
+			'metadata' => (object) array(
+				'payment_method' => is_object( $is_top_row ) && 'yes' === (string) ( $is_top_row->value ?? '' ) ? 'TOP' : '',
+			),
+		);
+	}
+
+	/**
 	 * @param array<string, mixed> $account Prepared account data.
 	 * @return array<string, mixed>
 	 */
 	public function prepareAccountBootstrap( array $account ): array {
-		$profile = $account['kiriof_profile'];
+		$is_connected = (bool) $account['kiriof_is_connected'];
+		$profile      = $account['kiriof_profile'];
 		$couriers = array();
 		foreach ( $account['kiriof_wl_id_arr'] as $code ) {
 			$couriers[] = array(
@@ -48,10 +68,17 @@ class SettingsPageData {
 			);
 		}
 
+		// The credentials are the source of truth for connection state. A
+		// temporary profile API failure must not regress the account page into
+		// the old disconnect-only error state.
+		if ( $is_connected && ! $profile ) {
+			$profile = $this->fallbackConnectedProfile();
+		}
+
 		return array(
 			'view'         => 'account',
 			'toolbar'      => $this->settingsToolbar( __( 'Account Configuration', 'kiriminaja-official' ) ),
-			'connected'    => (bool) $account['kiriof_is_connected'],
+			'connected'    => $is_connected,
 			'profileError' => (bool) $account['kiriof_profile_err'],
 			'profile'      => $profile ? array(
 				'name'          => (string) ( $profile->name ?? '' ),
@@ -62,12 +89,27 @@ class SettingsPageData {
 			'couriers'      => $couriers,
 			'termsUrl'      => 'https://kiriminaja.com/syarat-ketentuan',
 			'privacyUrl'    => 'https://kiriminaja.com/privacy-policy',
+			'dashboardUrl'  => 'https://app.kiriminaja.com',
 			'i18n'          => array(
 				'enabledCouriers'      => __( 'Enabled Couriers', 'kiriminaja-official' ),
 				'connection'           => __( 'Connection', 'kiriminaja-official' ),
 				'setupKey'             => __( 'Setup Key', 'kiriminaja-official' ),
 				'setupKeyPlaceholder'  => __( 'Input your setup key for KiriminAja', 'kiriminaja-official' ),
 				'connect'              => __( 'Connect', 'kiriminaja-official' ),
+				'updateConnection'     => __( 'Update Connection', 'kiriminaja-official' ),
+				'linkedAccount'        => __( 'Linked Account', 'kiriminaja-official' ),
+				'credentialsTitle'     => __( 'How to Obtain Your KiriminAja Credentials', 'kiriminaja-official' ),
+				'privacyTitle'         => __( 'Accept Our Privacy & Policy', 'kiriminaja-official' ),
+				'credentialsSteps'     => array(
+					__( 'Log in to your KiriminAja dashboard.', 'kiriminaja-official' ),
+					__( 'Go to the Settings menu and select App Integrations.', 'kiriminaja-official' ),
+					__( 'Click Add Integration and choose WooCommerce.', 'kiriminaja-official' ),
+					__( 'Enter your store domain.', 'kiriminaja-official' ),
+					__( 'Allow up to two business days for API generation.', 'kiriminaja-official' ),
+					__( 'The Setup Key will appear on the App Integrations page.', 'kiriminaja-official' ),
+					__( 'Copy and paste the Setup Key into the field.', 'kiriminaja-official' ),
+					__( 'Update the connection and continue using KiriminAja.', 'kiriminaja-official' ),
+				),
 				'connecting'           => __( 'Connecting…', 'kiriminaja-official' ),
 				'disconnect'           => __( 'Disconnect', 'kiriminaja-official' ),
 				'disconnecting'        => __( 'Disconnecting…', 'kiriminaja-official' ),

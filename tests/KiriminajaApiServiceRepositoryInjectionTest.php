@@ -14,6 +14,18 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 if ( ! defined( 'WEEK_IN_SECONDS' ) ) {
 	define( 'WEEK_IN_SECONDS', 604800 );
 }
+if ( ! function_exists( 'get_transient' ) ) {
+	function get_transient( string $key ) {
+		unset( $key );
+		return false;
+	}
+}
+if ( ! function_exists( 'set_transient' ) ) {
+	function set_transient( string $key, $value, int $expiration ): bool {
+		unset( $key, $value, $expiration );
+		return true;
+	}
+}
 
 require_once PLUGIN_DIR . '/vendor/autoload.php';
 require_once PLUGIN_DIR . '/inc/Utils/ServiceResponse.php';
@@ -31,6 +43,25 @@ final class KiriminajaApiServiceRepositoryInjectionTest extends TestCase {
 		$this->assertSame( 0, $constructor->getNumberOfRequiredParameters() );
 		$this->assertTrue( $constructor->getParameters()[0]->isDefaultValueAvailable() );
 		$this->assertNull( $constructor->getParameters()[0]->getDefaultValue() );
+	}
+
+	#[Test]
+	public function profile_service_accepts_the_normalized_repository_profile(): void {
+		$profile = (object) array( 'name' => 'Merchant', 'email' => 'merchant@example.com' );
+		$repository = $this->createMock( KiriminajaApiRepository::class );
+		$repository->expects( $this->once() )
+			->method( 'getProfile' )
+			->willReturn(
+				array(
+					'status' => true,
+					'data'   => (object) array( 'status' => true, 'results' => $profile ),
+				)
+			);
+
+		$result = ( new KiriminajaApiService( $repository ) )->getProfile();
+
+		$this->assertSame( 200, $result->status );
+		$this->assertSame( 'Merchant', $result->data->name );
 	}
 
 	#[Test]

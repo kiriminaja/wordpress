@@ -61,7 +61,12 @@
     return { ...bootstrap.address.values };
   }
 
+  function getInitialAccount(): OnboardingBootstrap['account'] {
+    return structuredClone(bootstrap.account);
+  }
+
   let address = $state(getInitialAddress());
+  let account = $state(getInitialAccount());
   let couriers = $state<OnboardingCourier[]>([]);
   let selectedCouriers = $state<Record<string, string>>({});
   let couriersLoading = $state(false);
@@ -76,7 +81,6 @@
 
   const order: Step[] = ['account', 'address', 'couriers', 'shipping', 'complete'];
   const currentIndex = $derived(order.indexOf(current));
-  const account = $derived(bootstrap.account);
   const accountReady = $derived(Boolean(account.connected || done.account));
   const canSubmitAccount = $derived(Boolean(accountReady || setupKey.trim()));
 
@@ -206,11 +210,20 @@
     }
     busy = true;
     try {
-      await post('kiriof_store_integration_data', { setup_key: key });
+      const result = await post<{
+        connected?: boolean;
+        profile?: OnboardingBootstrap['account']['profile'];
+        profileError?: boolean;
+      }>('kiriof_store_integration_data', { setup_key: key });
+      account = {
+        ...account,
+        connected: result.connected ?? true,
+        profile: result.profile ?? null,
+        profileError: result.profileError ?? !result.profile,
+      };
       done.account = true;
       setMessage(bootstrap.i18n.accountConnected, true);
       setupKey = '';
-      next();
     } catch (requestError) {
       setMessage(requestError instanceof Error ? requestError.message : bootstrap.i18n.saveFailed);
     } finally {

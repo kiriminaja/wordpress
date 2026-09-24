@@ -61,6 +61,64 @@ const routes: RouteDefinition[] = [
 let mounted: MountedComponent[] = [];
 let controller: AbortController | null = null;
 let activeShell: HTMLElement | null = null;
+let navigationSequence = 0;
+let loadingProgress = 0;
+let loadingTimer: number | null = null;
+let loadingHideTimer: number | null = null;
+
+function loadingIndicator(): HTMLDivElement {
+  const existing = document.querySelector<HTMLDivElement>('[data-kiriof-loading-indicator]');
+  if (existing) return existing;
+
+  const indicator = document.createElement('div');
+  indicator.className = 'kiriof-loading-indicator';
+  indicator.dataset.kiriofLoadingIndicator = 'true';
+  indicator.setAttribute('role', 'progressbar');
+  indicator.setAttribute('aria-label', 'Loading page');
+  indicator.setAttribute('aria-valuemin', '0');
+  indicator.setAttribute('aria-valuemax', '100');
+  indicator.setAttribute('aria-hidden', 'true');
+  indicator.innerHTML = '<span class="kiriof-loading-indicator__bar"></span>';
+  document.body.append(indicator);
+  return indicator;
+}
+
+function setLoadingProgress(progress: number): void {
+  loadingProgress = Math.max(0, Math.min(100, progress));
+  const indicator = loadingIndicator();
+  indicator.style.setProperty('--kiriof-loading-progress', `${loadingProgress}%`);
+  indicator.setAttribute('aria-valuenow', String(Math.round(loadingProgress)));
+}
+
+function startLoadingIndicator(): void {
+  if (loadingHideTimer) window.clearTimeout(loadingHideTimer);
+  if (loadingTimer) window.clearInterval(loadingTimer);
+
+  const indicator = loadingIndicator();
+  indicator.classList.remove('is-finishing');
+  indicator.classList.add('is-active');
+  indicator.setAttribute('aria-hidden', 'false');
+  setLoadingProgress(8);
+
+  loadingTimer = window.setInterval(() => {
+    const remaining = 92 - loadingProgress;
+    setLoadingProgress(loadingProgress + Math.max(0.6, remaining * 0.08));
+  }, 180);
+}
+
+function finishLoadingIndicator(): void {
+  if (loadingTimer) window.clearInterval(loadingTimer);
+  loadingTimer = null;
+  setLoadingProgress(100);
+
+  const indicator = loadingIndicator();
+  indicator.classList.add('is-finishing');
+  loadingHideTimer = window.setTimeout(() => {
+    indicator.classList.remove('is-active', 'is-finishing');
+    indicator.setAttribute('aria-hidden', 'true');
+    setLoadingProgress(0);
+  }, 240);
+}
 
 function installWorkspaceStyles(): void {
   if (document.querySelector('[data-kiriof-workspace-styles]')) return;
@@ -210,18 +268,22 @@ function syncPluginMenu(source: Document): void {
 async function navigate(value: string | URL, push = true): Promise<void> {
   const url = new URL(value, window.location.href);
   if (!isWorkspaceUrl(url)) {
+    startLoadingIndicator();
     window.location.assign(url);
     return;
   }
 
+  const navigationId = ++navigationSequence;
   controller?.abort();
   controller = new AbortController();
+  const navigationController = controller;
+  startLoadingIndicator();
   activeShell?.setAttribute('aria-busy', 'true');
 
   try {
     const response = await fetch(url, {
       credentials: 'same-origin',
-      signal: controller.signal,
+      signal: navigationController.signal,
       headers: { 'X-KiriminAja-Workspace': 'admin' },
     });
     const nextDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
@@ -243,7 +305,10 @@ async function navigate(value: string | URL, push = true): Promise<void> {
   } catch (error) {
     if ((error as Error).name !== 'AbortError') window.location.assign(url);
   } finally {
-    activeShell?.removeAttribute('aria-busy');
+    if (navigationId === navigationSequence) {
+      activeShell?.removeAttribute('aria-busy');
+      finishLoadingIndicator();
+    }
   }
 }
 

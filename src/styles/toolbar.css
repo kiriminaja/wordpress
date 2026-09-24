@@ -6,6 +6,48 @@
   padding: 0 20px 48px;
 }
 
+.kiriof-loading-indicator {
+  --kiriof-loading-progress: 0%;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 100001;
+  height: 3px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.kiriof-loading-indicator.is-active {
+  opacity: 1;
+}
+
+.kiriof-loading-indicator.is-finishing {
+  opacity: 0;
+  transition-delay: 90ms;
+}
+
+.kiriof-loading-indicator__bar {
+  display: block;
+  width: var(--kiriof-loading-progress);
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, #7c3aed, #a855f7, #ec4899);
+  box-shadow:
+    0 0 8px rgb(124 58 237 / 75%),
+    0 0 16px rgb(168 85 247 / 45%);
+  transition: width 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kiriof-loading-indicator,
+  .kiriof-loading-indicator__bar {
+    transition-duration: 1ms !important;
+  }
+}
+
 /* Every Svelte workspace owns its page chrome; WordPress/plugin notices must not
  * create a second header or leave vertical whitespace above the shared toolbar. */
 body:has(.kiriof-workspace-shell) #screen-meta-links,

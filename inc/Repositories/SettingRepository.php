@@ -16,6 +16,17 @@ class SettingRepository{
         global $wpdb;
         $this->table = $wpdb->prefix . 'kiriminaja_settings';
     }
+
+    /**
+     * Clear request-local setting caches after a write.
+     *
+     * API clients read credentials while they are constructed, so setup-key
+     * updates must not leave an old API token cached in the repository.
+     */
+    public function clearCache(): void {
+        self::$setting_cache                    = array();
+        self::$whitelist_expedition_ids_cache  = array();
+    }
     
     public function getIntegrationData(){
         global $wpdb;
@@ -53,7 +64,8 @@ class SettingRepository{
         // Store merchant type from API response. is_top = 'yes' means TOP merchant (published rate, no discount).
         $isTop = isset( $payload['is_top'] ) ? ( $payload['is_top'] ? 'yes' : 'no' ) : 'no';
         $wpdb->update( $this->table, array( 'value' => $isTop ), array( 'key' => 'is_top' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    
+        $this->clearCache();
+
         return true;
     }
     

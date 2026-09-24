@@ -73,8 +73,13 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/command/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/popover/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' );
+		$this->assertStringContainsString( 'kiriof-onboarding-subdistrict-popover', file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' ) );
+		$this->assertStringContainsString( 'z-index: 100001 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
         $this->assertStringContainsString( 'const canSubmitAccount = $derived', $app );
 		$this->assertStringContainsString( 'disabled={busy || !canSubmitAccount}', $app );
+		$this->assertStringContainsString( 'let account = $state(getInitialAccount())', $app );
+		$this->assertStringContainsString( "profile?: OnboardingBootstrap['account']['profile']", $app );
+		$this->assertStringNotContainsString( 'setMessage(bootstrap.i18n.accountConnected, true);\n      setupKey = \'\';\n      next();', $app );
 		$this->assertStringContainsString( 'KiriminAja account connected', $app );
 		$this->assertStringContainsString( 'Profile details are temporarily unavailable.', $app );
         $this->assertStringContainsString( 'kiriof_store_origin_data', $app );
@@ -179,6 +184,11 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );
+		$this->assertStringContainsString( 'response.data?.profile', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringNotContainsString( "await postWordPressAction('kiriof_store_integration_data', { setup_key: setupKey.trim() });\n      window.location.reload();", file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-account-courier-grid', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-credentials-guide', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'updateConnection', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/Toolbar.svelte' );
@@ -192,6 +202,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .update-nag', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) #wpcontent', $toolbarStyles );
+		$this->assertStringContainsString( '.kiriof-connection-layout', $styles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
 		$this->assertStringContainsString( 'history.pushState', $entry );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );

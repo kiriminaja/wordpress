@@ -211,6 +211,11 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'data-kiriof-payments-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-settings-payload', $workspace );
 		$this->assertStringContainsString( 'installWorkspaceStyles', $workspace );
+		$this->assertStringContainsString( 'data-kiriof-loading-indicator', $workspace );
+		$this->assertStringContainsString( 'startLoadingIndicator()', $workspace );
+		$this->assertStringContainsString( 'finishLoadingIndicator()', $workspace );
+		$this->assertStringContainsString( '.kiriof-loading-indicator', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
+		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( "admin-list.css?inline", $workspace );
     }
 

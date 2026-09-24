@@ -15,6 +15,21 @@ body.kiriof-onboarding-screen #wpbody-content {
   overflow: hidden !important;
 }
 
+/* Bits UI portals popovers under <body>, outside the onboarding stacking
+ * context. Keep this combobox above the full-screen wizard and WordPress UI. */
+body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover {
+  z-index: 100001 !important;
+  box-sizing: border-box;
+  color: var(--foreground);
+  background: var(--popover);
+}
+
+body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+}
+
 /* Reset WordPress typography margins; layout spacing is owned by utility classes. */
 .kiriof-onboarding-app :where(h1, h2, h3, h4, h5, h6, p) {
   margin: 0;
