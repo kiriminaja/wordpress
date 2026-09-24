@@ -59,6 +59,7 @@ switch ( $kiriof_section ) {
 				'kiriof_insurance_enabled'        => $kiriof_list_data['kiriof_insurance_enabled'],
 				'kiriof_shipping_locations_ready' => $kiriof_list_data['kiriof_shipping_locations_ready'],
 				'kiriof_default_address_ready'    => $kiriof_list_data['kiriof_default_address_ready'],
+				'kiriof_enabled_courier_count'    => $kiriof_list_data['kiriof_enabled_courier_count'],
 			),
 			$productVolumetricReadiness
 		);

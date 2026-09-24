@@ -245,7 +245,7 @@ class SettingsPageData {
 			array(
 				'label' => __( 'Shipping', 'kiriminaja-official' ),
 				'items' => array(
-					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers' ),
+					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers', sprintf( __( '%d Enabled', 'kiriminaja-official' ), (int) ( $list_data['kiriof_enabled_courier_count'] ?? 0 ) ), (int) ( $list_data['kiriof_enabled_courier_count'] ?? 0 ) > 0 ? 'ready' : 'warning' ),
 					$this->settingsRootItem( 'insurance', __( 'Shipping Insurance', 'kiriminaja-official' ), __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ), 'insurance', '', '', '', 'insurance' ),
 					$this->settingsRootItem( 'cod', __( 'Cash on Delivery', 'kiriminaja-official' ), __( 'Allow customers to pay when they receive their order.', 'kiriminaja-official' ), 'cod', '', '', '', 'cod' ),
 					$this->settingsRootItem( 'locations', __( 'Manage Locations', 'kiriminaja-official' ), __( 'Set your default and additional pickup addresses for accurate shipping rates.', 'kiriminaja-official' ), 'location', admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? __( 'Default address ready', 'kiriminaja-official' ) : __( 'Add default address', 'kiriminaja-official' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? 'ready' : 'warning' ),
@@ -418,6 +418,10 @@ class SettingsPageData {
 				'origin_zip_code',
 			)
 		);
+		$courier_setting = $this->setting_repository->getSettingByKey( 'origin_whitelist_expedition_id' );
+		$enabled_courier_ids = is_object( $courier_setting ) && ! empty( $courier_setting->value )
+			? array_values( array_unique( array_filter( array_map( 'trim', explode( ',', (string) $courier_setting->value ) ) ) ) )
+			: array();
 		$default_address_ready = 8 === count( $origin_settings );
 		foreach ( $origin_settings as $setting ) {
 			if ( empty( $setting->value ?? null ) ) {
@@ -435,6 +439,7 @@ class SettingsPageData {
 			'kiriof_shipping_countries'       => $shipping_countries,
 			'kiriof_shipping_locations_ready' => ( 'disabled' !== $ship_to_countries && ! empty( $shipping_countries ) ),
 			'kiriof_default_address_ready'    => $default_address_ready,
+			'kiriof_enabled_courier_count'    => count( $enabled_courier_ids ),
 		);
 	}
 

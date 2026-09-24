@@ -136,6 +136,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 				'kiriof_insurance_enabled'        => 'yes',
 				'kiriof_shipping_locations_ready' => true,
 				'kiriof_default_address_ready'    => true,
+				'kiriof_enabled_courier_count'    => 4,
 			),
 			array( 'total' => 4, 'configured' => 3, 'ready' => false )
 		);
@@ -153,6 +154,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( '3 / 4 Need Action', $root['productAlert']['status'] );
 		$this->assertSame( 'warning', $root['productAlert']['tone'] );
 		$this->assertSame( 'insurance', $root['groups'][2]['items'][1]['toggle'] );
+		$this->assertSame( '4 Enabled', $root['groups'][2]['items'][0]['status'] );
 		$this->assertNotContains( 'products', array_column( $root['groups'][2]['items'], 'key' ) );
 		$this->assertNotContains( 'shipping-locations', array_column( $root['groups'][2]['items'], 'key' ) );
 		$this->assertSame( 'Default address ready', $root['groups'][2]['items'][3]['status'] );
@@ -173,6 +175,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 			array(
 				array( 'enable_insurance', (object) array( 'value' => 'yes' ) ),
 				array( 'callback_url', (object) array( 'value' => 'https://example.test/?feed=kiriminaja-callback' ) ),
+				array( 'origin_whitelist_expedition_id', (object) array( 'value' => 'jne,jnt,jne,spx' ) ),
 			)
 		);
 		$settings->method( 'getSettingByArray' )->willReturn( array() );
@@ -193,6 +196,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( 'no', $list['kiriof_cod_enabled'] );
 		$this->assertSame( 'yes', $list['kiriof_insurance_enabled'] );
 		$this->assertFalse( $list['kiriof_default_address_ready'] );
+		$this->assertSame( 3, $list['kiriof_enabled_courier_count'] );
 		$this->assertSame( 38, $technical['provinceCount'] );
 		$this->assertSame( 514, $technical['cityCount'] );
 		$this->assertSame( 2, $technical['courierCount'] );
