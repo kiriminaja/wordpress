@@ -395,12 +395,13 @@
                 </Table.Cell>
                 <Table.Cell>
                   <div class="kiriof-package-fees">
-                    <div><span>{bootstrap.i18n.weight}</span><strong>{row.package.weight} g{row.package.quantity > 1 ? ` × ${row.package.quantity}` : ''}</strong></div>
-                    <div><span>{bootstrap.i18n.shippingCost}</span><strong>{currency(row.package.paidShipping)}</strong></div>
-                    {#if row.package.insurance > 0}<div><span>{bootstrap.i18n.insurance}</span><strong>{currency(row.package.insurance)}</strong></div>{/if}
-                    {#if row.package.codFee > 0}<div><span>{bootstrap.i18n.codFee}</span><strong>{currency(row.package.codFee)}</strong></div>{/if}
-                    {#if row.package.itemDiscount > 0}<div class="is-discount"><span>{row.package.itemCoupon || bootstrap.i18n.itemDiscount}</span><strong>−{currency(row.package.itemDiscount)}</strong></div>{/if}
-                    {#if row.package.shippingDiscount > 0}<div class="is-discount"><span>{row.package.shippingCoupon || bootstrap.i18n.shippingDiscount}</span><strong>−{currency(row.package.shippingDiscount)}</strong></div>{/if}
+                    <div><span>{bootstrap.i18n.weight}:</span><strong>{row.package.weight} g{row.package.quantity > 1 ? ` × ${row.package.quantity}` : ''}</strong></div>
+                    <div><span>{bootstrap.i18n.actualShipping}:</span><strong>{currency(row.package.actualShipping)}</strong></div>
+                    {#if row.package.shippingDiscount > 0}<div class="is-discount"><span>{row.package.shippingCoupon || bootstrap.i18n.shippingDiscount}:</span><strong>−{currency(row.package.shippingDiscount)}</strong></div>{/if}
+                    <div><span>{bootstrap.i18n.shippingCost}:</span><strong>{currency(row.package.paidShipping)}</strong></div>
+                    {#if row.package.insurance > 0}<div><span>{bootstrap.i18n.insurance}:</span><strong>{currency(row.package.insurance)}</strong></div>{/if}
+                    {#if row.package.codFee > 0}<div><span>{bootstrap.i18n.codFee}:</span><strong>{currency(row.package.codFee)}</strong></div>{/if}
+                    {#if row.package.itemDiscount > 0}<div class="is-discount"><span>{row.package.itemCoupon || bootstrap.i18n.itemDiscount}:</span><strong>−{currency(row.package.itemDiscount)}</strong></div>{/if}
                   </div>
                 </Table.Cell>
                 <Table.Cell class="is-actions">

@@ -24,6 +24,7 @@ export type TransactionRow = {
   package: {
     weight: number;
     quantity: number;
+    actualShipping: number;
     paidShipping: number;
     insurance: number;
     codFee: number;
@@ -79,6 +80,7 @@ export type TransactionsBootstrap = {
   };
   i18n: Record<string, string> & {
     weight: string;
+    actualShipping: string;
     shippingCost: string;
     insurance: string;
     codFee: string;

@@ -125,6 +125,7 @@ class TransactionListViewModelFactory {
 			'package'         => array(
 				'weight'           => (float) ( $row->weight ?? 0 ),
 				'quantity'         => isset( $row->quantity ) ? (int) $row->quantity : 1,
+				'actualShipping'   => $shipping_cost,
 				'paidShipping'     => $paid_shipping,
 				'insurance'        => $insurance_cost,
 				'codFee'           => $cod_fee,

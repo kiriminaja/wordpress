@@ -725,8 +725,8 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 }
 .kiriof-package-fees > div {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: baseline;
+  gap: 4px;
   line-height: 1.35;
 }
 .kiriof-package-fees span {
@@ -737,7 +737,6 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   color: #241b3d;
   font-size: 11px;
   font-weight: 600;
-  text-align: right;
   white-space: nowrap;
 }
 .kiriof-package-fees .is-discount span,

@@ -374,6 +374,9 @@ class ChangeOriginFeatureTest extends TestCase {
 		$this->assertStringContainsString( '$paid_shipping', $transaction );
 		$this->assertStringContainsString( '$wc_order->get_shipping_total()', $transaction );
 		$this->assertStringContainsString( 'currency(row.package.paidShipping)', $app );
+		$this->assertStringContainsString( 'currency(row.package.actualShipping)', $app );
+		$this->assertStringContainsString( "'actualShipping'   => \$shipping_cost", $transaction );
+		$this->assertStringContainsString( '{bootstrap.i18n.actualShipping}:', $app );
         $this->assertStringContainsString( "__('Actual Shipping', 'kiriminaja-official')", $preview );
         $this->assertStringContainsString( "__('Shipping Discount', 'kiriminaja-official')", $preview );
         $this->assertStringContainsString( "__('Shipping', 'kiriminaja-official'), wc_price(\$paid_shipping", $preview );
