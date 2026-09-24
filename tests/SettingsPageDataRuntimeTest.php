@@ -134,8 +134,10 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( 'J&T Express', $account['kiriof_wl_map']['jnt'] );
 		$this->assertSame( 'configured', $root['mode'] );
 		$this->assertTrue( $root['toggles']['insurance'] );
-		$this->assertSame( '3 / 4 Need Action', $root['groups'][2]['items'][0]['status'] );
-		$this->assertSame( 'insurance', $root['groups'][2]['items'][3]['toggle'] );
+		$this->assertSame( '3 / 4 Need Action', $root['productAlert']['status'] );
+		$this->assertSame( 'warning', $root['productAlert']['tone'] );
+		$this->assertSame( 'insurance', $root['groups'][2]['items'][2]['toggle'] );
+		$this->assertNotContains( 'products', array_column( $root['groups'][2]['items'], 'key' ) );
 		$this->assertSame( 'webhooks', $webhooks['view'] );
 		$this->assertSame( 'https://example.test/hook', $webhooks['callbackUrl'] );
 	}

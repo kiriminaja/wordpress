@@ -205,6 +205,10 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) #wpcontent', $toolbarStyles );
 		$this->assertStringContainsString( '.kiriof-connection-layout', $styles );
+		$this->assertStringContainsString( '.kiriof-product-alert', $styles );
+		$this->assertStringContainsString( 'bootstrap.productAlert', file_get_contents( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' ) );
+		$this->assertStringContainsString( '.kiriof-product-alert', $styles );
+		$this->assertStringContainsString( 'bootstrap.productAlert', file_get_contents( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' ) );
 		$this->assertStringContainsString( "[data-slot='input'].kiriof-setup-key-input", $styles );
 		$this->assertStringContainsString( 'display: inline-flex !important;', $styles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );

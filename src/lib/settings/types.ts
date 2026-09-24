@@ -171,6 +171,13 @@ export type SettingsBootstrap = {
   toolbar: ToolbarConfig;
   mode: 'configured' | 'unconfigured';
   groups?: SettingsGroup[];
+  productAlert?: {
+    title: string;
+    description: string;
+    href: string;
+    status: string;
+    tone: 'ready' | 'warning';
+  };
   toggles?: {
     insurance: boolean;
     cod: boolean;

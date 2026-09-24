@@ -16,6 +16,87 @@
   --ring: oklch(0.48 0.23 292);
 }
 
+.kiriof-product-alert {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border: 1px solid #b9dfc6;
+  border-radius: 9px;
+  background: #f1fbf4;
+  color: var(--kiriof-ink);
+  text-decoration: none;
+}
+
+.kiriof-product-alert.warning {
+  border-color: #efd78b;
+  background: #fff9e8;
+}
+
+.kiriof-product-alert:hover,
+.kiriof-product-alert:focus-visible {
+  color: var(--kiriof-ink);
+  text-decoration: none;
+  filter: brightness(0.985);
+}
+
+.kiriof-product-alert:focus-visible {
+  outline: 3px solid var(--kiriof-primary);
+  outline-offset: 2px;
+}
+
+.kiriof-product-alert__icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 8px;
+  background: #dff3e5;
+  color: #176b36;
+}
+
+.kiriof-product-alert.warning .kiriof-product-alert__icon {
+  background: #ffefba;
+  color: #7a4d00;
+}
+
+.kiriof-product-alert__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kiriof-product-alert__copy strong {
+  font-size: 14px;
+}
+
+.kiriof-product-alert__copy span {
+  color: var(--kiriof-muted);
+  line-height: 1.45;
+}
+
+.kiriof-product-alert__status {
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #dff3e5;
+  color: #176b36;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.kiriof-product-alert.warning .kiriof-product-alert__status {
+  background: #ffefba;
+  color: #7a4d00;
+}
+
+.kiriof-product-alert__chevron {
+  color: var(--kiriof-muted);
+}
+
 @media (max-width: 960px) {
   .kiriof-connection-layout {
     grid-template-columns: 1fr;
@@ -773,6 +854,34 @@ a.kiriof-setting-item:focus-visible {
 }
 
 @media (max-width: 600px) {
+  .kiriof-product-alert {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .kiriof-product-alert__status {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .kiriof-product-alert__chevron {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .kiriof-product-alert {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .kiriof-product-alert__status {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .kiriof-product-alert__chevron {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
   .kiriof-setting-item {
     grid-template-columns: 36px minmax(0, 1fr) auto;
   }

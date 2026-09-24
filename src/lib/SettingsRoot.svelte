@@ -110,6 +110,17 @@
     {#if error}
       <p class="kiriof-settings-root__message is-error" role="alert">{error}</p>
     {/if}
+    {#if bootstrap.productAlert}
+      <a class:warning={bootstrap.productAlert.tone === 'warning'} class="kiriof-product-alert" href={bootstrap.productAlert.href}>
+        <span class="kiriof-product-alert__icon"><SettingsIcon name="product" /></span>
+        <span class="kiriof-product-alert__copy">
+          <strong>{bootstrap.productAlert.title}</strong>
+          <span>{bootstrap.productAlert.description}</span>
+        </span>
+        <span class="kiriof-product-alert__status">{bootstrap.productAlert.status}</span>
+        <IconChevronRight class="kiriof-product-alert__chevron" size={18} stroke={2} aria-hidden="true" />
+      </a>
+    {/if}
     {#each bootstrap.groups ?? [] as group, groupIndex}
       <section class="kiriof-settings-group" aria-labelledby={`kiriof-group-${groupIndex}`}>
         <h2 id={`kiriof-group-${groupIndex}`} class="kiriof-settings-group__title">{group.label}</h2>

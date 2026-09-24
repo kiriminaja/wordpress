@@ -222,6 +222,13 @@ class SettingsPageData {
 			'insurance' => 'yes' === $list_data['kiriof_insurance_enabled'],
 			'cod'       => 'yes' === $list_data['kiriof_cod_enabled'],
 		);
+		$bootstrap['productAlert'] = array(
+			'title'       => __( 'Product Volumetric Configurations', 'kiriminaja-official' ),
+			'description' => __( 'Set weight, length, width, and height for every product and variation.', 'kiriminaja-official' ),
+			'href'        => admin_url( 'edit.php?post_type=product' ),
+			'status'      => $product_status,
+			'tone'        => $product_readiness['ready'] ? 'ready' : 'warning',
+		);
 		$bootstrap['groups'] = array(
 			array(
 				'label' => __( 'Configuration', 'kiriminaja-official' ),
@@ -238,7 +245,6 @@ class SettingsPageData {
 			array(
 				'label' => __( 'Shipping', 'kiriminaja-official' ),
 				'items' => array(
-					$this->settingsRootItem( 'products', __( 'Product Volumetric Configurations', 'kiriminaja-official' ), __( 'Set weight, length, width, and height for every product and variation.', 'kiriminaja-official' ), 'product', admin_url( 'edit.php?post_type=product' ), $product_status, $product_readiness['ready'] ? 'ready' : 'warning' ),
 					$this->settingsRootItem( 'shipping-locations', __( 'WooCommerce Shipping Locations', 'kiriminaja-official' ), __( 'Set Shipping location(s) so WooCommerce can offer KiriminAja rates at checkout.', 'kiriminaja-official' ), 'shipping', admin_url( 'admin.php?page=wc-settings' ), $list_data['kiriof_shipping_locations_ready'] ? __( 'Ready', 'kiriminaja-official' ) : __( 'Action needed', 'kiriminaja-official' ), $list_data['kiriof_shipping_locations_ready'] ? 'ready' : 'warning' ),
 					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers' ),
 					$this->settingsRootItem( 'insurance', __( 'Shipping Insurance', 'kiriminaja-official' ), __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ), 'insurance', '', '', '', 'insurance' ),
