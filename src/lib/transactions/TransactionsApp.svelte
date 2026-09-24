@@ -97,8 +97,7 @@
   const hasActiveFilters = $derived(
     Boolean(
       filters.key.trim() ||
-        filters.month ||
-        (filters.status && filters.status !== 'all') ||
+        (!isOrderIssue && filters.status && filters.status !== 'all') ||
         filters.cod ||
         filters.courier ||
         filters.print_status,
@@ -147,7 +146,18 @@
   }
 
   function clearFilters(): void {
-    void navigate({ key: '', month: '', status: 'all', cod: '', courier: '', print_status: '' });
+    // Reset only the filter-row controls (search, payment, status, print,
+    // courier). The tab, date range and rows-per-page are view state owned
+    // by other controls, so they are preserved here.
+    void navigate({
+      key: '',
+      month: filters.month,
+      status: isOrderIssue ? 'order-issue' : 'all',
+      cod: '',
+      courier: '',
+      print_status: '',
+      per_page: String(bootstrap.pagination.perPage),
+    });
   }
 
   function toggleAll(checked: boolean): void {
@@ -290,6 +300,7 @@
       </nav>
       <form
         class="kiriof-transactions-filterrow"
+        class:is-order-issue={isOrderIssue}
         onsubmit={(event) => {
           event.preventDefault();
           applyFilters();

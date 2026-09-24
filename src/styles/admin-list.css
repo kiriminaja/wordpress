@@ -512,6 +512,17 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
       1.1fr
     ) auto;
 }
+/* Order Issue hides the status selector, so the row has one fewer control:
+   stretch the remaining four columns evenly instead of leaving a gap. */
+.kiriof-transactions-filterrow.is-order-issue {
+  grid-template-columns: minmax(270px, 1.2fr) repeat(2, minmax(160px, 1fr)) minmax(190px, 1.1fr);
+}
+.kiriof-transactions-filterrow.is-order-issue:has(.kiriof-clear-filters) {
+  grid-template-columns: minmax(270px, 1.2fr) repeat(2, minmax(160px, 1fr)) minmax(
+      190px,
+      1.1fr
+    ) auto;
+}
 .kiriof-admin-list-search {
   width: 100%;
 }
