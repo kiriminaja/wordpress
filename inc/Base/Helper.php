@@ -65,13 +65,15 @@ class Helper extends  BaseInit {
     }
     
     /**
-     * Unified badge tones, mirroring the Shopify admin `s-badge` contract:
-     * auto | neutral | info | success | caution | warning | critical.
+     * Unified badge tones, mirroring the Shopify admin `s-badge` contract
+     * (auto | neutral | info | success | caution | warning | critical)
+     * plus KiriminAja extensions so every package status owns its color:
+     * primary (New) and teal (In Transit).
      *
      * @return string[]
      */
     public function badgeTones() {
-        return array( 'auto', 'neutral', 'info', 'success', 'caution', 'warning', 'critical' );
+        return array( 'auto', 'neutral', 'info', 'success', 'caution', 'warning', 'critical', 'primary', 'teal' );
     }
 
     /**
@@ -86,16 +88,17 @@ class Helper extends  BaseInit {
 
     /**
      * Package status → badge tone map (mirrors kaj-shopify-plugin getLabelProps).
+     * Every package status owns its color: New = primary, In Transit = teal.
      *
      * @return array<string,string>
      */
     public function packageStatusToneMap() {
         return array(
-            'new'            => 'info',
+            'new'            => 'primary',
             'request_pickup' => 'info',
             'pending'        => 'caution',
             'finished'       => 'success',
-            'shipped'        => 'info',
+            'shipped'        => 'teal',
             'return'         => 'warning',
             'returned'       => 'warning',
             'rejected'       => 'critical',
@@ -174,7 +177,7 @@ class Helper extends  BaseInit {
      * Render a unified badge.
      *
      * @param string $label Badge text.
-     * @param string $tone  Badge tone (auto|neutral|info|success|caution|warning|critical).
+     * @param string $tone  Badge tone (auto|neutral|info|success|caution|warning|critical|primary|teal).
      * @param string $color Badge emphasis (base|strong). Default 'base'.
      * @param string $icon  Optional dashicon class rendered before the label.
      * @return string Badge HTML.

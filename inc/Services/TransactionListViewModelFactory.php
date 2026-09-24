@@ -176,8 +176,14 @@ class TransactionListViewModelFactory {
 		if ( $deficit || in_array( $status, array( 'canceled', 'returned', 'return' ), true ) || 'wc-cancelled' === $post_status ) {
 			return 'danger';
 		}
-		if ( in_array( $status, array( 'shipped', 'finished' ), true ) ) {
+		if ( in_array( $status, array( 'finished' ), true ) ) {
 			return 'success';
+		}
+		if ( 'shipped' === $status ) {
+			return 'teal';
+		}
+		if ( 'new' === $status ) {
+			return 'primary';
 		}
 		if ( in_array( $post_status, array( 'wc-on-hold', 'wc-pending' ), true ) ) {
 			return 'warning';

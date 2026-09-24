@@ -1019,6 +1019,16 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   border-color: #b6d3ea;
   color: #0f4c81;
 }
+.kiriof-transaction-status.is-primary {
+  background: #ece6f8;
+  border-color: #c3b2e8;
+  color: #5c2d91;
+}
+.kiriof-transaction-status.is-teal {
+  background: #dcf3f0;
+  border-color: #9ad9d1;
+  color: #0d6b5e;
+}
 .kiriof-transaction-status.is-success,
 .kiriof-print-status.printed {
   background: #e6f4ea;
@@ -1040,6 +1050,16 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-transaction-status.kiriof-badge--strong.is-info {
   background: #2271b1;
   border-color: #2271b1;
+  color: #fff;
+}
+.kiriof-transaction-status.kiriof-badge--strong.is-primary {
+  background: #5c2d91;
+  border-color: #5c2d91;
+  color: #fff;
+}
+.kiriof-transaction-status.kiriof-badge--strong.is-teal {
+  background: #0d6b5e;
+  border-color: #0d6b5e;
   color: #fff;
 }
 .kiriof-transaction-status.kiriof-badge--strong.is-success {

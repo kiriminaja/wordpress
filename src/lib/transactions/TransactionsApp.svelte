@@ -220,7 +220,8 @@
    * Package status icon map — each status carries its own icon, mirroring
    * the kaj-shopify-plugin `getLabelProps` icon mapping.
    * Pending/awaiting states (incl. request_pickup) use the clock icon;
-   * terminal successes use a check, returns/warnings an arrow, danger an X.
+   * New uses a package, In Transit a truck, terminal successes a check,
+   * returns/warnings an arrow, danger an X.
    */
   function statusIcon(tone: TransactionRow['status']['tone'], deficit: boolean, status: TransactionRow['status']) {
     if (deficit) return IconAlertTriangle;
@@ -228,6 +229,10 @@
     switch (tone) {
       case 'success':
         return IconCircleCheck;
+      case 'primary':
+        return IconPackage;
+      case 'teal':
+        return IconTruck;
       case 'warning':
         return IconArrowBackUp;
       case 'danger':

@@ -172,8 +172,14 @@ class PickupDetailPageData {
 	}
 
 	private function statusTone( string $status ): string {
-		if ( in_array( $status, array( 'finished', 'shipped' ), true ) ) {
+		if ( 'finished' === $status ) {
 			return 'success';
+		}
+		if ( 'shipped' === $status ) {
+			return 'teal';
+		}
+		if ( 'new' === $status ) {
+			return 'primary';
 		}
 		if ( in_array( $status, array( 'rejected', 'canceled', 'return', 'returned' ), true ) ) {
 			return 'warning';

@@ -124,7 +124,7 @@
                 </div>
               </Table.Cell>
               <Table.Cell><strong>{currency(row.package.codValue)}</strong></Table.Cell>
-              <Table.Cell><StatusBadge label={row.status.label} tone={row.status.tone} icon={row.status.tone === 'success' ? IconCircleCheck : row.status.tone === 'warning' ? IconClock : row.status.tone === 'info' ? IconTruck : IconPackage} /></Table.Cell>
+              <Table.Cell><StatusBadge label={row.status.label} tone={row.status.tone} icon={row.status.tone === 'success' ? IconCircleCheck : row.status.tone === 'warning' ? IconClock : row.status.tone === 'primary' ? IconPackage : row.status.tone === 'teal' ? IconTruck : row.status.tone === 'info' ? IconTruck : IconPackage} /></Table.Cell>
               <Table.Cell class="is-actions">
                 <div class="kiriof-row-actions">
                   {#if row.printUrl}<ActionTooltip label={bootstrap.i18n.print}><Button href={row.printUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="icon-sm" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}

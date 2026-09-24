@@ -71,6 +71,18 @@
 	color: #a02323;
 }
 
+.kiriof-badge--primary {
+	background: #ece6f8;
+	border-color: #c3b2e8;
+	color: #5c2d91;
+}
+
+.kiriof-badge--teal {
+	background: #dcf3f0;
+	border-color: #9ad9d1;
+	color: #0d6b5e;
+}
+
 /* ── color="strong" (higher emphasis, solid fill) ── */
 .kiriof-badge--strong.kiriof-badge--auto,
 .kiriof-badge--strong.kiriof-badge--neutral {
@@ -106,6 +118,18 @@
 .kiriof-badge--strong.kiriof-badge--critical {
 	background: #d63638;
 	border-color: #d63638;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--primary {
+	background: #5c2d91;
+	border-color: #5c2d91;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--teal {
+	background: #0d6b5e;
+	border-color: #0d6b5e;
 	color: #fff;
 }
 

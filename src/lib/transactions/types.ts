@@ -18,7 +18,7 @@ export type TransactionRow = {
   courier: { code: string; service: string; paymentLabel: string };
   status: {
     label: string;
-    tone: 'info' | 'success' | 'warning' | 'danger' | 'critical';
+    tone: 'info' | 'success' | 'warning' | 'danger' | 'critical' | 'primary' | 'teal';
     deficit: boolean;
   };
   printStatus: 'printed' | 'unprinted';

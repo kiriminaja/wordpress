@@ -4,19 +4,20 @@
    * and the kaj-shopify-plugin `getLabelProps` status mapping.
    *
    * tone: auto | neutral | info | success | caution | warning | critical
+   *   | primary (New) | teal (In Transit)
    * color: base (default) | strong
    */
 
-  export type StatusTone = 'auto' | 'neutral' | 'info' | 'success' | 'caution' | 'warning' | 'critical';
+  export type StatusTone = 'auto' | 'neutral' | 'info' | 'success' | 'caution' | 'warning' | 'critical' | 'primary' | 'teal';
   export type BadgeColor = 'base' | 'strong';
 
-  /** Package status → badge tone (mirrors Shopify getLabelProps). */
+  /** Package status → badge tone. Every package status owns its color: New = primary, In Transit = teal. */
   export const packageStatusToneMap: Record<string, StatusTone> = {
-    new: 'info',
+    new: 'primary',
     request_pickup: 'info',
     pending: 'caution',
     finished: 'success',
-    shipped: 'info',
+    shipped: 'teal',
     return: 'warning',
     returned: 'warning',
     rejected: 'critical',
@@ -82,7 +83,6 @@
     info: 'info',
     neutral: 'neutral',
   };
-
   const resolvedTone = $derived(legacyToneMap[tone] ?? (tone as StatusTone));
   const Icon = $derived(icon);
 </script>

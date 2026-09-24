@@ -17,6 +17,8 @@
 				caution: "border-[#f0cf62] bg-[#fef3d8] text-[#7a5900]",
 				warning: "border-[#f0bd76] bg-[#fdf0dc] text-[#8a4d0a]",
 				critical: "border-[#f1a9a9] bg-[#fde7e7] text-[#a02323]",
+				primary: "border-[#c3b2e8] bg-[#ece6f8] text-[#5c2d91]",
+				teal: "border-[#9ad9d1] bg-[#dcf3f0] text-[#0d6b5e]",
 				// Legacy aliases.
 				default: "border-[#b6d3ea] bg-[#e5f0f9] text-[#0f4c81]",
 				secondary: "border-border bg-muted text-muted-foreground",
@@ -37,6 +39,8 @@
 			{ tone: "caution", color: "strong", class: "border-[#9a6700] bg-[#9a6700] text-white" },
 			{ tone: "warning", color: "strong", class: "border-[#b45309] bg-[#b45309] text-white" },
 			{ tone: ["critical", "destructive"], color: "strong", class: "border-[#d63638] bg-[#d63638] text-white" },
+			{ tone: "primary", color: "strong", class: "border-[#5c2d91] bg-[#5c2d91] text-white" },
+			{ tone: "teal", color: "strong", class: "border-[#0d6b5e] bg-[#0d6b5e] text-white" },
 		],
 		defaultVariants: {
 			tone: "neutral",
