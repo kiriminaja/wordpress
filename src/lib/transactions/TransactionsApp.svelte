@@ -92,7 +92,7 @@
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
   const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
-  const visibleStatusOptions = $derived(bootstrap.statusOptions.filter((option) => (isOrderIssue ? option.value === 'order-issue' : option.value !== 'order-issue')));
+  const visibleStatusOptions = $derived(bootstrap.statusOptions.filter((option) => option.value !== 'order-issue'));
   const pickupOrderIds = $derived(selectedRows.filter((row) => row.selection.canPickup).map((row) => row.kaOrderId));
   const hasActiveFilters = $derived(
     Boolean(
@@ -302,14 +302,16 @@
             <Select.Item value="0">{bootstrap.i18n.nonCod}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <Select.Root type="single" bind:value={filters.status} disabled={refreshing} onValueChange={applySelectFilter}>
-          <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
-          <Select.Content class="kiriof-shadcn">
-            {#each visibleStatusOptions as option}
-              <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
+        {#if !isOrderIssue}
+          <Select.Root type="single" bind:value={filters.status} disabled={refreshing} onValueChange={applySelectFilter}>
+            <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
+            <Select.Content class="kiriof-shadcn">
+              {#each visibleStatusOptions as option}
+                <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        {/if}
         <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
