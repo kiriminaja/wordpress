@@ -120,6 +120,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 				'kiriof_cod_enabled'              => 'yes',
 				'kiriof_insurance_enabled'        => 'yes',
 				'kiriof_shipping_locations_ready' => true,
+				'kiriof_default_address_ready'    => true,
 			),
 			array( 'total' => 4, 'configured' => 3, 'ready' => false )
 		);
@@ -136,8 +137,10 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertTrue( $root['toggles']['insurance'] );
 		$this->assertSame( '3 / 4 Need Action', $root['productAlert']['status'] );
 		$this->assertSame( 'warning', $root['productAlert']['tone'] );
-		$this->assertSame( 'insurance', $root['groups'][2]['items'][2]['toggle'] );
+		$this->assertSame( 'insurance', $root['groups'][2]['items'][1]['toggle'] );
 		$this->assertNotContains( 'products', array_column( $root['groups'][2]['items'], 'key' ) );
+		$this->assertNotContains( 'shipping-locations', array_column( $root['groups'][2]['items'], 'key' ) );
+		$this->assertSame( 'Default address ready', $root['groups'][2]['items'][3]['status'] );
 		$this->assertSame( 'webhooks', $webhooks['view'] );
 		$this->assertSame( 'https://example.test/hook', $webhooks['callbackUrl'] );
 	}
@@ -153,6 +156,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 
 		$settings = $this->createMock( SettingRepository::class );
 		$settings->method( 'getSettingByKey' )->with( 'enable_insurance' )->willReturn( (object) array( 'value' => 'yes' ) );
+		$settings->method( 'getSettingByArray' )->willReturn( array() );
 		$readiness = $this->createMock( ProductVolumetricReadinessService::class );
 		$api = $this->createMock( KiriminajaApiService::class );
 		$api->method( 'get_couriers' )->willReturn( (object) array( 'status' => 200, 'data' => array( 'a', 'b' ) ) );
@@ -169,6 +173,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 
 		$this->assertSame( 'no', $list['kiriof_cod_enabled'] );
 		$this->assertSame( 'yes', $list['kiriof_insurance_enabled'] );
+		$this->assertFalse( $list['kiriof_default_address_ready'] );
 		$this->assertSame( 38, $technical['provinceCount'] );
 		$this->assertSame( 514, $technical['cityCount'] );
 		$this->assertSame( 2, $technical['courierCount'] );
