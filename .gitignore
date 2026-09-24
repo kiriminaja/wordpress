@@ -13,3 +13,4 @@ coverage
 .phpunit.cache
 .env
 .paratest.cache
+release-notes.md

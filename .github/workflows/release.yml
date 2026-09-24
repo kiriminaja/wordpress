@@ -62,17 +62,16 @@ jobs:
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
 
+      - name: Generate release notes from readme changelog
+        run: php scripts/release-notes.php "${{ steps.version.outputs.version }}" "$RUNNER_TEMP/release-notes.md"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
           prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
-          body: |
-            ### Assets
-
-            - `kiriminaja-official.zip` — WP.org-ready build (v${{ steps.version.outputs.version }}).
-          generate_release_notes: true
+          body_path: ${{ runner.temp }}/release-notes.md
           files: |
             kiriminaja-official.zip
           make_latest: ${{ steps.version.outputs.prerelease == 'false' && 'true' || 'false' }}

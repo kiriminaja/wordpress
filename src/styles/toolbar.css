@@ -118,7 +118,6 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-app-toolbar__breadcrumbs strong {
-  overflow: hidden;
   color: var(--kiriof-ink, #241b3d);
   font-size: 13px;
   font-weight: 650;

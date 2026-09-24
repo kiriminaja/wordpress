@@ -46,6 +46,7 @@ RSYNC_EXCLUDES := \
 	--exclude=phpstan.neon.dist \
 	--exclude=phpstan-baseline.neon \
 	--exclude=phpstan-baseline.neon.dist \
+	--exclude=release-notes.md \
 	--exclude=tests/ \
 	--exclude=build/ \
 	--exclude=.paratest.cache/ \
@@ -115,9 +116,11 @@ tag:
 release: changelog
 	@# Re-read version after changelog bumped it
 	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
+	@php scripts/release-notes.php "$(VERSION)" "release-notes.md"
 	@$(MAKE) zip
 	@echo ""
 	@echo "Release v$(VERSION) ready!"
+	@echo "  Notes:  release-notes.md (same content used by GitHub Release)"
 	@echo "  1. Commit: git add -A && git commit -m 'chore: release v$(VERSION)'"
 	@echo "  2. Tag:    make tag"
 	@echo "  3. Push:   git push && git push --tags"
