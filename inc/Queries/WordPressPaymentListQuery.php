@@ -114,6 +114,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
             'page'           => $page,
             'items_per_page' => $items_per_page,
             'total_pages'    => $total_pages,
+            'total'          => $total,
         );
     }
 

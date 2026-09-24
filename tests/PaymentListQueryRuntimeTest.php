@@ -34,6 +34,7 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertSame( 2, $page['page'], 'Requested pages beyond the result set should clamp to the last page.' );
         $this->assertSame( 20, $page['items_per_page'] );
         $this->assertSame( 2, $page['total_pages'] );
+        $this->assertSame( 35, $page['total'] );
         $this->assertSame( $wpdb->list_results, $page['results'] );
         $this->assertCount( 2, $wpdb->result_queries );
 
