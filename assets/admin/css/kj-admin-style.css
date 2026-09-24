@@ -1727,6 +1727,98 @@ button.select2-selection__clear {
   }
 }
 
+/* Workspace boot skeleton: server-rendered inside each Svelte root so the
+ * WP content area never flashes blank while the ESM bundle initializes.
+ * Cleared by admin-workspace.ts before Svelte mounts. */
+.kiriof-workspace-boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 320px;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.kiriof-workspace-boot__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #ddd7ee;
+  border-top-color: #5c2ecb;
+  border-radius: 50%;
+  animation: kiriof-workspace-boot-spin 0.8s linear infinite;
+}
+
+@keyframes kiriof-workspace-boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.kiriof-workspace-boot__title {
+  margin: 0;
+  color: #241b3d;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.kiriof-workspace-boot__hint {
+  margin: 0;
+  color: #646970;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.kiriof-workspace-boot__bars {
+  display: grid;
+  gap: 8px;
+  width: min(420px, 100%);
+  margin-top: 8px;
+}
+
+.kiriof-workspace-boot__bars span {
+  display: block;
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #eeeaf8;
+}
+
+.kiriof-workspace-boot__bars span:nth-child(2) {
+  width: 82%;
+  margin: 0 auto;
+}
+
+.kiriof-workspace-boot__bars span:nth-child(3) {
+  width: 64%;
+  margin: 0 auto;
+}
+
+.kiriof-workspace-boot__bars span::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  content: "";
+  animation: kiriof-workspace-boot-shimmer 1.4s infinite;
+  transform: translateX(-100%);
+}
+
+@keyframes kiriof-workspace-boot-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kiriof-workspace-boot__spinner,
+  .kiriof-workspace-boot__bars span::after {
+    animation-duration: 2.5s;
+  }
+}
+
 /* Final Change Origin geometry override; must follow WooCommerce modal rules. */
 .wc-backbone-modal.kiriof-change-origin-modal .kiriof-change-origin-modal-content {
   height: fit-content !important;

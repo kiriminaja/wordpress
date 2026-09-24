@@ -3858,3 +3858,27 @@ msgstr "Tidak ada transaksi ditemukan."
 #: inc/Services/TransactionListRenderService.php
 msgid "Print Labels"
 msgstr "Cetak Label"
+
+#: templates/_workspace-boot.php
+msgid "Loading…"
+msgstr "Memuat…"
+
+#: templates/_workspace-boot.php
+msgid "Preparing the workspace…"
+msgstr "Menyiapkan area kerja…"
+
+#: templates/setting/app.php
+msgid "Loading settings…"
+msgstr "Memuat pengaturan…"
+
+#: templates/transaction-process/app.php
+msgid "Loading transactions…"
+msgstr "Memuat transaksi…"
+
+#: templates/request-pickup/view/index.php
+msgid "Loading payments…"
+msgstr "Memuat pembayaran…"
+
+#: templates/request-pickup-detail/view/index.php
+msgid "Loading pickup details…"
+msgstr "Memuat detail penjemputan…"

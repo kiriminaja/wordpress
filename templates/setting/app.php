@@ -9,6 +9,6 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
 }
 ?>
 <div class="wrap kj-wrap kiriof-workspace-shell kiriof-settings-shell" data-kiriof-settings-page>
-	<div data-kiriof-settings-root aria-busy="true"></div>
+	<div data-kiriof-settings-root aria-busy="true" aria-live="polite" aria-label="<?php echo esc_attr__( 'Loading settings…', 'kiriminaja-official' ); ?>"><?php include KIRIOF_DIR . 'templates/_workspace-boot.php'; ?></div>
 	<script type="application/json" data-kiriof-settings-payload><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for a non-executable data block. ?><?php echo wp_json_encode( $kiriof_settings_bootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 </div>

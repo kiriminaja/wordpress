@@ -221,9 +221,17 @@ function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): voi
   else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
 }
 
+function clearBootSkeleton(host: HTMLElement): void {
+  // Server-rendered placeholder (templates/_workspace-boot.php) keeps the WP
+  // content area from flashing blank. Svelte appends into the host, so remove
+  // it explicitly before mounting.
+  host.querySelector('[data-kiriof-workspace-boot]')?.remove();
+}
+
 function render(source: ParentNode, route: RouteDefinition): void {
   const host = source.querySelector<HTMLElement>(route.root);
   if (!host) throw new Error(`Missing ${route.route} workspace root.`);
+  clearBootSkeleton(host);
 
   if (route.route === 'transactions') {
     const bootstrap = parsePayload<TransactionsBootstrap>(source, route);
