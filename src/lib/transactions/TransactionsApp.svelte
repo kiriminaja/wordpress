@@ -97,7 +97,6 @@
   const scopeValue = $derived(filters.status === 'order-issue' ? 'order-issue' : 'regular');
   const scopeTabs = $derived([
     { value: 'regular', label: 'Regular Delivery' },
-    { value: 'international', label: 'International Delivery', disabled: true, title: 'International delivery is not available in this workspace' },
     { value: 'instant', label: 'Instant Delivery', disabled: true, title: 'Instant delivery is not available in this workspace' },
     { value: 'order-issue', label: 'Order Issue', count: orderIssueOption?.count ?? 0 },
   ]);

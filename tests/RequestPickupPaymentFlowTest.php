@@ -43,6 +43,20 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
     }
 
+	#[Test]
+	public function pickup_dialog_uses_radio_cards_only_when_multiple_payment_methods_exist(): void
+	{
+		$dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+		$styles = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
+
+		$this->assertStringContainsString( '<RadioGroup.Root bind:value={paymentMethod}', $dialog );
+		$this->assertStringContainsString( '{#if paymentRequired && paymentOptions.length > 1}', $dialog );
+		$this->assertStringContainsString( "paymentMethod = creditEnabled && creditAvailable ? 'credit' : 'qris'", $dialog );
+		$this->assertStringContainsString( 'kiriof-payment-method-card', $dialog );
+		$this->assertStringContainsString( 'border-color: var(--border) !important;', $styles );
+		$this->assertStringContainsString( 'font-size: 17px !important;', $styles );
+	}
+
     #[Test]
     public function request_pickup_detail_page_does_not_auto_open_payment_modal(): void
     {

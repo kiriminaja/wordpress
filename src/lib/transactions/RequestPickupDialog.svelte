@@ -2,8 +2,10 @@
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
   import { Input } from '$lib/components/ui/input';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
   import { Button } from '$lib/components/ui/button';
+  import { IconCreditCard, IconQrcode } from '@tabler/icons-svelte';
 
   type PickupDate = { value: string; label: string; times: Array<{ value: string; label: string }> };
   type Summary = { sum_fee_cod?: number | string; sum_fee_non_cod?: number | string };
@@ -45,6 +47,16 @@
       (!paymentRequired || Boolean(paymentMethod))
   );
   const canSubmitPin = $derived(phase === 'pin' && /^\d{6}$/.test(pin));
+  const paymentOptions = $derived(
+    paymentRequired
+      ? [
+          ...(creditEnabled && creditAvailable
+            ? [{ value: 'credit', title: 'KA Credit', description: label('creditDescription', 'Pay using your available KiriminAja credit.'), icon: IconCreditCard }]
+            : []),
+          { value: 'qris', title: 'QRIS', description: label('qrisDescription', 'Pay securely using a QRIS payment code.'), icon: IconQrcode },
+        ]
+      : [],
+  );
 
   function label(key: string, fallback: string): string {
     return i18n[key] || fallback;
@@ -162,6 +174,8 @@
         creditAvailable = balanceResult.status === 200 && Number(balanceData.balance || 0) >= totalFee;
       }
 
+      if (paymentRequired) paymentMethod = creditEnabled && creditAvailable ? 'credit' : 'qris';
+
       phase = 'schedule';
       if (!pickupDates.length) errorMessage = label('noSchedule', 'No pickup time is available in the next seven days.');
     } catch (error) {
@@ -256,7 +270,7 @@
       {#if errorMessage}<p class="text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
     {:else}
       <Field.FieldGroup>
-        <div class="grid gap-2 rounded-lg border p-3 text-sm">
+        <div class="kiriof-pickup-summary grid gap-2 rounded-lg border p-3 text-sm">
           <div class="flex items-center justify-between gap-4"><span>{label('codCharges', 'COD Package Charges')}</span><strong>{money(summary.sum_fee_cod || 0)}</strong></div>
           <div class="flex items-center justify-between gap-4"><span>{label('nonCodCharges', 'Non-COD Package Charges')}</span><strong>{money(summary.sum_fee_non_cod || 0)}</strong></div>
           <div class="flex items-center justify-between gap-4 border-t pt-2 font-semibold"><span>{label('totalCharges', 'Total Charges')}</span><strong>{money(totalFee)}</strong></div>
@@ -292,28 +306,29 @@
           </Field.Field>
         </Field.FieldGroup>
 
-        {#if paymentRequired}
+        {#if paymentRequired && paymentOptions.length > 1}
           <Field.Field>
-            <Field.FieldLabel for="kiriof-pickup-payment">{label('paymentMethod', 'Payment Method')}</Field.FieldLabel>
-            <Select.Root type="single" bind:value={paymentMethod}>
-              <Select.Trigger id="kiriof-pickup-payment"><Select.Value placeholder={label('selectPaymentPlaceholder', 'Select a payment method')} /></Select.Trigger>
-              <Select.Content class="kiriof-shadcn">
-                <Select.Group>
-                  <Select.Item value="qris">QRIS</Select.Item>
-                  {#if creditEnabled && creditAvailable}<Select.Item value="credit">KA Credit</Select.Item>{/if}
-                </Select.Group>
-              </Select.Content>
-            </Select.Root>
+            <Field.FieldLabel>{label('paymentMethod', 'Payment Method')}</Field.FieldLabel>
+            <RadioGroup.Root bind:value={paymentMethod} class="kiriof-payment-methods">
+              {#each paymentOptions as option (option.value)}
+                {@const PaymentIcon = option.icon}
+                <label class="kiriof-payment-method-card" class:is-selected={paymentMethod === option.value}>
+                  <span class="kiriof-payment-method-card__icon"><PaymentIcon /></span>
+                  <span class="kiriof-payment-method-card__copy"><strong>{option.title}</strong><span>{option.description}</span></span>
+                  <RadioGroup.Item value={option.value} aria-label={option.title} />
+                </label>
+              {/each}
+            </RadioGroup.Root>
           </Field.Field>
         {:else}
-          <p class="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{label('noPaymentRequired', 'No payment method is required for this pickup.')}</p>
+          {#if !paymentRequired}<p class="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{label('noPaymentRequired', 'No payment method is required for this pickup.')}</p>{/if}
         {/if}
       </Field.FieldGroup>
       {#if errorMessage}<p class="text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
     {/if}
 
     <Dialog.Footer>
-      <Button class="kiriof-dialog-secondary" variant="outline" onclick={close}>{label('close', 'Close')}</Button>
+      <Button class="kiriof-dialog-secondary" variant="ghost" onclick={close}>{label('close', 'Close')}</Button>
       {#if phase === 'pin'}
         <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canSubmitPin}>{label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}

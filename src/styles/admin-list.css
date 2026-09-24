@@ -21,6 +21,67 @@
   --input: oklch(0.82 0.025 292);
   --ring: oklch(0.48 0.23 292);
 }
+.kiriof-transaction-dialog-content .kiriof-pickup-summary {
+  border-color: var(--border) !important;
+  background: var(--card) !important;
+}
+.kiriof-payment-methods {
+  display: grid !important;
+  gap: 10px !important;
+}
+.kiriof-payment-method-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.kiriof-payment-method-card:hover {
+  border-color: var(--ring);
+  background: var(--accent);
+}
+.kiriof-payment-method-card.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.kiriof-payment-method-card__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+  color: var(--primary);
+}
+.kiriof-payment-method-card__icon svg {
+  width: 21px;
+  height: 21px;
+}
+.kiriof-payment-method-card__copy {
+  display: grid;
+  gap: 2px;
+}
+.kiriof-payment-method-card__copy strong {
+  font-size: 13px;
+}
+.kiriof-payment-method-card__copy span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.kiriof-payment-method-card [data-slot='radio-group-item'] {
+  margin: 0 !important;
+}
 .kiriof-admin-list-card:has(.kiriof-admin-list-search[data-disabled='true'])::after {
   position: absolute;
   inset: 0;
@@ -566,7 +627,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   width: min(600px, calc(100vw - 32px)) !important;
   max-height: calc(100vh - 48px) !important;
   overflow-y: auto !important;
-  border: 1px solid #dcdcde !important;
+  border: 1px solid var(--border) !important;
   border-radius: 12px !important;
   background: #fff !important;
   color: #1d2327 !important;
@@ -598,18 +659,18 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   background: #4c1d95 !important;
 }
 .kiriof-transaction-dialog-content .kiriof-dialog-secondary {
-  border-color: #c3c4c7 !important;
-  background: #fff !important;
+  border-color: transparent !important;
+  background: transparent !important;
   color: #1d2327 !important;
 }
 .kiriof-transaction-dialog-content .kiriof-dialog-secondary:hover:not(:disabled) {
-  border-color: #8c8f94 !important;
-  background: #f6f7f7 !important;
+  border-color: transparent !important;
+  background: var(--muted) !important;
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-title'] {
   margin: 0 !important;
   color: #1d2327 !important;
-  font-size: 20px !important;
+  font-size: 17px !important;
   font-weight: 650 !important;
   line-height: 1.25 !important;
 }
@@ -626,7 +687,14 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   margin: 0 !important;
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-close'] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
   color: #646970 !important;
+  box-shadow: none !important;
 }
 .kiriof-transaction-dialog-content [role='alert'] {
   margin: 0 !important;
