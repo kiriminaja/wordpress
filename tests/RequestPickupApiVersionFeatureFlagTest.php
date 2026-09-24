@@ -12,7 +12,7 @@ final class RequestPickupApiVersionFeatureFlagTest extends TestCase {
 		$service    = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
 		$repository = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
 
-		$this->assertStringContainsString( "define( 'KIRIOF_ENABLE_KA_CREDIT', false );", $plugin );
+		$this->assertStringContainsString( "define( 'KIRIOF_ENABLE_KA_CREDIT', true );", $plugin );
 		$this->assertStringContainsString( 'KIRIOF_ENABLE_KA_CREDIT', $controller );
 		$this->assertStringContainsString( 'if ( KIRIOF_ENABLE_KA_CREDIT ) {', $admin );
 		$this->assertStringContainsString( "add_action( 'admin_bar_menu', array( \$this, 'kiriof_add_credit_balance_admin_bar' ), 61 );", $admin );

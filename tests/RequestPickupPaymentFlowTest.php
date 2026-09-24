@@ -50,8 +50,14 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$styles = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
 
 		$this->assertStringContainsString( '<RadioGroup.Root bind:value={paymentMethod}', $dialog );
-		$this->assertStringContainsString( '{#if paymentRequired && paymentOptions.length > 1}', $dialog );
-		$this->assertStringContainsString( "paymentMethod = creditEnabled && creditAvailable ? 'credit' : 'qris'", $dialog );
+		$this->assertStringContainsString( '{#if paymentRequired && paymentOptions.length >= 1}', $dialog );
+		$this->assertStringContainsString( "paymentMethod = creditEnabled && creditAvailable ? 'credit'", $dialog );
+		$this->assertStringContainsString( 'creditEnabled', $dialog );
+		$this->assertStringContainsString( 'has_pin', $dialog );
+		$this->assertStringContainsString( 'Remaining Credit', $dialog );
+		$this->assertStringContainsString( 'Maximum Transaction Rp10.000.000', $dialog );
+		$this->assertStringContainsString( 'Continue to Payment', $dialog );
+		$this->assertStringContainsString( 'disabled={option.disabled}', $dialog );
 		$this->assertStringContainsString( 'kiriof-payment-method-card', $dialog );
 		$this->assertStringContainsString( 'border-color: var(--border) !important;', $styles );
 		$this->assertStringContainsString( 'font-size: 17px !important;', $styles );

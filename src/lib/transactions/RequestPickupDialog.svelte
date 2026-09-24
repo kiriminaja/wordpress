@@ -36,6 +36,9 @@
   let paymentRequired = $state(false);
   let creditEnabled = $state(false);
   let creditAvailable = $state(false);
+  let hasPin = $state(false);
+  let creditBalance = $state(0);
+  let qrisDisabled = $state(false);
   let pin = $state('');
   let errorMessage = $state('');
   let requestKey = $state('');
@@ -50,13 +53,26 @@
   const paymentOptions = $derived(
     paymentRequired
       ? [
-          ...(creditEnabled && creditAvailable
-            ? [{ value: 'credit', title: 'KA Credit', description: label('creditDescription', 'Pay using your available KiriminAja credit.'), icon: IconCreditCard }]
+          ...(creditEnabled
+            ? [
+                {
+                  value: 'credit',
+                  title: 'KA Credit',
+                  description: creditAvailable
+                    ? label('creditDescription', `Remaining Credit ${money(creditBalance)}`)
+                    : hasPin
+                      ? label('creditInsufficient', 'Insufficient credit balance for this pickup.')
+                      : label('creditNoPin', 'Set a PIN on your KiriminAja profile to pay with credit.'),
+                  icon: IconCreditCard,
+                  disabled: !creditAvailable,
+                },
+              ]
             : []),
-          { value: 'qris', title: 'QRIS', description: label('qrisDescription', 'Pay securely using a QRIS payment code.'), icon: IconQrcode },
+          { value: 'qris', title: 'QRIS', description: label('qrisDescription', 'Maximum Transaction Rp10.000.000'), icon: IconQrcode, disabled: qrisDisabled },
         ]
       : [],
   );
+  const selectableOptions = $derived(paymentOptions.filter((option) => !option.disabled));
 
   function label(key: string, fallback: string): string {
     return i18n[key] || fallback;
@@ -153,6 +169,9 @@
     paymentRequired = false;
     creditEnabled = false;
     creditAvailable = false;
+    hasPin = false;
+    creditBalance = 0;
+    qrisDisabled = false;
     pin = '';
 
     try {
@@ -166,15 +185,21 @@
       const isTop = paymentConfig.is_top === true;
       paymentRequired = hasNonCodFee && !isTop;
       creditEnabled = paymentConfig.ka_credit_enabled === true;
+      hasPin = paymentConfig.has_pin === true;
       paymentMethod = paymentRequired ? 'qris' : '';
+      qrisDisabled = totalFee > 10000000;
 
-      if (paymentRequired && creditEnabled && paymentConfig.has_pin === true) {
+      if (paymentRequired && creditEnabled) {
         const balanceResult = await call('kiriof_get_credit_balance', { nonce }, false);
         const balanceData = balanceResult.data || {};
-        creditAvailable = balanceResult.status === 200 && Number(balanceData.balance || 0) >= totalFee;
+        creditBalance = Number(balanceData.balance || 0);
+        creditAvailable = balanceResult.status === 200 && hasPin && creditBalance >= totalFee;
       }
 
-      if (paymentRequired) paymentMethod = creditEnabled && creditAvailable ? 'credit' : 'qris';
+      if (paymentRequired) {
+        paymentMethod = creditEnabled && creditAvailable ? 'credit' : !qrisDisabled ? 'qris' : '';
+        if (!selectableOptions.some((option) => option.value === paymentMethod)) paymentMethod = selectableOptions[0]?.value ?? '';
+      }
 
       phase = 'schedule';
       if (!pickupDates.length) errorMessage = label('noSchedule', 'No pickup time is available in the next seven days.');
@@ -306,16 +331,16 @@
           </Field.Field>
         </Field.FieldGroup>
 
-        {#if paymentRequired && paymentOptions.length > 1}
+        {#if paymentRequired && paymentOptions.length >= 1}
           <Field.Field>
-            <Field.FieldLabel>{label('paymentMethod', 'Payment Method')}</Field.FieldLabel>
+            <Field.FieldLabel>{label('paymentMethod', 'Choose Payment Method')}<span class="text-destructive">*</span></Field.FieldLabel>
             <RadioGroup.Root bind:value={paymentMethod} class="kiriof-payment-methods">
               {#each paymentOptions as option (option.value)}
                 {@const PaymentIcon = option.icon}
-                <label class="kiriof-payment-method-card" class:is-selected={paymentMethod === option.value}>
+                <label class="kiriof-payment-method-card" class:is-selected={paymentMethod === option.value} class:is-disabled={option.disabled} aria-disabled={option.disabled ? 'true' : undefined}>
                   <span class="kiriof-payment-method-card__icon"><PaymentIcon /></span>
                   <span class="kiriof-payment-method-card__copy"><strong>{option.title}</strong><span>{option.description}</span></span>
-                  <RadioGroup.Item value={option.value} aria-label={option.title} />
+                  <RadioGroup.Item value={option.value} aria-label={option.title} disabled={option.disabled} />
                 </label>
               {/each}
             </RadioGroup.Root>
@@ -332,7 +357,7 @@
       {#if phase === 'pin'}
         <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canSubmitPin}>{label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}
-        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canContinue || !pickupDates.length}>{paymentMethod === 'credit' ? label('confirmPin', 'Confirm PIN') : label('pickSchedule', 'Continue')}</Button>
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canContinue || !pickupDates.length}>{label('continueToPayment', 'Continue to Payment')}</Button>
       {/if}
     </Dialog.Footer>
   </Dialog.Content>
