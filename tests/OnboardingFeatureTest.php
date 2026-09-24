@@ -181,7 +181,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'querySelectorAll', $entry );
 		$this->assertStringContainsString( 'margin: 0 auto;', $styles );
 		$this->assertStringContainsString( "[data-slot='switch-thumb'][data-state='checked']", $styles );
-        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );
 		$this->assertStringContainsString( 'response.data?.profile', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
@@ -217,7 +217,9 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( "remove_all_actions( 'admin_notices' )", file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", $vite );
-        $this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' )", $controller );
+		$this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'technical' )", $controller );
+		$this->assertStringNotContainsString( 'wp_ajax_kiriof_store_call_back_data', $controller );
+		$this->assertStringContainsString( 'kiriof-callback-endpoints', file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
 		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' )", $controller );
 		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', $controller );
 		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', $controller );

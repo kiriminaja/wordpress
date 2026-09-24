@@ -254,7 +254,6 @@ class SettingsPageData {
 			array(
 				'label' => __( 'Others', 'kiriminaja-official' ),
 				'items' => array(
-					$this->settingsRootItem( 'webhooks', __( 'Webhooks', 'kiriminaja-official' ), __( 'Configure callback URL for shipment status updates.', 'kiriminaja-official' ), 'webhook', $base_url . '&section=webhooks' ),
 					$this->settingsRootItem( 'technical', __( 'Technical', 'kiriminaja-official' ), __( 'Manage cache and download KiriminAja plugin-only diagnostic logs.', 'kiriminaja-official' ), 'technical', $base_url . '&section=technical' ),
 				),
 			),
@@ -266,21 +265,6 @@ class SettingsPageData {
 	/**
 	 * @return array<string, mixed>
 	 */
-	public function prepareWebhooksBootstrap( string $callback_url ): array {
-		return array(
-			'view'        => 'webhooks',
-			'toolbar'     => $this->settingsToolbar( __( 'Webhooks', 'kiriminaja-official' ) ),
-			'callbackUrl' => $callback_url,
-			'i18n'        => array(
-				'callbackUrl' => __( 'Callback URL', 'kiriminaja-official' ),
-				'save'        => __( 'Save', 'kiriminaja-official' ),
-				'saving'      => __( 'Saving…', 'kiriminaja-official' ),
-				'saved'       => __( 'Saved.', 'kiriminaja-official' ),
-				'saveFailed'  => __( 'Save failed.', 'kiriminaja-official' ),
-			),
-		);
-	}
-
 	/**
 	 * @param array<string, mixed> $technical Prepared technical diagnostics.
 	 * @return array<string, mixed>
@@ -290,6 +274,7 @@ class SettingsPageData {
 			'view'           => 'technical',
 			'toolbar'        => $this->settingsToolbar( __( 'Technical', 'kiriminaja-official' ) ),
 			'downloadLogUrl' => $technical['downloadLogUrl'],
+			'callbacks'      => array_values( array_filter( array_unique( $technical['callbacks'] ) ) ),
 			'region'         => array(
 				'state'         => $technical['state'],
 				'lastError'     => $technical['cacheStatus']['last_error'] ?? '',
@@ -310,6 +295,9 @@ class SettingsPageData {
 				'courierTitle'       => __( 'Courier List Cache', 'kiriminaja-official' ),
 				'courierDescription' => __( 'Courier names and types fetched from the KiriminAja API. Used for proper labelling in the transactions filter and coupon courier restrictions. Cached for 24 hours.', 'kiriminaja-official' ),
 				'logsTitle'          => __( 'Diagnostic Logs', 'kiriminaja-official' ),
+				'callbacksTitle'     => __( 'Registered Callbacks', 'kiriminaja-official' ),
+				'callbacksDescription' => __( 'These endpoints are registered and maintained automatically by the plugin. They are read-only and update during integration or plugin lifecycle events.', 'kiriminaja-official' ),
+				'noCallbacks'        => __( 'No callback endpoint is currently registered.', 'kiriminaja-official' ),
 				'logsDescription'    => __( 'Download WooCommerce logs generated only by the KiriminAja plugin. The export excludes general WooCommerce and WordPress logs.', 'kiriminaja-official' ),
 				'logsPrivacy'        => __( 'KiriminAja does not collect this diagnostic data automatically or send it directly to KiriminAja. Please download the file and send it to the KiriminAja support team only with your consent.', 'kiriminaja-official' ),
 				'status'             => __( 'Status', 'kiriminaja-official' ),
@@ -531,6 +519,9 @@ class SettingsPageData {
 		$courier_result = $this->api_service->get_couriers();
 		$courier_cached = false !== get_transient( 'kiriof_couriers_list_v2' );
 		$courier_timeout = (int) get_option( '_transient_timeout_kiriof_couriers_list_v2', 0 );
+		$callback_row    = $this->setting_repository->getSettingByKey( 'callback_url' );
+		$stored_callback = is_object( $callback_row ) ? esc_url_raw( (string) ( $callback_row->value ?? '' ) ) : '';
+		$system_callback = esc_url_raw( add_query_arg( 'feed', 'kiriminaja-callback', home_url( '/' ) ) );
 
 		return array(
 			'cacheStatus'       => $cache_status,
@@ -550,6 +541,7 @@ class SettingsPageData {
 			'courierValidUntil' => ( $courier_cached && $courier_timeout > 0 ) ? wp_date( 'Y-m-d H:i:s', $courier_timeout ) : '—',
 			'courierBadgeBg'    => $courier_cached ? '#00a32a' : '#dba617',
 			'courierBadgeTxt'   => $courier_cached ? __( 'Cached', 'kiriminaja-official' ) : __( 'Not cached', 'kiriminaja-official' ),
+			'callbacks'         => array( $stored_callback, $system_callback ),
 		);
 	}
 }

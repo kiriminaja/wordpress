@@ -39,8 +39,6 @@ class SettingController{
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_get_call_back_data', array($this,'getCallbackData'));
 
-        /** storeCallbackData*/
-        add_action('wp_ajax_kiriof_store_call_back_data', array($this,'storeCallbackData'));
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
 
@@ -95,7 +93,7 @@ class SettingController{
             return;
         }
 
-		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'webhooks', 'technical' ), true ) ) {
+		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'technical' ), true ) ) {
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
 			$workspace_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
 			$admin_list_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
@@ -348,27 +346,6 @@ class SettingController{
         }
     }
 
-    function storeCallbackData(){
-        try {
-            if ( ! current_user_can( 'manage_woocommerce' ) ) {
-                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
-                wp_die();
-            }
-            // Check for nonce security - fail early
-            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
-                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
-                wp_die();
-            }
-            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
-                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
-                : array();
-            $service = (new \KiriminAjaOfficial\Services\SettingService())->storeCallbackData($data);
-            if ($service->status!==200){ wp_send_json_error($service);}
-            wp_send_json_success($service);
-        }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
-        }
-    }
     function storeWhitelistExpedition(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {

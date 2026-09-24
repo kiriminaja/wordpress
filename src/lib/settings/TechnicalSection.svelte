@@ -142,6 +142,20 @@
     </div>
   </section>
 
+  <section class="kiriof-section-card" aria-labelledby="kiriof-callbacks-title">
+    <h2 id="kiriof-callbacks-title">{bootstrap.i18n.callbacksTitle}</h2>
+    <p>{bootstrap.i18n.callbacksDescription}</p>
+    {#if bootstrap.callbacks.length}
+      <div class="kiriof-callback-endpoints">
+        {#each bootstrap.callbacks as callback}
+          <code>{callback}</code>
+        {/each}
+      </div>
+    {:else}
+      <p class="kiriof-section-message">{bootstrap.i18n.noCallbacks}</p>
+    {/if}
+  </section>
+
   <section class="kiriof-section-card" aria-labelledby="kiriof-logs-title">
     <h2 id="kiriof-logs-title">{bootstrap.i18n.logsTitle}</h2>
     <p>{bootstrap.i18n.logsDescription}</p>

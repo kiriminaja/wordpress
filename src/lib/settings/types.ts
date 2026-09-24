@@ -22,23 +22,11 @@ export type SettingItem = {
   toggle?: 'insurance' | 'cod';
 };
 
-export type WebhooksBootstrap = {
-  view: 'webhooks';
-  toolbar: ToolbarConfig;
-  callbackUrl: string;
-  i18n: {
-    callbackUrl: string;
-    save: string;
-    saving: string;
-    saved: string;
-    saveFailed: string;
-  };
-};
-
 export type TechnicalBootstrap = {
   view: 'technical';
   toolbar: ToolbarConfig;
   downloadLogUrl: string;
+  callbacks: string[];
   region: {
     state: string;
     lastError: string;
@@ -59,6 +47,9 @@ export type TechnicalBootstrap = {
     courierTitle: string;
     courierDescription: string;
     logsTitle: string;
+    callbacksTitle: string;
+    callbacksDescription: string;
+    noCallbacks: string;
     logsDescription: string;
     logsPrivacy: string;
     status: string;
@@ -155,7 +146,6 @@ export type CouriersBootstrap = {
 
 export type SettingsAppBootstrap =
   | SettingsBootstrap
-  | WebhooksBootstrap
   | TechnicalBootstrap
   | TrackingBootstrap
   | AccountBootstrap

@@ -9,6 +9,9 @@ $kiriof_section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['s
 if ( 'cache' === $kiriof_section ) {
 	$kiriof_section = 'technical';
 }
+if ( 'webhooks' === $kiriof_section ) {
+	$kiriof_section = 'technical';
+}
 
 switch ( $kiriof_section ) {
 	case 'account':
@@ -29,9 +32,6 @@ switch ( $kiriof_section ) {
 	case 'tracking':
 		$kiriof_settings_bootstrap = $settingsPageData->prepareTrackingBootstrap( kiriof_get_published_tracking_content() );
 		break;
-	case 'webhooks':
-		$kiriof_settings_bootstrap = $settingsPageData->prepareWebhooksBootstrap( (string) ( $inputValueArr['callback_url'] ?? '' ) );
-		break;
 	case 'technical':
 		$kiriof_technical_data = $settingsPageData->prepareTechnical();
 		$kiriof_settings_bootstrap = $settingsPageData->prepareTechnicalBootstrap(
@@ -46,6 +46,7 @@ switch ( $kiriof_section ) {
 				'courierCached'     => $kiriof_technical_data['courierCached'],
 				'courierUpdated'    => $kiriof_technical_data['courierUpdated'],
 				'courierValidUntil' => $kiriof_technical_data['courierValidUntil'],
+				'callbacks'         => $kiriof_technical_data['callbacks'],
 			)
 		);
 		break;

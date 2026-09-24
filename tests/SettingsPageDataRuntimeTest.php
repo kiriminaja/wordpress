@@ -12,6 +12,22 @@ use PHPUnit\Framework\TestCase;
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( $path = '' ) {
+		return 'https://example.test/' . ltrim( (string) $path, '/' );
+	}
+}
+if ( ! function_exists( 'add_query_arg' ) ) {
+	function add_query_arg( $key, $value, $url ) {
+		$separator = str_contains( $url, '?' ) ? '&' : '?';
+		return $url . $separator . rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+	}
+}
+if ( ! function_exists( 'esc_url_raw' ) ) {
+	function esc_url_raw( $url ) {
+		return (string) $url;
+	}
+}
 
 require_once PLUGIN_DIR . '/inc/Base/BaseService.php';
 require_once PLUGIN_DIR . '/inc/Contracts/ProductVolumetricReadinessRepositoryInterface.php';
@@ -113,7 +129,6 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$provider = new SettingsPageData( $settings, $readiness, $api, $region, $cache );
 		$shared   = $provider->prepare();
 		$account  = $provider->prepareAccount();
-		$webhooks = $provider->prepareWebhooksBootstrap( 'https://example.test/hook' );
 		$root     = $provider->prepareRootBootstrap(
 			true,
 			array(
@@ -141,8 +156,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertNotContains( 'products', array_column( $root['groups'][2]['items'], 'key' ) );
 		$this->assertNotContains( 'shipping-locations', array_column( $root['groups'][2]['items'], 'key' ) );
 		$this->assertSame( 'Default address ready', $root['groups'][2]['items'][3]['status'] );
-		$this->assertSame( 'webhooks', $webhooks['view'] );
-		$this->assertSame( 'https://example.test/hook', $webhooks['callbackUrl'] );
+		$this->assertNotContains( 'webhooks', array_column( $root['groups'][3]['items'], 'key' ) );
 	}
 
 	#[Test]
@@ -155,7 +169,12 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$GLOBALS['kiriof_settings_page_transients'] = array( 'kiriof_couriers_list_v2' => array( 'cached' ) );
 
 		$settings = $this->createMock( SettingRepository::class );
-		$settings->method( 'getSettingByKey' )->with( 'enable_insurance' )->willReturn( (object) array( 'value' => 'yes' ) );
+		$settings->method( 'getSettingByKey' )->willReturnMap(
+			array(
+				array( 'enable_insurance', (object) array( 'value' => 'yes' ) ),
+				array( 'callback_url', (object) array( 'value' => 'https://example.test/?feed=kiriminaja-callback' ) ),
+			)
+		);
 		$settings->method( 'getSettingByArray' )->willReturn( array() );
 		$readiness = $this->createMock( ProductVolumetricReadinessService::class );
 		$api = $this->createMock( KiriminajaApiService::class );
@@ -182,6 +201,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( 'technical', $technical_bootstrap['view'] );
 		$this->assertSame( 38, $technical_bootstrap['region']['provinceCount'] );
 		$this->assertTrue( $technical_bootstrap['couriers']['cached'] );
+		$this->assertContains( 'https://example.test/?feed=kiriminaja-callback', $technical_bootstrap['callbacks'] );
 		$this->assertStringContainsString( 'icon-128x128.png', $technical_bootstrap['toolbar']['logoUrl'] );
 	}
 

@@ -16,6 +16,23 @@
   --ring: oklch(0.48 0.23 292);
 }
 
+.kiriof-callback-endpoints {
+  display: grid;
+  gap: 8px;
+}
+
+.kiriof-callback-endpoints code {
+  display: block;
+  padding: 9px 11px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--kiriof-border);
+  border-radius: 7px;
+  background: #f7f7f8;
+  color: var(--kiriof-ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .kiriof-product-alert {
   box-sizing: border-box;
   display: grid;

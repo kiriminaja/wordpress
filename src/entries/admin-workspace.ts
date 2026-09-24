@@ -4,7 +4,6 @@ import AccountSection from '../lib/settings/AccountSection.svelte';
 import CouriersSection from '../lib/settings/CouriersSection.svelte';
 import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
 import TrackingSection from '../lib/settings/TrackingSection.svelte';
-import WebhooksSection from '../lib/settings/WebhooksSection.svelte';
 import PaymentsList from '../lib/payments/PaymentsList.svelte';
 import PaymentsModals from '../lib/payments/PaymentsModals.svelte';
 import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
@@ -207,8 +206,6 @@ function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): voi
     mounted = [mount(CouriersSection, { target: host, props: { bootstrap } })];
   else if (bootstrap.view === 'tracking')
     mounted = [mount(TrackingSection, { target: host, props: { bootstrap } })];
-  else if (bootstrap.view === 'webhooks')
-    mounted = [mount(WebhooksSection, { target: host, props: { bootstrap } })];
   else if (bootstrap.view === 'technical')
     mounted = [mount(TechnicalSection, { target: host, props: { bootstrap } })];
   else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
