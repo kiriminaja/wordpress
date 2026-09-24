@@ -14,9 +14,9 @@
 <PaginationPrimitive.NextButton
 	bind:ref
 	aria-label="Go to next page"
-	class={cn(buttonVariants({ variant: "ghost", size: "default" }), "pr-1.5!", className)}
+	class={cn(buttonVariants({ variant: "ghost", size: "default" }), "p-0! flex items-center justify-center gap-0", className)}
 	{...restProps}
 >
 	<span class="sr-only">Next</span>
-	<IconChevronRight data-icon="inline-end" class="cn-rtl-flip" />
+	<IconChevronRight class="cn-rtl-flip" />
 </PaginationPrimitive.NextButton>

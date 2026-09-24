@@ -878,10 +878,15 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 }
 .kiriof-data-table-footer [data-slot='pagination'] {
   width: auto;
-  margin: 0;
+  margin: 0 0 0 auto !important;
+  justify-content: flex-end;
 }
 .kiriof-data-table-footer [data-slot='pagination-content'] {
+  margin: 0 !important;
   gap: 4px;
+}
+.kiriof-data-table-footer [data-slot='pagination-item'] {
+  margin-bottom: 0 !important;
 }
 .kiriof-data-table-footer [data-slot='pagination-link'],
 .kiriof-data-table-footer [data-slot='pagination'] button {
@@ -890,6 +895,15 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   height: 32px;
   min-height: 32px;
   border-radius: 7px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+}
+.kiriof-data-table-footer [data-slot='pagination'] button svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0 !important;
 }
 .kiriof-empty-cell {
   padding: 48px !important;

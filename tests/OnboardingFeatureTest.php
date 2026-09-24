@@ -225,6 +225,11 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'technical' )", $controller );
 		$this->assertStringNotContainsString( 'wp_ajax_kiriof_store_call_back_data', $controller );
 		$this->assertStringContainsString( 'kiriof-callback-endpoints', file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
+		$this->assertStringContainsString( "from '\$lib/components/ui/button'", file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-settings-action-button__icon', file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
+		$this->assertStringContainsString( "from '\$lib/components/ui/button'", file_get_contents( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' ) );
+		$this->assertStringNotContainsString( '<button class="button"', file_get_contents( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' ) );
+		$this->assertStringContainsString( '.kiriof-settings-action-button', $styles );
 		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' )", $controller );
 		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', $controller );
 		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', $controller );

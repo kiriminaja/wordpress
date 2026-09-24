@@ -16,11 +16,11 @@
 	aria-label="Go to previous page"
 	class={cn(
 		buttonVariants({ variant: "ghost", size: "default" }),
-		"pl-1.5!",
+		"p-0! flex items-center justify-center gap-0",
 		className
 	)}
 	{...restProps}
 >
-	<IconChevronLeft data-icon="inline-start" class="cn-rtl-flip" />
+	<IconChevronLeft class="cn-rtl-flip" />
 	<span class="sr-only">Previous</span>
 </PaginationPrimitive.PrevButton>

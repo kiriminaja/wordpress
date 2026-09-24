@@ -104,6 +104,10 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringNotContainsString( '<ListPagination', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringContainsString( "'total' => \$total", $renderer );
 		$this->assertStringContainsString( 'import * as Pagination from \'$lib/components/ui/pagination\'', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );
+		$this->assertStringContainsString( 'm-0 gap-0.5', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/pagination/pagination-content.svelte' ) );
+		$this->assertStringContainsString( 'cn("mb-0", className)', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/pagination/pagination-item.svelte' ) );
+		$this->assertStringContainsString( 'ml-auto mr-0 w-auto justify-end', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );
+		$this->assertStringContainsString( 'margin: 0 0 0 auto !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '.kiriof-payments-table', file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
 		$this->assertStringContainsString( "body:has([data-kiriof-payments-page]) .update-nag", file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
 		$this->assertStringContainsString( 'kiriof-workspace-shell', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );

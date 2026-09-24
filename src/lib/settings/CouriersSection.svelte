@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { IconCheck, IconX } from '@tabler/icons-svelte';
+  import { Button } from '$lib/components/ui/button';
   import { postWordPressAction } from '../wordpress/ajax';
   import SettingSwitch from '../ui/SettingSwitch.svelte';
   import type { CouriersBootstrap } from './types';
@@ -64,8 +66,14 @@
 </script>
 
 <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings}>
-  <button class="button" disabled={loading || saving} onclick={() => setAll(true)}>{bootstrap.i18n.enableAll}</button>
-  <button class="button" disabled={loading || saving} onclick={() => setAll(false)}>{bootstrap.i18n.disableAll}</button>
+  <Button class="kiriof-settings-action-button" disabled={loading || saving} onclick={() => setAll(true)}>
+    <IconCheck class="kiriof-settings-action-button__icon" aria-hidden="true" />
+    <span>{bootstrap.i18n.enableAll}</span>
+  </Button>
+  <Button class="kiriof-settings-action-button" variant="outline" disabled={loading || saving} onclick={() => setAll(false)}>
+    <IconX class="kiriof-settings-action-button__icon" aria-hidden="true" />
+    <span>{bootstrap.i18n.disableAll}</span>
+  </Button>
 </Toolbar>
 <section class="kiriof-section-card kiriof-settings-content">
   <div class="kiriof-courier-toolbar"><span>{countText()}</span></div>

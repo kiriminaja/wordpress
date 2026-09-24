@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconDownload, IconRefresh } from '@tabler/icons-svelte';
-  import { Button } from 'bits-ui';
+  import { Button } from '$lib/components/ui/button';
   import { getWordPressAction, postWordPressRawAction } from '../wordpress/ajax';
   import type { TechnicalBootstrap } from './types';
   import Toolbar from '$lib/ui/Toolbar.svelte';
@@ -116,10 +116,10 @@
       <div><dt>{bootstrap.i18n.validUntil}</dt><dd>{region.validUntil}</dd></div>
     </dl>
     <div class="kiriof-section-actions">
-      <Button.Root class="button button-primary" disabled={regionBusy} onclick={refreshRegion}>
-        <IconRefresh size={16} stroke={2} aria-hidden="true" />
-        {regionBusy ? bootstrap.i18n.refreshing : bootstrap.i18n.refreshRegion}
-      </Button.Root>
+      <Button class="kiriof-settings-action-button" disabled={regionBusy} onclick={refreshRegion}>
+        <IconRefresh class={`kiriof-settings-action-button__icon${regionBusy ? ' kiriof-settings-action-button__spin' : ''}`} aria-hidden="true" />
+        <span>{regionBusy ? bootstrap.i18n.refreshing : bootstrap.i18n.refreshRegion}</span>
+      </Button>
       {#if regionMessage}<span class:error={regionError} class="kiriof-section-message" role={regionError ? 'alert' : 'status'}>{regionMessage}</span>{/if}
     </div>
   </section>
@@ -134,10 +134,10 @@
       <div><dt>{bootstrap.i18n.validUntil}</dt><dd>{couriers.validUntil}</dd></div>
     </dl>
     <div class="kiriof-section-actions">
-      <Button.Root class="button button-primary" disabled={courierBusy} onclick={refreshCouriers}>
-        <IconRefresh size={16} stroke={2} aria-hidden="true" />
-        {courierBusy ? bootstrap.i18n.flushing : bootstrap.i18n.flushCouriers}
-      </Button.Root>
+      <Button class="kiriof-settings-action-button" disabled={courierBusy} onclick={refreshCouriers}>
+        <IconRefresh class={`kiriof-settings-action-button__icon${courierBusy ? ' kiriof-settings-action-button__spin' : ''}`} aria-hidden="true" />
+        <span>{courierBusy ? bootstrap.i18n.flushing : bootstrap.i18n.flushCouriers}</span>
+      </Button>
       {#if courierMessage}<span class:error={courierError} class="kiriof-section-message" role={courierError ? 'alert' : 'status'}>{courierMessage}</span>{/if}
     </div>
   </section>
@@ -160,9 +160,9 @@
     <h2 id="kiriof-logs-title">{bootstrap.i18n.logsTitle}</h2>
     <p>{bootstrap.i18n.logsDescription}</p>
     <p>{bootstrap.i18n.logsPrivacy}</p>
-    <Button.Root class="button button-primary" href={bootstrap.downloadLogUrl}>
-      <IconDownload size={16} stroke={2} aria-hidden="true" />
-      {bootstrap.i18n.downloadLog}
-    </Button.Root>
+    <Button class="kiriof-settings-action-button" href={bootstrap.downloadLogUrl}>
+      <IconDownload class="kiriof-settings-action-button__icon" aria-hidden="true" />
+      <span>{bootstrap.i18n.downloadLog}</span>
+    </Button>
   </section>
 </div>

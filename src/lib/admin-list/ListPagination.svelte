@@ -5,7 +5,7 @@
 </script>
 
 {#if totalPages > 1}
-  <Pagination.Root count={totalPages} perPage={1} {page} onPageChange={onChange} class="w-auto">
+  <Pagination.Root count={totalPages} perPage={1} {page} onPageChange={onChange} class="ml-auto mr-0 w-auto justify-end">
     {#snippet children({ pages, currentPage })}
       <Pagination.Content>
         <Pagination.Item><Pagination.Previous /></Pagination.Item>

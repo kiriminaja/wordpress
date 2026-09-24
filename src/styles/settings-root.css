@@ -633,10 +633,52 @@
   margin-top: 16px;
 }
 
-.kiriof-section-actions .button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.kiriof-settings-action-button {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.kiriof-settings-action-button > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+.kiriof-settings-action-button .kiriof-settings-action-button__icon {
+  display: block !important;
+  width: 15px !important;
+  min-width: 15px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  flex: 0 0 15px !important;
+  margin: 0 !important;
+  stroke-width: 2 !important;
+}
+
+.kiriof-settings-action-button__spin {
+  animation: kiriof-settings-spin 0.8s linear infinite;
+}
+
+@keyframes kiriof-settings-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .kiriof-section-message {
