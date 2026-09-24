@@ -19,6 +19,7 @@ final class Init {
             Pages\Onboarding::class,
             Pages\Admin::class,
             Services\PluginUpdateNoticeService::class,
+            Services\RevampAnnouncementService::class,
             Services\ShipmentLocationService::class,
             Controllers\ProductController::class,
             Controllers\SettingController::class,

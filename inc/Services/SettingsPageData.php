@@ -171,7 +171,7 @@ class SettingsPageData {
 			),
 		);
 
-		return $toolbar;
+		return RevampAnnouncementService::attach_announcement( $toolbar );
 	}
 
 	/**

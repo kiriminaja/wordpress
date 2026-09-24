@@ -38,6 +38,13 @@ require_once PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php';
 require_once PLUGIN_DIR . '/inc/Services/ProductVolumetricReadinessService.php';
 require_once PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php';
 require_once PLUGIN_DIR . '/inc/Services/SettingsPageData.php';
+require_once PLUGIN_DIR . '/inc/Services/RevampAnnouncementService.php';
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( $capability ) {
+		unset( $capability );
+		return false;
+	}
+}
 if ( ! defined( 'KIRIOF_NONCE' ) ) {
 	define( 'KIRIOF_NONCE', 'kiriof-nonce' );
 }

@@ -25,11 +25,21 @@ export type ToolbarMenu = {
   items: ToolbarMenuItem[];
 };
 
+export type ToolbarAnnouncement = {
+  imageUrl: string;
+  title: string;
+  description: string;
+  feedbackUrl: string;
+  feedbackLabel: string;
+  continueLabel: string;
+};
+
 export type ToolbarConfig = {
   logoUrl: string;
   rootUrl: string;
   rootLabel: string;
   title: string;
   update?: ToolbarUpdate;
+  announcement?: ToolbarAnnouncement;
   menu?: ToolbarMenu;
 };

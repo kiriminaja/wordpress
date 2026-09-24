@@ -1,6 +1,7 @@
 <script lang="ts">
   import { IconChevronRight } from '@tabler/icons-svelte';
   import PluginUpdateDialog from './PluginUpdateDialog.svelte';
+  import RevampAnnouncementDialog from './RevampAnnouncementDialog.svelte';
   import ToolbarMenu from './ToolbarMenu.svelte';
   import type { ToolbarConfig } from './toolbar';
 
@@ -46,3 +47,7 @@
     </div>
   {/if}
 </header>
+
+{#if toolbar.announcement}
+  <RevampAnnouncementDialog announcement={toolbar.announcement} />
+{/if}

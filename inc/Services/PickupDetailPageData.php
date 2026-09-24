@@ -148,6 +148,7 @@ class PickupDetailPageData {
 				),
 			),
 		);
+		$toolbar = RevampAnnouncementService::attach_announcement( $toolbar );
 
 		return array(
 			'toolbar'     => $toolbar,

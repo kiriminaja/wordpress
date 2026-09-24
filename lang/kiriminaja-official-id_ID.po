@@ -3929,17 +3929,17 @@ msgid "Go to Dashboard"
 msgstr "Ke Dasbor"
 
 #: inc/Services/RevampAnnouncementService.php
-msgid "KiriminAja is now easier to use"
-msgstr "KiriminAja kini lebih mudah digunakan"
+msgid "KiriminAja has a new look"
+msgstr "KiriminAja hadir dengan tampilan baru"
 
 #: inc/Services/RevampAnnouncementService.php
-msgid "We updated the Transactions, Pickup, Settings, and Tracking pages so you can find what you need more quickly."
-msgstr "Kami memperbarui halaman Transaksi, Pickup, Pengaturan, dan Pelacakan agar Anda lebih cepat menemukan yang dibutuhkan."
+msgid "Transactions, Pickup, Settings, and Tracking are now easier to navigate."
+msgstr "Halaman Transaksi, Pickup, Pengaturan, dan Pelacakan kini lebih mudah digunakan."
 
 #: inc/Services/RevampAnnouncementService.php
-msgid "Share Your Feedback"
-msgstr "Bagikan Masukan Anda"
+msgid "Rate KiriminAja"
+msgstr "Beri Nilai untuk KiriminAja"
 
 #: inc/Services/RevampAnnouncementService.php
-msgid "Start Using KiriminAja"
-msgstr "Mulai Gunakan KiriminAja"
+msgid "Continue to KiriminAja"
+msgstr "Lanjut ke KiriminAja"

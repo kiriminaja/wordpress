@@ -2236,3 +2236,19 @@ msgstr ""
 #: inc/Services/WooCommerceShippingMethodRegistrationService.php:76
 msgid "Indonesia"
 msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "KiriminAja has a new look"
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Transactions, Pickup, Settings, and Tracking are now easier to navigate."
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Rate KiriminAja"
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Continue to KiriminAja"
+msgstr ""
