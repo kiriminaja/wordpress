@@ -176,7 +176,9 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   margin: 14px 0;
   padding: 12px;
   border: 1px solid var(--kiriof-border);
+  border-radius: 10px;
   background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
 }
 .kiriof-charge-list > div {
   display: flex;
@@ -193,10 +195,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   text-align: center;
 }
 
-.kiriof-pickup-detail-page--enhanced [data-kiriof-pickup-detail-fallback] {
-  display: none;
-}
-.kiriof-pickup-detail {
+.kiriof-pickup-detail-app {
   display: grid;
   gap: 14px;
 }
@@ -217,6 +216,60 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 }
 .kiriof-summary-grid span {
   color: var(--kiriof-muted);
+}
+.kiriof-pickup-detail-alert {
+  padding: 10px 12px;
+  border-left: 4px solid #b42318;
+  background: #fff1f0;
+  color: #b42318;
+}
+.kiriof-pickup-detail-card {
+  overflow: hidden;
+}
+.kiriof-pickup-detail-filterbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--kiriof-border);
+  background: #fff;
+}
+.kiriof-pickup-detail-filterbar > div {
+  display: grid;
+  gap: 4px;
+}
+.kiriof-pickup-detail-filterbar strong {
+  color: var(--kiriof-ink, #241b3d);
+  font-size: 14px;
+}
+.kiriof-pickup-detail-filterbar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--kiriof-muted);
+  font-size: 12px;
+}
+.kiriof-pickup-detail-filterbar svg {
+  width: 14px;
+  height: 14px;
+}
+.kiriof-pickup-detail-table {
+  min-width: 1180px;
+}
+.kiriof-pickup-detail-table .is-actions {
+  width: 86px;
+  text-align: right;
+}
+.kiriof-package-fees .is-total {
+  margin-top: 2px;
+  padding-top: 3px;
+  border-top: 1px solid #eceaf3;
+}
+.kiriof-package-fees .is-total span,
+.kiriof-package-fees .is-total strong {
+  color: #241b3d;
+  font-weight: 700;
 }
 
 [data-kiriof-transactions-root] {

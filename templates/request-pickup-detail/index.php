@@ -27,5 +27,13 @@ if ( $kiriof_detail_service->status !== 200 ) {
 $kiriof_payment_data      = $kiriof_detail_service->data['payment_data'];
 $kiriof_transactions_data = $kiriof_detail_service->data['transactions_data'];
 $kiriof_back_url          = admin_url( 'admin.php?page=kiriminaja-request-pickup' );
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only error from print redirect.
+$kiriof_print_error       = isset( $_GET['kiriof_print_error'] ) ? sanitize_text_field( wp_unslash( $_GET['kiriof_print_error'] ) ) : '';
+$kiriof_pickup_detail_bootstrap = ( new \KiriminAjaOfficial\Services\PickupDetailPageData() )->prepare(
+    $kiriof_payment_data,
+    $kiriof_transactions_data,
+    $kiriof_back_url,
+    $kiriof_print_error
+);
 
 include __DIR__ . '/view/index.php';

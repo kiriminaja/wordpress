@@ -6,9 +6,11 @@ import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
 import TrackingSection from '../lib/settings/TrackingSection.svelte';
 import PaymentsList from '../lib/payments/PaymentsList.svelte';
 import PaymentsModals from '../lib/payments/PaymentsModals.svelte';
+import PickupDetail from '../lib/pickup-detail/PickupDetail.svelte';
 import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import type { PaymentsBootstrap } from '../lib/payments/types';
+import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
 import type { TransactionsBootstrap } from '../lib/transactions/types';
 import shadcnStyles from '../styles/shadcn-onboarding.css?inline';
 import toolbarStyles from '../styles/toolbar.css?inline';
@@ -19,10 +21,11 @@ import settingsStyles from '../styles/settings-root.css?inline';
 const workspacePages = new Set([
   'kiriminaja-transaction-process',
   'kiriminaja-request-pickup',
+  'kiriminaja-request-pickup-detail',
   'kiriminaja-konfigurasi',
 ]);
 
-type WorkspaceRoute = 'transactions' | 'payments' | 'settings';
+type WorkspaceRoute = 'transactions' | 'payments' | 'pickup-detail' | 'settings';
 type MountedComponent = ReturnType<typeof mount>;
 
 type RouteDefinition = {
@@ -40,6 +43,13 @@ const routes: RouteDefinition[] = [
     root: '[data-kiriof-transactions-root]',
     payload: '[data-kiriof-transactions-payload]',
     route: 'transactions',
+  },
+  {
+    page: 'kiriminaja-request-pickup-detail',
+    shell: '[data-kiriof-pickup-detail-page]',
+    root: '[data-kiriof-pickup-detail-root]',
+    payload: '[data-kiriof-pickup-detail-payload]',
+    route: 'pickup-detail',
   },
   {
     page: 'kiriminaja-request-pickup',
@@ -234,6 +244,9 @@ function render(source: ParentNode, route: RouteDefinition): void {
     host
       .closest<HTMLElement>('[data-kiriof-payments-page]')
       ?.classList.add('kiriof-payments-page--enhanced');
+  } else if (route.route === 'pickup-detail') {
+    const bootstrap = parsePayload<PickupDetailBootstrap>(source, route);
+    mounted = [mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } })];
   } else {
     renderSettings(host, parsePayload<SettingsAppBootstrap>(source, route));
   }

@@ -74,9 +74,19 @@ final class RequestPickupPaymentFlowTest extends TestCase
 
 		$this->assertStringContainsString( 'data-kiriof-pickup-detail-root', $content );
 		$this->assertStringContainsString( 'kiriof_pickup_detail_bootstrap', $content );
-		$this->assertFileExists( PLUGIN_DIR . '/src/entries/pickup-detail.ts' );
+		$this->assertStringContainsString( 'kiriof-workspace-shell', $content );
+		$this->assertStringNotContainsString( 'data-kiriof-pickup-detail-fallback', $content );
+		$this->assertStringNotContainsString( 'wp-list-table', $content );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/entries/pickup-detail.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' );
-		$this->assertStringContainsString( "'pickup-detail': 'src/entries/pickup-detail.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/PickupDetailPageData.php' );
+		$this->assertStringContainsString( 'PickupDetailPageData', file_get_contents( PLUGIN_DIR . '/templates/request-pickup-detail/index.php' ) );
+		$this->assertStringContainsString( 'PickupDetail', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringContainsString( 'kiriminaja-request-pickup-detail', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringNotContainsString( "'pickup-detail': 'src/entries/pickup-detail.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
+		$this->assertStringNotContainsString( 'kiriminaja-pickup-detail.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-admin-list-table', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
     }
 
     #[Test]

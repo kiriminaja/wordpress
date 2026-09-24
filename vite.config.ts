@@ -20,7 +20,6 @@ export default defineConfig({
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'order-metabox': 'src/entries/order-metabox.ts',
         'admin-workspace': 'src/entries/admin-workspace.ts',
-        'pickup-detail': 'src/entries/pickup-detail.ts',
       },
       output: {
         assetFileNames: 'kiriminaja-[name][extname]',
