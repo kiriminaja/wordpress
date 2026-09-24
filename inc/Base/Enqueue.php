@@ -154,6 +154,7 @@ class Enqueue extends BaseInit{
         wp_enqueue_script( 'select2' );
         wp_enqueue_style( 'select2' );
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/wp/css/kj-wp-style.css', array(), KIRIOF_VERSION, 'all' );
+        wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style' ), KIRIOF_VERSION, 'all' );
 
         // Tracking shortcode-specific styles. Loaded as a real stylesheet so the
         // rules are present in <head> by the time [kiriminaja-tracking-front-page]
@@ -373,6 +374,7 @@ class Enqueue extends BaseInit{
         wp_enqueue_style( 'list-tables' );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
+        wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style' ), KIRIOF_VERSION, 'all' );
 
 
 

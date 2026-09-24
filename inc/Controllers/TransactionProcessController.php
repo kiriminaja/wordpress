@@ -331,9 +331,11 @@ class TransactionProcessController
             if (! empty($transaction->is_deficit)) {
                 $order_details['kiriof_status_label']   = __('COD Deficit', 'kiriminaja-official');
                 $order_details['kiriof_status_classes'] = 'badge-danger';
+                $order_details['kiriof_status_tone']    = 'critical';
             } else {
                 $order_details['kiriof_status_label']   = kiriof_helper()->transactionStatusLabel(@$transaction->status);
                 $order_details['kiriof_status_classes'] = kiriof_helper()->transactionStatusClass(@$transaction->status);
+                $order_details['kiriof_status_tone']    = kiriof_helper()->packageStatusTone((string) (@$transaction->status ?? ''));
             }
             return $order_details;
         }
@@ -350,9 +352,11 @@ class TransactionProcessController
         if (! empty($transaction->is_deficit)) {
             $order_details['kiriof_status_label']   = __('COD Deficit', 'kiriminaja-official');
             $order_details['kiriof_status_classes'] = 'badge-danger';
+            $order_details['kiriof_status_tone']    = 'critical';
         } else {
             $order_details['kiriof_status_label']   = kiriof_helper()->transactionStatusLabel(@$transaction->status);
             $order_details['kiriof_status_classes'] = kiriof_helper()->transactionStatusClass(@$transaction->status);
+            $order_details['kiriof_status_tone']    = kiriof_helper()->packageStatusTone((string) (@$transaction->status ?? ''));
         }
 
         if (! empty($transaction->awb) && ! empty($transaction->order_id)) {
@@ -371,7 +375,8 @@ class TransactionProcessController
             <div
                 class="kiriof-order-preview-shipment-details kiriof-order-preview-status-source"
                 data-kiriof-status-label="{{ data.kiriof_status_label }}"
-                data-kiriof-status-class="{{ data.kiriof_status_classes }}">
+                data-kiriof-status-class="{{ data.kiriof_status_classes }}"
+                data-kiriof-status-tone="{{ data.kiriof_status_tone }}">
                 <# if ( data.kiriof_ka_order_id ) { #>
                     <strong><?php esc_html_e('KA Order ID', 'kiriminaja-official'); ?></strong>
                     {{ data.kiriof_ka_order_id }}

@@ -17,7 +17,7 @@ export type PickupDetailRow = {
     total: number;
     codValue: number;
   };
-  status: { label: string; tone: 'success' | 'warning' | 'info' | 'neutral' };
+  status: { label: string; tone: 'success' | 'warning' | 'info' | 'neutral' | 'critical' };
   printUrl: string;
 };
 

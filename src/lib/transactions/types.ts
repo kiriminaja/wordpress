@@ -16,7 +16,11 @@ export type TransactionRow = {
   createdAt: string;
   customer: { name: string; phone: string };
   courier: { code: string; service: string; paymentLabel: string };
-  status: { label: string; tone: 'info' | 'success' | 'warning' | 'danger'; deficit: boolean };
+  status: {
+    label: string;
+    tone: 'info' | 'success' | 'warning' | 'danger' | 'critical';
+    deficit: boolean;
+  };
   printStatus: 'printed' | 'unprinted';
   awb: string;
   kaOrderId: string;

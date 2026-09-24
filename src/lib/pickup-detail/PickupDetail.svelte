@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IconCash, IconCreditCard, IconEye, IconMapPin, IconPrinter } from '@tabler/icons-svelte';
+  import { IconCash, IconCircleCheck, IconClock, IconCreditCard, IconEye, IconMapPin, IconPackage, IconPrinter, IconTruck, IconXboxX } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
@@ -124,7 +124,7 @@
                 </div>
               </Table.Cell>
               <Table.Cell><strong>{currency(row.package.codValue)}</strong></Table.Cell>
-              <Table.Cell><StatusBadge label={row.status.label} tone={row.status.tone} /></Table.Cell>
+              <Table.Cell><StatusBadge label={row.status.label} tone={row.status.tone} icon={row.status.tone === 'success' ? IconCircleCheck : row.status.tone === 'warning' ? IconClock : row.status.tone === 'info' ? IconTruck : IconPackage} /></Table.Cell>
               <Table.Cell class="is-actions">
                 <div class="kiriof-row-actions">
                   {#if row.printUrl}<ActionTooltip label={bootstrap.i18n.print}><Button href={row.printUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="icon-sm" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}

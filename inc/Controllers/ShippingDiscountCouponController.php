@@ -867,7 +867,7 @@ class ShippingDiscountCouponController {
         wp_enqueue_style(
             'kiriof-coupon-admin-style',
             KIRIOF_URL . 'assets/admin/css/kj-coupon-admin.css',
-            array( 'select2' ),
+            array( 'select2', 'kiriof-badge-style' ),
             KIRIOF_VERSION
         );
         wp_enqueue_script(

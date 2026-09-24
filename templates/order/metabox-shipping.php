@@ -87,10 +87,12 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
         display: inline-flex;
         align-items: center;
         gap: 3px;
+        min-height: 20px;
         font-size: 11px;
         font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 999px;
+        line-height: 1.45;
+        padding: 1px 6px;
+        border-radius: 6px;
         border: 1px solid #dcdcde;
         background: #f6f7f7;
         color: #3c434a;
@@ -98,27 +100,27 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
     }
 
     #kiriminaja-shipping-info .kiriof-mb-badge--cod {
-        background: #f0f6fc;
-        border-color: #b4d0e7;
-        color: #2271b1;
+        background: #e5f0f9;
+        border-color: #b6d3ea;
+        color: #0f4c81;
     }
 
     #kiriminaja-shipping-info .kiriof-mb-badge--pickup {
-        background: #fef9ec;
-        border-color: #f0c33c;
-        color: #9a6700;
+        background: #fef3d8;
+        border-color: #f0cf62;
+        color: #7a5900;
     }
 
     #kiriminaja-shipping-info .kiriof-mb-badge--paid {
-        background: #edfaed;
-        border-color: #68de7c;
-        color: #007017;
+        background: #e6f4ea;
+        border-color: #a9dcb9;
+        color: #1a6b35;
     }
 
     #kiriminaja-shipping-info .kiriof-mb-badge--unpaid {
-        background: #f6f7f7;
+        background: #f0f0f1;
         border-color: #dcdcde;
-        color: #50575e;
+        color: #3c434a;
     }
 
     #kiriminaja-shipping-info .kiriof-mb-expedition-card {

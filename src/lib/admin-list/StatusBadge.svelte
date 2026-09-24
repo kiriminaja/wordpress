@@ -1,16 +1,92 @@
-<script lang="ts">
-  import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
+<script lang="ts" module>
+  /**
+   * Badge tone + color maps, mirroring the Shopify admin `s-badge` contract
+   * and the kaj-shopify-plugin `getLabelProps` status mapping.
+   *
+   * tone: auto | neutral | info | success | caution | warning | critical
+   * color: base (default) | strong
+   */
 
-  let { label, tone = 'neutral' }: { label: string; tone?: 'success' | 'warning' | 'info' | 'neutral' } = $props();
+  export type StatusTone = 'auto' | 'neutral' | 'info' | 'success' | 'caution' | 'warning' | 'critical';
+  export type BadgeColor = 'base' | 'strong';
 
-  const variantByTone: Record<NonNullable<typeof tone>, BadgeVariant> = {
-    success: 'default',
-    warning: 'destructive',
-    info: 'secondary',
-    neutral: 'outline',
+  /** Package status → badge tone (mirrors Shopify getLabelProps). */
+  export const packageStatusToneMap: Record<string, StatusTone> = {
+    new: 'info',
+    request_pickup: 'info',
+    pending: 'caution',
+    finished: 'success',
+    shipped: 'info',
+    return: 'warning',
+    returned: 'warning',
+    rejected: 'critical',
+    canceled: 'critical',
   };
 
-  const variant = $derived(variantByTone[tone]);
+  /** WC order status → badge tone. */
+  export const wcStatusToneMap: Record<string, StatusTone> = {
+    'wc-processing': 'info',
+    'wc-on-hold': 'caution',
+    'wc-pending': 'caution',
+    'wc-completed': 'success',
+    'wc-cancelled': 'critical',
+    'wc-refunded': 'critical',
+    'wc-failed': 'critical',
+  };
+
+  /** COD settlement badges. */
+  export const codToneMap: Record<string, StatusTone> = {
+    COD: 'info',
+    'NON COD': 'neutral',
+  };
+
+  /** Payment badges. */
+  export const paymentStatusToneMap: Record<string, StatusTone> = {
+    paid: 'success',
+    unpaid: 'warning',
+    QRIS: 'info',
+  };
+
+  export function packageStatusTone(status: string): StatusTone {
+    return packageStatusToneMap[status] ?? 'neutral';
+  }
+
+  export function wcStatusTone(postStatus: string): StatusTone {
+    return wcStatusToneMap[postStatus] ?? 'neutral';
+  }
 </script>
 
-<Badge {variant}>{label}</Badge>
+<script lang="ts">
+  import { Badge } from '$lib/components/ui/badge';
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type IconComponent = any;
+
+  let {
+    label,
+    tone = 'neutral',
+    color = 'base',
+    icon,
+  }: {
+    label: string;
+    tone?: StatusTone | 'danger' | 'success' | 'warning' | 'info' | 'neutral';
+    color?: BadgeColor;
+    icon?: IconComponent;
+  } = $props();
+
+  /** Legacy tone aliases → unified tones. */
+  const legacyToneMap: Record<string, StatusTone> = {
+    danger: 'critical',
+    success: 'success',
+    warning: 'warning',
+    info: 'info',
+    neutral: 'neutral',
+  };
+
+  const resolvedTone = $derived(legacyToneMap[tone] ?? (tone as StatusTone));
+  const Icon = $derived(icon);
+</script>
+
+<Badge tone={resolvedTone} {color}>
+  {#if Icon}<Icon data-icon="inline-start" />{/if}{label}
+</Badge>

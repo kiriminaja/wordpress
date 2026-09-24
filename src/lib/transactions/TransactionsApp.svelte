@@ -2,6 +2,8 @@
   import { onDestroy } from 'svelte';
   import {
     IconAdjustmentsHorizontal,
+    IconAlertTriangle,
+    IconArrowBackUp,
     IconCalendar,
     IconCash,
     IconCheck,
@@ -12,13 +14,16 @@
     IconEye,
     IconMapPin,
     IconPackage,
+    IconPlane,
     IconPrinter,
     IconRefresh,
     IconSearch,
     IconListNumbers,
     IconChevronDown,
     IconTrash,
+    IconTruck,
     IconX,
+    IconXboxX,
   } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as ButtonGroup from '$lib/components/ui/button-group';
@@ -211,6 +216,24 @@
     return `is-${tone}`;
   }
 
+  /**
+   * Package status icon map — each status carries its own icon, mirroring
+   * the kaj-shopify-plugin `getLabelProps` icon mapping.
+   */
+  function statusIcon(tone: TransactionRow['status']['tone'], deficit: boolean) {
+    if (deficit) return IconAlertTriangle;
+    switch (tone) {
+      case 'success':
+        return IconCircleCheck;
+      case 'warning':
+        return IconArrowBackUp;
+      case 'danger':
+        return IconXboxX;
+      default:
+        return IconPackage;
+    }
+  }
+
   function changeScope(value: string): void {
     if (value === 'order-issue') void navigate({ status: 'order-issue' });
     if (value === 'regular') void navigate({ status: 'all' });
@@ -373,9 +396,11 @@
                   </div>
                   <div class="kiriof-shipment-states">
                     {#if row.status.deficit}
-                      <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)}"><IconPackage />{row.status.label}</span></ActionTooltip>
+                      {@const DeficitIcon = statusIcon(row.status.tone, true)}
+                      <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)} kiriof-badge--strong"><DeficitIcon />{row.status.label}</span></ActionTooltip>
                     {:else}
-                      <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><IconPackage />{row.status.label}</span>
+                      {@const ShipmentIcon = statusIcon(row.status.tone, false)}
+                      <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><ShipmentIcon />{row.status.label}</span>
                     {/if}
                     {#if row.printStatus === 'unprinted'}
                       <ActionTooltip label={bootstrap.i18n.unprintedLabel}>

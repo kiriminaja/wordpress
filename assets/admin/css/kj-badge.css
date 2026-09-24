@@ -1,0 +1,307 @@
+/**
+ * KiriminAja unified badge system.
+ *
+ * Mirrors the Shopify admin badge contract used by the kaj-shopify-plugin:
+ * `tone` carries the semantic intent, `color` (base|strong) controls visual
+ * weight, and each package status maps to its own tone + icon.
+ *
+ * Shape: compact rounded-square (6px radius, never a full pill).
+ * Size: compact — 11px type, tight padding, 12px icons.
+ */
+
+/* ── Base ── */
+.kiriof-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 20px;
+	padding: 1px 6px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.45;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.kiriof-badge svg,
+.kiriof-badge .dashicons {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 12px;
+	font-size: 12px;
+}
+
+/* ── Tones · color="base" (default, moderate emphasis) ── */
+.kiriof-badge--auto,
+.kiriof-badge--neutral {
+	background: #f0f0f1;
+	border-color: #dcdcde;
+	color: #3c434a;
+}
+
+.kiriof-badge--info {
+	background: #e5f0f9;
+	border-color: #b6d3ea;
+	color: #0f4c81;
+}
+
+.kiriof-badge--success {
+	background: #e6f4ea;
+	border-color: #a9dcb9;
+	color: #1a6b35;
+}
+
+.kiriof-badge--caution {
+	background: #fef3d8;
+	border-color: #f0cf62;
+	color: #7a5900;
+}
+
+.kiriof-badge--warning {
+	background: #fdf0dc;
+	border-color: #f0bd76;
+	color: #8a4d0a;
+}
+
+.kiriof-badge--critical {
+	background: #fde7e7;
+	border-color: #f1a9a9;
+	color: #a02323;
+}
+
+/* ── color="strong" (higher emphasis, solid fill) ── */
+.kiriof-badge--strong.kiriof-badge--auto,
+.kiriof-badge--strong.kiriof-badge--neutral {
+	background: #3c434a;
+	border-color: #3c434a;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--info {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--success {
+	background: #008112;
+	border-color: #008112;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--caution {
+	background: #9a6700;
+	border-color: #9a6700;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--warning {
+	background: #b45309;
+	border-color: #b45309;
+	color: #fff;
+}
+
+.kiriof-badge--strong.kiriof-badge--critical {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+}
+
+/* ── Legacy .kj-badge aliases → unified tones ── */
+.kj-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 20px;
+	padding: 1px 6px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.45;
+	white-space: nowrap;
+	vertical-align: middle;
+	color: #3c434a;
+	background: #f0f0f1;
+	border-color: #dcdcde;
+}
+
+.kj-badge.warning {
+	background: #fdf0dc;
+	border-color: #f0bd76;
+	color: #8a4d0a;
+}
+
+.kj-badge.success {
+	background: #e6f4ea;
+	border-color: #a9dcb9;
+	color: #1a6b35;
+}
+
+.kj-badge.processing {
+	background: #e5f0f9;
+	border-color: #b6d3ea;
+	color: #0f4c81;
+}
+
+.kj-badge.info {
+	background: #e5f0f9;
+	border-color: #b6d3ea;
+	color: #0f4c81;
+}
+
+.kj-badge.danger {
+	background: #fde7e7;
+	border-color: #f1a9a9;
+	color: #a02323;
+}
+
+.kj-badge.primary {
+	background: #ece6f8;
+	border-color: #c3b2e8;
+	color: #5c2d91;
+}
+
+.kj-badge.teal {
+	background: #dcf3f0;
+	border-color: #9ad9d1;
+	color: #0d6b5e;
+}
+
+.kj-badge.orange {
+	background: #fdf0dc;
+	border-color: #f0bd76;
+	color: #8a4d0a;
+}
+
+.kj-badge.slate {
+	background: #e7ebef;
+	border-color: #c2cdd8;
+	color: #3c5065;
+}
+
+.kj-badge.rose {
+	background: #fce4ec;
+	border-color: #f0a8bd;
+	color: #8a2432;
+}
+
+.kj-badge.kiriof-badge--deficit-label {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+	font-weight: 700;
+}
+
+/* ── Order metabox badges ── */
+#kiriminaja-shipping-info .kiriof-mb-badges {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+#kiriminaja-shipping-info .kiriof-mb-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	min-height: 20px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.45;
+	padding: 1px 6px;
+	border-radius: 6px;
+	border: 1px solid #dcdcde;
+	background: #f6f7f7;
+	color: #3c434a;
+	white-space: nowrap;
+}
+
+#kiriminaja-shipping-info .kiriof-mb-badge--cod {
+	background: #e5f0f9;
+	border-color: #b6d3ea;
+	color: #0f4c81;
+}
+
+#kiriminaja-shipping-info .kiriof-mb-badge--pickup {
+	background: #fef3d8;
+	border-color: #f0cf62;
+	color: #7a5900;
+}
+
+#kiriminaja-shipping-info .kiriof-mb-badge--paid {
+	background: #e6f4ea;
+	border-color: #a9dcb9;
+	color: #1a6b35;
+}
+
+#kiriminaja-shipping-info .kiriof-mb-badge--unpaid {
+	background: #f0f0f1;
+	border-color: #dcdcde;
+	color: #3c434a;
+}
+
+/* ── Coupon combination badges (rounded-square, compact) ── */
+.kiriof-combination-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	min-height: 20px;
+	min-width: 22px;
+	padding: 1px 5px;
+	border: 1px solid #b6d3ea;
+	border-radius: 6px;
+	color: #0f4c81;
+	background: #e5f0f9;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.45;
+	white-space: nowrap;
+}
+
+.kiriof-combination-badge .dashicons {
+	font-size: 12px;
+	width: 12px;
+	height: 12px;
+}
+
+.kiriof-combination-badge.is-disabled {
+	opacity: 0.4;
+}
+
+.kiriof-individual-use-badge {
+	background: #fef3d8;
+	border-color: #f0cf62;
+	color: #7a5900;
+}
+
+/* ── Storefront shipping-rate badge ── */
+.kiriof-shipping-rate-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 1px 6px;
+	margin-left: 8px;
+	border: 1px solid #a9dcb9;
+	border-radius: 6px;
+	background: #e6f4ea;
+	color: #1a6b35;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.45;
+	white-space: nowrap;
+}
+
+/* ── COD breakdown discount chip ── */
+.kiriof-badge--discount {
+	background: #e5f0f9;
+	border-color: #b6d3ea;
+	color: #0f4c81;
+	border-radius: 6px;
+	font-size: 11px;
+	padding: 1px 6px;
+	font-weight: 600;
+	vertical-align: middle;
+}

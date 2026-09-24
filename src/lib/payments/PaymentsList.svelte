@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { IconCalendar, IconCalendarClock, IconChevronDown, IconCreditCardPay, IconEye, IconSearch } from '@tabler/icons-svelte';
+  import { IconBuildingBank, IconCalendar, IconCalendarClock, IconChevronDown, IconCircleCheck, IconClock, IconCreditCardPay, IconEye, IconQrcode, IconSearch } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
@@ -146,8 +146,8 @@
                 <Table.Cell>{row.schedule}</Table.Cell>
                 <Table.Cell><strong>{row.fees}</strong></Table.Cell>
                 <Table.Cell>{row.orders} {bootstrap.i18n.order}</Table.Cell>
-                <Table.Cell><StatusBadge label={row.method} tone={row.method === 'QRIS' ? 'info' : 'neutral'} /></Table.Cell>
-                <Table.Cell><StatusBadge label={row.status === 'paid' ? bootstrap.statusTabs[2].label : bootstrap.statusTabs[1].label} tone={row.status === 'paid' ? 'success' : 'warning'} /></Table.Cell>
+                <Table.Cell><StatusBadge label={row.method} tone={row.method === 'QRIS' ? 'info' : 'neutral'} icon={row.method === 'QRIS' ? IconQrcode : IconBuildingBank} /></Table.Cell>
+                <Table.Cell><StatusBadge label={row.status === 'paid' ? bootstrap.statusTabs[2].label : bootstrap.statusTabs[1].label} tone={row.status === 'paid' ? 'success' : 'warning'} icon={row.status === 'paid' ? IconCircleCheck : IconClock} /></Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="kiriof-row-actions">
                     {#each row.actions as action}
