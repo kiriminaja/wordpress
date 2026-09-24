@@ -219,9 +219,12 @@
   /**
    * Package status icon map — each status carries its own icon, mirroring
    * the kaj-shopify-plugin `getLabelProps` icon mapping.
+   * Pending/awaiting states (incl. request_pickup) use the clock icon;
+   * terminal successes use a check, returns/warnings an arrow, danger an X.
    */
-  function statusIcon(tone: TransactionRow['status']['tone'], deficit: boolean) {
+  function statusIcon(tone: TransactionRow['status']['tone'], deficit: boolean, status: TransactionRow['status']) {
     if (deficit) return IconAlertTriangle;
+    if (status.label === 'Request Pickup') return IconClock;
     switch (tone) {
       case 'success':
         return IconCircleCheck;
@@ -396,15 +399,15 @@
                   </div>
                   <div class="kiriof-shipment-states">
                     {#if row.status.deficit}
-                      {@const DeficitIcon = statusIcon(row.status.tone, true)}
+                      {@const DeficitIcon = statusIcon(row.status.tone, true, row.status)}
                       <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)} kiriof-badge--strong"><DeficitIcon />{row.status.label}</span></ActionTooltip>
                     {:else}
-                      {@const ShipmentIcon = statusIcon(row.status.tone, false)}
+                      {@const ShipmentIcon = statusIcon(row.status.tone, false, row.status)}
                       <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><ShipmentIcon />{row.status.label}</span>
                     {/if}
                     {#if row.printStatus === 'unprinted'}
                       <ActionTooltip label={bootstrap.i18n.unprintedLabel}>
-                        <span class="kiriof-print-status {row.printStatus}" aria-label={bootstrap.i18n.unprintedLabel}><IconPrinter /></span>
+                        <span class="kiriof-print-status {row.printStatus}" aria-label={bootstrap.i18n.unprintedLabel}><IconPrinter />{bootstrap.i18n.unprintedLabel}</span>
                       </ActionTooltip>
                     {/if}
                   </div>

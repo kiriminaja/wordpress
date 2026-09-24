@@ -157,7 +157,7 @@ class TransactionListRenderService {
 				'adjustDeficit'=> __( 'Adjust Deficit', 'kiriminaja-official' ),
 				'cancel'       => __( 'Cancel', 'kiriminaja-official' ),
 				'printedLabel' => __( 'Printed', 'kiriminaja-official' ),
-				'unprintedLabel'=> __( 'Unprinted', 'kiriminaja-official' ),
+				'unprintedLabel'=> __( 'Not Printed', 'kiriminaja-official' ),
 				'pickupDate'  => __( 'Pickup Date', 'kiriminaja-official' ),
 				'pickupTime'  => __( 'Pickup Time', 'kiriminaja-official' ),
 				'weight'      => __( 'Weight', 'kiriminaja-official' ),

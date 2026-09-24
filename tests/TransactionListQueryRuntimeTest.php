@@ -148,8 +148,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'row.package.codValue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'align-items: baseline;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( 'kiriof-payment-type', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<IconPackage />', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<IconCircleCheck />', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'statusIcon(row.status.tone', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'IconCircleCheck', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'border: 1px solid #cec7d8;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringNotContainsString( '<div class="kiriof-fee-pills">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php' );
