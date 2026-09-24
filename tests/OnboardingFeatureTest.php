@@ -65,6 +65,8 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertStringContainsString( 'from \'$lib/components/ui/field\'', $app );
         $this->assertStringContainsString( 'from \'$lib/components/ui/switch\'', $app );
 		$this->assertStringContainsString( 'SubdistrictCombobox', $app );
+		$this->assertStringContainsString( 'ActionTooltip', $app );
+		$this->assertStringNotContainsString( 'title=', $app );
 		$this->assertStringContainsString( "import DotField from '\$lib/backgrounds/DotField.svelte'", $app );
 		$this->assertStringNotContainsString( 'Dither.svelte', $app );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/backgrounds/DotField.svelte' );

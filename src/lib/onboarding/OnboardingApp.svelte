@@ -31,6 +31,7 @@
     IconX,
   } from '@tabler/icons-svelte';
   import type { OnboardingBootstrap, OnboardingCourier, OnboardingStep } from './types';
+  import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
 
   type Step = OnboardingStep;
   type Area = { id: string | number; text?: string; label?: string };
@@ -511,26 +512,14 @@
 
       <div class="flex items-center gap-2">
         {#if bootstrap.helpUrl}
-          <a
-            href={bootstrap.helpUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground dark:bg-card/85"
-            aria-label="Need help?"
-            title="Need help?"
-          >
-            <IconHelp class="h-4 w-4" />
-          </a>
+          <ActionTooltip label="Need help?">
+            <a href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground dark:bg-card/85" aria-label="Need help?"><IconHelp class="h-4 w-4" /></a>
+          </ActionTooltip>
         {/if}
         {#if bootstrap.dashboardUrl}
-          <a
-            href={bootstrap.dashboardUrl}
-            class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground dark:bg-card/85"
-            aria-label="Close setup"
-            title="Close setup"
-          >
-            <IconX class="h-4 w-4" />
-          </a>
+          <ActionTooltip label="Close setup">
+            <a href={bootstrap.dashboardUrl} class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground dark:bg-card/85" aria-label="Close setup"><IconX class="h-4 w-4" /></a>
+          </ActionTooltip>
         {/if}
       </div>
     </header>

@@ -9,6 +9,7 @@
   import StatusBadge from '../admin-list/StatusBadge.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
+  import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -152,9 +153,9 @@
                     {#each row.actions as action}
                       {@const ActionIcon = actionIcon(action.type)}
                       {#if action.type === 'details'}
-                        <Button variant="outline" size="icon" href={action.href} title={action.label} aria-label={action.label}><ActionIcon /></Button>
+                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" href={action.href} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {:else}
-                        <Button variant="outline" size="icon" class={actionClass(action.type)} type="button" data-pickup-number={row.pickupNumber} title={action.label} aria-label={action.label}><ActionIcon /></Button>
+                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" class={actionClass(action.type)} type="button" data-pickup-number={row.pickupNumber} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {/if}
                     {/each}
                   </div>

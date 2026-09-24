@@ -3,6 +3,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import { courierImage } from '$lib/transactions/courier-images';
   import { postWordPressAction } from '../wordpress/ajax';
   import { navigateSettings } from './navigation';
@@ -58,13 +59,15 @@
     {#if bootstrap.couriers.length}
       <div class="kiriof-account-courier-grid">
         {#each bootstrap.couriers as courier (courier.code)}
-          <div class="kiriof-account-courier-logo" title={courier.name}>
+          <ActionTooltip label={courier.name}>
+          <div class="kiriof-account-courier-logo">
             {#if courierImage(courier.code, courier.name)}
               <img src={courierImage(courier.code, courier.name)} alt={courier.name} />
             {:else}
               <span>{courier.name}</span>
             {/if}
           </div>
+          </ActionTooltip>
         {/each}
       </div>
     {:else}

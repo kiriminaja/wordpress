@@ -3,6 +3,7 @@
   import { Button } from '$lib/components/ui/button';
   import * as Table from '$lib/components/ui/table';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
   import { courierImage } from '../transactions/courier-images';
   import type { PickupDetailBootstrap } from './types';
@@ -120,8 +121,8 @@
               <Table.Cell><StatusBadge label={row.status.label} tone={row.status.tone} /></Table.Cell>
               <Table.Cell class="is-actions">
                 <div class="kiriof-row-actions">
-                  {#if row.printUrl}<Button href={row.printUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="icon-sm" title={bootstrap.i18n.print} aria-label={bootstrap.i18n.print}><IconPrinter /></Button>{/if}
-                  <Button href={row.orderUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="icon-sm" title={bootstrap.i18n.detail} aria-label={bootstrap.i18n.detail}><IconEye /></Button>
+                  {#if row.printUrl}<ActionTooltip label={bootstrap.i18n.print}><Button href={row.printUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="icon-sm" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
+                  <ActionTooltip label={bootstrap.i18n.detail}><Button href={row.orderUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="icon-sm" aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                 </div>
               </Table.Cell>
             </Table.Row>

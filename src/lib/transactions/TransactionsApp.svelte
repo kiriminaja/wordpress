@@ -28,6 +28,7 @@
   import * as Table from '$lib/components/ui/table';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
   import { courierImage } from './courier-images';
@@ -298,7 +299,7 @@
           }}
         />
         {#if hasActiveFilters}
-          <Button class="kiriof-clear-filters" variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear} title={bootstrap.i18n.clear}><IconX /></Button>
+          <ActionTooltip label={bootstrap.i18n.clear} disabled={refreshing}><Button class="kiriof-clear-filters" variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear}><IconX /></Button></ActionTooltip>
         {/if}
       </form>
     </div>
@@ -333,17 +334,18 @@
                   <Table.Cell class="is-row-number">{(bootstrap.pagination.page - 1) * bootstrap.pagination.perPage + rowIndex + 1}</Table.Cell>
                 {:else}
                   <Table.Cell class="is-check">
-                    <Checkbox
-                      checked={Boolean(selected[row.kaOrderId])}
-                      disabled={!row.selection.canPrint && !row.selection.canPickup}
-                      name="transaction_id[]"
-                      value={row.kaOrderId}
-                      data-can-pickup={row.selection.canPickup ? '1' : '0'}
-                      data-can-print={row.selection.canPrint ? '1' : '0'}
-                      aria-label={`Select order ${row.wcOrderId}`}
-                      title={row.selection.title}
-                      onCheckedChange={(checked) => toggleRow(row, Boolean(checked))}
-                    />
+                    <ActionTooltip label={row.selection.title} disabled={!row.selection.title}>
+                      <Checkbox
+                        checked={Boolean(selected[row.kaOrderId])}
+                        disabled={!row.selection.canPrint && !row.selection.canPickup}
+                        name="transaction_id[]"
+                        value={row.kaOrderId}
+                        data-can-pickup={row.selection.canPickup ? '1' : '0'}
+                        data-can-print={row.selection.canPrint ? '1' : '0'}
+                        aria-label={`Select order ${row.wcOrderId}`}
+                        onCheckedChange={(checked) => toggleRow(row, Boolean(checked))}
+                      />
+                    </ActionTooltip>
                   </Table.Cell>
                 {/if}
                 <Table.Cell>
@@ -366,10 +368,11 @@
                     </div>
                   </div>
                   <div class="kiriof-shipment-states">
-                    <span class="kiriof-transaction-status {toneClass(row.status.tone)}" title={row.status.deficit ? 'COD settlement requires action' : undefined}>
-                      <IconPackage />
-                      {row.status.label}
-                    </span>
+                    {#if row.status.deficit}
+                      <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)}"><IconPackage />{row.status.label}</span></ActionTooltip>
+                    {:else}
+                      <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><IconPackage />{row.status.label}</span>
+                    {/if}
                     <span class="kiriof-print-status {row.printStatus}">
                       {#if row.printStatus === 'printed'}<IconCircleCheck />{:else}<IconClock />{/if}
                       {row.printStatus === 'printed' ? bootstrap.i18n.printedLabel : bootstrap.i18n.unprintedLabel}
@@ -379,11 +382,11 @@
                 <Table.Cell>
                   <div class="kiriof-copy-field">
                     <span class="kiriof-row-label">{bootstrap.i18n.awb}</span>
-                    <span class="kiriof-copy-field__value"><strong>{row.awb || '—'}</strong>{#if row.awb}<button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.awb)} title={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb} aria-label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}>{#if copiedValue === row.awb}<IconCheck />{:else}<IconCopy />{/if}</button>{/if}</span>
+                     <span class="kiriof-copy-field__value"><strong>{row.awb || '—'}</strong>{#if row.awb}<ActionTooltip label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.awb)} aria-label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}>{#if copiedValue === row.awb}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip>{/if}</span>
                   </div>
                   <div class="kiriof-copy-field">
                     <span class="kiriof-row-label">{bootstrap.i18n.kaOrderId}</span>
-                    <span class="kiriof-copy-field__value"><code>{row.kaOrderId}</code><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.kaOrderId)} title={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId} aria-label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}>{#if copiedValue === row.kaOrderId}<IconCheck />{:else}<IconCopy />{/if}</button></span>
+                     <span class="kiriof-copy-field__value"><code>{row.kaOrderId}</code><ActionTooltip label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.kaOrderId)} aria-label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}>{#if copiedValue === row.kaOrderId}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip></span>
                   </div>
                 </Table.Cell>
                 <Table.Cell>
@@ -406,17 +409,17 @@
                 <Table.Cell class="is-actions">
                   <ButtonGroup.Root class="kiriof-row-actions">
                     {#if row.actions.preview}
-                      <Button variant="outline" size="icon-sm" class="order-preview" data-order-id={row.wcOrderId} title={bootstrap.i18n.detail} aria-label={bootstrap.i18n.detail}><IconEye /></Button>
+                      <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" class="order-preview" data-order-id={row.wcOrderId} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.changeOrigin}
-                      <Button variant="outline" size="icon-sm" class="kiriof-change-origin-button" data-ka-order-id={row.kaOrderId} data-current-origin={row.actionData.currentOrigin} data-current-origin-address={row.actionData.currentOriginAddress} data-current-location-id={row.actionData.currentLocationId} data-nonce={row.actionData.nonce} title={bootstrap.i18n.changeOrigin} aria-label={bootstrap.i18n.changeOrigin}><IconMapPin /></Button>
+                      <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" class="kiriof-change-origin-button" data-ka-order-id={row.kaOrderId} data-current-origin={row.actionData.currentOrigin} data-current-origin-address={row.actionData.currentOriginAddress} data-current-location-id={row.actionData.currentLocationId} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.changeOrigin}><IconMapPin /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.adjustDeficit}
-                      <Button variant="outline" size="icon-sm" data-kj-action="cod-adjust" data-ka-order-id={row.kaOrderId} data-current-cod={row.actionData.currentCod} data-cod-minimum={row.actionData.codMinimum} data-cod-maximum={row.actionData.codMaximum} data-shipping-cost={row.actionData.shippingCost} data-insurance-fee={row.actionData.insuranceFee} data-cod-fee={row.actionData.codFee} data-item-price={row.actionData.itemPrice} data-item-discount={row.actionData.itemDiscount} data-shipping-discount={row.actionData.shippingDiscount} data-item-coupon={row.actionData.itemCoupon} data-shipping-coupon={row.actionData.shippingCoupon} data-nonce={row.actionData.nonce} title={bootstrap.i18n.adjustDeficit} aria-label={bootstrap.i18n.adjustDeficit}><IconRefresh /></Button>
-                      <Button variant="destructive" size="icon-sm" data-kj-action="cancel-deficit" data-ka-order-id={row.kaOrderId} data-nonce={row.actionData.nonce} title={bootstrap.i18n.cancel} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button>
+                      <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" data-kj-action="cod-adjust" data-ka-order-id={row.kaOrderId} data-current-cod={row.actionData.currentCod} data-cod-minimum={row.actionData.codMinimum} data-cod-maximum={row.actionData.codMaximum} data-shipping-cost={row.actionData.shippingCost} data-insurance-fee={row.actionData.insuranceFee} data-cod-fee={row.actionData.codFee} data-item-price={row.actionData.itemPrice} data-item-discount={row.actionData.itemDiscount} data-shipping-discount={row.actionData.shippingDiscount} data-item-coupon={row.actionData.itemCoupon} data-shipping-coupon={row.actionData.shippingCoupon} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.adjustDeficit}><IconRefresh /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" data-kj-action="cancel-deficit" data-ka-order-id={row.kaOrderId} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>
                     {:else}
-                      {#if row.actions.print}<Button variant="outline" size="icon-sm" href={row.actions.printUrl} target="_blank" title={bootstrap.i18n.print} aria-label={bootstrap.i18n.print}><IconPrinter /></Button>{/if}
-                      {#if row.actions.cancel}<Button variant="destructive" size="icon-sm" data-kj-action="cancel" data-order-id={row.kaOrderId} title={bootstrap.i18n.cancel} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button>{/if}
+                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" href={row.actions.printUrl} target="_blank" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
+                      {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" data-kj-action="cancel" data-order-id={row.kaOrderId} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
                     {/if}
                   </ButtonGroup.Root>
                 </Table.Cell>

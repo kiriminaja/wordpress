@@ -89,6 +89,8 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'kiriof_payments_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
+		$this->assertStringContainsString( 'ActionTooltip', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
+		$this->assertStringNotContainsString( 'title=', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/pagination/index.ts' );
