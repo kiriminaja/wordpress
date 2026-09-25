@@ -35,7 +35,7 @@ final class TransactionActionDialogsContractTest extends TestCase
         $this->assertStringContainsString( 'Order is not flagged as deficit', $cod_controller );
         $this->assertStringContainsString( 'Must not be less than Rp%s to avoid deficit', $cod_controller );
         $this->assertStringContainsString( 'Must not exceed Rp%s', $cod_controller );
-        $this->assertStringContainsString( "'codMaximum' => defined( 'KIRIOF_MAX_COD_AMOUNT' )", $detail_data );
+        $this->assertStringContainsString( '"codMaximum" => defined("KIRIOF_MAX_COD_AMOUNT")', $detail_data );
     }
 }
 
@@ -192,5 +192,41 @@ final class ChangeOriginOrderSummaryParityTest extends TestCase
         $this->assertStringContainsString( "'new_paid_shipping' =>", $controller );
         $this->assertStringContainsString( "'previous_total' =>", $controller );
         $this->assertStringContainsString( "'new_total' =>", $controller );
+    }
+}
+
+final class ChangeOriginFlatSummaryTest extends TestCase
+{
+    #[Test]
+    public function change_origin_uses_one_origin_combobox_and_legacy_colored_price_deltas_without_outer_cards(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+        $location = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/ShipmentLocationCombobox.svelte' );
+
+        $this->assertStringContainsString( 'currentLocation={locations.find', $dialog );
+        $this->assertStringNotContainsString( 'currentShipmentOrigin ??', $dialog );
+        $this->assertStringNotContainsString( 'rounded-lg border border-border p-3 text-sm', $dialog );
+        $this->assertStringContainsString( 'function amountTone', $dialog );
+        $this->assertStringContainsString("return next > previous ? 'text-destructive' : 'text-emerald-700'", $dialog );
+        $this->assertStringContainsString( 'hasAmountChanged(originCheck.comparison.previous_paid_shipping', $dialog );
+        $this->assertStringContainsString( 'hasAmountChanged(originCheck.comparison.previous_discount', $dialog );
+        $this->assertStringContainsString( 'selected = $derived(locations.find', $location );
+        $this->assertStringContainsString('?? currentLocation', $location );
+    }
+}
+
+final class ChangeOriginPriceImpactAlertTest extends TestCase
+{
+    #[Test]
+    public function change_origin_pricing_impact_uses_shadcn_alert_with_directional_tone(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+
+        $this->assertStringContainsString( "import * as Alert from '$lib/components/ui/alert'", $dialog );
+        $this->assertStringContainsString( 'shippingIncreased', $dialog );
+        $this->assertStringContainsString( '<Alert.Root', $dialog );
+        $this->assertStringContainsString( '<IconArrowDown />', $dialog );
+        $this->assertStringContainsString( '<IconArrowUp />', $dialog );
+        $this->assertStringContainsString( 'border-emerald-200 bg-emerald-50 text-emerald-900', $dialog );
     }
 }

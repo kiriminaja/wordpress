@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { IconAlertTriangle, IconExternalLink, IconMapPin } from '@tabler/icons-svelte';
+  import { IconAlertTriangle, IconArrowDown, IconArrowUp, IconExternalLink, IconMapPin } from '@tabler/icons-svelte';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import * as Alert from '$lib/components/ui/alert';
   import KiriofInput from '$lib/ui/KiriofInput.svelte';
   import KiriofDialog from '$lib/ui/KiriofDialog.svelte';
   import ShipmentLocationCombobox from './ShipmentLocationCombobox.svelte';
@@ -158,9 +159,13 @@
     return `Rp${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Math.max(0, value))}`;
   }
 
-  function changeValue(previous = 0, next = 0): string {
-    const delta = next - previous;
-    return Math.abs(delta) < 0.5 ? formatCurrency(next) : `${formatCurrency(previous)} → ${formatCurrency(next)}`;
+  function hasAmountChanged(previous = 0, next = 0): boolean {
+    return Math.abs(next - previous) >= 0.5;
+  }
+
+  function amountTone(previous = 0, next = 0): string {
+    if (!hasAmountChanged(previous, next)) return 'text-foreground';
+    return next > previous ? 'text-destructive' : 'text-emerald-700';
   }
 
   async function post<T>(values: Record<string, string>): Promise<T> {
@@ -274,36 +279,38 @@
     onSecondary={close}
     onPrimary={() => void confirmOrigin()}
   >
-    <div class="!grid gap-2.5">
+    <div class="!grid gap-2">
       <div class="!flex !items-center !justify-between gap-2">
-        <p class="m-0 text-sm font-medium text-foreground">{i18n.currentShipmentOrigin ?? 'Current shipment origin'}</p>
+        <p class="m-0 text-sm font-medium text-foreground">{i18n.shipmentOrigin ?? 'Shipment origin'}</p>
         <a class="!inline-flex !items-center gap-1 text-xs font-semibold text-primary no-underline" href={locationsUrl}><IconExternalLink />{i18n.manageShipmentLocations ?? 'Manage shipment locations'}</a>
       </div>
-      <div class="!flex !items-center gap-2 rounded-lg border border-border p-2">
-        <span class="!grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><IconMapPin /></span>
-        <span class="!grid min-w-0 gap-0.5"><strong class="text-sm text-foreground">{action.data.currentOrigin || 'Default origin'}</strong>{#if action.data.currentOriginAddress}<small class="text-xs text-muted-foreground">{action.data.currentOriginAddress}</small>{/if}</span>
-      </div>
-      <div class="!grid gap-2">
-        <p class="m-0 text-sm font-medium text-foreground">{i18n.changeToShipmentOrigin ?? 'Change to shipment origin'}</p>
-        {#if locations.some((location) => location.id !== currentOriginLocationId)}
-          <ShipmentLocationCombobox
-            value={originLocationId}
-            {locations}
-            currentLocationId={currentOriginLocationId}
-            disabled={loading}
-            placeholder={i18n.selectShipmentOrigin ?? 'Select shipment origin'}
-            onChange={(value) => { originLocationId = value; void checkOrigin(); }}
-          />
-        {:else}
-          <p class="m-0 text-sm text-muted-foreground">{i18n.noShipmentOrigins ?? 'No alternate shipment origin is available.'}</p>
-        {/if}
-      </div>
+      {#if locations.some((location) => location.id !== currentOriginLocationId)}
+        <ShipmentLocationCombobox
+          value={originLocationId}
+          {locations}
+          currentLocationId={currentOriginLocationId}
+          currentLocation={locations.find((location) => location.id === currentOriginLocationId)}
+          disabled={loading}
+          placeholder={i18n.selectShipmentOrigin ?? 'Select shipment origin'}
+          onChange={(value) => { originLocationId = value; void checkOrigin(); }}
+        />
+      {:else}
+        <p class="m-0 text-sm text-muted-foreground">{i18n.noShipmentOrigins ?? 'No alternate shipment origin is available.'}</p>
+      {/if}
     </div>
 
     {#if loading}<p class="m-0 text-sm text-muted-foreground">{i18n.checkingShipping ?? 'Checking available couriers…'}</p>{/if}
     {#if originCheck}
-      <div class="!grid gap-2.5 rounded-lg border border-border p-2.5">
-        <p class="m-0 text-sm text-muted-foreground">{originCheck.comparison.label}</p>
+      <div class="!grid gap-2">
+        {#if hasAmountChanged(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}
+          {@const shippingIncreased = (originCheck.comparison.new_paid_shipping ?? 0) > (originCheck.comparison.previous_paid_shipping ?? 0)}
+          <Alert.Root variant={shippingIncreased ? 'destructive' : 'default'} class={shippingIncreased ? '' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}>
+            {#if shippingIncreased}<IconArrowUp />{:else}<IconArrowDown />{/if}
+            <Alert.Description class={shippingIncreased ? '' : 'text-emerald-800'}>{originCheck.comparison.label}</Alert.Description>
+          </Alert.Root>
+        {:else}
+          <Alert.Root><Alert.Description>{originCheck.comparison.label}</Alert.Description></Alert.Root>
+        {/if}
         {#if originCheck.comparison.is_total_blocked}
           <p class="m-0 text-sm text-destructive">{i18n.originChangeBlocked ?? 'This change cannot be processed because the adjusted order total would be below zero.'}</p>
         {:else}
@@ -316,13 +323,13 @@
             onChange={(value) => { selectedCourierKey = value; replacementConsent = false; }}
           />
           {#if originCheck.comparison.available}
-            <div class="!grid gap-2 rounded-lg border border-border p-3 text-sm">
-              <h3 class="m-0 text-base font-semibold text-foreground">{i18n.orderBreakdown ?? 'Order summary'}</h3>
-              <div class="!flex !items-center !justify-between gap-3 border-b border-border pb-2 text-muted-foreground"><span>{i18n.courier ?? 'Courier'}</span><strong class="text-foreground">{originCheck.comparison.previous_courier ?? '—'} → {originCheck.comparison.new_courier ?? '—'}</strong></div>
-              <div class="!flex !items-center !justify-between gap-3 text-muted-foreground"><span>{i18n.orderSubtotal ?? 'Sub Total'}</span><strong class="text-foreground">{formatCurrency(originCheck.comparison.previous_subtotal ?? 0)}</strong></div>
-              <div class="!flex !items-center !justify-between gap-3 text-muted-foreground"><span>{i18n.shipping ?? 'Shipping'}</span><strong class="text-foreground">{changeValue(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}</strong></div>
-              {#if (originCheck.comparison.previous_discount ?? 0) !== 0 || (originCheck.comparison.new_discount ?? 0) !== 0}<div class="!flex !items-center !justify-between gap-3 text-muted-foreground"><span>{i18n.shippingDiscount ?? 'Shipping discount'}</span><strong class="text-foreground">{changeValue(originCheck.comparison.previous_discount, originCheck.comparison.new_discount)}</strong></div>{/if}
-              <div class="!flex !items-center !justify-between gap-3 border-t border-border pt-2"><strong class="text-foreground">{i18n.orderTotal ?? 'Order total'}</strong><strong class="text-foreground">{originCheck.comparison.is_total_blocked ? (i18n.blocked ?? 'Blocked') : changeValue(originCheck.comparison.previous_total, originCheck.comparison.new_total)}</strong></div>
+            <div class="!grid gap-0 text-sm">
+              <h3 class="m-0 pb-2 text-base font-semibold text-foreground">{i18n.orderBreakdown ?? 'Order summary'}</h3>
+              <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.courier ?? 'Courier'}</span><strong class="text-foreground">{originCheck.comparison.previous_courier ?? '—'} → {originCheck.comparison.new_courier ?? '—'}</strong></div>
+              <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.orderSubtotal ?? 'Sub Total'}</span><strong class="text-foreground">{formatCurrency(originCheck.comparison.previous_subtotal ?? 0)}</strong></div>
+              <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.shipping ?? 'Shipping'}</span><span class="!flex items-center gap-1"><span>{formatCurrency(originCheck.comparison.previous_paid_shipping ?? 0)}</span>{#if hasAmountChanged(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}<strong class={amountTone(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}>→ {formatCurrency(originCheck.comparison.new_paid_shipping ?? 0)}</strong>{/if}</span></div>
+              {#if (originCheck.comparison.previous_discount ?? 0) !== 0 || (originCheck.comparison.new_discount ?? 0) !== 0}<div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.shippingDiscount ?? 'Shipping discount'}</span><span class="!flex items-center gap-1"><span>{formatCurrency(originCheck.comparison.previous_discount ?? 0)}</span>{#if hasAmountChanged(originCheck.comparison.previous_discount, originCheck.comparison.new_discount)}<strong class={amountTone(originCheck.comparison.previous_discount, originCheck.comparison.new_discount)}>→ {formatCurrency(originCheck.comparison.new_discount ?? 0)}</strong>{/if}</span></div>{/if}
+              <div class="!flex !items-center !justify-between gap-3 pt-2"><strong class="text-foreground">{i18n.orderTotal ?? 'Order total'}</strong>{#if originCheck.comparison.is_total_blocked}<strong class="text-destructive">{i18n.blocked ?? 'Blocked'}</strong>{:else}<span class="!flex items-center gap-1"><strong class="text-foreground">{formatCurrency(originCheck.comparison.previous_total ?? 0)}</strong>{#if hasAmountChanged(originCheck.comparison.previous_total, originCheck.comparison.new_total)}<strong class={amountTone(originCheck.comparison.previous_total, originCheck.comparison.new_total)}>→ {formatCurrency(originCheck.comparison.new_total ?? 0)}</strong>{/if}</span>{/if}</div>
             </div>
           {/if}
           {#if requiresCourierConsent}

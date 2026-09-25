@@ -11,6 +11,7 @@
     value,
     locations,
     currentLocationId,
+    currentLocation,
     disabled = false,
     placeholder,
     onChange,
@@ -18,6 +19,7 @@
     value: string;
     locations: Location[];
     currentLocationId: number;
+    currentLocation?: Location;
     disabled?: boolean;
     placeholder: string;
     onChange: (value: string) => void;
@@ -26,7 +28,7 @@
   let open = $state(false);
   let query = $state('');
   let triggerRef = $state<HTMLButtonElement>(null!);
-  const selected = $derived(locations.find((location) => String(location.id) === value));
+  const selected = $derived(locations.find((location) => String(location.id) === value) ?? currentLocation);
   const options = $derived(locations.filter((location) => location.id !== currentLocationId));
   const filtered = $derived(options.filter((location) => `${location.name} ${location.address}`.toLowerCase().includes(query.trim().toLowerCase())));
 
