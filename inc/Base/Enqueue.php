@@ -438,7 +438,6 @@ class Enqueue extends BaseInit{
 
         /** print */
         wp_enqueue_style( 'kiriof-print-style', $this->plugin_url . 'assets/admin/css/print.min.css', array(), KIRIOF_VERSION );
-        wp_enqueue_script( 'kiriof-print-script', $this->plugin_url . 'assets/admin/js/print.min.js', array(), KIRIOF_VERSION, true );
         
         /** Select 2 - use WooCommerce's bundled copy */
         wp_enqueue_script( 'select2' );

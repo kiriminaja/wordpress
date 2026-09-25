@@ -38,4 +38,13 @@ final class TransactionPrintPreviewTest extends TestCase
         $this->assertStringNotContainsString( 'kiriof-print-bulk-form', $template );
         $this->assertStringContainsString( 'onclick={() => openPrintPreview([row.kaOrderId])}', $list );
     }
+
+    #[Test]
+    public function legacy_printjs_asset_is_not_loaded(): void
+    {
+        $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+
+        $this->assertStringNotContainsString( 'kiriof-print-script', $enqueue );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/print.min.js' );
+    }
 }
