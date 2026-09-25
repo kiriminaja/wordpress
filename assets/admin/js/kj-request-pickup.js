@@ -217,15 +217,8 @@
   $(document).on("click", ".kiriof-payment-button", function () {
     showPayment($(this).data("pickup-number"));
   });
-  $(document).on("click", ".kiriof-reschedule-button", function () {
-    showReschedule($(this).data("pickup-number"));
-  });
-  $(document).on("click", ".kiriof-request-pickup-submit", requestPickup);
   $(document).on("click", ".kiriof-payment-refresh", function () {
     showPayment(paymentId);
-  });
-  $(document).on("click", ".kiriof-reschedule-refresh", function () {
-    if (rescheduleId) showReschedule(rescheduleId);
   });
   $(document).on("submit", ".kiriof-payment-search-form", function (e) {
     e.preventDefault();

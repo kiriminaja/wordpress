@@ -95,6 +95,7 @@ class PaymentListRenderService {
 				array( 'value' => 'paid', 'label' => __( 'Paid', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['paid'] ?? 0 ) ),
 			),
 			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages, 'total' => $total, 'perPage' => $items_per_page ),
+			'ajax'         => array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( KIRIOF_NONCE ) ),
 			'i18n'         => array(
 				'search'        => __( 'Search payment…', 'kiriminaja-official' ),
 				'allDates'      => __( 'All Dates', 'kiriminaja-official' ),
@@ -130,6 +131,12 @@ class PaymentListRenderService {
 				'error'        => __( 'Terjadi Kesalahan !', 'kiriminaja-official' ),
 				'schedule'     => __( 'Schedule for Pickup', 'kiriminaja-official' ),
 				'pickSchedule' => __( 'Pick Schedule', 'kiriminaja-official' ),
+				'scheduleDescription' => __( 'Choose a new pickup time for this payment.', 'kiriminaja-official' ),
+				'confirmSchedule' => __( 'Confirm schedule', 'kiriminaja-official' ),
+				'cancel' => __( 'Cancel', 'kiriminaja-official' ),
+				'processing' => __( 'Processing…', 'kiriminaja-official' ),
+				'retry' => __( 'Retry', 'kiriminaja-official' ),
+				'noSchedule' => __( 'No pickup schedule is available.', 'kiriminaja-official' ),
 			),
 		);
 	}

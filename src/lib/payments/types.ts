@@ -21,6 +21,7 @@ export type PaymentsBootstrap = {
   monthOptions: Record<string, string>;
   statusTabs: Array<{ value: string; label: string; count: number }>;
   pagination: { page: number; totalPages: number; total: number; perPage: number };
+  ajax: { url: string; nonce: string };
   i18n: Record<string, string> & {
     autoRefresh: string;
     refreshLabels: Record<string, string>;

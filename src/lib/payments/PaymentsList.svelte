@@ -12,6 +12,7 @@
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
+  import PaymentScheduleDialog from './PaymentScheduleDialog.svelte';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -34,6 +35,8 @@
   });
   let refreshing = $state(false);
   let searchTimer: number | null = null;
+  let scheduleDialogOpen = $state(false);
+  let schedulePickupNumber = $state('');
 
   const currentStatus = $derived(bootstrap.filters.status || 'all');
   const paymentTabs = $derived(bootstrap.statusTabs.map((tab) => ({ ...tab, value: tab.value || 'all' })));
@@ -85,7 +88,6 @@
 
   function actionClass(type: PaymentRow['actions'][number]['type']): string {
     if (type === 'pay') return 'kiriof-payment-button';
-    if (type === 'reschedule') return 'kiriof-reschedule-button';
     return '';
   }
 
@@ -168,6 +170,8 @@
                       {@const ActionIcon = actionIcon(action.type)}
                       {#if action.type === 'details'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" href={action.href} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
+                      {:else if action.type === 'reschedule'}
+                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { schedulePickupNumber = row.pickupNumber; scheduleDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {:else}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" class={actionClass(action.type)} type="button" data-pickup-number={row.pickupNumber} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {/if}
@@ -190,4 +194,5 @@
       onPageChange={(page) => void navigate({ cpage: String(page) })}
     />
   </KiriofCard>
+  <PaymentScheduleDialog bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
 </div>
