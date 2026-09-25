@@ -141,7 +141,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'spx: shopeeExpress', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' ) );
 		$this->assertStringContainsString( 'formatPhone(row.customer.phone)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'courierImage(row.courier.code, row.courier.service)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'navigator.clipboard.writeText(value)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/CopyableValue.svelte' );
+		$this->assertStringContainsString( 'navigator.clipboard.writeText(value)', file_get_contents( PLUGIN_DIR . '/src/lib/ui/CopyableValue.svelte' ) );
+		$this->assertStringContainsString( 'CopyableValue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'kiriof-package-fees', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'row.package.actualShipping', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'Math.abs(row.package.actualShipping - row.package.paidShipping) > 0.01', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

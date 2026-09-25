@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 const utilityOnlyFiles = [
   'src/lib/transaction-detail/TransactionDetail.svelte',
   'src/lib/ui/KiriofCard.svelte',
+  'src/lib/ui/CopyableValue.svelte',
   'src/lib/components/ui/button/button.svelte',
   'src/lib/components/ui/card/card-action.svelte',
   'src/lib/components/ui/card/card-title.svelte',

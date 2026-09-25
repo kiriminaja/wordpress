@@ -4,7 +4,6 @@
         IconBox,
         IconCheck,
         IconCircleCheck,
-        IconCopy,
         IconExternalLink,
         IconMapPin,
         IconPackage,
@@ -20,6 +19,7 @@
     import * as Card from "$lib/components/ui/card";
     import StatusBadge from "$lib/admin-list/StatusBadge.svelte";
     import KiriofCard from "$lib/ui/KiriofCard.svelte";
+    import CopyableValue from "$lib/ui/CopyableValue.svelte";
     import Toolbar from "$lib/ui/Toolbar.svelte";
     import { courierImage } from "$lib/transactions/courier-images";
     import TransactionActionDialogs, {
@@ -47,10 +47,6 @@
         return `+${digits}`;
     }
 
-    async function copyAwb(): Promise<void> {
-        if (transaction.shipment.awb)
-            await navigator.clipboard.writeText(transaction.shipment.awb);
-    }
 
     async function loadTracking(): Promise<void> {
         if (
@@ -422,22 +418,12 @@
                                 >{transaction.shipment.courier.service ||
                                     "—"}</strong
                             >
-                            <div
-                                class="!flex min-w-0 !items-center gap-1.5 text-xs"
-                            >
-                                <span class="shrink-0 text-muted-foreground"
-                                    >{i18n.airwaybill}</span
-                                ><code
-                                    class="min-w-0 truncate font-semibold text-foreground"
-                                    >{transaction.shipment.awb || "—"}</code
-                                >{#if transaction.shipment.awb}<Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        aria-label={i18n.copyAwb}
-                                        onclick={() => void copyAwb()}
-                                        ><IconCopy /></Button
-                                    >{/if}
-                            </div>
+                            <CopyableValue
+                                label={i18n.airwaybill}
+                                value={transaction.shipment.awb}
+                                copyLabel={i18n.copyAwb}
+                                copiedLabel={i18n.copied}
+                            />
                         </div>
                     </div>
                     <dl class="!grid min-w-0 gap-2 text-sm">

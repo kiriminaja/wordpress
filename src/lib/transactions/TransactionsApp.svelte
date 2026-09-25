@@ -6,10 +6,8 @@
     IconArrowBackUp,
     IconCalendar,
     IconCash,
-    IconCheck,
     IconCircleCheck,
     IconClock,
-    IconCopy,
     IconCreditCard,
     IconEye,
     IconMapPin,
@@ -34,6 +32,7 @@
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
+  import CopyableValue from '$lib/ui/CopyableValue.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
@@ -80,8 +79,6 @@
   let searchTimer: number | null = null;
   let pickupDialogOpen = $state(false);
   let actionDialog = $state<TransactionActionDialog | null>(null);
-  let copiedValue = $state('');
-  let copyTimer: number | null = null;
 
   const isOrderIssue = $derived(filters.status === 'order-issue');
   const selectedRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => selected[row.kaOrderId]));
@@ -207,28 +204,6 @@
     return `+${digits}`;
   }
 
-  async function copyText(value: string): Promise<void> {
-    if (!value) return;
-
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      const input = document.createElement('textarea');
-      input.value = value;
-      input.style.position = 'fixed';
-      input.style.opacity = '0';
-      document.body.append(input);
-      input.select();
-      document.execCommand('copy');
-      input.remove();
-    }
-
-    copiedValue = value;
-    if (copyTimer) window.clearTimeout(copyTimer);
-    copyTimer = window.setTimeout(() => {
-      copiedValue = '';
-    }, 1600);
-  }
 
   function toneClass(tone: TransactionRow['status']['tone']): string {
     return `is-${tone}`;
@@ -267,7 +242,6 @@
 
   onDestroy(() => {
     if (searchTimer) window.clearTimeout(searchTimer);
-    if (copyTimer) window.clearTimeout(copyTimer);
   });
 </script>
 
@@ -447,14 +421,8 @@
                   </div>
                 </Table.Cell>
                 <Table.Cell>
-                  <div class="kiriof-copy-field kiriof-copy-field--inline">
-                    <span class="kiriof-row-label">{bootstrap.i18n.awb}</span>
-                     <span class="kiriof-copy-field__value"><code>{row.awb || '—'}</code>{#if row.awb}<ActionTooltip label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.awb)} aria-label={copiedValue === row.awb ? bootstrap.i18n.copied : bootstrap.i18n.copyAwb}>{#if copiedValue === row.awb}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip>{/if}</span>
-                  </div>
-                  <div class="kiriof-copy-field kiriof-copy-field--inline">
-                    <span class="kiriof-row-label">{bootstrap.i18n.kaOrderId}</span>
-                     <span class="kiriof-copy-field__value"><code>{row.kaOrderId}</code><ActionTooltip label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}><button type="button" class="kiriof-copy-button" onclick={() => void copyText(row.kaOrderId)} aria-label={copiedValue === row.kaOrderId ? bootstrap.i18n.copied : bootstrap.i18n.copyKaOrderId}>{#if copiedValue === row.kaOrderId}<IconCheck />{:else}<IconCopy />{/if}</button></ActionTooltip></span>
-                  </div>
+                  <CopyableValue label={bootstrap.i18n.awb} value={row.awb} copyLabel={bootstrap.i18n.copyAwb} copiedLabel={bootstrap.i18n.copied} />
+                  <CopyableValue label={bootstrap.i18n.kaOrderId} value={row.kaOrderId} copyLabel={bootstrap.i18n.copyKaOrderId} copiedLabel={bootstrap.i18n.copied} />
                 </Table.Cell>
                 <Table.Cell>
                   <strong class="kiriof-row-title">{row.route.origin}</strong>
