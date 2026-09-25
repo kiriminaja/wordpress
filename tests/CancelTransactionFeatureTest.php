@@ -549,24 +549,24 @@ final class CancelTransactionFeatureTest extends TestCase
     }
 
     #[Test]
-    public function transaction_list_js_has_cancel_modal_function(): void
+    public function transaction_list_opens_svelte_cancel_dialog(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'const kjShowCancelModal',
+            "actionDialog = { kind: 'cancel', data: row.actionData }",
             $content,
-            'Transaction list JS must define kjShowCancelModal function'
+            'Transaction list must open the Svelte cancellation dialog'
         );
     }
 
     #[Test]
-    public function transaction_list_js_handles_cancel_with_backbone_modal_event(): void
+    public function transaction_list_renders_svelte_action_dialog(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'target === "kiriof-modal-cancel-transaction"',
+            '<TransactionActionDialogs bind:action={actionDialog}',
             $content,
             'Transaction list JS must handle cancel flow through the Woo backbone modal event'
         );
@@ -575,10 +575,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_sends_correct_ajax_action(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'action: "kiriof_cancel_transaction"',
+            "action: 'kiriof_cancel_transaction'",
             $content,
             'Cancel JS must send the kiriof_cancel_transaction AJAX action'
         );
@@ -587,10 +587,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_sends_nonce(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'nonce: kiriofAjax.nonce',
+            "'data[nonce]': action.data.nonce",
             $content,
             'Cancel AJAX call must send the nonce'
         );
@@ -599,22 +599,22 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_validates_reason_min_length(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'reason.length < 5',
+            'cancelReason.trim().length < 4',
             $content,
             'Cancel JS must validate minimum reason length'
         );
     }
 
     #[Test]
-    public function cancel_js_has_confirmation_prompt(): void
+    public function cancel_dialog_requires_destructive_confirmation(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'confirm(',
+            'primaryVariant="destructive"',
             $content,
             'Cancel JS must show a confirmation prompt before proceeding'
         );
@@ -665,17 +665,16 @@ final class TransactionDetailActionModalTemplateTest extends TestCase
 final class TransactionDetailLegacyActionBridgeTest extends TestCase
 {
     #[Test]
-    public function transaction_detail_actions_use_valid_data_attributes_and_the_list_script_is_config_safe(): void
+    public function transaction_detail_actions_use_valid_data_attributes_without_legacy_list_script(): void
     {
         $detail = file_get_contents( PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte' );
-        $script = file_get_contents( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
+        $template = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
 
         $this->assertStringContainsString( 'trigger.setAttribute(`data-${key.replace', $detail );
         $this->assertStringContainsString( "new MouseEvent('click'", $detail );
         $this->assertStringNotContainsString( 'trigger.dataset[key.replace', $detail );
-        $this->assertStringContainsString( 'const i18n = config.i18n || {};', $script );
-        $this->assertStringContainsString( 'const pinCache = config.pinCache || {};', $script );
-        $this->assertStringContainsString( 'const urls = config.urls || {};', $script );
+        $this->assertStringNotContainsString( 'kiriofTransactionProcess', $template );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
     }
 }
 

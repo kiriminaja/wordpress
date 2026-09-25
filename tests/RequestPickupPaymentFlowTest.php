@@ -131,23 +131,23 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function pick_schedule_redirect_adds_open_payment_only_when_backend_opt_in_exists(): void
     {
-        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+		$transactionProcessContent = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
 		$this->assertStringContainsString( 'open_payment', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 
         $this->assertStringContainsString(
-            'const shouldOpenPayment',
+            "data.open_payment === true || data.open_payment === 1 || data.open_payment === '1'",
             $transactionProcessContent,
             'Transaction process flow should only append open_payment when backend marks payment modal as required'
         );
 
         $this->assertStringContainsString(
-            'resp?.data?.open_payment === true',
+            'const paymentSuffix = data.open_payment',
             $transactionProcessContent,
             'Transaction process flow should read the backend open_payment flag'
         );
 
         $this->assertStringContainsString(
-            'window.location.href = shouldOpenPayment',
+            'window.location.href = `${pickupUrl}&pickup_number=${pickupNumber}${paymentSuffix}`',
             $transactionProcessContent,
             'Transaction process flow should avoid opening Scan to Pay automatically for COD-only pickups'
         );
@@ -308,59 +308,18 @@ final class RequestPickupPaymentFlowTest extends TestCase
     }
 
     #[Test]
-    public function request_pickup_credit_pin_supports_temporary_encrypted_browser_cache(): void
+    public function request_pickup_credit_pin_is_handled_by_svelte_without_legacy_browser_cache(): void
     {
-        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
-        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+		$dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+		$template = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
+		$enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
 
-        $this->assertStringContainsString(
-            "const kjPinCacheConfig = {",
-            $transactionProcessContent,
-            'Transaction process should expose browser PIN cache config for the request pickup flow'
-        );
-
-        $this->assertStringContainsString(
-            'window.crypto.subtle.encrypt',
-            $transactionProcessContent,
-            'Temporary PIN storage should encrypt the PIN before writing to browser storage'
-        );
-
-        $this->assertStringContainsString(
-            'window.localStorage.setItem(kjPinCacheConfig.key, JSON.stringify(payload));',
-            $transactionProcessContent,
-            'Temporary PIN cache should persist encrypted browser state per user key'
-        );
-
-        $this->assertStringContainsString(
-            'kjClearCachedPin($modal, "invalid");',
-            $transactionProcessContent,
-            'Invalid or outdated PIN responses should clear the saved browser PIN cache'
-        );
-
-        $this->assertStringContainsString(
-            'id="kiriof-pin-remember"',
-            $controllerContent,
-            'Credit PIN modal should render a remember PIN checkbox for temporary browser cache opt-in'
-        );
-
-        $this->assertStringContainsString(
-            "'Remember PIN on this browser for %d minutes'",
-            $controllerContent,
-            'Credit PIN modal renderer must create its own checkbox label instead of relying on template scope'
-        );
-
-        $this->assertStringContainsString(
-            'esc_html($kiriof_pin_cache_label)',
-            $controllerContent,
-            'Credit PIN modal should render the generated remember PIN label beside the checkbox'
-        );
-
-        $adminCss = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-admin-style.css');
-        $this->assertStringContainsString(
-            '.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember',
-            $adminCss,
-            'Credit PIN checkbox label should have explicit readable modal styling'
-        );
+		$this->assertStringContainsString( 'const canSubmitPin = $derived', $dialog );
+		$this->assertStringContainsString( "call('kiriof_request_pickup_transaction'", $dialog );
+		$this->assertStringContainsString( 'id="kiriof-pickup-pin"', $dialog );
+		$this->assertStringNotContainsString( 'kiriofTransactionProcess', $template );
+		$this->assertStringNotContainsString( 'kj-transaction-process.js', $enqueue );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
     }
 
     #[Test]
