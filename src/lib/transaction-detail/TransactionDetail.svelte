@@ -121,7 +121,7 @@
     <div class="!grid !items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22.5rem]">
         <main class="!grid min-w-0 gap-4">
             <KiriofCard>
-                <Card.Header class="px-4 py-3">
+                <Card.Header class="p-3 border-b">
                     <Card.Title
                         ><StatusBadge
                             label={transaction.status.label}
@@ -202,7 +202,7 @@
                 aria-label={i18n.senderRecipientDetails}
             >
                 <KiriofCard>
-                    <Card.Header class="px-4 py-3">
+                    <Card.Header class="p-3 border-b">
                         <Card.Title><IconMapPin />{i18n.sender}</Card.Title>
                         {#if transaction.actions.changeOrigin}
                             <Card.Action>
@@ -241,7 +241,7 @@
                 </KiriofCard>
 
                 <KiriofCard>
-                    <Card.Header class="px-4 py-3">
+                    <Card.Header class="p-3 border-b">
                         <Card.Title><IconUser />{i18n.recipient}</Card.Title>
                         {#if transaction.recipient.phone}
                             <Card.Action
@@ -276,7 +276,7 @@
             </section>
 
             <KiriofCard>
-                <Card.Header class="px-4 py-3">
+                <Card.Header class="p-3 border-b">
                     <Card.Title><IconPackage />{i18n.package}</Card.Title>
                 </Card.Header>
                 <Card.Content
@@ -300,7 +300,7 @@
             </KiriofCard>
 
             <KiriofCard>
-                <Card.Header class="px-4 py-3">
+                <Card.Header class="p-3 border-b">
                     <Card.Title><IconBox />{i18n.products}</Card.Title>
                 </Card.Header>
                 <Card.Content class="!px-4 !py-1">
@@ -328,7 +328,7 @@
             </KiriofCard>
 
             <KiriofCard>
-                <Card.Header class="px-4 py-3">
+                <Card.Header class="p-3 border-b">
                     <Card.Title
                         ><IconExternalLink
                         />{transaction.orderNumber}</Card.Title
@@ -361,7 +361,7 @@
 
         <aside class="!grid min-w-0 gap-4">
             <KiriofCard class="kiriof-shipment-card">
-                <Card.Header class="px-4 py-3">
+            <Card.Header class="p-3 border-b">
                     <Card.Title class="min-w-0 flex-1"
                         ><IconTruck />{i18n.shipment}</Card.Title
                     >
@@ -586,7 +586,7 @@
 
             {#if transaction.supportsLiveTracking}
                 <KiriofCard>
-                    <Card.Header class="px-4 py-3">
+                    <Card.Header class="p-3 border-b">
                         <Card.Title><IconRoute />{i18n.tracking}</Card.Title>
                     </Card.Header>
                     <Card.Content class="!px-4 !py-3"
