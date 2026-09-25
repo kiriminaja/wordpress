@@ -44,6 +44,7 @@ class TransactionProcessController
     {
         /** getPaymentForm */
         add_action('wp_ajax_kiriof_request_pickup_schedule', array($this, 'getRequestPickupSchedule'));
+        add_action('wp_ajax_kiriof_request_pickup_summary', array($this, 'getRequestPickupSummary'));
         add_action('wp_ajax_kiriof_request_pickup_transaction', array($this, 'sendRequestPickupTransaction'));
         add_action('wp_ajax_kiriof_cancel_transaction', array($this, 'cancelTransaction'));
         add_action('wp_ajax_kiriof_change_origin_check', array($this, 'changeOriginCheck'));
@@ -51,6 +52,7 @@ class TransactionProcessController
         add_action('wp_ajax_kiriof_get_credit_balance', array($this, 'getCreditBalance'));
         add_action('wp_ajax_kiriof_validate_pin', array($this, 'validatePin'));
         add_action('wp_ajax_kiriof_get_payment_method_config', array($this, 'getPaymentMethodConfig'));
+        add_action( 'wp_ajax_kiriof_transaction_detail_tracking', array( $this, 'getTransactionDetailTracking' ) );
         add_filter('woocommerce_admin_order_preview_get_order_details', array($this, 'extendWooOrderPreviewDetails'), 10, 2);
         add_action('woocommerce_admin_order_preview_end', array($this, 'renderWooOrderPreviewKiriminajaDetails'));
         add_action('admin_footer', array($this, 'renderWooOrderPreviewKiriminajaRelocatorScript'));
@@ -59,6 +61,30 @@ class TransactionProcessController
 
         /** Auto-cancel KA transaction when WC order is cancelled */
         add_action('woocommerce_order_status_cancelled', array($this, 'handleWcOrderCancelled'), 10, 1);
+    }
+
+    /**
+     * Return tracking history for a transaction-detail page.
+     *
+     * @return void
+     */
+    public function getTransactionDetailTracking(): void {
+        check_ajax_referer( KIRIOF_NONCE, 'nonce' );
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'You do not have sufficient permissions to access this page.', 'kiriminaja-official' ) ), 403 );
+        }
+
+        $order_id = isset( $_POST['order_id'] ) ? sanitize_text_field( wp_unslash( $_POST['order_id'] ) ) : '';
+        if ( '' === $order_id ) {
+            wp_send_json_error( array( 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ), 400 );
+        }
+
+        $service = ( new \KiriminAjaOfficial\Services\KiriminAjaTrackingService() )->order_number( $order_id )->call();
+        if ( 200 !== (int) ( $service->status ?? 0 ) ) {
+            wp_send_json_error( array( 'message' => (string) ( $service->message ?? __( 'Unable to load tracking history.', 'kiriminaja-official' ) ) ), 400 );
+        }
+
+        wp_send_json_success( $service->data );
     }
 
     public function getRequestPickupSchedule()
@@ -80,6 +106,24 @@ class TransactionProcessController
             ->orderIds($order_ids)
             ->call();
         wp_send_json_success($service);
+    }
+
+    public function getRequestPickupSummary()
+    {
+        if (! current_user_can( 'manage_woocommerce' )) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Insufficient permissions', 'kiriminaja-official')));
+            wp_die();
+        }
+        if (! isset($_POST['data']['nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['data']['nonce'])), KIRIOF_NONCE)) {
+            wp_send_json_error(array('status' => 403, 'message' => __('Security check failed', 'kiriminaja-official')));
+            wp_die();
+        }
+
+        $order_ids = isset($_POST['data']['order_ids']) && ! empty($_POST['data']['order_ids'])
+            ? array_map('sanitize_text_field', wp_unslash($_POST['data']['order_ids']))
+            : array();
+
+        wp_send_json_success($this->pickupScheduleService->orderIds($order_ids)->summary());
     }
 
     public function sendRequestPickupTransaction()
@@ -312,9 +356,11 @@ class TransactionProcessController
             if (! empty($transaction->is_deficit)) {
                 $order_details['kiriof_status_label']   = __('COD Deficit', 'kiriminaja-official');
                 $order_details['kiriof_status_classes'] = 'badge-danger';
+                $order_details['kiriof_status_tone']    = 'critical';
             } else {
                 $order_details['kiriof_status_label']   = kiriof_helper()->transactionStatusLabel(@$transaction->status);
                 $order_details['kiriof_status_classes'] = kiriof_helper()->transactionStatusClass(@$transaction->status);
+                $order_details['kiriof_status_tone']    = kiriof_helper()->packageStatusTone((string) (@$transaction->status ?? ''));
             }
             return $order_details;
         }
@@ -331,9 +377,11 @@ class TransactionProcessController
         if (! empty($transaction->is_deficit)) {
             $order_details['kiriof_status_label']   = __('COD Deficit', 'kiriminaja-official');
             $order_details['kiriof_status_classes'] = 'badge-danger';
+            $order_details['kiriof_status_tone']    = 'critical';
         } else {
             $order_details['kiriof_status_label']   = kiriof_helper()->transactionStatusLabel(@$transaction->status);
             $order_details['kiriof_status_classes'] = kiriof_helper()->transactionStatusClass(@$transaction->status);
+            $order_details['kiriof_status_tone']    = kiriof_helper()->packageStatusTone((string) (@$transaction->status ?? ''));
         }
 
         if (! empty($transaction->awb) && ! empty($transaction->order_id)) {
@@ -352,7 +400,8 @@ class TransactionProcessController
             <div
                 class="kiriof-order-preview-shipment-details kiriof-order-preview-status-source"
                 data-kiriof-status-label="{{ data.kiriof_status_label }}"
-                data-kiriof-status-class="{{ data.kiriof_status_classes }}">
+                data-kiriof-status-class="{{ data.kiriof_status_classes }}"
+                data-kiriof-status-tone="{{ data.kiriof_status_tone }}">
                 <# if ( data.kiriof_ka_order_id ) { #>
                     <strong><?php esc_html_e('KA Order ID', 'kiriminaja-official'); ?></strong>
                     {{ data.kiriof_ka_order_id }}
@@ -954,24 +1003,10 @@ class TransactionProcessController
 
         public function renderWooActionModalTemplatesForKiriofPage()
         {
-            if (! $this->isTransactionProcessPage() && ! $this->isOrderEditScreen()) {
+            if (! $this->isOrderEditScreen()) {
                 return;
             }
 
-            $kiriof_location_service   = new \KiriminAjaOfficial\Services\ShipmentLocationService();
-            $kiriof_shipment_locations = $kiriof_location_service->repository()->getAll( true );
-
-            $kiriof_pin_cache_ttl = (int) apply_filters(
-                'kiriof_pin_cache_ttl',
-                15 * MINUTE_IN_SECONDS,
-                wp_get_current_user()
-            );
-            $kiriof_pin_cache_ttl = max( MINUTE_IN_SECONDS, $kiriof_pin_cache_ttl );
-            $kiriof_pin_cache_label = sprintf(
-                /* translators: %d: cached PIN duration in minutes. */
-                __( 'Remember PIN on this browser for %d minutes', 'kiriminaja-official' ),
-                (int) ceil( $kiriof_pin_cache_ttl / MINUTE_IN_SECONDS )
-            );
             ?>
                 <template id="tmpl-kiriof-modal-cod-adjustment">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cod-adjustment-modal">
@@ -1115,112 +1150,6 @@ class TransactionProcessController
             <div class="wc-backbone-modal-backdrop modal-close"></div>
         </template>
 
-                <?php if ($this->isTransactionProcessPage()) : ?>
-                    <template id="tmpl-kiriof-modal-request-pickup">
-                        <div class="wc-backbone-modal kiriof-backbone-modal kiriof-request-pickup-modal">
-                <div class="wc-backbone-modal-content" style="max-width:640px;width:calc(100vw - 48px);margin:5vh auto 0;">
-                    <section class="wc-backbone-modal-main" role="main">
-                        <header class="wc-backbone-modal-header">
-                            <h1><?php esc_html_e('Schedule for Pickup', 'kiriminaja-official'); ?></h1>
-                            <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                <span class="screen-reader-text"><?php esc_html_e('Close modal panel', 'kiriminaja-official'); ?></span>
-                            </button>
-                        </header>
-                        <article class="kiriof-backbone-modal-body">
-                            <form>
-                                <div class="kiriof-modal-state kiriof-modal-state-loading">
-                                    <div class="kiriof-backbone-modal-loader">
-                                        <span class="spinner is-active"></span>
-                                    </div>
-                                </div>
-
-                                <div class="kiriof-modal-state kiriof-modal-state-error" style="display:none;">
-                                    <p class="kiriof-backbone-modal-error-text"><?php esc_html_e('An error occurred.', 'kiriminaja-official'); ?></p>
-                                </div>
-
-                                <div class="kiriof-modal-state kiriof-modal-state-content" style="display:none;">
-                                    <div class="kiriof-backbone-summary">
-                                        <div class="kiriof-backbone-summary-row">
-                                            <span><?php esc_html_e('COD Package Charges', 'kiriminaja-official'); ?></span>
-                                            <strong class="kiriof-summary-cod">Rp0</strong>
-                                        </div>
-                                        <div class="kiriof-backbone-summary-row">
-                                            <span><?php esc_html_e('Non-COD Package Charges', 'kiriminaja-official'); ?></span>
-                                            <strong class="kiriof-summary-non-cod">Rp0</strong>
-                                        </div>
-                                        <div class="kiriof-backbone-summary-row">
-                                            <span><?php esc_html_e('Total Charges', 'kiriminaja-official'); ?></span>
-                                            <strong class="kiriof-summary-total">Rp0</strong>
-                                        </div>
-                                    </div>
-
-                                    <div class="kiriof-pm-warning kiriof-pm-state-banner" style="display:none;"></div>
-
-                                    <div class="kiriof-backbone-section kiriof-payment-method-section" style="display:none;">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Payment Method', 'kiriminaja-official'); ?> <span class="required">*</span></h2>
-                                        <div class="kiriof-payment-methods">
-                                            <div class="kiriof-payment-method-option" data-method="credit">
-                                                <div class="kiriof-payment-method-radio">
-                                                    <input type="radio" id="kiriof-pm-credit" name="payment_method" value="credit">
-                                                    <label for="kiriof-pm-credit">
-                                                        <strong><?php esc_html_e('KA Credit', 'kiriminaja-official'); ?></strong>
-                                                        <span class="kiriof-pm-balance"><?php esc_html_e('Loading balance...', 'kiriminaja-official'); ?></span>
-                                                    </label>
-                                                </div>
-                                                <div class="kiriof-pm-warning kiriof-pm-credit-warning" style="display:none;"></div>
-                                            </div>
-                                            <div class="kiriof-payment-method-option" data-method="qris">
-                                                <div class="kiriof-payment-method-radio">
-                                                    <input type="radio" id="kiriof-pm-qris" name="payment_method" value="qris">
-                                                    <label for="kiriof-pm-qris">
-                                                        <strong><?php esc_html_e('QRIS', 'kiriminaja-official'); ?></strong>
-                                                        <span class="kiriof-pm-max"><?php esc_html_e('Max Rp10.000.000', 'kiriminaja-official'); ?></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-
-                                    <div class="kiriof-backbone-section">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Available Schedules', 'kiriminaja-official'); ?></h2>
-                                        <select class="kiriof-schedule-select" name="schedule_opt" style="width:100%;">
-                                            <option value=""><?php esc_html_e('-- Select schedule --', 'kiriminaja-official'); ?></option>
-                                        </select>
-                                    </div>
-
-                                    <p class="kiriof-backbone-inline-error err_msg" style="display:none;"></p>
-                                </div>
-
-                                <div class="kiriof-modal-state kiriof-modal-state-pin" style="display:none;">
-                                    <div class="kiriof-backbone-section kiriof-pin-section">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Enter PIN', 'kiriminaja-official'); ?></h2>
-                                        <p style="font-size:12px;color:#50575e;margin:0 0 8px;"><?php esc_html_e('Enter the 6-digit PIN that was set on your profile page.', 'kiriminaja-official'); ?></p>
-                                        <pin-input id="kiriof-pin-widget" class="kiriof-pin-widget" length="6" pattern="[0-9]" autocomplete="one-time-code" inputmode="numeric" mask aria-label="<?php esc_attr_e('Enter 6-digit PIN', 'kiriminaja-official'); ?>"></pin-input>
-                                        <input type="password" id="kiriof-pin-fallback" class="kiriof-pin-fallback" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="one-time-code" style="display:none;">
-                                        <input type="hidden" id="kiriof-pin-input" name="pin" value="">
-                                        <label for="kiriof-pin-remember" class="kiriof-pin-remember">
-                                            <input type="checkbox" id="kiriof-pin-remember" name="remember_pin" value="1">
-                                            <span><?php echo esc_html($kiriof_pin_cache_label); ?></span>
-                                        </label>
-                                        <p class="kiriof-pin-cache-notice" style="display:none;font-size:12px;color:#2271b1;margin:8px 0 0;"></p>
-                                        <p class="kiriof-pin-error err_msg" style="display:none;"></p>
-                                    </div>
-                                </div>
-                            </form>
-                        </article>
-                        <footer>
-                            <div class="inner">
-                                <button class="button button-large modal-close"><?php esc_html_e('Close', 'kiriminaja-official'); ?></button>
-                                <button class="button button-primary button-large" id="btn-next" disabled><?php esc_html_e('Pick Schedule', 'kiriminaja-official'); ?></button>
-                            </div>
-                        </footer>
-                    </section>
-                </div>
-            </div>
-            <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </template>
-
                     <template id="tmpl-kiriof-modal-cancel-transaction">
                         <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-transaction-modal">
                 <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
@@ -1264,95 +1193,6 @@ class TransactionProcessController
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
         </template>
-        <template id="tmpl-kiriof-modal-change-origin">
-            <div class="wc-backbone-modal kiriof-backbone-modal kiriof-change-origin-modal">
-                <div class="wc-backbone-modal-content kiriof-change-origin-modal-content">
-                    <section class="wc-backbone-modal-main" role="main">
-                        <header class="wc-backbone-modal-header">
-                            <h1><?php esc_html_e( 'Change Shipment Origin', 'kiriminaja-official' ); ?></h1>
-                            <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'kiriminaja-official' ); ?></span>
-                            </button>
-                        </header>
-                        <article class="kiriof-backbone-modal-body">
-                            <form>
-                                <input type="hidden" name="order_id" value="{{ data.order_id }}">
-                                <div class="kiriof-backbone-field">
-                                    <span class="kiriof-backbone-label kiriof-origin-field-header">
-										<span><?php esc_html_e( 'Shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span></span>
-                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
-                                    </span>
-                                    <div class="kiriof-compact-selection kiriof-origin-selection-summary">
-                                        <span class="kiriof-compact-selection-copy">
-                                            <strong class="kiriof-origin-selection-name">{{ data.current_origin }}</strong>
-                                            <small class="kiriof-origin-selection-address">{{ data.current_origin_address }}</small>
-                                        </span>
-                                        <button type="button" class="button button-small kiriof-origin-toggle"><?php esc_html_e( 'Change', 'kiriminaja-official' ); ?></button>
-                                    </div>
-                                    <div class="kiriof-choice-panel kiriof-origin-choice-panel" style="display:none;">
-                                    <div class="kiriof-radio-card-group kiriof-origin-radio-group" role="radiogroup" aria-label="<?php esc_attr_e( 'Shipment origin', 'kiriminaja-official' ); ?>">
-                                        <label class="kiriof-radio-card kiriof-radio-card-current">
-                                            <input type="radio" name="location_id" value="{{ data.current_location_id }}" checked data-current="1">
-                                            <span class="kiriof-radio-card-copy">
-                                                <strong>{{ data.current_origin }}</strong>
-                                                <small>{{ data.current_origin_address }}</small>
-                                                <em><?php esc_html_e( 'Current origin', 'kiriminaja-official' ); ?></em>
-                                            </span>
-                                        </label>
-                                        <?php foreach ( $kiriof_shipment_locations as $kiriof_location_option ) : ?>
-                                            <?php
-                                            $kiriof_location_address = $kiriof_location_service->formatAddress( $kiriof_location_option );
-                                            $kiriof_location_label   = (string) $kiriof_location_option->name;
-                                            if ( '' !== $kiriof_location_address ) {
-                                                $kiriof_location_label .= ' — ' . $kiriof_location_address;
-                                            }
-                                            ?>
-                                            <label class="kiriof-radio-card" data-location-id="<?php echo esc_attr( $kiriof_location_option->id ); ?>">
-                                                <input type="radio" name="location_id" value="<?php echo esc_attr( $kiriof_location_option->id ); ?>">
-                                                <span class="kiriof-radio-card-copy">
-                                                    <strong><?php echo esc_html( $kiriof_location_option->name ); ?></strong>
-                                                    <?php if ( '' !== $kiriof_location_address ) : ?>
-                                                        <small><?php echo esc_html( $kiriof_location_address ); ?></small>
-                                                    <?php endif; ?>
-                                                </span>
-                                            </label>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <button type="button" class="button button-small kiriof-origin-collapse"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></button>
-                                    </div>
-                                    <div class="kiriof-change-origin-empty" style="display:none;">
-                                        <p><?php esc_html_e( 'No alternative shipment locations are available.', 'kiriminaja-official' ); ?></p>
-                                        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Add shipment location', 'kiriminaja-official' ); ?></a>
-                                    </div>
-                                </div>
-                                <div class="kiriof-change-origin-loading" aria-live="polite" style="display:none;">
-                                    <span class="spinner" style="float:none;"></span>
-                                    <span><?php esc_html_e( 'Checking shipping route...', 'kiriminaja-official' ); ?></span>
-                                </div>
-                                 <div class="kiriof-change-origin-result notice inline" style="display:none;"></div>
-                                 <div class="kiriof-courier-selection-section" style="display:none;">
-                                     <h2 class="kiriof-courier-radio-title"><?php esc_html_e( 'Courier', 'kiriminaja-official' ); ?></h2>
-                                     <div class="kiriof-compact-selection kiriof-courier-selection-summary"></div>
-                                 </div>
-                                 <div class="kiriof-change-origin-replacement" style="display:none;"></div>
-                                 <div class="kiriof-change-origin-breakdown kiriof-change-origin-card" style="display:none;" aria-live="polite"></div>
-                                 <div class="kiriof-replacement-consent-wrap" style="display:none;">
-                                     <label><input type="checkbox" class="kiriof-replacement-consent"> <?php esc_html_e( 'I consent to use this replacement courier.', 'kiriminaja-official' ); ?></label>
-                                 </div>
-                            </form>
-                        </article>
-                        <footer>
-                            <div class="inner">
-                                <button class="button button-large modal-close"><?php esc_html_e( 'Close', 'kiriminaja-official' ); ?></button>
-                                <button class="button button-primary button-large" id="kiriof-change-origin-confirm" disabled><?php esc_html_e( 'Confirm', 'kiriminaja-official' ); ?></button>
-                            </div>
-                        </footer>
-                    </section>
-                </div>
-            </div>
-            <div class="wc-backbone-modal-backdrop kiriof-change-origin-backdrop modal-close"></div>
-        </template>
-                <?php endif; ?>
         <?php
         }
 
@@ -1463,6 +1303,6 @@ class TransactionProcessController
         {
             $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page slug check, no data processed
 
-            return 'kiriminaja-transaction-process' === $page;
+            return in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true );
         }
     }

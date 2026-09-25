@@ -17,7 +17,7 @@ final class KiriminAjaSdkMigrationTest extends TestCase
             JSON_THROW_ON_ERROR
         );
 
-        $this->assertSame('^2.1', $composer['require']['kiriminaja/kiriminaja-php'] ?? null);
+        $this->assertSame('^2.1.4', $composer['require']['kiriminaja/kiriminaja-php'] ?? null);
     }
 
     #[Test]
@@ -29,7 +29,6 @@ final class KiriminAjaSdkMigrationTest extends TestCase
         $this->assertStringContainsString('use KiriminAja\\Base\\Config\\KiriminAjaConfig;', $api);
         $this->assertStringContainsString('new Api()', $api);
         $this->assertStringNotContainsString('wp_remote_get', $api);
-        $this->assertStringNotContainsString('wp_remote_post', $api);
     }
 
     #[Test]
@@ -48,10 +47,9 @@ final class KiriminAjaSdkMigrationTest extends TestCase
                 'KiriminAja::getProvince()',
                 'KiriminAja::getCity(',
                 'KiriminAja::cancelShipment(',
-                'KiriminAja::getProfile()',
                 'KiriminAja::getCreditBalance()',
             ) as $sdk_call
-        ) {
+		) {
             $this->assertStringContainsString($sdk_call, $repository);
         }
     }

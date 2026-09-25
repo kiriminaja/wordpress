@@ -5,24 +5,42 @@ use PHPUnit\Framework\TestCase;
 final class RequestPickupPaymentFlowTest extends TestCase
 {
     #[Test]
+    public function scan_to_pay_uses_svelte_qr_instead_of_legacy_assets(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte' );
+        $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+
+        $this->assertStringContainsString( "import { qr } from '@svelte-put/qr/svg'", $dialog );
+        $this->assertStringContainsString( '<KiriofDialog', $dialog );
+        $this->assertStringContainsString( 'use:qr={{ data: qrContent', $dialog );
+        $this->assertStringContainsString( "postWordPressAction<PaymentData>('kiriof_get_payment_form'", $dialog );
+        $this->assertStringNotContainsString( 'wc-qrcode', $enqueue );
+        $this->assertStringNotContainsString( 'qr-code-styling', $enqueue );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/lib/qr-code-styling/qr-code-styling.min.js' );
+    }
+
+    #[Test]
     public function request_pickup_list_auto_opens_payment_only_with_explicit_flag(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte');
 
         $this->assertStringContainsString(
             'new URLSearchParams(window.location.search)',
             $content,
             'Request pickup page should parse query params from location.search to avoid URLSearchParams(full href) parsing bugs'
         );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte' );
+		$this->assertStringContainsString( '<ScanToPayDialog', $content );
+		$this->assertStringNotContainsString( 'data-kiriof-payments-modals-root', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
 
         $this->assertStringContainsString(
-            'open === "1" || open === "true"',
+            "open !== '1' && open !== 'true'",
             $content,
             'Request pickup page should only auto-open payment modal when open_payment explicitly opts in'
         );
 
         $this->assertStringContainsString(
-            '.trigger("click")',
+            "row.actions.some((action) => action.type === 'pay')",
             $content,
             'Request pickup page should auto-open payment only through an available payment action'
         );
@@ -39,6 +57,26 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'URLSearchParams should not be created from full href string because pickup_number can fail to resolve'
         );
     }
+
+	#[Test]
+	public function pickup_dialog_uses_radio_cards_only_when_multiple_payment_methods_exist(): void
+	{
+		$dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+		$styles = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
+
+		$this->assertStringContainsString( '<RadioGroup.Root bind:value={paymentMethod}', $dialog );
+		$this->assertStringContainsString( '{#if paymentRequired && paymentOptions.length >= 1}', $dialog );
+		$this->assertStringContainsString( "paymentMethod = creditEnabled && creditAvailable ? 'credit'", $dialog );
+		$this->assertStringContainsString( 'creditEnabled', $dialog );
+		$this->assertStringContainsString( 'has_pin', $dialog );
+		$this->assertStringContainsString( 'Remaining Credit', $dialog );
+		$this->assertStringContainsString( 'Maximum Transaction Rp10.000.000', $dialog );
+		$this->assertStringContainsString( 'Continue to Payment', $dialog );
+		$this->assertStringContainsString( 'disabled={option.disabled}', $dialog );
+		$this->assertStringContainsString( 'kiriof-payment-method-card', $dialog );
+		$this->assertStringContainsString( '!border border-border', $styles );
+		$this->assertStringContainsString( '![font-size:17px]', $styles );
+	}
 
     #[Test]
     public function request_pickup_detail_page_does_not_auto_open_payment_modal(): void
@@ -68,40 +106,48 @@ final class RequestPickupPaymentFlowTest extends TestCase
             $content,
             'Detail page should not auto-open payment modal after redirect'
         );
+
+		$this->assertStringContainsString( 'data-kiriof-pickup-detail-root', $content );
+		$this->assertStringContainsString( 'kiriof_pickup_detail_bootstrap', $content );
+		$this->assertStringContainsString( 'kiriof-workspace-shell', $content );
+		$this->assertStringNotContainsString( 'data-kiriof-pickup-detail-fallback', $content );
+		$this->assertStringNotContainsString( 'wp-list-table', $content );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/entries/pickup-detail.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/PickupDetailPageData.php' );
+		$this->assertStringContainsString( 'wp_safe_redirect', file_get_contents( PLUGIN_DIR . '/templates/request-pickup-detail/index.php' ) );
+		$this->assertStringNotContainsString( 'PickupDetailPageData', file_get_contents( PLUGIN_DIR . '/templates/request-pickup-detail/index.php' ) );
+		$this->assertStringNotContainsString( "route: 'pickup-detail'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringNotContainsString( 'kiriminaja-request-pickup-detail', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringNotContainsString( "'pickup-detail': 'src/entries/pickup-detail.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
+		$this->assertStringNotContainsString( 'kiriminaja-pickup-detail.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-admin-list-table', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( '<Card.Root size="sm" class="kiriof-pickup-summary-card">', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-pickup-detail-print-all__icon', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );
+		$this->assertStringContainsString( '.kiriof-pickup-summary-card', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
     }
 
     #[Test]
     public function pick_schedule_redirect_adds_open_payment_only_when_backend_opt_in_exists(): void
     {
-        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
-        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
+		$transactionProcessContent = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+		$this->assertStringContainsString( 'open_payment', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 
         $this->assertStringContainsString(
-            'resp.data.open_payment === true',
-            $requestPickupContent,
-            'Request pickup flow should only append open_payment when backend marks payment modal as required'
-        );
-
-        $this->assertStringContainsString(
-            'window.location.href = openPayment ? url + "&open_payment=1" : url;',
-            $requestPickupContent,
-            'Request pickup flow should avoid opening Scan to Pay automatically for COD-only pickups'
-        );
-
-        $this->assertStringContainsString(
-            'const shouldOpenPayment',
+            "data.open_payment === true || data.open_payment === 1 || data.open_payment === '1'",
             $transactionProcessContent,
             'Transaction process flow should only append open_payment when backend marks payment modal as required'
         );
 
         $this->assertStringContainsString(
-            'resp?.data?.open_payment === true',
+            'const paymentSuffix = data.open_payment',
             $transactionProcessContent,
             'Transaction process flow should read the backend open_payment flag'
         );
 
         $this->assertStringContainsString(
-            'window.location.href = shouldOpenPayment',
+            'window.location.href = `${pickupUrl}&pickup_number=${pickupNumber}${paymentSuffix}`',
             $transactionProcessContent,
             'Transaction process flow should avoid opening Scan to Pay automatically for COD-only pickups'
         );
@@ -110,16 +156,16 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function top_payment_rows_do_not_render_scan_to_pay_actions(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php');
 
         $this->assertStringContainsString(
-            "\$kiriof_is_top_method = 'top' === \$kiriof_method;",
+            "if ( 'paid' !== \$status && 'top' !== \$method )",
             $content,
             'Request pickup list should classify TOP rows before deciding payment actions'
         );
 
         $this->assertStringContainsString(
-            '@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method',
+            "if ( 'paid' !== \$status && 'top' !== \$method )",
             $content,
             'TOP rows should not enter the unpaid action branch that renders Scan to Pay'
         );
@@ -131,7 +177,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
         $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
-        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte');
 
         $this->assertStringContainsString(
             "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
@@ -194,19 +240,19 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'String(remote.status_code || "").trim()',
+            "String(remote.status_code || '').trim()",
             $requestPickupTemplate,
             'Payment modal should use KiriminAja payment status_code mapping instead of HTTP-like status codes'
         );
 
         $this->assertStringContainsString(
-            'String(remote.status_code || "").trim() === "0"',
+            "String(remote.status_code || '').trim() === '0'",
             $requestPickupTemplate,
             'Payment modal should only use status_code 0 for non-QRIS paid flows'
         );
 
         $this->assertStringContainsString(
-            'localMethod === "qris"',
+            "String(local.method || '').toLowerCase() === 'qris'",
             $requestPickupTemplate,
             'Payment modal should not close QRIS just because status_code is 0 without paid timestamp/status label'
         );
@@ -218,7 +264,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'String(local.status || "").toLowerCase() === "paid"',
+            "String(local.status || '').toLowerCase() === 'paid'",
             $requestPickupTemplate,
             'Refresh button should reload after QRIS has actually been marked paid'
         );
@@ -228,7 +274,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
     public function cod_only_pickup_does_not_fall_back_to_qris(): void
     {
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
-        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php');
 
         $this->assertStringContainsString(
             "if (isset(\$package['is_cod']))",
@@ -255,66 +301,31 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "elseif (\$kiriof_method === 'cod')",
+            "'method'       => '' !== \$method ? strtoupper( \$method ) : 'QRIS'",
             $requestPickupTemplate,
             'Request pickup list should not display COD-only payment rows as QRIS'
         );
     }
 
     #[Test]
-    public function request_pickup_credit_pin_supports_temporary_encrypted_browser_cache(): void
+    public function request_pickup_credit_pin_is_handled_by_svelte_without_legacy_browser_cache(): void
     {
-        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
-        $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
+		$dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+		$template = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
+		$enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
 
-        $this->assertStringContainsString(
-            "const kjPinCacheConfig = {",
-            $transactionProcessContent,
-            'Transaction process should expose browser PIN cache config for the request pickup flow'
-        );
-
-        $this->assertStringContainsString(
-            'window.crypto.subtle.encrypt',
-            $transactionProcessContent,
-            'Temporary PIN storage should encrypt the PIN before writing to browser storage'
-        );
-
-        $this->assertStringContainsString(
-            'window.localStorage.setItem(kjPinCacheConfig.key, JSON.stringify(payload));',
-            $transactionProcessContent,
-            'Temporary PIN cache should persist encrypted browser state per user key'
-        );
-
-        $this->assertStringContainsString(
-            'kjClearCachedPin($modal, "invalid");',
-            $transactionProcessContent,
-            'Invalid or outdated PIN responses should clear the saved browser PIN cache'
-        );
-
-        $this->assertStringContainsString(
-            'id="kiriof-pin-remember"',
-            $controllerContent,
-            'Credit PIN modal should render a remember PIN checkbox for temporary browser cache opt-in'
-        );
-
-        $this->assertStringContainsString(
-            "'Remember PIN on this browser for %d minutes'",
-            $controllerContent,
-            'Credit PIN modal renderer must create its own checkbox label instead of relying on template scope'
-        );
-
-        $this->assertStringContainsString(
-            'esc_html($kiriof_pin_cache_label)',
-            $controllerContent,
-            'Credit PIN modal should render the generated remember PIN label beside the checkbox'
-        );
-
-        $adminCss = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-admin-style.css');
-        $this->assertStringContainsString(
-            '.wc-backbone-modal.kiriof-backbone-modal .kiriof-pin-remember',
-            $adminCss,
-            'Credit PIN checkbox label should have explicit readable modal styling'
-        );
+		$this->assertStringContainsString( 'const canSubmitPin = $derived', $dialog );
+		$this->assertStringContainsString( "call('kiriof_request_pickup_transaction'", $dialog );
+		$this->assertStringContainsString( 'inputId="kiriof-pickup-pin"', $dialog );
+		$this->assertStringContainsString( 'type="password" bind:value={pin}', $dialog );
+		$this->assertStringContainsString( 'pattern={REGEXP_ONLY_DIGITS}', $dialog );
+		$this->assertStringContainsString( 'bind:value={pin}', $dialog );
+		$this->assertStringContainsString( '<InputOTP.Slot {cell} mask />', $dialog );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/lib/pin-input/pin-input.js' );
+		$this->assertStringNotContainsString( 'tmpl-kiriof-modal-request-pickup', file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' ) );
+		$this->assertStringNotContainsString( 'kiriofTransactionProcess', $template );
+		$this->assertStringNotContainsString( 'kj-transaction-process.js', $enqueue );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
     }
 
     #[Test]
@@ -464,35 +475,52 @@ final class RequestPickupPaymentFlowTest extends TestCase
             $metabox,
             'Admin order metabox should label platform-covered shipping discount as "Shipping Discount (from KiriminAja)"'
         );
+		$this->assertStringContainsString( 'data-kiriof-order-metabox-root', $metabox );
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/order-metabox.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/order-metabox/OrderMetabox.svelte' );
+		$this->assertStringContainsString( "'order-metabox': 'src/entries/order-metabox.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
     }
 
     #[Test]
     public function deficit_rows_with_non_negative_effective_cod_payout_remain_pickup_processable(): void
     {
-        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+		$transactionProcessView = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
+		$app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            '$kiriof_effectiveShippingCost = max(0.0, $kiriof_shippingCost - $kiriof_wcShippingDiscount);',
+			'$effective_payout',
             $transactionProcessView,
             'Request pickup eligibility must use discounted shipping when evaluating COD payout'
         );
 
         $this->assertStringContainsString(
-            '$kiriof_effectiveCodPayout    = $kiriof_wcTotal - $kiriof_effectiveShippingCost - $kiriof_insuranceCost - $kiriof_codFee;',
+			'$wc_total - max( 0.0, $shipping_cost - $shipping_discount ) - $insurance_cost - $cod_fee',
             $transactionProcessView,
             'Request pickup eligibility must evaluate the effective COD payout'
         );
 
         $this->assertStringContainsString(
-            '$kiriof_canRequestPickup      = $kiriof_isProcessable && (! $kiriof_isDeficitRow || $kiriof_effectiveCodPayout >= 0);',
+			'$can_request_pickup    = $is_processable && ( ! $is_deficit || $effective_payout >= 0 );',
             $transactionProcessView,
             'Deficit rows should remain pickup-processable when the effective COD payout is non-negative'
         );
 
         $this->assertStringContainsString(
-            'data-can-pickup="\' . ($kiriof_canRequestPickup ? \'1\' : \'0\')',
-            $transactionProcessView,
+			"data-can-pickup={row.selection.canPickup ? '1' : '0'}",
+			$app,
             'Request pickup checkbox must use effective processability instead of the raw deficit flag'
         );
+    }
+}
+
+final class RequestPickupScheduleInputStyleTest extends TestCase
+{
+    #[Test]
+    public function pickup_schedule_selects_use_the_shadcn_background_and_input_border(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+
+        $this->assertStringContainsString( 'id="kiriof-pickup-date" class="!bg-background !border-border"', $dialog );
+        $this->assertStringContainsString( 'id="kiriof-pickup-time" class="!bg-background !border-border"', $dialog );
     }
 }

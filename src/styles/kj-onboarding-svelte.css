@@ -1,0 +1,172 @@
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
+@import 'leaflet/dist/leaflet.css';
+
+html:has(body.kiriof-onboarding-screen),
+body.kiriof-onboarding-screen,
+body.kiriof-onboarding-screen #wpwrap,
+body.kiriof-onboarding-screen #wpcontent,
+body.kiriof-onboarding-screen #wpbody,
+body.kiriof-onboarding-screen #wpbody-content {
+  @apply w-full! h-full! min-h-full! max-h-svh! m-0! p-0! overflow-hidden!;
+}
+
+/* Bits UI portals popovers under <body>, outside the onboarding stacking
+ * context. Keep this combobox above the full-screen wizard and WordPress UI. */
+body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover {
+  @apply z-100001! box-border text-foreground bg-popover;
+}
+
+body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
+  @apply box-border w-full m-0;
+}
+
+/* Reset WordPress typography margins; layout spacing is owned by utility classes. */
+.kiriof-onboarding-app :where(h1, h2, h3, h4, h5, h6, p) {
+  @apply m-0 text-inherit;
+}
+
+/* WordPress admin ships global form controls. Keep the Svelte surface on shadcn geometry. */
+.kiriof-onboarding-app [data-slot='button'] {
+  @apply min-h-8 m-0 box-border rounded leading-none shadow-none no-underline!;
+}
+
+.kiriof-onboarding-app a[data-slot='button'],
+.kiriof-onboarding-app a[data-slot='button']:hover,
+.kiriof-onboarding-app a[data-slot='button']:focus,
+.kiriof-onboarding-app a[data-slot='button']:active,
+.kiriof-onboarding-app a[data-slot='button']:visited {
+  @apply text-primary-foreground no-underline!;
+}
+
+.kiriof-onboarding-app [data-slot='input'],
+.kiriof-onboarding-app [data-slot='input-group-control'],
+.kiriof-onboarding-app [data-slot='textarea'] {
+  @apply m-0 box-border border-border rounded bg-transparent text-foreground shadow-none;
+}
+
+.kiriof-onboarding-app [data-slot='textarea'] {
+  @apply h-auto [line-height:1.45];
+}
+
+html:has(body.kiriof-onboarding-screen) {
+  @apply !pt-0 bg-muted!;
+}
+
+body.kiriof-onboarding-screen {
+  @apply bg-muted!;
+}
+
+body.kiriof-onboarding-screen #wpadminbar,
+body.kiriof-onboarding-screen #adminmenumain,
+body.kiriof-onboarding-screen #screen-meta-links,
+body.kiriof-onboarding-screen #wpfooter,
+body.kiriof-onboarding-screen .notice,
+body.kiriof-onboarding-screen .updated,
+body.kiriof-onboarding-screen .error {
+  @apply !hidden;
+}
+
+body.kiriof-onboarding-screen #wpcontent {
+  @apply !ml-0;
+}
+
+body.kiriof-onboarding-screen #wpbody-content {
+  @apply ![float:none];
+}
+
+[data-kiriof-onboarding-app] {
+  @apply fixed inset-0 z-99999 flex w-screen h-screen overflow-hidden bg-muted;
+}
+
+.kiriof-onboarding-background {
+  @apply bg-muted before:absolute before:inset-0 before:content-[''] before:[background-image:radial-gradient(circle,var(--muted-foreground)_1px,transparent_1px)] before:[background-size:20px_20px] before:opacity-20;
+}
+
+[data-kiriof-onboarding-app][aria-busy='true']::before {
+  @apply absolute top-1/2 left-1/2 size-8 -m-4 border-4 border-white/20 border-t-primary rounded-full animate-spin;
+  content: '';
+}
+
+@keyframes kiriof-onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-kiriof-onboarding-app][aria-busy='true']::before {
+    @apply [animation-duration:1.8s];
+  }
+}
+
+/* Enforce shadcn Switch styling and distinct checked state */
+.kiriof-onboarding-app [data-slot='switch'],
+.kiriof-shadcn [data-slot='switch'] {
+  @apply !relative !inline-flex !h-5 !w-9 !min-h-5 !min-w-9 !p-0 !m-0 ![flex-shrink:0] !cursor-pointer !items-center !rounded-full !border-0 !box-border !leading-none !shadow-none !outline-none !overflow-hidden ![transition:background-color_0.2s_ease,border-color_0.2s_ease];
+}
+
+.kiriof-onboarding-app [data-slot='switch'][data-state='unchecked'],
+.kiriof-shadcn [data-slot='switch'][data-state='unchecked'] {
+  @apply bg-primary-foreground!;
+}
+
+.kiriof-onboarding-app [data-slot='switch'][data-state='checked'],
+.kiriof-shadcn [data-slot='switch'][data-state='checked'] {
+  @apply bg-primary!;
+}
+
+.kiriof-onboarding-app [data-slot='switch-thumb'],
+.kiriof-shadcn [data-slot='switch-thumb'] {
+  @apply !pointer-events-none !absolute ![top:0.125rem] ![left:0.125rem] !block ![height:1rem] ![width:1rem] ![min-height:1rem] ![min-width:1rem] !rounded-full !bg-white ![box-shadow:0_1px_3px_rgba(0,0,0,0.2)] ![transition:left_0.2s_ease] ![transform:none];
+}
+
+.kiriof-onboarding-app [data-slot='switch-thumb'][data-state='checked'],
+.kiriof-shadcn [data-slot='switch-thumb'][data-state='checked'],
+.kiriof-onboarding-app [data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'],
+.kiriof-shadcn [data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'] {
+  @apply !left-[1.125rem] transform-none!;
+}
+
+.kiriof-onboarding-app [data-slot='switch-thumb'][data-state='unchecked'],
+.kiriof-shadcn [data-slot='switch-thumb'][data-state='unchecked'],
+.kiriof-onboarding-app [data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'],
+.kiriof-shadcn [data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'] {
+  @apply ![left:0.125rem] ![transform:none];
+}
+
+.kiriof-onboarding__locate {
+  @apply grid place-items-center w-8 h-8 [border:1px_solid_var(--border)] rounded-[var(--radius)] bg-background text-primary text-base cursor-pointer [box-shadow:0_1px_3px_rgba(0,0,0,0.1)] [transition:all_0.15s_ease];
+}
+
+.kiriof-onboarding__locate:hover {
+  @apply bg-accent text-accent-foreground;
+}
+
+.kiriof-onboarding-app .leaflet-container {
+  @apply font-sans z-1;
+}
+
+.kiriof-onboarding-app .leaflet-control-zoom a {
+  @apply text-primary bg-background border-border;
+}
+
+.kiriof-onboarding-app .leaflet-control-zoom a:hover {
+  @apply bg-accent text-accent-foreground;
+}
+
+.kiriof-onboarding-app ::-webkit-scrollbar {
+  @apply w-1.5 h-1.5;
+}
+
+.kiriof-onboarding-app ::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.kiriof-onboarding-app ::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/25 rounded-full;
+}
+
+.kiriof-onboarding-app ::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}

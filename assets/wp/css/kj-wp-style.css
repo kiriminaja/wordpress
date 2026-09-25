@@ -111,17 +111,7 @@ tr.woocommerce-shipping-totals {
   text-decoration: none;
 }
 
-.kiriof-shipping-rate-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  margin-left: 8px;
-  border-radius: 999px;
-  background: #e8f5ec;
-  color: #1d6b39;
-  font-size: 12px;
-  font-weight: 600;
-}
+/* Shipping-rate badge now lives in kj-badge.css (unified rounded-square system). */
 
 .kiriof-shipping-rate-note {
   display: inline-flex;

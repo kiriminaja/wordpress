@@ -217,7 +217,7 @@ final class TrackingShortcodeLookupTest extends TestCase
     #[Test]
     public function tracking_settings_template_uses_repository_backed_composition_helper(): void
     {
-        $template = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/section-tracking.php' );
+        $template = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/index.php' );
         $plugin   = file_get_contents( PLUGIN_DIR . '/kiriminaja.php' );
 
         $this->assertStringNotContainsString( '$wpdb', $template );

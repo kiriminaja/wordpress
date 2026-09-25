@@ -1,0 +1,90 @@
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
+.kiriof-payments-app {
+  @apply min-w-0;
+}
+
+body:has([data-kiriof-payments-page]) #screen-meta-links,
+body:has([data-kiriof-payments-page]) .update-nag,
+body:has([data-kiriof-payments-page]) .notice,
+body:has([data-kiriof-payments-page]) .updated,
+body:has([data-kiriof-payments-page]) .error {
+  @apply hidden;
+}
+
+body:has([data-kiriof-payments-page]) #wpcontent {
+  @apply pl-0;
+}
+
+body:has([data-kiriof-payments-page]) #wpbody-content {
+  @apply pb-0;
+}
+
+.kiriof-payments-filterrow {
+  @apply flex-[1_1_220px] min-w-[220px] max-w-[420px];
+}
+
+.kiriof-payments-filterrow .kiriof-admin-list-search {
+  @apply w-full;
+}
+
+.kiriof-payments-scopes {
+  @apply flex-wrap overflow-visible;
+}
+
+.kiriof-payments-scopes > nav {
+  @apply max-w-full overflow-x-auto;
+}
+
+.kiriof-payments-scopes .kiriof-admin-list-tools {
+  @apply flex-[1_1_auto] flex-wrap min-w-0 justify-end;
+}
+
+.kiriof-payments-scopes [data-slot='select-trigger'],
+.kiriof-payments-scopes .kiriof-auto-refresh,
+.kiriof-payments-filterrow [data-slot='input-group'] {
+  @apply !h-9 !min-h-9 !box-border;
+}
+
+.kiriof-payments-scopes .kiriof-auto-refresh > [data-slot='button'],
+.kiriof-payments-scopes .kiriof-auto-refresh > .kiriof-auto-refresh__chevron {
+  @apply !h-full !min-h-0;
+}
+
+.kiriof-payments-table {
+  @apply [min-width:1040px];
+}
+
+.kiriof-payments-table [data-slot='table-cell'] small {
+  @apply block mt-1 text-muted-foreground text-xs [line-height:1.45];
+}
+
+.kiriof-payments-table tbody tr:last-child td {
+  @apply [border-bottom:0];
+}
+
+.kiriof-payments-app .kiriof-row-actions {
+  @apply inline-flex flex-wrap justify-end gap-1;
+}
+
+.kiriof-payments-app .kiriof-row-actions [data-slot='button'] {
+  @apply w-7 min-w-7 h-7 min-h-7 p-0 border rounded-md bg-white text-foreground;
+}
+
+.kiriof-payments-app .kiriof-row-actions [data-slot='button']:hover {
+  @apply border bg-secondary text-secondary-foreground;
+}
+
+.kiriof-payments-app [aria-busy='true'] {
+  @apply opacity-60;
+}
+
+@media (max-width: 782px) {
+  .kiriof-payments-scopes .kiriof-admin-list-tools {
+    @apply flex-wrap w-full;
+  }
+
+  .kiriof-payments-filterrow {
+    @apply flex-[1_0_100%] min-w-0 max-w-none;
+  }
+}

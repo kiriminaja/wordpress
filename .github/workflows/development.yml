@@ -27,6 +27,12 @@ jobs:
         with:
           php-version: "8.1"
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
       - name: Install gettext
         run: |
           if command -v msgfmt >/dev/null 2>&1; then
@@ -52,11 +58,12 @@ jobs:
           fi
 
 
-      - name: Build ZIP (official variant — WP.org-ready)
-        run: make zip plain
+      - name: Build ZIP (development variant)
+        run: make zip dev
 
       - name: Extract Zip to release
         run: |
           rm -rf /opt/wordpress/wp_dev/wp-content/plugins/kiriminaja-official
-          unzip -o kiriminaja-official.zip -d /opt/wordpress/wp_dev/wp-content/plugins/
-          rm -rf kiriminaja-official.zip
+          ZIP_FILE=$(ls kiriminaja-official-*-dev.zip | head -1)
+          unzip -o "$ZIP_FILE" -d /opt/wordpress/wp_dev/wp-content/plugins/
+          rm -f "$ZIP_FILE"

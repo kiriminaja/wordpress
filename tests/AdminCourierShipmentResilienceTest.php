@@ -63,14 +63,14 @@ final class AdminCourierShipmentResilienceTest extends TestCase
         $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
         $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
 
-        $this->assertStringContainsString('min( $kiriof_per_page, 100 )', $renderer);
-        $this->assertStringContainsString('min( $kiriof_per_page_get, 100 )', $renderer);
+        $this->assertMatchesRegularExpression('/min\(\s*\$kiriof_per_page,\s*100\s*\)/', $renderer);
+        $this->assertMatchesRegularExpression('/min\(\s*\$kiriof_per_page_get,\s*100\s*\)/', $renderer);
         $this->assertStringContainsString(
             '$page > $total_pages && $total_pages > 0',
             $query
         );
         $this->assertStringContainsString(
-            '$page_data = $this->queryPage( $filters, $items_per_page, $page )',
+            '$page_data = $this->queryPage( $filters, $items_per_page, $page );',
             $query
         );
     }

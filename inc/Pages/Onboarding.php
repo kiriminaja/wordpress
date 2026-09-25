@@ -25,7 +25,7 @@ class Onboarding extends BaseInit {
 
 	public function register_page(): void {
 		add_submenu_page(
-			'kiriminaja-konfigurasi',
+			'kiriminaja-setting',
 			__( 'KiriminAja Setup', 'kiriminaja-official' ),
 			__( 'Setup', 'kiriminaja-official' ),
 			'manage_woocommerce',
@@ -35,7 +35,7 @@ class Onboarding extends BaseInit {
 	}
 
 	public function hide_page(): void {
-		remove_submenu_page( 'kiriminaja-konfigurasi', self::PAGE_SLUG );
+		remove_submenu_page( 'kiriminaja-setting', self::PAGE_SLUG );
 	}
 
 	public function suppress_admin_notices( $screen = null ): void {
@@ -63,8 +63,133 @@ class Onboarding extends BaseInit {
 		$kiriof_is_connected = $connection_state['is_connected'];
 		$kiriof_profile      = $connection_state['profile'];
 		$kiriof_profile_err  = $connection_state['profile_err'];
+		$kiriof_onboarding_bootstrap = $this->build_bootstrap(
+			$steps,
+			$origin_values,
+			$current_step,
+			(bool) $kiriof_is_connected,
+			$kiriof_profile,
+			(bool) $kiriof_profile_err
+		);
 
 		include KIRIOF_DIR . 'templates/onboarding/index.php';
+	}
+
+	private function build_bootstrap( array $steps, array $origin_values, string $current_step, bool $is_connected, $profile, bool $profile_error ): array {
+		$required_steps = array_filter(
+			$steps,
+			static function ( $step ) {
+				return $step['required'];
+			}
+		);
+		$progress_steps = array_values(
+			array_map(
+				static function ( $step ) {
+					return array(
+						'key'   => $step['key'],
+						'label' => $step['nav_title'] ?? $step['title'],
+						'done'  => (bool) $step['done'],
+					);
+				},
+				$required_steps
+			)
+		);
+
+		return array(
+			'initialStep'  => $current_step,
+			'steps'        => $progress_steps,
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+			'nonce'        => wp_create_nonce( KIRIOF_NONCE ),
+			'shippingUrl'  => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+			'dashboardUrl' => esc_url( admin_url() ),
+			'helpUrl'      => 'https://kiriminaja.com/solusi/plugin-woocommerce',
+			'i18n'         => array(
+				'back'                      => __( 'Back', 'kiriminaja-official' ),
+				'continue'                  => __( 'Continue', 'kiriminaja-official' ),
+				'finish'                    => __( 'Finish setup', 'kiriminaja-official' ),
+				'accountRequired'           => __( 'Connect your KiriminAja account before continuing.', 'kiriminaja-official' ),
+				'saveFailed'                => __( 'Could not save this step.', 'kiriminaja-official' ),
+				'networkError'              => __( 'Network error. Please try again.', 'kiriminaja-official' ),
+				'disconnectConfirm'         => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
+				'disconnectFailed'          => __( 'Disconnect failed.', 'kiriminaja-official' ),
+				'subdistrictLoading'        => __( 'Searching subdistricts...', 'kiriminaja-official' ),
+				'subdistrictNoResults'      => __( 'No subdistricts found.', 'kiriminaja-official' ),
+				'subdistrictTypeMore'       => __( 'Type at least 3 characters.', 'kiriminaja-official' ),
+				'subdistrictSearchFailed'   => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
+				'currentLocation'           => __( 'Use current location', 'kiriminaja-official' ),
+				'currentLocationUnavailable' => __( 'Current location is not available in this browser.', 'kiriminaja-official' ),
+				'currentLocationFailed'     => __( 'Could not detect your current location.', 'kiriminaja-official' ),
+				'shippingAddressRequired'   => __( 'Complete all address fields and set the map pin.', 'kiriminaja-official' ),
+				'courierRequired'           => __( 'Select at least one courier service.', 'kiriminaja-official' ),
+				'shippingPrerequisite'      => __( 'Complete previous required steps before finishing.', 'kiriminaja-official' ),
+				'addressSaved'              => __( 'Shipping address saved.', 'kiriminaja-official' ),
+				'accountConnected'          => __( 'Account connected.', 'kiriminaja-official' ),
+				'couriersSaved'             => __( 'Courier services saved.', 'kiriminaja-official' ),
+				'shippingLocationsRequired' => __( 'Enable WooCommerce shipping locations before finishing.', 'kiriminaja-official' ),
+			),
+			'account'      => array(
+				'connected'    => $is_connected,
+				'profileError' => $profile_error,
+				'profile'      => $profile ? array(
+					'name'          => (string) ( $profile->name ?? '' ),
+					'email'         => (string) ( $profile->email ?? '' ),
+					'status'        => (string) ( $profile->status ?? '' ),
+					'paymentMethod' => (string) ( $profile->metadata->payment_method ?? '' ),
+				) : null,
+				'title'        => $steps['account']['title'],
+				'description'  => $steps['account']['description'],
+				'helpUrl'      => 'https://help.kiriminaja.com/article/setup-wordpress',
+				'i18n'         => array(
+					'connection'          => __( 'Connection', 'kiriminaja-official' ),
+					'setupKey'            => __( 'Setup key', 'kiriminaja-official' ),
+					'setupKeyPlaceholder' => __( 'Paste your setup key', 'kiriminaja-official' ),
+					'findKey'             => __( 'Find this key in your KiriminAja application.', 'kiriminaja-official' ),
+					'learnHow'            => __( 'Learn how', 'kiriminaja-official' ),
+					'disconnect'          => __( 'Disconnect', 'kiriminaja-official' ),
+					'unavailable'         => __( 'Unable to load account information. Your integration may be incomplete.', 'kiriminaja-official' ),
+				),
+			),
+			'address'      => array(
+				'title'       => $steps['address']['title'],
+				'description' => $steps['address']['description'],
+				'values'      => array_map( 'strval', $origin_values ),
+				'i18n'        => array(
+					'senderName'        => __( 'Sender name', 'kiriminaja-official' ),
+					'senderPhone'       => __( 'Sender phone', 'kiriminaja-official' ),
+					'address'           => __( 'Address', 'kiriminaja-official' ),
+					'zipcode'           => __( 'Zipcode', 'kiriminaja-official' ),
+					'subdistrict'       => __( 'Subdistrict', 'kiriminaja-official' ),
+					'searchSubdistrict' => __( 'Search subdistrict', 'kiriminaja-official' ),
+					'mapHelp'           => __( 'Move the map to place the pin at your pickup location.', 'kiriminaja-official' ),
+				),
+			),
+			'couriers'     => array(
+				'title'       => $steps['couriers']['title'],
+				'description' => $steps['couriers']['description'],
+				'i18n'        => array(
+					'enableAll'  => __( 'Enable all', 'kiriminaja-official' ),
+					'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
+					'empty'      => __( 'No courier services are available.', 'kiriminaja-official' ),
+					'enabled'    => __( 'enabled', 'kiriminaja-official' ),
+					'enable'     => __( 'Enable', 'kiriminaja-official' ),
+				),
+			),
+			'shipping'     => array(
+				'title'          => $steps['shipping']['title'],
+				'description'    => $steps['shipping']['description'],
+				'shippingReady'  => (bool) $steps['shipping']['shipping_ready'],
+				'locationsReady' => (bool) $steps['shipping']['locations_ready'],
+				'settingsUrl'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+				'i18n'           => array(
+					'methodTitle'          => __( 'KiriminAja shipping method enabled', 'kiriminaja-official' ),
+					'methodDescription'    => __( 'Adds KiriminAja as an available WooCommerce shipping method for checkout rates.', 'kiriminaja-official' ),
+					'locationsTitle'       => __( 'WooCommerce shipping locations configured', 'kiriminaja-official' ),
+					'locationsDescription' => __( 'Confirms WooCommerce can show shipping choices to customers in supported regions.', 'kiriminaja-official' ),
+					'help'                 => __( 'Shipping locations must be enabled in WooCommerce before rates can appear at checkout.', 'kiriminaja-official' ),
+					'openSettings'         => __( 'Open shipping settings', 'kiriminaja-official' ),
+				),
+			),
+		);
 	}
 
 	public function redirect_incomplete_setup(): void {
@@ -139,10 +264,9 @@ class Onboarding extends BaseInit {
 		return in_array(
 			$page,
 			array(
-				'kiriminaja-konfigurasi',
-				'kiriminaja-transaction-process',
+				'kiriminaja-setting',
+				'kiriminaja-transaction',
 				'kiriminaja-request-pickup',
-				'kiriminaja-request-pickup-detail',
 			),
 			true
 		);

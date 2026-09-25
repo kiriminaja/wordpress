@@ -31,14 +31,57 @@ class Admin extends BaseInit{
         $this->shipping_method_registration_service = $shipping_method_registration_service;
     }
 
+	public function kiriof_prepare_settings_workspace( $screen = null ): void {
+		if ( ! $this->is_settings_workspace() ) {
+			return;
+		}
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
+		remove_all_actions( 'network_admin_notices' );
+		remove_all_actions( 'user_admin_notices' );
+	}
+
+	public function kiriof_prepare_transactions_workspace( $screen = null ): void {
+		unset( $screen );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'kiriminaja-transaction' !== $page ) {
+			return;
+		}
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
+	}
+
+	public function kiriof_hide_transactions_screen_options( bool $show, $screen = null ): bool {
+		unset( $screen );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		return 'kiriminaja-transaction' === $page ? false : $show;
+	}
+
+	public function kiriof_hide_settings_screen_options( bool $show, $screen = null ): bool {
+		unset( $screen );
+		return $this->is_settings_workspace() ? false : $show;
+	}
+
+	private function is_settings_workspace(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		return 'kiriminaja-setting' === $page;
+	}
+
     public function register(){
         /** add pages*/
         
         $plugin_path = $this->plugin_path;
 
-        // Screen Options: items per page for transaction list
-        add_action( 'current_screen', array( $this, 'kiriof_add_transaction_screen_options' ) );
-        add_action( 'in_admin_header', array( $this, 'kiriof_add_transaction_screen_options' ), 5 );
+		// Per-page selection is handled inside the Svelte transactions workspace.
+		add_action( 'current_screen', array( $this, 'kiriof_prepare_settings_workspace' ), 1 );
+		add_filter( 'screen_options_show_screen', array( $this, 'kiriof_hide_settings_screen_options' ), 10, 2 );
+		add_action( 'current_screen', array( $this, 'kiriof_prepare_transactions_workspace' ), 1 );
+		add_filter( 'screen_options_show_screen', array( $this, 'kiriof_hide_transactions_screen_options' ), 10, 2 );
         if ( KIRIOF_ENABLE_KA_CREDIT ) {
             add_action( 'admin_bar_menu', array( $this, 'kiriof_add_credit_balance_admin_bar' ), 61 );
         }
@@ -59,17 +102,17 @@ class Admin extends BaseInit{
         if( kiriof_check_woocommerce() ){
             $subPages = [
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'KiriminAja Transactions', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Transactions', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-transaction-process',
+                    'menu_slug'=>'kiriminaja-transaction',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/transaction-process/index.php';
                     }
                 ],
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Payments', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
@@ -78,23 +121,24 @@ class Admin extends BaseInit{
                         require_once $plugin_path.'templates/request-pickup/index.php';
                     }
                 ],
+
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
-                    'page_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
-                    'menu_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
+                    'parent_slug'=>'kiriminaja-setting',
+                    'page_title'=>__( 'Transaction Detail', 'kiriminaja-official' ),
+                    'menu_title'=>__( 'Transaction Detail', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-request-pickup-detail',
+                    'menu_slug'=>'kiriminaja-transaction-detail',
                     'callback'=> function() use ($plugin_path) {
-                        require_once $plugin_path.'templates/request-pickup-detail/index.php';
+                        require_once $plugin_path.'templates/transaction-detail/index.php';
                     },
                     'hidden'=>true,
                 ],
                 [
-                    'parent_slug'=>'kiriminaja-konfigurasi',
+                    'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'KiriminAja Settings', 'kiriminaja-official' ),
                     'menu_title'=>__( 'Settings', 'kiriminaja-official' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-konfigurasi',
+                    'menu_slug'=>'kiriminaja-setting',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/setting/index.php';
                     }
@@ -109,7 +153,7 @@ class Admin extends BaseInit{
                     'page_title'=>'KiriminAja',
                     'menu_title'=> 'KiriminAja' . ( defined('KIRIOF_ENV') && KIRIOF_ENV !== 'prd' ? ' [' . strtoupper(KIRIOF_ENV) . ']' : '' ),
                     'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-konfigurasi',
+                    'menu_slug'=>'kiriminaja-setting',
                     'callback'=> function() use ($plugin_path){
                         require_once $plugin_path.'templates/setting/index.php';
                     },
@@ -125,7 +169,7 @@ class Admin extends BaseInit{
         if ( kiriof_check_woocommerce() ) {
             add_action( 'admin_menu', function () {
                 global $submenu;
-                $slug = 'kiriminaja-konfigurasi';
+                $slug = 'kiriminaja-setting';
                 if ( empty( $submenu[ $slug ] ) ) {
                     return;
                 }
@@ -158,7 +202,7 @@ class Admin extends BaseInit{
     
         /** Add pages link in plugin menu links*/
         add_filter('plugin_action_links_'.$this->plugin, function ($links){
-            $settings_link = '<a href="admin.php?page=kiriminaja-konfigurasi">' . esc_html__( 'Settings', 'kiriminaja-official' ) . '</a>';
+            $settings_link = '<a href="admin.php?page=kiriminaja-setting">' . esc_html__( 'Settings', 'kiriminaja-official' ) . '</a>';
             array_push($links,$settings_link);
             return $links;
         });
@@ -172,8 +216,8 @@ class Admin extends BaseInit{
         // Highlight "Payments" in the sidebar when viewing the detail page.
         add_filter( 'submenu_file', function ( $submenu_file ) {
             $screen = get_current_screen();
-            if ( $screen && 'kiriminaja_page_kiriminaja-request-pickup-detail' === $screen->id ) {
-                return 'kiriminaja-request-pickup';
+            if ( $screen && 'kiriminaja_page_kiriminaja-transaction-detail' === $screen->id ) {
+                return 'kiriminaja-transaction';
             }
             return $submenu_file;
         });
@@ -198,20 +242,20 @@ class Admin extends BaseInit{
     function kiriof_add_transaction_status_count(){
         if ( class_exists( 'WooCommerce' ) ) {
             global $submenu;
-            if ( empty( $submenu['kiriminaja-konfigurasi'] ) ) {
+            if ( empty( $submenu['kiriminaja-setting'] ) ) {
                 return;
             }
 
             /**
              * WordPress auto-prepends a sub-item that mirrors the parent
-             * menu (slug "kiriminaja-konfigurasi") whenever any sub-pages
+             * menu (slug "kiriminaja-setting") whenever any sub-pages
              * are registered.  Instead of the duplicate "KiriminAja" label,
              * rename it to "Settings" so the settings page stays accessible
              * from the submenu.
              */
-            foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
-                if ( isset( $menu_item[2] ) && 'kiriminaja-konfigurasi' === $menu_item[2] ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] = __( 'Settings', 'kiriminaja-official' );
+            foreach ( $submenu['kiriminaja-setting'] as $key => $menu_item ) {
+                if ( isset( $menu_item[2] ) && 'kiriminaja-setting' === $menu_item[2] ) {
+                    $submenu['kiriminaja-setting'][ $key ][0] = __( 'Settings', 'kiriminaja-official' );
                     break;
                 }
             }
@@ -219,13 +263,13 @@ class Admin extends BaseInit{
             $transaction_count_new = (int) kiriof_helper()->kjCountTransactionProcess();
             $shipment_unpaid_count = (int) kiriof_helper()->kjCountShipmentUnpaid();
 
-            foreach ( $submenu['kiriminaja-konfigurasi'] as $key => $menu_item ) {
+            foreach ( $submenu['kiriminaja-setting'] as $key => $menu_item ) {
                 if ( $transaction_count_new > 0 && 0 === strpos( $menu_item[0], __( 'Transactions', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-setting'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $transaction_count_new ) . '"><span class="processing-count">' . number_format_i18n( $transaction_count_new ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
                 if ( $shipment_unpaid_count > 0 && 0 === strpos( $menu_item[0], __( 'Payments', 'kiriminaja-official' ) ) ) {
-                    $submenu['kiriminaja-konfigurasi'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
+                    $submenu['kiriminaja-setting'][ $key ][0] .= ' <span class="menu-counter count-' . esc_attr( $shipment_unpaid_count ) . '"><span class="processing-count">' . number_format_i18n( $shipment_unpaid_count ) . '</span></span>'; // WPCS: override ok.
                     continue;
                 }
             }
@@ -306,12 +350,12 @@ class Admin extends BaseInit{
         $tracking_ready = $this->tracking_page_repository->hasPublishedTrackingPage();
 
         $step_urls = array(
-            'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+            'account'            => admin_url( 'admin.php?page=kiriminaja-setting&section=account' ),
             'products'           => admin_url( 'edit.php?post_type=product' ),
             'origin'             => admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ),
-            'couriers'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=couriers' ),
+            'couriers'           => admin_url( 'admin.php?page=kiriminaja-setting&section=couriers' ),
             'shipping_option'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-            'tracking'           => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ),
+            'tracking'           => admin_url( 'admin.php?page=kiriminaja-setting&section=tracking' ),
         );
         $steps = array(
             array(
@@ -450,7 +494,7 @@ class Admin extends BaseInit{
 				'<div class="notice notice-info is-dismissible"><p><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p></div>',
 				esc_html__( 'Add customer shipment tracking.', 'kiriminaja-official' ),
 				esc_html__( 'Create or select a tracking page when you are ready.', 'kiriminaja-official' ),
-				esc_url( admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=tracking' ) ),
+				esc_url( admin_url( 'admin.php?page=kiriminaja-setting&section=tracking' ) ),
 				esc_html__( 'Configure tracking', 'kiriminaja-official' )
 			);
 		}
@@ -474,7 +518,7 @@ class Admin extends BaseInit{
             array(
                 'id'    => 'kiriof-ka-credit-balance',
                 'title' => $title,
-                'href'  => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),
+                'href'  => admin_url( 'admin.php?page=kiriminaja-setting&section=account' ),
                 'meta'  => array(
                     'title' => esc_attr__( 'KA Credit', 'kiriminaja-official' ) . ': ' . esc_attr( kiriof_money_format( $balance ) ),
                 ),
@@ -501,24 +545,6 @@ class Admin extends BaseInit{
 
     private function kiriof_get_admin_bar_icon_url() {
         return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik03Ny41NjA4IDkuNDczOTNMNjYuMDUxOSA0NC40MzgyQzY1LjIzNzQgNDcuMjIxMiA2Mi45MzIyIDQ4LjI1NzIgNjEuMzQwNyA0Ni43Nzc5TDU4LjE0MzMgNDMuNjg5OUw1Ni42MzUyIDQyLjE1MDJMNDguMjQ2IDQ5Ljg5NzZDMzEuODczMyA2Ny42OTIgNDguNjYwNCA4NC40NzkxIDQ4LjY2MDQgODQuNDc5MUwyMi42OTg0IDU4LjUxNDJDMjIuNjA5MiA1OC40Mjc5IDIyLjUxMTMgNTguMzUzMSAyMi40MjUgNTguMjYzOEMyMi4zNTMxIDU4LjE5MTkgMjIuMjkyNiA1OC4xMTEzIDIyLjIyMzUgNTguMDM5NEwyMi4wNDUxIDU3Ljg2MDlMMjIuMDU5NSA1Ny44NTUyQzE3LjY5MDggNTMuMDE0NSAxOC4wNjIgNDUuODM5NyAyMi43MjQzIDQxLjE1NzNMMzkuMDY4MiAyNC40OTRMMzcuNjU4IDIzLjA1NUwzNC41MjM5IDIwLjIzNzVDMzIuOTI5NSAxOC43NTgyIDMzLjUxOTUgMTYuMDk2MSAzNS41ODMgMTUuNDQyOEw3My42MzgyIDYuODAzMTlDNzUuNzAxNiA2LjE0OTkgNzcuNjkzMiA3Ljk5NzU0IDc3LjU2NjYgOS40Nzk2OUw3Ny41NjA4IDkuNDczOTNaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfNDVfMTIyNzIpIi8+CjxwYXRoIGQ9Ik03MS43MjQ2IDczLjM0NjdDNzYuNjU3NCA3OC4yNzM3IDc2LjcwMzQgODUuOTI5NyA3MS44ODI4IDkwLjcxQzY3LjA2MjIgOTUuNDkwMSA1OS41MzAxIDk1LjI1NjggNTQuNjMxOCA5MC4zNjcyTDQ4LjE0MjYgODMuOTE1QzQ1LjQzNzggODAuODU4MyAzMy42MzEzIDY1Ljc4MDMgNDguMjQ1MSA0OS44OTc1TDQ4LjI0NjEgNDkuODk2NUw3MS43MjQ2IDczLjM0NjdaTTIyLjIyMjcgNTguMDM5MUMyMi4yOTE3IDU4LjExMSAyMi4zNTE5IDU4LjE5MTcgMjIuNDIzOCA1OC4yNjM3QzIyLjUxMDEgNTguMzUyOCAyMi42MDgxIDU4LjQyNzQgMjIuNjk3MyA1OC41MTM3TDQwLjMyMTMgNzYuMTM5NkwyMi45OTUxIDU4LjkxNDFDMjIuNjU5MSA1OC41ODE5IDIyLjM0NiA1OC4yMzMgMjIuMDU0NyA1Ny44NzExTDIyLjIyMjcgNTguMDM5MVpNMjIuMDU4NiA1Ny44NTU1TDIyLjA0NDkgNTcuODU5NEMyMS45ODU3IDU3Ljc4NTYgMjEuOTI4NCA1Ny43MTA2IDIxLjg3MTEgNTcuNjM1N0MyMS45MzM2IDU3LjcwODMgMjEuOTk0IDU3Ljc4MzkgMjIuMDU4NiA1Ny44NTU1WiIgZmlsbD0idXJsKCNwYWludDFfbGluZWFyXzQ1XzEyMjcyKSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzQ1XzEyMjcyIiB4MT0iODkuNzU4MSIgeTE9IjI1LjMzMDciIHgyPSIxMS4yOTgyIiB5Mj0iNjUuODQyMiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSJ3aGl0ZSIvPgo8c3RvcCBvZmZzZXQ9IjAuOTkiIHN0b3AtY29sb3I9IiNGMUYxRjEiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQxX2xpbmVhcl80NV8xMjI3MiIgeDE9IjE5LjIxMDQiIHkxPSI2NS45NTU0IiB4Mj0iNzUuNDExMSIgeTI9IjY1LjkxNjIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0id2hpdGUiIHN0b3Atb3BhY2l0eT0iMC4xIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0YxRjFGMSIgc3RvcC1vcGFjaXR5PSIwLjgiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K';
-    }
-
-    public function kiriof_add_transaction_screen_options( $screen ) {
-        if ( ! $screen || ! $screen->in_admin() ) {
-            return;
-        }
-
-        $matched = false !== strpos( $screen->id, 'kiriminaja-transaction-process' );
-        if ( ! $matched ) {
-            return;
-        }
-
-        $args = array(
-            'label'   => __( 'Number of items per page:', 'kiriminaja-official' ),
-            'default' => 25,
-            'option'  => 'kiriof_transactions_per_page',
-        );
-        add_screen_option( 'per_page', $args );
     }
 
     public function kiriof_save_transaction_screen_options( $status, $option, $value ) {

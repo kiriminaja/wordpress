@@ -46,6 +46,7 @@ class ShippingInfoServices extends BaseService{
             'transaction_value_raw' => (float) ( $repo->transaction_value ?? 0 ),
             'discount_amount_raw'   => (float) ( $repo->discount_amount ?? 0 ),
             'ka_order_id'        => $repo->order_id ?? '',
+            'transaction_id'     => (int) ( $repo->id ?? 0 ),
             'wc_order_id'        => (int) ( $repo->wp_wc_order_stat_order_id ?? 0 ),
         ],'success');
     }

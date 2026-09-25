@@ -1,6 +1,7 @@
 # Makefile for zipping the plugin (WordPress.org friendly)
 
 PLUGIN_SLUG := kiriminaja-official
+BUN := $(shell command -v bun 2>/dev/null || printf '%s' "$$HOME/.bun/bin/bun")
 
 # Read version from kiriminaja.php KIRIOF_VERSION
 VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")
@@ -15,9 +16,21 @@ RSYNC_EXCLUDES := \
 	--exclude=.idea/ \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
+	--exclude=src/ \
+	--exclude=package.json \
+	--exclude=bun.lock \
+	--exclude=components.json \
+	--exclude=bun.lockb \
+	--exclude=.oxfmtrc.json \
+	--exclude=.oxlintignore \
+	--exclude=.oxlintrc.json \
+	--exclude=tsconfig.json \
+	--exclude=svelte.config.js \
+	--exclude=vite.config.ts \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=docs/ \
 	--exclude=scripts/ \
+	--exclude=stubs/ \
 	--exclude=.DS_Store \
 	--exclude=.distignore \
 	--exclude=.editorconfig \
@@ -30,12 +43,17 @@ RSYNC_EXCLUDES := \
 	--exclude=Makefile \
 	--exclude=*.zip \
 	--exclude=paratest.xml \
+	--exclude=phpstan.neon \
+	--exclude=phpstan.neon.dist \
+	--exclude=phpstan-baseline.neon \
+	--exclude=phpstan-baseline.neon.dist \
+	--exclude=release-notes.md \
 	--exclude=tests/ \
 	--exclude=build/ \
 	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: zip clean changelog release test tag publish dev stg plain
+.PHONY: frontend zip clean changelog release test tag publish dev stg plain
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -83,6 +101,11 @@ endif
 test:
 	vendor/bin/paratest --configuration paratest.xml --testdox
 
+frontend:
+	@test -x "$(BUN)" || (echo "Bun is required to build frontend assets." && exit 127)
+	$(BUN) run frontend:check
+	$(BUN) run build
+
 changelog:
 	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"
 
@@ -94,9 +117,11 @@ tag:
 release: changelog
 	@# Re-read version after changelog bumped it
 	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
+	@php scripts/release-notes.php "$(VERSION)" "release-notes.md"
 	@$(MAKE) zip
 	@echo ""
 	@echo "Release v$(VERSION) ready!"
+	@echo "  Notes:  release-notes.md (same content used by GitHub Release)"
 	@echo "  1. Commit: git add -A && git commit -m 'chore: release v$(VERSION)'"
 	@echo "  2. Tag:    make tag"
 	@echo "  3. Push:   git push && git push --tags"
@@ -114,7 +139,8 @@ publish: release
 clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
 
-zip:
+zip: frontend
+	@php scripts/check-php-literal-escapes.php
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
 	@if command -v msgfmt >/dev/null 2>&1; then \
 		msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo; \
@@ -129,7 +155,14 @@ zip:
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
 	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
-	(cd $(STAGE_DIR) && composer install --no-dev --optimize-autoloader --no-interaction)
+	# The KiriminAja SDK's Packagist archive can omit its PSR-4 source tree. Prefer
+	# the Git source so runtime classes such as KiriminAja\Base\Api\Api are packaged.
+	rm -rf $(STAGE_DIR)/vendor
+	(cd $(STAGE_DIR) && composer install --no-dev --prefer-source --optimize-autoloader --no-interaction)
+	find $(STAGE_DIR)/vendor -type d -name .git -prune -exec rm -rf {} +
+	find $(STAGE_DIR)/vendor -type d \( -name .github -o -name docs -o -name example -o -name tests -o -name vendor-bin \) -prune -exec rm -rf {} +
+	find $(STAGE_DIR)/vendor -type f \( -name CHANGELOG.md -o -name README.md -o -name UPGRADING.md -o -name composer.lock \) -delete
+	@test -f $(STAGE_DIR)/vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php || (echo "KiriminAja SDK API client source is missing from the package." && exit 1)
 	rm -f $(STAGE_DIR)/composer.lock $(STAGE_DIR)/vendor/bin/.phpunit.result.cache
 	@CUSTOM_LOCATION_LIMIT=$$(if [ -f .env ]; then grep '^MAX_CUSTOM_SHIPMENT_LOCATIONS=' .env | head -1 | cut -d= -f2- | xargs; fi); \
 	if [ -n "$$CUSTOM_LOCATION_LIMIT" ]; then \
@@ -141,9 +174,11 @@ zip:
 		if [ -n "$$API_URL" ]; then \
 			php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "$$API_URL" "$(KIRIOF_ENV)"; \
 		else \
+			php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "https://client.kiriminaja.com" "$(KIRIOF_ENV)"; \
 			echo "  → Warning: .env exists but $(ENV_VAR_NAME) is not set. Using default URL."; \
 		fi; \
 	elif [ "$(KIRIOF_ENV)" != "prd" ]; then \
+		php scripts/inject-api-url.php $(STAGE_DIR)/kiriminaja.php "https://client.kiriminaja.com" "$(KIRIOF_ENV)"; \
 		echo "  → Warning: No .env file found. Using default API base URL."; \
 	fi
 	(cd $(BUILD_DIR) && zip -r ../$(ZIP_FILE) $(PLUGIN_SLUG))

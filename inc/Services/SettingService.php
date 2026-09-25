@@ -63,15 +63,29 @@ class SettingService extends BaseService
             }
             /** Storing result to DB*/
             $arrayRepoDataData = (array) $arrayRepoData['result'];
-            (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateProfileCache();
-            (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateCouriersCache();
-            $this->setting_repository->storeIntegrationData([
+            $integration_data = array(
                 'api_key' => sanitize_text_field($arrayRepoDataData['api_key']),
                 'oid_prefix' => sanitize_text_field($arrayRepoDataData['oid_prefix']),
                 'setup_key' => sanitize_text_field($setupPayload['setup_key']),
                 'callback_url' => $setupPayload['callback_url'],
-                'is_top' => self::resolveIsTop(),
-            ]);
+                'is_top' => false,
+            );
+            // Persist the new token before constructing the API service. The SDK
+            // reads its token during construction, so resolving the profile first
+            // would keep using the old/empty credential in this request.
+            $this->setting_repository->storeIntegrationData($integration_data);
+            $this->setting_repository->clearCache();
+            $api_service = new \KiriminAjaOfficial\Services\KiriminajaApiService();
+            $api_service->invalidateProfileCache();
+            $api_service->invalidateCouriersCache();
+            $profile_service = $api_service->getProfile();
+            $profile = 200 === $profile_service->status && ! empty( $profile_service->data )
+                ? $profile_service->data
+                : null;
+            // Keep the established TOP-resolution path. Request Pickup relies on
+            // the persisted is_top value to hide payment methods for TOP users.
+            $integration_data['is_top'] = self::resolveIsTop();
+            $this->setting_repository->storeIntegrationData($integration_data);
             kiriof_log(
                 'notice',
                 'KiriminAja setup key was processed successfully.',
@@ -91,7 +105,13 @@ class SettingService extends BaseService
             );
             return self::error([], $th->getMessage());
         }
-        return self::success([]);
+        return self::success(
+            array(
+                'connected'    => true,
+                'profile'      => $profile,
+                'profileError' => null === $profile,
+            )
+        );
     }
     public function disconnectIntegration()
     {

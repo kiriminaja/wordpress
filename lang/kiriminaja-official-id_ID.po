@@ -13,6 +13,62 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
 
+#: inc/Services/SettingsPageData.php
+msgid "Saving…"
+msgstr "Menyimpan…"
+
+#: inc/Services/SettingsPageData.php
+msgid "Disconnecting…"
+msgstr "Memutuskan koneksi…"
+
+#: inc/Services/SettingsPageData.php
+msgid "Add the KiriminAja tracking shortcode to the content editor."
+msgstr "Tambahkan shortcode pelacakan KiriminAja ke editor konten."
+
+#: templates/onboarding/index.php
+msgid "No courier services are available."
+msgstr "Tidak ada layanan kurir yang tersedia."
+
+#: templates/onboarding/index.php
+msgid "enabled"
+msgstr "aktif"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "items"
+msgstr "item"
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Account connected."
+msgstr "Akun terhubung."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Complete all address fields and set the map pin."
+msgstr "Lengkapi semua kolom alamat dan tentukan pin peta."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Complete previous required steps before finishing."
+msgstr "Selesaikan langkah wajib sebelumnya sebelum menyelesaikan setup."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Courier services saved."
+msgstr "Layanan kurir tersimpan."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Enable WooCommerce shipping locations before finishing."
+msgstr "Aktifkan lokasi pengiriman WooCommerce sebelum menyelesaikan setup."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Finish setup"
+msgstr "Selesaikan setup"
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Select at least one courier service."
+msgstr "Pilih setidaknya satu layanan kurir."
+
+#: src/lib/onboarding/OnboardingApp.svelte
+msgid "Shipping address saved."
+msgstr "Alamat pengiriman tersimpan."
+
 #: inc/Pages/Admin.php
 msgid "Add customer shipment tracking."
 msgstr "Tambahkan pelacakan kiriman pelanggan."
@@ -537,6 +593,30 @@ msgstr "Tidak ada jadwal pickup yang tersedia."
 
 msgid "Please select a pickup schedule."
 msgstr "Silakan pilih jadwal pickup."
+
+msgid "Pickup must be scheduled at least one hour from now."
+msgstr "Pickup harus dijadwalkan setidaknya satu jam dari sekarang."
+
+msgid "Pickup must be scheduled within the next seven days."
+msgstr "Pickup harus dijadwalkan dalam tujuh hari ke depan."
+
+msgid "Please choose a valid pickup date and time."
+msgstr "Silakan pilih tanggal dan waktu pickup yang valid."
+
+msgid "Please choose one of the available pickup time slots."
+msgstr "Silakan pilih salah satu waktu pickup yang tersedia."
+
+msgid "Pickup Date"
+msgstr "Tanggal Pickup"
+
+msgid "Pickup Time"
+msgstr "Waktu Pickup"
+
+msgid "Select a pickup date"
+msgstr "Pilih tanggal pickup"
+
+msgid "Select a pickup time"
+msgstr "Pilih waktu pickup"
 
 #, php-format
 msgid "Remember PIN on this browser for %d minutes"
@@ -2107,6 +2187,9 @@ msgstr "Lihat"
 msgid "View in KiriminAja"
 msgstr "Lihat di KiriminAja"
 
+msgid "View & Track in KiriminAja"
+msgstr "Lihat & Lacak di KiriminAja"
+
 #: inc/Controllers/ProductController.php:122
 #: inc/Controllers/ProductController.php:127
 msgid "Volumetric"
@@ -2418,6 +2501,30 @@ msgstr "Sudah Dicetak"
 #: templates/transaction-process/view/_filters.php:58
 #: templates/transaction-process/view/index.php:406
 msgid "Unprinted"
+msgstr "Belum Dicetak"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "Auto Refresh Timer"
+msgstr "Timer Penyegaran Otomatis"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "1 minute"
+msgstr "1 menit"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "3 minutes"
+msgstr "3 menit"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+msgid "5 minutes"
+msgstr "5 menit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Not Printed"
 msgstr "Belum Dicetak"
 
 #: templates/transaction-process/view/index.php:401
@@ -3268,6 +3375,9 @@ msgstr "Layanan kurir yang dipilih tidak mendukung Cash on Delivery. Silakan pil
 msgid "Street address (min. %d char)"
 msgstr "Alamat jalan (min. %d karakter)"
 
+msgid "Plugin Update Available"
+msgstr "Pembaruan Plugin Tersedia"
+
 msgid "KiriminAja Official %s is available."
 msgstr "KiriminAja Official %s sudah tersedia."
 
@@ -3759,3 +3869,311 @@ msgstr "tidak berubah"
 #: inc/Controllers/SettingController.php
 msgid "Flush & Re-fetch Couriers"
 msgstr "Hapus Cache & Ambil Ulang Kurir"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "All Status"
+msgstr "Semua Status"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Clear filters"
+msgstr "Hapus filter"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "No transactions found."
+msgstr "Tidak ada transaksi ditemukan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Print Labels"
+msgstr "Cetak Label"
+
+#: templates/_workspace-boot.php
+msgid "Loading…"
+msgstr "Memuat…"
+
+#: templates/_workspace-boot.php
+msgid "Preparing the workspace…"
+msgstr "Menyiapkan area kerja…"
+
+#: templates/setting/app.php
+msgid "Loading settings…"
+msgstr "Memuat pengaturan…"
+
+#: templates/transaction-process/app.php
+msgid "Loading transactions…"
+msgstr "Memuat transaksi…"
+
+#: templates/request-pickup/view/index.php
+msgid "Loading payments…"
+msgstr "Memuat pembayaran…"
+
+#: templates/request-pickup-detail/view/index.php
+msgid "Loading pickup details…"
+msgstr "Memuat detail penjemputan…"
+
+#: inc/Services/SettingsPageData.php
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+#: inc/Services/PickupDetailPageData.php
+msgid "More actions"
+msgstr "Tindakan lainnya"
+
+#: inc/Services/SettingsPageData.php
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+#: inc/Services/PickupDetailPageData.php
+msgid "Get Help"
+msgstr "Dapatkan Bantuan"
+
+#: inc/Services/SettingsPageData.php
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/PaymentListRenderService.php
+#: inc/Services/PickupDetailPageData.php
+msgid "Go to Dashboard"
+msgstr "Ke Dasbor"
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "KiriminAja has a new look"
+msgstr "KiriminAja hadir dengan tampilan baru"
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Transactions, Pickup, Settings, and Tracking are now easier to navigate."
+msgstr "Halaman Transaksi, Pickup, Pengaturan, dan Pelacakan kini lebih mudah digunakan."
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Rate KiriminAja"
+msgstr "Beri Nilai untuk KiriminAja"
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Continue to KiriminAja"
+msgstr "Lanjut ke KiriminAja"
+
+#: templates/transaction-detail/view/index.php
+msgid "Loading transaction details…"
+msgstr "Memuat detail transaksi…"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Transaction Detail"
+msgstr "Detail Transaksi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Created"
+msgstr "Dibuat"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Shipment Request"
+msgstr "Permintaan Pengiriman"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Customer note"
+msgstr "Catatan pelanggan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order note"
+msgstr "Catatan pesanan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Print Label"
+msgstr "Cetak Label"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Live Tracking"
+msgstr "Pelacakan Langsung"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recipient"
+msgstr "Penerima"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Package"
+msgstr "Paket"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Products"
+msgstr "Produk"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order notes"
+msgstr "Catatan Pesanan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Airwaybill"
+msgstr "Resi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Drop-off"
+msgstr "Drop-off"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Dimensions"
+msgstr "Dimensi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "COD value"
+msgstr "Nilai COD"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Tracking history"
+msgstr "Riwayat pelacakan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "No tracking history is available yet."
+msgstr "Riwayat pelacakan belum tersedia."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Unable to load tracking history."
+msgstr "Tidak dapat memuat riwayat pelacakan."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Shipped"
+msgstr "Dikirim"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Return"
+msgstr "Retur"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Contact Customer"
+msgstr "Hubungi Pelanggan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Copy AWB"
+msgstr "Salin Resi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order Subtotal"
+msgstr "Subtotal Pesanan"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/TransactionDetailPageData.php
+msgid "Change to shipment origin"
+msgstr "Ubah ke asal pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/TransactionDetailPageData.php
+msgid "Selected courier"
+msgstr "Kurir terpilih"
+
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/TransactionDetailPageData.php
+msgid "Select shipment origin"
+msgstr "Pilih asal pengiriman"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Detail Package & Product"
+msgstr "Detail Paket & Produk"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order Detail"
+msgstr "Detail Pesanan"
+
+msgid "%d Enabled"
+msgstr "%d Aktif"
+
+msgid "Accept Our Privacy & Policy"
+msgstr "Setujui Kebijakan Privasi kami"
+
+msgid "Add default address"
+msgstr "Tambahkan alamat default"
+
+msgid "Allow up to two business days for API generation."
+msgstr "Tunggu hingga dua hari kerja untuk pembuatan API."
+
+msgid "Cancel deficit order"
+msgstr "Batalkan pesanan defisit"
+
+msgid "Cancel shipment"
+msgstr "Batalkan pengiriman"
+
+msgid "Cancellation reason"
+msgstr "Alasan pembatalan"
+
+msgid "Checking available couriers…"
+msgstr "Memeriksa kurir yang tersedia…"
+
+msgid "Choose a new pickup time for this payment."
+msgstr "Pilih waktu penjemputan baru untuk pembayaran ini."
+
+msgid "Choose another active shipment origin, then review the available courier before confirming."
+msgstr "Pilih asal pengiriman aktif lainnya, lalu periksa kurir yang tersedia sebelum mengonfirmasi."
+
+msgid "Confirm & process"
+msgstr "Konfirmasi & proses"
+
+msgid "Confirm change"
+msgstr "Konfirmasi perubahan"
+
+msgid "Confirm schedule"
+msgstr "Konfirmasi jadwal"
+
+msgid "Copied"
+msgstr "Disalin"
+
+msgid "Copy KA Order ID"
+msgstr "Salin ID Pesanan KA"
+
+msgid "Copy and paste the Setup Key into the field."
+msgstr "Salin dan tempel Setup Key ke kolom."
+
+msgid "Courier & Service"
+msgstr "Kurir & Layanan"
+
+msgid "Default address ready"
+msgstr "Alamat default siap digunakan"
+
+msgid "Enter at least 4 characters."
+msgstr "Masukkan minimal 4 karakter."
+
+msgid "How to Obtain Your KiriminAja Credentials"
+msgstr "Cara Mendapatkan Kredensial KiriminAja Anda"
+
+msgid "I agree to replace the unavailable courier with the selected service."
+msgstr "Saya setuju mengganti kurir yang tidak tersedia dengan layanan yang dipilih."
+
+msgid "Linked Account"
+msgstr "Akun Terhubung"
+
+msgid "Log in to your KiriminAja dashboard."
+msgstr "Masuk ke dasbor KiriminAja Anda."
+
+msgid "No alternate shipment origin is available."
+msgstr "Tidak ada asal pengiriman alternatif yang tersedia."
+
+msgid "No callback endpoint is currently registered."
+msgstr "Belum ada endpoint callback yang terdaftar."
+
+msgid "Provide a reason before cancelling this shipment."
+msgstr "Berikan alasan sebelum membatalkan pengiriman ini."
+
+msgid "Registered Callbacks"
+msgstr "Callback Terdaftar"
+
+msgid "Retry"
+msgstr "Coba lagi"
+
+msgid "Set your default and additional pickup addresses for accurate shipping rates."
+msgstr "Atur alamat penjemputan default dan tambahan agar tarif pengiriman akurat."
+
+msgid "Some optional transaction details could not be loaded. See the KiriminAja log for diagnostics."
+msgstr "Sebagian detail transaksi opsional tidak dapat dimuat. Periksa log KiriminAja untuk diagnosis."
+
+msgid "Some transaction details could not be loaded. Review the KiriminAja log for this transaction."
+msgstr "Sebagian detail transaksi tidak dapat dimuat. Periksa log KiriminAja untuk transaksi ini."
+
+msgid "The Setup Key will appear on the App Integrations page."
+msgstr "Setup Key akan muncul di halaman Integrasi Aplikasi."
+
+msgid "These endpoints are registered and maintained automatically by the plugin. They are read-only and update during integration or plugin lifecycle events."
+msgstr "Endpoint ini didaftarkan dan dikelola secara otomatis oleh plugin. Endpoint bersifat hanya-baca dan diperbarui saat integrasi atau perubahan siklus hidup plugin."
+
+msgid "Total Packages"
+msgstr "Total Paket"
+
+msgid "Unable to complete this action."
+msgstr "Tindakan ini tidak dapat diselesaikan."
+
+msgid "Update Connection"
+msgstr "Perbarui Koneksi"
+
+msgid "Update the connection and continue using KiriminAja."
+msgstr "Perbarui koneksi dan lanjutkan menggunakan KiriminAja."

@@ -12,6 +12,22 @@ use PHPUnit\Framework\TestCase;
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( $path = '' ) {
+		return 'https://example.test/' . ltrim( (string) $path, '/' );
+	}
+}
+if ( ! function_exists( 'add_query_arg' ) ) {
+	function add_query_arg( $key, $value, $url ) {
+		$separator = str_contains( $url, '?' ) ? '&' : '?';
+		return $url . $separator . rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+	}
+}
+if ( ! function_exists( 'esc_url_raw' ) ) {
+	function esc_url_raw( $url ) {
+		return (string) $url;
+	}
+}
 
 require_once PLUGIN_DIR . '/inc/Base/BaseService.php';
 require_once PLUGIN_DIR . '/inc/Contracts/ProductVolumetricReadinessRepositoryInterface.php';
@@ -22,6 +38,13 @@ require_once PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php';
 require_once PLUGIN_DIR . '/inc/Services/ProductVolumetricReadinessService.php';
 require_once PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php';
 require_once PLUGIN_DIR . '/inc/Services/SettingsPageData.php';
+require_once PLUGIN_DIR . '/inc/Services/RevampAnnouncementService.php';
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( $capability ) {
+		unset( $capability );
+		return false;
+	}
+}
 if ( ! defined( 'KIRIOF_NONCE' ) ) {
 	define( 'KIRIOF_NONCE', 'kiriof-nonce' );
 }
@@ -113,6 +136,17 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$provider = new SettingsPageData( $settings, $readiness, $api, $region, $cache );
 		$shared   = $provider->prepare();
 		$account  = $provider->prepareAccount();
+		$root     = $provider->prepareRootBootstrap(
+			true,
+			array(
+				'kiriof_cod_enabled'              => 'yes',
+				'kiriof_insurance_enabled'        => 'yes',
+				'kiriof_shipping_locations_ready' => true,
+				'kiriof_default_address_ready'    => true,
+				'kiriof_enabled_courier_count'    => 4,
+			),
+			array( 'total' => 4, 'configured' => 3, 'ready' => false )
+		);
 
 		$this->assertSame( $setup_key, $shared['approvedSetupKey'] );
 		$this->assertSame( 'https://example.test/callback', $shared['inputValueArr']['callback_url'] );
@@ -122,6 +156,16 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertTrue( $account['kiriof_is_connected'] );
 		$this->assertSame( 'JNE', $account['kiriof_wl_map']['jne'] );
 		$this->assertSame( 'J&T Express', $account['kiriof_wl_map']['jnt'] );
+		$this->assertSame( 'configured', $root['mode'] );
+		$this->assertTrue( $root['toggles']['insurance'] );
+		$this->assertSame( '3 / 4 Need Action', $root['productAlert']['status'] );
+		$this->assertSame( 'warning', $root['productAlert']['tone'] );
+		$this->assertSame( 'insurance', $root['groups'][2]['items'][1]['toggle'] );
+		$this->assertSame( '4 Enabled', $root['groups'][2]['items'][0]['status'] );
+		$this->assertNotContains( 'products', array_column( $root['groups'][2]['items'], 'key' ) );
+		$this->assertNotContains( 'shipping-locations', array_column( $root['groups'][2]['items'], 'key' ) );
+		$this->assertSame( 'Default address ready', $root['groups'][2]['items'][3]['status'] );
+		$this->assertNotContains( 'webhooks', array_column( $root['groups'][3]['items'], 'key' ) );
 	}
 
 	#[Test]
@@ -134,7 +178,14 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$GLOBALS['kiriof_settings_page_transients'] = array( 'kiriof_couriers_list_v2' => array( 'cached' ) );
 
 		$settings = $this->createMock( SettingRepository::class );
-		$settings->method( 'getSettingByKey' )->with( 'enable_insurance' )->willReturn( (object) array( 'value' => 'yes' ) );
+		$settings->method( 'getSettingByKey' )->willReturnMap(
+			array(
+				array( 'enable_insurance', (object) array( 'value' => 'yes' ) ),
+				array( 'callback_url', (object) array( 'value' => 'https://example.test/?feed=kiriminaja-callback' ) ),
+				array( 'origin_whitelist_expedition_id', (object) array( 'value' => 'jne,jnt,jne,spx' ) ),
+			)
+		);
+		$settings->method( 'getSettingByArray' )->willReturn( array() );
 		$readiness = $this->createMock( ProductVolumetricReadinessService::class );
 		$api = $this->createMock( KiriminajaApiService::class );
 		$api->method( 'get_couriers' )->willReturn( (object) array( 'status' => 200, 'data' => array( 'a', 'b' ) ) );
@@ -147,14 +198,22 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$provider  = new SettingsPageData( $settings, $readiness, $api, $region, $cache );
 		$list      = $provider->prepareList();
 		$technical = $provider->prepareTechnical();
+		$technical_bootstrap = $provider->prepareTechnicalBootstrap( $technical );
 
 		$this->assertSame( 'no', $list['kiriof_cod_enabled'] );
 		$this->assertSame( 'yes', $list['kiriof_insurance_enabled'] );
+		$this->assertFalse( $list['kiriof_default_address_ready'] );
+		$this->assertSame( 3, $list['kiriof_enabled_courier_count'] );
 		$this->assertSame( 38, $technical['provinceCount'] );
 		$this->assertSame( 514, $technical['cityCount'] );
 		$this->assertSame( 2, $technical['courierCount'] );
 		$this->assertSame( 'Cached', $technical['courierBadgeTxt'] );
 		$this->assertSame( 'Manual refresh only', $technical['regionValidUntil'] );
+		$this->assertSame( 'technical', $technical_bootstrap['view'] );
+		$this->assertSame( 38, $technical_bootstrap['region']['provinceCount'] );
+		$this->assertTrue( $technical_bootstrap['couriers']['cached'] );
+		$this->assertContains( 'https://example.test/?feed=kiriminaja-callback', $technical_bootstrap['callbacks'] );
+		$this->assertStringContainsString( 'icon-128x128.png', $technical_bootstrap['toolbar']['logoUrl'] );
 	}
 
 	#[Test]
@@ -162,8 +221,8 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$templates = array(
 			'templates/setting/index.php',
 			'templates/setting/setuped/index.php',
-			'templates/setting/setuped/section-account.php',
-			'templates/setting/setuped/section-technical.php',
+			'templates/setting/unsetuped/index.php',
+			'templates/setting/app.php',
 		);
 
 		foreach ( $templates as $template ) {

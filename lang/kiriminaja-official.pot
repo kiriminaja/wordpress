@@ -44,6 +44,10 @@ msgid "Street address (min. %d char)"
 msgstr ""
 
 #: inc/Services/PluginUpdateNoticeService.php
+msgid "Plugin Update Available"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
 msgid "KiriminAja Official %s is available."
 msgstr ""
 
@@ -891,6 +895,9 @@ msgstr ""
 
 #: templates/order/metabox-shipping.php:137
 msgid "View in KiriminAja"
+msgstr ""
+
+msgid "View & Track in KiriminAja"
 msgstr ""
 
 #: templates/order/metabox-shipping.php:140
@@ -2231,4 +2238,131 @@ msgstr ""
 
 #: inc/Services/WooCommerceShippingMethodRegistrationService.php:76
 msgid "Indonesia"
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "KiriminAja has a new look"
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Transactions, Pickup, Settings, and Tracking are now easier to navigate."
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Rate KiriminAja"
+msgstr ""
+
+#: inc/Services/RevampAnnouncementService.php
+msgid "Continue to KiriminAja"
+msgstr ""
+
+msgid "%d Enabled"
+msgstr ""
+
+msgid "Accept Our Privacy & Policy"
+msgstr ""
+
+msgid "Add default address"
+msgstr ""
+
+msgid "Allow up to two business days for API generation."
+msgstr ""
+
+msgid "Cancel deficit order"
+msgstr ""
+
+msgid "Cancel shipment"
+msgstr ""
+
+msgid "Cancellation reason"
+msgstr ""
+
+msgid "Checking available couriers…"
+msgstr ""
+
+msgid "Choose a new pickup time for this payment."
+msgstr ""
+
+msgid "Choose another active shipment origin, then review the available courier before confirming."
+msgstr ""
+
+msgid "Confirm & process"
+msgstr ""
+
+msgid "Confirm change"
+msgstr ""
+
+msgid "Confirm schedule"
+msgstr ""
+
+msgid "Copied"
+msgstr ""
+
+msgid "Copy KA Order ID"
+msgstr ""
+
+msgid "Copy and paste the Setup Key into the field."
+msgstr ""
+
+msgid "Courier & Service"
+msgstr ""
+
+msgid "Default address ready"
+msgstr ""
+
+msgid "Enter at least 4 characters."
+msgstr ""
+
+msgid "How to Obtain Your KiriminAja Credentials"
+msgstr ""
+
+msgid "I agree to replace the unavailable courier with the selected service."
+msgstr ""
+
+msgid "Linked Account"
+msgstr ""
+
+msgid "Log in to your KiriminAja dashboard."
+msgstr ""
+
+msgid "No alternate shipment origin is available."
+msgstr ""
+
+msgid "No callback endpoint is currently registered."
+msgstr ""
+
+msgid "Provide a reason before cancelling this shipment."
+msgstr ""
+
+msgid "Registered Callbacks"
+msgstr ""
+
+msgid "Retry"
+msgstr ""
+
+msgid "Set your default and additional pickup addresses for accurate shipping rates."
+msgstr ""
+
+msgid "Some optional transaction details could not be loaded. See the KiriminAja log for diagnostics."
+msgstr ""
+
+msgid "Some transaction details could not be loaded. Review the KiriminAja log for this transaction."
+msgstr ""
+
+msgid "The Setup Key will appear on the App Integrations page."
+msgstr ""
+
+msgid "These endpoints are registered and maintained automatically by the plugin. They are read-only and update during integration or plugin lifecycle events."
+msgstr ""
+
+msgid "Total Packages"
+msgstr ""
+
+msgid "Unable to complete this action."
+msgstr ""
+
+msgid "Update Connection"
+msgstr ""
+
+msgid "Update the connection and continue using KiriminAja."
 msgstr ""

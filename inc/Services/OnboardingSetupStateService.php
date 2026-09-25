@@ -181,7 +181,7 @@ class OnboardingSetupStateService {
 
 		if ( $is_connected ) {
 			try {
-				$profile_service = ( new KiriminAjaApiService() )->getProfile();
+				$profile_service = $this->get_api_service()->getProfile();
 				if ( 200 === $profile_service->status && ! empty( $profile_service->data ) ) {
 					$profile = $profile_service->data;
 				} else {

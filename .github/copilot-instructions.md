@@ -82,12 +82,12 @@ Controllers\EditOrderController::class,
 
 Admin pages are registered via `Pages\Admin` → `Base\PageGenerator`. The page system supports:
 
-- **Top-level menu:** `kiriminaja-konfigurasi` (Settings page, icon position 56)
+- **Top-level menu:** `kiriminaja-setting` (Settings page, icon position 56)
 - **Sub-pages** (only registered when WooCommerce is active):
-  - `kiriminaja-transaction-process` — Transactions list
+  - `kiriminaja-transaction` — Transactions list
   - `kiriminaja-request-pickup` — Payments list
   - `kiriminaja-request-pickup-detail` — Request Pickup Detail (hidden sub-page, not shown in sidebar)
-  - `kiriminaja-konfigurasi` — Settings (re-uses parent slug to replace auto-generated first sub-item)
+  - `kiriminaja-setting` — Settings (re-uses parent slug to replace auto-generated first sub-item)
 
 ### Hidden Sub-Pages
 

@@ -21,6 +21,126 @@ class PaymentListRenderService {
         $this->query = $query;
     }
 
+	/**
+	 * @param array<int, object>   $results       Payment rows.
+	 * @param array<string,string> $filters       Current filters.
+	 * @param array<string,string> $month_options Month filter options.
+	 * @param array<string,int>    $status_counts Payment status counts.
+	 * @return array<string, mixed>
+	 */
+	private function prepareSvelteBootstrap( array $results, array $filters, int $page, int $total_pages, int $total, int $items_per_page, array $month_options, array $status_counts ): array {
+		$rows = array();
+		foreach ( $results as $index => $row ) {
+			$method = strtolower( trim( (string) ( $row->method ?? '' ) ) );
+			$status = (string) ( $row->status ?? '' );
+			$pickup_number = (string) ( $row->pickup_number ?? '' );
+			$actions = array();
+			if ( 'paid' !== $status && 'top' !== $method ) {
+				$actions[] = array(
+					'type'  => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? 'pay' : 'reschedule',
+					'label' => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? __( 'Pay', 'kiriminaja-official' ) : __( 'Reschedule', 'kiriminaja-official' ),
+				);
+			}
+			$actions[] = array(
+				'type'  => 'details',
+				'label' => __( 'Details', 'kiriminaja-official' ),
+				'href'  => add_query_arg( 'key', 'pid:' . $pickup_number, admin_url( 'admin.php?page=kiriminaja-transaction' ) ),
+			);
+
+			$rows[] = array(
+				'number'       => $index + ( ( $page - 1 ) * $items_per_page ) + 1,
+				'pickupNumber' => $pickup_number,
+				'requestedAt'  => wp_date( 'Y/m/d H:i', strtotime( (string) ( $row->created_at ?? '' ) ) ),
+				'schedule'     => gmdate( 'Y/m/d H:i', strtotime( (string) ( $row->pickup_schedule ?? '' ) ) ) . ' WIB',
+				'fees'         => 'Rp. ' . kiriof_money_format( $row->cost ?? 0 ),
+				'orders'       => (int) ( $row->order_amt ?? 0 ),
+				'method'       => '' !== $method ? strtoupper( $method ) : 'QRIS',
+				'status'       => 'paid' === $status || 'top' === $method ? 'paid' : 'unpaid',
+				'actions'      => $actions,
+			);
+		}
+		$toolbar = array(
+			'logoUrl'   => KIRIOF_URL . 'assets/admin/img/icon-128x128.png',
+			'rootUrl'   => admin_url( 'admin.php?page=kiriminaja-setting' ),
+			'rootLabel' => __( 'Payments', 'kiriminaja-official' ),
+			'title'     => __( 'Payments', 'kiriminaja-official' ),
+		);
+		$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
+		if ( $toolbar_update ) {
+			$toolbar['update'] = $toolbar_update;
+		}
+		$toolbar['menu'] = array(
+			'label' => __( 'More actions', 'kiriminaja-official' ),
+			'items' => array(
+				array(
+					'label' => __( 'Get Help', 'kiriminaja-official' ),
+					'href'  => 'https://help.kiriminaja.com/category/plugin',
+				),
+				array(
+					'label' => __( 'Go to Dashboard', 'kiriminaja-official' ),
+					'href'  => 'https://app.kiriminaja.com',
+				),
+			),
+		);
+		$toolbar = RevampAnnouncementService::attach_announcement( $toolbar );
+
+		return array(
+			'toolbar'      => $toolbar,
+			'rows'         => $rows,
+			'filters'      => $filters,
+			'monthOptions' => $month_options,
+			'statusTabs'   => array(
+				array( 'value' => '', 'label' => __( 'All', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['all'] ?? 0 ) ),
+				array( 'value' => 'unpaid', 'label' => __( 'Waiting for Payment', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['unpaid'] ?? 0 ) ),
+				array( 'value' => 'paid', 'label' => __( 'Paid', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['paid'] ?? 0 ) ),
+			),
+			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages, 'total' => $total, 'perPage' => $items_per_page ),
+			'ajax'         => array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( KIRIOF_NONCE ) ),
+			'i18n'         => array(
+				'search'        => __( 'Search payment…', 'kiriminaja-official' ),
+				'allDates'      => __( 'All Dates', 'kiriminaja-official' ),
+				'apply'         => __( 'Apply', 'kiriminaja-official' ),
+				'pickupNumber'  => __( 'Pickup Number', 'kiriminaja-official' ),
+				'schedule'      => __( 'Schedule', 'kiriminaja-official' ),
+				'fees'          => __( 'Fees', 'kiriminaja-official' ),
+				'orders'        => __( 'Orders', 'kiriminaja-official' ),
+				'paymentMethod' => __( 'Payment Method', 'kiriminaja-official' ),
+				'paymentStatus' => __( 'Payment Status', 'kiriminaja-official' ),
+				'action'        => __( 'Action', 'kiriminaja-official' ),
+				'requested'     => __( 'Requested', 'kiriminaja-official' ),
+				'order'         => __( 'Order', 'kiriminaja-official' ),
+				'no'            => __( 'No', 'kiriminaja-official' ),
+				'empty'         => __( 'Not Found', 'kiriminaja-official' ),
+				'pageOf'        => __( 'of', 'kiriminaja-official' ),
+				'items'         => __( 'items', 'kiriminaja-official' ),
+				'autoRefresh'   => __( 'Auto Refresh Timer', 'kiriminaja-official' ),
+				'refreshLabels' => array(
+					'60'  => __( '1 minute', 'kiriminaja-official' ),
+					'180' => __( '3 minutes', 'kiriminaja-official' ),
+					'300' => __( '5 minutes', 'kiriminaja-official' ),
+				),
+			),
+			'modals'       => array(
+				'scanToPay'    => __( 'Scan to Pay', 'kiriminaja-official' ),
+				'code'         => __( 'Code', 'kiriminaja-official' ),
+				'codCharges'   => __( 'COD Package Charges', 'kiriminaja-official' ),
+				'nonCodCharges'=> __( 'Non-COD Package Charges', 'kiriminaja-official' ),
+				'totalCharges' => __( 'Total Charges', 'kiriminaja-official' ),
+				'expiresAt'    => __( 'QR will expire at', 'kiriminaja-official' ),
+				'refresh'      => __( 'Refresh', 'kiriminaja-official' ),
+				'error'        => __( 'Terjadi Kesalahan !', 'kiriminaja-official' ),
+				'schedule'     => __( 'Schedule for Pickup', 'kiriminaja-official' ),
+				'pickSchedule' => __( 'Pick Schedule', 'kiriminaja-official' ),
+				'scheduleDescription' => __( 'Choose a new pickup time for this payment.', 'kiriminaja-official' ),
+				'confirmSchedule' => __( 'Confirm schedule', 'kiriminaja-official' ),
+				'cancel' => __( 'Cancel', 'kiriminaja-official' ),
+				'processing' => __( 'Processing…', 'kiriminaja-official' ),
+				'retry' => __( 'Retry', 'kiriminaja-official' ),
+				'noSchedule' => __( 'No pickup schedule is available.', 'kiriminaja-official' ),
+			),
+		);
+	}
+
     /**
      * Composition root used by the legacy Admin page callback.
      */
@@ -33,7 +153,6 @@ class PaymentListRenderService {
      * Prepare the existing view variables and include the view.
      */
     public function render(): void {
-        $locale         = get_locale();
         $filters        = $this->getFilters();
         $items_per_page = 20;
         $page_data      = $this->query->getPage( $filters, $this->getRequestedPage(), $items_per_page );
@@ -41,10 +160,19 @@ class PaymentListRenderService {
         $page           = $page_data['page'];
         $items_per_page = $page_data['items_per_page'];
         $total_pages    = $page_data['total_pages'];
-        $next_page_link = $this->getPaginationLink( $page + 1, $page < $total_pages );
-        $prev_page_link = $this->getPaginationLink( $page - 1, $page > 1 );
+		$total          = $page_data['total'];
         $monthOptions   = $this->getMonthOptions();
         $kiriof_statusCounts = $this->query->getStatusCounts();
+		$kiriof_payments_bootstrap = $this->prepareSvelteBootstrap(
+			$results,
+			$filters,
+			$page,
+			$total_pages,
+			$total,
+			$items_per_page,
+			$monthOptions,
+			$kiriof_statusCounts
+		);
 
         include KIRIOF_DIR . 'templates/request-pickup/view/index.php';
     }
@@ -70,27 +198,6 @@ class PaymentListRenderService {
     private function getRequestedPage(): int {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination value.
         return isset( $_GET['cpage'] ) ? max( 1, absint( $_GET['cpage'] ) ) : 1;
-    }
-
-    /**
-     * Preserve the existing query string while changing the list page.
-     */
-    private function getPaginationLink( int $target_page, bool $available ): string {
-        if ( ! $available ) {
-            return '';
-        }
-
-        $link = admin_url( 'admin.php?' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination link building.
-        foreach ( $_GET as $key => $value ) {
-            if ( 'cpage' === $key || ! is_scalar( $value ) ) {
-                continue;
-            }
-
-            $link .= sanitize_key( $key ) . '=' . urlencode( sanitize_text_field( wp_unslash( (string) $value ) ) ) . '&';
-        }
-
-        return esc_url( $link . 'cpage=' . $target_page );
     }
 
     /**

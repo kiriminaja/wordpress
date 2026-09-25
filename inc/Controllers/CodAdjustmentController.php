@@ -77,10 +77,8 @@ class CodAdjustmentController {
         $insuranceFee = (float) ( $transaction->insurance_cost ?? 0 );
         $originalCodFee = (float) ( $transaction->cod_fee ?? 0 );
         $adminFee     = 0.0;
-        $dbCodMinimum = (float) ( $transaction->cod_minimum ?? 0 );
-
         $localMinimum = $shippingCost + $insuranceFee + $originalCodFee + $adminFee;
-        $minimumCod   = max( $localMinimum, $dbCodMinimum );
+        $minimumCod   = $localMinimum;
         $maxCodAmount = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? (float) KIRIOF_MAX_COD_AMOUNT : 3000000.0;
 
         if ( $newTotalCod < $minimumCod ) {
@@ -125,7 +123,7 @@ class CodAdjustmentController {
             if ( null !== $apiResult ) {
                 $newCodFee     = (float) ( $apiResult[0]->total_fee ?? $originalCodFee );
                 $localMinimum  = $shippingCost + $insuranceFee + $newCodFee + $adminFee;
-                $newCodMinimum = max( $localMinimum, (float) ( $apiResult[0]->minimum_custom_cod ?? 0 ), $dbCodMinimum );
+                $newCodMinimum = max( $localMinimum, (float) ( $apiResult[0]->minimum_custom_cod ?? 0 ) );
             } else {
                 kiriof_log(
                     'warning',

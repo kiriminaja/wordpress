@@ -13,7 +13,6 @@ use KiriminAja\Responses\ServiceResponse;
 
 class KiriminAjaApi {
     protected string $base_url;
-
     public function __construct() {
         $this->base_url = $this->resolve_base_url();
         $this->configure_sdk();
@@ -105,7 +104,6 @@ class KiriminAjaApi {
     private function configure_sdk(): void {
         $api_token_row = kiriof_setting_repository()->getSettingByKey( 'api_key' );
         $api_token     = is_object( $api_token_row ) ? (string) ( $api_token_row->value ?? '' ) : '';
-
         try {
             KiriminAjaConfig::setCacheDirectory( trailingslashit( get_temp_dir() ) . 'kiriminaja-sdk' );
             KiriminAjaConfig::setMode( Mode::Production );

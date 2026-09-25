@@ -1,0 +1,17 @@
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
+@import 'tailwindcss/utilities.css';
+
+.kiriof-card {
+  @apply relative overflow-hidden border rounded-xl bg-white shadow-sm;
+}
+
+.kiriof-card[data-slot='card'] {
+  @apply gap-0 p-0 border rounded-xl bg-white shadow-sm;
+}
+
+@keyframes kiriof-detail-step-progress {
+  to {
+    transform: scaleX(1);
+  }
+}

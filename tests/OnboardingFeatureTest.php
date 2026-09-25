@@ -10,7 +10,7 @@ final class OnboardingFeatureTest extends TestCase
     {
         $page = file_get_contents(PLUGIN_DIR . '/inc/Pages/Onboarding.php');
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
-        $css = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css');
+        $css = file_get_contents(PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css');
         $template = file_get_contents(PLUGIN_DIR . '/templates/onboarding/index.php');
 
         $this->assertStringContainsString("'kiriminaja-onboarding'", $page);
@@ -23,36 +23,21 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString("add_action( 'admin_menu', array( \$this, 'hide_page' )", $page);
         $this->assertStringContainsString("'kiriminaja-onboarding' === \$page", $enqueue);
         $this->assertStringContainsString('enqueueOnboarding', $enqueue);
-		$this->assertStringContainsString("wp_enqueue_style( 'woocommerce_admin_styles' )", $enqueue);
+		$this->assertStringContainsString('kiriminaja-kiriof-var.css', $enqueue);
+		$this->assertStringContainsString('kiriminaja-kiriof-component.css', $enqueue);
+		$this->assertStringNotContainsString("wp_enqueue_style( 'woocommerce_admin_styles' )", substr( $enqueue, strpos( $enqueue, 'private function enqueueOnboarding' ) ) );
+		$this->assertStringNotContainsString('kj-onboarding.css', $enqueue);
 		$this->assertStringContainsString('#adminmenumain', $css);
 		$this->assertStringContainsString('#wpadminbar', $css);
-		$this->assertStringContainsString('position: sticky', $css);
-		$this->assertStringContainsString('top: 0;', $css);
-		$this->assertStringContainsString('bottom: 0;', $css);
-		$this->assertStringContainsString('z-index: 20;', $css);
-		$this->assertStringContainsString('left: 50%;', $css);
-		$this->assertStringContainsString('transform: translateX(-50%);', $css);
-		$this->assertStringContainsString('width: min(760px, calc(100% - 420px));', $css);
-		$this->assertFileExists(PLUGIN_DIR . '/assets/admin/img/logo-tagline.svg');
-		$this->assertStringContainsString('assets/admin/img/logo-tagline.svg', $template);
-		$this->assertStringContainsString('kiriof-onboarding__header-actions', $template);
-		$this->assertStringContainsString('https://kiriminaja.com/solusi/plugin-woocommerce', $template);
-		$this->assertStringContainsString('dashicons-editor-help', $template);
-		$this->assertStringContainsString('dashicons-no-alt', $template);
-		$this->assertStringNotContainsString('kiriof-onboarding__mark', $template);
-		$this->assertStringContainsString('.kiriof-onboarding__brand img', $css);
-		$this->assertStringContainsString('width: 132px;', $css);
-		$this->assertStringContainsString('background: #fff;', $css);
-		$this->assertStringContainsString('min-height: 34px;', $css);
-		$this->assertStringContainsString('border-top: 1px solid #e3ddf6;', $css);
-		$this->assertStringContainsString('env(safe-area-inset-bottom)', $css);
-		$this->assertStringContainsString('line-height: 1;', $css);
-		$this->assertStringContainsString('display: block;', $css);
-		$this->assertStringContainsString('max-height: none;', $css);
-		$this->assertStringContainsString('overflow: visible;', $css);
-		$this->assertStringContainsString('.kiriof-onboarding__map', $css);
-		$this->assertStringContainsString('max-width: none;', $css);
-		$this->assertStringContainsString('padding: 14px 0 152px;', $css);
+		$this->assertStringContainsString('[data-kiriof-onboarding-app]', $css);
+		$this->assertStringContainsString('fixed', $css);
+		$this->assertStringContainsString('overflow-hidden!', $css);
+		$this->assertFileDoesNotExist(PLUGIN_DIR . '/assets/admin/img/logo-tagline.svg');
+		$this->assertStringNotContainsString("'logoUrl'", $page);
+		$this->assertStringContainsString("'helpUrl'", $page);
+		$this->assertStringContainsString("'initialStep'", $page);
+		$this->assertStringContainsString("'steps'", $page);
+		$this->assertStringContainsString('aria-busy="true"', $template);
 	}
 
 	#[Test]
@@ -69,104 +54,63 @@ final class OnboardingFeatureTest extends TestCase
 	}
 
     #[Test]
-    public function onboarding_contains_four_interactive_required_steps(): void
+    public function onboarding_uses_the_shadcn_svelte_application(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/onboarding/index.php');
-        $account = file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/account.php');
-        $address = file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/address.php');
-        $css = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css');
-		$script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js');
-		$enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
-		$onboarding_enqueue = substr($enqueue, strpos($enqueue, 'private function enqueueOnboarding'));
+        $app = file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/OnboardingApp.svelte' );
+        $entry = file_get_contents( PLUGIN_DIR . '/src/entries/onboarding-progress.ts' );
+        $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+        $page = file_get_contents( PLUGIN_DIR . '/inc/Pages/Onboarding.php' );
+        $components = file_get_contents( PLUGIN_DIR . '/components.json' );
 
-        foreach (['account.php', 'address.php', 'couriers.php', 'shipping.php'] as $step) {
-            $this->assertStringContainsString($step, $template);
-        }
-
-        foreach (['kiriof_store_integration_data', 'kiriof_store_origin_data', 'kiriof_store_courier_whitelist', 'kiriof_enable_shipping_method'] as $action) {
-            $this->assertStringContainsString($action, $script);
-        }
-
-		$this->assertStringContainsString('&#10003;', $template);
-		$this->assertStringContainsString('woocommerce-input-toggle', $script);
-		$this->assertStringContainsString('data-account-complete', $template);
-		$this->assertStringContainsString('accountComplete', $script);
-		$this->assertStringContainsString('canVisit(target)', $script);
-		$this->assertStringContainsString("isStepDone('couriers')", $script);
-		$this->assertStringContainsString('blockNavigation(target)', $script);
-		$this->assertStringContainsString('Save at least one courier service before continuing.', $script);
-		$this->assertStringContainsString('Complete previous required steps before finishing.', $script);
-		$this->assertStringContainsString("$('[data-step-target=\"couriers\"]').removeClass('is-done')", $script);
-		$this->assertStringContainsString('accountRequired', $script);
-		$this->assertStringContainsString('accountRequired', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
-		$this->assertStringContainsString('templates/setting/partials/account-connection-status.php', $account);
-		$this->assertStringContainsString('Connection', $account);
-		$this->assertStringContainsString('get_integration_values', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('nav_title', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('kiriof-onboarding__field', $address);
-		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
-		$this->assertStringContainsString("origin_sub_district_name: area.text()", $script);
-		$this->assertStringContainsString('kiriof-onboarding__locate', $script);
-		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.js');
-		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/choices.min.css');
-		$this->assertFileExists(PLUGIN_DIR . '/assets/lib/choices/LICENSE');
-		$this->assertStringContainsString("'kiriof-choices-script'", $onboarding_enqueue);
-		$this->assertStringContainsString("'kiriof-choices-style'", $onboarding_enqueue);
-		$this->assertStringContainsString("'11.2.4'", $onboarding_enqueue);
-		$this->assertStringNotContainsString('wp_add_inline_script', $onboarding_enqueue);
-		$this->assertStringNotContainsString("wp_enqueue_script( 'select2'", $onboarding_enqueue);
-		$this->assertStringNotContainsString("wp_enqueue_script( 'selectWoo'", $onboarding_enqueue);
-		$this->assertStringNotContainsString('wc-enhanced-select-nostd', $address);
-		$this->assertStringContainsString('new window.Choices', $script);
-		$this->assertStringContainsString('subdistrictChoices.setChoices(', $script);
-		$this->assertStringContainsString("addEventListener('search'", $script);
-		$this->assertStringContainsString('new window.AbortController()', $script);
-		$this->assertStringContainsString("body.set('data[search]', term)", $script);
-		$this->assertStringContainsString('payload.success === false', $script);
-		$this->assertStringContainsString('.kiriof-onboarding .choices', $css);
-		$this->assertStringContainsString('.kiriof-onboarding .choices.is-open', $css);
-		$this->assertStringContainsString('z-index: 1000;', $css);
-		$this->assertStringContainsString('z-index: 1001;', $css);
-		$this->assertStringContainsString('z-index: 0;', $css);
-		$this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $script);
-		$this->assertStringContainsString('currentLocation', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
-		$this->assertStringContainsString('disconnectConfirm', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
-		$this->assertStringContainsString("post('kiriof_disconnect_integration')", $script);
-		$this->assertStringNotContainsString("hasClass('is-done') ||", $script);
-		$this->assertStringNotContainsString('kiriof-onboarding__intro', $template);
-		$this->assertStringNotContainsString('Set up shipping for your store', $template);
-		$this->assertStringContainsString('class="form-table"', $account);
-		$this->assertStringContainsString('class="form-table"', $address);
-		$this->assertStringContainsString('scope="row"', $address);
-		$this->assertStringContainsString('class="regular-text kiriof-onboarding__field"', $address);
-		$this->assertStringContainsString('class="large-text kiriof-onboarding__field"', $address);
-		$this->assertStringContainsString('.kiriof-onboarding__field', $css);
-		$this->assertStringContainsString('white-space: nowrap;', $css);
-		$this->assertStringContainsString('border: 0;', $css);
-		$this->assertStringContainsString('background: #f5f0ff;', $css);
-		$this->assertStringContainsString("Account Connection", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString("'nav_title' => __( 'Account', 'kiriminaja-official' )", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('get_connection_state', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('private ?KiriminajaApiService $api_service;', file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString("getSettingByKey( 'api_key' )", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString("! empty( \$setup_key->value ?? null ) && ! empty( \$api_key->value ?? null )", file_get_contents(PLUGIN_DIR . '/inc/Services/OnboardingSetupStateService.php'));
-		$this->assertStringContainsString('kiriof-onboarding__check', file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/shipping.php'));
-		$this->assertStringContainsString('dashicons-clock', file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/shipping.php'));
-		$this->assertStringContainsString('setCheck', $script);
-		$this->assertStringContainsString('updateContinueState', $script);
-		$this->assertStringContainsString('hasSelectedCouriers', $script);
-		$this->assertStringContainsString("current === 'couriers' && !hasSelectedCouriers()", $script);
-		$this->assertStringContainsString("if (step === 'couriers')", $script);
-		$this->assertStringContainsString('couriersLoading || couriersLoaded', $script);
-		$this->assertStringContainsString('couriersLoaded = false;', $script);
-		$this->assertStringContainsString('couriersLoaded = true;', $script);
-		$this->assertStringNotContainsString("\n\tloadCouriers();\n\tshow(current);", $script);
-		$this->assertStringContainsString('kiriof-onboarding__segmented-actions', file_get_contents(PLUGIN_DIR . '/templates/onboarding/steps/couriers.php'));
-		$this->assertStringContainsString('.kiriof-onboarding__segmented-actions', $css);
-		$this->assertStringContainsString('is-complete', $script);
-		$this->assertStringContainsString('.kiriof-onboarding.is-complete .kiriof-onboarding__header', $css);
-		$this->assertStringContainsString('[data-step-panel="complete"].is-active', $css);
+        $this->assertStringContainsString( 'from \'$lib/components/ui/button\'', $app );
+        $this->assertStringContainsString( 'from \'$lib/components/ui/card\'', $app );
+        $this->assertStringContainsString( 'from \'$lib/components/ui/field\'', $app );
+        $this->assertStringContainsString( 'from \'$lib/components/ui/switch\'', $app );
+		$this->assertStringContainsString( 'SubdistrictCombobox', $app );
+		$this->assertStringContainsString( 'ActionTooltip', $app );
+		$this->assertStringNotContainsString( 'title=', $app );
+		$this->assertStringNotContainsString( 'DotField', $app );
+		$this->assertStringNotContainsString( 'Dither.svelte', $app );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/backgrounds/DotField.svelte' );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/backgrounds/Dither.svelte' );
+		$this->assertStringNotContainsString( '"three"', file_get_contents( PLUGIN_DIR . '/package.json' ) );
+		$this->assertStringContainsString( 'variant="destructive"', $app );
+		$this->assertStringContainsString( 'class="min-h-20 resize-none"', $app );
+		$this->assertStringContainsString( "{#if current !== 'complete'}", $app );
+		$this->assertStringContainsString( 'class="m-0 max-w-md text-sm leading-6 text-muted-foreground"', $app );
+		$this->assertStringContainsString( 'no-underline hover:no-underline focus:no-underline', $app );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/command/index.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/popover/index.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' );
+		$this->assertStringContainsString( 'kiriof-onboarding-subdistrict-popover', file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' ) );
+		$this->assertStringContainsString( 'z-100001!', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
+        $this->assertStringContainsString( 'const canSubmitAccount = $derived', $app );
+		$this->assertStringContainsString( 'disabled={busy || !canSubmitAccount}', $app );
+		$this->assertStringContainsString( 'class="absolute right-3 top-3 z-20', $app );
+		$this->assertStringContainsString( 'kiriof-onboarding-background', $app );
+		$this->assertStringContainsString( '{#if !allCouriersEnabled}', $app );
+		$this->assertStringContainsString( 'disabled={selected && selectedCourierCount === 1}', $app );
+		$this->assertStringNotContainsString( 'disableAll', $app );
+		$this->assertStringNotContainsString( "'disableAll'", $page );
+		$this->assertStringContainsString( '[background-image:radial-gradient(', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
+		$this->assertStringContainsString( 'var(--muted-foreground)', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
+		$this->assertStringContainsString( 'let account = $state(getInitialAccount())', $app );
+		$this->assertStringContainsString( "profile?: OnboardingBootstrap['account']['profile']", $app );
+		$this->assertStringNotContainsString( 'setMessage(bootstrap.i18n.accountConnected, true);\n      setupKey = \'\';\n      next();', $app );
+		$this->assertStringContainsString( 'KiriminAja account connected', $app );
+		$this->assertStringContainsString( 'Profile details are temporarily unavailable.', $app );
+        $this->assertStringContainsString( 'kiriof_store_origin_data', $app );
+        $this->assertStringContainsString( 'kiriof_store_courier_whitelist', $app );
+        $this->assertStringContainsString( 'kiriof_enable_shipping_method', $app );
+        $this->assertStringContainsString( 'kiriminaja_subdistrict_search', $app );
+        $this->assertStringContainsString( 'OnboardingApp', $entry );
+        $this->assertStringNotContainsString( "'kiriof-onboarding-script'", substr( $enqueue, strpos( $enqueue, 'private function enqueueOnboarding' ) ) );
+        $this->assertStringContainsString( 'filter_module_script_tag', $enqueue );
+        $this->assertStringContainsString( 'shadcn-svelte.com/schema.json', $components );
+        $this->assertStringContainsString( 'iconLibrary', $components );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/button/index.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/card/index.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/field/index.ts' );
     }
 
     #[Test]
@@ -178,8 +122,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('UPDATE_REDIRECT_OPTION', $page);
 		$this->assertStringContainsString('should_consume_activation_redirect', $page);
 		$this->assertStringContainsString('is_kiriminaja_admin_page', $page);
-		$this->assertStringContainsString("'kiriminaja-konfigurasi'", $page);
-		$this->assertStringContainsString("'kiriminaja-transaction-process'", $page);
+		$this->assertStringContainsString("'kiriminaja-setting'", $page);
+		$this->assertStringContainsString("'kiriminaja-transaction'", $page);
 		$this->assertStringContainsString("array( 'shipping', 'kiriminaja_warehouses' )", $page);
 		$this->assertStringNotContainsString('should_gate_request', $page);
 
@@ -210,5 +154,97 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString("'activate-selected'", $plugin);
 		$this->assertStringNotContainsString('wp_safe_redirect', substr($plugin, strpos($plugin, 'function kiriof_activate_plugin'), 2500));
 		$this->assertStringContainsString('upgrader_process_complete', $plugin);
+    }
+
+    #[Test]
+    public function onboarding_mounts_a_single_svelte_root(): void
+    {
+        $template = file_get_contents( PLUGIN_DIR . '/templates/onboarding/index.php' );
+        $this->assertStringContainsString( 'data-kiriof-onboarding-app', $template );
+        $this->assertStringContainsString( 'data-kiriof-onboarding-payload', $template );
+		$this->assertSame( 1, substr_count( $template, 'data-kiriof-onboarding-app' ) );
+		$this->assertStringNotContainsString( 'data-kiriof-onboarding-fallback', $template );
+		$this->assertStringNotContainsString( 'data-step-panel', $template );
+		$this->assertStringNotContainsString( 'include __DIR__ . \'/steps/', $template );
+		$this->assertDirectoryDoesNotExist( PLUGIN_DIR . '/templates/onboarding/steps' );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/css/kj-onboarding.css' );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-onboarding.js' );
+    }
+
+    #[Test]
+    public function settings_root_uses_the_shared_svelte_admin_foundation(): void
+    {
+        $controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/SettingController.php' );
+        $configured = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/index.php' );
+        $setup      = file_get_contents( PLUGIN_DIR . '/templates/setting/unsetuped/index.php' );
+		$app         = file_get_contents( PLUGIN_DIR . '/templates/setting/app.php' );
+		$entry       = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
+		$styles      = file_get_contents( PLUGIN_DIR . '/src/styles/settings-root.css' );
+        $vite       = file_get_contents( PLUGIN_DIR . '/vite.config.ts' );
+        $gitignore  = file_get_contents( PLUGIN_DIR . '/.gitignore' );
+
+		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/wordpress/ajax.ts' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/SettingSwitch.svelte' );
+		$this->assertStringContainsString( "include KIRIOF_DIR . 'templates/setting/app.php'", $configured );
+		$this->assertStringContainsString( "include KIRIOF_DIR . 'templates/setting/app.php'", $setup );
+		$this->assertStringContainsString( 'data-kiriof-settings-root', $app );
+		$this->assertStringContainsString( 'data-kiriof-settings-payload', $app );
+		$this->assertStringContainsString( 'kiriof-workspace-shell', $app );
+		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $app );
+		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $configured );
+		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $setup );
+		$this->assertStringContainsString( 'querySelectorAll', $entry );
+		$this->assertStringContainsString( 'mr-auto ml-auto', $styles );
+		$this->assertStringContainsString( "[data-slot='switch-thumb'][data-state='checked']", $styles );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );
+		$this->assertStringContainsString( 'response.data?.profile', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringNotContainsString( "await postWordPressAction('kiriof_store_integration_data', { setup_key: setupKey.trim() });\n      window.location.reload();", file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-account-courier-grid', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-credentials-guide', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'updateConnection', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'class="kiriof-setup-key-input"', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-update-connection__icon', file_get_contents( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' ) );
+        $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TrackingSection.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/Toolbar.svelte' );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/toolbar.ts' );
+		$this->assertFileExists( PLUGIN_DIR . '/assets/admin/img/icon-128x128.png' );
+		$toolbarStyles = file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' );
+		$this->assertStringContainsString( 'kiriof-app-toolbar', $toolbarStyles );
+		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $toolbarStyles );
+		$this->assertStringContainsString( 'py-2', $toolbarStyles );
+		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .update-nag', $toolbarStyles );
+		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
+		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) #wpcontent', $toolbarStyles );
+		$this->assertStringContainsString( '.kiriof-connection-layout', $styles );
+		$this->assertStringContainsString( '.kiriof-product-alert', $styles );
+		$this->assertStringContainsString( 'bootstrap.productAlert', file_get_contents( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' ) );
+		$this->assertStringContainsString( '.kiriof-product-alert', $styles );
+		$this->assertStringContainsString( 'bootstrap.productAlert', file_get_contents( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' ) );
+		$this->assertStringContainsString( "[data-slot='input'].kiriof-setup-key-input", $styles );
+		$this->assertStringContainsString( '!inline-flex', $styles );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
+		$this->assertStringContainsString( 'history.pushState', $entry );
+		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );
+		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
+		$this->assertStringContainsString( "remove_all_actions( 'admin_notices' )", file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
+		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", $vite );
+		$this->assertStringContainsString( "array( '', 'account', 'couriers', 'tracking', 'technical' )", $controller );
+		$this->assertStringNotContainsString( 'wp_ajax_kiriof_store_call_back_data', $controller );
+		$this->assertStringContainsString( 'kiriof-callback-endpoints', file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
+		$this->assertStringContainsString( "from '\$lib/components/ui/button'", file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
+		$this->assertStringContainsString( 'kiriof-settings-action-button__icon', file_get_contents( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' ) );
+		$this->assertStringContainsString( "from '\$lib/components/ui/button'", file_get_contents( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' ) );
+		$this->assertStringNotContainsString( '<button class="button"', file_get_contents( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' ) );
+		$this->assertStringContainsString( '.kiriof-settings-action-button', $styles );
+		$this->assertStringContainsString( "wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' )", $controller );
+		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', $controller );
+		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', $controller );
+        $this->assertStringContainsString( 'assets/admin/dist', $gitignore );
     }
 }

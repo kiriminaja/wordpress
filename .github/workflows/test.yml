@@ -44,6 +44,12 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
       - name: Install gettext
         run: |
           if command -v msgfmt >/dev/null 2>&1; then

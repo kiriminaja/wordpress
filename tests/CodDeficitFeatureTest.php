@@ -408,6 +408,8 @@ final class CodDeficitFeatureTest extends TestCase
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingService.php');
         $this->assertStringContainsString('resolveIsTop', $content);
+		$this->assertStringContainsString("\$integration_data['is_top'] = self::resolveIsTop();", $content);
+		$this->assertStringContainsString( '$this->setting_repository->clearCache();', $content );
         $this->assertStringContainsString('getProfile', $content);
         $this->assertStringContainsString("'TOP'", $content);
     }

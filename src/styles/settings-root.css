@@ -1,0 +1,538 @@
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
+
+.kiriof-callback-endpoints {
+  @apply grid gap-2;
+}
+
+.kiriof-callback-endpoints code {
+  @apply block [padding:9px_11px] [overflow-wrap:anywhere] border rounded-md bg-muted text-foreground text-xs [line-height:1.5];
+}
+
+.kiriof-product-alert {
+  @apply box-border grid [grid-template-columns:38px_minmax(0,1fr)_auto_auto] items-center gap-3 [margin:0_0_22px] [padding:14px_16px] border border-success-border [border-radius:9px] bg-success-background text-foreground no-underline;
+}
+
+.kiriof-product-alert.warning {
+  @apply border-warning-border bg-warning-background;
+}
+
+.kiriof-product-alert:hover,
+.kiriof-product-alert:focus-visible {
+  @apply text-foreground no-underline [filter:brightness(0.985)];
+}
+
+.kiriof-product-alert:focus-visible {
+  @apply outline-3 outline-offset-2 outline-primary;
+}
+
+.kiriof-product-alert__icon {
+  @apply grid w-9 h-9 place-items-center rounded-lg bg-success-background text-success-foreground;
+}
+
+.kiriof-product-alert.warning .kiriof-product-alert__icon {
+  @apply bg-warning-background text-warning-foreground;
+}
+
+.kiriof-product-alert__copy {
+  @apply grid gap-1 min-w-0;
+}
+
+.kiriof-product-alert__copy strong {
+  @apply text-sm;
+}
+
+.kiriof-product-alert__copy span {
+  @apply text-muted-foreground [line-height:1.45];
+}
+
+.kiriof-product-alert__status {
+  @apply [padding:4px_8px] rounded bg-success-background text-success-foreground text-xs [font-weight:650] whitespace-nowrap;
+}
+
+.kiriof-product-alert.warning .kiriof-product-alert__status {
+  @apply bg-warning-background text-warning-foreground;
+}
+
+.kiriof-product-alert__chevron {
+  @apply text-muted-foreground;
+}
+
+@media (max-width: 960px) {
+  .kiriof-connection-layout {
+    @apply [grid-template-columns:1fr];
+  }
+}
+.kiriof-settings-content {
+  @apply [width:min(920px,100%)] mr-auto ml-auto;
+}
+
+[data-kiriof-settings-page] [data-slot='switch'] {
+  @apply !relative !inline-flex !w-9 !min-w-9 !h-5 !min-h-5 !shrink-0 !items-center !m-0 !p-0 !overflow-hidden !border-0 !rounded-full !bg-input !shadow-none;
+}
+
+[data-kiriof-settings-page] [data-slot='switch'][data-state='checked'] {
+  @apply !bg-primary;
+}
+
+[data-kiriof-settings-page] [data-slot='switch-thumb'] {
+  @apply !absolute ![top:0.125rem] ![left:0.125rem] !block ![width:1rem] ![min-width:1rem] ![height:1rem] ![min-height:1rem] !rounded-full !bg-white ![box-shadow:0_1px_2px_rgb(0_0_0_/_20%)] ![transform:none] ![transition:left_0.2s_ease];
+}
+
+[data-kiriof-settings-page] [data-slot='switch-thumb'][data-state='checked'] {
+  @apply !left-[1.125rem];
+}
+
+[data-kiriof-settings-root][aria-busy='true'] {
+  @apply [min-height:180px];
+}
+
+.kiriof-account {
+  @apply grid gap-4 max-w-none;
+}
+
+.kiriof-account-courier-grid {
+  @apply flex flex-wrap gap-2.5;
+}
+
+.kiriof-connection-layout {
+  @apply grid [grid-template-columns:minmax(0,1fr)_minmax(320px,0.95fr)] [gap:18px];
+}
+
+.kiriof-connection-form {
+  @apply grid [align-content:start] gap-3;
+}
+
+.kiriof-linked-profile {
+  @apply flex items-center justify-between gap-4 [padding:13px_14px] border rounded-lg bg-white;
+}
+
+.kiriof-linked-profile > div {
+  @apply grid gap-1;
+}
+
+.kiriof-linked-profile > div > span {
+  @apply text-muted-foreground text-xs;
+}
+
+.kiriof-linked-profile__name {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.kiriof-linked-profile__name span {
+  @apply px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold capitalize;
+}
+
+.kiriof-linked-profile__badge {
+  @apply inline-flex shrink-0 items-center gap-1 px-2 py-1 rounded-md bg-success-background text-success-foreground text-xs font-semibold;
+}
+
+.kiriof-linked-profile__badge svg {
+  @apply w-3.5 h-3.5;
+}
+
+.kiriof-connect__label span {
+  @apply text-destructive;
+}
+
+.kiriof-setup-key-field {
+  @apply relative;
+}
+
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input {
+  @apply !box-border !block !w-full !min-w-0 !h-9 !min-h-9 !m-0 ![padding:7px_38px_7px_11px] !border-border !rounded-lg !bg-transparent !text-foreground ![font-family:inherit] ![font-size:13px] !font-normal ![line-height:20px] !shadow-none !outline-none !appearance-none;
+}
+
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input::placeholder {
+  @apply !text-muted-foreground !opacity-100;
+}
+
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input:focus,
+.kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input:focus-visible {
+  @apply !border-ring !ring-3 !ring-ring/20;
+}
+
+.kiriof-setup-key-toggle {
+  @apply absolute [top:50%] [right:7px] grid [width:26px] [height:26px] place-items-center p-0 border-0 bg-transparent text-muted-foreground cursor-pointer [transform:translateY(-50%)];
+}
+
+.kiriof-setup-key-toggle svg {
+  @apply w-4 h-4;
+}
+
+.kiriof-connection-consent {
+  @apply flex items-start [gap:9px] [padding:11px_12px] rounded-md bg-info-background text-info-foreground;
+}
+
+.kiriof-connection-consent > svg {
+  @apply [width:17px] [height:17px] [flex:0_0_17px] [margin-top:1px];
+}
+
+.kiriof-connection-consent div {
+  @apply grid gap-1;
+}
+
+.kiriof-connection-consent p {
+  @apply m-0 text-xs [line-height:1.5];
+}
+
+.kiriof-connection-consent a {
+  @apply text-inherit;
+}
+
+.kiriof-update-connection {
+  @apply !box-border !inline-flex ![width:fit-content] !min-w-0 ![height:34px] !min-h-8 !items-center !justify-center !gap-2 !m-0 ![padding:0_13px] !border border-transparent !rounded-lg !bg-primary !text-primary-foreground ![font-family:inherit] !text-xs !font-semibold !leading-none !no-underline !shadow-none !cursor-pointer;
+}
+
+.kiriof-update-connection:hover:not(:disabled) {
+  @apply !bg-primary/90 !text-primary-foreground;
+}
+
+.kiriof-update-connection:focus-visible {
+  @apply !border-ring !outline-none !ring-3 !ring-ring/20;
+}
+
+.kiriof-update-connection:disabled {
+  @apply !cursor-not-allowed !opacity-50;
+}
+
+.kiriof-update-connection > span {
+  @apply !inline-flex !items-center !leading-none;
+}
+
+.kiriof-update-connection .kiriof-update-connection__icon {
+  @apply !block !w-4 ![min-width:15px] !h-4 ![min-height:15px] ![flex:0_0_15px] !m-0 ![stroke-width:2];
+}
+
+.kiriof-credentials-guide {
+  @apply [padding:2px_4px];
+}
+
+.kiriof-credentials-guide h3 {
+  @apply [margin:0_0_9px] text-foreground [font-size:13px];
+}
+
+.kiriof-credentials-guide ol {
+  @apply m-0 [padding-left:19px] text-foreground text-xs [line-height:1.8];
+}
+
+.kiriof-credentials-guide a {
+  @apply [margin-left:5px];
+}
+
+.kiriof-courier-chips {
+  @apply flex flex-wrap gap-2;
+}
+
+.kiriof-courier-chips span {
+  @apply inline-flex gap-1.5 [padding:5px_9px] border rounded bg-secondary text-muted-foreground;
+}
+
+.kiriof-courier-chips strong {
+  @apply text-primary;
+}
+
+.kiriof-profile {
+  @apply grid [grid-template-columns:auto_minmax(0,1fr)_auto_auto] items-center gap-3;
+}
+
+.kiriof-profile__avatar {
+  @apply grid place-items-center [width:44px] [height:44px] [border-radius:50%] bg-primary text-foreground text-xl font-bold;
+}
+
+.kiriof-profile > div {
+  @apply grid gap-1;
+}
+
+.kiriof-profile > div span {
+  @apply text-muted-foreground;
+}
+
+.kiriof-danger-button {
+  @apply border-destructive! text-white!;
+}
+
+.kiriof-inline-form {
+  @apply flex flex-wrap gap-2;
+}
+
+.kiriof-courier-toolbar {
+  @apply flex flex-wrap items-center gap-2 [margin-bottom:14px];
+}
+
+.kiriof-courier-toolbar span {
+  @apply text-muted-foreground;
+}
+
+.kiriof-courier-grid {
+  @apply grid [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))] gap-2;
+}
+
+.kiriof-courier-grid article {
+  @apply flex items-center justify-between gap-3 p-3 border rounded-md;
+}
+
+.kiriof-courier-grid article > div {
+  @apply grid gap-1;
+}
+
+.kiriof-courier-grid article span {
+  @apply text-muted-foreground;
+}
+
+.kiriof-guide-list {
+  @apply [max-width:70ch] [line-height:1.7];
+}
+
+.kiriof-shortcode {
+  @apply [display:inline-block] [padding:5px_8px] [user-select:all];
+}
+
+.kiriof-empty-state {
+  @apply grid [justify-items:center] gap-1.5 [padding:28px] text-muted-foreground text-center;
+}
+
+.kiriof-tracking-pages {
+  @apply grid gap-2;
+}
+
+.kiriof-tracking-pages article {
+  @apply flex items-center justify-between gap-4 p-3 border rounded-md;
+}
+
+.kiriof-tracking-pages article > div:first-child {
+  @apply grid gap-1 min-w-0;
+}
+
+.kiriof-tracking-pages article > div:first-child span {
+  @apply overflow-hidden text-muted-foreground [text-overflow:ellipsis] whitespace-nowrap;
+}
+
+.kiriof-technical {
+  @apply grid gap-4 [max-width:920px];
+}
+
+.kiriof-section-card {
+  @apply box-border [max-width:920px] [padding:20px] border rounded-lg bg-background;
+}
+
+.kiriof-section-card h2 {
+  @apply [margin:0_0_8px] text-foreground text-base;
+}
+
+.kiriof-section-card > p {
+  @apply [max-width:72ch] text-muted-foreground;
+}
+
+.kiriof-section-input {
+  @apply [width:min(100%,520px)];
+}
+
+.kiriof-section-actions {
+  @apply flex flex-wrap items-center gap-2.5 mt-4;
+}
+
+.kiriof-settings-action-button {
+  @apply !box-border !inline-flex !w-auto !min-w-0 ![height:34px] !min-h-8 !items-center !justify-center !gap-2 !m-0 ![padding:0_12px] !rounded-lg ![font-family:inherit] !text-xs !font-semibold !leading-none !no-underline !shadow-none;
+}
+
+.kiriof-settings-action-button > span {
+  @apply !inline-flex !items-center !leading-none;
+}
+
+.kiriof-settings-action-button .kiriof-settings-action-button__icon {
+  @apply !block !w-4 ![min-width:15px] !h-4 ![min-height:15px] ![flex:0_0_15px] !m-0 ![stroke-width:2];
+}
+
+.kiriof-settings-action-button__spin {
+  @apply [animation:kiriof-settings-spin_0.8s_linear_infinite];
+}
+
+@keyframes kiriof-settings-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.kiriof-section-message {
+  @apply text-success-foreground;
+}
+
+.kiriof-section-message.error {
+  @apply text-destructive;
+}
+
+.kiriof-diagnostics {
+  @apply grid [margin:18px_0] border-t;
+}
+
+.kiriof-diagnostics div {
+  @apply grid [grid-template-columns:minmax(140px,220px)_1fr] gap-4 [padding:10px_0] border-b;
+}
+
+.kiriof-diagnostics dt {
+  @apply text-muted-foreground font-semibold;
+}
+
+.kiriof-diagnostics dd {
+  @apply m-0 text-foreground;
+}
+
+.kiriof-diagnostics__badge {
+  @apply [display:inline-block] [padding:3px_8px] rounded bg-success-background text-success-foreground text-xs font-semibold;
+}
+
+.kiriof-diagnostics__badge.warning {
+  @apply bg-warning-background text-warning-foreground;
+}
+
+.kiriof-diagnostics__badge.error {
+  @apply bg-destructive/30 text-destructive;
+}
+
+.kiriof-settings-root {
+  @apply [width:min(920px,100%)] [max-width:920px] [margin:0_auto];
+}
+
+.kiriof-settings-group {
+  @apply [margin:0_0_26px];
+}
+
+.kiriof-settings-group__title {
+  @apply [margin:0_0_8px] text-muted-foreground [font-size:13px] font-semibold;
+}
+
+.kiriof-settings-group__items {
+  @apply overflow-hidden border rounded-lg bg-background;
+}
+
+.kiriof-setting-item {
+  @apply box-border grid [grid-template-columns:36px_minmax(0,1fr)_auto_auto] items-center gap-3 [min-height:72px] [padding:13px_16px] border-b text-foreground no-underline;
+}
+
+.kiriof-setting-item:last-child {
+  @apply [border-bottom:0];
+}
+
+a.kiriof-setting-item:hover,
+a.kiriof-setting-item:focus-visible {
+  @apply bg-secondary text-secondary-foreground;
+}
+
+a.kiriof-setting-item:focus-visible {
+  @apply relative z-1 outline-3 outline-primary -outline-offset-3;
+}
+
+.kiriof-setting-item__icon {
+  @apply grid place-items-center [width:34px] [height:34px] rounded-md bg-secondary text-secondary-foreground;
+}
+
+.kiriof-setting-item__copy {
+  @apply grid gap-1 min-w-0;
+}
+
+.kiriof-setting-item__copy strong {
+  @apply text-sm;
+}
+
+.kiriof-setting-item__copy span {
+  @apply text-muted-foreground [line-height:1.45];
+}
+
+.kiriof-setting-item__status {
+  @apply [padding:4px_8px] rounded bg-success-background text-success-foreground text-xs font-semibold whitespace-nowrap;
+}
+
+.kiriof-setting-item__status.warning {
+  @apply bg-warning-background text-warning-foreground;
+}
+
+.kiriof-setting-item__chevron {
+  @apply text-muted-foreground;
+}
+
+.kiriof-settings-root__message {
+  @apply [max-width:920px] [margin:0_0_16px] [padding:10px_12px] border-l-4 border-l-destructive bg-background text-foreground;
+}
+
+.kiriof-connect {
+  @apply box-border [width:min(440px,100%)] [margin:5vh_auto_0] [padding:28px] border rounded-2xl bg-background;
+}
+
+.kiriof-connect__identity {
+  @apply flex items-center justify-center gap-2.5 [margin-bottom:12px];
+}
+
+.kiriof-connect__identity > span:not(.kiriof-connect__link) {
+  @apply grid place-items-center w-9 h-9 rounded-lg font-bold;
+}
+
+.kiriof-connect__identity > span:first-child {
+  @apply bg-foreground text-white;
+}
+
+.kiriof-connect__brand {
+  @apply bg-primary text-shadow-primary;
+}
+
+.kiriof-connect__link {
+  @apply text-muted-foreground;
+}
+
+.kiriof-connect h2 {
+  @apply [margin:0_0_24px] text-center;
+}
+
+.kiriof-connect__label {
+  @apply block mb-2 text-foreground font-semibold;
+}
+
+.kiriof-connect__input {
+  @apply box-border w-full [min-height:40px];
+}
+
+.kiriof-connect__actions {
+  @apply flex flex-wrap gap-2 [margin-top:18px];
+}
+
+.kiriof-connect__actions .button {
+  @apply inline-flex items-center gap-1.5;
+}
+
+@media (max-width: 600px) {
+  .kiriof-product-alert {
+    @apply [grid-template-columns:38px_minmax(0,1fr)_auto];
+  }
+
+  .kiriof-product-alert__status {
+    @apply [grid-column:2_/_-1] [justify-self:start];
+  }
+
+  .kiriof-product-alert__chevron {
+    @apply [grid-column:3] [grid-row:1];
+  }
+
+  .kiriof-product-alert {
+    @apply [grid-template-columns:38px_minmax(0,1fr)_auto];
+  }
+
+  .kiriof-product-alert__status {
+    @apply [grid-column:2_/_-1] [justify-self:start];
+  }
+
+  .kiriof-product-alert__chevron {
+    @apply [grid-column:3] [grid-row:1];
+  }
+
+  .kiriof-setting-item {
+    @apply [grid-template-columns:36px_minmax(0,1fr)_auto];
+  }
+
+  .kiriof-setting-item__status {
+    @apply [grid-column:2_/_-1] [justify-self:start];
+  }
+
+  .kiriof-setting-item__chevron {
+    @apply [grid-column:3] [grid-row:1];
+  }
+}

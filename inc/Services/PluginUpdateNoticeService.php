@@ -53,37 +53,69 @@ final class PluginUpdateNoticeService extends BaseService {
     }
 
     public function kiriof_render_update_notice() {
-        if ( ! $this->kiriof_can_show_update_notice() ) {
+        $update = $this->get_toolbar_update();
+        if ( ! $update ) {
             return;
+        }
+
+        $notice_class = $update['hasNativeUpdate']
+            ? 'notice notice-success is-dismissible'
+            : 'notice notice-info is-dismissible';
+
+        echo '<div class="' . esc_attr( $notice_class ) . '">';
+        echo '<p><strong>' . esc_html( $update['title'] ) . '</strong></p>';
+
+        if ( $update['hasNativeUpdate'] ) {
+            echo '<p>' . esc_html( $update['description'] ) . '</p>';
+            echo '<p>';
+            echo '<a class="button button-primary" href="' . esc_url( $update['primaryUrl'] ) . '">' . esc_html( $update['primaryLabel'] ) . '</a> ';
+            echo '<a class="button button-link" href="' . esc_url( $update['secondaryUrl'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $update['secondaryLabel'] ) . '</a> ';
+            echo '<a class="button button-link-delete" href="' . esc_url( $update['dismissUrl'] ) . '">' . esc_html( $update['dismissLabel'] ) . '</a>';
+            echo '</p>';
+        } else {
+            foreach ( $update['details'] as $detail ) {
+                echo '<p>' . esc_html( $detail ) . '</p>';
+            }
+            echo '<p>';
+            echo '<a class="button button-primary" href="' . esc_url( $update['primaryUrl'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $update['primaryLabel'] ) . '</a> ';
+            echo '<a class="button button-link" href="' . esc_url( $update['secondaryUrl'] ) . '">' . esc_html( $update['secondaryLabel'] ) . '</a> ';
+            echo '<a class="button button-link-delete" href="' . esc_url( $update['dismissUrl'] ) . '">' . esc_html( $update['dismissLabel'] ) . '</a>';
+            echo '</p>';
+        }
+
+        echo '</div>';
+    }
+
+    /**
+     * Prepare the update state for the shared Svelte workspace toolbar.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function get_toolbar_update(): ?array {
+        if ( ! $this->kiriof_can_show_update_notice() ) {
+            return null;
         }
 
         $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
         if ( ! $screen || ! $this->kiriof_is_allowed_screen( $screen->id ) ) {
-            return;
+            return null;
         }
 
         $plugin_info = $this->kiriof_get_wordpress_org_plugin_info();
         if ( ! $plugin_info || empty( $plugin_info->version ) ) {
-            return;
+            return null;
         }
 
         $latest_version = sanitize_text_field( (string) $plugin_info->version );
-        if ( '' === $latest_version || version_compare( $latest_version, KIRIOF_VERSION, '<=' ) ) {
-            return;
+        if ( '' === $latest_version || version_compare( $latest_version, KIRIOF_VERSION, '<=' ) || $this->kiriof_is_dismissed( $latest_version ) ) {
+            return null;
         }
 
-        if ( $this->kiriof_is_dismissed( $latest_version ) ) {
-            return;
-        }
-
+        $has_native_update = $this->kiriof_has_native_update( $latest_version );
         $wordpress_org_url = ! empty( $plugin_info->homepage )
-            ? esc_url( $plugin_info->homepage )
-            : esc_url( 'https://wordpress.org/plugins/' . self::PLUGIN_SLUG . '/' );
-
-        $notice_class = $this->kiriof_has_native_update( $latest_version )
-            ? 'notice notice-success is-dismissible'
-            : 'notice notice-info is-dismissible';
-
+            ? esc_url_raw( $plugin_info->homepage )
+            : 'https://wordpress.org/plugins/' . self::PLUGIN_SLUG . '/';
+        $plugins_url = admin_url( 'plugins.php' );
         $dismiss_url = wp_nonce_url(
             add_query_arg(
                 array(
@@ -94,29 +126,29 @@ final class PluginUpdateNoticeService extends BaseService {
             'kiriof_dismiss_update_notice_' . $latest_version
         );
 
-        echo '<div class="' . esc_attr( $notice_class ) . '">';
-        /* translators: %s: latest KiriminAja Official version available on WordPress.org. */
-        echo '<p><strong>' . esc_html( sprintf( __( 'KiriminAja Official %s is available.', 'kiriminaja-official' ), $latest_version ) ) . '</strong></p>';
-
-        if ( $this->kiriof_has_native_update( $latest_version ) ) {
-            echo '<p>' . esc_html__( 'WordPress has already received this update. Open Plugins to install it from the WordPress dashboard.', 'kiriminaja-official' ) . '</p>';
-            echo '<p>';
-            echo '<a class="button button-primary" href="' . esc_url( admin_url( 'plugins.php' ) ) . '">' . esc_html__( 'Open Plugins screen', 'kiriminaja-official' ) . '</a> ';
-            echo '<a class="button button-link" href="' . esc_url( $wordpress_org_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View on WordPress.org', 'kiriminaja-official' ) . '</a> ';
-            echo '<a class="button button-link-delete" href="' . esc_url( $dismiss_url ) . '">' . esc_html__( 'Dismiss notice', 'kiriminaja-official' ) . '</a>';
-            echo '</p>';
-        } else {
-            echo '<p>' . esc_html__( 'WordPress.org shows this release, but this site has not received the update yet.', 'kiriminaja-official' ) . '</p>';
-            echo '<p>' . esc_html__( 'WordPress.org can take up to 24 hours to publish new plugin releases through the update system.', 'kiriminaja-official' ) . '</p>';
-            echo '<p>' . esc_html__( 'If you do not see this version in Plugins, open the WordPress.org plugin page and install it manually.', 'kiriminaja-official' ) . '</p>';
-            echo '<p>';
-            echo '<a class="button button-primary" href="' . esc_url( $wordpress_org_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View on WordPress.org', 'kiriminaja-official' ) . '</a> ';
-            echo '<a class="button button-link" href="' . esc_url( admin_url( 'plugins.php' ) ) . '">' . esc_html__( 'Open Plugins screen', 'kiriminaja-official' ) . '</a> ';
-            echo '<a class="button button-link-delete" href="' . esc_url( $dismiss_url ) . '">' . esc_html__( 'Dismiss notice', 'kiriminaja-official' ) . '</a>';
-            echo '</p>';
-        }
-
-        echo '</div>';
+        return array(
+            'label'           => __( 'Plugin Update Available', 'kiriminaja-official' ),
+            /* translators: %s: latest KiriminAja Official version available on WordPress.org. */
+            'title'           => sprintf( __( 'KiriminAja Official %s is available.', 'kiriminaja-official' ), $latest_version ),
+            'version'         => $latest_version,
+            'hasNativeUpdate' => $has_native_update,
+            'description'     => $has_native_update
+                ? __( 'WordPress has already received this update. Open Plugins to install it from the WordPress dashboard.', 'kiriminaja-official' )
+                : __( 'WordPress.org shows this release, but this site has not received the update yet.', 'kiriminaja-official' ),
+            'details'         => $has_native_update ? array() : array(
+                __( 'WordPress.org can take up to 24 hours to publish new plugin releases through the update system.', 'kiriminaja-official' ),
+                __( 'If you do not see this version in Plugins, open the WordPress.org plugin page and install it manually.', 'kiriminaja-official' ),
+            ),
+            'primaryUrl'      => $has_native_update ? $plugins_url : $wordpress_org_url,
+            'primaryLabel'    => $has_native_update ? __( 'Open Plugins screen', 'kiriminaja-official' ) : __( 'View on WordPress.org', 'kiriminaja-official' ),
+            'primaryExternal' => ! $has_native_update,
+            'secondaryUrl'    => $has_native_update ? $wordpress_org_url : $plugins_url,
+            'secondaryLabel'  => $has_native_update ? __( 'View on WordPress.org', 'kiriminaja-official' ) : __( 'Open Plugins screen', 'kiriminaja-official' ),
+            'secondaryExternal' => $has_native_update,
+            'dismissUrl'      => $dismiss_url,
+            'dismissLabel'    => __( 'Dismiss notice', 'kiriminaja-official' ),
+            'closeLabel'      => __( 'Close', 'kiriminaja-official' ),
+        );
     }
 
     private function kiriof_can_show_update_notice(): bool {

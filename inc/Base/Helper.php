@@ -64,8 +64,146 @@ class Helper extends  BaseInit {
         }
     }
     
+    /**
+     * Unified badge tones, mirroring the Shopify admin `s-badge` contract
+     * (auto | neutral | info | success | caution | warning | critical)
+     * plus KiriminAja extensions so every package status owns its color:
+     * primary (New) and teal (In Transit).
+     *
+     * @return string[]
+     */
+    public function badgeTones() {
+        return array( 'auto', 'neutral', 'info', 'success', 'caution', 'warning', 'critical', 'primary', 'teal' );
+    }
+
+    /**
+     * Badge emphasis levels, mirroring Shopify `s-badge` color prop.
+     * base = standard weight, strong = solid high-emphasis fill.
+     *
+     * @return string[]
+     */
+    public function badgeColors() {
+        return array( 'base', 'strong' );
+    }
+
+    /**
+     * Package status → badge tone map (mirrors kaj-shopify-plugin getLabelProps).
+     * Every package status owns its color: New = primary, In Transit = teal.
+     *
+     * @return array<string,string>
+     */
+    public function packageStatusToneMap() {
+        return array(
+            'new'            => 'primary',
+            'request_pickup' => 'info',
+            'pending'        => 'caution',
+            'finished'       => 'success',
+            'shipped'        => 'teal',
+            'return'         => 'warning',
+            'returned'       => 'warning',
+            'rejected'       => 'critical',
+            'canceled'       => 'critical',
+        );
+    }
+
+    /**
+     * Package status → dashicon map (mirrors Shopify per-status icon map).
+     *
+     * @return array<string,string>
+     */
+    public function packageStatusIconMap() {
+        return array(
+            'new'            => 'dashicons-plus',
+            'request_pickup' => 'dashicons-car',
+            'pending'        => 'dashicons-clock',
+            'finished'       => 'dashicons-yes-alt',
+            'shipped'        => 'dashicons-airplane',
+            'return'         => 'dashicons-undo',
+            'returned'       => 'dashicons-undo',
+            'rejected'       => 'dashicons-dismiss',
+            'canceled'       => 'dashicons-no',
+        );
+    }
+
+    /**
+     * Package status → badge tone resolver.
+     *
+     * @param string $status Package status slug.
+     * @return string Badge tone.
+     */
+    public function packageStatusTone( $status = '' ) {
+        $map = $this->packageStatusToneMap();
+        return isset( $map[ $status ] ) ? $map[ $status ] : 'neutral';
+    }
+
+    /**
+     * Package status → dashicon resolver.
+     *
+     * @param string $status Package status slug.
+     * @return string Dashicon class (empty string when unknown).
+     */
+    public function packageStatusIcon( $status = '' ) {
+        $map = $this->packageStatusIconMap();
+        return isset( $map[ $status ] ) ? $map[ $status ] : '';
+    }
+
+    /**
+     * WooCommerce order status → badge tone resolver.
+     *
+     * @param string $postStatus WC post status (with or without wc- prefix).
+     * @return string Badge tone.
+     */
+    public function wcStatusTone( $postStatus = '' ) {
+        $postStatus = str_replace( 'wc-', '', (string) $postStatus );
+        switch ( $postStatus ) {
+            case 'completed':
+                return 'success';
+            case 'processing':
+                return 'info';
+            case 'on-hold':
+            case 'pending':
+                return 'caution';
+            case 'cancelled':
+            case 'canceled':
+            case 'refunded':
+            case 'failed':
+                return 'critical';
+            default:
+                return 'neutral';
+        }
+    }
+
+    /**
+     * Render a unified badge.
+     *
+     * @param string $label Badge text.
+     * @param string $tone  Badge tone (auto|neutral|info|success|caution|warning|critical|primary|teal).
+     * @param string $color Badge emphasis (base|strong). Default 'base'.
+     * @param string $icon  Optional dashicon class rendered before the label.
+     * @return string Badge HTML.
+     */
+    public function badge( $label, $tone = 'neutral', $color = 'base', $icon = '' ) {
+        $tone  = in_array( $tone, $this->badgeTones(), true ) ? $tone : 'neutral';
+        $color = in_array( $color, $this->badgeColors(), true ) ? $color : 'base';
+        $icon_html = '';
+        if ( '' !== $icon ) {
+            $icon_html = '<span class="dashicons ' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
+        }
+        return '<span class="kiriof-badge kiriof-badge--' . esc_attr( $tone ) . ( 'strong' === $color ? ' kiriof-badge--strong' : '' ) . '">' . $icon_html . esc_html( $label ) . '</span>';
+    }
+
+    /**
+     * Render a package-status badge with tone + icon resolved from the status maps.
+     *
+     * @param string $status Package status slug.
+     * @param string $color  Badge emphasis (base|strong). Default 'base'.
+     * @return string Badge HTML.
+     */
+    public function packageStatusBadge( $status = '', $color = 'base' ) {
+        return $this->badge( $this->transactionStatusLabel( $status ), $this->packageStatusTone( $status ), $color, $this->packageStatusIcon( $status ) );
+    }
     public function transactionStatusClass($status = ''){
-        
+
         switch ($status){
             case "new":
                 return "kj-badge primary";
