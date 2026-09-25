@@ -219,7 +219,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( "bootstrap.i18n.status", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( ':has(.kiriof-clear-filters)', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '{selectedCount} selected', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '![background:#3f3f46]', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+		$this->assertStringContainsString( '!bg-foreground', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$workspace = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
 		$this->assertStringContainsString( 'history.pushState', $workspace );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $workspace );
