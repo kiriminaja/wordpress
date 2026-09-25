@@ -284,6 +284,69 @@ class TransactionDetailPageData
         ];
     }
 
+    /**
+     * Minimal detail payload used when optional WooCommerce/location enrichment
+     * fails for a legacy transaction. Keeps the admin page usable while the
+     * exact exception remains available in the KiriminAja log.
+     *
+     * @param object $transaction Transaction database row.
+     * @param string $message Logged bootstrap error reference.
+     * @return array<string,mixed>
+     */
+    public function prepareFallback(object $transaction, string $message): array
+    {
+        $status = (string) ($transaction->status ?? "new");
+        $order_id = (string) ($transaction->order_id ?? "");
+        $wc_order_id = (int) ($transaction->wp_wc_order_stat_order_id ?? 0);
+        $shipping = (float) ($transaction->shipping_cost ?? 0);
+        $insurance = (float) ($transaction->insurance_cost ?? 0);
+        $cod_fee = (float) ($transaction->cod_fee ?? 0);
+        $is_deficit = !empty($transaction->is_deficit);
+
+        return [
+            "toolbar" => [
+                "logoUrl" => KIRIOF_URL . "assets/admin/img/icon-128x128.png",
+                "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction"),
+                "rootLabel" => __("Transactions", "kiriminaja-official"),
+                "title" => "#" . ($wc_order_id ?: (int) ($transaction->id ?? 0)),
+                "menu" => $this->toolbar_menu(),
+            ],
+            "shipmentLocations" => [],
+            "locationsUrl" => admin_url("admin.php?page=wc-settings&tab=kiriminaja_warehouses"),
+            "bootstrapError" => $message,
+            "transaction" => [
+                "id" => (int) ($transaction->id ?? 0),
+                "orderId" => $order_id,
+                "orderNumber" => "#" . $wc_order_id,
+                "orderUrl" => $wc_order_id ? admin_url("admin.php?page=wc-orders&action=edit&id=" . $wc_order_id) : "",
+                "createdAt" => $this->date($transaction->created_at ?? ""),
+                "paymentLabel" => $cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official"),
+                "isCod" => $cod_fee > 0,
+                "supportsLiveTracking" => false,
+                "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
+                "status" => ["label" => $this->status_label($status), "tone" => $this->status_tone($status)],
+                "steps" => $this->steps($transaction, $status),
+                "sender" => ["name" => __("Default origin", "kiriminaja-official"), "phone" => "", "address" => []],
+                "recipient" => ["name" => "", "phone" => "", "address" => []],
+                "package" => ["weight" => (int) ($transaction->weight ?? 0), "length" => (float) ($transaction->length ?? 0), "width" => (float) ($transaction->width ?? 0), "height" => (float) ($transaction->height ?? 0)],
+                "items" => [],
+                "notes" => [],
+                "shipment" => [
+                    "courier" => ["code" => strtolower((string) ($transaction->service ?? "")), "service" => (string) ($transaction->service_name ?? $transaction->service ?? "")],
+                    "awb" => (string) ($transaction->awb ?? ""),
+                    "paymentStatus" => "",
+                    "costs" => ["orderTotal" => 0, "subtotal" => 0, "totalShipping" => $shipping + $insurance + $cod_fee, "actualShipping" => $shipping, "shippingDiscount" => 0, "shipping" => $shipping, "insurance" => $insurance, "codFee" => $cod_fee, "itemDiscount" => 0, "total" => $shipping + $insurance + $cod_fee],
+                    "codValue" => 0,
+                    "printUrl" => "",
+                    "trackingOrder" => $order_id,
+                ],
+                "actions" => ["changeOrigin" => false, "adjustDeficit" => false, "cancelDeficit" => false, "cancel" => false, "data" => ["nonce" => wp_create_nonce(KIRIOF_NONCE), "kaOrderId" => $order_id, "currentOrigin" => "", "currentOriginAddress" => "", "currentLocationId" => 0, "currentCod" => 0, "codMinimum" => $shipping + $insurance + $cod_fee, "codMaximum" => (float) KIRIOF_MAX_COD_AMOUNT, "shippingCost" => $shipping, "insuranceFee" => $insurance, "codFee" => $cod_fee, "itemPrice" => 0, "itemDiscount" => 0, "shippingDiscount" => 0, "itemCoupon" => "", "shippingCoupon" => ""]],
+            ],
+            "ajax" => ["url" => admin_url("admin-ajax.php"), "nonce" => wp_create_nonce(KIRIOF_NONCE), "printPreviewNonce" => wp_create_nonce("kiriof_resi_print")],
+            "i18n" => $this->i18n(),
+        ];
+    }
+
     /** @return array<int,array<string,mixed>> */
     private function items($order): array
     {

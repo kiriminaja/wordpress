@@ -51,6 +51,7 @@ export type TransactionDetailBootstrap = {
   ajax: { url: string; nonce: string; printPreviewNonce: string };
   shipmentLocations: Array<{ id: number; name: string; address: string }>;
   locationsUrl: string;
+  bootstrapError?: string;
   i18n: Record<string, string>;
 };
 

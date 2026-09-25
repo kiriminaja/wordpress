@@ -130,6 +130,10 @@
         {/if}
     </Toolbar>
 
+    {#if bootstrap.bootstrapError}
+        <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{bootstrap.bootstrapError}</div>
+    {/if}
+
     <div class="!grid !items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22.5rem]">
         <main class="!grid min-w-0 gap-4">
             <KiriofCard>

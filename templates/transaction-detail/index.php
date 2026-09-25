@@ -35,7 +35,10 @@ try {
             'line'           => $kiriof_transaction_detail_error->getLine(),
         )
     );
-    wp_die( esc_html__( 'Unable to load transaction details. Please check the plugin log for details.', 'kiriminaja-official' ) );
+    $kiriof_transaction_detail_bootstrap = ( new \KiriminAjaOfficial\Services\TransactionDetailPageData() )->prepareFallback(
+        $kiriof_transaction_row,
+        __( 'Some transaction details could not be loaded. Review the KiriminAja log for this transaction.', 'kiriminaja-official' )
+    );
 }
 
 include __DIR__ . '/view/index.php';
