@@ -175,7 +175,7 @@ class TransactionDetailPageData
                 "createdAt" => $this->date($transaction->created_at ?? ""),
                 "paymentLabel" => $payment_label,
                 "isCod" => $cod_fee > 0,
-                "supportsLiveTracking" => false,
+                "supportsLiveTracking" => "" !== $awb && "-" !== $awb && "" !== (string) ($transaction->order_id ?? ""),
                 "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
                 "status" => [
                     "label" => $this->status_label($status),

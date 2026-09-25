@@ -234,8 +234,17 @@
   }
 
   function changeScope(value: string): void {
-    if (value === 'order-issue') void navigate({ status: 'order-issue' });
-    if (value === 'regular') void navigate({ status: 'all' });
+    if (value !== 'order-issue' && value !== 'regular') return;
+    if (searchTimer) window.clearTimeout(searchTimer);
+    searchTimer = null;
+    void navigate({
+      key: '',
+      month: '',
+      status: value === 'order-issue' ? 'order-issue' : 'all',
+      cod: '',
+      courier: '',
+      print_status: '',
+    });
   }
 
   onDestroy(() => {

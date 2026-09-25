@@ -9,6 +9,9 @@ use PHPUnit\Framework\TestCase;
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+    define( 'HOUR_IN_SECONDS', 3600 );
+}
 
 require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
 require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
@@ -41,6 +44,26 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString("orders_tbl.post_date LIKE '2025-02%'", $sql);
         $this->assertStringContainsString("COALESCE(NULLIF(pm_var.meta_value, ''), pm_prod.meta_value, 'no') <> 'yes'", $sql);
         $this->assertStringContainsString('LIMIT 25 OFFSET 50', $sql);
+    }
+
+    #[Test]
+    public function switching_transaction_tabs_clears_list_filters_and_pending_search(): void
+    {
+        $app = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
+        $start = strpos( $app, 'function changeScope(value: string): void {' );
+        $end = strpos( $app, "\n  onDestroy(", $start );
+
+        $this->assertNotFalse( $start );
+        $this->assertNotFalse( $end );
+        $scope = substr( $app, $start, $end - $start );
+
+        $this->assertStringContainsString( 'window.clearTimeout(searchTimer)', $scope );
+        $this->assertStringContainsString( "status: value === 'order-issue' ? 'order-issue' : 'all'", $scope );
+        foreach ( array( 'key', 'month', 'cod', 'courier', 'print_status' ) as $filter ) {
+            $this->assertStringContainsString( $filter . ": ''", $scope );
+        }
+        $this->assertStringNotContainsString( 'per_page:', $scope );
+        $this->assertStringContainsString( "if (!('cpage' in values)) url.searchParams.set('cpage', '1')", $app );
     }
 
     #[Test]

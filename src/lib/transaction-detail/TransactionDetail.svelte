@@ -31,9 +31,11 @@
     let {
         bootstrap,
         onNavigate,
+        openAdjustDeficit = false,
     }: {
         bootstrap: TransactionDetailBootstrap;
         onNavigate?: (href: string | URL) => Promise<void> | void;
+        openAdjustDeficit?: boolean;
     } = $props();
     let transaction = $derived(bootstrap.transaction);
     let i18n = $derived(bootstrap.i18n);
@@ -107,7 +109,11 @@
         }
     }
 
-    onMount(() => void loadTracking());
+    onMount(() => {
+        if (openAdjustDeficit && transaction.actions.adjustDeficit)
+            actionDialog = { kind: 'adjust-deficit', data: transaction.actions.data };
+        void loadTracking();
+    });
 </script>
 
 <div class="kiriof-shadcn w-full">

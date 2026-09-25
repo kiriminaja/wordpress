@@ -9,8 +9,7 @@ if (! defined('ABSPATH')) {
  *
  * Variables available:
  * @var array    $data                Shipping info from ShippingInfoServices.
- * @var string   $tracking_url        Public tracking page URL.
- * @var string   $detail_url          Admin KiriminAja transaction process page URL.
+ * @var string   $detail_url          Admin KiriminAja transaction detail URL.
  * @var float    $wc_subtotal         WC order subtotal (product items, pre-shipping).
  * @var float    $wc_total            WC order grand total (= COD paid by buyer).
  * @var float    $wc_discount_total   WC coupon discount total (item discounts only).
@@ -47,6 +46,7 @@ $kiriof_coupon_shipping_discount = $kiriof_ship_coupon
     : 0.0;
 $kiriof_wc_shipping_discount = $kiriof_platform_shipping_discount + $kiriof_coupon_shipping_discount;
 $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_discount);
+$kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
 ?>
 <style>
     #kiriminaja-shipping-info .kiriof-mb-header {
@@ -415,24 +415,9 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
 <?php /* ── Action buttons ── */ ?>
 <div class="kiriof-mb-actions">
     <?php if ($kiriof_is_deficit) : ?>
-        <button
-            type="button"
-            class="button kiriof-btn--adjust-cod kiriof-open-cod-adjustment"
-            data-ka-order-id="<?php echo esc_attr($data['ka_order_id'] ?? ''); ?>"
-            data-current-cod="<?php echo esc_attr($wc_total); ?>"
-            data-cod-minimum="<?php echo esc_attr($data['cod_minimum'] ?? 0); ?>"
-            data-cod-maximum="<?php echo esc_attr((float) KIRIOF_MAX_COD_AMOUNT); ?>"
-            data-shipping-cost="<?php echo esc_attr($kiriof_shipping_raw); ?>"
-            data-insurance-fee="<?php echo esc_attr($kiriof_insurance_raw); ?>"
-            data-cod-fee="<?php echo esc_attr($kiriof_cod_fee_raw); ?>"
-            data-item-price="<?php echo esc_attr($wc_subtotal); ?>"
-            data-item-discount="<?php echo esc_attr($wc_discount_total); ?>"
-            data-shipping-discount="<?php echo esc_attr($kiriof_wc_shipping_discount); ?>"
-            data-item-coupon="<?php echo esc_attr($kiriof_first_coupon); ?>"
-            data-shipping-coupon="<?php echo esc_attr($kiriof_ship_coupon); ?>"
-            data-nonce="<?php echo esc_attr(wp_create_nonce(KIRIOF_NONCE)); ?>">
+        <a href="<?php echo esc_url( $kiriof_adjust_url ); ?>" class="button kiriof-btn--adjust-cod">
             <?php esc_html_e('Adjust Deficit', 'kiriminaja-official'); ?>
-        </button>
+        </a>
         <button
             type="button"
             class="button kiriof-btn--cancel-deficit kiriof-open-cancel-deficit"
@@ -442,10 +427,7 @@ $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_
         </button>
     <?php else : ?>
         <a href="<?php echo esc_url($detail_url); ?>" class="button button-primary">
-            <?php esc_html_e('View in KiriminAja', 'kiriminaja-official'); ?>
-        </a>
-        <a href="<?php echo esc_url($tracking_url); ?>" class="button" target="_blank">
-            <?php esc_html_e('Track Shipment', 'kiriminaja-official'); ?>
+            <?php esc_html_e( 'View & Track in KiriminAja', 'kiriminaja-official' ); ?>
         </a>
     <?php endif; ?>
 </div>

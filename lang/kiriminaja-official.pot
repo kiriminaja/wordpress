@@ -897,6 +897,9 @@ msgstr ""
 msgid "View in KiriminAja"
 msgstr ""
 
+msgid "View & Track in KiriminAja"
+msgstr ""
+
 #: templates/order/metabox-shipping.php:140
 msgid "Track Shipment"
 msgstr ""

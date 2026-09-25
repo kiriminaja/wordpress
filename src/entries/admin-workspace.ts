@@ -220,9 +220,20 @@ function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): voi
   else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
 }
 
-function renderTransactionDetail(host: HTMLElement, bootstrap: TransactionDetailBootstrap): void {
+function renderTransactionDetail(
+  host: HTMLElement,
+  bootstrap: TransactionDetailBootstrap,
+  url: URL,
+): void {
   mounted = [
-    mount(TransactionDetail, { target: host, props: { bootstrap, onNavigate: navigate } }),
+    mount(TransactionDetail, {
+      target: host,
+      props: {
+        bootstrap,
+        onNavigate: navigate,
+        openAdjustDeficit: url.searchParams.get('adjust_deficit') === '1',
+      },
+    }),
   ];
 }
 
@@ -233,7 +244,11 @@ function clearBootSkeleton(host: HTMLElement): void {
   host.querySelector('[data-kiriof-workspace-boot]')?.remove();
 }
 
-function render(source: ParentNode, route: RouteDefinition): void {
+function render(
+  source: ParentNode,
+  route: RouteDefinition,
+  url = new URL(window.location.href),
+): void {
   const host = source.querySelector<HTMLElement>(route.root);
   if (!host) throw new Error(`Missing ${route.route} workspace root.`);
   clearBootSkeleton(host);
@@ -255,7 +270,7 @@ function render(source: ParentNode, route: RouteDefinition): void {
       .closest<HTMLElement>('[data-kiriof-payments-page]')
       ?.classList.add('kiriof-payments-page--enhanced');
   } else if (route.route === 'transaction-detail') {
-    renderTransactionDetail(host, parsePayload<TransactionDetailBootstrap>(source, route));
+    renderTransactionDetail(host, parsePayload<TransactionDetailBootstrap>(source, route), url);
   } else if (route.route === 'pickup-detail') {
     const bootstrap = parsePayload<PickupDetailBootstrap>(source, route);
     mounted = [mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } })];
@@ -319,10 +334,13 @@ async function navigate(value: string | URL, push = true): Promise<void> {
     const replacement = nextShell.cloneNode(true) as HTMLElement;
     activeShell?.replaceWith(replacement);
     activeShell = replacement;
-    render(document, route);
+    render(document, route, url);
     syncPluginMenu(nextDocument);
     document.title = nextDocument.title || document.title;
-    if (push) history.pushState({ kiriofWorkspace: true }, '', url);
+    if (push) {
+      url.searchParams.delete('adjust_deficit');
+      history.pushState({ kiriofWorkspace: true }, '', url);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
     if ((error as Error).name !== 'AbortError') window.location.assign(url);
@@ -363,6 +381,14 @@ function start(): void {
 
   try {
     render(document, route);
+    if (
+      route.route === 'transaction-detail' &&
+      window.location.search.includes('adjust_deficit=')
+    ) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('adjust_deficit');
+      history.replaceState(history.state, '', url);
+    }
   } catch {
     window.location.reload();
     return;

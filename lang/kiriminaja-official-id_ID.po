@@ -2187,6 +2187,9 @@ msgstr "Lihat"
 msgid "View in KiriminAja"
 msgstr "Lihat di KiriminAja"
 
+msgid "View & Track in KiriminAja"
+msgstr "Lihat & Lacak di KiriminAja"
+
 #: inc/Controllers/ProductController.php:122
 #: inc/Controllers/ProductController.php:127
 msgid "Volumetric"
