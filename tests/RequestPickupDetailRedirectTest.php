@@ -20,3 +20,16 @@ final class RequestPickupDetailRedirectTest extends TestCase
         $this->assertStringContainsString( 'kiriminaja_transactions.pickup_number = %s', $query );
     }
 }
+
+final class PaymentDetailsLinkTargetTest extends TestCase
+{
+    #[Test]
+    public function payment_details_link_opens_the_transaction_list_filtered_by_pickup_id(): void
+    {
+        $payments = file_get_contents( PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php' );
+
+        $this->assertStringContainsString( "add_query_arg( 'key', 'pid:' . \$pickup_number", $payments );
+        $this->assertStringContainsString( "admin.php?page=kiriminaja-transaction", $payments );
+        $this->assertStringNotContainsString( "kiriminaja-request-pickup-detail&pickup_number", $payments );
+    }
+}

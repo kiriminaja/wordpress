@@ -140,6 +140,7 @@ clean:
 	rm -rf $(BUILD_DIR) $(ZIP_FILE)
 
 zip: frontend
+	@php scripts/check-php-literal-escapes.php
 	@echo "Building $(PLUGIN_SLUG) v$(VERSION) [env=$(KIRIOF_ENV)]..."
 	@if command -v msgfmt >/dev/null 2>&1; then \
 		msgfmt lang/kiriminaja-official-id_ID.po -o lang/kiriminaja-official-id_ID.mo && ls -l lang/kiriminaja-official-id_ID.mo; \

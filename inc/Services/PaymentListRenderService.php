@@ -44,7 +44,7 @@ class PaymentListRenderService {
 			$actions[] = array(
 				'type'  => 'details',
 				'label' => __( 'Details', 'kiriminaja-official' ),
-				'href'  => admin_url( 'admin.php?page=kiriminaja-request-pickup-detail&pickup_number=' . rawurlencode( $pickup_number ) ),
+				'href'  => add_query_arg( 'key', 'pid:' . $pickup_number, admin_url( 'admin.php?page=kiriminaja-transaction' ) ),
 			);
 
 			$rows[] = array(

@@ -267,7 +267,6 @@ class Onboarding extends BaseInit {
 				'kiriminaja-setting',
 				'kiriminaja-transaction',
 				'kiriminaja-request-pickup',
-				'kiriminaja-request-pickup-detail',
 			),
 			true
 		);

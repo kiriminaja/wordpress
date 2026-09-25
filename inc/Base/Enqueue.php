@@ -540,11 +540,6 @@ class Enqueue extends BaseInit{
 			$this->enqueue_workspace_script( $workspace_script, array( 'kiriof-request-pickup' ) );
         }
 
-		if ( 'kiriminaja-request-pickup-detail' === $page ) {
-			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
-			$this->enqueue_workspace_style();
-			$this->enqueue_workspace_script( $workspace_script );
-		}
    
     }
 
