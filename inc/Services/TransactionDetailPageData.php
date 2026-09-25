@@ -424,11 +424,14 @@ class TransactionDetailPageData
                 (array) $order->get_coupon_codes(),
             )
             : ["item" => [], "shipping" => []];
+        $origin_address = is_array($origin["address"] ?? null)
+            ? implode(", ", $origin["address"])
+            : (string) ($origin["address"] ?? "");
         return [
             "nonce" => wp_create_nonce(KIRIOF_NONCE),
             "kaOrderId" => (string) ($transaction->order_id ?? ""),
             "currentOrigin" => $origin["name"],
-            "currentOriginAddress" => implode(", ", $origin["address"]),
+            "currentOriginAddress" => $origin_address,
             "currentLocationId" => $origin["locationId"],
             "currentCod" => $order ? (float) $order->get_total() : 0,
             "codMinimum" => $shipping + $insurance + $cod_fee,

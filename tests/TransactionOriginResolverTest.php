@@ -18,8 +18,9 @@ final class TransactionOriginResolverTest extends TestCase
         $this->assertStringContainsString( '$this->location_service->formatAddress( $source )', $resolver );
         $this->assertStringContainsString( "'addressLines' => $address_lines", $resolver );
         $this->assertStringContainsString( '$this->origin_resolver->resolve( $row )', $list );
-        $this->assertStringContainsString( "'currentLocationId'    => $origin_location_id", $list );
+        $this->assertStringContainsString( "'currentLocationId'    => \$origin_location_id", $list );
         $this->assertStringContainsString( '$this->origin_resolver->resolve($transaction)', $detail );
-        $this->assertStringContainsString( '"address" => $origin["addressLines"]', $detail );
+        $this->assertStringContainsString( 'is_array($origin["address"] ?? null)', $detail );
+        $this->assertStringContainsString( '"currentOriginAddress" => $origin_address', $detail );
     }
 }
