@@ -293,19 +293,11 @@ class TransactionDetailPageData
         $items = [];
         foreach ($order->get_items("line_item") as $item) {
             $product = $item->get_product();
-            $image_url =
-                $product && method_exists($product, "get_image_id")
-                    ? (string) wp_get_attachment_image_url(
-                        $product->get_image_id(),
-                        "thumbnail",
-                    )
-                    : "";
             $items[] = [
                 "name" => (string) $item->get_name(),
                 "quantity" => (int) $item->get_quantity(),
                 "total" => (float) $item->get_total(),
                 "sku" => (string) ($product ? $product->get_sku() : ""),
-                "imageUrl" => $image_url,
             ];
         }
         return $items;

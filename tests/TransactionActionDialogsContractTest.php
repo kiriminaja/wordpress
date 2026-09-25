@@ -230,3 +230,15 @@ final class ChangeOriginPriceImpactAlertTest extends TestCase
         $this->assertStringContainsString( 'border-emerald-200 bg-emerald-50 text-emerald-900', $dialog );
     }
 }
+
+final class ChangeOriginCourierSummaryTest extends TestCase
+{
+    #[Test]
+    public function unchanged_courier_is_rendered_once_without_a_redundant_arrow(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+
+        $this->assertStringContainsString( 'const courierChanged = $derived', $dialog );
+        $this->assertStringContainsString( '{#if courierChanged} → {originCheck.comparison.new_courier}{/if}', $dialog );
+    }
+}

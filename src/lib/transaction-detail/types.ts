@@ -18,7 +18,7 @@ export type TransactionDetailBootstrap = {
     sender: { name: string; phone: string; address: string[] };
     recipient: { name: string; phone: string; address: string[] };
     package: { weight: number; length: number; width: number; height: number };
-    items: Array<{ name: string; quantity: number; total: number; sku: string; imageUrl: string }>;
+    items: Array<{ name: string; quantity: number; total: number; sku: string }>;
     notes: Array<{ label: string; content: string }>;
     shipment: {
       courier: { code: string; service: string };

@@ -286,11 +286,7 @@
                         {#if transaction.items.length === 0}<p class="m-0 text-sm text-muted-foreground">—</p>{/if}
                         {#each transaction.items as item}
                             <div class="!flex min-w-0 !items-center gap-3 rounded-lg border border-border p-3 text-sm">
-                                {#if item.imageUrl}
-                                    <img class="size-12 shrink-0 rounded-md border border-border object-cover" src={item.imageUrl} alt="" />
-                                {:else}
-                                    <span class="!grid size-12 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><IconBox /></span>
-                                {/if}
+                                <span class="!grid size-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><IconBox /></span>
                                 <span class="!grid min-w-0 flex-1 gap-0.5"><strong class="truncate font-semibold text-foreground">{item.name}</strong>{#if item.sku}<small class="text-xs text-muted-foreground">SKU: {item.sku}</small>{/if}</span>
                                 <span class="shrink-0 text-muted-foreground">× {item.quantity}</span>
                                 <strong class="shrink-0 font-semibold text-foreground">{currency(item.total)}</strong>

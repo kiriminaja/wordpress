@@ -104,6 +104,7 @@
   const minimumCod = $derived(action?.kind === 'adjust-deficit' ? action.data.codMinimum : 0);
   const maximumCod = $derived(action?.kind === 'adjust-deficit' ? action.data.codMaximum : 0);
   const currentOriginLocationId = $derived(action?.kind === 'origin' ? action.data.currentLocationId : 0);
+  const courierChanged = $derived(Boolean(originCheck?.comparison.previous_courier && originCheck?.comparison.new_courier && originCheck.comparison.previous_courier !== originCheck.comparison.new_courier));
   const codIsValid = $derived(Number.isFinite(Number(codValue)) && Number(codValue) >= minimumCod && (!maximumCod || Number(codValue) <= maximumCod));
   const adjustedCod = $derived(Number(codValue) || 0);
   const totalShipping = $derived(action?.kind === 'adjust-deficit' ? action.data.shippingCost + action.data.insuranceFee + action.data.codFee : 0);
@@ -325,7 +326,7 @@
           {#if originCheck.comparison.available}
             <div class="!grid gap-0 text-sm">
               <h3 class="m-0 pb-2 text-base font-semibold text-foreground">{i18n.orderBreakdown ?? 'Order summary'}</h3>
-              <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.courier ?? 'Courier'}</span><strong class="text-foreground">{originCheck.comparison.previous_courier ?? '—'} → {originCheck.comparison.new_courier ?? '—'}</strong></div>
+              <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.courier ?? 'Courier'}</span><strong class="text-foreground">{originCheck.comparison.previous_courier ?? originCheck.comparison.new_courier ?? '—'}{#if courierChanged} → {originCheck.comparison.new_courier}{/if}</strong></div>
               <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.orderSubtotal ?? 'Sub Total'}</span><strong class="text-foreground">{formatCurrency(originCheck.comparison.previous_subtotal ?? 0)}</strong></div>
               <div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.shipping ?? 'Shipping'}</span><span class="!flex items-center gap-1"><span>{formatCurrency(originCheck.comparison.previous_paid_shipping ?? 0)}</span>{#if hasAmountChanged(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}<strong class={amountTone(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}>→ {formatCurrency(originCheck.comparison.new_paid_shipping ?? 0)}</strong>{/if}</span></div>
               {#if (originCheck.comparison.previous_discount ?? 0) !== 0 || (originCheck.comparison.new_discount ?? 0) !== 0}<div class="!flex !items-center !justify-between gap-3 border-b border-border py-2 text-muted-foreground"><span>{i18n.shippingDiscount ?? 'Shipping discount'}</span><span class="!flex items-center gap-1"><span>{formatCurrency(originCheck.comparison.previous_discount ?? 0)}</span>{#if hasAmountChanged(originCheck.comparison.previous_discount, originCheck.comparison.new_discount)}<strong class={amountTone(originCheck.comparison.previous_discount, originCheck.comparison.new_discount)}>→ {formatCurrency(originCheck.comparison.new_discount ?? 0)}</strong>{/if}</span></div>{/if}
