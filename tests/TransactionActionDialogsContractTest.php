@@ -169,3 +169,28 @@ final class ChangeOriginCompactTriggerTest extends TestCase
         $this->assertStringNotContainsString( 'i18n.selectedCourier', $dialog );
     }
 }
+
+final class ChangeOriginOrderSummaryParityTest extends TestCase
+{
+    #[Test]
+    public function svelte_change_origin_renders_the_legacy_before_after_order_summary(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+        $controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' );
+
+        $this->assertStringContainsString( 'previous_courier?: string;', $dialog );
+        $this->assertStringContainsString( 'previous_paid_shipping?: number;', $dialog );
+        $this->assertStringContainsString( 'new_paid_shipping?: number;', $dialog );
+        $this->assertStringContainsString( 'previous_discount?: number;', $dialog );
+        $this->assertStringContainsString( 'new_discount?: number;', $dialog );
+        $this->assertStringContainsString( 'previous_total?: number;', $dialog );
+        $this->assertStringContainsString( 'new_total?: number;', $dialog );
+        $this->assertStringContainsString( "i18n.orderBreakdown ?? 'Order summary'", $dialog );
+        $this->assertStringContainsString( 'changeValue(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)', $dialog );
+        $this->assertStringContainsString( 'changeValue(originCheck.comparison.previous_total, originCheck.comparison.new_total)', $dialog );
+        $this->assertStringContainsString( "'previous_paid_shipping' =>", $controller );
+        $this->assertStringContainsString( "'new_paid_shipping' =>", $controller );
+        $this->assertStringContainsString( "'previous_total' =>", $controller );
+        $this->assertStringContainsString( "'new_total' =>", $controller );
+    }
+}

@@ -243,8 +243,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( "admin-list.css?inline", $workspace );
 		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "'autoRefresh'", $renderer );
-		$this->assertStringContainsString( "'refreshLabels'", $renderer );
+		$this->assertStringContainsString( '"autoRefresh"', $renderer );
+		$this->assertStringContainsString( '"refreshLabels"', $renderer );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/AutoRefresh.svelte' );
     }
 
@@ -320,5 +320,19 @@ final class TransactionDetailOriginResolutionTest extends TestCase
         $this->assertStringContainsString( "\$source = ! empty( \$snapshot ) ? \$snapshot : \$location;", $detail );
         $this->assertStringContainsString( "\$address = \$this->location_service->formatAddress( \$source );", $detail );
         $this->assertStringContainsString( "'changeOrigin'  => 'new' === \$status", $detail );
+    }
+}
+
+final class TransactionListRendererCompatibilityTest extends TestCase
+{
+    #[Test]
+    public function transaction_renderer_uses_php_81_compatible_constructor_method_calls(): void
+    {
+        $renderer = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php' );
+
+        $this->assertStringNotContainsString( 'new KiriminajaApiService()->', $renderer );
+        $this->assertStringNotContainsString( 'new ShipmentLocationService()->', $renderer );
+        $this->assertStringNotContainsString( 'new PluginUpdateNoticeService()->', $renderer );
+        $this->assertStringContainsString( '( new KiriminajaApiService() )->getCourierNameMap()', $renderer );
     }
 }

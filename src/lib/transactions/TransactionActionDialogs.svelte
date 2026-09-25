@@ -40,7 +40,23 @@
     discount_amount?: number;
   };
   type OriginCheck = {
-    comparison: { available?: boolean; label?: string; new_courier?: string; service_code?: string; service_name?: string; is_total_blocked?: boolean };
+    comparison: {
+      available?: boolean;
+      label?: string;
+      new_courier?: string;
+      service_code?: string;
+      service_name?: string;
+      is_total_blocked?: boolean;
+      required_refund?: number;
+      previous_courier?: string;
+      previous_subtotal?: number;
+      previous_paid_shipping?: number;
+      previous_discount?: number;
+      new_paid_shipping?: number;
+      new_discount?: number;
+      previous_total?: number;
+      new_total?: number;
+    };
     options: CourierOption[];
     replacement_options: CourierOption[];
   };
@@ -140,6 +156,11 @@
 
   function formatCurrency(value: number): string {
     return `Rp${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Math.max(0, value))}`;
+  }
+
+  function changeValue(previous = 0, next = 0): string {
+    const delta = next - previous;
+    return Math.abs(delta) < 0.5 ? formatCurrency(next) : `${formatCurrency(previous)} → ${formatCurrency(next)}`;
   }
 
   async function post<T>(values: Record<string, string>): Promise<T> {
@@ -294,6 +315,16 @@
             selectedLabel={courierLabel}
             onChange={(value) => { selectedCourierKey = value; replacementConsent = false; }}
           />
+          {#if originCheck.comparison.available}
+            <div class="!grid gap-2 rounded-lg border border-border p-3 text-sm">
+              <h3 class="m-0 text-base font-semibold text-foreground">{i18n.orderBreakdown ?? 'Order summary'}</h3>
+              <div class="!flex !items-center !justify-between gap-3 border-b border-border pb-2 text-muted-foreground"><span>{i18n.courier ?? 'Courier'}</span><strong class="text-foreground">{originCheck.comparison.previous_courier ?? '—'} → {originCheck.comparison.new_courier ?? '—'}</strong></div>
+              <div class="!flex !items-center !justify-between gap-3 text-muted-foreground"><span>{i18n.orderSubtotal ?? 'Sub Total'}</span><strong class="text-foreground">{formatCurrency(originCheck.comparison.previous_subtotal ?? 0)}</strong></div>
+              <div class="!flex !items-center !justify-between gap-3 text-muted-foreground"><span>{i18n.shipping ?? 'Shipping'}</span><strong class="text-foreground">{changeValue(originCheck.comparison.previous_paid_shipping, originCheck.comparison.new_paid_shipping)}</strong></div>
+              {#if (originCheck.comparison.previous_discount ?? 0) !== 0 || (originCheck.comparison.new_discount ?? 0) !== 0}<div class="!flex !items-center !justify-between gap-3 text-muted-foreground"><span>{i18n.shippingDiscount ?? 'Shipping discount'}</span><strong class="text-foreground">{changeValue(originCheck.comparison.previous_discount, originCheck.comparison.new_discount)}</strong></div>{/if}
+              <div class="!flex !items-center !justify-between gap-3 border-t border-border pt-2"><strong class="text-foreground">{i18n.orderTotal ?? 'Order total'}</strong><strong class="text-foreground">{originCheck.comparison.is_total_blocked ? (i18n.blocked ?? 'Blocked') : changeValue(originCheck.comparison.previous_total, originCheck.comparison.new_total)}</strong></div>
+            </div>
+          {/if}
           {#if requiresCourierConsent}
             <label class="!flex items-start gap-2 text-sm text-muted-foreground"><Checkbox checked={replacementConsent} onCheckedChange={(checked) => (replacementConsent = Boolean(checked))} /><span>{i18n.courierConsent ?? 'I agree to replace the unavailable courier with the selected service.'}</span></label>
           {/if}
