@@ -18,4 +18,18 @@ final class PaymentScheduleDialogTest extends TestCase
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js' );
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/payments/PaymentsModals.svelte' );
     }
+
+    #[Test]
+    public function schedule_load_only_tracks_dialog_identity_and_ignores_stale_responses(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentScheduleDialog.svelte' );
+
+        $this->assertStringContainsString( "const activePickup = open ? pickupNumber : '';", $dialog );
+        $this->assertStringContainsString( 'untrack(() => void load(activePickup))', $dialog );
+        $this->assertStringContainsString( "'data[payment_id]': id", $dialog );
+        $this->assertStringContainsString( 'if (currentRequest !== requestId) return;', $dialog );
+        $this->assertStringContainsString( 'if (currentRequest === requestId) loading = false;', $dialog );
+        $this->assertStringContainsString( 'requestId += 1;', $dialog );
+        $this->assertStringContainsString( 'schedules = result.schedules ?? [];', $dialog );
+    }
 }

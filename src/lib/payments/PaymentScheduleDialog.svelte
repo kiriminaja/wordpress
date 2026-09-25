@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import KiriofDialog from '$lib/ui/KiriofDialog.svelte';
@@ -32,6 +33,7 @@
   let selectedSchedule = $state('');
   let orderId = $state('');
   let summary = $state({ cod: 0, nonCod: 0 });
+  let requestId = 0;
 
   function money(value: number): string {
     return `Rp${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(value)}`;
@@ -51,16 +53,18 @@
     return payload.data?.data as T;
   }
 
-  async function load(): Promise<void> {
-    if (!pickupNumber || loading) return;
+  async function load(id: string): Promise<void> {
+    if (!id) return;
+    const currentRequest = ++requestId;
     loading = true;
     error = '';
     try {
       const result = await post<ScheduleData>({
         action: 'kiriof_get_shipping_reschedule_pickup',
-        'data[payment_id]': pickupNumber,
+        'data[payment_id]': id,
         'data[nonce]': nonce,
       });
+      if (currentRequest !== requestId) return;
       schedules = result.schedules ?? [];
       selectedSchedule = schedules[0]?.clock ?? '';
       orderId = result.transaction_summary?.order_id ?? '';
@@ -69,9 +73,10 @@
         nonCod: Number(result.transaction_summary?.sum_fee_non_cod ?? 0),
       };
     } catch (cause) {
+      if (currentRequest !== requestId) return;
       error = cause instanceof Error ? cause.message : i18n.error ?? 'Unable to load pickup schedule.';
     } finally {
-      loading = false;
+      if (currentRequest === requestId) loading = false;
     }
   }
 
@@ -96,8 +101,11 @@
   }
 
   $effect(() => {
-    if (open) void load();
+    const activePickup = open ? pickupNumber : '';
+    if (activePickup) untrack(() => void load(activePickup));
     else {
+      requestId += 1;
+      loading = false;
       schedules = [];
       selectedSchedule = '';
       orderId = '';
@@ -136,5 +144,5 @@
       {/each}
     </RadioGroup.Root>
   {/if}
-  {#if error}<div class="!grid gap-2"><p class="m-0 text-sm text-destructive" role="alert">{error}</p><Button variant="outline" onclick={() => void load()}>{i18n.retry ?? 'Retry'}</Button></div>{/if}
+  {#if error}<div class="!grid gap-2"><p class="m-0 text-sm text-destructive" role="alert">{error}</p><Button variant="outline" onclick={() => void load(pickupNumber)}>{i18n.retry ?? 'Retry'}</Button></div>{/if}
 </KiriofDialog>
