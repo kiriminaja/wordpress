@@ -4,6 +4,7 @@
   import { Input } from '$lib/components/ui/input';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
+  import KiriofSelect from '$lib/ui/KiriofSelect.svelte';
   import { Button } from '$lib/components/ui/button';
   import { IconCreditCard, IconQrcode } from '@tabler/icons-svelte';
 
@@ -304,30 +305,12 @@
         <Field.FieldGroup class="kiriof-pickup-datetime">
           <Field.Field>
             <Field.FieldLabel for="kiriof-pickup-date">{label('pickupDate', 'Pickup Date')}</Field.FieldLabel>
-            <Select.Root type="single" value={selectedDate} onValueChange={selectDate}>
-              <Select.Trigger id="kiriof-pickup-date" class="!bg-background !border-input"><Select.Value placeholder={label('selectDatePlaceholder', 'Select a pickup date')} /></Select.Trigger>
-              <Select.Content class="kiriof-shadcn">
-                <Select.Group>
-                  {#each pickupDates as date (date.value)}
-                    <Select.Item value={date.value}>{date.label}</Select.Item>
-                  {/each}
-                </Select.Group>
-              </Select.Content>
-            </Select.Root>
+            <KiriofSelect id="kiriof-pickup-date" value={selectedDate} options={pickupDates} placeholder={label('selectDatePlaceholder', 'Select a pickup date')} onChange={selectDate} />
           </Field.Field>
 
           <Field.Field>
             <Field.FieldLabel for="kiriof-pickup-time">{label('pickupTime', 'Pickup Time')}</Field.FieldLabel>
-            <Select.Root type="single" bind:value={selectedTime}>
-              <Select.Trigger id="kiriof-pickup-time" class="!bg-background !border-input"><Select.Value placeholder={label('selectTimePlaceholder', 'Select a pickup time')} /></Select.Trigger>
-              <Select.Content class="kiriof-shadcn">
-                <Select.Group>
-                  {#each availableTimes as time (time.value)}
-                    <Select.Item value={time.value}>{time.label}</Select.Item>
-                  {/each}
-                </Select.Group>
-              </Select.Content>
-            </Select.Root>
+            <KiriofSelect id="kiriof-pickup-time" bind:value={selectedTime} options={availableTimes} placeholder={label('selectTimePlaceholder', 'Select a pickup time')} />
           </Field.Field>
         </Field.FieldGroup>
 

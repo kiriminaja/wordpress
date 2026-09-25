@@ -1,7 +1,7 @@
 <script lang="ts">
   import { IconAlertTriangle, IconExternalLink, IconMapPin } from '@tabler/icons-svelte';
   import { Checkbox } from '$lib/components/ui/checkbox';
-  import { Input } from '$lib/components/ui/input';
+  import KiriofInput from '$lib/ui/KiriofInput.svelte';
   import KiriofDialog from '$lib/ui/KiriofDialog.svelte';
   import ShipmentLocationCombobox from './ShipmentLocationCombobox.svelte';
   import CourierOptionCombobox from './CourierOptionCombobox.svelte';
@@ -326,7 +326,7 @@
     onSecondary={close}
     onPrimary={() => void adjustDeficit()}
   >
-    <label class="!grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cod-value">{i18n.codValue ?? 'COD value'}<Input id="kiriof-cod-value" type="number" min={minimumCod} max={maximumCod || undefined} step="1" bind:value={codValue} disabled={loading} /></label>
+    <label class="!grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cod-value">{i18n.codValue ?? 'COD value'}<KiriofInput id="kiriof-cod-value" type="text" inputmode="numeric" min={minimumCod} max={maximumCod || undefined} bind:value={codValue} formatNumber disabled={loading} /></label>
     <p class="m-0 text-xs text-muted-foreground">{i18n.minimumCod ?? 'Minimum'}: {formatCurrency(minimumCod)}{#if maximumCod} · {i18n.maximumCod ?? 'Maximum'}: {formatCurrency(maximumCod)}{/if}</p>
     <dl class="!grid gap-2 rounded-lg border border-border p-3 text-sm">
       <div class="!flex !items-center !justify-between gap-4 text-muted-foreground"><dt>{i18n.orderSubtotal ?? 'Sub Total'}</dt><dd class="m-0 text-foreground">{formatCurrency(action.data.itemPrice)}</dd></div>
