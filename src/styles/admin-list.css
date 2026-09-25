@@ -101,32 +101,6 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   @apply !w-4 !h-4 text-muted-foreground;
 }
 
-.kiriof-payment-modal {
-  @apply [width:min(420px,calc(100%_-_32px))];
-}
-.kiriof-payment-modal .closebtn-container {
-  @apply inline-flex w-8 [min-width:32px] h-8 min-h-8 items-center justify-center ml-auto p-0 rounded-lg;
-}
-.kiriof-modal-loading,
-.kiriof-qr {
-  @apply grid place-items-center [min-height:160px];
-}
-.kiriof-payment-code,
-.kiriof-payment-expiry {
-  @apply grid [justify-items:center] gap-2 [margin:16px_0] text-center;
-}
-.kiriof-payment-code .trx-pay-amount {
-  @apply text-info [font-size:20px] font-bold;
-}
-.kiriof-payment-expiry {
-  @apply text-destructive;
-}
-.kiriof-charge-list {
-  @apply grid [gap:9px] [margin:14px_0] p-3 border rounded-lg bg-white [box-shadow:0_1px_2px_rgb(0_0_0_/_3%)];
-}
-.kiriof-charge-list > div {
-  @apply flex justify-between gap-4;
-}
 .kiriof-schedule-list {
   @apply overflow-auto [max-height:30vh] [margin:14px_0];
 }

@@ -13,6 +13,7 @@
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import PaymentScheduleDialog from './PaymentScheduleDialog.svelte';
+  import ScanToPayDialog from './ScanToPayDialog.svelte';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -37,6 +38,22 @@
   let searchTimer: number | null = null;
   let scheduleDialogOpen = $state(false);
   let schedulePickupNumber = $state('');
+  let paymentDialogOpen = $state(false);
+  let paymentPickupNumber = $state('');
+
+  $effect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const number = params.get('pickup_number');
+    const open = params.get('open_payment');
+    if (!number || (open !== '1' && open !== 'true')) return;
+    params.delete('pickup_number');
+    params.delete('open_payment');
+    window.history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
+    if (bootstrap.rows.some((row) => row.pickupNumber === number && row.actions.some((action) => action.type === 'pay'))) {
+      paymentPickupNumber = number;
+      paymentDialogOpen = true;
+    }
+  });
 
   const currentStatus = $derived(bootstrap.filters.status || 'all');
   const paymentTabs = $derived(bootstrap.statusTabs.map((tab) => ({ ...tab, value: tab.value || 'all' })));
@@ -84,11 +101,6 @@
   /** Re-run the current list query, preserving every filter + pagination state. */
   function refreshList(): void {
     void navigate({});
-  }
-
-  function actionClass(type: PaymentRow['actions'][number]['type']): string {
-    if (type === 'pay') return 'kiriof-payment-button';
-    return '';
   }
 
   function actionIcon(type: PaymentRow['actions'][number]['type']): typeof IconEye {
@@ -173,7 +185,7 @@
                       {:else if action.type === 'reschedule'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { schedulePickupNumber = row.pickupNumber; scheduleDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {:else}
-                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" class={actionClass(action.type)} type="button" data-pickup-number={row.pickupNumber} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
+                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { paymentPickupNumber = row.pickupNumber; paymentDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {/if}
                     {/each}
                   </div>
@@ -195,4 +207,5 @@
     />
   </KiriofCard>
   <PaymentScheduleDialog bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+  <ScanToPayDialog bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} i18n={bootstrap.modals} />
 </div>

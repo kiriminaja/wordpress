@@ -5,27 +5,42 @@ use PHPUnit\Framework\TestCase;
 final class RequestPickupPaymentFlowTest extends TestCase
 {
     #[Test]
+    public function scan_to_pay_uses_svelte_qr_instead_of_legacy_assets(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte' );
+        $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+
+        $this->assertStringContainsString( "import { qr } from '@svelte-put/qr/svg'", $dialog );
+        $this->assertStringContainsString( '<KiriofDialog', $dialog );
+        $this->assertStringContainsString( 'use:qr={{ data: qrContent', $dialog );
+        $this->assertStringContainsString( "postWordPressAction<PaymentData>('kiriof_get_payment_form'", $dialog );
+        $this->assertStringNotContainsString( 'wc-qrcode', $enqueue );
+        $this->assertStringNotContainsString( 'qr-code-styling', $enqueue );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/lib/qr-code-styling/qr-code-styling.min.js' );
+    }
+
+    #[Test]
     public function request_pickup_list_auto_opens_payment_only_with_explicit_flag(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte');
 
         $this->assertStringContainsString(
             'new URLSearchParams(window.location.search)',
             $content,
             'Request pickup page should parse query params from location.search to avoid URLSearchParams(full href) parsing bugs'
         );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsModals.svelte' );
-		$this->assertStringContainsString( 'data-kiriof-payments-modals-root', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
-		$this->assertStringContainsString( 'PaymentsModals', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte' );
+		$this->assertStringContainsString( '<ScanToPayDialog', $content );
+		$this->assertStringNotContainsString( 'data-kiriof-payments-modals-root', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
 
         $this->assertStringContainsString(
-            'open === "1" || open === "true"',
+            "open !== '1' && open !== 'true'",
             $content,
             'Request pickup page should only auto-open payment modal when open_payment explicitly opts in'
         );
 
         $this->assertStringContainsString(
-            '.trigger("click")',
+            "row.actions.some((action) => action.type === 'pay')",
             $content,
             'Request pickup page should auto-open payment only through an available payment action'
         );
@@ -116,20 +131,8 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function pick_schedule_redirect_adds_open_payment_only_when_backend_opt_in_exists(): void
     {
-        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
         $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
-
-        $this->assertStringContainsString(
-            'resp.data.open_payment === true',
-            $requestPickupContent,
-            'Request pickup flow should only append open_payment when backend marks payment modal as required'
-        );
-
-        $this->assertStringContainsString(
-            'window.location.href = openPayment ? url + "&open_payment=1" : url;',
-            $requestPickupContent,
-            'Request pickup flow should avoid opening Scan to Pay automatically for COD-only pickups'
-        );
+		$this->assertStringContainsString( 'open_payment', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 
         $this->assertStringContainsString(
             'const shouldOpenPayment',
@@ -174,7 +177,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
         $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
-        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte');
 
         $this->assertStringContainsString(
             "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
@@ -237,19 +240,19 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'String(remote.status_code || "").trim()',
+            "String(remote.status_code || '').trim()",
             $requestPickupTemplate,
             'Payment modal should use KiriminAja payment status_code mapping instead of HTTP-like status codes'
         );
 
         $this->assertStringContainsString(
-            'String(remote.status_code || "").trim() === "0"',
+            "String(remote.status_code || '').trim() === '0'",
             $requestPickupTemplate,
             'Payment modal should only use status_code 0 for non-QRIS paid flows'
         );
 
         $this->assertStringContainsString(
-            'localMethod === "qris"',
+            "String(local.method || '').toLowerCase() === 'qris'",
             $requestPickupTemplate,
             'Payment modal should not close QRIS just because status_code is 0 without paid timestamp/status label'
         );
@@ -261,7 +264,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'String(local.status || "").toLowerCase() === "paid"',
+            "String(local.status || '').toLowerCase() === 'paid'",
             $requestPickupTemplate,
             'Refresh button should reload after QRIS has actually been marked paid'
         );

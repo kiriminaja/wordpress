@@ -17,6 +17,7 @@
     "check:semantic-style-tokens": "node scripts/check-semantic-style-tokens.mjs"
   },
   "dependencies": {
+    "@svelte-put/qr": "^2.1.3",
     "@tabler/icons-svelte": "^3.47.0",
     "bits-ui": "^2.19.2",
     "cnfast": "^0.2.0",

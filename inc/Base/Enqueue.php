@@ -473,10 +473,6 @@ class Enqueue extends BaseInit{
         ' );
 
         /**
-         * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
-         * for the "Scan to Pay" modal on the Request Pickup page.
-         */
-        /**
          * COD Adjustment JS — enqueued on the order edit screen and transaction process page.
          */
         if ( $is_order_screen ) {
@@ -507,35 +503,9 @@ class Enqueue extends BaseInit{
 
 
         if ( 'kiriminaja-request-pickup' === $page ) {
-            if ( ! wp_script_is( 'wc-qrcode', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
-                $wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;
-                wp_register_script(
-                    'wc-qrcode',
-                    plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/js/jquery-qrcode/jquery.qrcode.js',
-                    array( 'jquery' ),
-                    $wc_version,
-                    true
-                );
-            }
-            wp_enqueue_script( 'wc-qrcode' );
-            wp_enqueue_script(
-                'kiriof-qr-code-styling',
-                $this->plugin_url . 'assets/lib/qr-code-styling/qr-code-styling.min.js',
-                array(),
-                KIRIOF_VERSION,
-                true
-            );
-            wp_enqueue_script(
-                'kiriof-request-pickup',
-                $this->plugin_url . 'assets/admin/js/kj-request-pickup.js',
-                array( 'jquery', 'kiriof-script', 'wc-qrcode', 'kiriof-qr-code-styling' ),
-                KIRIOF_VERSION,
-                true
-            );
-
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
 			$this->enqueue_workspace_style();
-			$this->enqueue_workspace_script( $workspace_script, array( 'kiriof-request-pickup' ) );
+			$this->enqueue_workspace_script( $workspace_script );
         }
 
    

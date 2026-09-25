@@ -5,7 +5,6 @@ import CouriersSection from '../lib/settings/CouriersSection.svelte';
 import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
 import TrackingSection from '../lib/settings/TrackingSection.svelte';
 import PaymentsList from '../lib/payments/PaymentsList.svelte';
-import PaymentsModals from '../lib/payments/PaymentsModals.svelte';
 import PickupDetail from '../lib/pickup-detail/PickupDetail.svelte';
 import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
 import TransactionDetail from '../lib/transaction-detail/TransactionDetail.svelte';
@@ -246,15 +245,12 @@ function render(source: ParentNode, route: RouteDefinition): void {
     ];
   } else if (route.route === 'payments') {
     const bootstrap = parsePayload<PaymentsBootstrap>(source, route);
-    const modalHost = source.querySelector<HTMLElement>('[data-kiriof-payments-modals-root]');
     mounted = [
       mount(PaymentsList, {
         target: host,
         props: { initialBootstrap: bootstrap, onNavigate: navigate },
       }),
     ];
-    if (modalHost)
-      mounted.push(mount(PaymentsModals, { target: modalHost, props: { i18n: bootstrap.modals } }));
     host
       .closest<HTMLElement>('[data-kiriof-payments-page]')
       ?.classList.add('kiriof-payments-page--enhanced');
