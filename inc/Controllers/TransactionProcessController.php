@@ -1007,9 +1007,6 @@ class TransactionProcessController
                 return;
             }
 
-            $kiriof_location_service   = new \KiriminAjaOfficial\Services\ShipmentLocationService();
-            $kiriof_shipment_locations = $kiriof_location_service->repository()->getAll( true );
-
             $kiriof_pin_cache_ttl = (int) apply_filters(
                 'kiriof_pin_cache_ttl',
                 15 * MINUTE_IN_SECONDS,
@@ -1312,94 +1309,6 @@ class TransactionProcessController
                 </div>
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </template>
-        <template id="tmpl-kiriof-modal-change-origin">
-            <div class="wc-backbone-modal kiriof-backbone-modal kiriof-change-origin-modal">
-                <div class="wc-backbone-modal-content kiriof-change-origin-modal-content">
-                    <section class="wc-backbone-modal-main" role="main">
-                        <header class="wc-backbone-modal-header">
-                            <h1><?php esc_html_e( 'Change Shipment Origin', 'kiriminaja-official' ); ?></h1>
-                            <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                <span class="screen-reader-text"><?php esc_html_e( 'Close modal panel', 'kiriminaja-official' ); ?></span>
-                            </button>
-                        </header>
-                        <article class="kiriof-backbone-modal-body">
-                            <form>
-                                <input type="hidden" name="order_id" value="{{ data.order_id }}">
-                                <div class="kiriof-backbone-field">
-                                    <span class="kiriof-backbone-label kiriof-origin-field-header">
-										<span><?php esc_html_e( 'Shipment origin', 'kiriminaja-official' ); ?> <span class="required">*</span></span>
-                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Manage shipment locations', 'kiriminaja-official' ); ?></a>
-                                    </span>
-                                    <div class="kiriof-compact-selection kiriof-origin-selection-summary">
-                                        <span class="kiriof-compact-selection-copy">
-                                            <strong class="kiriof-origin-selection-name">{{ data.current_origin }}</strong>
-                                            <small class="kiriof-origin-selection-address">{{ data.current_origin_address }}</small>
-                                        </span>
-                                        <button type="button" class="button button-small kiriof-origin-toggle"><?php esc_html_e( 'Change', 'kiriminaja-official' ); ?></button>
-                                    </div>
-                                    <div class="kiriof-choice-panel kiriof-origin-choice-panel" style="display:none;">
-                                    <div class="kiriof-radio-card-group kiriof-origin-radio-group" role="radiogroup" aria-label="<?php esc_attr_e( 'Shipment origin', 'kiriminaja-official' ); ?>">
-                                        <label class="kiriof-radio-card kiriof-radio-card-current">
-                                            <input type="radio" name="location_id" value="{{ data.current_location_id }}" checked data-current="1">
-                                            <span class="kiriof-radio-card-copy">
-                                                <strong>{{ data.current_origin }}</strong>
-                                                <small>{{ data.current_origin_address }}</small>
-                                                <em><?php esc_html_e( 'Current origin', 'kiriminaja-official' ); ?></em>
-                                            </span>
-                                        </label>
-                                        <?php foreach ( $kiriof_shipment_locations as $kiriof_location_option ) : ?>
-                                            <?php
-                                            $kiriof_location_address = $kiriof_location_service->formatAddress( $kiriof_location_option );
-                                            $kiriof_location_label   = (string) $kiriof_location_option->name;
-                                            if ( '' !== $kiriof_location_address ) {
-                                                $kiriof_location_label .= ' — ' . $kiriof_location_address;
-                                            }
-                                            ?>
-                                            <label class="kiriof-radio-card" data-location-id="<?php echo esc_attr( $kiriof_location_option->id ); ?>">
-                                                <input type="radio" name="location_id" value="<?php echo esc_attr( $kiriof_location_option->id ); ?>">
-                                                <span class="kiriof-radio-card-copy">
-                                                    <strong><?php echo esc_html( $kiriof_location_option->name ); ?></strong>
-                                                    <?php if ( '' !== $kiriof_location_address ) : ?>
-                                                        <small><?php echo esc_html( $kiriof_location_address ); ?></small>
-                                                    <?php endif; ?>
-                                                </span>
-                                            </label>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <button type="button" class="button button-small kiriof-origin-collapse"><?php esc_html_e( 'Cancel', 'kiriminaja-official' ); ?></button>
-                                    </div>
-                                    <div class="kiriof-change-origin-empty" style="display:none;">
-                                        <p><?php esc_html_e( 'No alternative shipment locations are available.', 'kiriminaja-official' ); ?></p>
-                                        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ) ); ?>"><?php esc_html_e( 'Add shipment location', 'kiriminaja-official' ); ?></a>
-                                    </div>
-                                </div>
-                                <div class="kiriof-change-origin-loading" aria-live="polite" style="display:none;">
-                                    <span class="spinner" style="float:none;"></span>
-                                    <span><?php esc_html_e( 'Checking shipping route...', 'kiriminaja-official' ); ?></span>
-                                </div>
-                                 <div class="kiriof-change-origin-result notice inline" style="display:none;"></div>
-                                 <div class="kiriof-courier-selection-section" style="display:none;">
-                                     <h2 class="kiriof-courier-radio-title"><?php esc_html_e( 'Courier', 'kiriminaja-official' ); ?></h2>
-                                     <div class="kiriof-compact-selection kiriof-courier-selection-summary"></div>
-                                 </div>
-                                 <div class="kiriof-change-origin-replacement" style="display:none;"></div>
-                                 <div class="kiriof-change-origin-breakdown kiriof-change-origin-card" style="display:none;" aria-live="polite"></div>
-                                 <div class="kiriof-replacement-consent-wrap" style="display:none;">
-                                     <label><input type="checkbox" class="kiriof-replacement-consent"> <?php esc_html_e( 'I consent to use this replacement courier.', 'kiriminaja-official' ); ?></label>
-                                 </div>
-                            </form>
-                        </article>
-                        <footer>
-                            <div class="inner">
-                                <button class="button button-large modal-close"><?php esc_html_e( 'Close', 'kiriminaja-official' ); ?></button>
-                                <button class="button button-primary button-large" id="kiriof-change-origin-confirm" disabled><?php esc_html_e( 'Confirm', 'kiriminaja-official' ); ?></button>
-                            </div>
-                        </footer>
-                    </section>
-                </div>
-            </div>
-            <div class="wc-backbone-modal-backdrop kiriof-change-origin-backdrop modal-close"></div>
         </template>
                 <?php endif; ?>
         <?php
