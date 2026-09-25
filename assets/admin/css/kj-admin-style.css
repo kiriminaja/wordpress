@@ -1852,3 +1852,16 @@ button.select2-selection__clear {
   min-height: 0 !important;
   padding-bottom: 12px !important;
 }
+
+/* Legacy QR payment modal summary; replaces the retired Bootstrap grid dependency. */
+.kj-wrap .kiriof-payment-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kj-wrap .kiriof-payment-summary-row > strong {
+  text-align: right;
+  white-space: nowrap;
+}

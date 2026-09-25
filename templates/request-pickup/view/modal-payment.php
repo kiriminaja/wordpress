@@ -56,19 +56,19 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div class="row-divider"></div>
                         
                         <div style="padding: 10px;border: 1px solid #c3c4c7;">
-                            <div class="row">
-                                <div class="col"><?php esc_html_e( 'COD Package Charges', 'kiriminaja-official' ); ?></div>
-                                <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
+                            <div class="kiriof-payment-summary-row">
+                                <div><?php esc_html_e( 'COD Package Charges', 'kiriminaja-official' ); ?></div>
+                                <strong>Rp0</strong>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
-                            <div class="row">
-                                <div class="col"><?php esc_html_e( 'Non-COD Package Charges', 'kiriminaja-official' ); ?></div>
-                                <div class="col" style="text-align: right; font-weight: 700"><span class="trx-pay-amount">Rp300.000</span></div>
+                            <div class="kiriof-payment-summary-row">
+                                <div><?php esc_html_e( 'Non-COD Package Charges', 'kiriminaja-official' ); ?></div>
+                                <strong><span class="trx-pay-amount">Rp300.000</span></strong>
                             </div>
                             <div class="row-divider" style="margin-top: .5rem"></div>
-                            <div class="row">
-                                <div class="col"><?php esc_html_e( 'Total Charges', 'kiriminaja-official' ); ?></div>
-                                <div class="col" style="text-align: right; font-weight: 700"><span class="trx-pay-amount">Rp300.000</span></div>
+                            <div class="kiriof-payment-summary-row">
+                                <div><?php esc_html_e( 'Total Charges', 'kiriminaja-official' ); ?></div>
+                                <strong><span class="trx-pay-amount">Rp300.000</span></strong>
                             </div>
                         </div>
 

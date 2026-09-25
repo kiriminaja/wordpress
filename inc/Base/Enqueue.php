@@ -429,8 +429,6 @@ class Enqueue extends BaseInit{
             )
         );
         
-        wp_enqueue_style( 'kiriof-grid-style', $this->plugin_url . 'assets/admin/css/bootstrap-grid.css', array(), KIRIOF_VERSION );
-
         if ( in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) ) {
             wp_enqueue_style( 'woocommerce_admin_styles' );
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';

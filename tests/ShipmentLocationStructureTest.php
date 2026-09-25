@@ -63,7 +63,7 @@ class ShipmentLocationStructureTest extends TestCase {
 		$app = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
 
 		$this->assertStringContainsString( "'route'", $template );
-        $this->assertStringContainsString( 'shipment_location_snapshot', $template );
+        $this->assertStringContainsString( '$this->origin_resolver->resolve( $row )', $template );
 		$this->assertStringContainsString( "'origin'", $template );
 		$this->assertStringContainsString( '↓ To', $app );
 		$this->assertStringContainsString( "'destination'", $template );
@@ -94,7 +94,7 @@ class ShipmentLocationStructureTest extends TestCase {
         $controller = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $modal      = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $tpl        = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
-        $rp_modal   = $this->read( __DIR__ . '/../templates/request-pickup/view/modal-request-pickup.php' );
+        $rp_modal   = $this->read( __DIR__ . '/../src/lib/payments/PaymentScheduleDialog.svelte' );
         $rp_js      = $this->read( __DIR__ . '/../templates/request-pickup/view/index.php' );
 
         $this->assertStringNotContainsString( 'public function locationId(', $service );
