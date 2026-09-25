@@ -9,7 +9,7 @@
 }
 
 [data-slot='tooltip-content'].kiriof-tooltip-content {
-  @apply box-border pointer-events-none !w-max !max-w-72 !min-h-0 !m-0 !px-2.5 !py-1.5 !border-0 !rounded-md !bg-foreground !text-background !font-inherit !text-xs !font-medium !leading-[18px] text-center !whitespace-nowrap !shadow-lg;
+  @apply box-border pointer-events-none !w-max !max-w-72 !min-h-0 !m-0 !px-2.5 !py-1.5 !border-0 !rounded-md !bg-foreground !text-background ![font:inherit] !text-xs !font-medium !leading-[18px] text-center !whitespace-nowrap !shadow-lg;
 }
 
 .kiriof-tooltip-content .kiriof-tooltip-arrow {
@@ -153,7 +153,7 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-plugin-update-trigger {
-  @apply inline-flex min-h-8 items-center gap-1.5 px-3 border border-warning-border rounded-full bg-warning-background text-warning-foreground font-inherit text-xs font-semibold leading-none cursor-pointer transition-colors duration-150;
+  @apply inline-flex min-h-8 items-center gap-1.5 px-3 border border-warning-border rounded-full bg-warning-background text-warning-foreground [font:inherit] text-xs font-semibold leading-none cursor-pointer transition-colors duration-150;
 }
 
 .kiriof-plugin-update-trigger:hover {
