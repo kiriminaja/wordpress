@@ -22,7 +22,7 @@ final class OrderMetaboxDetailActionsTest extends TestCase {
         $this->assertStringNotContainsString( 'href="<?php echo esc_url($tracking_url); ?>"', $metabox );
         $workspace = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
         $this->assertStringContainsString( "openAdjustDeficit: url.searchParams.get('adjust_deficit') === '1'", $workspace );
-        $this->assertStringContainsString( 'render(document, route, url, navigationController.signal)', $workspace );
+        $this->assertStringContainsString( 'render(document, route, url)', $workspace );
         $this->assertStringContainsString( "url.searchParams.delete('adjust_deficit')", $workspace );
         $this->assertStringContainsString( 'history.pushState({ kiriofWorkspace: true }, \'\', url)', $workspace );
         $this->assertStringContainsString( 'history.replaceState(history.state, \'\', url)', $workspace );

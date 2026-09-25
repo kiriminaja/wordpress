@@ -258,16 +258,12 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-payments-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-settings-payload', $workspace );
-		$this->assertStringContainsString( 'preloadRoute', $workspace );
-		$this->assertStringContainsString( 'await preloadRoute(route, source)', $workspace );
-		$this->assertStringContainsString( 'if (navigationController.signal.aborted) return;', $workspace );
-		$this->assertLessThan(
-			30000,
-			filesize( PLUGIN_DIR . '/assets/admin/dist/kiriminaja-admin-workspace.js' ),
-			'The workspace entry should stay small; route components belong in separate chunks.'
-		);
-		$this->assertNotEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/TransactionsApp-*.js' ) );
-		$this->assertNotEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/PaymentsList-*.js' ) );
+		$this->assertStringContainsString( "import TransactionsApp from '../lib/transactions/TransactionsApp.svelte'", $workspace );
+		$this->assertStringContainsString( "import PaymentsList from '../lib/payments/PaymentsList.svelte'", $workspace );
+		$this->assertStringNotContainsString( "import('../lib/transactions/TransactionsApp.svelte')", $workspace );
+		$this->assertEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/TransactionsApp-*.js' ) );
+		$this->assertEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/PaymentsList-*.js' ) );
+		$this->assertStringContainsString( 'showWorkspaceError(activeShell)', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-loading-indicator', $workspace );
 		$this->assertStringContainsString( 'startLoadingIndicator()', $workspace );
 		$this->assertStringContainsString( 'finishLoadingIndicator()', $workspace );
@@ -276,8 +272,6 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( "import '../styles/admin-list.css'", $workspace );
 		$this->assertStringNotContainsString( 'data-kiriof-workspace-styles', $workspace );
 		$this->assertStringContainsString( "'kiriof-admin-workspace',", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( "import('../lib/transactions/TransactionsApp.svelte')", $workspace );
-		$this->assertStringContainsString( "import('../lib/payments/PaymentsList.svelte')", $workspace );
 		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '"autoRefresh"', $renderer );
 		$this->assertStringContainsString( '"refreshLabels"', $renderer );

@@ -1,4 +1,13 @@
 import { mount, unmount } from 'svelte';
+import SettingsRoot from '../lib/SettingsRoot.svelte';
+import AccountSection from '../lib/settings/AccountSection.svelte';
+import CouriersSection from '../lib/settings/CouriersSection.svelte';
+import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
+import TrackingSection from '../lib/settings/TrackingSection.svelte';
+import PaymentsList from '../lib/payments/PaymentsList.svelte';
+import PickupDetail from '../lib/pickup-detail/PickupDetail.svelte';
+import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
+import TransactionDetail from '../lib/transaction-detail/TransactionDetail.svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
@@ -86,21 +95,6 @@ function loadingIndicator(): HTMLDivElement {
   indicator.innerHTML = '<span class="kiriof-loading-indicator__bar"></span>';
   document.body.append(indicator);
   return indicator;
-}
-
-function preloadRoute(route: RouteDefinition, source: ParentNode): Promise<unknown> {
-  if (route.route === 'transactions') return import('../lib/transactions/TransactionsApp.svelte');
-  if (route.route === 'payments') return import('../lib/payments/PaymentsList.svelte');
-  if (route.route === 'transaction-detail')
-    return import('../lib/transaction-detail/TransactionDetail.svelte');
-  if (route.route === 'pickup-detail') return import('../lib/pickup-detail/PickupDetail.svelte');
-
-  const bootstrap = parsePayload<SettingsAppBootstrap>(source, route);
-  if (bootstrap.view === 'account') return import('../lib/settings/AccountSection.svelte');
-  if (bootstrap.view === 'couriers') return import('../lib/settings/CouriersSection.svelte');
-  if (bootstrap.view === 'tracking') return import('../lib/settings/TrackingSection.svelte');
-  if (bootstrap.view === 'technical') return import('../lib/settings/TechnicalSection.svelte');
-  return import('../lib/SettingsRoot.svelte');
 }
 
 function setLoadingProgress(progress: number): void {
@@ -205,43 +199,23 @@ async function clearMounted(): Promise<void> {
   await Promise.all(components.map((component) => unmount(component)));
 }
 
-async function renderSettings(
-  host: HTMLElement,
-  bootstrap: SettingsAppBootstrap,
-  signal?: AbortSignal,
-): Promise<void> {
-  if (bootstrap.view === 'account') {
-    const { default: AccountSection } = await import('../lib/settings/AccountSection.svelte');
-    if (signal?.aborted) return;
+function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): void {
+  if (bootstrap.view === 'account')
     mounted = [mount(AccountSection, { target: host, props: { bootstrap } })];
-  } else if (bootstrap.view === 'couriers') {
-    const { default: CouriersSection } = await import('../lib/settings/CouriersSection.svelte');
-    if (signal?.aborted) return;
+  else if (bootstrap.view === 'couriers')
     mounted = [mount(CouriersSection, { target: host, props: { bootstrap } })];
-  } else if (bootstrap.view === 'tracking') {
-    const { default: TrackingSection } = await import('../lib/settings/TrackingSection.svelte');
-    if (signal?.aborted) return;
+  else if (bootstrap.view === 'tracking')
     mounted = [mount(TrackingSection, { target: host, props: { bootstrap } })];
-  } else if (bootstrap.view === 'technical') {
-    const { default: TechnicalSection } = await import('../lib/settings/TechnicalSection.svelte');
-    if (signal?.aborted) return;
+  else if (bootstrap.view === 'technical')
     mounted = [mount(TechnicalSection, { target: host, props: { bootstrap } })];
-  } else {
-    const { default: SettingsRoot } = await import('../lib/SettingsRoot.svelte');
-    if (signal?.aborted) return;
-    mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
-  }
+  else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
 }
 
-async function renderTransactionDetail(
+function renderTransactionDetail(
   host: HTMLElement,
   bootstrap: TransactionDetailBootstrap,
   url: URL,
-  signal?: AbortSignal,
-): Promise<void> {
-  const { default: TransactionDetail } =
-    await import('../lib/transaction-detail/TransactionDetail.svelte');
-  if (signal?.aborted) return;
+): void {
   mounted = [
     mount(TransactionDetail, {
       target: host,
@@ -261,29 +235,40 @@ function clearBootSkeleton(host: HTMLElement): void {
   host.querySelector('[data-kiriof-workspace-boot]')?.remove();
 }
 
-async function render(
+function showWorkspaceError(host: HTMLElement): void {
+  const boot =
+    host.querySelector<HTMLElement>('[data-kiriof-workspace-boot]') ??
+    document.createElement('div');
+  boot.replaceChildren();
+  const message = document.createElement('p');
+  message.textContent = 'Unable to load the workspace.';
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'button';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', () => window.location.reload());
+  boot.append(message, retry);
+  boot.removeAttribute('aria-hidden');
+  if (!boot.isConnected) host.append(boot);
+  host.removeAttribute('aria-busy');
+}
+
+function render(
   source: ParentNode,
   route: RouteDefinition,
   url = new URL(window.location.href),
-  signal?: AbortSignal,
-): Promise<void> {
+): void {
   const host = source.querySelector<HTMLElement>(route.root);
   if (!host) throw new Error(`Missing ${route.route} workspace root.`);
-  await preloadRoute(route, source);
-  if (signal?.aborted) return;
   clearBootSkeleton(host);
 
   if (route.route === 'transactions') {
     const bootstrap = parsePayload<TransactionsBootstrap>(source, route);
-    const { default: TransactionsApp } = await import('../lib/transactions/TransactionsApp.svelte');
-    if (signal?.aborted) return;
     mounted = [
       mount(TransactionsApp, { target: host, props: { bootstrap, onNavigate: navigate } }),
     ];
   } else if (route.route === 'payments') {
     const bootstrap = parsePayload<PaymentsBootstrap>(source, route);
-    const { default: PaymentsList } = await import('../lib/payments/PaymentsList.svelte');
-    if (signal?.aborted) return;
     mounted = [
       mount(PaymentsList, {
         target: host,
@@ -294,22 +279,14 @@ async function render(
       .closest<HTMLElement>('[data-kiriof-payments-page]')
       ?.classList.add('kiriof-payments-page--enhanced');
   } else if (route.route === 'transaction-detail') {
-    await renderTransactionDetail(
-      host,
-      parsePayload<TransactionDetailBootstrap>(source, route),
-      url,
-      signal,
-    );
+    renderTransactionDetail(host, parsePayload<TransactionDetailBootstrap>(source, route), url);
   } else if (route.route === 'pickup-detail') {
     const bootstrap = parsePayload<PickupDetailBootstrap>(source, route);
-    const { default: PickupDetail } = await import('../lib/pickup-detail/PickupDetail.svelte');
-    if (signal?.aborted) return;
     mounted = [mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } })];
   } else {
-    await renderSettings(host, parsePayload<SettingsAppBootstrap>(source, route), signal);
+    renderSettings(host, parsePayload<SettingsAppBootstrap>(source, route));
   }
 
-  if (signal?.aborted) return;
   host.removeAttribute('aria-busy');
   host.classList.add('is-mounted');
 }
@@ -362,15 +339,11 @@ async function navigate(value: string | URL, push = true): Promise<void> {
       throw new Error('Unable to load workspace page.');
 
     await ensureRouteAssets(nextDocument);
-    await preloadRoute(route, nextDocument);
-    if (navigationController.signal.aborted) return;
     await clearMounted();
-    if (navigationController.signal.aborted) return;
     const replacement = nextShell.cloneNode(true) as HTMLElement;
     activeShell?.replaceWith(replacement);
     activeShell = replacement;
-    await render(document, route, url, navigationController.signal);
-    if (navigationController.signal.aborted) return;
+    render(document, route, url);
     syncPluginMenu(nextDocument);
     document.title = nextDocument.title || document.title;
     if (push) {
@@ -408,14 +381,14 @@ function handleClick(event: MouseEvent): void {
   void navigate(anchor.href);
 }
 
-async function start(): Promise<void> {
+function start(): void {
   const route = routeForDocument(document);
   if (!route) return;
   activeShell = document.querySelector<HTMLElement>(route.shell);
   if (!activeShell) return;
 
   try {
-    await render(document, route);
+    render(document, route);
     if (
       route.route === 'transaction-detail' &&
       window.location.search.includes('adjust_deficit=')
@@ -425,7 +398,7 @@ async function start(): Promise<void> {
       history.replaceState(history.state, '', url);
     }
   } catch {
-    window.location.reload();
+    showWorkspaceError(activeShell);
     return;
   }
 
@@ -437,4 +410,4 @@ async function start(): Promise<void> {
   });
 }
 
-void start();
+start();
