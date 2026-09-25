@@ -55,6 +55,21 @@ final class PaymentListQueryRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function payment_search_shares_the_tools_row_with_matching_height_controls(): void
+    {
+        $list = file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
+        $styles = file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' );
+
+        $this->assertStringContainsString( 'kiriof-payments-scopes', $list );
+        $this->assertStringContainsString( "<div class=\"kiriof-admin-list-tools\">\n          <form class=\"kiriof-payments-filterrow\"", $list );
+        $this->assertStringContainsString( "<Select.Root type=\"single\" value={month}", $list );
+        $this->assertStringContainsString( '.kiriof-payments-scopes .kiriof-auto-refresh,', $styles );
+        $this->assertStringContainsString( '@apply !h-9 !min-h-9 !box-border;', $styles );
+        $this->assertStringContainsString( '@apply !h-full !min-h-0;', $styles );
+        $this->assertStringContainsString( '@media (max-width: 782px)', $styles );
+    }
+
+    #[Test]
     public function status_counts_and_oldest_date_are_exposed_by_the_read_model(): void
     {
         $wpdb  = new PaymentListQueryWpdbFake();

@@ -119,9 +119,18 @@
 
   <KiriofCard class="kiriof-payments-card">
     <div class="kiriof-admin-list-filterbar kiriof-payments-filterbar">
-      <nav class="kiriof-admin-list-scopes" aria-label="Payment status">
-        <WorkspaceTabs value={currentStatus} tabs={paymentTabs} onChange={changeStatus} />
+      <div class="kiriof-admin-list-scopes kiriof-payments-scopes">
+        <nav aria-label="Payment status">
+          <WorkspaceTabs value={currentStatus} tabs={paymentTabs} onChange={changeStatus} />
+        </nav>
         <div class="kiriof-admin-list-tools">
+          <form class="kiriof-payments-filterrow" onsubmit={(event) => { event.preventDefault(); applyFilters(); }}>
+            <label class="sr-only" for="kiriof-svelte-payment-search">{bootstrap.i18n.search}</label>
+            <InputGroup.Root class="kiriof-admin-list-search" data-disabled={refreshing ? 'true' : undefined}>
+              <InputGroup.Addon align="inline-start"><IconSearch aria-hidden="true" /></InputGroup.Addon>
+              <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
+            </InputGroup.Root>
+          </form>
           <Select.Root type="single" value={month} disabled={refreshing} onValueChange={changeMonth}>
             <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
@@ -139,14 +148,7 @@
             onRefresh={refreshList}
           />
         </div>
-      </nav>
-      <form class="kiriof-payments-filterrow" onsubmit={(event) => { event.preventDefault(); applyFilters(); }}>
-        <label class="sr-only" for="kiriof-svelte-payment-search">{bootstrap.i18n.search}</label>
-        <InputGroup.Root class="kiriof-admin-list-search" data-disabled={refreshing ? 'true' : undefined}>
-          <InputGroup.Addon align="inline-start"><IconSearch aria-hidden="true" /></InputGroup.Addon>
-          <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
-        </InputGroup.Root>
-      </form>
+      </div>
     </div>
 
     <div class="kiriof-admin-list-tablewrap kiriof-payments-table-wrap" aria-busy={refreshing}>

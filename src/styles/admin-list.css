@@ -230,7 +230,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   @apply !min-h-9 ![padding:0_12px] !border-0 !rounded-xl !bg-transparent !text-foreground ![font-size:13px] !font-semibold !shadow-none;
 }
 .kiriof-workspace-tabs__trigger[data-state='active'] {
-  @apply !bg-muted !text-foreground !font-bold !shadow-none;
+  @apply !bg-muted !text-foreground !shadow-none;
 }
 .kiriof-workspace-tabs__trigger:disabled {
   @apply !text-muted-foreground !opacity-100;
