@@ -678,3 +678,16 @@ final class TransactionDetailLegacyActionBridgeTest extends TestCase
         $this->assertStringContainsString( 'const urls = config.urls || {};', $script );
     }
 }
+
+final class TransactionDetailCancelEligibilityTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_cancel_uses_the_same_eligibility_rule_as_the_transaction_list(): void
+    {
+        $detail = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionDetailPageData.php' );
+
+        $this->assertStringContainsString( "$terminal_statuses = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );", $detail );
+        $this->assertStringContainsString( "$can_cancel    = ! $is_deficit && '' !== $awb && ! in_array( $status, $terminal_statuses, true );", $detail );
+        $this->assertStringContainsString( "'cancel'        => $can_cancel,", $detail );
+    }
+}

@@ -58,6 +58,10 @@ class TransactionDetailPageData {
 		$cod_value     = $cod_fee > 0 ? $shipping + $insurance + $cod_fee + (float) ( $transaction->transaction_value ?? 0 ) : 0.0;
 		$payment_label = $cod_fee > 0 ? __( 'COD', 'kiriminaja-official' ) : __( 'Non-COD', 'kiriminaja-official' );
 		$status        = (string) ( $transaction->status ?? 'new' );
+		$awb           = (string) ( $transaction->awb ?? '' );
+		$is_deficit    = ! empty( $transaction->is_deficit );
+		$terminal_statuses = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
+		$can_cancel    = ! $is_deficit && '' !== $awb && ! in_array( $status, $terminal_statuses, true );
 		$order_url     = $wc_order && method_exists( $wc_order, 'get_edit_order_url' ) ? (string) $wc_order->get_edit_order_url() : '';
 		$wc_status     = $wc_order && method_exists( $wc_order, 'get_status' ) ? (string) $wc_order->get_status() : '';
 		$payment_status = $cod_fee > 0 ? '' : ( 'on-hold' === $wc_status ? __( 'Unpaid', 'kiriminaja-official' ) : __( 'Paid', 'kiriminaja-official' ) );
@@ -120,7 +124,7 @@ class TransactionDetailPageData {
 				'notes'         => $notes,
 				'shipment'      => array(
 					'courier'       => array( 'code' => strtolower( (string) ( $transaction->service ?? '' ) ), 'service' => $courier_name ),
-					'awb'           => (string) ( $transaction->awb ?? '' ),
+					'awb'           => $awb,
 					'paymentStatus' => $payment_status,
 					'costs'         => array(
 						'orderTotal'       => $order_total,
@@ -140,9 +144,9 @@ class TransactionDetailPageData {
 				),
 				'actions'       => array(
 					'changeOrigin'  => 'new' === $status,
-					'adjustDeficit' => ! empty( $transaction->is_deficit ),
-					'cancelDeficit' => ! empty( $transaction->is_deficit ),
-					'cancel'        => in_array( $status, array( 'new', 'request_pickup', 'pending' ), true ),
+					'adjustDeficit' => $is_deficit,
+					'cancelDeficit' => $is_deficit,
+					'cancel'        => $can_cancel,
 					'data'          => $action_data,
 				),
 			),

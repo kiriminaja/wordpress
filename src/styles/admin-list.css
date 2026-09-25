@@ -699,3 +699,21 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
     @apply [grid-template-columns:1fr];
   }
 }
+
+/* WooCommerce Backbone modal templates are appended to <body>. Keep their
+ * content above the backdrop when the Kiriof workspace is active. */
+body:has(.kiriof-admin-list-app) > .wc-backbone-modal.kiriof-backbone-modal {
+  @apply !fixed !inset-0 !z-100000 !isolate;
+}
+
+body:has(.kiriof-admin-list-app)
+  > .wc-backbone-modal.kiriof-backbone-modal
+  .wc-backbone-modal-content {
+  @apply !relative !z-10;
+}
+
+body:has(.kiriof-admin-list-app)
+  > .wc-backbone-modal.kiriof-backbone-modal
+  .wc-backbone-modal-backdrop {
+  @apply !fixed !inset-0 !z-0 !bg-black/50;
+}
