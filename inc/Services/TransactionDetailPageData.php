@@ -59,94 +59,73 @@ class TransactionDetailPageData
      */
     public function prepare(object $transaction): array
     {
-        $wc_order = function_exists("wc_get_order")
-            ? wc_get_order((int) ($transaction->wp_wc_order_stat_order_id ?? 0))
-            : false;
-        $shipping_info = json_decode(
-            (string) ($transaction->shipping_info ?? "{}"),
-        );
-        $recipient = $this->recipient_resolver->resolve(
-            $wc_order,
-            $shipping_info,
-            $transaction,
-        );
-        $origin = $this->origin_resolver->resolve($transaction);
-        $sender = [
-            "name" => $origin["name"],
-            "phone" => $origin["phone"],
-            "address" => $origin["addressLines"],
-        ];
+        $warnings = [];
+        try {
+            $wc_order = function_exists("wc_get_order")
+                ? wc_get_order((int) ($transaction->wp_wc_order_stat_order_id ?? 0))
+                : false;
+        } catch (Throwable $error) {
+            $wc_order = false;
+            $warnings[] = $this->record_warning( $transaction, 'wc_order', $error );
+        }
+
+        $shipping_info = json_decode((string) ($transaction->shipping_info ?? "{}"));
+        try {
+            $recipient = $this->recipient_resolver->resolve($wc_order, $shipping_info, $transaction);
+        } catch (Throwable $error) {
+            $recipient = array_fill_keys(array('first_name', 'last_name', 'phone', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country'), '');
+            $warnings[] = $this->record_warning( $transaction, 'recipient', $error );
+        }
+        try {
+            $origin = $this->origin_resolver->resolve($transaction);
+        } catch (Throwable $error) {
+            $origin = array('name' => __('Default origin', 'kiriminaja-official'), 'phone' => '', 'address' => '', 'addressLines' => array(), 'locationId' => 0);
+            $warnings[] = $this->record_warning( $transaction, 'origin', $error );
+        }
+        $sender = array('name' => $origin['name'], 'phone' => $origin['phone'], 'address' => $origin['addressLines']);
         $shipping = (float) ($transaction->shipping_cost ?? 0);
         $insurance = (float) ($transaction->insurance_cost ?? 0);
         $cod_fee = (float) ($transaction->cod_fee ?? 0);
         $discount = max(0, (float) ($transaction->discount_amount ?? 0));
-        $cod_value =
-            $cod_fee > 0
-                ? $shipping +
-                    $insurance +
-                    $cod_fee +
-                    (float) ($transaction->transaction_value ?? 0)
-                : 0.0;
-        $payment_label =
-            $cod_fee > 0
-                ? __("COD", "kiriminaja-official")
-                : __("Non-COD", "kiriminaja-official");
+        $cod_value = $cod_fee > 0 ? $shipping + $insurance + $cod_fee + (float) ($transaction->transaction_value ?? 0) : 0.0;
+        $payment_label = $cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official");
         $status = (string) ($transaction->status ?? "new");
         $awb = (string) ($transaction->awb ?? "");
         $is_deficit = !empty($transaction->is_deficit);
-        $terminal_statuses = [
-            "shipped",
-            "finished",
-            "returned",
-            "return",
-            "canceled",
-        ];
-        $can_cancel =
-            !$is_deficit &&
-            "" !== $awb &&
-            !in_array($status, $terminal_statuses, true);
-        $order_url =
-            $wc_order && method_exists($wc_order, "get_edit_order_url")
-                ? (string) $wc_order->get_edit_order_url()
-                : "";
-        $wc_status =
-            $wc_order && method_exists($wc_order, "get_status")
-                ? (string) $wc_order->get_status()
-                : "";
-        $payment_status =
-            $cod_fee > 0
-                ? ""
-                : ("on-hold" === $wc_status
-                    ? __("Unpaid", "kiriminaja-official")
-                    : __("Paid", "kiriminaja-official"));
-        $subtotal = $wc_order ? (float) $wc_order->get_subtotal() : 0.0;
-        $order_total = $wc_order
-            ? (float) $wc_order->get_total()
-            : $subtotal +
-                max(0.0, $shipping - $discount) +
-                $insurance +
-                $cod_fee;
-        $shipping_discount = $wc_order
-            ? max(0.0, $shipping - (float) $wc_order->get_shipping_total())
-            : $discount;
-        $paid_shipping = $wc_order
-            ? max(0.0, (float) $wc_order->get_shipping_total())
-            : max(0.0, $shipping - $shipping_discount);
+        $terminal_statuses = array("shipped", "finished", "returned", "return", "canceled");
+        $can_cancel = !$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true);
+        $order_url = $wc_order && method_exists($wc_order, "get_edit_order_url") ? (string) $wc_order->get_edit_order_url() : "";
+        $wc_status = $wc_order && method_exists($wc_order, "get_status") ? (string) $wc_order->get_status() : "";
+        $payment_status = $cod_fee > 0 ? "" : ("on-hold" === $wc_status ? __("Unpaid", "kiriminaja-official") : __("Paid", "kiriminaja-official"));
+        $subtotal = $wc_order && method_exists($wc_order, 'get_subtotal') ? (float) $wc_order->get_subtotal() : 0.0;
+        $order_total = $wc_order && method_exists($wc_order, 'get_total') ? (float) $wc_order->get_total() : $subtotal + max(0.0, $shipping - $discount) + $insurance + $cod_fee;
+        $shipping_discount = $wc_order && method_exists($wc_order, 'get_shipping_total') ? max(0.0, $shipping - (float) $wc_order->get_shipping_total()) : $discount;
+        $paid_shipping = $wc_order && method_exists($wc_order, 'get_shipping_total') ? max(0.0, (float) $wc_order->get_shipping_total()) : max(0.0, $shipping - $shipping_discount);
         $total_shipping = $shipping + $insurance + $cod_fee;
-        $courier_name = kiriof_helper()->formatServiceName(
-            $transaction->service ?? "",
-            $transaction->service_name ?? "",
-        );
-        $items = $this->items($wc_order);
-        $notes = $this->notes($wc_order);
-        $action_data = $this->action_data(
-            $transaction,
-            $wc_order,
-            $origin,
-            $shipping,
-            $insurance,
-            $cod_fee,
-        );
+        try {
+            $courier_name = kiriof_helper()->formatServiceName($transaction->service ?? "", $transaction->service_name ?? "");
+        } catch (Throwable $error) {
+            $courier_name = (string) ($transaction->service_name ?? $transaction->service ?? "");
+            $warnings[] = $this->record_warning( $transaction, 'courier', $error );
+        }
+        try {
+            $items = $this->items($wc_order);
+        } catch (Throwable $error) {
+            $items = array();
+            $warnings[] = $this->record_warning( $transaction, 'items', $error );
+        }
+        try {
+            $notes = $this->notes($wc_order);
+        } catch (Throwable $error) {
+            $notes = array();
+            $warnings[] = $this->record_warning( $transaction, 'notes', $error );
+        }
+        try {
+            $action_data = $this->action_data($transaction, $wc_order, $origin, $shipping, $insurance, $cod_fee);
+        } catch (Throwable $error) {
+            $action_data = array('nonce' => wp_create_nonce(KIRIOF_NONCE), 'kaOrderId' => (string) ($transaction->order_id ?? ''), 'currentOrigin' => $origin['name'], 'currentOriginAddress' => $origin['address'], 'currentLocationId' => $origin['locationId'], 'currentCod' => 0, 'codMinimum' => $shipping + $insurance + $cod_fee, 'codMaximum' => (float) KIRIOF_MAX_COD_AMOUNT, 'shippingCost' => $shipping, 'insuranceFee' => $insurance, 'codFee' => $cod_fee, 'itemPrice' => 0, 'itemDiscount' => 0, 'shippingDiscount' => 0, 'itemCoupon' => '', 'shippingCoupon' => '');
+            $warnings[] = $this->record_warning( $transaction, 'actions', $error );
+        }
         $print_url =
             "" !== (string) ($transaction->awb ?? "")
                 ? admin_url(
@@ -167,7 +146,12 @@ class TransactionDetailPageData
                     $transaction->id),
             "menu" => $this->toolbar_menu(),
         ];
-        $toolbar_update = ( new PluginUpdateNoticeService(  ) )->get_toolbar_update();
+        try {
+            $toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
+        } catch ( Throwable $error ) {
+            $toolbar_update = null;
+            $warnings[] = $this->record_warning( $transaction, 'toolbar', $error );
+        }
         if ($toolbar_update) {
             $toolbar["update"] = $toolbar_update;
         }
@@ -177,7 +161,7 @@ class TransactionDetailPageData
 
         return [
             "toolbar" => $toolbar,
-            "shipmentLocations" => $this->shipment_locations(),
+            "shipmentLocations" => $this->safe_shipment_locations( $transaction, $warnings ),
             "locationsUrl" => admin_url(
                 "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
             ),
@@ -280,8 +264,23 @@ class TransactionDetailPageData
                 "nonce" => wp_create_nonce(KIRIOF_NONCE),
                 "printPreviewNonce" => wp_create_nonce("kiriof_resi_print"),
             ],
+            "bootstrapError" => empty( $warnings ) ? "" : __( 'Some optional transaction details could not be loaded. See the KiriminAja log for diagnostics.', 'kiriminaja-official' ),
             "i18n" => $this->i18n(),
         ];
+    }
+
+    private function record_warning( object $transaction, string $section, Throwable $error ): string {
+        kiriof_log( 'error', 'Transaction detail section failed.', array( 'transaction_id' => (int) ( $transaction->id ?? 0 ), 'section' => $section, 'message' => $error->getMessage(), 'file' => $error->getFile(), 'line' => $error->getLine() ) );
+        return $section;
+    }
+
+    private function safe_shipment_locations( object $transaction, array &$warnings ): array {
+        try {
+            return $this->shipment_locations();
+        } catch ( Throwable $error ) {
+            $warnings[] = $this->record_warning( $transaction, 'shipment_locations', $error );
+            return array();
+        }
     }
 
     /**
