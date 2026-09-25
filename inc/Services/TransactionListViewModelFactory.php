@@ -17,15 +17,18 @@ class TransactionListViewModelFactory {
 	private RecipientDataResolver $recipient_resolver;
 	private ShipmentLocationService $location_service;
 	private ShippingDiscountCouponService $coupon_service;
+	private TransactionOriginResolver $origin_resolver;
 
 	public function __construct(
 		?RecipientDataResolver $recipient_resolver = null,
 		?ShipmentLocationService $location_service = null,
-		?ShippingDiscountCouponService $coupon_service = null
+		?ShippingDiscountCouponService $coupon_service = null,
+		?TransactionOriginResolver $origin_resolver = null
 	) {
 		$this->recipient_resolver = $recipient_resolver ?? new RecipientDataResolver();
 		$this->location_service   = $location_service ?? new ShipmentLocationService();
 		$this->coupon_service     = $coupon_service ?? new ShippingDiscountCouponService();
+		$this->origin_resolver    = $origin_resolver ?? new TransactionOriginResolver( $this->location_service );
 	}
 
 	/**
@@ -70,7 +73,7 @@ class TransactionListViewModelFactory {
 		$paid_shipping         = $wc_order ? max( 0.0, (float) $wc_order->get_shipping_total() ) : max( 0.0, $shipping_cost - $shipping_discount );
 		$wc_total              = $wc_order ? (float) $wc_order->get_total() : 0.0;
 		$wc_subtotal           = $wc_order ? (float) $wc_order->get_subtotal() : 0.0;
-		$deficit_minimum       = max( (float) ( $row->cod_minimum ?? 0 ), $shipping_cost + $insurance_cost + $cod_fee );
+		$deficit_minimum       = $shipping_cost + $insurance_cost + $cod_fee;
 		$effective_payout      = $wc_total - max( 0.0, $shipping_cost - $shipping_discount ) - $insurance_cost - $cod_fee;
 		$post_status           = (string) ( $row->post_status ?? $row->wc_status ?? 'wc-processing' );
 		$is_processable        = 'wc-processing' === $post_status && 'new' === (string) $row->status;
@@ -82,15 +85,10 @@ class TransactionListViewModelFactory {
 		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
 		$can_cancel            = '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
 		$checkbox_disabled     = ! $can_print && ! $can_request_pickup;
-		$origin_snapshot       = json_decode( (string) ( $row->shipment_location_snapshot ?? '{}' ), true );
-		$origin_snapshot       = is_array( $origin_snapshot ) ? $origin_snapshot : array();
-		$origin_label          = trim( (string) ( $origin_snapshot['origin_name'] ?? $origin_snapshot['location_name'] ?? $origin_snapshot['name'] ?? '' ) );
-		$origin_name           = '' !== $origin_label ? $origin_label : __( 'Default origin', 'kiriminaja-official' );
-		$origin_location       = null;
-		if ( empty( $origin_snapshot ) && ! empty( $row->shipment_location_id ) ) {
-			$origin_location = $this->location_service->repository()->getById( (int) $row->shipment_location_id );
-		}
-		$origin_address        = $this->location_service->formatAddress( ! empty( $origin_snapshot ) ? $origin_snapshot : $origin_location );
+		$origin                = $this->origin_resolver->resolve( $row );
+		$origin_name           = $origin['name'];
+		$origin_address        = $origin['address'];
+		$origin_location_id    = $origin['locationId'];
 		$is_ka_order           = 'wc-processing' === $post_status;
 		$status_label          = $is_deficit
 			? __( 'COD Deficit', 'kiriminaja-official' )
@@ -155,9 +153,10 @@ class TransactionListViewModelFactory {
 			),
 			'actionData'      => array(
 				'nonce'                => wp_create_nonce( KIRIOF_NONCE ),
-				'currentOrigin'        => $origin_label,
+				'kaOrderId'            => $order_id,
+				'currentOrigin'        => $origin_name,
 				'currentOriginAddress' => $origin_address,
-				'currentLocationId'    => (int) ( $origin_snapshot['location_id'] ?? $origin_snapshot['id'] ?? ( $origin_location->id ?? 0 ) ),
+				'currentLocationId'    => $origin_location_id,
 				'currentCod'           => $wc_total,
 				'codMinimum'           => $deficit_minimum,
 				'codMaximum'           => (float) KIRIOF_MAX_COD_AMOUNT,

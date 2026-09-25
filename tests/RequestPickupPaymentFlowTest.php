@@ -543,3 +543,15 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
     }
 }
+
+final class RequestPickupScheduleInputStyleTest extends TestCase
+{
+    #[Test]
+    public function pickup_schedule_selects_use_the_shadcn_background_and_input_border(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
+
+        $this->assertStringContainsString( 'id="kiriof-pickup-date" class="!bg-background !border-input"', $dialog );
+        $this->assertStringContainsString( 'id="kiriof-pickup-time" class="!bg-background !border-input"', $dialog );
+    }
+}

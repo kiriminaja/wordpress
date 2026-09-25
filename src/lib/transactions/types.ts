@@ -78,12 +78,14 @@ export type TransactionsBootstrap = {
   monthOptions: Record<string, string>;
   couriers: Array<{ value: string; label: string }>;
   shipmentLocations: Array<{ id: number; name: string; address: string }>;
+  locationsUrl: string;
   pagination: { page: number; totalPages: number; total: number; perPage: number };
   rows: TransactionRow[];
   bulk: {
     showPrint: boolean;
     printAction: string;
     printNonce: string;
+    printPreviewNonce: string;
     ajaxUrl: string;
     nonce: string;
     pickupUrl: string;

@@ -15,15 +15,18 @@ class TransactionDetailPageData {
 	private RecipientDataResolver $recipient_resolver;
 	private ShipmentLocationService $location_service;
 	private ShippingDiscountCouponService $coupon_service;
+	private TransactionOriginResolver $origin_resolver;
 
 	public function __construct(
 		?RecipientDataResolver $recipient_resolver = null,
 		?ShipmentLocationService $location_service = null,
-		?ShippingDiscountCouponService $coupon_service = null
+		?ShippingDiscountCouponService $coupon_service = null,
+		?TransactionOriginResolver $origin_resolver = null
 	) {
 		$this->recipient_resolver = $recipient_resolver ?? new RecipientDataResolver();
 		$this->location_service   = $location_service ?? new ShipmentLocationService();
 		$this->coupon_service     = $coupon_service ?? new ShippingDiscountCouponService();
+		$this->origin_resolver    = $origin_resolver ?? new TransactionOriginResolver( $this->location_service );
 	}
 
 	/** @return array<int,array{id:int,name:string,address:string}> */
@@ -50,7 +53,8 @@ class TransactionDetailPageData {
 		$wc_order      = function_exists( 'wc_get_order' ) ? wc_get_order( (int) ( $transaction->wp_wc_order_stat_order_id ?? 0 ) ) : false;
 		$shipping_info = json_decode( (string) ( $transaction->shipping_info ?? '{}' ) );
 		$recipient     = $this->recipient_resolver->resolve( $wc_order, $shipping_info, $transaction );
-		$origin        = $this->origin( $transaction );
+		$origin        = $this->origin_resolver->resolve( $transaction );
+		$sender        = array( 'name' => $origin['name'], 'phone' => $origin['phone'], 'address' => $origin['addressLines'] );
 		$shipping      = (float) ( $transaction->shipping_cost ?? 0 );
 		$insurance     = (float) ( $transaction->insurance_cost ?? 0 );
 		$cod_fee       = (float) ( $transaction->cod_fee ?? 0 );
@@ -96,6 +100,7 @@ class TransactionDetailPageData {
 		return array(
 			'toolbar' => $toolbar,
 			'shipmentLocations' => $this->shipment_locations(),
+			'locationsUrl' => admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ),
 			'transaction' => array(
 				'id'           => (int) ( $transaction->id ?? 0 ),
 				'orderId'      => (string) ( $transaction->order_id ?? '' ),
@@ -108,7 +113,7 @@ class TransactionDetailPageData {
 				'pickupNumber' => (string) ( $transaction->pickup_number ?? '' ),
 				'status'       => array( 'label' => $this->status_label( $status ), 'tone' => $this->status_tone( $status ) ),
 				'steps'        => $this->steps( $transaction, $status ),
-				'sender'       => $origin,
+				'sender'       => $sender,
 				'recipient'    => array(
 					'name'    => trim( (string) $recipient['first_name'] . ' ' . (string) $recipient['last_name'] ),
 					'phone'   => (string) $recipient['phone'],
@@ -150,29 +155,8 @@ class TransactionDetailPageData {
 					'data'          => $action_data,
 				),
 			),
-			'ajax' => array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( KIRIOF_NONCE ) ),
+			'ajax' => array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( KIRIOF_NONCE ), 'printPreviewNonce' => wp_create_nonce( 'kiriof_resi_print' ) ),
 			'i18n' => $this->i18n(),
-		);
-	}
-
-	/** @return array<string,mixed> */
-	private function origin( object $transaction ): array {
-		$snapshot = json_decode( (string) ( $transaction->shipment_location_snapshot ?? '{}' ), true );
-		$snapshot = is_array( $snapshot ) ? $snapshot : array();
-		$location = null;
-		if ( empty( $snapshot ) && ! empty( $transaction->shipment_location_id ) ) {
-			$location = $this->location_service->repository()->getById( (int) $transaction->shipment_location_id );
-		}
-
-		$source = ! empty( $snapshot ) ? $snapshot : $location;
-		$name   = trim( (string) ( $snapshot['origin_name'] ?? $snapshot['location_name'] ?? $snapshot['name'] ?? $location->name ?? $location->location_name ?? '' ) );
-		$phone  = trim( (string) ( $snapshot['phone'] ?? $snapshot['origin_phone'] ?? $location->phone ?? '' ) );
-		$address = $this->location_service->formatAddress( $source );
-
-		return array(
-			'name'    => '' !== $name ? $name : __( 'Default origin', 'kiriminaja-official' ),
-			'phone'   => $phone,
-			'address' => '' !== $address ? array( $address ) : array(),
 		);
 	}
 
@@ -214,7 +198,7 @@ class TransactionDetailPageData {
 		$shipping_discount = $order ? max( 0, $shipping - (float) $order->get_shipping_total() ) : max( 0, (float) ( $transaction->discount_amount ?? 0 ) );
 		$coupon_scopes = $order ? $this->coupon_service->splitCouponCodesByScope( (array) $order->get_coupon_codes() ) : array( 'item' => array(), 'shipping' => array() );
 		return array(
-			'nonce' => wp_create_nonce( KIRIOF_NONCE ), 'kaOrderId' => (string) ( $transaction->order_id ?? '' ), 'currentOrigin' => $origin['name'], 'currentOriginAddress' => implode( ', ', $origin['address'] ), 'currentLocationId' => (int) ( $transaction->shipment_location_id ?? 0 ), 'currentCod' => $order ? (float) $order->get_total() : 0, 'codMinimum' => (float) ( $transaction->cod_minimum ?? 0 ), 'codMaximum' => defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? (float) KIRIOF_MAX_COD_AMOUNT : 3000000.0, 'shippingCost' => $shipping, 'insuranceFee' => $insurance, 'codFee' => $cod_fee, 'itemPrice' => $order ? (float) $order->get_subtotal() : 0, 'itemDiscount' => $order ? (float) $order->get_discount_total() : 0, 'shippingDiscount' => $shipping_discount, 'itemCoupon' => (string) ( $coupon_scopes['item'][0] ?? '' ), 'shippingCoupon' => (string) ( $coupon_scopes['shipping'][0] ?? '' ),
+			'nonce' => wp_create_nonce( KIRIOF_NONCE ), 'kaOrderId' => (string) ( $transaction->order_id ?? '' ), 'currentOrigin' => $origin['name'], 'currentOriginAddress' => implode( ', ', $origin['address'] ), 'currentLocationId' => $origin['locationId'], 'currentCod' => $order ? (float) $order->get_total() : 0, 'codMinimum' => $shipping + $insurance + $cod_fee, 'codMaximum' => defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? (float) KIRIOF_MAX_COD_AMOUNT : 3000000.0, 'shippingCost' => $shipping, 'insuranceFee' => $insurance, 'codFee' => $cod_fee, 'itemPrice' => $order ? (float) $order->get_subtotal() : 0, 'itemDiscount' => $order ? (float) $order->get_discount_total() : 0, 'shippingDiscount' => $shipping_discount, 'itemCoupon' => (string) ( $coupon_scopes['item'][0] ?? '' ), 'shippingCoupon' => (string) ( $coupon_scopes['shipping'][0] ?? '' ),
 		);
 	}
 
@@ -232,5 +216,5 @@ class TransactionDetailPageData {
 	/** @return array<string,mixed> */
 	private function toolbar_menu(): array { return array( 'label' => __( 'More actions', 'kiriminaja-official' ), 'items' => array( array( 'label' => __( 'Get Help', 'kiriminaja-official' ), 'href' => 'https://help.kiriminaja.com/category/plugin' ), array( 'label' => __( 'Go to Dashboard', 'kiriminaja-official' ), 'href' => 'https://app.kiriminaja.com' ) ) ); }
 	/** @return array<string,string> */
-	private function i18n(): array { return array( 'pickupId' => __( 'Pickup ID', 'kiriminaja-official' ), 'printLabel' => __( 'Print Label', 'kiriminaja-official' ), 'liveTracking' => __( 'Live Tracking', 'kiriminaja-official' ), 'sender' => __( 'Sender', 'kiriminaja-official' ), 'recipient' => __( 'Recipient', 'kiriminaja-official' ), 'contactCustomer' => __( 'Contact Customer', 'kiriminaja-official' ), 'package' => __( 'Package', 'kiriminaja-official' ), 'products' => __( 'Products', 'kiriminaja-official' ), 'orderNotes' => __( 'Order notes', 'kiriminaja-official' ), 'shipment' => __( 'Shipment', 'kiriminaja-official' ), 'airwaybill' => __( 'Airwaybill', 'kiriminaja-official' ), 'copyAwb' => __( 'Copy AWB', 'kiriminaja-official' ), 'pickup' => __( 'Pickup', 'kiriminaja-official' ), 'weight' => __( 'Weight', 'kiriminaja-official' ), 'dimensions' => __( 'Dimensions', 'kiriminaja-official' ), 'orderId' => __( 'Order ID', 'kiriminaja-official' ), 'totalShipping' => __( 'Total Shipping', 'kiriminaja-official' ), 'orderSubtotal' => __( 'Order Subtotal', 'kiriminaja-official' ), 'actualShipping' => __( 'Actual Shipping', 'kiriminaja-official' ), 'shippingDiscount' => __( 'Shipping Discount', 'kiriminaja-official' ), 'itemDiscount' => __( 'Item Discount', 'kiriminaja-official' ), 'shipping' => __( 'Shipping', 'kiriminaja-official' ), 'insurance' => __( 'Insurance', 'kiriminaja-official' ), 'codFee' => __( 'COD Fee', 'kiriminaja-official' ), 'discount' => __( 'Discount', 'kiriminaja-official' ), 'total' => __( 'Total', 'kiriminaja-official' ), 'codValue' => __( 'COD value', 'kiriminaja-official' ), 'tracking' => __( 'Tracking history', 'kiriminaja-official' ), 'trackingEmpty' => __( 'No tracking history is available yet.', 'kiriminaja-official' ), 'trackingError' => __( 'Unable to load tracking history.', 'kiriminaja-official' ), 'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ), 'changeShipmentOrigin' => __( 'Change Shipment Origin', 'kiriminaja-official' ), 'changeOriginDescription' => __( 'Choose another active shipment origin, then review the available courier before confirming.', 'kiriminaja-official' ), 'shipmentOrigin' => __( 'Shipment origin', 'kiriminaja-official' ), 'noShipmentOrigins' => __( 'No alternate shipment origin is available.', 'kiriminaja-official' ), 'checkingShipping' => __( 'Checking available couriers…', 'kiriminaja-official' ), 'courierConsent' => __( 'I agree to replace the unavailable courier with the selected service.', 'kiriminaja-official' ), 'confirm' => __( 'Confirm change', 'kiriminaja-official' ), 'processing' => __( 'Processing…', 'kiriminaja-official' ), 'actionError' => __( 'Unable to complete this action.', 'kiriminaja-official' ), 'adjustDeficit' => __( 'Adjust Deficit', 'kiriminaja-official' ), 'cancelDeficit' => __( 'Cancel deficit order', 'kiriminaja-official' ), 'confirmProcess' => __( 'Confirm & process', 'kiriminaja-official' ), 'cancelShipment' => __( 'Cancel shipment', 'kiriminaja-official' ), 'cancelShipmentDescription' => __( 'Provide a reason before cancelling this shipment.', 'kiriminaja-official' ), 'cancelReason' => __( 'Cancellation reason', 'kiriminaja-official' ), 'cancelReasonHint' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ), 'cancelReasonInvalid' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ), 'cancel' => __( 'Cancel', 'kiriminaja-official' ) ); }
+	private function i18n(): array { return array( 'pickupId' => __( 'Pickup ID', 'kiriminaja-official' ), 'printLabel' => __( 'Print Label', 'kiriminaja-official' ), 'liveTracking' => __( 'Live Tracking', 'kiriminaja-official' ), 'sender' => __( 'Sender', 'kiriminaja-official' ), 'recipient' => __( 'Recipient', 'kiriminaja-official' ), 'contactCustomer' => __( 'Contact Customer', 'kiriminaja-official' ), 'package' => __( 'Package', 'kiriminaja-official' ), 'products' => __( 'Products', 'kiriminaja-official' ), 'orderNotes' => __( 'Order notes', 'kiriminaja-official' ), 'shipment' => __( 'Shipment', 'kiriminaja-official' ), 'airwaybill' => __( 'Airwaybill', 'kiriminaja-official' ), 'copyAwb' => __( 'Copy AWB', 'kiriminaja-official' ), 'pickup' => __( 'Pickup', 'kiriminaja-official' ), 'weight' => __( 'Weight', 'kiriminaja-official' ), 'dimensions' => __( 'Dimensions', 'kiriminaja-official' ), 'orderId' => __( 'Order ID', 'kiriminaja-official' ), 'totalShipping' => __( 'Total Shipping', 'kiriminaja-official' ), 'orderSubtotal' => __( 'Order Subtotal', 'kiriminaja-official' ), 'actualShipping' => __( 'Actual Shipping', 'kiriminaja-official' ), 'shippingDiscount' => __( 'Shipping Discount', 'kiriminaja-official' ), 'itemDiscount' => __( 'Item Discount', 'kiriminaja-official' ), 'shipping' => __( 'Shipping', 'kiriminaja-official' ), 'insurance' => __( 'Insurance', 'kiriminaja-official' ), 'codFee' => __( 'COD Fee', 'kiriminaja-official' ), 'discount' => __( 'Discount', 'kiriminaja-official' ), 'total' => __( 'Total', 'kiriminaja-official' ), 'codValue' => __( 'COD value', 'kiriminaja-official' ), 'tracking' => __( 'Tracking history', 'kiriminaja-official' ), 'trackingEmpty' => __( 'No tracking history is available yet.', 'kiriminaja-official' ), 'trackingError' => __( 'Unable to load tracking history.', 'kiriminaja-official' ), 'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ), 'currentShipmentOrigin' => __( 'Current shipment origin', 'kiriminaja-official' ), 'changeToShipmentOrigin' => __( 'Change to shipment origin', 'kiriminaja-official' ), 'selectShipmentOrigin' => __( 'Select shipment origin', 'kiriminaja-official' ), 'manageShipmentLocations' => __( 'Manage shipment locations', 'kiriminaja-official' ), 'selectedCourier' => __( 'Selected courier', 'kiriminaja-official' ), 'selectCourier' => __( 'Select courier', 'kiriminaja-official' ), 'codPaidByBuyer' => __( 'COD Paid By Buyer', 'kiriminaja-official' ), 'estimatedCodPayout' => __( 'Estimated COD Payout', 'kiriminaja-official' ),  'changeShipmentOrigin' => __( 'Change Shipment Origin', 'kiriminaja-official' ), 'changeOriginDescription' => __( 'Choose another active shipment origin, then review the available courier before confirming.', 'kiriminaja-official' ), 'shipmentOrigin' => __( 'Shipment origin', 'kiriminaja-official' ), 'noShipmentOrigins' => __( 'No alternate shipment origin is available.', 'kiriminaja-official' ), 'checkingShipping' => __( 'Checking available couriers…', 'kiriminaja-official' ), 'courierConsent' => __( 'I agree to replace the unavailable courier with the selected service.', 'kiriminaja-official' ), 'confirm' => __( 'Confirm change', 'kiriminaja-official' ), 'processing' => __( 'Processing…', 'kiriminaja-official' ), 'actionError' => __( 'Unable to complete this action.', 'kiriminaja-official' ), 'adjustDeficit' => __( 'Adjust Deficit', 'kiriminaja-official' ), 'cancelDeficit' => __( 'Cancel deficit order', 'kiriminaja-official' ), 'confirmProcess' => __( 'Confirm & process', 'kiriminaja-official' ), 'cancelShipment' => __( 'Cancel shipment', 'kiriminaja-official' ), 'cancelShipmentDescription' => __( 'Provide a reason before cancelling this shipment.', 'kiriminaja-official' ), 'cancelReason' => __( 'Cancellation reason', 'kiriminaja-official' ), 'cancelReasonHint' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ), 'cancelReasonInvalid' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ), 'cancel' => __( 'Cancel', 'kiriminaja-official' ) ); }
 }

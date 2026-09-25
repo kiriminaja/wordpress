@@ -1,18 +1,28 @@
 <script lang="ts">
-  import { IconAlertTriangle, IconMapPin } from '@tabler/icons-svelte';
-  import { Button } from '$lib/components/ui/button';
+  import { IconAlertTriangle, IconExternalLink, IconMapPin } from '@tabler/icons-svelte';
   import { Checkbox } from '$lib/components/ui/checkbox';
-  import * as Dialog from '$lib/components/ui/dialog';
   import { Input } from '$lib/components/ui/input';
-
+  import KiriofDialog from '$lib/ui/KiriofDialog.svelte';
+  import ShipmentLocationCombobox from './ShipmentLocationCombobox.svelte';
+  import CourierOptionCombobox from './CourierOptionCombobox.svelte';
   export type ShipmentLocation = { id: number; name: string; address: string };
   export type TransactionActionData = {
     nonce: string;
     kaOrderId: string;
     currentLocationId: number;
+    currentOrigin: string;
+    currentOriginAddress: string;
     currentCod: number;
     codMinimum: number;
     codMaximum: number;
+    shippingCost: number;
+    insuranceFee: number;
+    codFee: number;
+    itemPrice: number;
+    itemDiscount: number;
+    shippingDiscount: number;
+    itemCoupon: string;
+    shippingCoupon: string;
   };
   export type TransactionActionDialog =
     | { kind: 'origin'; data: TransactionActionData }
@@ -30,7 +40,7 @@
     discount_amount?: number;
   };
   type OriginCheck = {
-    comparison: { available?: boolean; label?: string; new_courier?: string; is_total_blocked?: boolean };
+    comparison: { available?: boolean; label?: string; new_courier?: string; service_code?: string; service_name?: string; is_total_blocked?: boolean };
     options: CourierOption[];
     replacement_options: CourierOption[];
   };
@@ -40,12 +50,14 @@
     action = $bindable(null),
     locations,
     ajaxUrl,
+    locationsUrl,
     i18n,
     onComplete,
   }: {
     action?: TransactionActionDialog | null;
     locations: ShipmentLocation[];
     ajaxUrl: string;
+    locationsUrl: string;
     i18n: Record<string, string>;
     onComplete?: () => void;
   } = $props();
@@ -60,6 +72,7 @@
   let error = $state('');
 
   const originOptions = $derived(originCheck?.comparison.available ? originCheck.options : originCheck?.replacement_options ?? []);
+  const currentCourierKey = $derived(originCheck?.comparison.service_code && originCheck?.comparison.service_name ? `${originCheck.comparison.service_code}|${originCheck.comparison.service_name}` : '');
   const selectedCourier = $derived(originOptions.find((option) => courierKey(option) === selectedCourierKey));
   const requiresCourierConsent = $derived(Boolean(
     selectedCourier && (
@@ -73,7 +86,11 @@
   ));
   const minimumCod = $derived(action?.kind === 'adjust-deficit' ? action.data.codMinimum : 0);
   const maximumCod = $derived(action?.kind === 'adjust-deficit' ? action.data.codMaximum : 0);
+  const currentOriginLocationId = $derived(action?.kind === 'origin' ? action.data.currentLocationId : 0);
   const codIsValid = $derived(Number.isFinite(Number(codValue)) && Number(codValue) >= minimumCod && (!maximumCod || Number(codValue) <= maximumCod));
+  const adjustedCod = $derived(Number(codValue) || 0);
+  const totalShipping = $derived(action?.kind === 'adjust-deficit' ? action.data.shippingCost + action.data.insuranceFee + action.data.codFee : 0);
+  const estimatedPayout = $derived(adjustedCod - totalShipping);
 
   $effect(() => {
     const current = action;
@@ -153,7 +170,8 @@
       });
       originCheck = result;
       const options = result.comparison.available ? result.options : result.replacement_options;
-      selectedCourierKey = options[0] ? courierKey(options[0]) : '';
+      const current = options.find((option) => courierKey(option) === `${result.comparison.service_code ?? ''}|${result.comparison.service_name ?? ''}`);
+      selectedCourierKey = current ? courierKey(current) : (options[0] ? courierKey(options[0]) : '');
     } catch (cause) {
       error = cause instanceof Error ? cause.message : i18n.actionError ?? 'Unable to complete this action.';
     } finally {
@@ -221,99 +239,145 @@
   }
 </script>
 
-<Dialog.Root open={action !== null} onOpenChange={(open) => !open && close()}>
-  {#if action?.kind === 'origin'}
-    <Dialog.Content class="kiriof-shadcn kiriof-action-dialog sm:max-w-xl">
-      <Dialog.Header>
-        <Dialog.Title>{i18n.changeShipmentOrigin ?? i18n.changeOrigin}</Dialog.Title>
-        <Dialog.Description>{i18n.changeOriginDescription ?? 'Choose another active shipment origin, then review the available courier before confirming.'}</Dialog.Description>
-      </Dialog.Header>
-
-      <div class="grid gap-3">
-        <p class="text-sm font-medium text-foreground">{i18n.shipmentOrigin ?? 'Shipment origin'}</p>
-        <div class="grid gap-2">
-          {#each locations as location (location.id)}
-            {@const current = location.id === action.data.currentLocationId}
-            <button type="button" class="kiriof-action-choice" class:is-selected={originLocationId === String(location.id)} disabled={current || loading} onclick={() => { originLocationId = String(location.id); void checkOrigin(); }}>
-              <span class="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><IconMapPin /></span>
-              <span class="min-w-0 text-left"><strong>{location.name}</strong><small>{location.address}</small></span>
-              {#if current}<span class="shrink-0 text-xs text-muted-foreground">{i18n.current ?? 'Current'}</span>{/if}
-            </button>
-          {:else}
-            <p class="text-sm text-muted-foreground">{i18n.noShipmentOrigins ?? 'No alternate shipment origin is available.'}</p>
-          {/each}
-        </div>
+{#if action?.kind === 'origin'}
+  <KiriofDialog
+    open={action !== null}
+    onOpenChange={(open) => !open && close()}
+    class="sm:max-w-xl"
+    title={i18n.changeShipmentOrigin ?? i18n.changeOrigin}
+    description={i18n.changeOriginDescription ?? 'Choose another active shipment origin, then review the available courier before confirming.'}
+    secondaryLabel={i18n.cancel}
+    secondaryDisabled={loading}
+    primaryLabel={loading ? (i18n.processing ?? 'Processing…') : (i18n.confirm ?? 'Confirm change')}
+    primaryDisabled={loading || !canConfirmOrigin}
+    onSecondary={close}
+    onPrimary={() => void confirmOrigin()}
+  >
+    <div class="!grid gap-2.5">
+      <div class="!flex !items-center !justify-between gap-2">
+        <p class="m-0 text-sm font-medium text-foreground">{i18n.currentShipmentOrigin ?? 'Current shipment origin'}</p>
+        <a class="!inline-flex !items-center gap-1 text-xs font-semibold text-primary no-underline" href={locationsUrl}><IconExternalLink />{i18n.manageShipmentLocations ?? 'Manage shipment locations'}</a>
       </div>
-
-      {#if loading}<p class="text-sm text-muted-foreground">{i18n.checkingShipping ?? 'Checking available couriers…'}</p>{/if}
-      {#if originCheck}
-        <div class="grid gap-3 rounded-lg border border-border p-3">
-          <p class="text-sm text-muted-foreground">{originCheck.comparison.label}</p>
-          {#if originCheck.comparison.is_total_blocked}
-            <p class="text-sm text-destructive">{i18n.originChangeBlocked ?? 'This change cannot be processed because the adjusted order total would be below zero.'}</p>
-          {:else}
-            <div class="grid gap-2" role="radiogroup" aria-label={i18n.courier ?? 'Courier'}>
-              {#each originOptions as option (courierKey(option))}
-                <button type="button" class="kiriof-action-choice" class:is-selected={selectedCourierKey === courierKey(option)} onclick={() => { selectedCourierKey = courierKey(option); replacementConsent = false; }} disabled={loading}>
-                  <span class="min-w-0 text-left"><strong>{courierLabel(option)}</strong><small>{option.price ?? formatCurrency(option.raw_price ?? 0)}</small></span>
-                </button>
-              {/each}
-            </div>
-            {#if requiresCourierConsent}
-              <label class="flex items-start gap-2 text-sm text-muted-foreground"><Checkbox checked={replacementConsent} onCheckedChange={(checked) => (replacementConsent = Boolean(checked))} /><span>{i18n.courierConsent ?? 'I agree to replace the unavailable courier with the selected service.'}</span></label>
-            {/if}
+      <div class="!flex !items-center gap-2 rounded-lg border border-border p-2">
+        <span class="!grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><IconMapPin /></span>
+        <span class="!grid min-w-0 gap-0.5"><strong class="text-sm text-foreground">{action.data.currentOrigin || 'Default origin'}</strong>{#if action.data.currentOriginAddress}<small class="text-xs text-muted-foreground">{action.data.currentOriginAddress}</small>{/if}</span>
+      </div>
+      <div class="!grid gap-2">
+        <p class="m-0 text-sm font-medium text-foreground">{i18n.changeToShipmentOrigin ?? 'Change to shipment origin'}</p>
+        {#if locations.some((location) => location.id !== currentOriginLocationId)}
+          <ShipmentLocationCombobox
+            value={originLocationId}
+            {locations}
+            currentLocationId={currentOriginLocationId}
+            disabled={loading}
+            placeholder={i18n.selectShipmentOrigin ?? 'Select shipment origin'}
+            onChange={(value) => { originLocationId = value; void checkOrigin(); }}
+          />
+          {#if originLocationId}
+            {@const selectedLocation = locations.find((location) => String(location.id) === originLocationId)}
+            {#if selectedLocation}<p class="m-0 text-xs text-muted-foreground">{selectedLocation.address}</p>{/if}
           {/if}
-        </div>
-      {/if}
-      {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
+        {:else}
+          <p class="m-0 text-sm text-muted-foreground">{i18n.noShipmentOrigins ?? 'No alternate shipment origin is available.'}</p>
+        {/if}
+      </div>
+    </div>
 
-      <Dialog.Footer>
-        <Button variant="ghost" onclick={close} disabled={loading}>{i18n.cancel}</Button>
-        <Button onclick={() => void confirmOrigin()} disabled={loading || !canConfirmOrigin}>{loading ? (i18n.processing ?? 'Processing…') : (i18n.confirm ?? 'Confirm change')}</Button>
-      </Dialog.Footer>
-    </Dialog.Content>
-  {:else if action?.kind === 'adjust-deficit'}
-    <Dialog.Content class="kiriof-shadcn kiriof-action-dialog sm:max-w-md">
-      <Dialog.Header>
-        <Dialog.Title>{i18n.adjustDeficit}</Dialog.Title>
-        <Dialog.Description>{i18n.adjustDeficitDescription ?? 'Update the COD value so this shipment can be processed without a deficit.'}</Dialog.Description>
-      </Dialog.Header>
-      <label class="grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cod-value">{i18n.codValue ?? 'COD value'}<Input id="kiriof-cod-value" type="number" min={minimumCod} max={maximumCod || undefined} step="1" bind:value={codValue} disabled={loading} /></label>
-      <p class="text-xs text-muted-foreground">{i18n.minimumCod ?? 'Minimum'}: {formatCurrency(minimumCod)}{#if maximumCod} · {i18n.maximumCod ?? 'Maximum'}: {formatCurrency(maximumCod)}{/if}</p>
-      {#if codValue && !codIsValid}<p class="text-sm text-destructive" role="alert">{i18n.invalidCodValue ?? 'Enter a COD value within the allowed range.'}</p>{/if}
-      {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
-      <Dialog.Footer>
-        <Button variant="ghost" onclick={close} disabled={loading}>{i18n.cancel}</Button>
-        <Button onclick={() => void adjustDeficit()} disabled={loading || !codIsValid}>{loading ? (i18n.processing ?? 'Processing…') : (i18n.confirmProcess ?? 'Confirm & process')}</Button>
-      </Dialog.Footer>
-    </Dialog.Content>
-  {:else if action?.kind === 'cancel-deficit'}
-    <Dialog.Content class="kiriof-shadcn kiriof-action-dialog sm:max-w-md">
-      <Dialog.Header>
-        <Dialog.Title>{i18n.cancelDeficit ?? 'Cancel deficit order'}</Dialog.Title>
-        <Dialog.Description>{i18n.cancelDeficitDescription ?? 'Are you sure you want to cancel this deficit COD order? This cannot be undone.'}</Dialog.Description>
-      </Dialog.Header>
-      <div class="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-foreground"><IconAlertTriangle class="mt-0.5 shrink-0 text-destructive" /><span>{i18n.cancelDeficitWarning ?? 'The shipment and its related order will be cancelled.'}</span></div>
-      {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
-      <Dialog.Footer>
-        <Button variant="ghost" onclick={close} disabled={loading}>{i18n.cancel}</Button>
-        <Button variant="destructive" onclick={() => void cancelDeficit()} disabled={loading}>{loading ? (i18n.processing ?? 'Processing…') : (i18n.cancelDeficit ?? 'Cancel deficit order')}</Button>
-      </Dialog.Footer>
-    </Dialog.Content>
-  {:else if action?.kind === 'cancel'}
-    <Dialog.Content class="kiriof-shadcn kiriof-action-dialog sm:max-w-md">
-      <Dialog.Header>
-        <Dialog.Title>{i18n.cancelShipment ?? i18n.cancel}</Dialog.Title>
-        <Dialog.Description>{i18n.cancelShipmentDescription ?? 'Provide a reason before cancelling this shipment.'}</Dialog.Description>
-      </Dialog.Header>
-      <label class="grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cancel-reason">{i18n.cancelReason ?? 'Cancellation reason'}<textarea id="kiriof-cancel-reason" class="min-h-24 w-full rounded-lg border border-input bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3" bind:value={cancelReason} disabled={loading} maxlength="500"></textarea></label>
-      <p class="text-xs text-muted-foreground">{i18n.cancelReasonHint ?? 'Enter at least 4 characters.'}</p>
-      {#if cancelReason && cancelReason.trim().length < 4}<p class="text-sm text-destructive" role="alert">{i18n.cancelReasonInvalid ?? 'Enter at least 4 characters.'}</p>{/if}
-      {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
-      <Dialog.Footer>
-        <Button variant="ghost" onclick={close} disabled={loading}>{i18n.cancel}</Button>
-        <Button variant="destructive" onclick={() => void cancelTransaction()} disabled={loading || cancelReason.trim().length < 4}>{loading ? (i18n.processing ?? 'Processing…') : (i18n.cancelShipment ?? i18n.cancel)}</Button>
-      </Dialog.Footer>
-    </Dialog.Content>
-  {/if}
-</Dialog.Root>
+    {#if loading}<p class="m-0 text-sm text-muted-foreground">{i18n.checkingShipping ?? 'Checking available couriers…'}</p>{/if}
+    {#if originCheck}
+      <div class="!grid gap-2.5 rounded-lg border border-border p-2.5">
+        <p class="m-0 text-sm text-muted-foreground">{originCheck.comparison.label}</p>
+        {#if selectedCourier}
+          <div class="!flex !items-center !justify-between gap-2 rounded-md bg-muted p-2.5 text-sm">
+            <span class="!grid gap-1"><span class="text-xs text-muted-foreground">{i18n.selectedCourier ?? 'Selected courier'}</span><strong class="text-foreground">{courierLabel(selectedCourier)}</strong></span>
+            <strong class="shrink-0 text-foreground">{selectedCourier.price ?? formatCurrency(selectedCourier.raw_price ?? 0)}</strong>
+          </div>
+        {/if}
+        {#if originCheck.comparison.is_total_blocked}
+          <p class="m-0 text-sm text-destructive">{i18n.originChangeBlocked ?? 'This change cannot be processed because the adjusted order total would be below zero.'}</p>
+        {:else}
+          <CourierOptionCombobox
+            value={selectedCourierKey}
+            options={originOptions}
+            disabled={loading}
+            placeholder={i18n.selectCourier ?? 'Select courier'}
+            selectedLabel={courierLabel}
+            onChange={(value) => { selectedCourierKey = value; replacementConsent = false; }}
+          />
+          {#if requiresCourierConsent}
+            <label class="!flex items-start gap-2 text-sm text-muted-foreground"><Checkbox checked={replacementConsent} onCheckedChange={(checked) => (replacementConsent = Boolean(checked))} /><span>{i18n.courierConsent ?? 'I agree to replace the unavailable courier with the selected service.'}</span></label>
+          {/if}
+        {/if}
+      </div>
+    {/if}
+    {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
+  </KiriofDialog>
+{:else if action?.kind === 'adjust-deficit'}
+  <KiriofDialog
+    open={action !== null}
+    onOpenChange={(open) => !open && close()}
+    class="sm:max-w-md"
+    title={i18n.adjustDeficit}
+    description={i18n.adjustDeficitDescription ?? 'Update the COD value so this shipment can be processed without a deficit.'}
+    secondaryLabel={i18n.cancel}
+    secondaryDisabled={loading}
+    primaryLabel={loading ? (i18n.processing ?? 'Processing…') : (i18n.confirmProcess ?? 'Confirm & process')}
+    primaryDisabled={loading || !codIsValid}
+    onSecondary={close}
+    onPrimary={() => void adjustDeficit()}
+  >
+    <label class="!grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cod-value">{i18n.codValue ?? 'COD value'}<Input id="kiriof-cod-value" type="number" min={minimumCod} max={maximumCod || undefined} step="1" bind:value={codValue} disabled={loading} /></label>
+    <p class="m-0 text-xs text-muted-foreground">{i18n.minimumCod ?? 'Minimum'}: {formatCurrency(minimumCod)}{#if maximumCod} · {i18n.maximumCod ?? 'Maximum'}: {formatCurrency(maximumCod)}{/if}</p>
+    <dl class="!grid gap-2 rounded-lg border border-border p-3 text-sm">
+      <div class="!flex !items-center !justify-between gap-4 text-muted-foreground"><dt>{i18n.orderSubtotal ?? 'Sub Total'}</dt><dd class="m-0 text-foreground">{formatCurrency(action.data.itemPrice)}</dd></div>
+      <div class="!flex !items-center !justify-between gap-4 text-muted-foreground"><dt>{i18n.totalShipping ?? 'Total Shipping'}</dt><dd class="m-0 text-foreground">{formatCurrency(totalShipping)}</dd></div>
+      <div class="!flex !items-center !justify-between gap-4 pl-4 text-muted-foreground"><dt>{i18n.shipping ?? 'Shipping'}</dt><dd class="m-0 text-foreground">{formatCurrency(action.data.shippingCost)}</dd></div>
+      {#if action.data.insuranceFee > 0}<div class="!flex !items-center !justify-between gap-4 pl-4 text-muted-foreground"><dt>{i18n.insurance ?? 'Insurance'}</dt><dd class="m-0 text-foreground">{formatCurrency(action.data.insuranceFee)}</dd></div>{/if}
+      {#if action.data.codFee > 0}<div class="!flex !items-center !justify-between gap-4 pl-4 text-muted-foreground"><dt>{i18n.codFee ?? 'COD Fee'}</dt><dd class="m-0 text-foreground">{formatCurrency(action.data.codFee)}</dd></div>{/if}
+      {#if action.data.itemDiscount > 0}<div class="!flex !items-center !justify-between gap-4 text-muted-foreground"><dt>{action.data.itemCoupon || i18n.itemDiscount || 'Item Discount'}</dt><dd class="m-0 text-emerald-700">−{formatCurrency(action.data.itemDiscount)}</dd></div>{/if}
+      {#if action.data.shippingDiscount > 0}<div class="!flex !items-center !justify-between gap-4 text-muted-foreground"><dt>{action.data.shippingCoupon || i18n.shippingDiscount || 'Shipping Discount'}</dt><dd class="m-0 text-emerald-700">−{formatCurrency(action.data.shippingDiscount)}</dd></div>{/if}
+      <div class="!flex !items-center !justify-between gap-4 border-t border-border pt-2"><dt class="font-semibold text-foreground">{i18n.codPaidByBuyer ?? 'COD Paid By Buyer'}</dt><dd class="m-0 font-semibold text-foreground">{formatCurrency(adjustedCod)}</dd></div>
+      <div class="!flex !items-center !justify-between gap-4"><dt class="font-semibold text-foreground">{i18n.estimatedCodPayout ?? 'Estimated COD Payout'}</dt><dd class:!text-destructive={estimatedPayout < 0} class="m-0 font-semibold text-emerald-700">{formatCurrency(estimatedPayout)}</dd></div>
+    </dl>
+    {#if codValue && !codIsValid}<p class="text-sm text-destructive" role="alert">{i18n.invalidCodValue ?? 'Enter a COD value within the allowed range.'}</p>{/if}
+    {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
+  </KiriofDialog>
+{:else if action?.kind === 'cancel-deficit'}
+  <KiriofDialog
+    open={action !== null}
+    onOpenChange={(open) => !open && close()}
+    class="sm:max-w-md"
+    title={i18n.cancelDeficit ?? 'Cancel deficit order'}
+    description={i18n.cancelDeficitDescription ?? 'Are you sure you want to cancel this deficit COD order? This cannot be undone.'}
+    secondaryLabel={i18n.cancel}
+    secondaryDisabled={loading}
+    primaryLabel={loading ? (i18n.processing ?? 'Processing…') : (i18n.cancelDeficit ?? 'Cancel deficit order')}
+    primaryVariant="destructive"
+    primaryDisabled={loading}
+    onSecondary={close}
+    onPrimary={() => void cancelDeficit()}
+  >
+    <div class="!flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-foreground"><IconAlertTriangle class="mt-0.5 shrink-0 text-destructive" /><span>{i18n.cancelDeficitWarning ?? 'The shipment and its related order will be cancelled.'}</span></div>
+    {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
+  </KiriofDialog>
+{:else if action?.kind === 'cancel'}
+  <KiriofDialog
+    open={action !== null}
+    onOpenChange={(open) => !open && close()}
+    class="sm:max-w-md"
+    title={i18n.cancelShipment ?? i18n.cancel}
+    description={i18n.cancelShipmentDescription ?? 'Provide a reason before cancelling this shipment.'}
+    secondaryLabel={i18n.cancel}
+    secondaryDisabled={loading}
+    primaryLabel={loading ? (i18n.processing ?? 'Processing…') : (i18n.cancelShipment ?? i18n.cancel)}
+    primaryVariant="destructive"
+    primaryDisabled={loading || cancelReason.trim().length < 4}
+    onSecondary={close}
+    onPrimary={() => void cancelTransaction()}
+  >
+    <label class="!grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cancel-reason">{i18n.cancelReason ?? 'Cancellation reason'}<textarea id="kiriof-cancel-reason" class="min-h-24 w-full rounded-lg border border-input bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3" bind:value={cancelReason} disabled={loading} maxlength="500"></textarea></label>
+    <p class="text-xs text-muted-foreground">{i18n.cancelReasonHint ?? 'Enter at least 4 characters.'}</p>
+    {#if cancelReason && cancelReason.trim().length < 4}<p class="text-sm text-destructive" role="alert">{i18n.cancelReasonInvalid ?? 'Enter at least 4 characters.'}</p>{/if}
+    {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
+  </KiriofDialog>
+{/if}

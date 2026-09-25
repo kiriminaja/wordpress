@@ -33,6 +33,7 @@
   import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import CopyableValue from '$lib/ui/CopyableValue.svelte';
+  import PrintPreviewDialog from '$lib/ui/PrintPreviewDialog.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
@@ -79,6 +80,8 @@
   let searchTimer: number | null = null;
   let pickupDialogOpen = $state(false);
   let actionDialog = $state<TransactionActionDialog | null>(null);
+  let printPreviewOpen = $state(false);
+  let printPreviewOrderIds = $state<string[]>([]);
 
   const isOrderIssue = $derived(filters.status === 'order-issue');
   const selectedRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => selected[row.kaOrderId]));
@@ -173,19 +176,14 @@
     selected = { ...selected, [row.kaOrderId]: checked };
   }
 
+  function openPrintPreview(orderIds: string[]): void {
+    if (orderIds.length === 0) return;
+    printPreviewOrderIds = orderIds;
+    printPreviewOpen = true;
+  }
+
   function printSelected(): void {
-    if (selectedPrintCount === 0) return;
-    const form = document.querySelector<HTMLFormElement>('#kiriof-print-bulk-form');
-    if (!form) return;
-    form.querySelectorAll('input[name="oids[]"]').forEach((input) => input.remove());
-    for (const row of selectedRows.filter((item) => item.selection.canPrint)) {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'oids[]';
-      input.value = row.kaOrderId;
-      form.append(input);
-    }
-    form.requestSubmit();
+    openPrintPreview(selectedRows.filter((row) => row.selection.canPrint).map((row) => row.kaOrderId));
   }
 
   function currency(amount: number): string {
@@ -458,7 +456,7 @@
                       <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'adjust-deficit', data: row.actionData })} aria-label={bootstrap.i18n.adjustDeficit}><IconRefresh /></Button></ActionTooltip>
                       <ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel-deficit', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>
                     {:else}
-                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" href={row.actions.printUrl} target="_blank" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
+                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
                       {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
                     {/if}
                   </div>
@@ -487,5 +485,6 @@
     pickupUrl={bootstrap.bulk.pickupUrl}
     i18n={bootstrap.i18n}
   />
-  <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} />
+  <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} />
+  <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} onPrinted={() => void navigate({})} />
 </div>

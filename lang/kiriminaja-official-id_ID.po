@@ -4039,3 +4039,19 @@ msgstr "Salin Resi"
 #: inc/Services/TransactionDetailPageData.php
 msgid "Order Subtotal"
 msgstr "Subtotal Pesanan"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/TransactionDetailPageData.php
+msgid "Change to shipment origin"
+msgstr "Ubah ke asal pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/TransactionDetailPageData.php
+msgid "Selected courier"
+msgstr "Kurir terpilih"
+
+
+#: inc/Services/TransactionListRenderService.php
+#: inc/Services/TransactionDetailPageData.php
+msgid "Select shipment origin"
+msgstr "Pilih asal pengiriman"

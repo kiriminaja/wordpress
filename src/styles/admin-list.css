@@ -403,9 +403,6 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 .kiriof-transaction-dialog-content {
   @apply !box-border ![width:min(600px,calc(100vw_-_32px))] ![max-height:calc(100vh_-_48px)] !overflow-y-auto !border border-border !rounded-xl !bg-white !text-foreground ![font-family:-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] ![font-size:13px] ![line-height:1.5] !opacity-100 ![z-index:100000];
 }
-body [data-slot='dialog-overlay'] {
-  @apply !z-99999 !bg-black/50;
-}
 body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   @apply !z-100001;
 }

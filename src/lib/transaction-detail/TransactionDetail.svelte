@@ -20,6 +20,7 @@
     import StatusBadge from "$lib/admin-list/StatusBadge.svelte";
     import KiriofCard from "$lib/ui/KiriofCard.svelte";
     import CopyableValue from "$lib/ui/CopyableValue.svelte";
+    import PrintPreviewDialog from "$lib/ui/PrintPreviewDialog.svelte";
     import Toolbar from "$lib/ui/Toolbar.svelte";
     import { courierImage } from "$lib/transactions/courier-images";
     import TransactionActionDialogs, {
@@ -34,6 +35,7 @@
     let trackingError = $state("");
     let loadingTracking = $state(false);
     let actionDialog = $state<TransactionActionDialog | null>(null);
+    let printPreviewOpen = $state(false);
 
     function currency(amount: number): string {
         return `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(amount)}`;
@@ -97,11 +99,7 @@
 <div class="kiriof-shadcn w-full">
     <Toolbar toolbar={bootstrap.toolbar}>
         {#if transaction.shipment.printUrl}
-            <Button
-                href={transaction.shipment.printUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-            >
+            <Button onclick={() => (printPreviewOpen = true)}>
                 <IconPrinter data-icon="inline-start" />
                 {i18n.printLabel}
             </Button>
@@ -635,7 +633,9 @@
     <TransactionActionDialogs
         bind:action={actionDialog}
         locations={bootstrap.shipmentLocations}
+        locationsUrl={bootstrap.locationsUrl}
         ajaxUrl={bootstrap.ajax.url}
         {i18n}
     />
+    <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.printPreviewNonce} {i18n} />
 </div>

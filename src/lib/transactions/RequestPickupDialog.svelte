@@ -305,7 +305,7 @@
           <Field.Field>
             <Field.FieldLabel for="kiriof-pickup-date">{label('pickupDate', 'Pickup Date')}</Field.FieldLabel>
             <Select.Root type="single" value={selectedDate} onValueChange={selectDate}>
-              <Select.Trigger id="kiriof-pickup-date"><Select.Value placeholder={label('selectDatePlaceholder', 'Select a pickup date')} /></Select.Trigger>
+              <Select.Trigger id="kiriof-pickup-date" class="!bg-background !border-input"><Select.Value placeholder={label('selectDatePlaceholder', 'Select a pickup date')} /></Select.Trigger>
               <Select.Content class="kiriof-shadcn">
                 <Select.Group>
                   {#each pickupDates as date (date.value)}
@@ -319,7 +319,7 @@
           <Field.Field>
             <Field.FieldLabel for="kiriof-pickup-time">{label('pickupTime', 'Pickup Time')}</Field.FieldLabel>
             <Select.Root type="single" bind:value={selectedTime}>
-              <Select.Trigger id="kiriof-pickup-time"><Select.Value placeholder={label('selectTimePlaceholder', 'Select a pickup time')} /></Select.Trigger>
+              <Select.Trigger id="kiriof-pickup-time" class="!bg-background !border-input"><Select.Value placeholder={label('selectTimePlaceholder', 'Select a pickup time')} /></Select.Trigger>
               <Select.Content class="kiriof-shadcn">
                 <Select.Group>
                   {#each availableTimes as time (time.value)}

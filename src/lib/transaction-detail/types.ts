@@ -48,8 +48,9 @@ export type TransactionDetailBootstrap = {
       data: TransactionActionData;
     };
   };
-  ajax: { url: string; nonce: string };
+  ajax: { url: string; nonce: string; printPreviewNonce: string };
   shipmentLocations: Array<{ id: number; name: string; address: string }>;
+  locationsUrl: string;
   i18n: Record<string, string>;
 };
 
