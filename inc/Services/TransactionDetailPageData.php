@@ -73,7 +73,7 @@ class TransactionDetailPageData {
 		$courier_name  = kiriof_helper()->formatServiceName( $transaction->service ?? '', $transaction->service_name ?? '' );
 		$items         = $this->items( $wc_order );
 		$notes         = $this->notes( $wc_order );
-		$action_data   = $this->action_data( $transaction, $wc_order, $shipping, $insurance, $cod_fee );
+		$action_data   = $this->action_data( $transaction, $wc_order, $origin, $shipping, $insurance, $cod_fee );
 		$print_url     = '' !== (string) ( $transaction->awb ?? '' )
 			? admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( (string) ( $transaction->order_id ?? '' ) ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) )
 			: '';
@@ -159,17 +159,21 @@ class TransactionDetailPageData {
 	private function origin( object $transaction ): array {
 		$snapshot = json_decode( (string) ( $transaction->shipment_location_snapshot ?? '{}' ), true );
 		$snapshot = is_array( $snapshot ) ? $snapshot : array();
-		$location = ! empty( $transaction->shipment_location_id ) ? $this->location_service->repository()->getById( (int) $transaction->shipment_location_id ) : null;
-		$name = trim( (string) ( $snapshot['origin_name'] ?? $snapshot['location_name'] ?? $snapshot['name'] ?? $location->name ?? $location->location_name ?? '' ) );
-		$address = array_values(
-			array_filter(
-				array(
-					(string) ( $snapshot['address'] ?? $snapshot['address_1'] ?? $location->address ?? $location->address_1 ?? '' ),
-					implode( ', ', array_filter( array( (string) ( $snapshot['subdistrict_name'] ?? $snapshot['district'] ?? $location->subdistrict_name ?? '' ), (string) ( $snapshot['city_name'] ?? $snapshot['city'] ?? $location->city ?? '' ), (string) ( $snapshot['province_name'] ?? $snapshot['province'] ?? $location->province ?? '' ) ) ) ),
-				)
-			)
+		$location = null;
+		if ( empty( $snapshot ) && ! empty( $transaction->shipment_location_id ) ) {
+			$location = $this->location_service->repository()->getById( (int) $transaction->shipment_location_id );
+		}
+
+		$source = ! empty( $snapshot ) ? $snapshot : $location;
+		$name   = trim( (string) ( $snapshot['origin_name'] ?? $snapshot['location_name'] ?? $snapshot['name'] ?? $location->name ?? $location->location_name ?? '' ) );
+		$phone  = trim( (string) ( $snapshot['phone'] ?? $snapshot['origin_phone'] ?? $location->phone ?? '' ) );
+		$address = $this->location_service->formatAddress( $source );
+
+		return array(
+			'name'    => '' !== $name ? $name : __( 'Default origin', 'kiriminaja-official' ),
+			'phone'   => $phone,
+			'address' => '' !== $address ? array( $address ) : array(),
 		);
-		return array( 'name' => '' !== $name ? $name : __( 'Default origin', 'kiriminaja-official' ), 'phone' => (string) ( $snapshot['phone'] ?? $location->phone ?? '' ), 'address' => $address );
 	}
 
 	/** @return array<int,array<string,mixed>> */
@@ -206,11 +210,11 @@ class TransactionDetailPageData {
 	}
 
 	/** @return array<string,mixed> */
-	private function action_data( object $transaction, $order, float $shipping, float $insurance, float $cod_fee ): array {
+	private function action_data( object $transaction, $order, array $origin, float $shipping, float $insurance, float $cod_fee ): array {
 		$shipping_discount = $order ? max( 0, $shipping - (float) $order->get_shipping_total() ) : max( 0, (float) ( $transaction->discount_amount ?? 0 ) );
 		$coupon_scopes = $order ? $this->coupon_service->splitCouponCodesByScope( (array) $order->get_coupon_codes() ) : array( 'item' => array(), 'shipping' => array() );
 		return array(
-			'nonce' => wp_create_nonce( KIRIOF_NONCE ), 'kaOrderId' => (string) ( $transaction->order_id ?? '' ), 'currentOrigin' => $this->origin( $transaction )['name'], 'currentOriginAddress' => implode( ', ', $this->origin( $transaction )['address'], ), 'currentLocationId' => (int) ( $transaction->shipment_location_id ?? 0 ), 'currentCod' => $order ? (float) $order->get_total() : 0, 'codMinimum' => (float) ( $transaction->cod_minimum ?? 0 ), 'codMaximum' => 0, 'shippingCost' => $shipping, 'insuranceFee' => $insurance, 'codFee' => $cod_fee, 'itemPrice' => $order ? (float) $order->get_subtotal() : 0, 'itemDiscount' => $order ? (float) $order->get_discount_total() : 0, 'shippingDiscount' => $shipping_discount, 'itemCoupon' => (string) ( $coupon_scopes['item'][0] ?? '' ), 'shippingCoupon' => (string) ( $coupon_scopes['shipping'][0] ?? '' ),
+			'nonce' => wp_create_nonce( KIRIOF_NONCE ), 'kaOrderId' => (string) ( $transaction->order_id ?? '' ), 'currentOrigin' => $origin['name'], 'currentOriginAddress' => implode( ', ', $origin['address'] ), 'currentLocationId' => (int) ( $transaction->shipment_location_id ?? 0 ), 'currentCod' => $order ? (float) $order->get_total() : 0, 'codMinimum' => (float) ( $transaction->cod_minimum ?? 0 ), 'codMaximum' => 0, 'shippingCost' => $shipping, 'insuranceFee' => $insurance, 'codFee' => $cod_fee, 'itemPrice' => $order ? (float) $order->get_subtotal() : 0, 'itemDiscount' => $order ? (float) $order->get_discount_total() : 0, 'shippingDiscount' => $shipping_discount, 'itemCoupon' => (string) ( $coupon_scopes['item'][0] ?? '' ), 'shippingCoupon' => (string) ( $coupon_scopes['shipping'][0] ?? '' ),
 		);
 	}
 

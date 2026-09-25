@@ -308,3 +308,17 @@ final class TransactionListQueryWpdbFake
         return $this->list_results;
     }
 }
+
+final class TransactionDetailOriginResolutionTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_uses_the_same_snapshot_or_location_origin_resolution_as_the_list(): void
+    {
+        $detail = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionDetailPageData.php' );
+
+        $this->assertStringContainsString( "if ( empty( \$snapshot ) && ! empty( \$transaction->shipment_location_id ) )", $detail );
+        $this->assertStringContainsString( "\$source = ! empty( \$snapshot ) ? \$snapshot : \$location;", $detail );
+        $this->assertStringContainsString( "\$address = \$this->location_service->formatAddress( \$source );", $detail );
+        $this->assertStringContainsString( "'changeOrigin'  => 'new' === \$status", $detail );
+    }
+}
