@@ -30,6 +30,7 @@ RSYNC_EXCLUDES := \
 	--exclude=$(BUILD_DIR)/ \
 	--exclude=docs/ \
 	--exclude=scripts/ \
+	--exclude=stubs/ \
 	--exclude=.DS_Store \
 	--exclude=.distignore \
 	--exclude=.editorconfig \

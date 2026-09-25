@@ -4,6 +4,9 @@ includes:
 parameters:
     level: 5
 
+    stubFiles:
+        - stubs/wordpress-hooks.stub.php
+
     bootstrapFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 
