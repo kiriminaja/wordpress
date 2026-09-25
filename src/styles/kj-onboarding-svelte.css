@@ -50,11 +50,11 @@ body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
 }
 
 html:has(body.kiriof-onboarding-screen) {
-  @apply !pt-0 bg-foreground!;
+  @apply !pt-0 bg-muted!;
 }
 
 body.kiriof-onboarding-screen {
-  @apply bg-foreground!;
+  @apply bg-muted!;
 }
 
 body.kiriof-onboarding-screen #wpadminbar,
@@ -76,7 +76,11 @@ body.kiriof-onboarding-screen #wpbody-content {
 }
 
 [data-kiriof-onboarding-app] {
-  @apply fixed inset-0 z-99999 flex w-screen h-screen overflow-hidden bg-accent;
+  @apply fixed inset-0 z-99999 flex w-screen h-screen overflow-hidden bg-muted;
+}
+
+.kiriof-onboarding-background {
+  @apply bg-muted before:absolute before:inset-0 before:content-[''] before:[background-image:radial-gradient(circle,var(--muted-foreground)_1px,transparent_1px)] before:[background-size:20px_20px] before:opacity-20;
 }
 
 [data-kiriof-onboarding-app][aria-busy='true']::before {

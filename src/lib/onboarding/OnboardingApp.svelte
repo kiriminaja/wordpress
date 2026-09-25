@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import DotField from '$lib/backgrounds/DotField.svelte';
   import L from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -56,7 +55,6 @@
   let success = $state('');
   let busy = $state(false);
   let setupKey = $state('');
-  let prefersReducedMotion = $state(false);
 
   function getInitialAddress(): Record<string, string> {
     return { ...bootstrap.address.values };
@@ -84,6 +82,10 @@
   const currentIndex = $derived(order.indexOf(current));
   const accountReady = $derived(Boolean(account.connected || done.account));
   const canSubmitAccount = $derived(Boolean(accountReady || setupKey.trim()));
+  const selectedCourierCount = $derived(Object.keys(selectedCouriers).length);
+  const allCouriersEnabled = $derived(
+    couriers.length > 0 && selectedCourierCount === couriers.length,
+  );
 
   const stepTitle = $derived.by(() => {
     switch (current) {
@@ -326,11 +328,15 @@
       );
       couriers = result.couriers ?? [];
       const selected = new Set(result.whitelist_ids ?? []);
-      selectedCouriers = Object.fromEntries(
+      const loadedSelection = Object.fromEntries(
         couriers
           .filter((courier) => selected.has(courier.code))
           .map((courier) => [courier.code, courier.name]),
       );
+      selectedCouriers =
+        Object.keys(loadedSelection).length > 0 || couriers.length === 0
+          ? loadedSelection
+          : { [couriers[0].code]: couriers[0].name };
       courierLoaded = true;
     } catch (requestError) {
       setMessage(
@@ -346,6 +352,11 @@
   }
 
   function toggleCourier(courier: OnboardingCourier, checked: boolean): void {
+    if (!checked && isCourierSelected(courier.code) && selectedCourierCount === 1) {
+      setMessage(bootstrap.i18n.courierRequired);
+      return;
+    }
+
     const nextCouriers = { ...selectedCouriers };
     if (checked) {
       nextCouriers[courier.code] = courier.name;
@@ -353,12 +364,14 @@
       delete nextCouriers[courier.code];
     }
     selectedCouriers = nextCouriers;
+    setMessage('');
   }
 
-  function setAllCouriers(checked: boolean): void {
-    selectedCouriers = checked
-      ? Object.fromEntries(couriers.map((courier) => [courier.code, courier.name]))
-      : {};
+  function enableAllCouriers(): void {
+    selectedCouriers = Object.fromEntries(
+      couriers.map((courier) => [courier.code, courier.name]),
+    );
+    setMessage('');
   }
 
   async function saveCouriers(): Promise<void> {
@@ -457,7 +470,6 @@
   }
 
   onMount(() => {
-    prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (current === 'address') setTimeout(initMap, 50);
     if (current === 'couriers') void loadCouriers();
   });
@@ -472,59 +484,43 @@
 </script>
 
 <div
-  class="kiriof-shadcn kiriof-onboarding-app relative z-10 flex h-full max-h-screen w-full flex-col items-center justify-between overflow-hidden box-border p-3 sm:p-4 md:p-6"
+  class="kiriof-shadcn kiriof-onboarding-app relative flex h-full max-h-screen w-full flex-col items-center justify-between overflow-hidden box-border p-3 sm:p-4 md:p-6"
 >
-  <!-- Full Viewport Animated Dither Background -->
-  <div class="fixed inset-0 -z-0 pointer-events-none overflow-hidden bg-foreground" aria-hidden="true">
-    <div class="absolute inset-x-0 top-0 h-1/2 bg-primary/30"></div>
-    <DotField
-      dotRadius={2}
-      dotSpacing={17}
-      cursorRadius={280}
-      bulgeStrength={42}
-      glowRadius={210}
-      waveAmplitude={1.2}
-      gradientFrom="rgba(196, 181, 253, 0.72)"
-      gradientTo="rgba(126, 34, 206, 0.38)"
-      glowColor="rgba(88, 28, 135, 0.5)"
-      disableAnimation={prefersReducedMotion}
-      class="absolute inset-0 h-full w-full opacity-90"
-    />
+  <div
+    class="kiriof-onboarding-background fixed inset-0 pointer-events-none"
+    aria-hidden="true"
+  ></div>
+
+  <div class="absolute right-3 top-3 z-20 flex items-center gap-2 sm:right-4 sm:top-4">
+    {#if bootstrap.helpUrl}
+      <ActionTooltip label="Need help?">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Need help?"
+          onclick={() => window.open(bootstrap.helpUrl, '_blank', 'noopener,noreferrer')}
+        >
+          <IconHelp data-icon="inline-start" />
+        </Button>
+      </ActionTooltip>
+    {/if}
+    {#if bootstrap.dashboardUrl}
+      <ActionTooltip label="Close setup">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Close setup"
+          onclick={() => window.location.assign(bootstrap.dashboardUrl || 'admin.php')}
+        >
+          <IconX data-icon="inline-start" />
+        </Button>
+      </ActionTooltip>
+    {/if}
   </div>
 
-  <!-- Centered Wizard Wrapper -->
   <div class="relative z-10 my-auto flex w-full max-w-[640px] flex-col items-center justify-center min-h-0">
-    <!-- Top Utility Bar -->
-    <header class="mb-2 flex shrink-0 w-full items-center justify-between px-1">
-      <a
-        href={bootstrap.dashboardUrl || '#'}
-        class="group inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/95 px-3.5 py-1.5 shadow-md backdrop-blur-md transition-all hover:scale-[1.02] hover:bg-white hover:shadow-lg dark:bg-card/90"
-        aria-label="WordPress Dashboard"
-      >
-        {#if bootstrap.logoUrl}
-          <img src={bootstrap.logoUrl} alt="KiriminAja" class="h-6 w-auto object-contain" />
-        {:else}
-          <span class="text-sm font-bold tracking-tight text-primary">KiriminAja</span>
-        {/if}
-      </a>
-
-      <div class="flex items-center gap-2">
-        {#if bootstrap.helpUrl}
-          <ActionTooltip label="Need help?">
-            <a href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground dark:bg-card/85" aria-label="Need help?"><IconHelp class="h-4 w-4" /></a>
-          </ActionTooltip>
-        {/if}
-        {#if bootstrap.dashboardUrl}
-          <ActionTooltip label="Close setup">
-            <a href={bootstrap.dashboardUrl} class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground dark:bg-card/85" aria-label="Close setup"><IconX class="h-4 w-4" /></a>
-          </ActionTooltip>
-        {/if}
-      </div>
-    </header>
-
-    <!-- Centered Wizard Card -->
     <Card
-      class="flex flex-col w-full max-h-[calc(100vh-5.5rem)] overflow-hidden rounded-2xl border border-white/40 bg-white/95 shadow-2xl shadow-purple-950/30 backdrop-blur-xl transition-all dark:border-border dark:bg-card/95"
+      class="flex flex-col w-full max-h-[calc(100dvh-7rem)] overflow-hidden rounded-xl border border-border bg-card shadow-xl"
     >
       {#if current !== 'complete'}
         <CardHeader class="shrink-0 border-b border-border/60 bg-muted/10 px-6 pt-5 pb-4">
@@ -686,16 +682,15 @@
           </div>
         {:else if current === 'couriers'}
           <div class="mb-3 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <Button variant="secondary" size="sm" onclick={() => setAllCouriers(true)}>
-                {bootstrap.couriers.i18n.enableAll || 'Enable all'}
-              </Button>
-              <Button variant="ghost" size="sm" onclick={() => setAllCouriers(false)}>
-                {bootstrap.couriers.i18n.disableAll || 'Disable all'}
-              </Button>
+            <div>
+              {#if !allCouriersEnabled}
+                <Button variant="secondary" size="sm" onclick={enableAllCouriers}>
+                  {bootstrap.couriers.i18n.enableAll || 'Enable all'}
+                </Button>
+              {/if}
             </div>
             <Badge variant="secondary">
-              {Object.keys(selectedCouriers).length}
+              {selectedCourierCount}
               {bootstrap.couriers.i18n.enabled || 'enabled'}
             </Badge>
           </div>
@@ -726,6 +721,7 @@
                   </div>
                   <Switch
                     checked={selected}
+                    disabled={selected && selectedCourierCount === 1}
                     onCheckedChange={(checked: boolean) => toggleCourier(courier, checked)}
                     aria-label={`Enable ${courier.name}`}
                   />
@@ -842,7 +838,10 @@
               {/if}
             </Button>
           {:else if current === 'couriers'}
-            <Button onclick={saveCouriers} disabled={busy || couriersLoading}>
+            <Button
+              onclick={saveCouriers}
+              disabled={busy || couriersLoading || selectedCourierCount === 0}
+            >
               {#if busy}
                 <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
                 <span>Saving…</span>
@@ -873,9 +872,5 @@
       </CardFooter>
     </Card>
 
-    <!-- Bottom Footnote -->
-    <footer class="mt-2 shrink-0 text-center text-[11px] font-medium tracking-wide text-white/50">
-      KiriminAja Official WooCommerce Extension
-    </footer>
   </div>
 </div>

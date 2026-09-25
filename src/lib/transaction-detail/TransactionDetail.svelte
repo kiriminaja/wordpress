@@ -47,7 +47,6 @@
         return `+${digits}`;
     }
 
-
     async function loadTracking(): Promise<void> {
         if (
             !transaction.supportsLiveTracking ||
@@ -122,9 +121,7 @@
     <div class="!grid !items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22.5rem]">
         <main class="!grid min-w-0 gap-4">
             <KiriofCard>
-                <Card.Header
-                    class="!grid !grid-cols-[minmax(0,1fr)_auto] !items-center !gap-3 !border-b !border-border !px-4 !py-3"
-                >
+                <Card.Header class="px-4 py-3">
                     <Card.Title
                         ><StatusBadge
                             label={transaction.status.label}
@@ -205,9 +202,7 @@
                 aria-label={i18n.senderRecipientDetails}
             >
                 <KiriofCard>
-                    <Card.Header
-                        class="!grid !grid-cols-[minmax(0,1fr)_auto] !items-center !gap-3 !border-b !border-border !px-4 !py-3"
-                    >
+                    <Card.Header class="px-4 py-3">
                         <Card.Title><IconMapPin />{i18n.sender}</Card.Title>
                         {#if transaction.actions.changeOrigin}
                             <Card.Action>
@@ -246,9 +241,7 @@
                 </KiriofCard>
 
                 <KiriofCard>
-                    <Card.Header
-                        class="!grid !grid-cols-[minmax(0,1fr)_auto] !items-center !gap-3 !border-b !border-border !px-4 !py-3"
-                    >
+                    <Card.Header class="px-4 py-3">
                         <Card.Title><IconUser />{i18n.recipient}</Card.Title>
                         {#if transaction.recipient.phone}
                             <Card.Action
@@ -283,10 +276,9 @@
             </section>
 
             <KiriofCard>
-                <Card.Header class="!border-b !border-border !px-4 !py-3"
-                    ><Card.Title><IconPackage />{i18n.package}</Card.Title
-                    ></Card.Header
-                >
+                <Card.Header class="px-4 py-3">
+                    <Card.Title><IconPackage />{i18n.package}</Card.Title>
+                </Card.Header>
                 <Card.Content
                     class="!grid grid-cols-2 gap-3 !px-4 !py-4 text-sm"
                     ><div class="!grid gap-1">
@@ -308,10 +300,9 @@
             </KiriofCard>
 
             <KiriofCard>
-                <Card.Header class="!border-b !border-border !px-4 !py-3"
-                    ><Card.Title><IconBox />{i18n.products}</Card.Title
-                    ></Card.Header
-                >
+                <Card.Header class="px-4 py-3">
+                    <Card.Title><IconBox />{i18n.products}</Card.Title>
+                </Card.Header>
                 <Card.Content class="!px-4 !py-1">
                     {#if transaction.items.length === 0}<p
                             class="py-3 text-sm text-muted-foreground"
@@ -337,9 +328,7 @@
             </KiriofCard>
 
             <KiriofCard>
-                <Card.Header
-                    class="!grid !grid-cols-[minmax(0,1fr)_auto] !items-center !gap-3 !border-b !border-border !px-4 !py-3"
-                >
+                <Card.Header class="px-4 py-3">
                     <Card.Title
                         ><IconExternalLink
                         />{transaction.orderNumber}</Card.Title
@@ -372,9 +361,7 @@
 
         <aside class="!grid min-w-0 gap-4">
             <KiriofCard class="kiriof-shipment-card">
-                <Card.Header
-                    class="!flex !flex-wrap !items-center !gap-2 !border-b !border-border !px-4 !py-3"
-                >
+                <Card.Header class="px-4 py-3">
                     <Card.Title class="min-w-0 flex-1"
                         ><IconTruck />{i18n.shipment}</Card.Title
                     >
@@ -427,52 +414,131 @@
                         </div>
                     </div>
                     <dl class="!grid min-w-0 gap-2 text-sm">
-                        <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                        <div
+                            class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
+                        >
                             <dt class="min-w-0">{i18n.orderId}</dt>
-                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{transaction.orderId}</dd>
+                            <dd
+                                class="m-0 shrink-0 text-right font-semibold text-foreground"
+                            >
+                                {transaction.orderId}
+                            </dd>
                         </div>
-                        <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                        <div
+                            class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
+                        >
                             <dt class="min-w-0">{i18n.orderSubtotal}</dt>
-                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.subtotal)}</dd>
+                            <dd
+                                class="m-0 shrink-0 text-right font-semibold text-foreground"
+                            >
+                                {currency(transaction.shipment.costs.subtotal)}
+                            </dd>
                         </div>
-                        <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                        <div
+                            class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
+                        >
                             <dt class="min-w-0">{i18n.totalShipping}</dt>
-                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.totalShipping)}</dd>
+                            <dd
+                                class="m-0 shrink-0 text-right font-semibold text-foreground"
+                            >
+                                {currency(
+                                    transaction.shipment.costs.totalShipping,
+                                )}
+                            </dd>
                         </div>
-                        <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                        <div
+                            class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground"
+                        >
                             <dt class="min-w-0">{i18n.actualShipping}</dt>
-                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.actualShipping)}</dd>
+                            <dd
+                                class="m-0 shrink-0 text-right font-semibold text-foreground"
+                            >
+                                {currency(
+                                    transaction.shipment.costs.actualShipping,
+                                )}
+                            </dd>
                         </div>
                         {#if transaction.shipment.costs.shippingDiscount > 0}
-                            <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                            <div
+                                class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground"
+                            >
                                 <dt class="min-w-0">{i18n.shippingDiscount}</dt>
-                                <dd class="m-0 shrink-0 text-right font-semibold text-emerald-700">−{currency(transaction.shipment.costs.shippingDiscount)}</dd>
+                                <dd
+                                    class="m-0 shrink-0 text-right font-semibold text-emerald-700"
+                                >
+                                    −{currency(
+                                        transaction.shipment.costs
+                                            .shippingDiscount,
+                                    )}
+                                </dd>
                             </div>
                         {/if}
-                        <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                        <div
+                            class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground"
+                        >
                             <dt class="min-w-0">{i18n.shipping}</dt>
-                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.shipping)}</dd>
+                            <dd
+                                class="m-0 shrink-0 text-right font-semibold text-foreground"
+                            >
+                                {currency(transaction.shipment.costs.shipping)}
+                            </dd>
                         </div>
                         {#if transaction.shipment.costs.insurance > 0}
-                            <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                            <div
+                                class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground"
+                            >
                                 <dt class="min-w-0">{i18n.insurance}</dt>
-                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.insurance)}</dd>
+                                <dd
+                                    class="m-0 shrink-0 text-right font-semibold text-foreground"
+                                >
+                                    {currency(
+                                        transaction.shipment.costs.insurance,
+                                    )}
+                                </dd>
                             </div>
                         {/if}
                         {#if transaction.shipment.costs.codFee > 0}
-                            <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                            <div
+                                class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground"
+                            >
                                 <dt class="min-w-0">{i18n.codFee}</dt>
-                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.codFee)}</dd>
+                                <dd
+                                    class="m-0 shrink-0 text-right font-semibold text-foreground"
+                                >
+                                    {currency(
+                                        transaction.shipment.costs.codFee,
+                                    )}
+                                </dd>
                             </div>
                         {/if}
-                        <div class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3">
-                            <dt class="min-w-0 font-semibold text-foreground">{i18n.total}</dt>
-                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.orderTotal)}</dd>
+                        <div
+                            class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3"
+                        >
+                            <dt class="min-w-0 font-semibold text-foreground">
+                                {i18n.total}
+                            </dt>
+                            <dd
+                                class="m-0 shrink-0 text-right font-semibold text-foreground"
+                            >
+                                {currency(
+                                    transaction.shipment.costs.orderTotal,
+                                )}
+                            </dd>
                         </div>
                         {#if transaction.isCod}
-                            <div class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3">
-                                <dt class="min-w-0 font-semibold text-foreground">{i18n.codValue}</dt>
-                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.codValue)}</dd>
+                            <div
+                                class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3"
+                            >
+                                <dt
+                                    class="min-w-0 font-semibold text-foreground"
+                                >
+                                    {i18n.codValue}
+                                </dt>
+                                <dd
+                                    class="m-0 shrink-0 text-right font-semibold text-foreground"
+                                >
+                                    {currency(transaction.shipment.codValue)}
+                                </dd>
                             </div>
                         {/if}
                     </dl>
@@ -520,10 +586,9 @@
 
             {#if transaction.supportsLiveTracking}
                 <KiriofCard>
-                    <Card.Header class="!border-b !border-border !px-4 !py-3"
-                        ><Card.Title><IconRoute />{i18n.tracking}</Card.Title
-                        ></Card.Header
-                    >
+                    <Card.Header class="px-4 py-3">
+                        <Card.Title><IconRoute />{i18n.tracking}</Card.Title>
+                    </Card.Header>
                     <Card.Content class="!px-4 !py-3"
                         >{#if loadingTracking}<p
                                 class="text-sm text-muted-foreground"

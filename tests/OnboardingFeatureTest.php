@@ -32,8 +32,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString('[data-kiriof-onboarding-app]', $css);
 		$this->assertStringContainsString('fixed', $css);
 		$this->assertStringContainsString('overflow-hidden!', $css);
-		$this->assertFileExists(PLUGIN_DIR . '/assets/admin/img/logo-tagline.svg');
-		$this->assertStringContainsString("'logoUrl'", $page);
+		$this->assertFileDoesNotExist(PLUGIN_DIR . '/assets/admin/img/logo-tagline.svg');
+		$this->assertStringNotContainsString("'logoUrl'", $page);
 		$this->assertStringContainsString("'helpUrl'", $page);
 		$this->assertStringContainsString("'initialStep'", $page);
 		$this->assertStringContainsString("'steps'", $page);
@@ -59,6 +59,7 @@ final class OnboardingFeatureTest extends TestCase
         $app = file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/OnboardingApp.svelte' );
         $entry = file_get_contents( PLUGIN_DIR . '/src/entries/onboarding-progress.ts' );
         $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+        $page = file_get_contents( PLUGIN_DIR . '/inc/Pages/Onboarding.php' );
         $components = file_get_contents( PLUGIN_DIR . '/components.json' );
 
         $this->assertStringContainsString( 'from \'$lib/components/ui/button\'', $app );
@@ -68,7 +69,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'SubdistrictCombobox', $app );
 		$this->assertStringContainsString( 'ActionTooltip', $app );
 		$this->assertStringNotContainsString( 'title=', $app );
-		$this->assertStringContainsString( "import DotField from '\$lib/backgrounds/DotField.svelte'", $app );
+		$this->assertStringNotContainsString( 'DotField', $app );
 		$this->assertStringNotContainsString( 'Dither.svelte', $app );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/backgrounds/DotField.svelte' );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/backgrounds/Dither.svelte' );
@@ -85,6 +86,14 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'z-100001!', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
         $this->assertStringContainsString( 'const canSubmitAccount = $derived', $app );
 		$this->assertStringContainsString( 'disabled={busy || !canSubmitAccount}', $app );
+		$this->assertStringContainsString( 'class="absolute right-3 top-3 z-20', $app );
+		$this->assertStringContainsString( 'kiriof-onboarding-background', $app );
+		$this->assertStringContainsString( '{#if !allCouriersEnabled}', $app );
+		$this->assertStringContainsString( 'disabled={selected && selectedCourierCount === 1}', $app );
+		$this->assertStringNotContainsString( 'disableAll', $app );
+		$this->assertStringNotContainsString( "'disableAll'", $page );
+		$this->assertStringContainsString( '[background-image:radial-gradient(', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
+		$this->assertStringContainsString( 'var(--muted-foreground)', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
 		$this->assertStringContainsString( 'let account = $state(getInitialAccount())', $app );
 		$this->assertStringContainsString( "profile?: OnboardingBootstrap['account']['profile']", $app );
 		$this->assertStringNotContainsString( 'setMessage(bootstrap.i18n.accountConnected, true);\n      setupKey = \'\';\n      next();', $app );

@@ -101,7 +101,6 @@ class Onboarding extends BaseInit {
 			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
 			'nonce'        => wp_create_nonce( KIRIOF_NONCE ),
 			'shippingUrl'  => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-			'logoUrl'      => esc_url( KIRIOF_URL . 'assets/admin/img/logo-tagline.svg' ),
 			'dashboardUrl' => esc_url( admin_url() ),
 			'helpUrl'      => 'https://kiriminaja.com/solusi/plugin-woocommerce',
 			'i18n'         => array(
@@ -169,7 +168,6 @@ class Onboarding extends BaseInit {
 				'description' => $steps['couriers']['description'],
 				'i18n'        => array(
 					'enableAll'  => __( 'Enable all', 'kiriminaja-official' ),
-					'disableAll' => __( 'Disable all', 'kiriminaja-official' ),
 					'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
 					'empty'      => __( 'No courier services are available.', 'kiriminaja-official' ),
 					'enabled'    => __( 'enabled', 'kiriminaja-official' ),

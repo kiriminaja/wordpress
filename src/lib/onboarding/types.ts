@@ -4,7 +4,6 @@ export type OnboardingBootstrap = {
   ajaxUrl: string;
   nonce: string;
   shippingUrl: string;
-  logoUrl?: string;
   dashboardUrl?: string;
   helpUrl?: string;
   i18n: {
@@ -67,7 +66,6 @@ export type OnboardingBootstrap = {
     description: string;
     i18n: {
       enableAll: string;
-      disableAll: string;
       loading: string;
       empty: string;
       enabled: string;
