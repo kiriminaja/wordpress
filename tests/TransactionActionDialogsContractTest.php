@@ -242,3 +242,18 @@ final class ChangeOriginCourierSummaryTest extends TestCase
         $this->assertStringContainsString( '{#if courierChanged} → {originCheck.comparison.new_courier}{/if}', $dialog );
     }
 }
+
+final class TransactionActionNoReloadTest extends TestCase
+{
+    #[Test]
+    public function confirmed_actions_close_and_call_completion_instead_of_reloading_the_browser(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+        $list = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
+
+        $this->assertStringNotContainsString( 'window.location.reload()', $dialog );
+        $this->assertStringContainsString( 'close();', $dialog );
+        $this->assertStringContainsString( 'onComplete?.();', $dialog );
+        $this->assertStringContainsString( 'onComplete={refreshList}', $list );
+    }
+}

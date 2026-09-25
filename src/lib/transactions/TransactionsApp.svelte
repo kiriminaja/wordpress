@@ -485,6 +485,6 @@
     pickupUrl={bootstrap.bulk.pickupUrl}
     i18n={bootstrap.i18n}
   />
-  <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} />
+  <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
   <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} onPrinted={() => void navigate({})} />
 </div>

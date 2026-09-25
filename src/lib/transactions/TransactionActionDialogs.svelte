@@ -137,8 +137,8 @@
         'data[order_id]': action.data.kaOrderId,
         'data[reason]': cancelReason.trim(),
       });
+      close();
       onComplete?.();
-      window.location.reload();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : i18n.actionError ?? 'Unable to complete this action.';
       loading = false;
@@ -220,8 +220,8 @@
         courier_consent: requiresCourierConsent && replacementConsent ? '1' : '0',
         nonce: action.data.nonce,
       });
+      close();
       onComplete?.();
-      window.location.reload();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : i18n.actionError ?? 'Unable to complete this action.';
       loading = false;
@@ -239,8 +239,8 @@
         'data[order_package_id]': action.data.kaOrderId,
         'data[new_total_cod]': String(Math.round(Number(codValue))),
       });
+      close();
       onComplete?.();
-      window.location.reload();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : i18n.actionError ?? 'Unable to complete this action.';
       loading = false;
@@ -257,8 +257,8 @@
         'data[nonce]': action.data.nonce,
         'data[order_package_id]': action.data.kaOrderId,
       });
+      close();
       onComplete?.();
-      window.location.reload();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : i18n.actionError ?? 'Unable to complete this action.';
       loading = false;

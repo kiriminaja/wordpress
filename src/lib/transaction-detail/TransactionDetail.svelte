@@ -37,6 +37,10 @@
     let actionDialog = $state<TransactionActionDialog | null>(null);
     let printPreviewOpen = $state(false);
 
+    function finishAction(): void {
+        window.location.assign(bootstrap.toolbar.rootUrl);
+    }
+
     function currency(amount: number): string {
         return `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(amount)}`;
     }
@@ -585,6 +589,7 @@
         locationsUrl={bootstrap.locationsUrl}
         ajaxUrl={bootstrap.ajax.url}
         {i18n}
+        onComplete={finishAction}
     />
     <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.printPreviewNonce} {i18n} />
 </div>
