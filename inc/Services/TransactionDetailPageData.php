@@ -4,7 +4,7 @@ namespace KiriminAjaOfficial\Services;
 use KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver;
 
 // Exit if accessed directly.
-if (!defined("ABSPATH")) {
+if ( ! defined( 'ABSPATH' ) ) {
     exit();
 }
 

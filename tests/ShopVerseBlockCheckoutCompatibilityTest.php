@@ -3820,7 +3820,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 		$view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '$filters[\'status\'] = \'all\';',
+            '$filters["status"] = "all";',
             $renderer,
             'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
         );

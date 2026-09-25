@@ -59,7 +59,7 @@ final class RevampAnnouncementTest extends TestCase
         $this->assertFileExists(PLUGIN_DIR . '/assets/admin/img/revamp-announcement.svg');
         $content = file_get_contents(PLUGIN_DIR . '/src/lib/components/ui/dialog/dialog-content.svelte');
         $overlay = file_get_contents(PLUGIN_DIR . '/src/lib/components/ui/dialog/dialog-overlay.svelte');
-        $this->assertStringContainsString('z-50', $content);
-        $this->assertStringContainsString('z-40', $overlay);
+        $this->assertStringContainsString('!z-[100001]', $content);
+        $this->assertStringContainsString('!z-[100000]', $overlay);
     }
 }

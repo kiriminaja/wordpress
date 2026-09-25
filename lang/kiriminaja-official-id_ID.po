@@ -4063,3 +4063,114 @@ msgstr "Detail Paket & Produk"
 #: inc/Services/TransactionDetailPageData.php
 msgid "Order Detail"
 msgstr "Detail Pesanan"
+
+msgid "%d Enabled"
+msgstr "%d Aktif"
+
+msgid "Accept Our Privacy & Policy"
+msgstr "Setujui Kebijakan Privasi kami"
+
+msgid "Add default address"
+msgstr "Tambahkan alamat default"
+
+msgid "Allow up to two business days for API generation."
+msgstr "Tunggu hingga dua hari kerja untuk pembuatan API."
+
+msgid "Cancel deficit order"
+msgstr "Batalkan pesanan defisit"
+
+msgid "Cancel shipment"
+msgstr "Batalkan pengiriman"
+
+msgid "Cancellation reason"
+msgstr "Alasan pembatalan"
+
+msgid "Checking available couriers…"
+msgstr "Memeriksa kurir yang tersedia…"
+
+msgid "Choose a new pickup time for this payment."
+msgstr "Pilih waktu penjemputan baru untuk pembayaran ini."
+
+msgid "Choose another active shipment origin, then review the available courier before confirming."
+msgstr "Pilih asal pengiriman aktif lainnya, lalu periksa kurir yang tersedia sebelum mengonfirmasi."
+
+msgid "Confirm & process"
+msgstr "Konfirmasi & proses"
+
+msgid "Confirm change"
+msgstr "Konfirmasi perubahan"
+
+msgid "Confirm schedule"
+msgstr "Konfirmasi jadwal"
+
+msgid "Copied"
+msgstr "Disalin"
+
+msgid "Copy KA Order ID"
+msgstr "Salin ID Pesanan KA"
+
+msgid "Copy and paste the Setup Key into the field."
+msgstr "Salin dan tempel Setup Key ke kolom."
+
+msgid "Courier & Service"
+msgstr "Kurir & Layanan"
+
+msgid "Default address ready"
+msgstr "Alamat default siap digunakan"
+
+msgid "Enter at least 4 characters."
+msgstr "Masukkan minimal 4 karakter."
+
+msgid "How to Obtain Your KiriminAja Credentials"
+msgstr "Cara Mendapatkan Kredensial KiriminAja Anda"
+
+msgid "I agree to replace the unavailable courier with the selected service."
+msgstr "Saya setuju mengganti kurir yang tidak tersedia dengan layanan yang dipilih."
+
+msgid "Linked Account"
+msgstr "Akun Terhubung"
+
+msgid "Log in to your KiriminAja dashboard."
+msgstr "Masuk ke dasbor KiriminAja Anda."
+
+msgid "No alternate shipment origin is available."
+msgstr "Tidak ada asal pengiriman alternatif yang tersedia."
+
+msgid "No callback endpoint is currently registered."
+msgstr "Belum ada endpoint callback yang terdaftar."
+
+msgid "Provide a reason before cancelling this shipment."
+msgstr "Berikan alasan sebelum membatalkan pengiriman ini."
+
+msgid "Registered Callbacks"
+msgstr "Callback Terdaftar"
+
+msgid "Retry"
+msgstr "Coba lagi"
+
+msgid "Set your default and additional pickup addresses for accurate shipping rates."
+msgstr "Atur alamat penjemputan default dan tambahan agar tarif pengiriman akurat."
+
+msgid "Some optional transaction details could not be loaded. See the KiriminAja log for diagnostics."
+msgstr "Sebagian detail transaksi opsional tidak dapat dimuat. Periksa log KiriminAja untuk diagnosis."
+
+msgid "Some transaction details could not be loaded. Review the KiriminAja log for this transaction."
+msgstr "Sebagian detail transaksi tidak dapat dimuat. Periksa log KiriminAja untuk transaksi ini."
+
+msgid "The Setup Key will appear on the App Integrations page."
+msgstr "Setup Key akan muncul di halaman Integrasi Aplikasi."
+
+msgid "These endpoints are registered and maintained automatically by the plugin. They are read-only and update during integration or plugin lifecycle events."
+msgstr "Endpoint ini didaftarkan dan dikelola secara otomatis oleh plugin. Endpoint bersifat hanya-baca dan diperbarui saat integrasi atau perubahan siklus hidup plugin."
+
+msgid "Total Packages"
+msgstr "Total Paket"
+
+msgid "Unable to complete this action."
+msgstr "Tindakan ini tidak dapat diselesaikan."
+
+msgid "Update Connection"
+msgstr "Perbarui Koneksi"
+
+msgid "Update the connection and continue using KiriminAja."
+msgstr "Perbarui koneksi dan lanjutkan menggunakan KiriminAja."

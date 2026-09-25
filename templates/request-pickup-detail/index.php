@@ -4,6 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! current_user_can( 'manage_woocommerce' ) ) {
+	wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'kiriminaja-official' ) );
+}
+
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect parameter.
 $kiriof_pickup_number = isset( $_GET['pickup_number'] ) ? sanitize_text_field( wp_unslash( $_GET['pickup_number'] ) ) : '';
 $kiriof_transaction_url = admin_url( 'admin.php?page=kiriminaja-transaction' );

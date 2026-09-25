@@ -472,9 +472,9 @@ final class InsuranceFeatureTest extends TestCase
         $provider = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         $this->assertStringContainsString(
-            'Shipping Locations',
+            'Manage Locations',
             $content,
-            'Settings wizard must surface WooCommerce shipping location configuration'
+            'Settings wizard must surface the active shipment location settings'
         );
 
         $this->assertStringContainsString(

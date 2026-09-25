@@ -16,8 +16,7 @@ if ( ! defined( 'WEEK_IN_SECONDS' ) ) {
 }
 if ( ! function_exists( 'get_transient' ) ) {
 	function get_transient( string $key ) {
-		unset( $key );
-		return false;
+		return $GLOBALS['kiriof_settings_page_transients'][ $key ] ?? false;
 	}
 }
 if ( ! function_exists( 'set_transient' ) ) {
