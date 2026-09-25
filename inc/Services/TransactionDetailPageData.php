@@ -292,12 +292,13 @@ class TransactionDetailPageData
         }
         $items = [];
         foreach ($order->get_items("line_item") as $item) {
-            $product = $item->get_product();
+            $product = method_exists($item, "get_product") ? $item->get_product() : false;
+            $sku = $product && method_exists($product, "get_sku") ? $product->get_sku() : "";
             $items[] = [
                 "name" => (string) $item->get_name(),
                 "quantity" => (int) $item->get_quantity(),
                 "total" => (float) $item->get_total(),
-                "sku" => (string) ($product ? $product->get_sku() : ""),
+                "sku" => (string) $sku,
             ];
         }
         return $items;

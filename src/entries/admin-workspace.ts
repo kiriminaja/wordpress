@@ -23,7 +23,6 @@ const workspacePages = new Set([
   'kiriminaja-transaction',
   'kiriminaja-transaction-detail',
   'kiriminaja-request-pickup',
-  'kiriminaja-request-pickup-detail',
   'kiriminaja-setting',
 ]);
 
@@ -57,13 +56,6 @@ const routes: RouteDefinition[] = [
     root: '[data-kiriof-transaction-detail-root]',
     payload: '[data-kiriof-transaction-detail-payload]',
     route: 'transaction-detail',
-  },
-  {
-    page: 'kiriminaja-request-pickup-detail',
-    shell: '[data-kiriof-pickup-detail-page]',
-    root: '[data-kiriof-pickup-detail-root]',
-    payload: '[data-kiriof-pickup-detail-payload]',
-    route: 'pickup-detail',
   },
   {
     page: 'kiriminaja-request-pickup',
@@ -230,7 +222,9 @@ function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): voi
 }
 
 function renderTransactionDetail(host: HTMLElement, bootstrap: TransactionDetailBootstrap): void {
-  mounted = [mount(TransactionDetail, { target: host, props: { bootstrap } })];
+  mounted = [
+    mount(TransactionDetail, { target: host, props: { bootstrap, onNavigate: navigate } }),
+  ];
 }
 
 function clearBootSkeleton(host: HTMLElement): void {

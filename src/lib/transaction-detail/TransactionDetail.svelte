@@ -28,7 +28,13 @@
     } from "$lib/transactions/TransactionActionDialogs.svelte";
     import type { TrackingResponse, TransactionDetailBootstrap } from "./types";
 
-    let { bootstrap }: { bootstrap: TransactionDetailBootstrap } = $props();
+    let {
+        bootstrap,
+        onNavigate,
+    }: {
+        bootstrap: TransactionDetailBootstrap;
+        onNavigate?: (href: string | URL) => Promise<void> | void;
+    } = $props();
     let transaction = $derived(bootstrap.transaction);
     let i18n = $derived(bootstrap.i18n);
     let tracking = $state<TrackingResponse | null>(null);
@@ -38,7 +44,11 @@
     let printPreviewOpen = $state(false);
 
     function finishAction(): void {
-        window.location.assign(bootstrap.toolbar.rootUrl);
+        if (onNavigate) {
+            void onNavigate(window.location.href);
+            return;
+        }
+        window.location.reload();
     }
 
     function currency(amount: number): string {

@@ -14,6 +14,8 @@ final class TransactionPrintPreviewTest extends TestCase
         $this->assertStringContainsString( 'public function previewResiPrint(): void', $controller );
         $this->assertStringContainsString( "wp_send_json_success( array( 'url' => esc_url_raw( \$url ) ) )", $controller );
         $this->assertStringContainsString( "wp_send_json_error( array( 'message' =>", $controller );
+        $this->assertStringContainsString( "preview_missing_print_url", $controller );
+        $this->assertStringContainsString( "preview_empty_awb", $controller );
         $this->assertStringNotContainsString( 'redirectResiPrintFailure(', substr( $controller, strpos( $controller, 'public function previewResiPrint' ), strpos( $controller, 'private function outputResiPrint' ) - strpos( $controller, 'public function previewResiPrint' ) ) );
     }
 
@@ -26,6 +28,8 @@ final class TransactionPrintPreviewTest extends TestCase
         $template = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
 
         $this->assertStringContainsString( '<iframe', $preview );
+        $this->assertStringContainsString( "kiriof:print-preview-error", $preview );
+        $this->assertStringNotContainsString( 'onPrinted', $preview );
         $this->assertStringNotContainsString( 'svelte-pdf', $preview );
         $this->assertStringContainsString( "action: 'kiriof_print_label_preview'", $preview );
         $this->assertStringContainsString( 'KiriofDialog', $preview );

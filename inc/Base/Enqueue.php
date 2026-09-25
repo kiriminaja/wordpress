@@ -372,7 +372,6 @@ class Enqueue extends BaseInit{
             'kiriminaja-transaction',
             'kiriminaja-transaction-detail',
             'kiriminaja-request-pickup',
-            'kiriminaja-request-pickup-detail',
         ), true );
 
         $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );

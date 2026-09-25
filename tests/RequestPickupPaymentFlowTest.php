@@ -100,9 +100,10 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/entries/pickup-detail.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/PickupDetailPageData.php' );
-		$this->assertStringContainsString( 'PickupDetailPageData', file_get_contents( PLUGIN_DIR . '/templates/request-pickup-detail/index.php' ) );
-		$this->assertStringContainsString( 'PickupDetail', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
-		$this->assertStringContainsString( 'kiriminaja-request-pickup-detail', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringContainsString( 'wp_safe_redirect', file_get_contents( PLUGIN_DIR . '/templates/request-pickup-detail/index.php' ) );
+		$this->assertStringNotContainsString( 'PickupDetailPageData', file_get_contents( PLUGIN_DIR . '/templates/request-pickup-detail/index.php' ) );
+		$this->assertStringNotContainsString( "route: 'pickup-detail'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringNotContainsString( 'kiriminaja-request-pickup-detail', file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
 		$this->assertStringNotContainsString( "'pickup-detail': 'src/entries/pickup-detail.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
 		$this->assertStringNotContainsString( 'kiriminaja-pickup-detail.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}', file_get_contents( PLUGIN_DIR . '/src/lib/pickup-detail/PickupDetail.svelte' ) );

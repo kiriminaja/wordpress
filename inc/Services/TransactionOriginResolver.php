@@ -29,9 +29,10 @@ class TransactionOriginResolver {
 		$location_id = (int) ( $snapshot['location_id'] ?? $snapshot['id'] ?? $transaction->shipment_location_id ?? 0 );
 		$location    = $this->location_service->getLocationOrDefault( $location_id );
 		$source      = $this->location_service->locationToOrigin( $location );
+		$source      = is_array( $source ) ? $source : array();
 		$source      = $this->mergeSnapshot( $source, $snapshot );
 
-		$resolved_location_id = (int) ( $source['location_id'] ?? $source['id'] ?? $location->id ?? 0 );
+		$resolved_location_id = (int) ( $source['location_id'] ?? $source['id'] ?? ( $location->id ?? 0 ) );
 		$name                 = trim( (string) ( $source['origin_name'] ?? $source['location_name'] ?? $source['name'] ?? '' ) );
 		$address              = $this->location_service->formatAddress( $source );
 		$address_lines        = array_values( array_filter( array_map( 'trim', explode( ' · ', $address ) ) ) );

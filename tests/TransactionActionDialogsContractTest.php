@@ -257,3 +257,41 @@ final class TransactionActionNoReloadTest extends TestCase
         $this->assertStringContainsString( 'onComplete={refreshList}', $list );
     }
 }
+
+final class TransactionDetailActionRefreshTest extends TestCase
+{
+    #[Test]
+    public function detail_actions_refresh_the_current_detail_route_via_workspace_navigation(): void
+    {
+        $detail = file_get_contents( PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte' );
+        $entry = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
+
+        $this->assertStringContainsString( 'onNavigate?: (href: string | URL)', $detail );
+        $this->assertStringContainsString( 'onNavigate(window.location.href)', $detail );
+        $this->assertStringNotContainsString( 'window.location.assign(bootstrap.toolbar.rootUrl)', $detail );
+        $this->assertStringContainsString( 'props: { bootstrap, onNavigate: navigate }', $entry );
+    }
+}
+
+final class TransactionDetailCodAdjustmentRefreshTest extends TestCase
+{
+    #[Test]
+    public function successful_cod_adjustment_refreshes_the_current_detail_workspace_route(): void
+    {
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+        $detail = file_get_contents( PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte' );
+
+        $adjust_start = strpos( $dialog, 'async function adjustDeficit' );
+        $adjust_end = strpos( 'async function cancelDeficit', $adjust_start );
+        $this->assertNotFalse( $adjust_start );
+        $this->assertNotFalse( $adjust_end );
+        $adjust = substr( $dialog, $adjust_start, $adjust_end - $adjust_start );
+
+        $this->assertStringContainsString( "action: 'kiriof_cod_adjust'", $adjust );
+        $this->assertStringContainsString( 'close();', $adjust );
+        $this->assertStringContainsString( 'onComplete?.();', $adjust );
+        $this->assertStringNotContainsString( 'window.location.reload()', $adjust );
+        $this->assertStringContainsString( 'onComplete={finishAction}', $detail );
+        $this->assertStringContainsString( 'onNavigate(window.location.href)', $detail );
+    }
+}

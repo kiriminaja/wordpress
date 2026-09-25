@@ -121,17 +121,7 @@ class Admin extends BaseInit{
                         require_once $plugin_path.'templates/request-pickup/index.php';
                     }
                 ],
-                [
-                    'parent_slug'=>'kiriminaja-setting',
-                    'page_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
-                    'menu_title'=>__( 'Request Pickup Detail', 'kiriminaja-official' ),
-                    'capability'=>'manage_woocommerce',
-                    'menu_slug'=>'kiriminaja-request-pickup-detail',
-                    'callback'=> function() use ($plugin_path) {
-                        require_once $plugin_path.'templates/request-pickup-detail/index.php';
-                    },
-                    'hidden'=>true,
-                ],
+
                 [
                     'parent_slug'=>'kiriminaja-setting',
                     'page_title'=>__( 'Transaction Detail', 'kiriminaja-official' ),
@@ -226,9 +216,6 @@ class Admin extends BaseInit{
         // Highlight "Payments" in the sidebar when viewing the detail page.
         add_filter( 'submenu_file', function ( $submenu_file ) {
             $screen = get_current_screen();
-            if ( $screen && 'kiriminaja_page_kiriminaja-request-pickup-detail' === $screen->id ) {
-                return 'kiriminaja-request-pickup';
-            }
             if ( $screen && 'kiriminaja_page_kiriminaja-transaction-detail' === $screen->id ) {
                 return 'kiriminaja-transaction';
             }

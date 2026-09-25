@@ -229,7 +229,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'kiriminaja-transaction', $workspace );
 		$this->assertStringContainsString( 'kiriminaja-request-pickup', $workspace );
 		$this->assertStringContainsString( 'kiriminaja-setting', $workspace );
-		$this->assertStringContainsString( 'kiriminaja-request-pickup-detail', $workspace );
+		$this->assertStringNotContainsString( 'kiriminaja-request-pickup-detail', $workspace );
 		$this->assertStringNotContainsString( 'legacy_coupon_menu', $workspace );
 		$this->assertStringContainsString( 'workspacePages.has', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $workspace );

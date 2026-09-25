@@ -176,19 +176,23 @@ class ShippingProcessController
     public function previewResiPrint(): void
     {
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            $this->logResiPrintFailure( 'preview_unauthorized' );
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because the request is not authorized.', 'kiriminaja-official' ) ), 403 );
         }
         if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'kiriof_resi_print' ) ) {
+            $this->logResiPrintFailure( 'preview_unauthorized' );
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because the request is not authorized.', 'kiriminaja-official' ) ), 403 );
         }
 
         $order_ids = $this->sanitizeResiPrintOrderIds( isset( $_POST['oids'] ) ? wp_unslash( $_POST['oids'] ) : array() );
         if ( count( $order_ids ) < 1 ) {
+            $this->logResiPrintFailure( 'preview_empty_order_ids' );
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because no order was selected.', 'kiriminaja-official' ) ), 422 );
         }
 
         $transactions = $this->transaction_repository->getTransctionByOrderIds( $order_ids );
         if ( empty( $transactions ) ) {
+            $this->logResiPrintFailure( 'preview_transactions_not_found', array( 'order_ids' => $order_ids ) );
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because the shipment record was not found.', 'kiriminaja-official' ) ), 404 );
         }
 
@@ -202,6 +206,7 @@ class ShippingProcessController
             }
         }
         if ( count( $awbs ) < 1 ) {
+            $this->logResiPrintFailure( 'preview_empty_awb', array( 'order_ids' => $order_ids ) );
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because the shipment does not have an AWB yet.', 'kiriminaja-official' ) ), 422 );
         }
 
@@ -209,6 +214,7 @@ class ShippingProcessController
         $url = $this->resolvePrintAwbUrl( $response );
         if ( '' === $url ) {
             $api_message = is_scalar( $response['data'] ?? null ) ? trim( (string) $response['data'] ) : '';
+            $this->logResiPrintFailure( 'preview_missing_print_url', array( 'order_ids' => $order_ids, 'api_message' => $api_message ) );
             wp_send_json_error( array( 'message' => '' !== $api_message ? sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $api_message ) : __( 'Unable to print resi because the AWB print URL was not returned by KiriminAja.', 'kiriminaja-official' ) ), 502 );
         }
 

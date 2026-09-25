@@ -11,14 +11,12 @@
     ajaxUrl,
     nonce,
     i18n,
-    onPrinted,
   }: {
     open?: boolean;
     orderIds: string[];
     ajaxUrl: string;
     nonce: string;
     i18n: Record<string, string>;
-    onPrinted?: () => void;
   } = $props();
 
   let pdfUrl = $state('');
@@ -40,14 +38,19 @@
         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
         body,
       });
-      const payload = (await response.json()) as { success?: boolean; data?: PreviewResponse | { message?: string } };
+      let payload: { success?: boolean; data?: PreviewResponse | { message?: string } };
+      try {
+        payload = (await response.json()) as { success?: boolean; data?: PreviewResponse | { message?: string } };
+      } catch {
+        throw new Error(i18n.printPreviewError ?? 'Unable to load label preview.');
+      }
       if (!response.ok || !payload.success || !payload.data || !('url' in payload.data)) {
         throw new Error((payload.data as { message?: string } | undefined)?.message ?? i18n.printPreviewError ?? 'Unable to load label preview.');
       }
       pdfUrl = payload.data.url;
-      onPrinted?.();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : i18n.printPreviewError ?? 'Unable to load label preview.';
+      window.dispatchEvent(new CustomEvent('kiriof:print-preview-error', { detail: { orderIds, error } }));
     } finally {
       loading = false;
     }

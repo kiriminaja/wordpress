@@ -170,19 +170,19 @@ final class ShippingProcessResiPrintSanitizationTest extends TestCase
 		$app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            "array( 'all', 'processed' )",
+            '["all", "processed"]',
             $content,
             'The All tab should be treated as a print-capable tab'
         );
 
         $this->assertStringContainsString(
-            "'showPrint'",
+            '"showPrint"',
             $content,
             'Bulk Print button should be rendered on both Processed and All tabs'
         );
 
         $this->assertStringContainsString(
-            "'unprintedLabel'",
+            '"unprintedLabel"',
             $content,
             'Expedition & Service column should show Unprinted status for labels that have not been printed'
         );

@@ -105,17 +105,25 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $key_clause = '';
         if ('' !== $key) {
-            $key_escaped       = $wpdb->esc_like($key);
-            $key_prefix        = $key_escaped . '%';
-            $key_contains      = '%' . $key_escaped . '%';
-            $order_number_type = ctype_digit($key) ? '%d' : '%s';
-            $order_number      = ctype_digit($key) ? (int) $key : $key;
-            $key_clause        = $wpdb->prepare(
-                "AND (orders_tbl.{$o['id']} = {$order_number_type} OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
-                $order_number,
-                $key_prefix,
-                $key_contains
-            );
+            if (0 === strpos($key, 'pid:')) {
+                $pickup_number = sanitize_text_field(substr($key, 4));
+                $key_clause = $wpdb->prepare(
+                    'AND kiriminaja_transactions.pickup_number = %s',
+                    $pickup_number
+                );
+            } else {
+                $key_escaped       = $wpdb->esc_like($key);
+                $key_prefix        = $key_escaped . '%';
+                $key_contains      = '%' . $key_escaped . '%';
+                $order_number_type = ctype_digit($key) ? '%d' : '%s';
+                $order_number      = ctype_digit($key) ? (int) $key : $key;
+                $key_clause        = $wpdb->prepare(
+                    "AND (orders_tbl.{$o['id']} = {$order_number_type} OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
+                    $order_number,
+                    $key_prefix,
+                    $key_contains
+                );
+            }
         }
 
         if ($isDeficitFilter) {

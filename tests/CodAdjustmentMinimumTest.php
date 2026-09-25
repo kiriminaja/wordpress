@@ -17,6 +17,6 @@ final class CodAdjustmentMinimumTest extends TestCase
         $this->assertStringContainsString( '$newCodMinimum = max( $localMinimum, (float) ( $apiResult[0]->minimum_custom_cod ?? 0 ) );', $controller );
         $this->assertStringNotContainsString( '$dbCodMinimum', $controller );
         $this->assertStringContainsString( '$deficit_minimum       = $shipping_cost + $insurance_cost + $cod_fee;', $list );
-        $this->assertStringContainsString( "'codMinimum' => \$shipping + \$insurance + \$cod_fee", $detail );
+        $this->assertStringContainsString( '"codMinimum" => $shipping + $insurance + $cod_fee', $detail );
     }
 }

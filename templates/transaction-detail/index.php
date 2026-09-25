@@ -22,6 +22,20 @@ if ( ! $kiriof_transaction_row ) {
 	exit;
 }
 
-$kiriof_transaction_detail_bootstrap = ( new \KiriminAjaOfficial\Services\TransactionDetailPageData() )->prepare( $kiriof_transaction_row );
+try {
+    $kiriof_transaction_detail_bootstrap = ( new \KiriminAjaOfficial\Services\TransactionDetailPageData() )->prepare( $kiriof_transaction_row );
+} catch ( Throwable $kiriof_transaction_detail_error ) {
+    kiriof_log(
+        'error',
+        'Transaction detail bootstrap failed.',
+        array(
+            'transaction_id' => $kiriof_transaction_id,
+            'message'        => $kiriof_transaction_detail_error->getMessage(),
+            'file'           => $kiriof_transaction_detail_error->getFile(),
+            'line'           => $kiriof_transaction_detail_error->getLine(),
+        )
+    );
+    wp_die( esc_html__( 'Unable to load transaction details. Please check the plugin log for details.', 'kiriminaja-official' ) );
+}
 
 include __DIR__ . '/view/index.php';
