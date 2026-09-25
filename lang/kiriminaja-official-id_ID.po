@@ -4035,3 +4035,7 @@ msgstr "Hubungi Pelanggan"
 #: inc/Services/TransactionDetailPageData.php
 msgid "Copy AWB"
 msgstr "Salin Resi"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order Subtotal"
+msgstr "Subtotal Pesanan"

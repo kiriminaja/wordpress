@@ -427,83 +427,52 @@
                         </div>
                     </div>
                     <dl class="!grid min-w-0 gap-2 text-sm">
-                        <div
-                            class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
-                        >
-                            <dt class="min-w-0">{i18n.shipping}</dt>
-                            <dd
-                                class="m-0 shrink-0 text-right font-semibold text-foreground"
-                            >
-                                {currency(transaction.shipment.costs.shipping)}
-                            </dd>
+                        <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                            <dt class="min-w-0">{i18n.orderId}</dt>
+                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{transaction.orderId}</dd>
                         </div>
-                        {#if transaction.shipment.costs.insurance > 0}<div
-                                class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
-                            >
+                        <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                            <dt class="min-w-0">{i18n.orderSubtotal}</dt>
+                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.subtotal)}</dd>
+                        </div>
+                        <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                            <dt class="min-w-0">{i18n.totalShipping}</dt>
+                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.totalShipping)}</dd>
+                        </div>
+                        <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                            <dt class="min-w-0">{i18n.actualShipping}</dt>
+                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.actualShipping)}</dd>
+                        </div>
+                        {#if transaction.shipment.costs.shippingDiscount > 0}
+                            <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                                <dt class="min-w-0">{i18n.shippingDiscount}</dt>
+                                <dd class="m-0 shrink-0 text-right font-semibold text-emerald-700">−{currency(transaction.shipment.costs.shippingDiscount)}</dd>
+                            </div>
+                        {/if}
+                        <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
+                            <dt class="min-w-0">{i18n.shipping}</dt>
+                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.shipping)}</dd>
+                        </div>
+                        {#if transaction.shipment.costs.insurance > 0}
+                            <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
                                 <dt class="min-w-0">{i18n.insurance}</dt>
-                                <dd
-                                    class="m-0 shrink-0 text-right font-semibold text-foreground"
-                                >
-                                    {currency(
-                                        transaction.shipment.costs.insurance,
-                                    )}
-                                </dd>
+                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.insurance)}</dd>
                             </div>
                         {/if}
                         {#if transaction.shipment.costs.codFee > 0}
-                            <div
-                                class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
-                            >
+                            <div class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground">
                                 <dt class="min-w-0">{i18n.codFee}</dt>
-                                <dd
-                                    class="m-0 shrink-0 text-right font-semibold text-foreground"
-                                >
-                                    {currency(
-                                        transaction.shipment.costs.codFee,
-                                    )}
-                                </dd>
+                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.codFee)}</dd>
                             </div>
                         {/if}
-                        {#if transaction.shipment.costs.discount > 0}
-                            <div
-                                class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
-                            >
-                                <dt class="min-w-0">{i18n.discount}</dt>
-                                <dd
-                                    class="m-0 shrink-0 text-right font-semibold text-emerald-700"
-                                >
-                                    −{currency(
-                                        transaction.shipment.costs.discount,
-                                    )}
-                                </dd>
-                            </div>
-                        {/if}
-                        <div
-                            class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3"
-                        >
-                            <dt class="min-w-0 font-semibold text-foreground">
-                                {i18n.total}
-                            </dt>
-                            <dd
-                                class="m-0 shrink-0 text-right font-semibold text-foreground"
-                            >
-                                {currency(transaction.shipment.costs.total)}
-                            </dd>
+                        <div class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3">
+                            <dt class="min-w-0 font-semibold text-foreground">{i18n.total}</dt>
+                            <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.costs.orderTotal)}</dd>
                         </div>
                         {#if transaction.isCod}
-                            <div
-                                class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3"
-                            >
-                                <dt
-                                    class="min-w-0 font-semibold text-foreground"
-                                >
-                                    {i18n.codValue}
-                                </dt>
-                                <dd
-                                    class="m-0 shrink-0 text-right font-semibold text-foreground"
-                                >
-                                    {currency(transaction.shipment.codValue)}
-                                </dd>
+                            <div class="!flex min-w-0 !items-center !justify-between gap-4 border-t border-border pt-3">
+                                <dt class="min-w-0 font-semibold text-foreground">{i18n.codValue}</dt>
+                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(transaction.shipment.codValue)}</dd>
                             </div>
                         {/if}
                     </dl>

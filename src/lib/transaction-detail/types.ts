@@ -25,10 +25,15 @@ export type TransactionDetailBootstrap = {
       awb: string;
       paymentStatus: string;
       costs: {
+        orderTotal: number;
+        subtotal: number;
+        totalShipping: number;
+        actualShipping: number;
+        shippingDiscount: number;
         shipping: number;
         insurance: number;
         codFee: number;
-        discount: number;
+        itemDiscount: number;
         total: number;
       };
       codValue: number;
