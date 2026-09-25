@@ -22,7 +22,7 @@ export type TransactionDetailBootstrap = {
     shipment: {
       courier: { code: string; service: string };
       awb: string;
-      isPaid: boolean;
+      paymentStatus: string;
       costs: {
         shipping: number;
         insurance: number;

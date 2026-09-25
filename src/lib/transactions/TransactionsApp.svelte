@@ -26,13 +26,13 @@
     IconXboxX,
   } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
-  import * as ButtonGroup from '$lib/components/ui/button-group';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
@@ -282,7 +282,7 @@
     </div>
   </Toolbar>
 
-  <section class="kiriof-admin-list-card kiriof-transactions-card">
+  <KiriofCard class="kiriof-transactions-card">
     <div class="kiriof-admin-list-filterbar kiriof-transactions-filterbar">
       <nav class="kiriof-admin-list-scopes kiriof-transactions-scopes" aria-label="Transaction scope">
         <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
@@ -477,7 +477,7 @@
                   </div>
                 </Table.Cell>
                 <Table.Cell class="is-actions">
-                  <ButtonGroup.Root class="kiriof-row-actions">
+                  <div class="kiriof-row-actions">
                     {#if row.actions.preview}
                       <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
@@ -491,7 +491,7 @@
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" href={row.actions.printUrl} target="_blank" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
                       {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" data-kj-action="cancel" data-order-id={row.kaOrderId} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
                     {/if}
-                  </ButtonGroup.Root>
+                  </div>
                 </Table.Cell>
               </Table.Row>
             {/each}
@@ -508,7 +508,7 @@
       pageLabel={bootstrap.i18n.pageOf}
       onPageChange={(page) => void navigate({ cpage: String(page) })}
     />
-  </section>
+  </KiriofCard>
   <RequestPickupDialog
     bind:open={pickupDialogOpen}
     orderIds={pickupOrderIds}

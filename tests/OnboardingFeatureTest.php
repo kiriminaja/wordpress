@@ -23,14 +23,15 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString("add_action( 'admin_menu', array( \$this, 'hide_page' )", $page);
         $this->assertStringContainsString("'kiriminaja-onboarding' === \$page", $enqueue);
         $this->assertStringContainsString('enqueueOnboarding', $enqueue);
-		$this->assertStringContainsString('kiriminaja-shadcn-onboarding.css', $enqueue);
+		$this->assertStringContainsString('kiriminaja-kiriof-var.css', $enqueue);
+		$this->assertStringContainsString('kiriminaja-kiriof-component.css', $enqueue);
 		$this->assertStringNotContainsString("wp_enqueue_style( 'woocommerce_admin_styles' )", substr( $enqueue, strpos( $enqueue, 'private function enqueueOnboarding' ) ) );
 		$this->assertStringNotContainsString('kj-onboarding.css', $enqueue);
 		$this->assertStringContainsString('#adminmenumain', $css);
 		$this->assertStringContainsString('#wpadminbar', $css);
 		$this->assertStringContainsString('[data-kiriof-onboarding-app]', $css);
-		$this->assertStringContainsString('position: fixed;', $css);
-		$this->assertStringContainsString('overflow: hidden !important;', $css);
+		$this->assertStringContainsString('fixed', $css);
+		$this->assertStringContainsString('overflow-hidden!', $css);
 		$this->assertFileExists(PLUGIN_DIR . '/assets/admin/img/logo-tagline.svg');
 		$this->assertStringContainsString("'logoUrl'", $page);
 		$this->assertStringContainsString("'helpUrl'", $page);
@@ -81,7 +82,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/popover/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' );
 		$this->assertStringContainsString( 'kiriof-onboarding-subdistrict-popover', file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/SubdistrictCombobox.svelte' ) );
-		$this->assertStringContainsString( 'z-index: 100001 !important;', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
+		$this->assertStringContainsString( 'z-100001!', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
         $this->assertStringContainsString( 'const canSubmitAccount = $derived', $app );
 		$this->assertStringContainsString( 'disabled={busy || !canSubmitAccount}', $app );
 		$this->assertStringContainsString( 'let account = $state(getInitialAccount())', $app );
@@ -186,7 +187,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $configured );
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $setup );
 		$this->assertStringContainsString( 'querySelectorAll', $entry );
-		$this->assertStringContainsString( 'margin: 0 auto;', $styles );
+		$this->assertStringContainsString( 'mr-auto ml-auto', $styles );
 		$this->assertStringContainsString( "[data-slot='switch-thumb'][data-state='checked']", $styles );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
@@ -206,7 +207,7 @@ final class OnboardingFeatureTest extends TestCase
 		$toolbarStyles = file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' );
 		$this->assertStringContainsString( 'kiriof-app-toolbar', $toolbarStyles );
 		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $toolbarStyles );
-		$this->assertStringContainsString( 'padding: 8px 0;', $toolbarStyles );
+		$this->assertStringContainsString( 'py-2', $toolbarStyles );
 		$this->assertStringContainsString( "import toolbarStyles from '../styles/toolbar.css?inline'", $entry );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .update-nag', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
@@ -217,7 +218,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( '.kiriof-product-alert', $styles );
 		$this->assertStringContainsString( 'bootstrap.productAlert', file_get_contents( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' ) );
 		$this->assertStringContainsString( "[data-slot='input'].kiriof-setup-key-input", $styles );
-		$this->assertStringContainsString( 'display: inline-flex !important;', $styles );
+		$this->assertStringContainsString( '!inline-flex', $styles );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/navigation.ts' );
 		$this->assertStringContainsString( 'history.pushState', $entry );
 		$this->assertStringContainsString( "window.addEventListener('popstate'", $entry );

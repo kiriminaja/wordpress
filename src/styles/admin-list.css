@@ -1,646 +1,338 @@
-[data-kiriof-transactions-page],
-[data-kiriof-payments-page],
-[data-kiriof-pickup-detail-page] {
-  --kiriof-primary: #5c2ecb;
-  --kiriof-primary-soft: #f5f0ff;
-  --kiriof-border: #ddd7ee;
-  --kiriof-muted: #646970;
-  --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0.035 290);
-  --primary: oklch(0.48 0.23 292);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.02 292);
-  --secondary-foreground: oklch(0.32 0.12 292);
-  --muted: oklch(0.96 0.01 292);
-  --muted-foreground: oklch(0.48 0.035 292);
-  --accent: oklch(0.94 0.04 292);
-  --accent-foreground: oklch(0.29 0.12 292);
-  --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.88 0.025 292);
-  --input: oklch(0.82 0.025 292);
-  --ring: oklch(0.48 0.23 292);
-}
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
+
 .kiriof-transaction-dialog-content .kiriof-pickup-summary {
-  border-color: var(--border) !important;
-  background: var(--card) !important;
+  @apply !border-border !bg-card;
 }
 .kiriof-payment-methods {
-  display: grid !important;
-  gap: 10px !important;
+  @apply !grid !gap-2.5;
 }
 .kiriof-payment-method-card {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--background);
-  color: var(--foreground);
-  cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    background-color 120ms ease,
-    box-shadow 120ms ease;
+  @apply grid [grid-template-columns:42px_minmax(0,1fr)_18px] items-center gap-3 [padding:11px_12px] border border-border rounded-lg bg-background text-foreground cursor-pointer [transition:border-color_120ms_ease,background-color_120ms_ease,box-shadow_120ms_ease];
 }
 .kiriof-payment-method-card:hover {
-  border-color: var(--ring);
-  background: var(--accent);
+  @apply [border-color:var(--ring)] bg-accent;
 }
 .kiriof-payment-method-card.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+  @apply cursor-not-allowed [opacity:0.6];
 }
 .kiriof-payment-method-card.is-selected {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--primary);
+  @apply [border-color:var(--primary)] [box-shadow:0_0_0_1px_var(--primary)];
 }
 .kiriof-payment-method-card__icon {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--muted);
-  color: var(--primary);
+  @apply grid [width:40px] [height:40px] place-items-center border border-border rounded-lg bg-muted text-primary;
 }
 .kiriof-payment-method-card__icon svg {
-  width: 21px;
-  height: 21px;
+  @apply [width:21px] [height:21px];
 }
 .kiriof-payment-method-card__copy {
-  display: grid;
-  gap: 2px;
+  @apply grid [gap:2px];
 }
 .kiriof-payment-method-card__copy strong {
-  font-size: 13px;
+  @apply [font-size:13px];
 }
 .kiriof-payment-method-card__copy span {
-  color: var(--muted-foreground);
-  font-size: 11px;
-  line-height: 1.4;
+  @apply text-muted-foreground [font-size:11px] [line-height:1.4];
 }
 .kiriof-payment-method-card [data-slot='radio-group-item'] {
-  margin: 0 !important;
+  @apply !m-0;
 }
 .kiriof-admin-list-card:has(.kiriof-admin-list-search[data-disabled='true'])::after {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  background: rgb(255 255 255 / 38%);
+  @apply absolute inset-0 [z-index:20] [background:rgb(255_255_255_/_38%)] cursor-progress pointer-events-none;
   content: '';
-  cursor: progress;
-  pointer-events: none;
 }
 .kiriof-courier-trigger {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  min-height: 34px !important;
-  border-color: #c7c3cc !important;
-  background: #fff !important;
-  color: #29252e !important;
-  padding-right: 10px !important;
-  padding-left: 9px !important;
+  @apply !box-border !flex ![width:100%] !items-center !justify-start !gap-2 ![height:34px] !min-h-8 !rounded-[var(--radius)] ![border-color:#c7c3cc] !bg-white ![color:#29252e] ![font-size:13px] ![padding-right:10px] ![padding-left:9px];
 }
 .kiriof-courier-trigger > span:first-child {
-  gap: 6px !important;
+  @apply !gap-1.5;
 }
 .kiriof-courier-trigger > span:first-child > svg {
-  margin-left: 0 !important;
+  @apply !ml-0 !block !w-4 !h-4 !shrink-0;
 }
 .kiriof-courier-trigger > span {
-  min-width: 0;
+  @apply min-w-0;
+}
+.kiriof-courier-trigger > span:first-child > span {
+  @apply !truncate !leading-none;
+}
+.kiriof-courier-trigger > svg:last-child {
+  @apply !ml-auto !block !w-4 !h-4 !shrink-0 ![color:#716b79];
 }
 .kiriof-transactions-filterrow [data-slot='button-group'] [data-slot='button'] {
-  width: 34px !important;
-  min-width: 34px !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  padding: 0 !important;
-  border-color: #c7c3cc !important;
-  background: #fff !important;
-  color: #342b45 !important;
+  @apply ![width:34px] ![min-width:34px] ![height:34px] !min-h-8 !p-0 ![border-color:#c7c3cc] !bg-white ![color:#342b45];
 }
 .kiriof-transactions-filterrow [data-slot='button-group'] [data-slot='button']:hover {
-  border-color: #a99ccf !important;
-  background: var(--kiriof-primary-soft) !important;
-  color: var(--kiriof-primary) !important;
+  @apply border bg-secondary! text-secondary-foreground!;
 }
 .kiriof-transactions-app .kiriof-select-chevron {
-  display: block !important;
-  width: 14px !important;
-  height: 14px !important;
-  margin-left: auto;
-  color: #716b79;
+  @apply !block !w-3.5 !h-3.5 ml-auto [color:#716b79];
 }
 .kiriof-selection-summary th {
-  background: #f5f5f5 !important;
-  color: #5f5f66 !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  text-transform: none;
+  @apply ![background:#f5f5f5] ![color:#5f5f66] !text-xs !font-medium [text-transform:none];
 }
 .kiriof-transactions-app [data-slot='checkbox'] {
-  position: relative !important;
-  display: inline-flex !important;
-  width: 16px !important;
-  min-width: 16px !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 1px solid #8c8894 !important;
-  border-radius: 4px !important;
-  background: #fff !important;
-  color: #fff !important;
-  box-shadow: none !important;
-  appearance: none !important;
+  @apply !relative !inline-flex !w-4 ![min-width:16px] !h-4 ![min-height:16px] !items-center !justify-center !m-0 !p-0 ![border:1px_solid_#8c8894] !rounded !bg-white !text-white !shadow-none !appearance-none;
 }
 .kiriof-transactions-app [data-slot='checkbox'][data-state='checked'],
 .kiriof-transactions-app [data-slot='checkbox'][data-state='indeterminate'] {
-  border-color: #3f3f46 !important;
-  background: #3f3f46 !important;
+  @apply ![border-color:#3f3f46] ![background:#3f3f46];
 }
 .kiriof-transactions-app [data-slot='checkbox-indicator'] {
-  display: grid !important;
-  width: 14px !important;
-  height: 14px !important;
-  place-items: center !important;
+  @apply !grid !w-3.5 !h-3.5 !place-items-center;
 }
 .kiriof-transactions-app [data-slot='checkbox-indicator'] svg {
-  display: block !important;
-  width: 12px !important;
-  height: 12px !important;
-  stroke-width: 3 !important;
+  @apply !block !w-3 !h-3 ![stroke-width:3];
 }
 body:has([data-kiriof-transactions-page]) #screen-meta-links,
 body:has([data-kiriof-transactions-page]) .update-nag,
 body:has([data-kiriof-transactions-page]) .notice,
 body:has([data-kiriof-transactions-page]) .updated,
 body:has([data-kiriof-transactions-page]) .error {
-  display: none !important;
+  @apply !hidden;
 }
 body:has([data-kiriof-transactions-page]) #wpcontent {
-  padding-left: 0 !important;
+  @apply ![padding-left:0];
 }
 body:has([data-kiriof-transactions-page]) #wpbody-content {
-  padding-bottom: 0 !important;
+  @apply ![padding-bottom:0];
 }
 .kiriof-transactions-app [data-slot='input-group-addon'] svg {
-  width: 16px !important;
-  height: 16px !important;
-  color: #716b79;
+  @apply !w-4 !h-4 [color:#716b79];
 }
 
 .kiriof-payment-modal {
-  width: min(420px, calc(100% - 32px));
+  @apply [width:min(420px,calc(100%_-_32px))];
 }
 .kiriof-payment-modal .closebtn-container {
-  display: inline-flex;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
-  align-items: center;
-  justify-content: center;
-  margin-left: auto;
-  padding: 0;
-  border-radius: 8px;
+  @apply inline-flex w-8 [min-width:32px] h-8 min-h-8 items-center justify-center ml-auto p-0 rounded-lg;
 }
 .kiriof-modal-loading,
 .kiriof-qr {
-  display: grid;
-  place-items: center;
-  min-height: 160px;
+  @apply grid place-items-center [min-height:160px];
 }
 .kiriof-payment-code,
 .kiriof-payment-expiry {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  margin: 16px 0;
-  text-align: center;
+  @apply grid [justify-items:center] gap-2 [margin:16px_0] text-center;
 }
 .kiriof-payment-code .trx-pay-amount {
-  color: #2271b1;
-  font-size: 20px;
-  font-weight: 700;
+  @apply [color:#2271b1] [font-size:20px] font-bold;
 }
 .kiriof-payment-expiry {
-  color: #a60000;
+  @apply [color:#a60000];
 }
 .kiriof-charge-list {
-  display: grid;
-  gap: 9px;
-  margin: 14px 0;
-  padding: 12px;
-  border: 1px solid var(--kiriof-border);
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+  @apply grid [gap:9px] [margin:14px_0] p-3 border rounded-lg bg-white [box-shadow:0_1px_2px_rgb(0_0_0_/_3%)];
 }
 .kiriof-charge-list > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
+  @apply flex justify-between gap-4;
 }
 .kiriof-schedule-list {
-  overflow: auto;
-  max-height: 30vh;
-  margin: 14px 0;
+  @apply overflow-auto [max-height:30vh] [margin:14px_0];
 }
 .kiriof-modal-error {
-  padding: 40px;
-  text-align: center;
+  @apply [padding:40px] text-center;
 }
 
 .kiriof-pickup-detail-app {
-  display: grid;
-  gap: 14px;
+  @apply grid gap-3.5;
 }
 .kiriof-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  @apply grid [grid-template-columns:repeat(3,minmax(0,1fr))] gap-2;
 }
 .kiriof-pickup-summary-card {
-  border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
-  background: var(--card) !important;
-  color: var(--card-foreground) !important;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%) !important;
+  @apply !border border-border !rounded-lg !bg-card ![color:var(--card-foreground)] ![box-shadow:0_1px_2px_rgb(0_0_0_/_3%)];
 }
 .kiriof-pickup-summary-card [data-slot='card-content'] {
-  display: grid;
-  gap: 7px;
-  padding: 14px !important;
+  @apply grid gap-2 ![padding:14px];
 }
 .kiriof-pickup-summary-card strong {
-  font-size: 20px;
-  line-height: 1;
+  @apply [font-size:20px] leading-none;
 }
 .kiriof-pickup-summary-card span {
-  color: var(--kiriof-muted);
+  @apply text-muted-foreground;
 }
 .kiriof-pickup-detail-print-all {
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  width: auto !important;
-  min-width: 0 !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 7px !important;
-  margin: 0 !important;
-  padding: 0 12px !important;
-  border: 1px solid transparent !important;
-  border-radius: 8px !important;
-  background: var(--primary) !important;
-  color: var(--primary-foreground) !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
-  text-decoration: none !important;
-  box-shadow: none !important;
+  @apply !box-border !inline-flex !w-auto !min-w-0 ![height:34px] !min-h-8 !items-center !justify-center !gap-2 !m-0 ![padding:0_12px] ![border:1px_solid_transparent] !rounded-lg !bg-primary !text-primary-foreground !text-xs !font-semibold !leading-none !no-underline !shadow-none;
 }
 .kiriof-pickup-detail-print-all:hover,
 .kiriof-pickup-detail-print-all:focus,
 .kiriof-pickup-detail-print-all:visited {
-  color: var(--primary-foreground) !important;
-  text-decoration: none !important;
+  @apply !text-primary-foreground !no-underline;
 }
 .kiriof-pickup-detail-print-all > span {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
+  @apply inline-flex items-center leading-none;
 }
 .kiriof-pickup-detail-print-all .kiriof-pickup-detail-print-all__icon {
-  display: block !important;
-  width: 15px !important;
-  height: 15px !important;
-  flex: 0 0 15px !important;
-  margin: 0 !important;
+  @apply !block !w-4 !h-4 ![flex:0_0_15px] !m-0;
 }
 .kiriof-pickup-detail-alert {
-  padding: 10px 12px;
-  border-left: 4px solid #b42318;
-  background: #fff1f0;
-  color: #b42318;
+  @apply [padding:10px_12px] [border-left:4px_solid_#b42318] [background:#fff1f0] [color:#b42318];
 }
 .kiriof-pickup-detail-card {
-  overflow: hidden;
+  @apply overflow-hidden;
 }
 .kiriof-pickup-detail-filterbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-  border-bottom: 1px solid var(--kiriof-border);
-  background: #fff;
+  @apply flex items-center justify-between gap-3 p-3.5 border-b bg-white;
 }
 .kiriof-pickup-detail-filterbar > div {
-  display: grid;
-  gap: 4px;
+  @apply grid gap-1;
 }
 .kiriof-pickup-detail-filterbar strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 14px;
+  @apply text-sm;
 }
 .kiriof-pickup-detail-filterbar span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--kiriof-muted);
-  font-size: 12px;
+  @apply inline-flex items-center gap-1.5 text-muted-foreground text-xs;
 }
 .kiriof-pickup-detail-filterbar svg {
-  width: 14px;
-  height: 14px;
+  @apply w-3.5 h-3.5;
 }
 .kiriof-pickup-detail-table {
-  min-width: 1180px;
+  @apply [min-width:1180px];
 }
 .kiriof-pickup-detail-table .is-actions {
-  width: 86px;
-  text-align: right;
+  @apply [width:86px] text-right;
 }
 .kiriof-package-fees .is-total {
-  margin-top: 2px;
-  padding-top: 3px;
-  border-top: 1px solid #eceaf3;
+  @apply mt-0.5 [padding-top:3px] [border-top:1px_solid_#eceaf3];
 }
 .kiriof-package-fees .is-total span,
 .kiriof-package-fees .is-total strong {
-  color: #241b3d;
-  font-weight: 700;
+  @apply [color:#241b3d] font-bold;
 }
 
 [data-kiriof-transactions-root] {
-  width: 100%;
+  @apply w-full;
 }
 [data-kiriof-transactions-root][aria-busy='true'] {
-  min-height: 240px;
+  @apply [min-height:240px];
 }
 .kiriof-transactions-app {
-  min-width: 0;
+  @apply min-w-0;
 }
 .kiriof-transactions-toolbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2;
 }
 .kiriof-transactions-toolbar__actions {
-  flex-shrink: 0;
-  justify-content: flex-end;
-  margin-left: auto;
+  @apply shrink-0 justify-end ml-auto;
 }
 .kiriof-transactions-app .kiriof-app-toolbar {
-  margin-bottom: 18px;
+  @apply [margin-bottom:18px];
 }
 .kiriof-transactions-app .kiriof-app-toolbar [data-slot='button'] {
-  display: inline-flex !important;
-  min-height: 34px !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  margin: 0;
-  padding-right: 12px !important;
-  padding-left: 12px !important;
-  line-height: 1 !important;
-  text-decoration: none;
+  @apply !inline-flex !min-h-8 !items-center !justify-center !gap-1.5 m-0 ![padding-right:12px] ![padding-left:12px] !leading-none no-underline;
 }
 .kiriof-transactions-app .kiriof-app-toolbar [data-slot='button'] > svg {
-  display: block;
-  width: 16px !important;
-  height: 16px !important;
+  @apply block !w-4 !h-4;
 }
 .kiriof-transactions-app .kiriof-app-toolbar [data-slot='button'] > span {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
+  @apply inline-flex items-center leading-none;
 }
 .kiriof-action-count {
-  min-width: 18px;
-  justify-content: center;
-  padding: 2px 5px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 18%);
-  font-size: 10px;
-  font-weight: 700;
+  @apply [min-width:18px] justify-center [padding:2px_5px] [border-radius:999px] [background:rgb(255_255_255_/_18%)] [font-size:10px] font-bold;
 }
 .kiriof-admin-list-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--kiriof-border);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+  @apply relative overflow-hidden border rounded-xl bg-white [box-shadow:0_1px_2px_rgb(0_0_0_/_3%)];
 }
 
 /* This class is also applied to shadcn Card.Root in workspace detail views.
  * It normalizes Card.Root's ring, padding, and flex gap to the list surface. */
 .kiriof-admin-list-card[data-slot='card'] {
-  gap: 0;
-  padding: 0;
-  border: 1px solid var(--kiriof-border);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+  @apply [gap:0] p-0 border rounded-xl bg-white [box-shadow:0_1px_2px_rgb(0_0_0_/_3%)];
 }
 .kiriof-admin-list-filterbar {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-bottom: 1px solid var(--kiriof-border);
-  background: #fff;
+  @apply grid gap-2.5 [padding:14px] border-b bg-white;
 }
 .kiriof-admin-list-scopes {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  overflow-x: auto;
+  @apply flex items-center justify-between gap-3 overflow-x-auto;
 }
 .kiriof-workspace-tabs {
-  flex-shrink: 0;
+  @apply shrink-0;
 }
 .kiriof-workspace-tabs__list {
-  height: 36px !important;
-  gap: 8px !important;
-  padding: 0 !important;
-  border: 0;
-  border-radius: 0 !important;
-  background: transparent !important;
+  @apply !h-9 !gap-2 !p-0 border-0 !rounded-none !bg-transparent;
 }
 .kiriof-workspace-tabs__trigger {
-  min-height: 36px !important;
-  padding: 0 12px !important;
-  border: 0 !important;
-  border-radius: 12px !important;
-  background: transparent !important;
-  color: #17151a !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  box-shadow: none !important;
+  @apply !min-h-9 ![padding:0_12px] !border-0 !rounded-xl !bg-transparent ![color:#17151a] ![font-size:13px] !font-semibold !shadow-none;
 }
 .kiriof-workspace-tabs__trigger[data-state='active'] {
-  background: #e9e9ea !important;
-  color: #111013 !important;
-  font-weight: 700 !important;
-  box-shadow: none !important;
+  @apply ![background:#e9e9ea] ![color:#111013] !font-bold !shadow-none;
 }
 .kiriof-workspace-tabs__trigger:disabled {
-  color: #aaa6ae !important;
-  opacity: 1 !important;
+  @apply ![color:#aaa6ae] ![opacity:1];
 }
 .kiriof-admin-list-tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
+  @apply flex items-center gap-2 ml-auto;
 }
 .kiriof-admin-list-tools [data-slot='select-trigger'] {
-  width: auto;
-  min-width: 96px;
+  @apply w-auto [min-width:96px];
 }
-/* Auto-refresh countdown beside page-size: joined refresh + chevron buttons
-   with a compact interval popover, mirroring Shopify's s-button-group.
-   NOTE: bits-ui merges data-slot='popover-trigger' onto the chevron button
-   itself (no wrapper), so the chevron must be styled directly. */
+/* Auto-refresh is one segmented control: the button owns the left edge and
+   the popover trigger owns the adjoining chevron edge. */
 .kiriof-auto-refresh {
-  flex-shrink: 0 !important;
-  gap: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  @apply !shrink-0 ![gap:0] !m-0 ![border:1px_solid_#c7c3cc] !rounded-[var(--radius)] !bg-white !p-0 !shadow-none !overflow-hidden;
 }
-/* Refresh segment: flat right edge, no double border with the chevron. */
+/* Child borders belong to the group, not to each segment. */
 .kiriof-auto-refresh > [data-slot='button']:first-child {
-  border-top-right-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-  border-right-width: 0 !important;
+  @apply ![border:0] ![border-radius:0];
 }
-/* Chevron segment: the trigger IS the button (bits-ui merges
-   data-slot='popover-trigger' onto it, overwriting data-slot='button'),
-   so style it directly — flat left edge, rounded right edge. */
-.kiriof-auto-refresh > [data-slot='popover-trigger']:last-child {
-  margin: 0 !important;
-  border-top-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
-  border-top-right-radius: var(--radius) !important;
-  border-bottom-right-radius: var(--radius) !important;
+/* The chevron button has a stable class even though Bits UI owns its slot. */
+.kiriof-auto-refresh > .kiriof-auto-refresh__chevron {
+  @apply !m-0 ![border:0] ![border-left:1px_solid_#e2dfe8] ![border-radius:0];
 }
 .kiriof-auto-refresh > [data-slot='button'],
-.kiriof-auto-refresh > [data-slot='popover-trigger'] {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  vertical-align: middle !important;
-  line-height: 1 !important;
-  text-align: center !important;
-  box-sizing: border-box !important;
-  min-height: 34px !important;
-  height: 34px !important;
-  margin: 0 !important;
-  border-width: 1px !important;
-  border-style: solid !important;
-  border-color: #c7c3cc !important;
-  background: #fff !important;
-  color: #29252e !important;
-  font-size: 13px !important;
-  box-shadow: none !important;
+.kiriof-auto-refresh > .kiriof-auto-refresh__chevron {
+  @apply !inline-flex !items-center !justify-center ![vertical-align:middle] !leading-none !text-center !box-border !min-h-8 ![height:34px] !m-0 !bg-white ![color:#29252e] ![font-size:13px] !shadow-none;
 }
 .kiriof-auto-refresh > [data-slot='button']:hover:not(:disabled),
-.kiriof-auto-refresh > [data-slot='popover-trigger']:hover:not(:disabled) {
-  border-color: #a99ccf !important;
-  background: var(--kiriof-primary-soft) !important;
-  color: var(--kiriof-primary) !important;
+.kiriof-auto-refresh > .kiriof-auto-refresh__chevron:hover:not(:disabled) {
+  @apply bg-secondary! text-secondary-foreground!;
 }
 .kiriof-auto-refresh > [data-slot='button'] > svg,
-.kiriof-auto-refresh > [data-slot='popover-trigger'] > svg {
-  display: block !important;
-  align-self: center !important;
-  flex: 0 0 14px !important;
-  width: 14px !important;
-  height: 14px !important;
-  margin: 0 !important;
-  vertical-align: middle !important;
+.kiriof-auto-refresh > .kiriof-auto-refresh__chevron > svg {
+  @apply !block ![align-self:center] ![flex:0_0_14px] !w-3.5 !h-3.5 !m-0 ![vertical-align:middle];
 }
 .kiriof-auto-refresh .kiriof-auto-refresh__chevron {
-  padding-right: 6px !important;
-  padding-left: 6px !important;
+  @apply ![padding-right:6px] ![padding-left:6px];
 }
 .kiriof-auto-refresh__popover {
-  width: auto !important;
-  min-width: 140px !important;
-  padding: 4px !important;
+  @apply !w-auto ![min-width:140px] !p-1;
 }
 .kiriof-auto-refresh__popover [data-slot='button'] {
-  width: 100% !important;
-  justify-content: flex-start !important;
+  @apply !w-full !justify-start;
 }
 .kiriof-transactions-filterrow {
-  display: grid;
-  grid-template-columns: minmax(270px, 1.2fr) repeat(3, minmax(160px, 1fr)) minmax(190px, 1.1fr);
-  gap: 8px;
-  align-items: center;
+  @apply grid [grid-template-columns:minmax(270px,1.2fr)_repeat(3,minmax(160px,1fr))_minmax(190px,1.1fr)] gap-2 items-center;
 }
 .kiriof-transactions-filterrow:has(.kiriof-clear-filters) {
-  grid-template-columns: minmax(270px, 1.2fr) repeat(3, minmax(160px, 1fr)) minmax(
-      190px,
-      1.1fr
-    ) auto;
+  @apply [grid-template-columns:minmax(270px,1.2fr)_repeat(3,minmax(160px,1fr))_minmax(_190px,1.1fr_)_auto];
 }
 /* Order Issue hides the status selector, so the row has one fewer control:
    stretch the remaining four columns evenly instead of leaving a gap. */
 .kiriof-transactions-filterrow.is-order-issue {
-  grid-template-columns: minmax(270px, 1.2fr) repeat(2, minmax(160px, 1fr)) minmax(190px, 1.1fr);
+  @apply [grid-template-columns:minmax(270px,1.2fr)_repeat(2,minmax(160px,1fr))_minmax(190px,1.1fr)];
 }
 .kiriof-transactions-filterrow.is-order-issue:has(.kiriof-clear-filters) {
-  grid-template-columns: minmax(270px, 1.2fr) repeat(2, minmax(160px, 1fr)) minmax(
-      190px,
-      1.1fr
-    ) auto;
+  @apply [grid-template-columns:minmax(270px,1.2fr)_repeat(2,minmax(160px,1fr))_minmax(_190px,1.1fr_)_auto];
 }
 .kiriof-admin-list-search {
-  width: 100%;
+  @apply w-full;
 }
 .kiriof-admin-list-search [data-slot='input-group'] {
-  height: 34px;
-  margin: 0;
+  @apply [height:34px] m-0;
 }
 .kiriof-admin-list-search [data-slot='input-group-control'] {
-  min-width: 180px;
+  @apply [min-width:180px];
 }
 .kiriof-transactions-filterrow [data-slot='select-trigger'] {
-  width: 100%;
-  min-width: 0;
-  height: 34px;
-  margin: 0;
-  box-sizing: border-box;
+  @apply w-full min-w-0 [height:34px] m-0 box-border;
 }
 .kiriof-transactions-filterrow [data-slot='button'],
 .kiriof-transactions-meta [data-slot='select-trigger'] {
-  min-height: 34px;
-  margin: 0;
+  @apply min-h-8 m-0;
 }
 .kiriof-transactions-filterrow .kiriof-clear-filters {
-  width: 34px !important;
-  min-width: 34px !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  padding: 0 !important;
+  @apply ![width:34px] ![min-width:34px] ![height:34px] !min-h-8 !p-0;
 }
 
 /* WordPress admin form rules are global; pin this workspace to shadcn geometry. */
@@ -648,1223 +340,349 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 .kiriof-admin-list-app [data-slot='select-trigger'],
 .kiriof-admin-list-app [data-slot='input-group'],
 .kiriof-admin-list-app [data-slot='input-group-control'] {
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  border-radius: var(--radius) !important;
-  font-size: 13px !important;
-  line-height: 1 !important;
-  box-shadow: none;
+  @apply !box-border !m-0 !rounded-[var(--radius)] ![font-size:13px] !leading-none shadow-none;
 }
 .kiriof-admin-list-app [data-slot='button'],
 .kiriof-admin-list-app [data-slot='select-trigger'] {
-  min-height: 34px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  @apply !min-h-8 ![padding-top:0] ![padding-bottom:0];
 }
 .kiriof-admin-list-app [data-slot='select-trigger'] {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 8px !important;
-  border-color: #c7c3cc !important;
-  background: #fff !important;
-  color: #29252e !important;
+  @apply !flex !items-center !justify-start !gap-2 ![border-color:#c7c3cc] !bg-white ![color:#29252e];
 }
 .kiriof-admin-list-app [data-slot='select-trigger'] > svg {
-  width: 15px !important;
-  height: 15px !important;
+  @apply !w-4 !h-4;
 }
 .kiriof-admin-list-app [data-slot='select-value'] {
-  display: flex !important;
-  flex: 1 1 auto !important;
-  min-width: 0;
-  align-items: center !important;
-  line-height: 1 !important;
+  @apply !flex ![flex:1_1_auto] min-w-0 !items-center !leading-none;
 }
 .kiriof-admin-list-app input[aria-hidden='true'],
 .kiriof-admin-list-app select[aria-hidden='true'] {
-  position: absolute !important;
-  width: 1px !important;
-  min-width: 0 !important;
-  height: 1px !important;
-  min-height: 0 !important;
-  margin: -1px !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  clip: rect(0 0 0 0) !important;
-  clip-path: inset(50%) !important;
-  border: 0 !important;
-  white-space: nowrap !important;
-  appearance: none !important;
+  @apply !absolute ![width:1px] !min-w-0 ![height:1px] !min-h-0 ![margin:-1px] !p-0 !overflow-hidden ![clip:rect(0_0_0_0)] ![clip-path:inset(50%)] !border-0 !whitespace-nowrap !appearance-none;
 }
 .kiriof-admin-list-app [data-slot='input-group'] {
-  display: flex !important;
-  align-items: center !important;
-  min-height: 34px !important;
-  border-color: #c7c3cc !important;
-  background: #fff !important;
+  @apply !flex !items-center !min-h-8 ![border-color:#c7c3cc] !bg-white;
 }
 .kiriof-admin-list-app [data-slot='input-group-addon'] {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: stretch !important;
-  min-height: 32px !important;
-  margin: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  @apply !flex !items-center !justify-center ![align-self:stretch] !min-h-8 !m-0 ![padding-top:0] ![padding-bottom:0];
 }
 .kiriof-admin-list-app [data-slot='input-group-control'] {
-  min-height: 32px !important;
-  border: 0 !important;
-  background: transparent !important;
-  padding-right: 10px !important;
-  padding-left: 10px !important;
+  @apply !min-h-8 !border-0 !bg-transparent ![padding-right:10px] ![padding-left:10px];
 }
 .kiriof-admin-list-tablewrap {
-  overflow-x: auto;
+  @apply overflow-x-auto;
 }
 .kiriof-admin-list-tablewrap [data-slot='table-container'] {
-  overflow: visible;
+  @apply overflow-visible;
 }
 .kiriof-admin-list-table {
-  width: 100%;
-  min-width: 1120px;
-  border: 0;
-  border-collapse: collapse;
-  table-layout: auto;
+  @apply w-full [min-width:1120px] border-0 [border-collapse:collapse] [table-layout:auto];
 }
 .kiriof-admin-list-table th,
 .kiriof-admin-list-table td {
-  box-sizing: border-box;
-  padding: 12px 14px;
-  border-bottom: 1px solid #eceaf3;
-  color: #241b3d;
-  font-size: 12px;
-  text-align: left;
-  vertical-align: top;
+  @apply box-border [padding:12px_14px] [border-bottom:1px_solid_#eceaf3] [color:#241b3d] text-xs text-left [vertical-align:top];
 }
 .kiriof-admin-list-table th {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  background: #f7f7f8;
-  color: #5f596f;
-  font-size: 11px;
-  font-weight: 650;
-  white-space: nowrap;
+  @apply [padding-top:10px] [padding-bottom:10px] [background:#f7f7f8] [color:#5f596f] [font-size:11px] [font-weight:650] whitespace-nowrap;
 }
 .kiriof-transaction-status svg,
 .kiriof-print-status svg {
-  width: 13px;
-  height: 13px;
-  flex: 0 0 13px;
-  stroke-width: 2;
+  @apply w-3.5 h-3.5 [flex:0_0_13px] [stroke-width:2];
 }
 .kiriof-transactions-table tr.is-selected td {
-  background: #faf7ff;
+  @apply [background:#faf7ff];
 }
 .kiriof-transactions-table tbody tr:last-child td {
-  border-bottom: 0;
+  @apply [border-bottom:0];
 }
 .kiriof-transactions-table .is-check {
-  width: 42px;
-  padding-right: 4px;
-  text-align: center;
+  @apply [width:42px] [padding-right:4px] text-center;
 }
 .kiriof-transactions-table .is-row-number {
-  width: 42px;
-  color: var(--kiriof-muted);
-  text-align: center;
+  @apply [width:42px] text-muted-foreground text-center;
 }
 .kiriof-transaction-dialog-content {
-  box-sizing: border-box !important;
-  width: min(600px, calc(100vw - 32px)) !important;
-  max-height: calc(100vh - 48px) !important;
-  overflow-y: auto !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  background: #fff !important;
-  color: #1d2327 !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  font-size: 13px !important;
-  line-height: 1.5 !important;
-  opacity: 1 !important;
-  z-index: 100000 !important;
+  @apply !box-border ![width:min(600px,calc(100vw_-_32px))] ![max-height:calc(100vh_-_48px)] !overflow-y-auto !border border-border !rounded-xl !bg-white ![color:#1d2327] ![font-family:-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] ![font-size:13px] ![line-height:1.5] ![opacity:1] ![z-index:100000];
 }
 body [data-slot='dialog-overlay'] {
-  z-index: 99999 !important;
-  background: rgb(0 0 0 / 55%) !important;
+  @apply !z-99999 ![background:rgb(0_0_0_/_55%)];
 }
 body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
-  z-index: 100001 !important;
+  @apply !z-100001;
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-header'] {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 6px !important;
-  margin: 0 !important;
+  @apply !flex !flex-col !gap-1.5 !m-0;
 }
 .kiriof-transaction-dialog-content .kiriof-dialog-primary {
-  border-color: #5b21b6 !important;
-  background: #5b21b6 !important;
-  color: #fff !important;
+  @apply ![border-color:#5b21b6] ![background:#5b21b6] !text-white;
 }
 .kiriof-transaction-dialog-content .kiriof-dialog-primary:hover:not(:disabled) {
-  background: #4c1d95 !important;
+  @apply ![background:#4c1d95];
 }
 .kiriof-transaction-dialog-content .kiriof-dialog-secondary {
-  border-color: transparent !important;
-  background: transparent !important;
-  color: #1d2327 !important;
+  @apply ![border-color:transparent] !bg-transparent ![color:#1d2327];
 }
 .kiriof-transaction-dialog-content .kiriof-dialog-secondary:hover:not(:disabled) {
-  border-color: transparent !important;
-  background: var(--muted) !important;
+  @apply ![border-color:transparent] !bg-muted;
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-title'] {
-  margin: 0 !important;
-  color: #1d2327 !important;
-  font-size: 17px !important;
-  font-weight: 650 !important;
-  line-height: 1.25 !important;
+  @apply !m-0 ![color:#1d2327] ![font-size:17px] ![font-weight:650] ![line-height:1.25];
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-description'] {
-  margin: 0 !important;
-  color: #646970 !important;
-  font-size: 13px !important;
-  line-height: 1.5 !important;
+  @apply !m-0 ![color:#646970] ![font-size:13px] ![line-height:1.5];
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-footer'] {
-  display: flex !important;
-  justify-content: flex-end !important;
-  gap: 8px !important;
-  margin: 0 !important;
+  @apply !flex !justify-end !gap-2 !m-0;
 }
 .kiriof-transaction-dialog-content [data-slot='dialog-close'] {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  color: #646970 !important;
-  box-shadow: none !important;
+  @apply !inline-flex !items-center !justify-center !m-0 !border-0 !bg-transparent ![color:#646970] !shadow-none;
 }
 .kiriof-transaction-dialog-content [role='alert'] {
-  margin: 0 !important;
-  color: #b32d2e !important;
+  @apply !m-0 ![color:#b32d2e];
 }
 .kiriof-transaction-dialog-content [data-slot='field-group'] {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 16px !important;
+  @apply !flex !flex-col !gap-4;
 }
 .kiriof-transaction-dialog-content .kiriof-pickup-datetime {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.36fr);
-  align-items: end;
-  gap: 12px !important;
+  @apply !grid [grid-template-columns:minmax(0,1fr)_minmax(150px,0.36fr)] [align-items:end] !gap-3;
 }
 .kiriof-transaction-dialog-content [data-slot='field'] {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 7px !important;
+  @apply !flex !flex-col !gap-2;
 }
 .kiriof-transaction-dialog-content [data-slot='field-label'] {
-  color: #1d2327 !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
+  @apply ![color:#1d2327] ![font-size:13px] !font-semibold;
 }
 .kiriof-transaction-dialog-content [data-slot='field-description'] {
-  color: #646970 !important;
-  font-size: 12px !important;
+  @apply ![color:#646970] !text-xs;
 }
 .kiriof-transaction-dialog-content [data-slot='select-trigger'],
 .kiriof-transaction-dialog-content input {
-  min-height: 38px !important;
-  box-sizing: border-box !important;
-  border-color: #c3c4c7 !important;
-  background: #fff !important;
-  color: #1d2327 !important;
+  @apply ![min-height:38px] !box-border ![border-color:#c3c4c7] !bg-white ![color:#1d2327];
 }
 .kiriof-transactions-table .is-actions {
-  width: 120px;
-  text-align: right;
+  @apply [width:120px] text-right;
 }
 .kiriof-order-link {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--kiriof-primary);
-  font-weight: 650;
-  text-decoration: none;
+  @apply block mb-0.5 text-primary font-semibold no-underline;
 }
 .kiriof-row-title,
 .kiriof-row-muted,
 .kiriof-row-label {
-  display: block;
+  @apply block;
 }
 .kiriof-customer-phone {
-  display: block;
-  margin-top: 2px;
-  color: #17834b;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.45;
-  text-decoration: none;
+  @apply block mt-0.5 [color:#17834b] text-xs font-semibold [line-height:1.45] no-underline;
 }
 .kiriof-customer-phone:hover {
-  color: #12683c;
-  text-decoration: underline;
+  @apply [color:#12683c] [text-decoration:underline];
 }
 .kiriof-courier-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 180px;
+  @apply flex items-center gap-2 [min-width:180px];
 }
 .kiriof-courier-logo {
-  display: block;
-  box-sizing: border-box;
-  width: 52px;
-  height: 40px;
-  flex: 0 0 52px;
-  padding: 5px;
-  border: 1px solid #cec7d8;
-  border-radius: 10px;
-  background: #fff;
-  object-fit: contain;
+  @apply inline-flex border box-border h-9 aspect-video object-contain p-1 rounded bg-white border;
 }
 .kiriof-courier-summary__content {
-  min-width: 0;
+  @apply min-w-0;
 }
 .kiriof-payment-type {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 3px;
-  color: #646970;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.35;
+  @apply flex items-center gap-1 mt-1 [color:#646970] [font-size:11px] font-medium [line-height:1.35];
 }
 .kiriof-payment-type.is-cod {
-  color: #76520c;
+  @apply [color:#76520c];
 }
 .kiriof-payment-type.is-non-cod {
-  color: #4f4a58;
+  @apply [color:#4f4a58];
 }
 .kiriof-payment-type svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  stroke-width: 1.9;
+  @apply w-3.5 h-3.5 [flex:0_0_14px] [stroke-width:1.9];
 }
 .kiriof-copy-field {
-  display: grid;
-  gap: 2px;
+  @apply grid [gap:2px];
 }
 .kiriof-copy-field + .kiriof-copy-field {
-  margin-top: 8px;
+  @apply mt-2;
 }
 .kiriof-copy-field--inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  @apply flex items-center gap-1.5;
 }
 .kiriof-copy-field--inline + .kiriof-copy-field--inline {
-  margin-top: 6px;
+  @apply [margin-top:6px];
 }
 .kiriof-copy-field--inline .kiriof-row-label {
-  flex-shrink: 0;
+  @apply shrink-0;
 }
 .kiriof-copy-field__value {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
+  @apply inline-flex items-center gap-1.5 min-w-0;
 }
 .kiriof-copy-button {
-  display: inline-flex;
-  width: 22px;
-  height: 22px;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #646970;
-  cursor: pointer;
+  @apply inline-flex [width:22px] [height:22px] items-center justify-center p-0 border-0 rounded bg-transparent [color:#646970] cursor-pointer;
 }
 .kiriof-copy-button:hover {
-  background: #f0ecfa;
-  color: var(--kiriof-primary);
+  @apply bg-muted text-primary;
 }
 .kiriof-copy-button svg {
-  width: 14px;
-  height: 14px;
+  @apply w-3.5 h-3.5;
 }
 .kiriof-package-fees {
-  display: grid;
-  min-width: 165px;
-  gap: 4px;
+  @apply grid [min-width:165px] gap-1;
 }
 .kiriof-package-fees > div {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  line-height: 1.35;
+  @apply flex items-baseline gap-1 [line-height:1.35];
 }
 .kiriof-package-fees span {
-  color: var(--kiriof-muted);
-  font-size: 11px;
+  @apply text-muted-foreground text-xs;
 }
 .kiriof-package-fees strong {
-  color: #241b3d;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
+  @apply [color:#241b3d] [font-size:11px] font-semibold whitespace-nowrap;
 }
 .kiriof-package-fees .is-discount span,
 .kiriof-package-fees .is-discount strong {
-  color: #b42318;
+  @apply [color:#b42318];
 }
 .kiriof-row-title {
-  margin-top: 2px;
-  line-height: 1.4;
+  @apply mt-0.5 [line-height:1.4];
 }
 .kiriof-row-muted,
 .kiriof-row-label {
-  color: var(--kiriof-muted);
-  font-size: 11px;
-  line-height: 1.45;
+  @apply text-muted-foreground text-xs leading-5;
 }
 .kiriof-row-label:not(:first-child) {
-  margin-top: 6px;
+  @apply [margin-top:6px];
 }
 .kiriof-row-badges,
 .kiriof-fee-pills,
 .kiriof-row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+  @apply flex flex-wrap items-center gap-1;
 }
 .kiriof-row-badges,
 .kiriof-fee-pills {
-  margin-top: 5px;
+  @apply [margin-top:5px];
 }
 .kiriof-shipment-states {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 5px;
-  margin-top: 8px;
+  @apply flex flex-wrap items-center gap-1.5 mt-2;
 }
 .kiriof-row-actions {
-  display: inline-flex !important;
-  width: auto !important;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px !important;
+  @apply !inline-flex !w-auto flex-wrap justify-end !gap-1;
 }
 .kiriof-row-actions [data-slot='button'] {
-  display: inline-flex !important;
-  width: 28px !important;
-  min-width: 28px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 1px solid var(--kiriof-border) !important;
-  border-radius: 7px !important;
-  background: #fff !important;
-  color: #342b45 !important;
-  box-shadow: none !important;
+  @apply !inline-flex !w-7 !min-w-7 !h-7 !min-h-7 !items-center !justify-center !m-0 !p-0 !border !rounded-md !bg-white ![color:#342b45] !shadow-none;
 }
 .kiriof-row-actions [data-slot='button']:hover {
-  border-color: #b9afd6 !important;
-  background: var(--kiriof-primary-soft) !important;
-  color: var(--kiriof-primary) !important;
+  @apply border-border! bg-secondary! text-secondary-foreground!;
 }
 .kiriof-row-actions [data-slot='button'][class*='text-destructive'] {
-  border-color: #efc7c7 !important;
-  background: #fff5f5 !important;
-  color: #b42318 !important;
+  @apply ![border-color:#efc7c7] ![background:#fff5f5] ![color:#b42318];
 }
 .kiriof-row-actions [data-slot='button'] svg {
-  display: block;
-  width: 15px !important;
-  height: 15px !important;
+  @apply block !w-4 !h-4;
 }
 .kiriof-transaction-status,
 .kiriof-print-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 20px;
-  padding: 1px 6px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: #f0f0f1;
-  border-color: #dcdcde;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.45;
-  white-space: nowrap;
+  @apply inline-flex items-center gap-1 [min-height:20px] [padding:1px_6px] [border:1px_solid_transparent] rounded-md [background:#f0f0f1] [border-color:#dcdcde] [font-size:11px] font-semibold [line-height:1.45] whitespace-nowrap;
 }
 .kiriof-transaction-status.is-info {
-  background: #e5f0f9;
-  border-color: #b6d3ea;
-  color: #0f4c81;
+  @apply [background:#e5f0f9] [border-color:#b6d3ea] [color:#0f4c81];
 }
 .kiriof-transaction-status.is-primary {
-  background: #ece6f8;
-  border-color: #c3b2e8;
-  color: #5c2d91;
+  @apply [background:#ece6f8] [border-color:#c3b2e8] [color:#5c2d91];
 }
 .kiriof-transaction-status.is-teal {
-  background: #dcf3f0;
-  border-color: #9ad9d1;
-  color: #0d6b5e;
+  @apply [background:#dcf3f0] [border-color:#9ad9d1] [color:#0d6b5e];
 }
 .kiriof-transaction-status.is-success,
 .kiriof-print-status.printed {
-  background: #e6f4ea;
-  border-color: #a9dcb9;
-  color: #1a6b35;
+  @apply [background:#e6f4ea] [border-color:#a9dcb9] [color:#1a6b35];
 }
 .kiriof-transaction-status.is-warning {
-  background: #fdf0dc;
-  border-color: #f0bd76;
-  color: #8a4d0a;
+  @apply [background:#fdf0dc] [border-color:#f0bd76] [color:#8a4d0a];
 }
 .kiriof-transaction-status.is-danger,
 .kiriof-transaction-status.is-critical {
-  background: #fde7e7;
-  border-color: #f1a9a9;
-  color: #a02323;
+  @apply [background:#fde7e7] [border-color:#f1a9a9] [color:#a02323];
 }
 /* color="strong": solid high-emphasis fill (e.g. deficit badge). */
 .kiriof-transaction-status.kiriof-badge--strong.is-info {
-  background: #2271b1;
-  border-color: #2271b1;
-  color: #fff;
+  @apply [background:#2271b1] [border-color:#2271b1] text-white;
 }
 .kiriof-transaction-status.kiriof-badge--strong.is-primary {
-  background: #5c2d91;
-  border-color: #5c2d91;
-  color: #fff;
+  @apply [background:#5c2d91] [border-color:#5c2d91] text-white;
 }
 .kiriof-transaction-status.kiriof-badge--strong.is-teal {
-  background: #0d6b5e;
-  border-color: #0d6b5e;
-  color: #fff;
+  @apply [background:#0d6b5e] [border-color:#0d6b5e] text-white;
 }
 .kiriof-transaction-status.kiriof-badge--strong.is-success {
-  background: #008112;
-  border-color: #008112;
-  color: #fff;
+  @apply [background:#008112] [border-color:#008112] text-white;
 }
 .kiriof-transaction-status.kiriof-badge--strong.is-warning {
-  background: #b45309;
-  border-color: #b45309;
-  color: #fff;
+  @apply [background:#b45309] [border-color:#b45309] text-white;
 }
 .kiriof-transaction-status.kiriof-badge--strong.is-danger,
 .kiriof-transaction-status.kiriof-badge--strong.is-critical {
-  background: #d63638;
-  border-color: #d63638;
-  color: #fff;
+  @apply [background:#d63638] [border-color:#d63638] text-white;
 }
 .kiriof-print-status.unprinted {
-  color: #646970;
+  @apply [color:#646970];
 }
 .kiriof-route-arrow {
-  display: block;
-  margin: 3px 0;
-  color: var(--kiriof-muted);
-  font-size: 10px;
+  @apply block [margin:3px_0] text-muted-foreground [font-size:10px];
 }
 .kiriof-transactions-table code {
-  display: inline-block;
-  margin-top: 2px;
-  padding: 2px 5px;
-  border-radius: 4px;
-  background: #f0f0f1;
-  color: #3c434a;
-  font-size: 10px;
+  @apply [display:inline-block] mt-0.5 [padding:2px_5px] rounded [background:#f0f0f1] [color:#3c434a] [font-size:10px];
 }
 .kiriof-data-table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--kiriof-border);
-  background: #fafafa;
-  color: var(--kiriof-muted);
-  font-size: 12px;
+  @apply flex items-center justify-between gap-3 [padding:10px_14px] border-t [background:#fafafa] text-muted-foreground text-xs;
 }
 .kiriof-data-table-footer__count {
-  color: var(--kiriof-muted);
-  white-space: nowrap;
+  @apply text-muted-foreground whitespace-nowrap;
 }
 .kiriof-data-table-footer [data-slot='pagination'] {
-  width: auto;
-  margin: 0 0 0 auto !important;
-  justify-content: flex-end;
+  @apply w-auto ![margin:0_0_0_auto] justify-end;
 }
 .kiriof-data-table-footer [data-slot='pagination-content'] {
-  margin: 0 !important;
-  gap: 4px;
+  @apply !m-0 gap-1;
 }
 .kiriof-data-table-footer [data-slot='pagination-item'] {
-  margin-bottom: 0 !important;
+  @apply !mb-0;
 }
 .kiriof-data-table-footer [data-slot='pagination-link'],
 .kiriof-data-table-footer [data-slot='pagination'] button {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
-  border-radius: 7px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 !important;
+  @apply w-8 [min-width:32px] h-8 min-h-8 rounded-md items-center justify-center !p-0;
 }
 .kiriof-data-table-footer [data-slot='pagination'] button svg {
-  display: block;
-  width: 16px;
-  height: 16px;
-  margin: 0 !important;
+  @apply block w-4 h-4 !m-0;
 }
 .kiriof-empty-cell {
-  padding: 48px !important;
-  color: var(--kiriof-muted) !important;
-  text-align: center !important;
+  @apply ![padding:48px] text-muted-foreground! !text-center;
 }
 
 @media (max-width: 1200px) {
   .kiriof-transactions-filterrow {
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    @apply [grid-template-columns:repeat(3,minmax(160px,1fr))];
   }
 }
 @media (max-width: 782px) {
   .kiriof-data-table-footer {
-    align-items: flex-start;
-    flex-direction: column;
+    @apply items-start flex-col;
   }
   .kiriof-transactions-app .kiriof-app-toolbar {
-    align-items: stretch;
-    flex-direction: column;
+    @apply items-stretch flex-col;
   }
   .kiriof-transactions-toolbar__actions {
-    width: 100%;
+    @apply w-full;
   }
   .kiriof-transactions-toolbar__actions [data-slot='button'] {
-    flex: 1;
+    @apply [flex:1];
   }
   .kiriof-transactions-filterrow {
-    grid-template-columns: 1fr;
-    max-width: none;
+    @apply [grid-template-columns:1fr] max-w-none;
   }
   .kiriof-admin-list-scopes {
-    align-items: flex-start;
-    flex-direction: column;
+    @apply items-start flex-col;
   }
   .kiriof-admin-list-tools {
-    margin-left: 0;
+    @apply ml-0;
   }
   .kiriof-summary-grid {
-    grid-template-columns: 1fr;
+    @apply [grid-template-columns:1fr];
   }
-}
-
-/* Transaction detail workspace — mirrors the Shopify detail hierarchy while
- * using the existing WordPress/Svelte surface tokens. */
-.kiriof-transaction-detail-app {
-  width: min(1240px, 100%);
-  margin: 0 auto;
-}
-
-.kiriof-transaction-detail-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  align-items: start;
-  gap: 20px;
-}
-
-.kiriof-transaction-detail-main,
-.kiriof-transaction-detail-sidebar {
-  display: grid;
-  gap: 16px;
-}
-
-.kiriof-transaction-detail-status [data-slot='card-content'] {
-  padding: 18px;
-}
-
-.kiriof-transaction-detail-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.kiriof-transaction-detail-heading > div {
-  display: grid;
-  gap: 3px;
-}
-
-.kiriof-transaction-detail-heading span,
-.kiriof-transaction-detail-heading small {
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-heading strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 17px;
-}
-
-.kiriof-transaction-detail-steps {
-  display: flex;
-  margin-top: 24px;
-}
-
-.kiriof-transaction-detail-step {
-  position: relative;
-  display: grid;
-  flex: 1 1 0;
-  gap: 5px;
-  min-width: 0;
-  color: var(--kiriof-muted, #646970);
-}
-
-.kiriof-transaction-detail-step > span {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid var(--kiriof-border, #ddd7ee);
-  border-radius: 50%;
-  background: #fff;
-}
-
-.kiriof-transaction-detail-step > span svg {
-  width: 15px;
-  height: 15px;
-}
-
-.kiriof-transaction-detail-step.complete > span {
-  border-color: var(--kiriof-primary, #5c2ecb);
-  background: var(--kiriof-primary, #5c2ecb);
-  color: #fff;
-}
-
-.kiriof-transaction-detail-step > i {
-  position: absolute;
-  top: 13px;
-  right: 3px;
-  left: 28px;
-  height: 2px;
-  background: var(--kiriof-border, #ddd7ee);
-}
-
-.kiriof-transaction-detail-step.complete > i {
-  background: var(--kiriof-primary, #5c2ecb);
-}
-
-.kiriof-transaction-detail-step strong {
-  overflow: hidden;
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 12px;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kiriof-transaction-detail-step small {
-  min-height: 15px;
-  font-size: 10px;
-  line-height: 1.3;
-}
-
-.kiriof-transaction-detail-addresses {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.kiriof-transaction-detail-addresses [data-slot='card-content'] {
-  display: grid;
-  gap: 6px;
-  padding: 14px 18px 18px;
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.kiriof-transaction-detail-addresses strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-}
-
-.kiriof-transaction-detail-addresses a {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--kiriof-primary, #5c2ecb);
-  text-decoration: none;
-}
-
-.kiriof-transaction-detail-addresses a svg {
-  width: 13px;
-  height: 13px;
-}
-
-.kiriof-transaction-detail-package {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 14px 18px 18px;
-}
-
-.kiriof-transaction-detail-package div {
-  display: grid;
-  gap: 3px;
-}
-
-.kiriof-transaction-detail-package span,
-.kiriof-transaction-detail-products small,
-.kiriof-transaction-detail-notes strong {
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-package strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-}
-
-.kiriof-transaction-detail-products {
-  display: grid;
-  padding: 6px 18px 12px;
-}
-
-.kiriof-transaction-detail-products > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 18px;
-  align-items: center;
-  padding: 11px 0;
-  border-top: 1px solid #eeeaf8;
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-products > div > span:first-child {
-  display: grid;
-  gap: 3px;
-}
-
-.kiriof-transaction-detail-products p,
-.kiriof-transaction-detail-notes > p,
-.kiriof-transaction-detail-tracking p {
-  margin: 0;
-  padding: 8px 0;
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-order-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--kiriof-primary, #5c2ecb);
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.kiriof-transaction-detail-order-link svg {
-  width: 14px;
-  height: 14px;
-}
-
-.kiriof-transaction-detail-notes {
-  display: grid;
-  gap: 12px;
-  padding: 14px 18px 18px;
-}
-
-.kiriof-transaction-detail-notes div {
-  display: grid;
-  gap: 3px;
-}
-
-.kiriof-transaction-detail-notes p {
-  margin: 0;
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.kiriof-transaction-detail-shipment [data-slot='card-content'] {
-  display: grid;
-  gap: 14px;
-  padding: 14px 18px 18px;
-}
-
-.kiriof-transaction-detail-courier {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-}
-
-.kiriof-transaction-detail-courier img {
-  width: 36px;
-  height: 36px;
-  padding: 4px;
-  border: 1px solid var(--kiriof-border, #ddd7ee);
-  border-radius: 8px;
-  object-fit: contain;
-}
-
-.kiriof-transaction-detail-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.kiriof-transaction-detail-awb {
-  display: grid;
-  gap: 4px;
-  padding: 11px 12px;
-  border-radius: 7px;
-  background: #f7f5fb;
-}
-
-.kiriof-transaction-detail-awb span,
-.kiriof-transaction-detail-awb code {
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-awb span {
-  color: var(--kiriof-muted, #646970);
-}
-
-.kiriof-transaction-detail-awb code {
-  overflow-wrap: anywhere;
-  color: var(--kiriof-ink, #241b3d);
-  font-weight: 650;
-}
-
-.kiriof-transaction-detail-costs {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-}
-
-.kiriof-transaction-detail-costs div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-costs dd {
-  margin: 0;
-  color: var(--kiriof-ink, #241b3d);
-  font-weight: 600;
-}
-
-.kiriof-transaction-detail-costs .discount dd {
-  color: #147d45;
-}
-
-.kiriof-transaction-detail-costs .total,
-.kiriof-transaction-detail-costs .cod {
-  padding-top: 9px;
-  border-top: 1px solid #eeeaf8;
-}
-
-.kiriof-transaction-detail-costs .total dt,
-.kiriof-transaction-detail-costs .total dd,
-.kiriof-transaction-detail-costs .cod dt,
-.kiriof-transaction-detail-costs .cod dd {
-  color: var(--kiriof-ink, #241b3d);
-  font-weight: 700;
-}
-
-.kiriof-transaction-detail-shipment [data-slot='button'] {
-  width: 100%;
-  justify-content: center;
-}
-
-.kiriof-transaction-detail-tracking [data-slot='card-content'] {
-  padding: 8px 18px 18px;
-}
-
-.kiriof-transaction-detail-tracking ol {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.kiriof-transaction-detail-tracking li {
-  position: relative;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px 0;
-}
-
-.kiriof-transaction-detail-tracking li:not(:last-child)::after {
-  position: absolute;
-  top: 31px;
-  bottom: -1px;
-  left: 9px;
-  width: 2px;
-  background: #e5dffc;
-  content: '';
-}
-
-.kiriof-transaction-detail-tracking li > span {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--kiriof-primary-soft, #f5f0ff);
-  color: var(--kiriof-primary, #5c2ecb);
-}
-
-.kiriof-transaction-detail-tracking li svg {
-  width: 13px;
-  height: 13px;
-}
-
-.kiriof-transaction-detail-tracking li div {
-  display: grid;
-  gap: 3px;
-}
-
-.kiriof-transaction-detail-tracking li strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.kiriof-transaction-detail-tracking li small {
-  color: var(--kiriof-muted, #646970);
-  font-size: 11px;
-}
-
-.kiriof-transaction-detail-loading {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-@media (max-width: 960px) {
-  .kiriof-transaction-detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .kiriof-transaction-detail-sidebar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .kiriof-transaction-detail-addresses,
-  .kiriof-transaction-detail-sidebar {
-    grid-template-columns: 1fr;
-  }
-
-  .kiriof-transaction-detail-steps {
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .kiriof-transaction-detail-step {
-    flex-basis: 130px;
-    min-width: 130px;
-  }
-
-  .kiriof-transaction-detail-products > div {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .kiriof-transaction-detail-products > div > strong {
-    grid-column: 2;
-  }
-}
-
-/* Detail screens use the same full-width workspace and list-card surface as
- * Transactions. These rules intentionally follow the first detail pass. */
-.kiriof-workspace-shell .kiriof-transaction-detail-app {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
-
-.kiriof-transaction-detail-app .kiriof-app-toolbar {
-  margin-bottom: 18px;
-}
-
-.kiriof-transaction-detail-app .kiriof-app-toolbar [data-slot='button'] {
-  min-height: 34px;
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-  gap: 14px;
-}
-
-.kiriof-transaction-detail-main,
-.kiriof-transaction-detail-sidebar {
-  gap: 14px;
-}
-
-.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-header'] {
-  padding: 14px 16px;
-  border-bottom: 1px solid #eeeaf8;
-}
-
-.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-content'] {
-  padding: 14px 16px;
-}
-
-.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-title'] {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.kiriof-transaction-detail-app .kiriof-admin-list-card [data-slot='card-title'] > svg {
-  width: 16px;
-  height: 16px;
-}
-
-.kiriof-transaction-detail-status [data-slot='card-content'] {
-  padding: 12px 16px 16px !important;
-}
-
-.kiriof-transaction-detail-reference {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-}
-
-.kiriof-transaction-detail-reference strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.kiriof-transaction-detail-reference span {
-  font-size: 11px;
-}
-
-.kiriof-transaction-detail-steps {
-  margin-top: 16px;
-}
-
-.kiriof-transaction-detail-step strong {
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.kiriof-transaction-detail-addresses [data-slot='card-content'] {
-  padding: 14px 16px 16px !important;
-}
-
-.kiriof-transaction-detail-address strong,
-.kiriof-transaction-detail-courier strong {
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.kiriof-transaction-detail-package,
-.kiriof-transaction-detail-notes {
-  padding: 14px 16px 16px !important;
-}
-
-.kiriof-transaction-detail-products {
-  padding: 0 16px 4px !important;
-}
-
-.kiriof-transaction-detail-products > div {
-  padding: 10px 0;
-}
-
-.kiriof-transaction-detail-shipment [data-slot='card-content'] {
-  padding: 14px 16px 16px !important;
-}
-
-.kiriof-transaction-detail-tracking [data-slot='card-content'] {
-  padding: 6px 16px 14px !important;
-}
-
-@media (max-width: 960px) {
-  .kiriof-transaction-detail-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Preserve the legacy class used by Change Origin JS, but re-apply the
- * installed shadcn Button geometry after WordPress admin button resets. */
-.kiriof-transaction-detail-app .kiriof-transaction-detail-change-origin[data-slot='button'] {
-  display: inline-flex !important;
-  box-sizing: border-box;
-  min-height: 28px;
-  margin: 0 !important;
-  padding: 0 10px !important;
-  border: 1px solid var(--border) !important;
-  border-radius: min(var(--radius-md), 12px) !important;
-  background: var(--background) !important;
-  color: var(--foreground) !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  line-height: 1 !important;
-  box-shadow: none !important;
-}
-
-.kiriof-transaction-detail-app .kiriof-transaction-detail-change-origin[data-slot='button']:hover {
-  background: var(--muted) !important;
-  color: var(--foreground) !important;
-}
-
-.kiriof-transaction-detail-app .kiriof-transaction-detail-change-origin[data-slot='button'] svg,
-.kiriof-transaction-detail-app
-  .kiriof-transaction-detail-destructive-action[data-slot='button']
-  svg {
-  display: block;
-  flex: 0 0 auto;
-}
-
-.kiriof-transaction-detail-shipment
-  .kiriof-transaction-detail-destructive-action[data-slot='button'] {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  line-height: 1 !important;
 }

@@ -8,6 +8,7 @@
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
@@ -102,7 +103,7 @@
 <div class="kiriof-shadcn kiriof-admin-list-app kiriof-payments-app">
   <Toolbar toolbar={bootstrap.toolbar} />
 
-  <section class="kiriof-admin-list-card kiriof-payments-card">
+  <KiriofCard class="kiriof-payments-card">
     <div class="kiriof-admin-list-filterbar kiriof-payments-filterbar">
       <nav class="kiriof-admin-list-scopes" aria-label="Payment status">
         <WorkspaceTabs value={currentStatus} tabs={paymentTabs} onChange={changeStatus} />
@@ -188,5 +189,5 @@
       pageLabel={bootstrap.i18n.pageOf}
       onPageChange={(page) => void navigate({ cpage: String(page) })}
     />
-  </section>
+  </KiriofCard>
 </div>

@@ -648,3 +648,33 @@ final class CancelTransactionFeatureTest extends TestCase
         }
     }
 }
+
+final class TransactionDetailActionModalTemplateTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_page_renders_legacy_action_modal_templates(): void
+    {
+        $controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' );
+
+        $this->assertStringContainsString( "'kiriminaja-transaction-detail'", $controller );
+        $this->assertStringContainsString( 'renderWooActionModalTemplatesForKiriofPage', $controller );
+        $this->assertStringContainsString( 'tmpl-kiriof-modal-cod-adjustment', $controller );
+    }
+}
+
+final class TransactionDetailLegacyActionBridgeTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_actions_use_valid_data_attributes_and_the_list_script_is_config_safe(): void
+    {
+        $detail = file_get_contents( PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte' );
+        $script = file_get_contents( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
+
+        $this->assertStringContainsString( 'trigger.setAttribute(`data-${key.replace', $detail );
+        $this->assertStringContainsString( "new MouseEvent('click'", $detail );
+        $this->assertStringNotContainsString( 'trigger.dataset[key.replace', $detail );
+        $this->assertStringContainsString( 'const i18n = config.i18n || {};', $script );
+        $this->assertStringContainsString( 'const pinCache = config.pinCache || {};', $script );
+        $this->assertStringContainsString( 'const urls = config.urls || {};', $script );
+    }
+}

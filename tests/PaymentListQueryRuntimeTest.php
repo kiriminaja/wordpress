@@ -99,7 +99,8 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'DataTableFooter', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringContainsString( 'WorkspaceTabs', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringNotContainsString( 'StatusTabs', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( 'kiriof-admin-list-card', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
+		$this->assertStringContainsString( 'KiriofCard', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/KiriofCard.svelte' );
 		$this->assertStringContainsString( 'kiriof-admin-list-table', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringContainsString( 'onValueChange={changeMonth}', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringNotContainsString( 'bootstrap.i18n.apply', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
@@ -109,7 +110,7 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'm-0 gap-0.5', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/pagination/pagination-content.svelte' ) );
 		$this->assertStringContainsString( 'cn("mb-0", className)', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/pagination/pagination-item.svelte' ) );
 		$this->assertStringContainsString( 'ml-auto mr-0 w-auto justify-end', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );
-		$this->assertStringContainsString( 'margin: 0 0 0 auto !important;', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+		$this->assertStringContainsString( '![margin:0_0_0_auto]', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '.kiriof-payments-table', file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
 		$this->assertStringContainsString( "body:has([data-kiriof-payments-page]) .update-nag", file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
 		$this->assertStringContainsString( 'kiriof-workspace-shell', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );

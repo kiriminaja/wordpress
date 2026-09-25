@@ -59,8 +59,8 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$this->assertStringContainsString( 'Continue to Payment', $dialog );
 		$this->assertStringContainsString( 'disabled={option.disabled}', $dialog );
 		$this->assertStringContainsString( 'kiriof-payment-method-card', $dialog );
-		$this->assertStringContainsString( 'border-color: var(--border) !important;', $styles );
-		$this->assertStringContainsString( 'font-size: 17px !important;', $styles );
+		$this->assertStringContainsString( '!border border-border', $styles );
+		$this->assertStringContainsString( '![font-size:17px]', $styles );
 	}
 
     #[Test]

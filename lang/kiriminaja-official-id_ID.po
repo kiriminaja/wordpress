@@ -4027,3 +4027,11 @@ msgstr "Dikirim"
 #: inc/Services/TransactionDetailPageData.php
 msgid "Return"
 msgstr "Retur"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Contact Customer"
+msgstr "Hubungi Pelanggan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Copy AWB"
+msgstr "Salin Resi"

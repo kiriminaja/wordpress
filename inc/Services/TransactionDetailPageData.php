@@ -43,7 +43,9 @@ class TransactionDetailPageData {
 		$payment_label = $cod_fee > 0 ? __( 'COD', 'kiriminaja-official' ) : __( 'Non-COD', 'kiriminaja-official' );
 		$status        = (string) ( $transaction->status ?? 'new' );
 		$order_url     = $wc_order && method_exists( $wc_order, 'get_edit_order_url' ) ? (string) $wc_order->get_edit_order_url() : '';
-		$is_paid       = $wc_order && method_exists( $wc_order, 'is_paid' ) ? (bool) $wc_order->is_paid() : 'finished' === $status;
+		$wc_status     = $wc_order && method_exists( $wc_order, 'get_status' ) ? (string) $wc_order->get_status() : '';
+		$payment_status = $cod_fee > 0 ? '' : ( 'on-hold' === $wc_status ? __( 'Unpaid', 'kiriminaja-official' ) : __( 'Paid', 'kiriminaja-official' ) );
+		$courier_name  = kiriof_helper()->formatServiceName( $transaction->service ?? '', $transaction->service_name ?? '' );
 		$items         = $this->items( $wc_order );
 		$notes         = $this->notes( $wc_order );
 		$action_data   = $this->action_data( $transaction, $wc_order, $shipping, $insurance, $cod_fee );
@@ -95,9 +97,9 @@ class TransactionDetailPageData {
 				'items'         => $items,
 				'notes'         => $notes,
 				'shipment'      => array(
-					'courier'       => array( 'code' => strtolower( (string) ( $transaction->service ?? '' ) ), 'service' => (string) ( $transaction->service_name ?? $transaction->service ?? '' ) ),
+					'courier'       => array( 'code' => strtolower( (string) ( $transaction->service ?? '' ) ), 'service' => $courier_name ),
 					'awb'           => (string) ( $transaction->awb ?? '' ),
-					'isPaid'        => $is_paid,
+					'paymentStatus' => $payment_status,
 					'costs'         => array( 'shipping' => $shipping, 'insurance' => $insurance, 'codFee' => $cod_fee, 'discount' => $discount, 'total' => max( 0, $shipping + $insurance + $cod_fee - $discount ) ),
 					'codValue'      => $cod_value,
 					'printUrl'      => $print_url,
@@ -189,5 +191,5 @@ class TransactionDetailPageData {
 	/** @return array<string,mixed> */
 	private function toolbar_menu(): array { return array( 'label' => __( 'More actions', 'kiriminaja-official' ), 'items' => array( array( 'label' => __( 'Get Help', 'kiriminaja-official' ), 'href' => 'https://help.kiriminaja.com/category/plugin' ), array( 'label' => __( 'Go to Dashboard', 'kiriminaja-official' ), 'href' => 'https://app.kiriminaja.com' ) ) ); }
 	/** @return array<string,string> */
-	private function i18n(): array { return array( 'printLabel' => __( 'Print Label', 'kiriminaja-official' ), 'liveTracking' => __( 'Live Tracking', 'kiriminaja-official' ), 'sender' => __( 'Sender', 'kiriminaja-official' ), 'recipient' => __( 'Recipient', 'kiriminaja-official' ), 'package' => __( 'Package', 'kiriminaja-official' ), 'products' => __( 'Products', 'kiriminaja-official' ), 'orderNotes' => __( 'Order notes', 'kiriminaja-official' ), 'shipment' => __( 'Shipment', 'kiriminaja-official' ), 'airwaybill' => __( 'Airwaybill', 'kiriminaja-official' ), 'pickup' => __( 'Pickup', 'kiriminaja-official' ), 'dropoff' => __( 'Drop-off', 'kiriminaja-official' ), 'weight' => __( 'Weight', 'kiriminaja-official' ), 'dimensions' => __( 'Dimensions', 'kiriminaja-official' ), 'shipping' => __( 'Shipping', 'kiriminaja-official' ), 'insurance' => __( 'Insurance', 'kiriminaja-official' ), 'codFee' => __( 'COD Fee', 'kiriminaja-official' ), 'discount' => __( 'Discount', 'kiriminaja-official' ), 'total' => __( 'Total', 'kiriminaja-official' ), 'codValue' => __( 'COD value', 'kiriminaja-official' ), 'tracking' => __( 'Tracking history', 'kiriminaja-official' ), 'trackingEmpty' => __( 'No tracking history is available yet.', 'kiriminaja-official' ), 'trackingError' => __( 'Unable to load tracking history.', 'kiriminaja-official' ), 'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ), 'adjustDeficit' => __( 'Adjust Deficit', 'kiriminaja-official' ), 'cancel' => __( 'Cancel', 'kiriminaja-official' ) ); }
+	private function i18n(): array { return array( 'pickupId' => __( 'Pickup ID', 'kiriminaja-official' ), 'printLabel' => __( 'Print Label', 'kiriminaja-official' ), 'liveTracking' => __( 'Live Tracking', 'kiriminaja-official' ), 'sender' => __( 'Sender', 'kiriminaja-official' ), 'recipient' => __( 'Recipient', 'kiriminaja-official' ), 'contactCustomer' => __( 'Contact Customer', 'kiriminaja-official' ), 'package' => __( 'Package', 'kiriminaja-official' ), 'products' => __( 'Products', 'kiriminaja-official' ), 'orderNotes' => __( 'Order notes', 'kiriminaja-official' ), 'shipment' => __( 'Shipment', 'kiriminaja-official' ), 'airwaybill' => __( 'Airwaybill', 'kiriminaja-official' ), 'copyAwb' => __( 'Copy AWB', 'kiriminaja-official' ), 'pickup' => __( 'Pickup', 'kiriminaja-official' ), 'weight' => __( 'Weight', 'kiriminaja-official' ), 'dimensions' => __( 'Dimensions', 'kiriminaja-official' ), 'shipping' => __( 'Shipping', 'kiriminaja-official' ), 'insurance' => __( 'Insurance', 'kiriminaja-official' ), 'codFee' => __( 'COD Fee', 'kiriminaja-official' ), 'discount' => __( 'Discount', 'kiriminaja-official' ), 'total' => __( 'Total', 'kiriminaja-official' ), 'codValue' => __( 'COD value', 'kiriminaja-official' ), 'tracking' => __( 'Tracking history', 'kiriminaja-official' ), 'trackingEmpty' => __( 'No tracking history is available yet.', 'kiriminaja-official' ), 'trackingError' => __( 'Unable to load tracking history.', 'kiriminaja-official' ), 'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ), 'adjustDeficit' => __( 'Adjust Deficit', 'kiriminaja-official' ), 'cancel' => __( 'Cancel', 'kiriminaja-official' ) ); }
 }

@@ -1,105 +1,54 @@
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
 .kiriof-workspace-shell {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0 20px 48px;
+  @apply box-border w-full max-w-none m-0 [padding:0_20px_48px];
 }
 
 .kiriof-tooltip-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  @apply inline-flex items-center justify-center leading-none;
 }
 
 [data-slot='tooltip-content'].kiriof-tooltip-content {
-  box-sizing: border-box;
-  pointer-events: none;
-  width: max-content !important;
-  max-width: 18rem !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 6px 10px !important;
-  border: 0 !important;
-  border-radius: 6px !important;
-  background: #09090b !important;
-  color: #fff !important;
-  font-family: inherit !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  line-height: 18px !important;
-  text-align: center;
-  white-space: nowrap !important;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 24%) !important;
+  @apply box-border pointer-events-none ![width:max-content] ![max-width:18rem] !min-h-0 !m-0 ![padding:6px_10px] !border-0 !rounded-md ![background:#09090b] !text-white ![font-family:inherit] !text-xs !font-medium ![line-height:18px] text-center !whitespace-nowrap ![box-shadow:0_4px_12px_rgb(0_0_0_/_24%)];
 }
 
 .kiriof-tooltip-content .kiriof-tooltip-arrow {
-  display: block !important;
-  width: 12px !important;
-  height: 5px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  color: #09090b !important;
-  fill: #09090b !important;
-  background: transparent !important;
+  @apply !block !w-3 ![height:5px] !m-0 !p-0 ![color:#09090b] ![fill:#09090b] !bg-transparent;
 }
 
 .kiriof-tooltip-content .kiriof-tooltip-arrow [data-arrow] {
-  display: block !important;
-  width: 12px !important;
-  height: 5px !important;
-  margin: 0 !important;
-  fill: #09090b !important;
+  @apply !block !w-3 ![height:5px] !m-0 ![fill:#09090b];
 }
 
 .kiriof-tooltip-content[data-side='bottom'] .kiriof-tooltip-arrow {
-  margin-top: -1px !important;
+  @apply ![margin-top:-1px];
 }
 
 .kiriof-tooltip-content[data-side='top'] .kiriof-tooltip-arrow {
-  margin-bottom: -1px !important;
+  @apply ![margin-bottom:-1px];
 }
 
 .kiriof-loading-indicator {
   --kiriof-loading-progress: 0%;
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 100001;
-  height: 3px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 140ms ease;
+  @apply fixed top-0 right-0 left-0 z-100001 h-1 overflow-hidden opacity-0 pointer-events-none transition-opacity ease-in-out;
 }
 
 .kiriof-loading-indicator.is-active {
-  opacity: 1;
+  @apply opacity-100;
 }
 
 .kiriof-loading-indicator.is-finishing {
-  opacity: 0;
-  transition-delay: 90ms;
+  @apply opacity-0 delay-[90ms];
 }
 
 .kiriof-loading-indicator__bar {
-  display: block;
-  width: var(--kiriof-loading-progress);
-  height: 100%;
-  border-radius: 0 999px 999px 0;
-  background: linear-gradient(90deg, #7c3aed, #a855f7, #ec4899);
-  box-shadow:
-    0 0 8px rgb(124 58 237 / 75%),
-    0 0 16px rgb(168 85 247 / 45%);
-  transition: width 180ms ease-out;
+  @apply block w-(--kiriof-loading-progress) h-full rounded-[0_999px_999px_0] [background:linear-gradient(90deg,#7c3aed,#a855f7,#ec4899)] [box-shadow:0_0_8px_rgb(124_58_237_/_75%),0_0_16px_rgb(168_85_247_/_45%)] [transition:width_180ms_ease-out];
 }
 
 @media (prefers-reduced-motion: reduce) {
   .kiriof-loading-indicator,
   .kiriof-loading-indicator__bar {
-    transition-duration: 1ms !important;
+    @apply ![transition-duration:1ms];
   }
 }
 
@@ -111,344 +60,197 @@ body:has(.kiriof-workspace-shell) .update-nag,
 body:has(.kiriof-workspace-shell) .notice,
 body:has(.kiriof-workspace-shell) .updated,
 body:has(.kiriof-workspace-shell) .error {
-  display: none !important;
+  @apply hidden!;
 }
 
 body:has(.kiriof-workspace-shell) #wpcontent {
-  padding-left: 0 !important;
+  @apply pl-0!;
 }
 
 body:has(.kiriof-workspace-shell) #wpbody-content {
-  padding-bottom: 0 !important;
+  @apply pb-0!;
 }
 
 .kiriof-app-toolbar {
-  position: sticky;
-  top: 32px;
-  z-index: 20;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  min-height: 52px;
-  margin: 0 0 24px;
-  padding: 8px 0;
-  border-bottom: 1px solid #dcdcde;
-  background: rgb(255 255 255 / 94%);
-  backdrop-filter: blur(12px);
+  @apply sticky top-8 z-20 box-border flex items-center justify-between gap-4 w-full min-h-14 m-[0_0_24px] py-2 border-b bg-background/94 backdrop-blur-md;
 }
 
 .kiriof-workspace-shell .kiriof-app-toolbar {
-  width: calc(100% + 40px);
-  margin-right: -20px;
-  margin-left: -20px;
-  padding-right: 20px;
-  padding-left: 20px;
+  @apply w-[calc(100%+40px)] -mx-5 px-5;
 }
 
 .kiriof-app-toolbar__breadcrumbs,
 .kiriof-app-toolbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  @apply flex items-center gap-1.5;
 }
 
 .kiriof-app-toolbar__breadcrumbs {
-  min-width: 0;
-  color: var(--kiriof-muted, #646970);
-  font-size: 12px;
-  line-height: 1;
+  @apply min-w-0 text-muted-foreground text-xs leading-none;
 }
 
 .kiriof-app-toolbar__breadcrumbs a {
-  color: var(--kiriof-muted, #646970);
-  text-decoration: none;
+  @apply text-muted-foreground no-underline;
 }
 
 .kiriof-app-toolbar__breadcrumbs a:hover,
 .kiriof-app-toolbar__breadcrumbs a:focus-visible {
-  color: var(--kiriof-primary-strong, #37159f);
+  @apply text-foreground;
 }
 
 .kiriof-app-toolbar__breadcrumbs strong {
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply text-foreground text-sm font-bold text-ellipsis whitespace-nowrap;
 }
 
 .kiriof-app-toolbar__home {
-  display: inline-flex;
-  width: 26px;
-  height: 26px;
-  overflow: hidden;
-  border-radius: 7px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+  @apply inline-flex w-6 h-6 overflow-hidden rounded-[7px] shadow-sm;
 }
 
 .kiriof-app-toolbar__home img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  @apply block w-full h-full object-cover;
 }
 
 .kiriof-app-toolbar__actions {
-  flex-shrink: 0;
-  justify-content: flex-end;
-  margin-left: auto;
+  @apply shrink-0 justify-end ml-auto;
 }
 
 .kiriof-toolbar-menu {
-  position: relative;
-  display: inline-flex;
+  @apply relative inline-flex;
 }
 
 .kiriof-toolbar-menu__trigger {
-  display: inline-flex !important;
-  box-sizing: border-box;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
-  margin: 0;
-  padding: 0 !important;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--kiriof-muted, #646970);
-  line-height: 1;
-  cursor: pointer;
+  @apply inline-flex! box-border flex-none items-center justify-center w-8 [min-width:32px] h-8 min-h-8 m-0 !p-0 [border:1px_solid_transparent] rounded-md bg-transparent text-muted-foreground leading-none cursor-pointer;
 }
 
 .kiriof-toolbar-menu__trigger svg {
-  display: block;
-  flex-shrink: 0;
+  @apply block shrink-0;
 }
 
 .kiriof-toolbar-menu__trigger:hover,
 .kiriof-toolbar-menu__trigger:focus-visible,
 .kiriof-toolbar-menu__trigger[aria-expanded='true'] {
-  border-color: var(--kiriof-border, #ddd7ee);
-  background: var(--kiriof-primary-soft, #f5f0ff);
-  color: var(--kiriof-primary-strong, #37159f);
+  @apply border bg-secondary text-secondary-foreground;
 }
 
 .kiriof-toolbar-menu__trigger:focus-visible {
-  outline: 2px solid var(--kiriof-primary, #5c2ecb);
-  outline-offset: 1px;
+  @apply outline-2 outline-primary outline-offset-1;
 }
 
 .kiriof-toolbar-menu__dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 50;
-  display: grid;
-  min-width: 200px;
-  padding: 4px;
-  border: 1px solid var(--kiriof-border, #ddd7ee);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgb(36 27 61 / 14%);
+  @apply absolute [top:calc(100%_+_6px)] [right:0] [z-index:50] grid [min-width:200px] p-1 border rounded-lg bg-white [box-shadow:0_8px_24px_rgb(36_27_61_/_14%)];
 }
 
 .kiriof-toolbar-menu__dropdown a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  color: var(--kiriof-ink, #241b3d);
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
+  @apply flex items-center justify-between gap-3 [padding:8px_10px] rounded-md text-sm font-medium no-underline whitespace-nowrap;
 }
 
 .kiriof-toolbar-menu__dropdown a:hover,
 .kiriof-toolbar-menu__dropdown a:focus-visible {
-  background: var(--kiriof-primary-soft, #f5f0ff);
-  color: var(--kiriof-primary-strong, #37159f);
+  @apply bg-secondary text-secondary-foreground;
 }
 
 .kiriof-toolbar-menu__dropdown a svg {
-  flex-shrink: 0;
-  opacity: 0.6;
+  @apply shrink-0 [opacity:0.6];
 }
 
 .kiriof-plugin-update-trigger {
-  display: inline-flex;
-  min-height: 32px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  border: 1px solid #f3d98b;
-  border-radius: 999px;
-  background: #fff5d6;
-  color: #805b00;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease;
+  @apply inline-flex min-h-8 items-center gap-1.5 [padding:0_12px] [border:1px_solid_#f3d98b] [border-radius:999px] [background:#fff5d6] [color:#805b00] [font:inherit] text-xs [font-weight:650] leading-none cursor-pointer [transition:background-color_140ms_ease,border-color_140ms_ease,color_140ms_ease];
 }
 
 .kiriof-plugin-update-trigger:hover {
-  border-color: #e5bd55;
-  background: #ffefb7;
-  color: #634600;
+  @apply [border-color:#e5bd55] [background:#ffefb7] [color:#634600];
 }
 
 .kiriof-plugin-update-trigger:focus-visible {
-  outline: 2px solid #37159f;
-  outline-offset: 2px;
+  @apply [outline:2px_solid_#37159f] [outline-offset:2px];
 }
 
 .kiriof-plugin-update-dialog {
-  width: min(520px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  color: var(--foreground);
+  @apply [width:min(520px,calc(100vw_-_32px))] [max-height:calc(100vh_-_48px)] overflow-y-auto text-foreground;
 }
 
 .kiriof-plugin-update-dialog__heading {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding-right: 28px;
+  @apply flex items-start gap-3 [padding-right:28px];
 }
 
 .kiriof-plugin-update-dialog__icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #fff5d6;
-  color: #805b00;
+  @apply inline-flex flex-none items-center justify-center w-9 h-9 rounded-lg [background:#fff5d6] [color:#805b00];
 }
 
 .kiriof-plugin-update-dialog__eyebrow {
-  display: block;
-  margin-bottom: 5px;
-  color: #805b00;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
+  @apply block [margin-bottom:5px] [color:#805b00] [font-size:11px] font-bold [letter-spacing:0.02em] [line-height:1.2];
 }
 
 .kiriof-plugin-update-dialog [data-slot='dialog-title'] {
-  line-height: 1.25;
+  @apply [line-height:1.25];
 }
 
 .kiriof-plugin-update-dialog__details {
-  display: grid;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid #eadfbf;
-  border-radius: 8px;
-  background: #fffaf0;
-  color: #5e4b1d;
-  font-size: 13px;
-  line-height: 1.5;
+  @apply grid gap-2 [padding:12px_14px] [border:1px_solid_#eadfbf] rounded-lg [background:#fffaf0] [color:#5e4b1d] [font-size:13px] [line-height:1.5];
 }
 
 .kiriof-plugin-update-dialog__details p {
-  margin: 0;
+  @apply m-0;
 }
 
 .kiriof-plugin-update-dialog [data-slot='dialog-footer'] {
-  align-items: center;
-  flex-wrap: wrap;
+  @apply items-center flex-wrap;
 }
 
 .kiriof-plugin-update-dialog__primary,
 .kiriof-plugin-update-dialog__secondary,
 .kiriof-plugin-update-dialog__dismiss {
-  display: inline-flex;
-  min-height: 32px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border-radius: 8px;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
+  @apply inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg [padding:0_10px] [font-size:13px] font-semibold no-underline;
 }
 
 .kiriof-plugin-update-dialog__primary {
-  background: #5b21b6;
-  color: #fff;
+  @apply [background:#5b21b6] text-white;
 }
 
 .kiriof-plugin-update-dialog__primary:hover {
-  background: #4c1d95;
-  color: #fff;
+  @apply [background:#4c1d95] text-white;
 }
 
 .kiriof-plugin-update-dialog__secondary {
-  color: #37159f;
+  @apply [color:#37159f];
 }
 
 .kiriof-plugin-update-dialog__secondary:hover,
 .kiriof-plugin-update-dialog__dismiss:hover {
-  background: #f1edff;
+  @apply [background:#f1edff];
 }
 
 .kiriof-plugin-update-dialog__dismiss {
-  color: #646970;
+  @apply [color:#646970];
 }
 
 .kiriof-plugin-update-dialog__primary:focus-visible,
 .kiriof-plugin-update-dialog__secondary:focus-visible,
 .kiriof-plugin-update-dialog__dismiss:focus-visible {
-  outline: 2px solid #37159f;
-  outline-offset: 2px;
+  @apply [outline:2px_solid_#37159f] [outline-offset:2px];
 }
 
 @media (max-width: 782px) {
   .kiriof-app-toolbar {
-    top: 46px;
+    @apply [top:46px];
   }
 
   .kiriof-workspace-shell {
-    padding-right: 10px;
-    padding-left: 10px;
+    @apply [padding-right:10px] [padding-left:10px];
   }
 
   .kiriof-workspace-shell .kiriof-app-toolbar {
-    width: calc(100% + 20px);
-    margin-right: -10px;
-    margin-left: -10px;
-    padding-right: 10px;
-    padding-left: 10px;
+    @apply [width:calc(100%_+_20px)] [margin-right:-10px] [margin-left:-10px] [padding-right:10px] [padding-left:10px];
   }
 
   .kiriof-app-toolbar__actions {
-    gap: 5px;
+    @apply gap-1.5;
   }
 
   .kiriof-plugin-update-trigger {
-    padding: 0 9px;
+    @apply [padding:0_9px];
   }
 
   .kiriof-plugin-update-trigger span {
-    display: none;
+    @apply hidden;
   }
 }

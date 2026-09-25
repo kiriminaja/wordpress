@@ -4,6 +4,7 @@
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
   import Toolbar from '$lib/ui/Toolbar.svelte';
+  import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
   import { courierImage } from '../transactions/courier-images';
@@ -59,7 +60,7 @@
     {/each}
   </section>
 
-  <section class="kiriof-admin-list-card kiriof-pickup-detail-card">
+  <KiriofCard class="kiriof-pickup-detail-card">
     <div class="kiriof-pickup-detail-filterbar">
       <div>
         <strong>{bootstrap.toolbar.title}</strong>
@@ -136,5 +137,5 @@
         </Table.Body>
       </Table.Root>
     </div>
-  </section>
+  </KiriofCard>
 </div>

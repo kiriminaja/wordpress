@@ -19,20 +19,23 @@
   const $transactionCheckboxes = () => $('[name="transaction_id[]"]');
   const $requestPickupBtn = $("#kj-request-pickup-btn");
   const $printBtn = $("#kj-print-btn");
-  const kjRequestPickupLabel = config.i18n.requestPickup;
-  const kjPrintLabel = config.i18n.print;
-  const kjPickScheduleLabel = config.i18n.pickSchedule;
-  const kjConfirmPinLabel = config.i18n.confirmPin;
-  const kjValidateLabel = config.i18n.validate;
+  const i18n = config.i18n || {};
+  const pinCache = config.pinCache || {};
+  const urls = config.urls || {};
+  const kjRequestPickupLabel = i18n.requestPickup || "Request Pickup";
+  const kjPrintLabel = i18n.print || "Print";
+  const kjPickScheduleLabel = i18n.pickSchedule || "Pick Schedule";
+  const kjConfirmPinLabel = i18n.confirmPin || "Confirm PIN";
+  const kjValidateLabel = i18n.validate || "Validate";
   const kjPinCacheConfig = {
-    key: config.pinCache.key,
-    ttl: config.pinCache.ttl,
-    userHash: config.pinCache.userHash,
-    siteHash: config.pinCache.siteHash,
-    rememberLabel: config.i18n.pinRemembered,
-    expiredLabel: config.i18n.pinExpired,
-    invalidatedLabel: config.i18n.pinInvalidated,
-    unsupportedLabel: config.i18n.pinUnsupported,
+    key: pinCache.key || "",
+    ttl: pinCache.ttl || 0,
+    userHash: pinCache.userHash || "",
+    siteHash: pinCache.siteHash || "",
+    rememberLabel: i18n.pinRemembered || "",
+    expiredLabel: i18n.pinExpired || "",
+    invalidatedLabel: i18n.pinInvalidated || "",
+    unsupportedLabel: i18n.pinUnsupported || "",
   };
   const kjUpdateRequestPickupCount = () => {
     const pickupCount = $transactionCheckboxes().filter(
@@ -482,7 +485,7 @@
     });
 
     if (orderIds.length === 0) {
-      alert(config.i18n.noSelectedTransaction);
+      alert(i18n.noSelectedTransaction);
       return;
     }
 
@@ -516,7 +519,7 @@
           kiriofSetModalState($modal, "error");
           $modal
             .find(".kiriof-backbone-modal-error-text")
-            .text(resp?.message ?? config.i18n.genericError);
+            .text(resp?.message ?? i18n.genericError);
           return;
         }
 
@@ -524,7 +527,7 @@
           const pickupNumber = encodeURIComponent(
             resp?.data?.pickup_number || "",
           );
-          const redirectBase = `${config.urls.pickup}&pickup_number=${pickupNumber}`;
+          const redirectBase = `${urls.pickup}&pickup_number=${pickupNumber}`;
           const shouldOpenPayment =
             resp?.data?.open_payment === true ||
             resp?.data?.open_payment === 1 ||
@@ -578,7 +581,7 @@
         if (schedules.length === 0) {
           $modal
             .find(".err_msg")
-            .text("*" + config.i18n.noSchedule)
+            .text("*" + i18n.noSchedule)
             .show();
         }
 
@@ -614,7 +617,7 @@
           $modal.find(".kiriof-payment-method-section").hide();
           $modal.data("kiriofPaymentConfigLoaded", true);
           $modal.data("kiriofPaymentRequired", false);
-          $stateBanner.text(config.i18n.codOnlyNoPayment).show();
+          $stateBanner.text(i18n.codOnlyNoPayment).show();
           kjUpdatePickupButton($modal);
           return;
         }
@@ -623,7 +626,7 @@
           $modal.find(".kiriof-payment-method-section").hide();
           $modal.data("kiriofPaymentConfigLoaded", true);
           $modal.data("kiriofPaymentRequired", false);
-          $stateBanner.text(config.i18n.topNoPayment).show();
+          $stateBanner.text(i18n.topNoPayment).show();
           kjUpdatePickupButton($modal);
           return;
         }
@@ -645,9 +648,9 @@
           $modal.find("#kiriof-pm-credit").prop("disabled", true);
           $creditWarning
             .html(
-              config.i18n.pinNotConfigured +
+              i18n.pinNotConfigured +
                 ' <a href="https://app.kiriminaja.com/settings/profile?tab=keamanan&action=pin" target="_blank">' +
-                config.i18n.configurePin +
+                i18n.configurePin +
                 "</a>",
             )
             .show();
@@ -676,9 +679,9 @@
               if (hasPin) {
                 $creditWarning
                   .html(
-                    config.i18n.insufficientCredit +
+                    i18n.insufficientCredit +
                       ' <a href="https://app.kiriminaja.com/credit/top-up" target="_blank">' +
-                      config.i18n.topUpNow +
+                      i18n.topUpNow +
                       "</a>",
                   )
                   .show();
@@ -767,7 +770,7 @@
     });
 
     if (selectedOrderIds.length === 0) {
-      alert(config.i18n.noPrintSelection);
+      alert(i18n.noPrintSelection);
       return;
     }
 
@@ -829,15 +832,15 @@
   function kjRenderPinLockError($modal, lockUntil, message) {
     const cooldown = kjFormatPinLockCountdown(lockUntil);
     const description = cooldown
-      ? `${config.i18n.pinWait} <span class="kiriof-pin-cooldown">${cooldown}</span> ${config.i18n.toTryAgain}`
-      : message || config.i18n.pinLocked;
+      ? `${i18n.pinWait} <span class="kiriof-pin-cooldown">${cooldown}</span> ${i18n.toTryAgain}`
+      : message || i18n.pinLocked;
 
     $modal
       .find(".kiriof-pin-error")
       .attr("data-tone", "critical")
       .html(
         "<strong>" +
-          config.i18n.tooManyAttempts +
+          i18n.tooManyAttempts +
           "</strong><br>" +
           description,
       )
@@ -851,7 +854,7 @@
     }
 
     $modal.find("#kiriof-pin-widget, #kiriof-pin-fallback").hide();
-    $modal.find("#btn-next").text(config.i18n.back).prop("disabled", false);
+    $modal.find("#btn-next").text(i18n.back).prop("disabled", false);
     kjRenderPinLockError($modal, lockUntil, message);
 
     const timer = setInterval(function () {
@@ -892,11 +895,11 @@
     const retryText =
       attempt > 0 && maxAttempt > 0
         ? '<div class="kiriof-pin-retry-text">' +
-          config.i18n.pinRemainingPrefix +
+          i18n.pinRemainingPrefix +
           " <strong>" +
           remaining +
           "</strong> " +
-          config.i18n.pinRemainingSuffix +
+          i18n.pinRemainingSuffix +
           "</div>"
         : "";
 
@@ -905,9 +908,9 @@
       .attr("data-tone", "critical")
       .html(
         "<strong>" +
-          config.i18n.incorrectPin +
+          i18n.incorrectPin +
           "</strong><br>" +
-          (message || config.i18n.checkPin) +
+          (message || i18n.checkPin) +
           retryText,
       )
       .show();
@@ -942,7 +945,7 @@
           const errCode = resp?.data?.error_code;
           if (errCode === "BALANCE_NOT_ENOUGH") {
             kiriofSetModalState($modal, "content");
-            $errMsg.text("*" + config.i18n.insufficientBalance).show();
+            $errMsg.text("*" + i18n.insufficientBalance).show();
           } else if (
             errCode === "PIN_INVALID" ||
             errCode === "PIN_MAX_ATTEMPT_REACHED"
@@ -953,7 +956,7 @@
           } else {
             kiriofSetModalState($modal, "content");
             $errMsg
-              .text("*" + (resp?.message || config.i18n.somethingWrong))
+              .text("*" + (resp?.message || i18n.somethingWrong))
               .show();
           }
           kjUpdatePickupButton($modal);
@@ -968,7 +971,7 @@
           resp?.data?.open_payment === true ||
           resp?.data?.open_payment === 1 ||
           resp?.data?.open_payment === "1";
-        const redirectBase = `${config.urls.pickup}&pickup_number=${pickupNumber}`;
+        const redirectBase = `${urls.pickup}&pickup_number=${pickupNumber}`;
         window.location.href = shouldOpenPayment
           ? `${redirectBase}&open_payment=1`
           : redirectBase;
@@ -1061,12 +1064,12 @@
         const pin = kjGetPinValue($modal);
 
         if (!schedule) {
-          $errMsg.text("*" + config.i18n.selectSchedule).show();
+          $errMsg.text("*" + i18n.selectSchedule).show();
           return;
         }
 
         if ($modal.data("kiriofPaymentRequired") === true && !paymentMethod) {
-          $errMsg.text("*" + config.i18n.selectPayment).show();
+          $errMsg.text("*" + i18n.selectPayment).show();
           return;
         }
 
@@ -1089,7 +1092,7 @@
         if (paymentMethod === "credit" && (!pin || pin.length !== 6)) {
           $modal
             .find(".kiriof-pin-error")
-            .text("*" + config.i18n.sixDigitPin)
+            .text("*" + i18n.sixDigitPin)
             .show();
           kjUpdatePickupButton($modal);
           return;
@@ -1119,14 +1122,14 @@
                   kjShowPinError(
                     $modal,
                     pinErr || {},
-                    pinData?.message || config.i18n.pinMaxAttempts,
+                    pinData?.message || i18n.pinMaxAttempts,
                   );
                   $modal.find("#kiriof-pm-credit").prop("disabled", true);
                 } else {
                   kjShowPinError(
                     $modal,
                     pinErr || {},
-                    pinData?.message || config.i18n.incorrectPinPeriod,
+                    pinData?.message || i18n.incorrectPinPeriod,
                   );
                 }
                 kjUpdatePickupButton($modal);
@@ -1167,15 +1170,15 @@
         const orderId = data?.order_id || "";
 
         if (reason.length < 5) {
-          $errMsg.text(config.i18n.reasonMin).show();
+          $errMsg.text(i18n.reasonMin).show();
           return;
         }
         if (reason.length > 200) {
-          $errMsg.text(config.i18n.reasonMax).show();
+          $errMsg.text(i18n.reasonMax).show();
           return;
         }
 
-        if (!confirm(config.i18n.confirmCancel)) {
+        if (!confirm(i18n.confirmCancel)) {
           return;
         }
 
@@ -1203,13 +1206,13 @@
               $modal.find("form").css("opacity", 1);
               $modal.find("#btn-next").prop("disabled", false);
               $errMsg
-                .text("*" + (resp?.message ?? config.i18n.errorOccurred))
+                .text("*" + (resp?.message ?? i18n.errorOccurred))
                 .show();
               return;
             }
 
             closeModal();
-            alert(resp?.message ?? config.i18n.cancelSuccess);
+            alert(resp?.message ?? i18n.cancelSuccess);
             window.location.reload();
           },
         });

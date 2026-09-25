@@ -14,7 +14,6 @@ import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
 import type { TransactionsBootstrap } from '../lib/transactions/types';
 import type { TransactionDetailBootstrap } from '../lib/transaction-detail/types';
-import shadcnStyles from '../styles/shadcn-onboarding.css?inline';
 import toolbarStyles from '../styles/toolbar.css?inline';
 import adminListStyles from '../styles/admin-list.css?inline';
 import paymentsStyles from '../styles/payments-list.css?inline';
@@ -149,13 +148,7 @@ function installWorkspaceStyles(): void {
 
   const style = document.createElement('style');
   style.dataset.kiriofWorkspaceStyles = 'true';
-  style.textContent = [
-    shadcnStyles,
-    toolbarStyles,
-    adminListStyles,
-    paymentsStyles,
-    settingsStyles,
-  ].join('\n');
+  style.textContent = [toolbarStyles, adminListStyles, paymentsStyles, settingsStyles].join('\n');
   document.head.append(style);
 }
 

@@ -20,6 +20,8 @@ export default defineConfig({
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'order-metabox': 'src/entries/order-metabox.ts',
         'admin-workspace': 'src/entries/admin-workspace.ts',
+        'kiriof-var': 'src/entries/kiriof-var.css',
+        'kiriof-component': 'src/entries/kiriof-component.css',
       },
       output: {
         assetFileNames: 'kiriminaja-[name][extname]',

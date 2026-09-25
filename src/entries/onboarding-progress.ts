@@ -1,7 +1,6 @@
 import { mount } from 'svelte';
 import OnboardingApp from '../lib/onboarding/OnboardingApp.svelte';
 import type { OnboardingBootstrap } from '../lib/onboarding/types';
-import '../styles/shadcn-onboarding.css';
 import '../styles/kj-onboarding-svelte.css';
 
 const host = document.querySelector<HTMLElement>('[data-kiriof-onboarding-app]');

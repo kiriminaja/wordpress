@@ -46,24 +46,45 @@ class Enqueue extends BaseInit{
 	 *
 	 * @return void
 	 */
+	/**
+	 * Enqueue the Kiriof design tokens and component contracts shared by all
+	 * plugin admin pages. Page styles may add layout only; they must not own
+	 * component geometry or theme variables.
+	 *
+	 * @return void
+	 */
+	private function enqueue_kiriof_design_system(): void {
+		$var_style       = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-kiriof-var.css';
+		$component_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-kiriof-component.css';
+
+		if ( file_exists( $var_style ) ) {
+			wp_enqueue_style(
+				'kiriof-var-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-kiriof-var.css',
+				array(),
+				(string) filemtime( $var_style )
+			);
+		}
+
+		if ( file_exists( $component_style ) ) {
+			wp_enqueue_style(
+				'kiriof-component-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-kiriof-component.css',
+				file_exists( $var_style ) ? array( 'kiriof-var-style' ) : array(),
+				(string) filemtime( $component_style )
+			);
+		}
+	}
+
 	private function enqueue_workspace_style(): void {
+		$this->enqueue_kiriof_design_system();
 		$workspace_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
 		$admin_list_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
-		$shadcn_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
 		if ( ! file_exists( $workspace_style ) ) {
 			return;
 		}
 
-		$dependencies = array();
-		if ( file_exists( $shadcn_style ) ) {
-			wp_enqueue_style(
-				'kiriof-workspace-shadcn-style',
-				$this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css',
-				array(),
-				(string) filemtime( $shadcn_style )
-			);
-			$dependencies[] = 'kiriof-workspace-shadcn-style';
-		}
+		$dependencies = wp_style_is( 'kiriof-component-style', 'enqueued' ) ? array( 'kiriof-component-style' ) : array();
 		if ( file_exists( $admin_list_style ) ) {
 			wp_enqueue_style(
 				'kiriof-workspace-admin-list-style',
@@ -373,9 +394,13 @@ class Enqueue extends BaseInit{
         wp_enqueue_script( 'heartbeat' );
 
         wp_enqueue_style( 'list-tables' );
+        add_filter( 'admin_body_class', static function ( string $classes ): string {
+            return trim( $classes . ' kiriof-admin' );
+        } );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
-        wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style' ), KIRIOF_VERSION, 'all' );
+        $this->enqueue_kiriof_design_system();
+        wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style', 'kiriof-component-style' ), KIRIOF_VERSION, 'all' );
 
 
 
@@ -598,20 +623,12 @@ class Enqueue extends BaseInit{
 		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
 		if ( file_exists( $progress_script ) ) {
 			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
-			$shadcn_style   = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
-			if ( file_exists( $shadcn_style ) ) {
-				wp_enqueue_style(
-					'kiriof-shadcn',
-					$this->plugin_url . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css',
-					array(),
-					(string) filemtime( $shadcn_style )
-				);
-			}
+			$this->enqueue_kiriof_design_system();
 			if ( file_exists( $progress_style ) ) {
 				wp_enqueue_style(
 					'kiriof-onboarding-progress',
 					$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.css',
-					file_exists( $shadcn_style ) ? array( 'kiriof-shadcn' ) : array(),
+					wp_style_is( 'kiriof-component-style', 'enqueued' ) ? array( 'kiriof-component-style' ) : array(),
 					(string) filemtime( $progress_style )
 				);
 			}

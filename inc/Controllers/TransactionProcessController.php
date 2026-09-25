@@ -1512,6 +1512,6 @@ class TransactionProcessController
         {
             $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page slug check, no data processed
 
-            return 'kiriminaja-transaction' === $page;
+            return in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true );
         }
     }
