@@ -236,7 +236,7 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringContainsString( '<div class="kiriof-replacement-consent-wrap"', $source );
         $this->assertStringNotContainsString( '<p class="kiriof-replacement-consent-wrap"', $source );
         $this->assertStringContainsString( '.kiriof-replacement-consent-wrap label', $css );
-        $this->assertStringContainsString( '.kiriof-replacement-consent-wrap input[type="checkbox"]', $css );
+        $this->assertMatchesRegularExpression( '/\.kiriof-replacement-consent-wrap\s+input\[type=[\'\"]checkbox[\'\"]\]/', $css );
         $this->assertStringContainsString( 'position: static !important;', $css );
         $this->assertStringContainsString( 'float: none !important;', $css );
         $this->assertStringContainsString( 'clear: both;', $css );

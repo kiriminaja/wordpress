@@ -26,7 +26,8 @@ final class LegacyAdminCssAssetsTest extends TestCase
         $admin_css = file_get_contents( PLUGIN_DIR . '/assets/admin/css/kj-admin-style.css' );
 
         $this->assertFileExists( PLUGIN_DIR . '/assets/admin/css/kj-admin-style.css' );
-        $this->assertStringContainsString( '.kiriof-payment-summary-row', $admin_css );
+        $this->assertStringContainsString( '.wc-backbone-modal.kiriof-change-origin-modal', $admin_css );
+        $this->assertStringNotContainsString( '.kiriof-payment-summary-row', $admin_css );
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/css/bootstrap-grid.css' );
         $this->assertStringNotContainsString( 'kiriof-grid-style', $enqueue );
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/templates/request-pickup/view/modal-request-pickup.php' );
