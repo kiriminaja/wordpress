@@ -167,7 +167,7 @@ class TransactionDetailPageData
                     $transaction->id),
             "menu" => $this->toolbar_menu(),
         ];
-        $toolbar_update = new PluginUpdateNoticeService()->get_toolbar_update();
+        $toolbar_update = ( new PluginUpdateNoticeService(  ) )->get_toolbar_update();
         if ($toolbar_update) {
             $toolbar["update"] = $toolbar_update;
         }
