@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import {
         IconBox,
+        IconCashBanknoteEdit,
         IconCheck,
         IconCircleCheck,
         IconExternalLink,
@@ -9,8 +10,8 @@
         IconPackage,
         IconPhone,
         IconPrinter,
-        IconRefresh,
         IconRoute,
+        IconSwitch2,
         IconTruck,
         IconUser,
         IconX,
@@ -237,7 +238,7 @@
                                             data: transaction.actions.data,
                                         })}
                                 >
-                                    <IconMapPin data-icon="inline-start" />
+                                    <IconSwitch2 data-icon="inline-start" />
                                     {i18n.changeOrigin}
                                 </Button>
                             </Card.Action>
@@ -521,8 +522,9 @@
                                     kind: "adjust-deficit",
                                     data: transaction.actions.data,
                                 })}
-                            ><IconRefresh
+                            ><IconCashBanknoteEdit
                                 data-icon="inline-start"
+                                class="text-warning"
                             />{i18n.adjustDeficit}</Button
                         >
                     {/if}

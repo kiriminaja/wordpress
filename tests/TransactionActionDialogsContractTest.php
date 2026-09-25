@@ -269,12 +269,24 @@ final class TransactionDetailActionRefreshTest extends TestCase
         $this->assertStringContainsString( 'onNavigate?: (href: string | URL)', $detail );
         $this->assertStringContainsString( 'onNavigate(window.location.href)', $detail );
         $this->assertStringNotContainsString( 'window.location.assign(bootstrap.toolbar.rootUrl)', $detail );
-        $this->assertStringContainsString( 'props: { bootstrap, onNavigate: navigate }', $entry );
+        $this->assertStringContainsString( 'onNavigate: navigate', $entry );
     }
 }
 
 final class TransactionDetailCodAdjustmentRefreshTest extends TestCase
 {
+    #[Test]
+    public function transaction_actions_use_specific_origin_and_warning_colored_deficit_icons(): void
+    {
+        $list = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
+        $detail = file_get_contents( PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte' );
+
+        $this->assertStringContainsString( '<IconSwitch2 />', $list );
+        $this->assertStringContainsString( '<IconSwitch2 data-icon="inline-start" />', $detail );
+        $this->assertStringContainsString( '<IconCashBanknoteEdit class="text-warning" />', $list );
+        $this->assertMatchesRegularExpression( '/<IconCashBanknoteEdit\s+data-icon="inline-start"\s+class="text-warning"\s*\/>/', $detail );
+    }
+
     #[Test]
     public function successful_cod_adjustment_refreshes_the_current_detail_workspace_route(): void
     {

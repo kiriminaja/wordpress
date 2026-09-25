@@ -217,7 +217,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'kiriof-app-toolbar', $toolbarStyles );
 		$this->assertStringContainsString( 'kiriof-app-toolbar__actions', $toolbarStyles );
 		$this->assertStringContainsString( 'py-2', $toolbarStyles );
-		$this->assertStringContainsString( "import toolbarStyles from '../styles/toolbar.css?inline'", $entry );
+		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .update-nag', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) .notice', $toolbarStyles );
 		$this->assertStringContainsString( 'body:has(.kiriof-workspace-shell) #wpcontent', $toolbarStyles );

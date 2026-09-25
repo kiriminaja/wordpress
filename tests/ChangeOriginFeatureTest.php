@@ -88,7 +88,7 @@ class ChangeOriginFeatureTest extends TestCase {
 		$this->assertStringContainsString( "'currentLocationId'", $factory );
 		$this->assertStringContainsString( "'currentOrigin'", $factory );
 		$this->assertStringContainsString( '{#if row.actions.changeOrigin}', $template );
-		$this->assertStringContainsString( '<IconMapPin />', $template );
+		$this->assertStringContainsString( '<IconSwitch2 />', $template );
 		$this->assertStringContainsString( "action: 'kiriof_change_origin_check'", $dialog );
 		$this->assertStringContainsString( "action: 'kiriof_change_origin'", $dialog );
     }

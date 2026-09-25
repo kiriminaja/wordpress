@@ -232,7 +232,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '{#if hasActiveFilters}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'aria-label={bootstrap.i18n.apply}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "import toolbarStyles from '../styles/toolbar.css?inline'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
+		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
 		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( '!flex', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
@@ -258,13 +258,26 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-payments-payload', $workspace );
 		$this->assertStringContainsString( 'data-kiriof-settings-payload', $workspace );
-		$this->assertStringContainsString( 'installWorkspaceStyles', $workspace );
+		$this->assertStringContainsString( 'preloadRoute', $workspace );
+		$this->assertStringContainsString( 'await preloadRoute(route, source)', $workspace );
+		$this->assertStringContainsString( 'if (navigationController.signal.aborted) return;', $workspace );
+		$this->assertLessThan(
+			30000,
+			filesize( PLUGIN_DIR . '/assets/admin/dist/kiriminaja-admin-workspace.js' ),
+			'The workspace entry should stay small; route components belong in separate chunks.'
+		);
+		$this->assertNotEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/TransactionsApp-*.js' ) );
+		$this->assertNotEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/PaymentsList-*.js' ) );
 		$this->assertStringContainsString( 'data-kiriof-loading-indicator', $workspace );
 		$this->assertStringContainsString( 'startLoadingIndicator()', $workspace );
 		$this->assertStringContainsString( 'finishLoadingIndicator()', $workspace );
 		$this->assertStringContainsString( '.kiriof-loading-indicator', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( "admin-list.css?inline", $workspace );
+		$this->assertStringContainsString( "import '../styles/admin-list.css'", $workspace );
+		$this->assertStringNotContainsString( 'data-kiriof-workspace-styles', $workspace );
+		$this->assertStringContainsString( "'kiriof-admin-workspace',", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
+		$this->assertStringContainsString( "import('../lib/transactions/TransactionsApp.svelte')", $workspace );
+		$this->assertStringContainsString( "import('../lib/payments/PaymentsList.svelte')", $workspace );
 		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '"autoRefresh"', $renderer );
 		$this->assertStringContainsString( '"refreshLabels"', $renderer );

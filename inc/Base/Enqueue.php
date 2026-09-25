@@ -36,7 +36,7 @@ class Enqueue extends BaseInit{
 			$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-workspace.js',
 			$dependencies,
 			(string) filemtime( $workspace_script ),
-			true
+			false
 		);
 		wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' );
 	}

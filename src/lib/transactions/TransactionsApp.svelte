@@ -6,16 +6,16 @@
     IconArrowBackUp,
     IconCalendar,
     IconCash,
+    IconCashBanknoteEdit,
     IconCircleCheck,
     IconClock,
     IconCreditCard,
     IconEye,
-    IconMapPin,
     IconPackage,
     IconPlane,
     IconPrinter,
-    IconRefresh,
     IconSearch,
+    IconSwitch2,
     IconListNumbers,
     IconChevronDown,
     IconTrash,
@@ -459,10 +459,10 @@
                       <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.changeOrigin}
-                      <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })} aria-label={bootstrap.i18n.changeOrigin}><IconMapPin /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })} aria-label={bootstrap.i18n.changeOrigin}><IconSwitch2 /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.adjustDeficit}
-                      <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'adjust-deficit', data: row.actionData })} aria-label={bootstrap.i18n.adjustDeficit}><IconRefresh /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'adjust-deficit', data: row.actionData })} aria-label={bootstrap.i18n.adjustDeficit}><IconCashBanknoteEdit class="text-warning" /></Button></ActionTooltip>
                       <ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel-deficit', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>
                     {:else}
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
