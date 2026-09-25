@@ -42,7 +42,7 @@
   content: '';
 }
 .kiriof-courier-trigger {
-  @apply !box-border !flex ![width:100%] !items-center !justify-start !gap-2 ![height:34px] !min-h-8 !rounded-[var(--radius)] !border-input !bg-white !text-foreground ![font-size:13px] ![padding-right:10px] ![padding-left:9px];
+  @apply !box-border !flex ![width:100%] !items-center !justify-start !gap-2 ![height:34px] !min-h-8 !rounded-[var(--radius)] !border-border !bg-white !text-foreground ![font-size:13px] ![padding-right:10px] ![padding-left:9px];
 }
 .kiriof-courier-trigger > span:first-child {
   @apply !gap-1.5;
@@ -60,7 +60,7 @@
   @apply !ml-auto !block !w-4 !h-4 !shrink-0 !text-muted-foreground;
 }
 .kiriof-transactions-filterrow [data-slot='button-group'] [data-slot='button'] {
-  @apply ![width:34px] ![min-width:34px] ![height:34px] !min-h-8 !p-0 !border-input !bg-white !text-foreground;
+  @apply ![width:34px] ![min-width:34px] ![height:34px] !min-h-8 !p-0 !border-border !bg-white !text-foreground;
 }
 .kiriof-transactions-filterrow [data-slot='button-group'] [data-slot='button']:hover {
   @apply border bg-secondary! text-secondary-foreground!;
@@ -72,7 +72,7 @@
   @apply !bg-muted !text-muted-foreground !text-xs !font-medium [text-transform:none];
 }
 .kiriof-transactions-app [data-slot='checkbox'] {
-  @apply !relative !inline-flex !w-4 ![min-width:16px] !h-4 ![min-height:16px] !items-center !justify-center !m-0 !p-0 !border border-input !rounded !bg-white !text-white !shadow-none !appearance-none;
+  @apply !relative !inline-flex !w-4 ![min-width:16px] !h-4 ![min-height:16px] !items-center !justify-center !m-0 !p-0 !border border-border !rounded !bg-white !text-white !shadow-none !appearance-none;
 }
 .kiriof-transactions-app [data-slot='checkbox'][data-state='checked'],
 .kiriof-transactions-app [data-slot='checkbox'][data-state='indeterminate'] {
@@ -270,7 +270,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 /* Auto-refresh is one segmented control: the button owns the left edge and
    the popover trigger owns the adjoining chevron edge. */
 .kiriof-auto-refresh {
-  @apply !shrink-0 !gap-0 !m-0 !border !border-input !rounded-[var(--radius)] !bg-white !p-0 !shadow-none !overflow-hidden;
+  @apply !shrink-0 !gap-0 !m-0 !border !border-border !rounded-[var(--radius)] !bg-white !p-0 !shadow-none !overflow-hidden;
 }
 /* Child borders belong to the group, not to each segment. */
 .kiriof-auto-refresh > [data-slot='button']:first-child {
@@ -347,7 +347,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   @apply !min-h-8 !pt-0 !pb-0;
 }
 .kiriof-admin-list-app [data-slot='select-trigger'] {
-  @apply !flex !items-center !justify-start !gap-2 !border-input !bg-white !text-foreground;
+  @apply !flex !items-center !justify-start !gap-2 !border-border !bg-white !text-foreground;
 }
 .kiriof-admin-list-app [data-slot='select-trigger'] > svg {
   @apply !w-4 !h-4;
@@ -360,7 +360,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   @apply !absolute ![width:1px] !min-w-0 ![height:1px] !min-h-0 ![margin:-1px] !p-0 !overflow-hidden ![clip:rect(0_0_0_0)] ![clip-path:inset(50%)] !border-0 !whitespace-nowrap !appearance-none;
 }
 .kiriof-admin-list-app [data-slot='input-group'] {
-  @apply !flex !items-center !min-h-8 !border-input !bg-white;
+  @apply !flex !items-center !min-h-8 !border-border !bg-white;
 }
 .kiriof-admin-list-app [data-slot='input-group-addon'] {
   @apply !flex !items-center !justify-center ![align-self:stretch] !min-h-8 !m-0 !pt-0 !pb-0;

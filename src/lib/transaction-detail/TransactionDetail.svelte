@@ -274,85 +274,38 @@
             </section>
 
             <KiriofCard>
-                <Card.Header class="p-3 border-b">
-                    <Card.Title><IconPackage />{i18n.package}</Card.Title>
-                </Card.Header>
-                <Card.Content
-                    class="!grid grid-cols-2 gap-3 !px-4 !py-4 text-sm"
-                    ><div class="!grid gap-1">
-                        <span class="text-xs text-muted-foreground"
-                            >{i18n.weight}</span
-                        ><strong class="font-semibold text-foreground"
-                            >{transaction.package.weight} g</strong
-                        >
+                <Card.Header class="!flex !items-center !justify-between gap-3 p-3 border-b">
+                    <Card.Title><IconPackage />{i18n.detailPackageProduct ?? 'Detail Package & Product'}</Card.Title>
+                    <div class="!flex shrink-0 items-center gap-2 text-xs">
+                        <span class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-900">{transaction.package.weight} g</span>
+                        <span class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-900">{transaction.package.length} × {transaction.package.width} × {transaction.package.height} cm</span>
                     </div>
-                    <div class="!grid gap-1">
-                        <span class="text-xs text-muted-foreground"
-                            >{i18n.dimensions}</span
-                        ><strong class="font-semibold text-foreground"
-                            >{transaction.package.length} × {transaction.package
-                                .width} × {transaction.package.height} cm</strong
-                        >
-                    </div></Card.Content
-                >
-            </KiriofCard>
-
-            <KiriofCard>
-                <Card.Header class="p-3 border-b">
-                    <Card.Title><IconBox />{i18n.products}</Card.Title>
                 </Card.Header>
-                <Card.Content class="!px-4 !py-1">
-                    {#if transaction.items.length === 0}<p
-                            class="py-3 text-sm text-muted-foreground"
-                        >
-                            —
-                        </p>{/if}
-                    {#each transaction.items as item}<div
-                            class="!grid grid-cols-[minmax(0,1fr)_auto_auto] !items-center gap-4 border-t border-border py-3 text-sm first:border-0"
-                        >
-                            <span class="!grid gap-1"
-                                ><strong class="font-semibold text-foreground"
-                                    >{item.name}</strong
-                                >{#if item.sku}<small
-                                        class="text-xs text-muted-foreground"
-                                        >SKU: {item.sku}</small
-                                    >{/if}</span
-                            ><span>× {item.quantity}</span><strong
-                                class="font-semibold text-foreground"
-                                >{currency(item.total)}</strong
-                            >
-                        </div>{/each}
-                </Card.Content>
-            </KiriofCard>
-
-            <KiriofCard>
-                <Card.Header class="p-3 border-b">
-                    <Card.Title
-                        ><IconExternalLink
-                        />{transaction.orderNumber}</Card.Title
-                    >
-                    {#if transaction.orderUrl}<Card.Action
-                            ><a
-                                class="!inline-flex !items-center gap-1.5 text-xs font-semibold text-primary no-underline"
-                                href={transaction.orderUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >{i18n.openOrder}<IconExternalLink /></a
-                            ></Card.Action
-                        >{/if}
-                </Card.Header>
-                <Card.Content
-                    class="!grid gap-3 !px-4 !py-4 text-sm text-muted-foreground"
-                >
-                    {#if transaction.notes.length === 0}<p>—</p>{/if}
-                    {#each transaction.notes as note}<div class="!grid gap-1">
-                            <strong class="text-xs text-muted-foreground"
-                                >{note.label}</strong
-                            >
-                            <p class="text-sm leading-relaxed text-foreground">
-                                {note.content}
-                            </p>
-                        </div>{/each}
+                <Card.Content class="!grid gap-3 !px-4 !py-4">
+                    <div class="!grid gap-2">
+                        {#if transaction.items.length === 0}<p class="m-0 text-sm text-muted-foreground">—</p>{/if}
+                        {#each transaction.items as item}
+                            <div class="!flex min-w-0 !items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                                {#if item.imageUrl}
+                                    <img class="size-12 shrink-0 rounded-md border border-border object-cover" src={item.imageUrl} alt="" />
+                                {:else}
+                                    <span class="!grid size-12 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><IconBox /></span>
+                                {/if}
+                                <span class="!grid min-w-0 flex-1 gap-0.5"><strong class="truncate font-semibold text-foreground">{item.name}</strong>{#if item.sku}<small class="text-xs text-muted-foreground">SKU: {item.sku}</small>{/if}</span>
+                                <span class="shrink-0 text-muted-foreground">× {item.quantity}</span>
+                                <strong class="shrink-0 font-semibold text-foreground">{currency(item.total)}</strong>
+                            </div>
+                        {/each}
+                    </div>
+                    <div class="!flex !items-center !justify-between gap-3 rounded-lg border border-border p-3 text-sm">
+                        <span class="!flex min-w-0 items-center gap-2"><IconExternalLink class="size-4 shrink-0 text-muted-foreground" /><strong class="truncate text-foreground">{transaction.orderNumber}</strong></span>
+                        {#if transaction.orderUrl}<Button variant="outline" size="sm" href={transaction.orderUrl} target="_blank" rel="noopener noreferrer"><IconExternalLink data-icon="inline-start" />{i18n.orderDetail ?? 'Order Detail'}</Button>{/if}
+                    </div>
+                    {#if transaction.notes.length > 0}
+                        <div class="!grid gap-2 rounded-lg border border-border p-3 text-sm text-muted-foreground">
+                            {#each transaction.notes as note}<div class="!grid gap-1"><strong class="text-xs text-muted-foreground">{note.label}</strong><p class="m-0 leading-relaxed text-foreground">{note.content}</p></div>{/each}
+                        </div>
+                    {/if}
                 </Card.Content>
             </KiriofCard>
         </main>

@@ -4055,3 +4055,11 @@ msgstr "Kurir terpilih"
 #: inc/Services/TransactionDetailPageData.php
 msgid "Select shipment origin"
 msgstr "Pilih asal pengiriman"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Detail Package & Product"
+msgstr "Detail Paket & Produk"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Order Detail"
+msgstr "Detail Pesanan"

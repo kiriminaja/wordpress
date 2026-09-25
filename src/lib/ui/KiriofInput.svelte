@@ -53,7 +53,7 @@
   }
 </script>
 
-<div class={`kiriof-input flex items-center rounded-lg border border-input bg-background focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 ${className}`}>
+<div class={`kiriof-input flex items-center rounded-lg border border-border bg-background focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 ${className}`}>
   {#if prefix}<span class="flex shrink-0 items-center pl-2 text-muted-foreground">{@render prefix()}</span>{/if}
   <Input {id} {name} {type} {placeholder} {disabled} {min} {max} {step} {inputmode} value={displayValue} oninput={update} class="!border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0" />
   {#if suffix}<span class="flex shrink-0 items-center pr-2 text-muted-foreground">{@render suffix()}</span>{/if}

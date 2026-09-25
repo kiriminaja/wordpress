@@ -46,9 +46,9 @@
 <Popover.Root bind:open>
   <Popover.Trigger bind:ref={triggerRef}>
     {#snippet child({ props })}
-      <Button {...props} variant="outline" class="h-10 w-full justify-between px-3 font-normal" role="combobox" aria-expanded={open} {disabled}>
+      <Button {...props} variant="outline" class="!h-auto !min-h-10 !w-full !justify-between gap-2 px-3 py-2 font-normal" role="combobox" aria-expanded={open} {disabled}>
         <span class="flex min-w-0 items-center gap-2"><IconTruck class="size-4 shrink-0 text-muted-foreground" /><span class="truncate">{selected ? selectedLabel(selected) : placeholder}</span></span>
-        <IconChevronDown class="size-4 shrink-0 text-muted-foreground" />
+        <span class="flex shrink-0 items-center gap-2">{#if selected}<strong class="text-sm font-semibold text-foreground">{selected.price ?? `Rp${new Intl.NumberFormat('id-ID').format(selected.raw_price ?? 0)}`}</strong>{/if}<IconChevronDown class="size-4 text-muted-foreground" /></span>
       </Button>
     {/snippet}
   </Popover.Trigger>

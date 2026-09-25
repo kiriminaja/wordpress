@@ -42,7 +42,7 @@
 <Popover.Root bind:open>
   <Popover.Trigger bind:ref={triggerRef}>
     {#snippet child({ props })}
-      <Button {...props} variant="outline" class="kiriof-combobox !h-10 !w-full !justify-between !bg-background !border-input !px-3 !font-normal" role="combobox" aria-expanded={open} {disabled}>
+      <Button {...props} variant="outline" class="kiriof-combobox !h-10 !w-full !justify-between !bg-background !border-border !px-3 !font-normal" role="combobox" aria-expanded={open} {disabled}>
         <span class="flex min-w-0 items-center gap-2">
           {#if prefix}<span class="flex shrink-0 items-center text-muted-foreground">{@render prefix()}</span>{/if}
           <span class="truncate">{selected?.label ?? placeholder}</span>

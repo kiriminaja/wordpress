@@ -140,7 +140,7 @@
 }
 
 .kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input {
-  @apply !box-border !block !w-full !min-w-0 !h-9 !min-h-9 !m-0 ![padding:7px_38px_7px_11px] !border-input !rounded-lg !bg-transparent !text-foreground ![font-family:inherit] ![font-size:13px] !font-normal ![line-height:20px] !shadow-none !outline-none !appearance-none;
+  @apply !box-border !block !w-full !min-w-0 !h-9 !min-h-9 !m-0 ![padding:7px_38px_7px_11px] !border-border !rounded-lg !bg-transparent !text-foreground ![font-family:inherit] ![font-size:13px] !font-normal ![line-height:20px] !shadow-none !outline-none !appearance-none;
 }
 
 .kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input::placeholder {

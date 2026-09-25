@@ -40,8 +40,11 @@
 <Popover.Root bind:open>
   <Popover.Trigger bind:ref={triggerRef}>
     {#snippet child({ props })}
-      <Button {...props} variant="outline" class="h-10 w-full justify-between px-3 font-normal" role="combobox" aria-expanded={open} {disabled}>
-        <span class="flex min-w-0 items-center gap-2"><IconMapPin class="size-4 shrink-0 text-muted-foreground" /><span class="truncate">{selected?.name ?? placeholder}</span></span>
+      <Button {...props} variant="outline" class="!h-auto !min-h-10 !w-full !justify-between gap-2 px-3 py-2 font-normal" role="combobox" aria-expanded={open} {disabled}>
+        <span class="flex min-w-0 items-center gap-2">
+          <IconMapPin class="size-4 shrink-0 text-muted-foreground" />
+          <span class="grid min-w-0 gap-0.5 text-left"><strong class="truncate text-sm font-medium">{selected?.name ?? placeholder}</strong>{#if selected?.address}<small class="truncate text-xs text-muted-foreground">{selected.address}</small>{/if}</span>
+        </span>
         <IconChevronDown class="size-4 shrink-0 text-muted-foreground" />
       </Button>
     {/snippet}

@@ -273,10 +273,6 @@
             placeholder={i18n.selectShipmentOrigin ?? 'Select shipment origin'}
             onChange={(value) => { originLocationId = value; void checkOrigin(); }}
           />
-          {#if originLocationId}
-            {@const selectedLocation = locations.find((location) => String(location.id) === originLocationId)}
-            {#if selectedLocation}<p class="m-0 text-xs text-muted-foreground">{selectedLocation.address}</p>{/if}
-          {/if}
         {:else}
           <p class="m-0 text-sm text-muted-foreground">{i18n.noShipmentOrigins ?? 'No alternate shipment origin is available.'}</p>
         {/if}
@@ -287,12 +283,6 @@
     {#if originCheck}
       <div class="!grid gap-2.5 rounded-lg border border-border p-2.5">
         <p class="m-0 text-sm text-muted-foreground">{originCheck.comparison.label}</p>
-        {#if selectedCourier}
-          <div class="!flex !items-center !justify-between gap-2 rounded-md bg-muted p-2.5 text-sm">
-            <span class="!grid gap-1"><span class="text-xs text-muted-foreground">{i18n.selectedCourier ?? 'Selected courier'}</span><strong class="text-foreground">{courierLabel(selectedCourier)}</strong></span>
-            <strong class="shrink-0 text-foreground">{selectedCourier.price ?? formatCurrency(selectedCourier.raw_price ?? 0)}</strong>
-          </div>
-        {/if}
         {#if originCheck.comparison.is_total_blocked}
           <p class="m-0 text-sm text-destructive">{i18n.originChangeBlocked ?? 'This change cannot be processed because the adjusted order total would be below zero.'}</p>
         {:else}
@@ -375,7 +365,7 @@
     onSecondary={close}
     onPrimary={() => void cancelTransaction()}
   >
-    <label class="!grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cancel-reason">{i18n.cancelReason ?? 'Cancellation reason'}<textarea id="kiriof-cancel-reason" class="min-h-24 w-full rounded-lg border border-input bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3" bind:value={cancelReason} disabled={loading} maxlength="500"></textarea></label>
+    <label class="!grid gap-1.5 text-sm font-medium text-foreground" for="kiriof-cancel-reason">{i18n.cancelReason ?? 'Cancellation reason'}<textarea id="kiriof-cancel-reason" class="min-h-24 w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3" bind:value={cancelReason} disabled={loading} maxlength="500"></textarea></label>
     <p class="text-xs text-muted-foreground">{i18n.cancelReasonHint ?? 'Enter at least 4 characters.'}</p>
     {#if cancelReason && cancelReason.trim().length < 4}<p class="text-sm text-destructive" role="alert">{i18n.cancelReasonInvalid ?? 'Enter at least 4 characters.'}</p>{/if}
     {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}

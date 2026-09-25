@@ -20,7 +20,7 @@ body.kiriof-admin {
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --input: oklch(1 0 0);
   --ring: oklch(0.48 0.23 292);
 
   --neutral: oklch(0.35 0 0);

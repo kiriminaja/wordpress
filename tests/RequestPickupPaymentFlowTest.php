@@ -551,7 +551,7 @@ final class RequestPickupScheduleInputStyleTest extends TestCase
     {
         $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
 
-        $this->assertStringContainsString( 'id="kiriof-pickup-date" class="!bg-background !border-input"', $dialog );
-        $this->assertStringContainsString( 'id="kiriof-pickup-time" class="!bg-background !border-input"', $dialog );
+        $this->assertStringContainsString( 'id="kiriof-pickup-date" class="!bg-background !border-border"', $dialog );
+        $this->assertStringContainsString( 'id="kiriof-pickup-time" class="!bg-background !border-border"', $dialog );
     }
 }

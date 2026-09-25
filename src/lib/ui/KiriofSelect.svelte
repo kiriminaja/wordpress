@@ -30,7 +30,7 @@
 </script>
 
 <Select.Root type="single" {value} onValueChange={change} {disabled}>
-  <Select.Trigger {id} class="kiriof-select !w-full !bg-background !border-input">
+  <Select.Trigger {id} class="kiriof-select !w-full !bg-background !border-border">
     {#if prefix}<span class="flex shrink-0 items-center text-muted-foreground">{@render prefix()}</span>{/if}
     <Select.Value {placeholder} />
     {#if suffix}<span class="flex shrink-0 items-center text-muted-foreground">{@render suffix()}</span>{/if}

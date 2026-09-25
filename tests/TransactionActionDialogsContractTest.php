@@ -153,3 +153,19 @@ final class TransactionActionDialogSelectionAndSpacingTest extends TestCase
         $this->assertStringContainsString( '!grid gap-2.5', $dialog );
     }
 }
+
+final class ChangeOriginCompactTriggerTest extends TestCase
+{
+    #[Test]
+    public function origin_and_courier_context_render_inside_their_combobox_triggers(): void
+    {
+        $location = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/ShipmentLocationCombobox.svelte' );
+        $courier = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/CourierOptionCombobox.svelte' );
+        $dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte' );
+
+        $this->assertStringContainsString( 'selected?.address', $location );
+        $this->assertStringContainsString( 'selected.price', $courier );
+        $this->assertStringNotContainsString( 'selectedLocation.address', $dialog );
+        $this->assertStringNotContainsString( 'i18n.selectedCourier', $dialog );
+    }
+}
