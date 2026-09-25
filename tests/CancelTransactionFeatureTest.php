@@ -530,9 +530,9 @@ final class CancelTransactionFeatureTest extends TestCase
 		$content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'data-kj-action="cancel"',
+            "actionDialog = { kind: 'cancel', data: row.actionData }",
             $content,
-            'Transaction list must expose cancel buttons to the transaction process asset'
+            'Transaction list must open the Svelte cancellation dialog'
         );
     }
 

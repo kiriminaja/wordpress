@@ -43,7 +43,7 @@
     waveAmplitude = 0,
     gradientFrom = 'rgba(255, 62, 0, 0.35)',
     gradientTo = 'rgba(255, 176, 137, 0.25)',
-    glowColor = '#14110e',
+    glowColor = 'var(--canvas-glow)',
     disableAnimation = false,
     class: className = '',
   }: Props = $props();

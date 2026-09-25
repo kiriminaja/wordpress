@@ -71,7 +71,7 @@ class TransactionListRenderService {
         }
 
         $courier_name_map = ( new KiriminajaApiService() )->getCourierNameMap();
-        $kiriof_couriers  = array_map(
+		$kiriof_couriers  = array_map(
             static function ( $row ) use ( $courier_name_map ) {
                 $code  = strtolower( (string) $row->service );
                 $label = $courier_name_map[ $code ] ?? strtoupper( $code );
@@ -86,6 +86,16 @@ class TransactionListRenderService {
 				'rootLabel' => __( 'Transactions', 'kiriminaja-official' ),
 				'title'     => __( 'Transactions', 'kiriminaja-official' ),
 		);
+		$kiriof_shipment_locations = array_map(
+			function ( $location ) {
+				return array(
+					'id'      => (int) ( $location->id ?? 0 ),
+					'name'    => (string) ( $location->name ?? $location->location_name ?? '' ),
+					'address' => ( new ShipmentLocationService() )->formatAddress( $location ),
+				);
+			},
+			( new ShipmentLocationService() )->repository()->getAll( true )
+		);
 		$toolbar_update = ( new PluginUpdateNoticeService() )->get_toolbar_update();
 		if ( $toolbar_update ) {
 			$toolbar['update'] = $toolbar_update;
@@ -97,6 +107,7 @@ class TransactionListRenderService {
 					'label' => __( 'Get Help', 'kiriminaja-official' ),
 					'href'  => 'https://help.kiriminaja.com/category/plugin',
 				),
+			'shipmentLocations' => $kiriof_shipment_locations,
 				array(
 					'label' => __( 'Go to Dashboard', 'kiriminaja-official' ),
 					'href'  => 'https://app.kiriminaja.com',
@@ -192,6 +203,22 @@ class TransactionListRenderService {
 				'copied'      => __( 'Copied', 'kiriminaja-official' ),
 				'selectDatePlaceholder' => __( 'Select a pickup date', 'kiriminaja-official' ),
 				'selectTimePlaceholder' => __( 'Select a pickup time', 'kiriminaja-official' ),
+				'changeShipmentOrigin' => __( 'Change Shipment Origin', 'kiriminaja-official' ),
+				'changeOriginDescription' => __( 'Choose another active shipment origin, then review the available courier before confirming.', 'kiriminaja-official' ),
+				'shipmentOrigin' => __( 'Shipment origin', 'kiriminaja-official' ),
+				'noShipmentOrigins' => __( 'No alternate shipment origin is available.', 'kiriminaja-official' ),
+				'checkingShipping' => __( 'Checking available couriers…', 'kiriminaja-official' ),
+				'courierConsent' => __( 'I agree to replace the unavailable courier with the selected service.', 'kiriminaja-official' ),
+				'confirm' => __( 'Confirm change', 'kiriminaja-official' ),
+				'processing' => __( 'Processing…', 'kiriminaja-official' ),
+				'actionError' => __( 'Unable to complete this action.', 'kiriminaja-official' ),
+				'cancelDeficit' => __( 'Cancel deficit order', 'kiriminaja-official' ),
+				'confirmProcess' => __( 'Confirm & process', 'kiriminaja-official' ),
+				'cancelShipment' => __( 'Cancel shipment', 'kiriminaja-official' ),
+				'cancelShipmentDescription' => __( 'Provide a reason before cancelling this shipment.', 'kiriminaja-official' ),
+				'cancelReason' => __( 'Cancellation reason', 'kiriminaja-official' ),
+				'cancelReasonHint' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ),
+				'cancelReasonInvalid' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ),
 			),
 		);
 

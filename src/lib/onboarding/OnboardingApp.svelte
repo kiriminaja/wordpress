@@ -416,8 +416,8 @@
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
     marker = L.circleMarker([lat, lng], {
       radius: 8,
-      color: '#5c2ecb',
-      fillColor: '#5c2ecb',
+      color: 'var(--primary)',
+      fillColor: 'var(--primary)',
       fillOpacity: 0.85,
     }).addTo(map);
     const update = (point: L.LatLng) => {
@@ -475,10 +475,8 @@
   class="kiriof-shadcn kiriof-onboarding-app relative z-10 flex h-full max-h-screen w-full flex-col items-center justify-between overflow-hidden box-border p-3 sm:p-4 md:p-6"
 >
   <!-- Full Viewport Animated Dither Background -->
-  <div class="fixed inset-0 -z-0 pointer-events-none overflow-hidden bg-[#090514]" aria-hidden="true">
-    <div
-      class="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(92,46,203,0.35),rgba(9,5,20,0.98)_75%)]"
-    ></div>
+  <div class="fixed inset-0 -z-0 pointer-events-none overflow-hidden bg-foreground" aria-hidden="true">
+    <div class="absolute inset-x-0 top-0 h-1/2 bg-primary/30"></div>
     <DotField
       dotRadius={2}
       dotSpacing={17}
@@ -506,7 +504,7 @@
         {#if bootstrap.logoUrl}
           <img src={bootstrap.logoUrl} alt="KiriminAja" class="h-6 w-auto object-contain" />
         {:else}
-          <span class="text-sm font-bold tracking-tight text-[#5c2ecb]">KiriminAja</span>
+          <span class="text-sm font-bold tracking-tight text-primary">KiriminAja</span>
         {/if}
       </a>
 

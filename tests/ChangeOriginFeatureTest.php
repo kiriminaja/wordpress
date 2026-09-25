@@ -81,17 +81,16 @@ class ChangeOriginFeatureTest extends TestCase {
     public function testTransactionsListRendersChangeOriginButtonForProcessableRows(): void {
 		$template = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
 		$factory = $this->read( __DIR__ . '/../inc/Services/TransactionListViewModelFactory.php' );
+		$dialog = $this->read( __DIR__ . '/../src/lib/transactions/TransactionActionDialogs.svelte' );
 
-        $this->assertStringContainsString( 'kiriof-change-origin-button', $template );
-		$this->assertStringContainsString( 'data-ka-order-id={row.kaOrderId}', $template );
-		$this->assertStringContainsString( 'data-current-origin={row.actionData.currentOrigin}', $template );
-		$this->assertStringContainsString( 'data-current-origin-address={row.actionData.currentOriginAddress}', $template );
-		$this->assertStringContainsString( 'data-current-location-id={row.actionData.currentLocationId}', $template );
+		$this->assertStringContainsString( 'TransactionActionDialogs', $template );
+		$this->assertStringContainsString( "actionDialog = { kind: 'origin', data: row.actionData }", $template );
 		$this->assertStringContainsString( "'currentLocationId'", $factory );
 		$this->assertStringContainsString( "'currentOrigin'", $factory );
-		$this->assertStringContainsString( 'data-nonce={row.actionData.nonce}', $template );
 		$this->assertStringContainsString( '{#if row.actions.changeOrigin}', $template );
 		$this->assertStringContainsString( '<IconMapPin />', $template );
+		$this->assertStringContainsString( "action: 'kiriof_change_origin_check'", $dialog );
+		$this->assertStringContainsString( "action: 'kiriof_change_origin'", $dialog );
     }
 
     public function testChangeOriginModalTemplateUsesRadioCardsAndAutomaticCheckFlow(): void {
@@ -123,21 +122,20 @@ class ChangeOriginFeatureTest extends TestCase {
         $this->assertStringNotContainsString( 'tab=general#kiriof-shipment-locations', $source );
     }
 
-    public function testChangeOriginScriptIsEnqueuedOnTransactionPage(): void {
+    public function testChangeOriginLegacyScriptIsNotEnqueuedOnSvelteTransactionPages(): void {
         $enqueue = $this->read( __DIR__ . '/../inc/Base/Enqueue.php' );
         $js      = $this->read( __DIR__ . '/../assets/js/kiriof-change-origin.js' );
         $css     = $this->read( __DIR__ . '/../assets/admin/css/kj-admin-style.css' );
 		$source  = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
 
-        $this->assertStringContainsString( "'kiriof-change-origin',", $enqueue );
-        $this->assertStringContainsString( 'assets/js/kiriof-change-origin.js', $enqueue );
+        $this->assertStringNotContainsString( "'kiriof-change-origin',", $enqueue );
+        $this->assertStringNotContainsString( 'assets/js/kiriof-change-origin.js', $enqueue );
         $this->assertFileExists( __DIR__ . '/../build/kiriminaja-official/assets/js/kiriof-change-origin.js' );
         $this->assertSame(
             hash_file( 'sha256', __DIR__ . '/../assets/js/kiriof-change-origin.js' ),
             hash_file( 'sha256', __DIR__ . '/../build/kiriminaja-official/assets/js/kiriof-change-origin.js' ),
             'Packaged Change Origin JavaScript must match source.'
         );
-        $this->assertStringContainsString( "'kiriminaja-transaction' === \$page", $enqueue );
 
         $this->assertStringContainsString( "action: 'kiriof_change_origin_check',", $js );
         $this->assertStringContainsString( '$loading.show()', $js );

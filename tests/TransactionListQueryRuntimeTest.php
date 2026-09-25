@@ -131,7 +131,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/ActionTooltip.svelte' );
 		$this->assertStringContainsString( 'ActionTooltip', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'title=', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "bg-[#09090b] text-white", file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
+		$this->assertStringContainsString( 'bg-foreground text-background', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
 		$this->assertStringContainsString( 'TooltipPrimitive.Arrow', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
 		$this->assertStringContainsString( '!rounded-md', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'sideOffset = 5', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
@@ -168,8 +168,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( "'kiriof-component-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
 		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
 		$this->assertStringContainsString( '#screen-meta-links', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '![padding-left:0]', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '![padding-bottom:0]', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+		$this->assertStringContainsString( '!pl-0', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
+		$this->assertStringContainsString( '!pb-0', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringNotContainsString( '<input type="checkbox" name="transaction_id[]"', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/table/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/button-group/index.ts' );

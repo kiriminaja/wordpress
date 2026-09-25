@@ -6,15 +6,15 @@
 }
 
 .kiriof-callback-endpoints code {
-  @apply block [padding:9px_11px] [overflow-wrap:anywhere] border rounded-md [background:#f7f7f8] text-foreground text-xs [line-height:1.5];
+  @apply block [padding:9px_11px] [overflow-wrap:anywhere] border rounded-md bg-muted text-foreground text-xs [line-height:1.5];
 }
 
 .kiriof-product-alert {
-  @apply box-border grid [grid-template-columns:38px_minmax(0,1fr)_auto_auto] items-center gap-3 [margin:0_0_22px] [padding:14px_16px] [border:1px_solid_#b9dfc6] [border-radius:9px] [background:#f1fbf4] text-foreground no-underline;
+  @apply box-border grid [grid-template-columns:38px_minmax(0,1fr)_auto_auto] items-center gap-3 [margin:0_0_22px] [padding:14px_16px] border border-success-border [border-radius:9px] bg-success-background text-foreground no-underline;
 }
 
 .kiriof-product-alert.warning {
-  @apply [border-color:#efd78b] [background:#fff9e8];
+  @apply border-warning-border bg-warning-background;
 }
 
 .kiriof-product-alert:hover,
@@ -27,11 +27,11 @@
 }
 
 .kiriof-product-alert__icon {
-  @apply grid w-9 h-9 place-items-center rounded-lg [background:#dff3e5] [color:#176b36];
+  @apply grid w-9 h-9 place-items-center rounded-lg bg-success-background text-success-foreground;
 }
 
 .kiriof-product-alert.warning .kiriof-product-alert__icon {
-  @apply [background:#ffefba] [color:#7a4d00];
+  @apply bg-warning-background text-warning-foreground;
 }
 
 .kiriof-product-alert__copy {
@@ -47,11 +47,11 @@
 }
 
 .kiriof-product-alert__status {
-  @apply [padding:4px_8px] rounded [background:#dff3e5] [color:#176b36] text-xs [font-weight:650] whitespace-nowrap;
+  @apply [padding:4px_8px] rounded bg-success-background text-success-foreground text-xs [font-weight:650] whitespace-nowrap;
 }
 
 .kiriof-product-alert.warning .kiriof-product-alert__status {
-  @apply [background:#ffefba] [color:#7a4d00];
+  @apply bg-warning-background text-warning-foreground;
 }
 
 .kiriof-product-alert__chevron {
@@ -68,7 +68,7 @@
 }
 
 [data-kiriof-settings-page] [data-slot='switch'] {
-  @apply !relative !inline-flex !w-9 !min-w-9 !h-5 !min-h-5 !shrink-0 !items-center !m-0 !p-0 !overflow-hidden !border-0 !rounded-full ![background:var(--input)] !shadow-none;
+  @apply !relative !inline-flex !w-9 !min-w-9 !h-5 !min-h-5 !shrink-0 !items-center !m-0 !p-0 !overflow-hidden !border-0 !rounded-full !bg-input !shadow-none;
 }
 
 [data-kiriof-settings-page] [data-slot='switch'][data-state='checked'] {
@@ -93,18 +93,6 @@
 
 .kiriof-account-courier-grid {
   @apply flex flex-wrap gap-2.5;
-}
-
-.kiriof-account-courier-logo {
-  @apply grid [width:76px] [height:48px] place-items-center [padding:6px] [border:1px_solid_#d8d2df] rounded-lg bg-white;
-}
-
-.kiriof-account-courier-logo img {
-  @apply block w-full h-full object-contain;
-}
-
-.kiriof-account-courier-logo span {
-  @apply text-muted-foreground [font-size:10px] [font-weight:650] [line-height:1.2] text-center;
 }
 
 .kiriof-connection-layout {
@@ -132,11 +120,11 @@
 }
 
 .kiriof-linked-profile__name span {
-  @apply [padding:2px_8px] [border-radius:999px] [background:#ececef] [color:#5d5964] [font-size:10px] font-bold [text-transform:capitalize];
+  @apply px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold capitalize;
 }
 
 .kiriof-linked-profile__badge {
-  @apply inline-flex shrink-0 items-center gap-1 [padding:4px_8px] rounded-md [background:#c9f7d8] [color:#147a42] [font-size:11px] [font-weight:650];
+  @apply inline-flex shrink-0 items-center gap-1 px-2 py-1 rounded-md bg-success-background text-success-foreground text-xs font-semibold;
 }
 
 .kiriof-linked-profile__badge svg {
@@ -152,16 +140,16 @@
 }
 
 .kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input {
-  @apply !box-border !block !w-full !min-w-0 !h-9 !min-h-9 !m-0 ![padding:7px_38px_7px_11px] ![border:1px_solid_var(--input)] !rounded-lg !bg-transparent !text-foreground ![font-family:inherit] ![font-size:13px] !font-normal ![line-height:20px] !shadow-none ![outline:none] !appearance-none;
+  @apply !box-border !block !w-full !min-w-0 !h-9 !min-h-9 !m-0 ![padding:7px_38px_7px_11px] !border-input !rounded-lg !bg-transparent !text-foreground ![font-family:inherit] ![font-size:13px] !font-normal ![line-height:20px] !shadow-none !outline-none !appearance-none;
 }
 
 .kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input::placeholder {
-  @apply !text-muted-foreground ![opacity:1];
+  @apply !text-muted-foreground !opacity-100;
 }
 
 .kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input:focus,
 .kiriof-setup-key-field [data-slot='input'].kiriof-setup-key-input:focus-visible {
-  @apply ![border-color:var(--ring)] ![box-shadow:0_0_0_3px_color-mix(in_oklab,var(--ring)_18%,transparent)];
+  @apply !border-ring !ring-3 !ring-ring/20;
 }
 
 .kiriof-setup-key-toggle {
@@ -173,7 +161,7 @@
 }
 
 .kiriof-connection-consent {
-  @apply flex items-start [gap:9px] [padding:11px_12px] rounded-md [background:#e7f2ff] [color:#174f79];
+  @apply flex items-start [gap:9px] [padding:11px_12px] rounded-md bg-info-background text-info-foreground;
 }
 
 .kiriof-connection-consent > svg {
@@ -185,7 +173,7 @@
 }
 
 .kiriof-connection-consent p {
-  @apply m-0 [font-size:11px] [line-height:1.5];
+  @apply m-0 text-xs [line-height:1.5];
 }
 
 .kiriof-connection-consent a {
@@ -193,19 +181,19 @@
 }
 
 .kiriof-update-connection {
-  @apply !box-border !inline-flex ![width:fit-content] !min-w-0 ![height:34px] !min-h-8 !items-center !justify-center !gap-2 !m-0 ![padding:0_13px] ![border:1px_solid_transparent] !rounded-lg !bg-primary !text-primary-foreground ![font-family:inherit] !text-xs !font-semibold !leading-none !no-underline !shadow-none !cursor-pointer;
+  @apply !box-border !inline-flex ![width:fit-content] !min-w-0 ![height:34px] !min-h-8 !items-center !justify-center !gap-2 !m-0 ![padding:0_13px] !border border-transparent !rounded-lg !bg-primary !text-primary-foreground ![font-family:inherit] !text-xs !font-semibold !leading-none !no-underline !shadow-none !cursor-pointer;
 }
 
 .kiriof-update-connection:hover:not(:disabled) {
-  @apply ![background:color-mix(in_oklab,var(--primary)_84%,black)] !text-primary-foreground;
+  @apply !bg-primary/90 !text-primary-foreground;
 }
 
 .kiriof-update-connection:focus-visible {
-  @apply ![border-color:var(--ring)] ![outline:none] ![box-shadow:0_0_0_3px_color-mix(in_oklab,var(--ring)_22%,transparent)];
+  @apply !border-ring !outline-none !ring-3 !ring-ring/20;
 }
 
 .kiriof-update-connection:disabled {
-  @apply !cursor-not-allowed ![opacity:0.5];
+  @apply !cursor-not-allowed !opacity-50;
 }
 
 .kiriof-update-connection > span {
@@ -225,7 +213,7 @@
 }
 
 .kiriof-credentials-guide ol {
-  @apply m-0 [padding-left:19px] [color:#45414b] text-xs [line-height:1.8];
+  @apply m-0 [padding-left:19px] text-foreground text-xs [line-height:1.8];
 }
 
 .kiriof-credentials-guide a {
@@ -367,7 +355,7 @@
 }
 
 .kiriof-section-message {
-  @apply [color:#176b36];
+  @apply text-success-foreground;
 }
 
 .kiriof-section-message.error {
@@ -391,11 +379,11 @@
 }
 
 .kiriof-diagnostics__badge {
-  @apply [display:inline-block] [padding:3px_8px] rounded [background:#e7f6ec] [color:#176b36] text-xs font-semibold;
+  @apply [display:inline-block] [padding:3px_8px] rounded bg-success-background text-success-foreground text-xs font-semibold;
 }
 
 .kiriof-diagnostics__badge.warning {
-  @apply [background:#fff3cd] [color:#7a4d00];
+  @apply bg-warning-background text-warning-foreground;
 }
 
 .kiriof-diagnostics__badge.error {
@@ -452,11 +440,11 @@ a.kiriof-setting-item:focus-visible {
 }
 
 .kiriof-setting-item__status {
-  @apply [padding:4px_8px] rounded [background:#e7f6ec] [color:#176b36] text-xs font-semibold whitespace-nowrap;
+  @apply [padding:4px_8px] rounded bg-success-background text-success-foreground text-xs font-semibold whitespace-nowrap;
 }
 
 .kiriof-setting-item__status.warning {
-  @apply [background:#fff3cd] [color:#7a4d00];
+  @apply bg-warning-background text-warning-foreground;
 }
 
 .kiriof-setting-item__chevron {
@@ -480,7 +468,7 @@ a.kiriof-setting-item:focus-visible {
 }
 
 .kiriof-connect__identity > span:first-child {
-  @apply [background:#1d2327] text-white;
+  @apply bg-foreground text-white;
 }
 
 .kiriof-connect__brand {

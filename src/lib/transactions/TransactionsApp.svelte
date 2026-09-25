@@ -39,6 +39,7 @@
   import CourierCombobox from './CourierCombobox.svelte';
   import { courierImage } from './courier-images';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
+  import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let {
@@ -78,6 +79,7 @@
   let refreshing = $state(false);
   let searchTimer: number | null = null;
   let pickupDialogOpen = $state(false);
+  let actionDialog = $state<TransactionActionDialog | null>(null);
   let copiedValue = $state('');
   let copyTimer: number | null = null;
 
@@ -305,7 +307,7 @@
           <AutoRefresh
             storageKey="kiriof-transactions-refresh-interval"
             loading={refreshing}
-            disabled={pickupDialogOpen}
+            disabled={pickupDialogOpen || actionDialog !== null}
             hint={bootstrap.i18n.autoRefresh}
             options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
             onRefresh={refreshList}
@@ -482,14 +484,14 @@
                       <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.changeOrigin}
-                      <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" class="kiriof-change-origin-button" data-ka-order-id={row.kaOrderId} data-current-origin={row.actionData.currentOrigin} data-current-origin-address={row.actionData.currentOriginAddress} data-current-location-id={row.actionData.currentLocationId} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.changeOrigin}><IconMapPin /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })} aria-label={bootstrap.i18n.changeOrigin}><IconMapPin /></Button></ActionTooltip>
                     {/if}
                     {#if row.actions.adjustDeficit}
-                      <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" data-kj-action="cod-adjust" data-ka-order-id={row.kaOrderId} data-current-cod={row.actionData.currentCod} data-cod-minimum={row.actionData.codMinimum} data-cod-maximum={row.actionData.codMaximum} data-shipping-cost={row.actionData.shippingCost} data-insurance-fee={row.actionData.insuranceFee} data-cod-fee={row.actionData.codFee} data-item-price={row.actionData.itemPrice} data-item-discount={row.actionData.itemDiscount} data-shipping-discount={row.actionData.shippingDiscount} data-item-coupon={row.actionData.itemCoupon} data-shipping-coupon={row.actionData.shippingCoupon} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.adjustDeficit}><IconRefresh /></Button></ActionTooltip>
-                      <ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" data-kj-action="cancel-deficit" data-ka-order-id={row.kaOrderId} data-nonce={row.actionData.nonce} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'adjust-deficit', data: row.actionData })} aria-label={bootstrap.i18n.adjustDeficit}><IconRefresh /></Button></ActionTooltip>
+                      <ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel-deficit', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>
                     {:else}
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" href={row.actions.printUrl} target="_blank" aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
-                      {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" data-kj-action="cancel" data-order-id={row.kaOrderId} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
+                      {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
                     {/if}
                   </div>
                 </Table.Cell>
@@ -517,4 +519,5 @@
     pickupUrl={bootstrap.bulk.pickupUrl}
     i18n={bootstrap.i18n}
   />
+  <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} />
 </div>

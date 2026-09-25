@@ -26,6 +26,22 @@ class TransactionDetailPageData {
 		$this->coupon_service     = $coupon_service ?? new ShippingDiscountCouponService();
 	}
 
+	/** @return array<int,array{id:int,name:string,address:string}> */
+	private function shipment_locations(): array {
+		return array_values(
+			array_map(
+				function ( $location ): array {
+					return array(
+						'id'      => (int) ( $location->id ?? 0 ),
+						'name'    => (string) ( $location->name ?? $location->location_name ?? '' ),
+						'address' => $this->location_service->formatAddress( $location ),
+					);
+				},
+				$this->location_service->repository()->getAll( true )
+			)
+		);
+	}
+
 	/**
 	 * @param object $transaction Transaction database row.
 	 * @return array<string,mixed>
@@ -70,6 +86,7 @@ class TransactionDetailPageData {
 
 		return array(
 			'toolbar' => $toolbar,
+			'shipmentLocations' => $this->shipment_locations(),
 			'transaction' => array(
 				'id'           => (int) ( $transaction->id ?? 0 ),
 				'orderId'      => (string) ( $transaction->order_id ?? '' ),
@@ -191,5 +208,5 @@ class TransactionDetailPageData {
 	/** @return array<string,mixed> */
 	private function toolbar_menu(): array { return array( 'label' => __( 'More actions', 'kiriminaja-official' ), 'items' => array( array( 'label' => __( 'Get Help', 'kiriminaja-official' ), 'href' => 'https://help.kiriminaja.com/category/plugin' ), array( 'label' => __( 'Go to Dashboard', 'kiriminaja-official' ), 'href' => 'https://app.kiriminaja.com' ) ) ); }
 	/** @return array<string,string> */
-	private function i18n(): array { return array( 'pickupId' => __( 'Pickup ID', 'kiriminaja-official' ), 'printLabel' => __( 'Print Label', 'kiriminaja-official' ), 'liveTracking' => __( 'Live Tracking', 'kiriminaja-official' ), 'sender' => __( 'Sender', 'kiriminaja-official' ), 'recipient' => __( 'Recipient', 'kiriminaja-official' ), 'contactCustomer' => __( 'Contact Customer', 'kiriminaja-official' ), 'package' => __( 'Package', 'kiriminaja-official' ), 'products' => __( 'Products', 'kiriminaja-official' ), 'orderNotes' => __( 'Order notes', 'kiriminaja-official' ), 'shipment' => __( 'Shipment', 'kiriminaja-official' ), 'airwaybill' => __( 'Airwaybill', 'kiriminaja-official' ), 'copyAwb' => __( 'Copy AWB', 'kiriminaja-official' ), 'pickup' => __( 'Pickup', 'kiriminaja-official' ), 'weight' => __( 'Weight', 'kiriminaja-official' ), 'dimensions' => __( 'Dimensions', 'kiriminaja-official' ), 'shipping' => __( 'Shipping', 'kiriminaja-official' ), 'insurance' => __( 'Insurance', 'kiriminaja-official' ), 'codFee' => __( 'COD Fee', 'kiriminaja-official' ), 'discount' => __( 'Discount', 'kiriminaja-official' ), 'total' => __( 'Total', 'kiriminaja-official' ), 'codValue' => __( 'COD value', 'kiriminaja-official' ), 'tracking' => __( 'Tracking history', 'kiriminaja-official' ), 'trackingEmpty' => __( 'No tracking history is available yet.', 'kiriminaja-official' ), 'trackingError' => __( 'Unable to load tracking history.', 'kiriminaja-official' ), 'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ), 'adjustDeficit' => __( 'Adjust Deficit', 'kiriminaja-official' ), 'cancel' => __( 'Cancel', 'kiriminaja-official' ) ); }
+	private function i18n(): array { return array( 'pickupId' => __( 'Pickup ID', 'kiriminaja-official' ), 'printLabel' => __( 'Print Label', 'kiriminaja-official' ), 'liveTracking' => __( 'Live Tracking', 'kiriminaja-official' ), 'sender' => __( 'Sender', 'kiriminaja-official' ), 'recipient' => __( 'Recipient', 'kiriminaja-official' ), 'contactCustomer' => __( 'Contact Customer', 'kiriminaja-official' ), 'package' => __( 'Package', 'kiriminaja-official' ), 'products' => __( 'Products', 'kiriminaja-official' ), 'orderNotes' => __( 'Order notes', 'kiriminaja-official' ), 'shipment' => __( 'Shipment', 'kiriminaja-official' ), 'airwaybill' => __( 'Airwaybill', 'kiriminaja-official' ), 'copyAwb' => __( 'Copy AWB', 'kiriminaja-official' ), 'pickup' => __( 'Pickup', 'kiriminaja-official' ), 'weight' => __( 'Weight', 'kiriminaja-official' ), 'dimensions' => __( 'Dimensions', 'kiriminaja-official' ), 'shipping' => __( 'Shipping', 'kiriminaja-official' ), 'insurance' => __( 'Insurance', 'kiriminaja-official' ), 'codFee' => __( 'COD Fee', 'kiriminaja-official' ), 'discount' => __( 'Discount', 'kiriminaja-official' ), 'total' => __( 'Total', 'kiriminaja-official' ), 'codValue' => __( 'COD value', 'kiriminaja-official' ), 'tracking' => __( 'Tracking history', 'kiriminaja-official' ), 'trackingEmpty' => __( 'No tracking history is available yet.', 'kiriminaja-official' ), 'trackingError' => __( 'Unable to load tracking history.', 'kiriminaja-official' ), 'changeOrigin' => __( 'Change Origin', 'kiriminaja-official' ), 'changeShipmentOrigin' => __( 'Change Shipment Origin', 'kiriminaja-official' ), 'changeOriginDescription' => __( 'Choose another active shipment origin, then review the available courier before confirming.', 'kiriminaja-official' ), 'shipmentOrigin' => __( 'Shipment origin', 'kiriminaja-official' ), 'noShipmentOrigins' => __( 'No alternate shipment origin is available.', 'kiriminaja-official' ), 'checkingShipping' => __( 'Checking available couriers…', 'kiriminaja-official' ), 'courierConsent' => __( 'I agree to replace the unavailable courier with the selected service.', 'kiriminaja-official' ), 'confirm' => __( 'Confirm change', 'kiriminaja-official' ), 'processing' => __( 'Processing…', 'kiriminaja-official' ), 'actionError' => __( 'Unable to complete this action.', 'kiriminaja-official' ), 'adjustDeficit' => __( 'Adjust Deficit', 'kiriminaja-official' ), 'cancelDeficit' => __( 'Cancel deficit order', 'kiriminaja-official' ), 'confirmProcess' => __( 'Confirm & process', 'kiriminaja-official' ), 'cancelShipment' => __( 'Cancel shipment', 'kiriminaja-official' ), 'cancelShipmentDescription' => __( 'Provide a reason before cancelling this shipment.', 'kiriminaja-official' ), 'cancelReason' => __( 'Cancellation reason', 'kiriminaja-official' ), 'cancelReasonHint' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ), 'cancelReasonInvalid' => __( 'Enter at least 4 characters.', 'kiriminaja-official' ), 'cancel' => __( 'Cancel', 'kiriminaja-official' ) ); }
 }

@@ -1003,7 +1003,7 @@ class TransactionProcessController
 
         public function renderWooActionModalTemplatesForKiriofPage()
         {
-            if (! $this->isTransactionProcessPage() && ! $this->isOrderEditScreen()) {
+            if (! $this->isOrderEditScreen()) {
                 return;
             }
 

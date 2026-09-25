@@ -13,11 +13,11 @@ body:has([data-kiriof-payments-page]) .error {
 }
 
 body:has([data-kiriof-payments-page]) #wpcontent {
-  @apply [padding-left:0];
+  @apply pl-0;
 }
 
 body:has([data-kiriof-payments-page]) #wpbody-content {
-  @apply [padding-bottom:0];
+  @apply pb-0;
 }
 
 .kiriof-payments-filterrow {
@@ -33,7 +33,7 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 }
 
 .kiriof-payments-table [data-slot='table-cell'] small {
-  @apply block mt-1 text-muted-foreground [font-size:11px] [line-height:1.45];
+  @apply block mt-1 text-muted-foreground text-xs [line-height:1.45];
 }
 
 .kiriof-payments-table tbody tr:last-child td {
@@ -45,7 +45,7 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 }
 
 .kiriof-payments-app .kiriof-row-actions [data-slot='button'] {
-  @apply w-7 min-w-7 h-7 min-h-7 p-0 border rounded-md bg-white [color:#342b45];
+  @apply w-7 min-w-7 h-7 min-h-7 p-0 border rounded-md bg-white text-foreground;
 }
 
 .kiriof-payments-app .kiriof-row-actions [data-slot='button']:hover {
@@ -53,7 +53,7 @@ body:has([data-kiriof-payments-page]) #wpbody-content {
 }
 
 .kiriof-payments-app [aria-busy='true'] {
-  @apply [opacity:0.6];
+  @apply opacity-60;
 }
 
 @media (max-width: 782px) {

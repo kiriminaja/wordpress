@@ -28,7 +28,7 @@ body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
 
 /* WordPress admin ships global form controls. Keep the Svelte surface on shadcn geometry. */
 .kiriof-onboarding-app [data-slot='button'] {
-  @apply min-h-8 m-0 box-border rounded-[var(--radius)] leading-none shadow-none !no-underline;
+  @apply min-h-8 m-0 box-border rounded leading-none shadow-none no-underline!;
 }
 
 .kiriof-onboarding-app a[data-slot='button'],
@@ -36,7 +36,7 @@ body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
 .kiriof-onboarding-app a[data-slot='button']:focus,
 .kiriof-onboarding-app a[data-slot='button']:active,
 .kiriof-onboarding-app a[data-slot='button']:visited {
-  @apply text-primary-foreground !no-underline;
+  @apply text-primary-foreground no-underline!;
 }
 
 .kiriof-onboarding-app [data-slot='input'],
@@ -46,15 +46,15 @@ body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
 }
 
 .kiriof-onboarding-app [data-slot='textarea'] {
-  @apply [height:auto] [line-height:1.45];
+  @apply h-auto [line-height:1.45];
 }
 
 html:has(body.kiriof-onboarding-screen) {
-  @apply ![padding-top:0] ![background:#090514];
+  @apply !pt-0 bg-foreground!;
 }
 
 body.kiriof-onboarding-screen {
-  @apply ![background:#090514];
+  @apply bg-foreground!;
 }
 
 body.kiriof-onboarding-screen #wpadminbar,
@@ -76,11 +76,11 @@ body.kiriof-onboarding-screen #wpbody-content {
 }
 
 [data-kiriof-onboarding-app] {
-  @apply fixed inset-0 z-99999 flex w-screen h-screen overflow-hidden [background:#090514];
+  @apply fixed inset-0 z-99999 flex w-screen h-screen overflow-hidden bg-accent;
 }
 
 [data-kiriof-onboarding-app][aria-busy='true']::before {
-  @apply absolute top-1/2 left-1/2 size-8 [margin:-1rem_0_0_-1rem] [border:3px_solid_rgba(255,255,255,0.18)] [border-top-color:#a78bfa] rounded-full [animation:kiriof-onboarding-spin_0.8s_linear_infinite];
+  @apply absolute top-1/2 left-1/2 size-8 -m-4 border-4 border-white/20 border-t-primary rounded-full animate-spin;
   content: '';
 }
 
@@ -99,17 +99,17 @@ body.kiriof-onboarding-screen #wpbody-content {
 /* Enforce shadcn Switch styling and distinct checked state */
 .kiriof-onboarding-app [data-slot='switch'],
 .kiriof-shadcn [data-slot='switch'] {
-  @apply !relative !inline-flex !h-5 !w-9 !min-h-5 !min-w-9 !p-0 !m-0 ![flex-shrink:0] !cursor-pointer !items-center !rounded-full !border-0 !box-border !leading-none !shadow-none ![outline:none] !overflow-hidden ![transition:background-color_0.2s_ease,border-color_0.2s_ease];
+  @apply !relative !inline-flex !h-5 !w-9 !min-h-5 !min-w-9 !p-0 !m-0 ![flex-shrink:0] !cursor-pointer !items-center !rounded-full !border-0 !box-border !leading-none !shadow-none !outline-none !overflow-hidden ![transition:background-color_0.2s_ease,border-color_0.2s_ease];
 }
 
 .kiriof-onboarding-app [data-slot='switch'][data-state='unchecked'],
 .kiriof-shadcn [data-slot='switch'][data-state='unchecked'] {
-  @apply ![background-color:var(--input,#d9cff5)];
+  @apply bg-primary-foreground!;
 }
 
 .kiriof-onboarding-app [data-slot='switch'][data-state='checked'],
 .kiriof-shadcn [data-slot='switch'][data-state='checked'] {
-  @apply ![background-color:var(--primary,#5c2ecb)];
+  @apply bg-primary!;
 }
 
 .kiriof-onboarding-app [data-slot='switch-thumb'],
@@ -160,9 +160,9 @@ body.kiriof-onboarding-screen #wpbody-content {
 }
 
 .kiriof-onboarding-app ::-webkit-scrollbar-thumb {
-  @apply [background:color-mix(in_oklch,var(--muted-foreground),transparent_75%)] rounded-full;
+  @apply bg-muted-foreground/25 rounded-full;
 }
 
 .kiriof-onboarding-app ::-webkit-scrollbar-thumb:hover {
-  @apply [background:color-mix(in_oklch,var(--muted-foreground),transparent_50%)];
+  @apply bg-muted-foreground/50;
 }

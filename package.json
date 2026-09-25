@@ -6,14 +6,15 @@
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "vite --host 127.0.0.1",
-    "format": "oxfmt src vite.config.ts svelte.config.js package.json components.json scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
-    "format:check": "oxfmt --check src vite.config.ts svelte.config.js package.json components.json scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
-    "frontend:check": "bun run format:check && bun run lint && bun run check && bun run check:utility-first && bun run check:tailwind-apply",
+    "format": "oxfmt src vite.config.ts svelte.config.js package.json components.json scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
+    "format:check": "oxfmt --check src vite.config.ts svelte.config.js package.json components.json scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
+    "frontend:check": "bun run format:check && bun run lint && bun run check && bun run check:utility-first && bun run check:tailwind-apply && bun run check:semantic-style-tokens",
     "lint": "oxlint src vite.config.ts svelte.config.js --ignore-path .oxlintignore --deny-warnings",
     "lint:fix": "oxlint src vite.config.ts svelte.config.js --ignore-path .oxlintignore --fix --deny-warnings",
     "prepare": "simple-git-hooks",
     "check:utility-first": "node scripts/check-svelte-utility-first.mjs",
-    "check:tailwind-apply": "node scripts/check-tailwind-apply.mjs"
+    "check:tailwind-apply": "node scripts/check-tailwind-apply.mjs",
+    "check:semantic-style-tokens": "node scripts/check-semantic-style-tokens.mjs"
   },
   "dependencies": {
     "@tabler/icons-svelte": "^3.47.0",

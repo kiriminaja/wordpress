@@ -9,6 +9,25 @@ export type TransactionFilters = {
 
 export type TransactionStatusOption = { value: string; label: string; count: number };
 
+export type TransactionActionData = {
+  nonce: string;
+  kaOrderId: string;
+  currentOrigin: string;
+  currentOriginAddress: string;
+  currentLocationId: number;
+  currentCod: number;
+  codMinimum: number;
+  codMaximum: number;
+  shippingCost: number;
+  insuranceFee: number;
+  codFee: number;
+  itemPrice: number;
+  itemDiscount: number;
+  shippingDiscount: number;
+  itemCoupon: string;
+  shippingCoupon: string;
+};
+
 export type TransactionRow = {
   id: number;
   wcOrderId: number;
@@ -49,23 +68,7 @@ export type TransactionRow = {
     cancel: boolean;
     printUrl: string;
   };
-  actionData: {
-    nonce: string;
-    currentOrigin: string;
-    currentOriginAddress: string;
-    currentLocationId: number;
-    currentCod: number;
-    codMinimum: number;
-    codMaximum: number;
-    shippingCost: number;
-    insuranceFee: number;
-    codFee: number;
-    itemPrice: number;
-    itemDiscount: number;
-    shippingDiscount: number;
-    itemCoupon: string;
-    shippingCoupon: string;
-  };
+  actionData: TransactionActionData;
 };
 
 export type TransactionsBootstrap = {
@@ -74,6 +77,7 @@ export type TransactionsBootstrap = {
   statusOptions: TransactionStatusOption[];
   monthOptions: Record<string, string>;
   couriers: Array<{ value: string; label: string }>;
+  shipmentLocations: Array<{ id: number; name: string; address: string }>;
   pagination: { page: number; totalPages: number; total: number; perPage: number };
   rows: TransactionRow[];
   bulk: {

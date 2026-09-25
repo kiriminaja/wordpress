@@ -9,15 +9,15 @@
 }
 
 [data-slot='tooltip-content'].kiriof-tooltip-content {
-  @apply box-border pointer-events-none ![width:max-content] ![max-width:18rem] !min-h-0 !m-0 ![padding:6px_10px] !border-0 !rounded-md ![background:#09090b] !text-white ![font-family:inherit] !text-xs !font-medium ![line-height:18px] text-center !whitespace-nowrap ![box-shadow:0_4px_12px_rgb(0_0_0_/_24%)];
+  @apply box-border pointer-events-none !w-max !max-w-72 !min-h-0 !m-0 !px-2.5 !py-1.5 !border-0 !rounded-md !bg-foreground !text-background !font-inherit !text-xs !font-medium !leading-[18px] text-center !whitespace-nowrap !shadow-lg;
 }
 
 .kiriof-tooltip-content .kiriof-tooltip-arrow {
-  @apply !block !w-3 ![height:5px] !m-0 !p-0 ![color:#09090b] ![fill:#09090b] !bg-transparent;
+  @apply !block !w-3 !h-1.5 !m-0 !p-0 !text-foreground !fill-current !bg-transparent;
 }
 
 .kiriof-tooltip-content .kiriof-tooltip-arrow [data-arrow] {
-  @apply !block !w-3 ![height:5px] !m-0 ![fill:#09090b];
+  @apply !block !w-3 !h-1.5 !m-0 !fill-current;
 }
 
 .kiriof-tooltip-content[data-side='bottom'] .kiriof-tooltip-arrow {
@@ -42,7 +42,7 @@
 }
 
 .kiriof-loading-indicator__bar {
-  @apply block w-(--kiriof-loading-progress) h-full rounded-[0_999px_999px_0] [background:linear-gradient(90deg,#7c3aed,#a855f7,#ec4899)] [box-shadow:0_0_8px_rgb(124_58_237_/_75%),0_0_16px_rgb(168_85_247_/_45%)] [transition:width_180ms_ease-out];
+  @apply block w-(--kiriof-loading-progress) h-full rounded-r-full bg-primary shadow-sm transition-[width] duration-200 ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -118,7 +118,7 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-toolbar-menu__trigger {
-  @apply inline-flex! box-border flex-none items-center justify-center w-8 [min-width:32px] h-8 min-h-8 m-0 !p-0 [border:1px_solid_transparent] rounded-md bg-transparent text-muted-foreground leading-none cursor-pointer;
+  @apply inline-flex! box-border flex-none items-center justify-center w-8 [min-width:32px] h-8 min-h-8 m-0 !p-0 border border-transparent rounded-md bg-transparent text-muted-foreground leading-none cursor-pointer;
 }
 
 .kiriof-toolbar-menu__trigger svg {
@@ -149,19 +149,19 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-toolbar-menu__dropdown a svg {
-  @apply shrink-0 [opacity:0.6];
+  @apply shrink-0 opacity-60;
 }
 
 .kiriof-plugin-update-trigger {
-  @apply inline-flex min-h-8 items-center gap-1.5 [padding:0_12px] [border:1px_solid_#f3d98b] [border-radius:999px] [background:#fff5d6] [color:#805b00] [font:inherit] text-xs [font-weight:650] leading-none cursor-pointer [transition:background-color_140ms_ease,border-color_140ms_ease,color_140ms_ease];
+  @apply inline-flex min-h-8 items-center gap-1.5 px-3 border border-warning-border rounded-full bg-warning-background text-warning-foreground font-inherit text-xs font-semibold leading-none cursor-pointer transition-colors duration-150;
 }
 
 .kiriof-plugin-update-trigger:hover {
-  @apply [border-color:#e5bd55] [background:#ffefb7] [color:#634600];
+  @apply border-warning bg-warning-background text-warning-foreground;
 }
 
 .kiriof-plugin-update-trigger:focus-visible {
-  @apply [outline:2px_solid_#37159f] [outline-offset:2px];
+  @apply outline-2 outline-ring outline-offset-2;
 }
 
 .kiriof-plugin-update-dialog {
@@ -173,11 +173,11 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-plugin-update-dialog__icon {
-  @apply inline-flex flex-none items-center justify-center w-9 h-9 rounded-lg [background:#fff5d6] [color:#805b00];
+  @apply inline-flex flex-none items-center justify-center w-9 h-9 rounded-lg bg-warning-background text-warning-foreground;
 }
 
 .kiriof-plugin-update-dialog__eyebrow {
-  @apply block [margin-bottom:5px] [color:#805b00] [font-size:11px] font-bold [letter-spacing:0.02em] [line-height:1.2];
+  @apply block mb-1 text-warning-foreground text-xs font-bold tracking-wide leading-tight;
 }
 
 .kiriof-plugin-update-dialog [data-slot='dialog-title'] {
@@ -185,7 +185,7 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-plugin-update-dialog__details {
-  @apply grid gap-2 [padding:12px_14px] [border:1px_solid_#eadfbf] rounded-lg [background:#fffaf0] [color:#5e4b1d] [font-size:13px] [line-height:1.5];
+  @apply grid gap-2 px-3.5 py-3 border border-warning-border rounded-lg bg-warning-background text-warning-foreground text-[13px] leading-normal;
 }
 
 .kiriof-plugin-update-dialog__details p {
@@ -203,30 +203,30 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 }
 
 .kiriof-plugin-update-dialog__primary {
-  @apply [background:#5b21b6] text-white;
+  @apply bg-primary text-primary-foreground;
 }
 
 .kiriof-plugin-update-dialog__primary:hover {
-  @apply [background:#4c1d95] text-white;
+  @apply bg-primary/90 text-primary-foreground;
 }
 
 .kiriof-plugin-update-dialog__secondary {
-  @apply [color:#37159f];
+  @apply text-primary;
 }
 
 .kiriof-plugin-update-dialog__secondary:hover,
 .kiriof-plugin-update-dialog__dismiss:hover {
-  @apply [background:#f1edff];
+  @apply bg-primary/10;
 }
 
 .kiriof-plugin-update-dialog__dismiss {
-  @apply [color:#646970];
+  @apply text-muted-foreground;
 }
 
 .kiriof-plugin-update-dialog__primary:focus-visible,
 .kiriof-plugin-update-dialog__secondary:focus-visible,
 .kiriof-plugin-update-dialog__dismiss:focus-visible {
-  @apply [outline:2px_solid_#37159f] [outline-offset:2px];
+  @apply outline-2 outline-ring outline-offset-2;
 }
 
 @media (max-width: 782px) {

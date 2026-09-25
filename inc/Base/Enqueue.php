@@ -434,31 +434,9 @@ class Enqueue extends BaseInit{
 
         if ( in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) ) {
             wp_enqueue_style( 'woocommerce_admin_styles' );
-            // Load only the native order-preview scripts. Do not enqueue the
-            // `woocommerce_admin` bundle: WC localizes its global only on native
-            // screens, which causes a ReferenceError on this custom page.
-            foreach ( array( 'wc-backbone-modal', 'wc-orders', 'wc-admin-order' ) as $order_script ) {
-                if ( wp_script_is( $order_script, 'registered' ) ) {
-                    wp_enqueue_script( $order_script );
-                }
-            }
-            if ( wp_script_is( 'wc-backbone-modal', 'registered' ) ) {
-                wp_enqueue_script( 'wc-backbone-modal' );
-            }
-			wp_enqueue_script( 'kiriof-pin-input', $this->plugin_url . 'assets/lib/pin-input/pin-input.js', array(), '0.2.0', true );
-			wp_script_add_data( 'kiriof-pin-input', 'type', 'module' );
-			wp_register_script(
-				'kiriof-transaction-process',
-				$this->plugin_url . 'assets/admin/js/kj-transaction-process.js',
-				array( 'jquery', 'kiriof-script', 'kiriof-pin-input', 'wc-backbone-modal' ),
-				KIRIOF_VERSION,
-				true
-            );
-            wp_enqueue_script( 'kiriof-transaction-process' );
-
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
 			$this->enqueue_workspace_style();
-			$this->enqueue_workspace_script( $workspace_script, array( 'kiriof-transaction-process' ) );
+			$this->enqueue_workspace_script( $workspace_script );
         }
 
         /** print */
@@ -504,7 +482,7 @@ class Enqueue extends BaseInit{
         /**
          * COD Adjustment JS — enqueued on the order edit screen and transaction process page.
          */
-        if ( $is_order_screen || in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) ) {
+        if ( $is_order_screen ) {
             wp_enqueue_script(
                 'kiriof-cod-adjustment',
                 $this->plugin_url . 'assets/js/kiriof-cod-adjustment.js',
@@ -530,54 +508,6 @@ class Enqueue extends BaseInit{
             );
         }
 
-        /**
-         * Change Origin JS — enqueued on the transaction process page.
-         */
-        if ( 'kiriminaja-transaction' === $page || 'kiriminaja-transaction-detail' === $page ) {
-            wp_enqueue_script(
-                'kiriof-change-origin',
-                $this->plugin_url . 'assets/js/kiriof-change-origin.js',
-                array( 'jquery', 'select2', 'wp-util', 'underscore', 'backbone', 'wc-jquery-blockui', 'wc-backbone-modal' ),
-                file_exists( KIRIOF_DIR . 'assets/js/kiriof-change-origin.js' ) ? filemtime( KIRIOF_DIR . 'assets/js/kiriof-change-origin.js' ) : KIRIOF_VERSION,
-                true
-            );
-            wp_localize_script(
-                'kiriof-change-origin',
-                'kiriofChangeOrigin',
-                array(
-                    'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-                    'previewNonce' => wp_create_nonce( 'woocommerce-preview-order' ),
-                    'i18n' => array(
-                        'selectLocation' => __( 'Please select a shipment location first.', 'kiriminaja-official' ),
-                        'checkFailed'    => __( 'Shipping check failed.', 'kiriminaja-official' ),
-                        'updateFailed'   => __( 'Failed to update the shipment origin.', 'kiriminaja-official' ),
-                        'priceImpact'    => __( 'Order price impact', 'kiriminaja-official' ),
-                        'previousCourier'=> __( 'Previous courier', 'kiriminaja-official' ),
-                        'newCourier'     => __( 'New courier', 'kiriminaja-official' ),
-                        'previousShipping' => __( 'Previous shipping', 'kiriminaja-official' ),
-                        'newShipping'    => __( 'New shipping', 'kiriminaja-official' ),
-                        'shippingDiscount' => __( 'Shipping discount', 'kiriminaja-official' ),
-                        'courier'          => __( 'Courier', 'kiriminaja-official' ),
-                        'orderTotal'     => __( 'Order total', 'kiriminaja-official' ),
-                        'priceIncrease'  => __( 'increases', 'kiriminaja-official' ),
-                        'priceDecrease'  => __( 'decreases', 'kiriminaja-official' ),
-                        'noChange'       => __( 'No change', 'kiriminaja-official' ),
-                        'checkingShipping' => __( 'Checking shipping route...', 'kiriminaja-official' ),
-                        'replacementCourier' => __( 'Select a replacement courier with your consent.', 'kiriminaja-official' ),
-                        'selectCourier' => __( 'Select courier', 'kiriminaja-official' ),
-                        'replacementConsent' => __( 'I consent to use this replacement courier.', 'kiriminaja-official' ),
-                        'orderBreakdown' => __( 'Order summary', 'kiriminaja-official' ),
-                        'subTotal' => __( 'Sub Total', 'kiriminaja-official' ),
-                        'shipping' => __( 'Shipping', 'kiriminaja-official' ),
-                        'change' => __( 'Change', 'kiriminaja-official' ),
-                        'collapse' => __( 'Collapse', 'kiriminaja-official' ),
-                        'changeBlocked' => __( 'Change cannot be processed.', 'kiriminaja-official' ),
-                        'refundRequired' => __( 'The adjusted order total would be below Rp0. Reconcile or refund the buyer {amount} before making this change.', 'kiriminaja-official' ),
-                        'blocked' => __( 'Blocked', 'kiriminaja-official' ),
-                    ),
-                )
-            );
-        }
 
         if ( 'kiriminaja-request-pickup' === $page ) {
             if ( ! wp_script_is( 'wc-qrcode', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {

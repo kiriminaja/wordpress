@@ -1,4 +1,5 @@
 import type { ToolbarConfig } from '$lib/ui/toolbar';
+import type { TransactionActionData } from '$lib/transactions/types';
 
 export type TransactionDetailBootstrap = {
   toolbar: ToolbarConfig;
@@ -39,10 +40,11 @@ export type TransactionDetailBootstrap = {
       adjustDeficit: boolean;
       cancelDeficit: boolean;
       cancel: boolean;
-      data: Record<string, string | number>;
+      data: TransactionActionData;
     };
   };
   ajax: { url: string; nonce: string };
+  shipmentLocations: Array<{ id: number; name: string; address: string }>;
   i18n: Record<string, string>;
 };
 
