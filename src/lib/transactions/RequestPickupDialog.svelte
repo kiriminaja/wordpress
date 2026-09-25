@@ -1,7 +1,8 @@
 <script lang="ts">
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
-  import { Input } from '$lib/components/ui/input';
+  import * as InputOTP from '$lib/components/ui/input-otp';
+  import { REGEXP_ONLY_DIGITS } from 'bits-ui';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
   import KiriofSelect from '$lib/ui/KiriofSelect.svelte';
@@ -289,7 +290,21 @@
       <Field.FieldGroup>
         <Field.Field>
           <Field.FieldLabel for="kiriof-pickup-pin">{label('enterPin', 'Enter PIN')}</Field.FieldLabel>
-          <Input id="kiriof-pickup-pin" type="password" inputmode="numeric" maxlength={6} placeholder="••••••" bind:value={pin} aria-describedby="kiriof-pickup-pin-help" />
+          <InputOTP.Root inputId="kiriof-pickup-pin" type="password" bind:value={pin} maxlength={6} pattern={REGEXP_ONLY_DIGITS} inputmode="numeric" autocomplete="one-time-code" aria-label={label('enterPin', 'Enter PIN')} aria-describedby="kiriof-pickup-pin-help">
+            {#snippet children({ cells })}
+              <InputOTP.Group>
+                {#each cells.slice(0, 3) as cell, index (index)}
+                  <InputOTP.Slot {cell} mask />
+                {/each}
+              </InputOTP.Group>
+              <InputOTP.Separator />
+              <InputOTP.Group>
+                {#each cells.slice(3, 6) as cell, index (index)}
+                  <InputOTP.Slot {cell} mask />
+                {/each}
+              </InputOTP.Group>
+            {/snippet}
+          </InputOTP.Root>
           <Field.FieldDescription id="kiriof-pickup-pin-help">{label('pinDescription', 'Enter the 6-digit PIN configured on your profile.')}</Field.FieldDescription>
         </Field.Field>
       </Field.FieldGroup>

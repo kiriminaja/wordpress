@@ -1007,17 +1007,6 @@ class TransactionProcessController
                 return;
             }
 
-            $kiriof_pin_cache_ttl = (int) apply_filters(
-                'kiriof_pin_cache_ttl',
-                15 * MINUTE_IN_SECONDS,
-                wp_get_current_user()
-            );
-            $kiriof_pin_cache_ttl = max( MINUTE_IN_SECONDS, $kiriof_pin_cache_ttl );
-            $kiriof_pin_cache_label = sprintf(
-                /* translators: %d: cached PIN duration in minutes. */
-                __( 'Remember PIN on this browser for %d minutes', 'kiriminaja-official' ),
-                (int) ceil( $kiriof_pin_cache_ttl / MINUTE_IN_SECONDS )
-            );
             ?>
                 <template id="tmpl-kiriof-modal-cod-adjustment">
                     <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cod-adjustment-modal">
@@ -1161,112 +1150,6 @@ class TransactionProcessController
             <div class="wc-backbone-modal-backdrop modal-close"></div>
         </template>
 
-                <?php if ($this->isTransactionProcessPage()) : ?>
-                    <template id="tmpl-kiriof-modal-request-pickup">
-                        <div class="wc-backbone-modal kiriof-backbone-modal kiriof-request-pickup-modal">
-                <div class="wc-backbone-modal-content" style="max-width:640px;width:calc(100vw - 48px);margin:5vh auto 0;">
-                    <section class="wc-backbone-modal-main" role="main">
-                        <header class="wc-backbone-modal-header">
-                            <h1><?php esc_html_e('Schedule for Pickup', 'kiriminaja-official'); ?></h1>
-                            <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                <span class="screen-reader-text"><?php esc_html_e('Close modal panel', 'kiriminaja-official'); ?></span>
-                            </button>
-                        </header>
-                        <article class="kiriof-backbone-modal-body">
-                            <form>
-                                <div class="kiriof-modal-state kiriof-modal-state-loading">
-                                    <div class="kiriof-backbone-modal-loader">
-                                        <span class="spinner is-active"></span>
-                                    </div>
-                                </div>
-
-                                <div class="kiriof-modal-state kiriof-modal-state-error" style="display:none;">
-                                    <p class="kiriof-backbone-modal-error-text"><?php esc_html_e('An error occurred.', 'kiriminaja-official'); ?></p>
-                                </div>
-
-                                <div class="kiriof-modal-state kiriof-modal-state-content" style="display:none;">
-                                    <div class="kiriof-backbone-summary">
-                                        <div class="kiriof-backbone-summary-row">
-                                            <span><?php esc_html_e('COD Package Charges', 'kiriminaja-official'); ?></span>
-                                            <strong class="kiriof-summary-cod">Rp0</strong>
-                                        </div>
-                                        <div class="kiriof-backbone-summary-row">
-                                            <span><?php esc_html_e('Non-COD Package Charges', 'kiriminaja-official'); ?></span>
-                                            <strong class="kiriof-summary-non-cod">Rp0</strong>
-                                        </div>
-                                        <div class="kiriof-backbone-summary-row">
-                                            <span><?php esc_html_e('Total Charges', 'kiriminaja-official'); ?></span>
-                                            <strong class="kiriof-summary-total">Rp0</strong>
-                                        </div>
-                                    </div>
-
-                                    <div class="kiriof-pm-warning kiriof-pm-state-banner" style="display:none;"></div>
-
-                                    <div class="kiriof-backbone-section kiriof-payment-method-section" style="display:none;">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Payment Method', 'kiriminaja-official'); ?> <span class="required">*</span></h2>
-                                        <div class="kiriof-payment-methods">
-                                            <div class="kiriof-payment-method-option" data-method="credit">
-                                                <div class="kiriof-payment-method-radio">
-                                                    <input type="radio" id="kiriof-pm-credit" name="payment_method" value="credit">
-                                                    <label for="kiriof-pm-credit">
-                                                        <strong><?php esc_html_e('KA Credit', 'kiriminaja-official'); ?></strong>
-                                                        <span class="kiriof-pm-balance"><?php esc_html_e('Loading balance...', 'kiriminaja-official'); ?></span>
-                                                    </label>
-                                                </div>
-                                                <div class="kiriof-pm-warning kiriof-pm-credit-warning" style="display:none;"></div>
-                                            </div>
-                                            <div class="kiriof-payment-method-option" data-method="qris">
-                                                <div class="kiriof-payment-method-radio">
-                                                    <input type="radio" id="kiriof-pm-qris" name="payment_method" value="qris">
-                                                    <label for="kiriof-pm-qris">
-                                                        <strong><?php esc_html_e('QRIS', 'kiriminaja-official'); ?></strong>
-                                                        <span class="kiriof-pm-max"><?php esc_html_e('Max Rp10.000.000', 'kiriminaja-official'); ?></span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-
-                                    <div class="kiriof-backbone-section">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Available Schedules', 'kiriminaja-official'); ?></h2>
-                                        <select class="kiriof-schedule-select" name="schedule_opt" style="width:100%;">
-                                            <option value=""><?php esc_html_e('-- Select schedule --', 'kiriminaja-official'); ?></option>
-                                        </select>
-                                    </div>
-
-                                    <p class="kiriof-backbone-inline-error err_msg" style="display:none;"></p>
-                                </div>
-
-                                <div class="kiriof-modal-state kiriof-modal-state-pin" style="display:none;">
-                                    <div class="kiriof-backbone-section kiriof-pin-section">
-                                        <h2 class="kiriof-backbone-section-title"><?php esc_html_e('Enter PIN', 'kiriminaja-official'); ?></h2>
-                                        <p style="font-size:12px;color:#50575e;margin:0 0 8px;"><?php esc_html_e('Enter the 6-digit PIN that was set on your profile page.', 'kiriminaja-official'); ?></p>
-                                        <pin-input id="kiriof-pin-widget" class="kiriof-pin-widget" length="6" pattern="[0-9]" autocomplete="one-time-code" inputmode="numeric" mask aria-label="<?php esc_attr_e('Enter 6-digit PIN', 'kiriminaja-official'); ?>"></pin-input>
-                                        <input type="password" id="kiriof-pin-fallback" class="kiriof-pin-fallback" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="------" autocomplete="one-time-code" style="display:none;">
-                                        <input type="hidden" id="kiriof-pin-input" name="pin" value="">
-                                        <label for="kiriof-pin-remember" class="kiriof-pin-remember">
-                                            <input type="checkbox" id="kiriof-pin-remember" name="remember_pin" value="1">
-                                            <span><?php echo esc_html($kiriof_pin_cache_label); ?></span>
-                                        </label>
-                                        <p class="kiriof-pin-cache-notice" style="display:none;font-size:12px;color:#2271b1;margin:8px 0 0;"></p>
-                                        <p class="kiriof-pin-error err_msg" style="display:none;"></p>
-                                    </div>
-                                </div>
-                            </form>
-                        </article>
-                        <footer>
-                            <div class="inner">
-                                <button class="button button-large modal-close"><?php esc_html_e('Close', 'kiriminaja-official'); ?></button>
-                                <button class="button button-primary button-large" id="btn-next" disabled><?php esc_html_e('Pick Schedule', 'kiriminaja-official'); ?></button>
-                            </div>
-                        </footer>
-                    </section>
-                </div>
-            </div>
-            <div class="wc-backbone-modal-backdrop modal-close"></div>
-        </template>
-
                     <template id="tmpl-kiriof-modal-cancel-transaction">
                         <div class="wc-backbone-modal kiriof-backbone-modal kiriof-cancel-transaction-modal">
                 <div class="wc-backbone-modal-content" style="max-width:420px;width:calc(100vw - 48px);margin:5vh auto 0;">
@@ -1310,7 +1193,6 @@ class TransactionProcessController
             </div>
             <div class="wc-backbone-modal-backdrop modal-close"></div>
         </template>
-                <?php endif; ?>
         <?php
         }
 

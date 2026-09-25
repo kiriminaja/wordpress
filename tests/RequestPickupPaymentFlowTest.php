@@ -316,7 +316,13 @@ final class RequestPickupPaymentFlowTest extends TestCase
 
 		$this->assertStringContainsString( 'const canSubmitPin = $derived', $dialog );
 		$this->assertStringContainsString( "call('kiriof_request_pickup_transaction'", $dialog );
-		$this->assertStringContainsString( 'id="kiriof-pickup-pin"', $dialog );
+		$this->assertStringContainsString( 'inputId="kiriof-pickup-pin"', $dialog );
+		$this->assertStringContainsString( 'type="password" bind:value={pin}', $dialog );
+		$this->assertStringContainsString( 'pattern={REGEXP_ONLY_DIGITS}', $dialog );
+		$this->assertStringContainsString( 'bind:value={pin}', $dialog );
+		$this->assertStringContainsString( '<InputOTP.Slot {cell} mask />', $dialog );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/lib/pin-input/pin-input.js' );
+		$this->assertStringNotContainsString( 'tmpl-kiriof-modal-request-pickup', file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' ) );
 		$this->assertStringNotContainsString( 'kiriofTransactionProcess', $template );
 		$this->assertStringNotContainsString( 'kj-transaction-process.js', $enqueue );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
