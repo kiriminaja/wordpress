@@ -9,6 +9,7 @@
     primaryLabel,
     primaryVariant = 'default',
     primaryDisabled = false,
+    primaryLoading = false,
     secondaryLabel,
     secondaryDisabled = false,
     class: className = '',
@@ -23,6 +24,7 @@
     primaryLabel: string;
     primaryVariant?: ButtonVariant;
     primaryDisabled?: boolean;
+    primaryLoading?: boolean;
     secondaryLabel?: string;
     secondaryDisabled?: boolean;
     class?: string;
@@ -58,7 +60,7 @@
       {#if secondaryLabel}
         <Button variant="ghost" onclick={secondary} disabled={secondaryDisabled}>{secondaryLabel}</Button>
       {/if}
-      <Button variant={primaryVariant} onclick={() => void onPrimary()} disabled={primaryDisabled}>{primaryLabel}</Button>
+      <Button variant={primaryVariant} onclick={() => void onPrimary()} disabled={primaryDisabled} loading={primaryLoading}>{primaryLabel}</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>

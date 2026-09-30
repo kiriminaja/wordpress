@@ -2,6 +2,7 @@
 	import { type VariantProps, tv } from "tailwind-variants";
 	import { cn, type WithElementRef } from "$lib/utils.js";
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from "svelte/elements";
+	import { IconLoader2 } from '@tabler/icons-svelte';
 
 	export const buttonVariants = tv({
 		base: "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 !inline-flex !box-border !items-center !justify-center !rounded-[var(--radius)] border border-transparent bg-clip-padding text-sm font-medium !leading-none no-underline focus-visible:ring-3 aria-invalid:ring-3 active:not-aria-[haspopup]:translate-y-px [&_svg:not([class*='size-'])]:size-4 group/button shrink-0 whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -38,6 +39,7 @@
 		WithElementRef<HTMLAnchorAttributes> & {
 			variant?: ButtonVariant;
 			size?: ButtonSize;
+			loading?: boolean;
 		};
 </script>
 
@@ -50,6 +52,7 @@
 		href = undefined,
 		type = "button",
 		disabled,
+		loading = false,
 		children,
 		...restProps
 	}: ButtonProps = $props();
@@ -62,12 +65,14 @@
 		data-variant={variant}
 		data-size={size}
 		class={cn("kiriof-button", buttonVariants({ variant, size }), className)}
-		href={disabled ? undefined : href}
-		aria-disabled={disabled}
-		role={disabled ? "link" : undefined}
-		tabindex={disabled ? -1 : undefined}
+		href={disabled || loading ? undefined : href}
+		aria-disabled={disabled || loading}
+		aria-busy={loading}
+		role={disabled || loading ? "link" : undefined}
+		tabindex={disabled || loading ? -1 : undefined}
 		{...restProps}
 	>
+		{#if loading}<IconLoader2 class="size-4 animate-spin" aria-hidden="true" />{/if}
 		{@render children?.()}
 	</a>
 {:else}
@@ -78,9 +83,11 @@
 		data-size={size}
 		class={cn("kiriof-button", buttonVariants({ variant, size }), className)}
 		{type}
-		{disabled}
+		disabled={disabled || loading}
+		aria-busy={loading}
 		{...restProps}
 	>
+		{#if loading}<IconLoader2 class="size-4 animate-spin" aria-hidden="true" />{/if}
 		{@render children?.()}
 	</button>
 {/if}

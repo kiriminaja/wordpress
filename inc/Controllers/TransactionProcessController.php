@@ -308,21 +308,23 @@ class TransactionProcessController
 
         $settingService = new \KiriminAjaOfficial\Services\SettingService();
         $isTop = $settingService->isTopPaymentMethod();
-
         $hasPin = false;
-        if (KIRIOF_ENABLE_KA_CREDIT) {
-            try {
+
+        try {
             $profile = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->getProfile();
-            if (! empty($profile->data)) {
-                $hasPin = (bool) ($profile->data->metadata->has_pin ?? false);
-                $profilePaymentMethod = strtoupper((string) ($profile->data->metadata->payment_method ?? ''));
-                if ($profilePaymentMethod !== '') {
-                    $isTop = $profilePaymentMethod === 'TOP';
+            $profileData = is_array($profile->data ?? null) ? $profile->data : (array) ($profile->data ?? []);
+            $metadata = is_array($profileData['metadata'] ?? null) ? $profileData['metadata'] : (array) ($profileData['metadata'] ?? []);
+            $profilePaymentMethod = strtoupper(trim((string) ($metadata['payment_method'] ?? '')));
+            $profileIsSuccessful = 200 === (int) ($profile->status ?? 0) && ! empty($profileData);
+
+            if ($profileIsSuccessful) {
+                $isTop = $profilePaymentMethod === 'TOP';
+                if ( KIRIOF_ENABLE_KA_CREDIT ) {
+                    $hasPin = (bool) ($metadata['has_pin'] ?? false);
                 }
             }
-            } catch (\Throwable $th) {
-                (new \KiriminAjaOfficial\Base\BaseInit())->logThis('getPaymentMethodConfig profile error', [$th->getMessage()]);
-            }
+        } catch (\Throwable $th) {
+            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('getPaymentMethodConfig profile error', [$th->getMessage()]);
         }
 
         wp_send_json_success([
@@ -331,7 +333,7 @@ class TransactionProcessController
             'data'    => [
                 'is_top'   => $isTop,
                 'has_pin'  => $hasPin,
-                'ka_credit_enabled' => KIRIOF_ENABLE_KA_CREDIT,
+                'ka_credit_enabled' => (bool) KIRIOF_ENABLE_KA_CREDIT,
             ],
         ]);
     }

@@ -78,10 +78,25 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$this->assertStringContainsString( 'Remaining Credit', $dialog );
 		$this->assertStringContainsString( 'Maximum Transaction Rp10.000.000', $dialog );
 		$this->assertStringContainsString( 'Continue to Payment', $dialog );
-		$this->assertStringContainsString( 'disabled={option.disabled}', $dialog );
+		$this->assertStringContainsString( 'disabled={submitting || option.disabled}', $dialog );
 		$this->assertStringContainsString( 'kiriof-payment-method-card', $dialog );
+		$this->assertStringContainsString( 'let submitting = $state(false)', $dialog );
+		$this->assertStringContainsString( 'IconLoader2', $dialog );
+		$schedule = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/pickup-schedule.ts' );
+		$this->assertStringContainsString( 'PICKUP_HOURS = [8, 11, 14, 17]', $schedule );
+		$this->assertStringContainsString( 'loading={submitting}', $dialog );
 		$this->assertStringContainsString( '!border border-border', $styles );
 		$this->assertStringContainsString( '![font-size:17px]', $styles );
+	}
+
+	#[Test]
+	public function non_top_payment_config_refreshes_profile_even_when_credit_is_disabled(): void
+	{
+		$controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' );
+
+		$this->assertStringContainsString( "getProfile()", $controller );
+		$this->assertStringContainsString( "\$isTop = \$profilePaymentMethod === 'TOP';", $controller );
+		$this->assertStringContainsString( 'if ( KIRIOF_ENABLE_KA_CREDIT )', $controller );
 	}
 
     #[Test]

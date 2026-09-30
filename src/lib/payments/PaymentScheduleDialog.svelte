@@ -123,6 +123,7 @@
   secondaryDisabled={submitting}
   primaryLabel={submitting ? (i18n.processing ?? 'Processing…') : (i18n.confirmSchedule ?? 'Confirm schedule')}
   primaryDisabled={loading || submitting || !selectedSchedule || !orderId}
+  primaryLoading={submitting}
   onPrimary={() => void submit()}
 >
   {#if loading}

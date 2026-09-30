@@ -4,13 +4,13 @@
   import * as InputOTP from '$lib/components/ui/input-otp';
   import { REGEXP_ONLY_DIGITS } from 'bits-ui';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-  import * as Select from '$lib/components/ui/select';
+  import { onDestroy, untrack } from 'svelte';
+  import { createPickupDates, pickupFlag, requiresPickupPayment, type PickupDate } from './pickup-schedule';
   import KiriofSelect from '$lib/ui/KiriofSelect.svelte';
   import { Button } from '$lib/components/ui/button';
-  import { IconCreditCard, IconQrcode } from '@tabler/icons-svelte';
+  import { IconCreditCard, IconLoader2, IconQrcode } from '@tabler/icons-svelte';
 
-  type PickupDate = { value: string; label: string; times: Array<{ value: string; label: string }> };
-  type Summary = { sum_fee_cod?: number | string; sum_fee_non_cod?: number | string };
+  type Summary = { count_non_cod?: number | string; sum_fee_cod?: number | string; sum_fee_non_cod?: number | string };
   type ApiResult = { status?: number; message?: string; data?: Record<string, any> };
 
   let {
@@ -29,7 +29,7 @@
     i18n: Record<string, string>;
   } = $props();
 
-  let phase = $state<'loading' | 'schedule' | 'pin' | 'submitting' | 'error'>('loading');
+  let phase = $state<'loading' | 'schedule' | 'pin' | 'error'>('loading');
   let pickupDates = $state<PickupDate[]>([]);
   let summary = $state<Summary>({});
   let selectedDate = $state('');
@@ -43,7 +43,8 @@
   let qrisDisabled = $state(false);
   let pin = $state('');
   let errorMessage = $state('');
-  let requestKey = $state('');
+  let submitting = $state(false);
+  let loadId = 0;
 
   const totalFee = $derived(Number(summary.sum_fee_cod ?? 0) + Number(summary.sum_fee_non_cod ?? 0));
   const canContinue = $derived(
@@ -76,46 +77,9 @@
   );
   const selectableOptions = $derived(paymentOptions.filter((option) => !option.disabled));
 
+
   function label(key: string, fallback: string): string {
     return i18n[key] || fallback;
-  }
-
-  function localDateValue(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  function createPickupDates(): PickupDate[] {
-    const now = new Date();
-    const earliest = new Date(now.getTime() + 60 * 60 * 1000);
-    const dates: PickupDate[] = [];
-
-    for (let offset = 0; offset <= 7; offset += 1) {
-      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-      const value = localDateValue(date);
-      const firstHour = offset === 0 ? Math.max(8, Math.ceil(earliest.getHours() + earliest.getMinutes() / 60)) : 8;
-      const times = [];
-
-      for (let hour = firstHour; hour <= 21; hour += 1) {
-        const slot = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour);
-        if (slot.getTime() < earliest.getTime()) continue;
-        const start = `${String(hour).padStart(2, '0')}:00`;
-        const end = `${String(Math.min(hour + 5, 22)).padStart(2, '0')}:00`;
-        times.push({ value: start, label: `${start} - ${end}` });
-      }
-
-      if (times.length) {
-        dates.push({
-          value,
-          label: new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date),
-          times,
-        });
-      }
-    }
-
-    return dates;
   }
 
   const selectedDateOption = $derived(pickupDates.find((date) => date.value === selectedDate));
@@ -150,17 +114,18 @@
       headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
       body,
     });
-    const payload = (await response.json()) as { data?: ApiResult };
-    if (!response.ok || !payload.data) throw new Error(label('genericError', 'An error occurred.'));
+    const payload = (await response.json()) as { success?: boolean; data?: ApiResult };
+    if (!response.ok || payload.success === false || !payload.data) throw new Error(label('genericError', 'An error occurred.'));
     return payload.data;
   }
 
   function ensureSuccess(result: ApiResult): Record<string, any> {
-    if (result.status !== 200) throw new Error(result.message || label('genericError', 'An error occurred.'));
+    if (Number(result.status) !== 200) throw new Error(result.message || label('genericError', 'An error occurred.'));
     return result.data || {};
   }
 
   async function load(): Promise<void> {
+    const current = ++loadId;
     phase = 'loading';
     errorMessage = '';
     pickupDates = createPickupDates();
@@ -178,21 +143,22 @@
 
     try {
       const summaryResult = await call('kiriof_request_pickup_summary', { order_ids: orderIds, nonce });
+      if (current !== loadId || !open) return;
       const summaryData = ensureSuccess(summaryResult);
       summary = summaryData.transaction_summary || {};
 
       const configResult = await call('kiriof_get_payment_method_config', { nonce }, false);
+      if (current !== loadId || !open) return;
       const paymentConfig = ensureSuccess(configResult);
-      const hasNonCodFee = Number(summary.sum_fee_non_cod || 0) > 0;
-      const isTop = paymentConfig.is_top === true;
-      paymentRequired = hasNonCodFee && !isTop;
-      creditEnabled = paymentConfig.ka_credit_enabled === true;
-      hasPin = paymentConfig.has_pin === true;
+      paymentRequired = requiresPickupPayment(summary, paymentConfig.is_top);
+      creditEnabled = pickupFlag(paymentConfig.ka_credit_enabled);
+      hasPin = pickupFlag(paymentConfig.has_pin);
       paymentMethod = paymentRequired ? 'qris' : '';
       qrisDisabled = totalFee > 10000000;
 
       if (paymentRequired && creditEnabled) {
         const balanceResult = await call('kiriof_get_credit_balance', { nonce }, false);
+        if (current !== loadId || !open) return;
         const balanceData = balanceResult.data || {};
         creditBalance = Number(balanceData.balance || 0);
         creditAvailable = balanceResult.status === 200 && hasPin && creditBalance >= totalFee;
@@ -206,12 +172,14 @@
       phase = 'schedule';
       if (!pickupDates.length) errorMessage = label('noSchedule', 'No pickup time is available in the next seven days.');
     } catch (error) {
+      if (current !== loadId || !open) return;
       phase = 'error';
       errorMessage = error instanceof Error ? error.message : label('genericError', 'An error occurred.');
     }
   }
 
   async function submit(): Promise<void> {
+    if (submitting || (phase !== 'schedule' && phase !== 'pin')) return;
     if (!selectedSchedule) {
       errorMessage = label('selectSchedule', 'Please select a pickup date and time.');
       return;
@@ -230,7 +198,7 @@
       return;
     }
 
-    phase = 'submitting';
+    submitting = true;
     errorMessage = '';
     try {
       const result = await call('kiriof_request_pickup_transaction', {
@@ -248,28 +216,25 @@
     } catch (error) {
       phase = paymentMethod === 'credit' ? 'pin' : 'schedule';
       errorMessage = error instanceof Error ? error.message : label('somethingWrong', 'Something went wrong.');
+    } finally {
+      submitting = false;
     }
   }
 
   function close(): void {
-    open = false;
+    if (!submitting) open = false;
   }
 
   $effect(() => {
-    if (!open) {
-      requestKey = '';
-      return;
-    }
-    const nextKey = orderIds.join('|');
-    if (nextKey && nextKey !== requestKey) {
-      requestKey = nextKey;
-      void load();
-    }
+    const identity = open ? orderIds.join('|') : '';
+    if (identity) untrack(() => void load());
+    return () => { loadId += 1; };
   });
+  onDestroy(() => { loadId += 1; });
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content max-w-xl">
+<Dialog.Root {open} onOpenChange={(nextOpen) => { if (!submitting) open = nextOpen; }}>
+  <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content max-w-xl" showCloseButton={!submitting} escapeKeydownBehavior={submitting ? 'ignore' : 'close'} interactOutsideBehavior={submitting ? 'ignore' : 'close'} aria-busy={submitting}>
     <Dialog.Header>
       <Dialog.Title>{label('schedulePickupTitle', 'Schedule for Pickup')}</Dialog.Title>
       <Dialog.Description>
@@ -277,9 +242,10 @@
       </Dialog.Description>
     </Dialog.Header>
 
-    {#if phase === 'loading' || phase === 'submitting'}
+    {#if phase === 'loading'}
       <div class="flex min-h-32 items-center justify-center text-sm text-muted-foreground" aria-live="polite">
-        {phase === 'submitting' ? label('processing', 'Processing…') : label('loading', 'Loading…')}
+        <IconLoader2 class="size-5 animate-spin" aria-hidden="true" />
+        {label('loading', 'Loading…')}
       </div>
     {:else if phase === 'error'}
       <div class="flex flex-col gap-3" role="alert">
@@ -290,7 +256,7 @@
       <Field.FieldGroup>
         <Field.Field>
           <Field.FieldLabel for="kiriof-pickup-pin">{label('enterPin', 'Enter PIN')}</Field.FieldLabel>
-          <InputOTP.Root inputId="kiriof-pickup-pin" type="password" bind:value={pin} maxlength={6} pattern={REGEXP_ONLY_DIGITS} inputmode="numeric" autocomplete="one-time-code" aria-label={label('enterPin', 'Enter PIN')} aria-describedby="kiriof-pickup-pin-help">
+          <InputOTP.Root inputId="kiriof-pickup-pin" type="password" bind:value={pin} disabled={submitting} maxlength={6} pattern={REGEXP_ONLY_DIGITS} inputmode="numeric" autocomplete="one-time-code" aria-label={label('enterPin', 'Enter PIN')} aria-describedby="kiriof-pickup-pin-help">
             {#snippet children({ cells })}
               <InputOTP.Group>
                 {#each cells.slice(0, 3) as cell, index (index)}
@@ -320,25 +286,25 @@
         <Field.FieldGroup class="kiriof-pickup-datetime">
           <Field.Field>
             <Field.FieldLabel for="kiriof-pickup-date">{label('pickupDate', 'Pickup Date')}</Field.FieldLabel>
-            <KiriofSelect id="kiriof-pickup-date" value={selectedDate} options={pickupDates} placeholder={label('selectDatePlaceholder', 'Select a pickup date')} onChange={selectDate} />
+            <KiriofSelect id="kiriof-pickup-date" value={selectedDate} options={pickupDates} placeholder={label('selectDatePlaceholder', 'Select a pickup date')} disabled={submitting} onChange={selectDate} />
           </Field.Field>
 
           <Field.Field>
             <Field.FieldLabel for="kiriof-pickup-time">{label('pickupTime', 'Pickup Time')}</Field.FieldLabel>
-            <KiriofSelect id="kiriof-pickup-time" bind:value={selectedTime} options={availableTimes} placeholder={label('selectTimePlaceholder', 'Select a pickup time')} />
+            <KiriofSelect id="kiriof-pickup-time" bind:value={selectedTime} options={availableTimes} placeholder={label('selectTimePlaceholder', 'Select a pickup time')} disabled={submitting} />
           </Field.Field>
         </Field.FieldGroup>
 
         {#if paymentRequired && paymentOptions.length >= 1}
           <Field.Field>
             <Field.FieldLabel>{label('paymentMethod', 'Choose Payment Method')}<span class="text-destructive">*</span></Field.FieldLabel>
-            <RadioGroup.Root bind:value={paymentMethod} class="kiriof-payment-methods">
+            <RadioGroup.Root bind:value={paymentMethod} disabled={submitting} class="kiriof-payment-methods">
               {#each paymentOptions as option (option.value)}
                 {@const PaymentIcon = option.icon}
                 <label class="kiriof-payment-method-card" class:is-selected={paymentMethod === option.value} class:is-disabled={option.disabled} aria-disabled={option.disabled ? 'true' : undefined}>
                   <span class="kiriof-payment-method-card__icon"><PaymentIcon /></span>
                   <span class="kiriof-payment-method-card__copy"><strong>{option.title}</strong><span>{option.description}</span></span>
-                  <RadioGroup.Item value={option.value} aria-label={option.title} disabled={option.disabled} />
+                  <RadioGroup.Item value={option.value} aria-label={option.title} disabled={submitting || option.disabled} />
                 </label>
               {/each}
             </RadioGroup.Root>
@@ -351,11 +317,13 @@
     {/if}
 
     <Dialog.Footer>
-      <Button class="kiriof-dialog-secondary" variant="ghost" onclick={close}>{label('close', 'Close')}</Button>
+      <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={close}>{label('close', 'Close')}</Button>
       {#if phase === 'pin'}
-        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canSubmitPin}>{label('confirmPickup', 'Confirm & Process')}</Button>
+        <Button class="kiriof-dialog-primary" onclick={submit} loading={submitting} disabled={!canSubmitPin}>{submitting ? label('processing', 'Processing…') : label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}
-        <Button class="kiriof-dialog-primary" onclick={submit} disabled={!canContinue || !pickupDates.length}>{label('continueToPayment', 'Continue to Payment')}</Button>
+        <Button class="kiriof-dialog-primary" onclick={submit} loading={submitting} disabled={!canContinue || !pickupDates.length}>
+          {submitting ? label('processing', 'Processing…') : label('continueToPayment', 'Continue to Payment')}
+        </Button>
       {/if}
     </Dialog.Footer>
   </Dialog.Content>
