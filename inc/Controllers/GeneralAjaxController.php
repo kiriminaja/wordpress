@@ -236,6 +236,7 @@ class GeneralAjaxController
             'coupon_codes'    => $discount_context['coupon_codes'],
             'discount_total'  => $discount_context['discount_total'],
             'discount_tax'    => $discount_context['discount_tax'],
+            'courier_services' => ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getCourierServiceSelection(),
         );
     }
 

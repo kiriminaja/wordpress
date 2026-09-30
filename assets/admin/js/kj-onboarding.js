@@ -9,14 +9,20 @@
 	var order = ['account', 'address', 'couriers', 'shipping', 'complete'];
 	var current = $root.data('current-step') || 'account';
 	var accountComplete = String($root.data('account-complete')) === '1';
-	var courierMap = {};
-	var couriers = [];
+	var courierPicker;
+	var courierSaving = false;
+	var stepSaving = false;
 	var couriersLoaded = false;
 	var couriersLoading = false;
+	var courierLoadRequest;
+	var courierLoadGeneration = 0;
 	var map;
 
 	function parse(response) {
-		if (response && response.data) {
+		if (response && response.success === false) {
+			return { status: 0, message: response.data && response.data.message || response.message };
+		}
+		if (response && response.success === true && response.data) {
 			return response.data;
 		}
 		return response;
@@ -62,7 +68,10 @@
 		if (!accountComplete) {
 			return false;
 		}
-		if (step === 'shipping') {
+		if (step === 'complete' && !isStepDone('shipping')) {
+			return false;
+		}
+		if (step === 'shipping' || step === 'complete') {
 			return isStepDone('address') && isStepDone('couriers');
 		}
 		return true;
@@ -78,23 +87,28 @@
 			message('account', kiriofOnboarding.accountRequired);
 			return;
 		}
-		if (step === 'shipping' && !isStepDone('address')) {
+		if ((step === 'shipping' || step === 'complete') && !isStepDone('address')) {
 			show('address');
 			message('address', 'Save your shipping address before continuing.');
 			return;
 		}
-		if (step === 'shipping' && !isStepDone('couriers')) {
+		if ((step === 'shipping' || step === 'complete') && !isStepDone('couriers')) {
 			show('couriers');
 			message('couriers', 'Save at least one courier service before continuing.');
+			return;
+		}
+		if (step === 'complete' && !isStepDone('shipping')) {
+			show('shipping');
+			message('shipping', 'Enable shipping before finishing.');
 		}
 	}
 
 	function hasSelectedCouriers() {
-		return Object.keys(courierMap).length > 0;
+		return !!courierPicker && courierPicker.hasSelection();
 	}
 
 	function updateContinueState() {
-		var disabled = current === 'couriers' && !hasSelectedCouriers();
+		var disabled = stepSaving || courierSaving || (current === 'couriers' && (couriersLoading || !couriersLoaded || !hasSelectedCouriers()));
 		if (current === 'shipping' && (!isStepDone('address') || !isStepDone('couriers'))) {
 			disabled = true;
 		}
@@ -118,14 +132,20 @@
 		}
 		return post('kiriof_store_integration_data', { setup_key: setupKey }).then(function (response) {
 			var result = parse(response);
-			if (!result || Number(result.status) !== 200) {
+			if (!result || result.success === false || Number(result.status) !== 200) {
 				return $.Deferred().reject(result).promise();
 			}
 			message('account', 'Account connected.', true);
 			accountComplete = true;
+			// Invalidate callbacks before abort: jQuery may run fail/always synchronously.
+			courierLoadGeneration++;
+			if (courierLoadRequest) { courierLoadRequest.abort(); }
+			courierLoadRequest = null;
+			couriersLoading = false;
 			couriersLoaded = false;
-			courierMap = {};
-			couriers = [];
+			courierPicker = null;
+			$('[data-courier-list]').text('');
+			$('[data-step-target="couriers"]').removeClass('is-done');
 			$root.attr('data-account-complete', '1');
 			$('[data-step-target="account"]').addClass('is-done');
 		});
@@ -158,22 +178,29 @@
 	}
 
 	function selectedCourierData() {
-		var ids = Object.keys(courierMap);
-		return { whitelist_ids: ids.join(','), whitelist_names: ids.map(function (id) { return courierMap[id]; }).join(',') };
+		return courierPicker.getPayload();
 	}
 
 	function saveCouriers() {
-		if (!Object.keys(courierMap).length) {
-			message('couriers', 'Select at least one courier service.');
+		if (!hasSelectedCouriers()) {
+			message('couriers', kiriofCourierServicesI18n.selectService);
 			return $.Deferred().reject().promise();
 		}
+		courierSaving = true;
+		courierPicker.setDisabled(true);
+		$('[data-couriers-all], [data-couriers-none], [data-step-target], [data-kiriof-back]').prop('disabled', true);
+		message('couriers', '');
 		return post('kiriof_store_courier_whitelist', selectedCourierData()).then(function (response) {
 			var result = parse(response);
-			if (!result || Number(result.status) !== 200) {
+			if (!result || result.success === false || Number(result.status) !== 200) {
 				return $.Deferred().reject(result).promise();
 			}
-			message('couriers', 'Courier services saved.', true);
+			message('couriers', kiriofCourierServicesI18n.saved, true);
 			$('[data-step-target="couriers"]').addClass('is-done');
+		}).always(function () {
+			courierSaving = false;
+			courierPicker.setDisabled(false);
+			$('[data-couriers-all], [data-couriers-none], [data-step-target], [data-kiriof-back]').prop('disabled', false);
 		});
 	}
 
@@ -198,34 +225,42 @@
 		});
 	}
 
-	function continueStep() {
+	function preventDefault(event) {
+		if (event && event.preventDefault) { event.preventDefault(); }
+	}
+
+	function continueStep(event) {
+		preventDefault(event);
+		if (stepSaving || current === 'complete') { return; }
+		if (current === 'couriers' && (!couriersLoaded || couriersLoading)) { return; }
 		if (current === 'couriers' && !hasSelectedCouriers()) {
-			message('couriers', 'Select at least one courier service.');
+			message('couriers', kiriofCourierServicesI18n.selectService);
 			updateContinueState();
 			return;
 		}
+		var savingStep = current;
+		stepSaving = true;
 		var $button = $('[data-kiriof-continue]').prop('disabled', true);
+		$('[data-step-target], [data-kiriof-back]').prop('disabled', true);
+		message(savingStep, '');
 		var request = current === 'account' ? saveAccount() : current === 'address' ? saveAddress() : current === 'couriers' ? saveCouriers() : enableShipping();
 		request.done(next).fail(function (result) {
-			var text = result && result.message ? result.message : kiriofOnboarding.saveFailed;
-			if (!$('[data-step-message="' + current + '"]').text()) {
-				message(current, text);
+			var error = result && result.responseJSON ? parse(result.responseJSON) : result;
+			var text = error && error.message ? error.message : kiriofOnboarding.saveFailed;
+			if (!$('[data-step-message="' + savingStep + '"]').text()) {
+				message(savingStep, text);
 			}
-		}).always(function () { $button.prop('disabled', false); updateContinueState(); });
+		}).always(function () {
+			stepSaving = false;
+			$('[data-step-target], [data-kiriof-back]').prop('disabled', false);
+			$button.prop('disabled', false);
+			updateContinueState();
+		});
 	}
 
-	function renderCouriers() {
-		var enabledCount = Object.keys(courierMap).length;
-		var html = couriers.map(function (courier) {
-			var checked = Object.prototype.hasOwnProperty.call(courierMap, courier.code) ? ' checked' : '';
-			var toggleClass = checked ? 'woocommerce-input-toggle--enabled' : 'woocommerce-input-toggle--disabled';
-			return '<div class="kiriof-onboarding__courier"><span><strong>' + $('<div>').text(courier.name).html() + '</strong><br><small>' + $('<div>').text(courier.type || '').html() + '</small></span><label class="kiriof-onboarding__switch"><input class="screen-reader-text" type="checkbox" data-courier="' + $('<div>').text(courier.code).html() + '"' + checked + '><span class="woocommerce-input-toggle ' + toggleClass + '"></span><span>Enable</span></label></div>';
-		}).join('');
-		$('[data-courier-list]').html(html || '<p>No courier services are available.</p>');
-		$('[data-courier-count]').text(enabledCount + ' enabled');
-		if (!enabledCount) {
-			$('[data-step-target="couriers"]').removeClass('is-done');
-		}
+	function courierChanged() {
+		$('[data-step-target="couriers"]').removeClass('is-done');
+		message('couriers', '');
 		updateContinueState();
 	}
 
@@ -235,28 +270,39 @@
 		}
 
 		couriersLoading = true;
-		$('[data-courier-list]').html('<span class="spinner is-active"></span> Loading couriers…');
+		updateContinueState();
+		var generation = ++courierLoadGeneration;
+		$('[data-courier-list]').text(kiriofCourierServicesI18n.loading);
+		$('[data-couriers-all], [data-couriers-none]').prop('disabled', true);
 		message('couriers', '');
 
-		post('kiriof_get_courier_whitelist').done(function (response) {
+		courierLoadRequest = post('kiriof_get_courier_whitelist').done(function (response) {
+			if (generation !== courierLoadGeneration) { return; }
 			var result = parse(response);
-			if (!result || Number(result.status) !== 200 || !result.data) {
+			if (!result || result.success === false || Number(result.status) !== 200 || !result.data) {
 				var errorMessage = result && result.message ? result.message : kiriofOnboarding.networkError;
 				$('[data-courier-list]').html('<p>' + $('<div>').text(errorMessage).html() + '</p>');
 				message('couriers', errorMessage);
 				return;
 			}
 			couriersLoaded = true;
-			courierMap = {};
-			couriers = result.data.couriers || [];
-			(result.data.whitelist_ids || []).forEach(function (id) { courierMap[id] = id; });
-			couriers.forEach(function (courier) { if (courierMap[courier.code]) { courierMap[courier.code] = courier.name; } });
-			renderCouriers();
+			courierPicker = window.kiriofCourierServices.create($('[data-courier-list]')[0], {
+				data: result.data,
+				countElement: $('[data-courier-count]')[0],
+				onChange: courierChanged
+			});
+			$('[data-couriers-all], [data-couriers-none]').prop('disabled', false);
+			if (!hasSelectedCouriers()) { $('[data-step-target="couriers"]').removeClass('is-done'); }
+			updateContinueState();
 		}).fail(function () {
+			if (generation !== courierLoadGeneration) { return; }
 			$('[data-courier-list]').html('<p>' + $('<div>').text(kiriofOnboarding.networkError).html() + '</p>');
 			message('couriers', kiriofOnboarding.networkError);
 		}).always(function () {
+			if (generation !== courierLoadGeneration) { return; }
+			courierLoadRequest = null;
 			couriersLoading = false;
+			updateContinueState();
 		});
 	}
 
@@ -377,8 +423,13 @@
 	}
 
 	$('[data-kiriof-continue]').on('click', continueStep);
-	$('[data-kiriof-back]').on('click', function () { show(order[Math.max(order.indexOf(current) - 1, 0)]); });
-	$('[data-step-target]').on('click', function () {
+	$('[data-kiriof-back]').on('click', function (event) {
+		preventDefault(event);
+		if (!stepSaving) { show(order[Math.max(order.indexOf(current) - 1, 0)]); }
+	});
+	$('[data-step-target]').on('click', function (event) {
+		preventDefault(event);
+		if (stepSaving) { return; }
 		var target = $(this).data('step-target');
 		if (!canVisit(target)) {
 			blockNavigation(target);
@@ -386,9 +437,14 @@
 		}
 		show(target);
 	});
-	$('[data-courier-list]').on('change', '[data-courier]', function () { var code = String($(this).data('courier')); var courier = couriers.find(function (item) { return String(item.code) === code; }); if (this.checked && courier) { courierMap[code] = courier.name; } else { delete courierMap[code]; } renderCouriers(); });
-	$('[data-couriers-all]').on('click', function () { couriers.forEach(function (courier) { courierMap[courier.code] = courier.name; }); renderCouriers(); });
-	$('[data-couriers-none]').on('click', function () { courierMap = {}; renderCouriers(); });
+	$('[data-couriers-all]').on('click', function (event) {
+		preventDefault(event);
+		if (!stepSaving && courierPicker) { courierPicker.setAll(true); }
+	});
+	$('[data-couriers-none]').on('click', function (event) {
+		preventDefault(event);
+		if (!stepSaving && courierPicker) { courierPicker.setAll(false); }
+	});
 	$('body').on('click', '.kj-disconnect', function () {
 		if (!window.confirm(kiriofOnboarding.disconnectConfirm)) {
 			return;
