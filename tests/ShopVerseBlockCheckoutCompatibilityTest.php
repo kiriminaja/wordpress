@@ -2309,7 +2309,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $orderValidationStart = strpos($controller, 'public function kiriof_validateOrder');
         $this->assertNotFalse($orderValidationStart, 'Order validation hook must exist');
-        $orderValidationBody = substr($controller, $orderValidationStart, 1300);
+        $orderValidationBody = substr($controller, $orderValidationStart, strpos($controller, 'public function kiriof_billing_fields', $orderValidationStart) - $orderValidationStart);
         $normalizePosition = strpos($orderValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
         $districtNoticePosition = strpos($orderValidationBody, '<strong>District</strong> is a required field');
         $this->assertNotFalse($normalizePosition, 'Order validation must normalize district POST data first');
@@ -2327,7 +2327,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $normalizerStart = strpos($controller, 'private function kiriof_normalize_classic_destination_post_data()');
         $this->assertNotFalse($normalizerStart, 'District POST normalizer must exist');
-        $normalizerBody = substr($controller, $normalizerStart, 3000);
+        $normalizerBody = substr($controller, $normalizerStart, strpos($controller, 'private function kiriof_get_checkout_posted_address', $normalizerStart) - $normalizerStart);
 
         foreach (array(
             "kiriof_get_session_text_field( 'kiriof_destination_area' )" => 'Normalizer must read the plugin checkout district session value',
@@ -2393,7 +2393,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'if (empty($_POST[\'shipping_method\'][0]) && ! $kiriof_address_too_short)',
+            'if ( empty( $_POST[\'shipping_method\'][0] ) && ! $kiriof_address_too_short )',
             $validateBody,
             'Plugin shipping-required notice should not be added when the address length is the actual blocker'
         );

@@ -621,7 +621,9 @@ class CheckoutController
                 
             $field_key = $this->field_destination_key;
             
-            if ( isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
+            $address_type = $this->kiriof_get_classic_destination_address_type();
+            $field_key = 'shipping' === $address_type ? $this->field_shipping_destination_key : $field_key;
+            if ( 'ID' === $this->kiriof_get_classic_address_country( $address_type ) && isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
                 wc_add_notice( esc_html__('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja-official'),'error' );
             }
             (new \KiriminAjaOfficial\Services\CheckoutServices\ValidationCodCalculationService([
@@ -669,10 +671,15 @@ class CheckoutController
     }
 
     private function kiriof_normalize_classic_destination_post_data(): void {
-        $billing_destination = $this->kiriof_get_posted_text_field( $this->field_destination_key );
-        $shipping_destination = $this->kiriof_get_posted_text_field( $this->field_shipping_destination_key );
-        $billing_name = $this->kiriof_get_posted_text_field( 'kiriof_destination_area_name' );
-        $shipping_name = $this->kiriof_get_posted_text_field( 'kiriof_shipping_destination_area_name' );
+        if ( 'ID' !== $this->kiriof_get_classic_address_country( $this->kiriof_get_classic_destination_address_type() ) ) {
+            return;
+        }
+
+        $billing_is_indonesia = 'ID' === $this->kiriof_get_classic_address_country( 'billing' );
+        $billing_destination = $billing_is_indonesia ? $this->kiriof_get_posted_text_field( $this->field_destination_key ) : '';
+        $shipping_destination = 'shipping' === $this->kiriof_get_classic_destination_address_type() ? $this->kiriof_get_posted_text_field( $this->field_shipping_destination_key ) : '';
+        $billing_name = $billing_is_indonesia ? $this->kiriof_get_posted_text_field( 'kiriof_destination_area_name' ) : '';
+        $shipping_name = 'shipping' === $this->kiriof_get_classic_destination_address_type() ? $this->kiriof_get_posted_text_field( 'kiriof_shipping_destination_area_name' ) : '';
 
         $session_destination = $this->kiriof_get_session_text_field( 'kiriof_destination_area' );
         if ( '' === $session_destination ) {
@@ -700,8 +707,10 @@ class CheckoutController
             $destination_name = $session_name;
         }
 
-        $this->kiriof_set_posted_text_field_if_empty( $this->field_destination_key, $destination );
-        $this->kiriof_set_posted_text_field_if_empty( 'kiriof_destination_area_name', $destination_name );
+        if ( $billing_is_indonesia ) {
+            $this->kiriof_set_posted_text_field_if_empty( $this->field_destination_key, $destination );
+            $this->kiriof_set_posted_text_field_if_empty( 'kiriof_destination_area_name', $destination_name );
+        }
 
         if ( '' !== $this->kiriof_get_posted_text_field( 'ship_to_different_address' ) ) {
             $this->kiriof_set_posted_text_field_if_empty( $this->field_shipping_destination_key, $destination );
@@ -1028,6 +1037,10 @@ class CheckoutController
         }
 
         if ( empty( $shipping_method ) || 0 !== strpos( $shipping_method, 'kiriminaja-official' ) ) {
+            return;
+        }
+
+        if ( '' !== $this->kiriof_get_posted_text_field( 'billing_country' ) && 'ID' !== $this->kiriof_get_classic_address_country( $this->kiriof_get_classic_destination_address_type() ) ) {
             return;
         }
 
@@ -1466,19 +1479,17 @@ class CheckoutController
                 $this->kiriof_add_address_length_notice( $errors );
             }
         
-            if( isset($_POST['billing_country']) ){
-                
-                if ($_POST['billing_country'] === "ID"){
-                    if (empty($_POST['kiriof_destination_area'])) {
-                        wc_add_notice( __( "<strong>District</strong> is a required field", 'kiriminaja-official' ), 'error' );
-                    }
-                    if (empty($_POST['shipping_method'][0]) && ! $kiriof_address_too_short) {
-                        wc_add_notice( __( "<strong>Shipping</strong> is a required field", 'kiriminaja-official' ), 'error' );
-                    }
-                    if (empty($_POST['kiriof_checkout_token'])) {
-                        wc_add_notice( __( "<strong>Checkout Calculation</strong> is not finished yet", 'kiriminaja-official' ), 'error' );
-                    }
-    
+            $address_type = $this->kiriof_get_classic_destination_address_type();
+            $district_key = 'shipping' === $address_type ? $this->field_shipping_destination_key : $this->field_destination_key;
+            if ( 'ID' === $this->kiriof_get_classic_address_country( $address_type ) ) {
+                if ( '' === $this->kiriof_get_posted_text_field( $district_key ) ) {
+                    wc_add_notice( __( '<strong>District</strong> is a required field', 'kiriminaja-official' ), 'error' );
+                }
+                if ( empty( $_POST['shipping_method'][0] ) && ! $kiriof_address_too_short ) {
+                    wc_add_notice( __( '<strong>Shipping</strong> is a required field', 'kiriminaja-official' ), 'error' );
+                }
+                if ( empty( $_POST['kiriof_checkout_token'] ) ) {
+                    wc_add_notice( __( '<strong>Checkout Calculation</strong> is not finished yet', 'kiriminaja-official' ), 'error' );
                 }
             }
     
@@ -1525,10 +1536,17 @@ class CheckoutController
             'postcode', 
             'state'
         );
-        /** Remove field Checkout */
-        $fields = self::kiriof_remove_fields_checkout($fields,$fields_selected);
+        $fields = $this->kiriof_configure_classic_address_fields( $fields, $fields_selected );
         /** Add field Subdistrict */
         $fields = self::kiriof_add_field_subdistrict( $fields );
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $key = 'shipping' === $group ? $this->field_shipping_destination_key : $this->field_destination_key;
+            $is_indonesia = 'ID' === $this->kiriof_get_classic_address_country( $group );
+            $fields[ $group ][ $key ]['required'] = $is_indonesia;
+            if ( ! $is_indonesia ) {
+                $fields[ $group ][ $key ]['class'][] = 'kiriof-classic-address-hidden';
+            }
+        }
         // Phone is required for courier pickup coordination
         $fields = self::kiriof_require_phone_fields( $fields );
         $fields = self::kiriof_address_1_label_fields( $fields );
@@ -1662,11 +1680,41 @@ class CheckoutController
         </script>
         <?php
     }
-    private function kiriof_remove_fields_checkout($fields,$fields_selected){
-        foreach ($fields_selected as $field_key) {
-            unset( $fields['billing']['billing_'.$field_key] );
-            unset( $fields['shipping']['shipping_'.$field_key] );
+    private function kiriof_get_classic_destination_address_type(): string {
+        return ! empty( $this->kiriof_get_posted_text_field( 'ship_to_different_address' ) ) ? 'shipping' : 'billing';
+    }
+
+    private function kiriof_get_classic_address_country( string $address_type ): string {
+        $key = $address_type . '_country';
+        $country = $this->kiriof_get_posted_text_field( $key );
+        if ( '' === $country && function_exists( 'WC' ) && WC() && method_exists( WC(), 'checkout' ) ) {
+            $country = (string) WC()->checkout()->get_value( $key );
         }
+        if ( '' === $country && function_exists( 'wc_get_base_location' ) ) {
+            $location = wc_get_base_location();
+            $country = isset( $location['country'] ) ? (string) $location['country'] : '';
+        }
+
+        return strtoupper( sanitize_text_field( $country ) );
+    }
+
+    private function kiriof_configure_classic_address_fields( $fields, $fields_selected ) {
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $is_indonesia = 'ID' === $this->kiriof_get_classic_address_country( $group );
+            foreach ( $fields_selected as $field_key ) {
+                $key = $group . '_' . $field_key;
+                if ( ! isset( $fields[ $group ][ $key ] ) ) {
+                    continue;
+                }
+                $fields[ $group ][ $key ]['class'][] = 'kiriof-native-address-field';
+                $fields[ $group ][ $key ]['custom_attributes']['data-kiriof-required'] = ! empty( $fields[ $group ][ $key ]['required'] ) ? '1' : '0';
+                if ( $is_indonesia ) {
+                    $fields[ $group ][ $key ]['required'] = false;
+                    $fields[ $group ][ $key ]['class'][] = 'kiriof-classic-address-hidden';
+                }
+            }
+        }
+
         return $fields;
     }
     private function kiriof_add_field_subdistrict( $fields ){
