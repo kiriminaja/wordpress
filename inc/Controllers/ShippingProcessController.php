@@ -185,6 +185,7 @@ class ShippingProcessController
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because the request is not authorized.', 'kiriminaja-official' ) ), 403 );
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The helper sanitizes every order ID before use.
         $order_ids = $this->sanitizeResiPrintOrderIds( isset( $_POST['oids'] ) ? wp_unslash( $_POST['oids'] ) : array() );
         if ( count( $order_ids ) < 1 ) {
             $this->logResiPrintFailure( 'preview_empty_order_ids' );
@@ -223,6 +224,7 @@ class ShippingProcessController
         if ( '' === $url ) {
             $api_message = is_scalar( $response['data'] ?? null ) ? trim( (string) $response['data'] ) : '';
             $this->logResiPrintFailure( 'preview_missing_print_url', array( 'order_ids' => $order_ids, 'api_message' => $api_message ) );
+            /* translators: %s: error returned by the shipping API. */
             wp_send_json_error( array( 'message' => '' !== $api_message ? sprintf( __( 'Unable to print resi: %s', 'kiriminaja-official' ), $api_message ) : __( 'Unable to print resi because the AWB print URL was not returned by KiriminAja.', 'kiriminaja-official' ) ), 502 );
         }
 

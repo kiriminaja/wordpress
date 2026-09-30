@@ -187,6 +187,9 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/wordpress/ajax.ts' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/SettingSwitch.svelte' );
+		$settings_root = file_get_contents( PLUGIN_DIR . '/src/lib/SettingsRoot.svelte' );
+		$this->assertStringContainsString( 'class="kiriof-shadcn kiriof-settings-root kiriof-settings-content"', $settings_root );
+		$this->assertStringContainsString( 'class="kiriof-shadcn kiriof-connect kiriof-settings-content"', $settings_root );
 		$this->assertStringContainsString( "include KIRIOF_DIR . 'templates/setting/app.php'", $configured );
 		$this->assertStringContainsString( "include KIRIOF_DIR . 'templates/setting/app.php'", $setup );
 		$this->assertStringContainsString( 'data-kiriof-settings-root', $app );

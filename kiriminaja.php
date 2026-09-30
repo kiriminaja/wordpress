@@ -93,6 +93,7 @@ define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
 // Temporarily disable KA Credit and PIN while request pickup uses API v6.1.
 define( 'KIRIOF_ENABLE_KA_CREDIT', true );
 define( 'KIRIOF_VERSION', '2.4.2' );
+
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
 define( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS', 5 );

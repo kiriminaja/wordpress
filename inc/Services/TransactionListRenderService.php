@@ -54,10 +54,11 @@ class TransactionListRenderService
         }
         $kiriof_per_page = min($kiriof_per_page, 100);
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list preference.
-        $kiriof_per_page_get = isset($_GET["per_page"])
-            ? (int) $_GET["per_page"]
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only list preference.
+        $kiriof_per_page_get = isset( $_GET['per_page'] )
+            ? (int) sanitize_text_field( wp_unslash( $_GET['per_page'] ) )
             : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if (
             $kiriof_per_page_get > 0 &&
             $kiriof_per_page_get !== $kiriof_per_page
@@ -420,9 +421,8 @@ class TransactionListRenderService
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin list filters.
         $filters = [];
         foreach (["key", "month", "status", "cod", "courier", "print_status", "delivery_type"] as $name) {
-            $value = $_GET[$name] ?? "";
-            $filters[$name] = is_string($value)
-                ? sanitize_text_field(wp_unslash($value))
+            $filters[$name] = isset( $_GET[ $name ] ) && is_string( $_GET[ $name ] )
+                ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) )
                 : "";
         }
         // phpcs:enable WordPress.Security.NonceVerification.Recommended

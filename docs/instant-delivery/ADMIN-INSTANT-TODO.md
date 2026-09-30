@@ -94,5 +94,7 @@ The serving plugin loads compiled assets from `assets/admin/dist`, not Svelte so
 
 - [x] Run focused courier/settings, transaction partition, navigation, action-guard, and migration retry tests.
 - [x] Run frontend lint, formatting, Svelte, accessibility/style checks, and Bun runtime tests.
-- [ ] Run `make test` after merging the latest `v3`.
+- [x] Run `make test` after merging the latest `v3`: 799 tests and 8,005 assertions passed; existing warnings/deprecations remain.
 - [ ] Run `make zip` before packaging/release verification.
+
+Frontend verification passed: formatting, lint, Svelte diagnostics, style checks, payment tests, courier-selection tests, and Instant tab navigation tests. The admin assets were rebuilt with `bun run build`. ZIP regeneration was intentionally skipped at the user's request; local staging files were refreshed only for source parity tests.

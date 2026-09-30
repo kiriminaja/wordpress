@@ -4356,6 +4356,54 @@ msgstr "Tidak ada kurir instan yang tersedia untuk akun ini."
 msgid "Check Instant eligibility for your KiriminAja account, then refresh the courier data."
 msgstr "Periksa kelayakan Instant untuk akun KiriminAja Anda, lalu muat ulang data kurir."
 
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Instant COD adjustment is not available yet."
+msgstr "Penyesuaian COD untuk pengiriman instan belum tersedia."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Instant deficit cancellation is not available yet."
+msgstr "Pembatalan defisit untuk pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant dispatch is not wired yet."
+msgstr "Proses pengiriman instan belum tersedia."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Instant dispatch is not wired yet. This is a read-only list foundation using local status labels; remote status mapping is pending."
+msgstr "Proses pengiriman instan belum tersedia. Daftar ini hanya dapat dilihat dan menggunakan status lokal; pemetaan status API belum diterapkan."
+
+#: inc/Controllers/ShippingProcessController.php
+msgid "Instant label printing is not available yet."
+msgstr "Pencetakan label pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant origin changes are not available yet."
+msgstr "Perubahan asal pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant shipment cancellation is not available yet."
+msgstr "Pembatalan pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant shipment processing is not available yet."
+msgstr "Pemrosesan pengiriman instan belum tersedia."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Not specified"
+msgstr "Belum ditentukan"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Regular Delivery"
+msgstr "Pengiriman Reguler"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Transaction scope"
+msgstr "Jenis transaksi"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Vehicle"
+msgstr "Kendaraan"
+
 #: inc/Services/CourierServiceUiData.php
 msgid "Domestic Delivery"
 msgstr "Pengiriman Domestik"

@@ -37,6 +37,7 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
             $this->assertStringContainsString('COUNT(DISTINCT orders_tbl.' . ($hpos ? 'id' : 'ID') . ')', $result['queries'][0]);
             $this->assertStringContainsString('GROUP BY orders_tbl.' . ($hpos ? 'id' : 'ID'), $sql);
             $this->assertStringNotContainsString('INNER JOIN wp_kiriminaja_payments', $sql);
+            $this->assertStringNotContainsString('JOIN wp_kiriminaja_payments', $sql);
             $this->assertStringContainsString('KA-10', $sql);
             $this->assertStringContainsString('2025-02%', $sql);
             $this->assertStringContainsString('cod_fee > 0', $sql);
@@ -51,12 +52,13 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
         $result = $this->invokeFixture(['filters'=>$this->filters('wc-processing,processed,wc-cancelled'), 'page'=>1, 'per_page'=>25]);
         $sql = $result['queries'][1];
         $this->assertStringContainsString("(orders_tbl.post_status IN ('wc-processing') AND kiriminaja_transactions.status = 'new')", $sql);
-        $this->assertStringContainsString("(kiriminaja_transactions.status != 'canceled' AND EXISTS", $sql);
+        $this->assertStringContainsString("(kiriminaja_transactions.status != 'canceled' AND multi_pay.pickup_number IS NOT NULL)", $sql);
         $this->assertStringContainsString("(orders_tbl.post_status = 'wc-cancelled')", $sql);
-        $this->assertStringContainsString("AND ((orders_tbl.post_status IN ('wc-processing') AND kiriminaja_transactions.status = 'new') OR (kiriminaja_transactions.status != 'canceled' AND EXISTS (SELECT 1 FROM wp_kiriminaja_payments multi_pay WHERE multi_pay.pickup_number = kiriminaja_transactions.pickup_number)) OR (orders_tbl.post_status = 'wc-cancelled')) AND (", $sql);
+        $this->assertStringContainsString("AND ((orders_tbl.post_status IN ('wc-processing') AND kiriminaja_transactions.status = 'new') OR (kiriminaja_transactions.status != 'canceled' AND multi_pay.pickup_number IS NOT NULL) OR (orders_tbl.post_status = 'wc-cancelled')) AND (", $sql);
         $this->assertSame(0, substr_count($sql, 'INNER JOIN wp_kiriminaja_payments'));
         $this->assertSame(1, substr_count($sql, 'INNER JOIN wp_kiriminaja_transactions'));
-        $this->assertSame(1, substr_count($sql, 'FROM wp_kiriminaja_payments multi_pay'));
+        $this->assertSame(1, substr_count($sql, 'LEFT JOIN wp_kiriminaja_payments multi_pay'));
+        $this->assertStringContainsString('ON kiriminaja_transactions.pickup_number = multi_pay.pickup_number', $sql);
         $this->assertStringContainsString('is_deficit = 0', $sql);
         $this->assertStringContainsString('GROUP BY orders_tbl.ID', $sql);
     }
@@ -114,7 +116,7 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
         $this->assertSame('jne,pos', $result['courier']);
         $this->assertSame('', $result['print_status']);
         $arrays = $this->invokeFixture(['mode'=>'renderer', 'get'=>['key'=>['oops'], 'status'=>['wc-processing'], 'courier'=>['jne'], 'print_status'=>['1']]]);
-        $this->assertSame(['key'=>'', 'month'=>'', 'status'=>'all', 'cod'=>'', 'courier'=>'', 'print_status'=>''], $arrays);
+        $this->assertSame(['key'=>'', 'month'=>'', 'status'=>'all', 'cod'=>'', 'courier'=>'', 'print_status'=>'', 'delivery_type'=>'express'], $arrays);
         $all = $this->invokeFixture(['mode'=>'renderer', 'get'=>['status'=>'wc-processing,wc-on-hold,wc-pending,processed,wc-cancelled', 'courier'=>' jne,jne,pos ', 'print_status'=>'1']]);
         $this->assertSame('all', $all['status']);
         $this->assertSame('jne,pos', $all['courier']);
