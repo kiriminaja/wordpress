@@ -16,6 +16,17 @@ class SettingRepository{
         global $wpdb;
         $this->table = $wpdb->prefix . 'kiriminaja_settings';
     }
+
+    /**
+     * Clear request-local setting caches after a write.
+     *
+     * API clients read credentials while they are constructed, so setup-key
+     * updates must not leave an old API token cached in the repository.
+     */
+    public function clearCache(): void {
+        self::$setting_cache                    = array();
+        self::$whitelist_expedition_ids_cache  = array();
+    }
     
     public function getIntegrationData(){
         global $wpdb;
@@ -53,7 +64,8 @@ class SettingRepository{
         // Store merchant type from API response. is_top = 'yes' means TOP merchant (published rate, no discount).
         $isTop = isset( $payload['is_top'] ) ? ( $payload['is_top'] ? 'yes' : 'no' ) : 'no';
         $wpdb->update( $this->table, array( 'value' => $isTop ), array( 'key' => 'is_top' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    
+        $this->clearCache();
+
         return true;
     }
     
@@ -144,6 +156,8 @@ class SettingRepository{
         $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_id']), array('key' => 'origin_whitelist_expedition_id')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update($this->table, array('value' => @$payload['origin_whitelist_expedition_name']), array('key' => 'origin_whitelist_expedition_name')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         
+        unset( self::$setting_cache[ $this->table . '|origin_whitelist_expedition_id' ], self::$setting_cache[ $this->table . '|origin_whitelist_expedition_name' ] );
+        self::$whitelist_expedition_ids_cache = array();
         return true;
     }
 
@@ -311,23 +325,66 @@ class SettingRepository{
         return true;
     }
 
-    public function validateWhiteListExpedition($data){
-        $arr_origin_whitelist_expedition_id = $this->getWhitelistExpeditionIds();
-        $datas = [];
-        
-        if( !empty($arr_origin_whitelist_expedition_id ) ){
-            foreach( $data as $row ){
-                if( !in_array((string) $row->service,$arr_origin_whitelist_expedition_id, true) ){
-                    continue;
-                }
-                $datas[]=$row;
-            }
-        }else{
-            $datas = $data;
+    /** Missing policy uses the legacy whitelist; corrupt stored policy fails closed. */
+    public function getCourierServiceSelection(): ?array {
+        $row = $this->getSettingByKey( 'origin_whitelist_expedition_services' );
+        if ( ! $row || null === $row->value ) {
+            return null;
         }
-        
+        try {
+            $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $row->value );
+            unset( $selection['ninja_inter'] );
+            return $selection;
+        } catch ( \InvalidArgumentException $e ) {
+            return array();
+        }
+    }
+
+    public function isCourierServiceEnabled( string $courier, string $service ): bool {
+        $courier = strtolower( trim( $courier ) );
+        if ( 'ninja_inter' === $courier ) {
+            return false;
+        }
+        $selection = $this->getCourierServiceSelection();
+        if ( null === $selection ) {
+            $ids = array_map( 'strtolower', $this->getWhitelistExpeditionIds() );
+            return ( empty( $ids ) && ! $this->hasLegacyCourierRestriction() ) || in_array( $courier, $ids, true );
+        }
+        $enabled = $selection[ $courier ] ?? array();
+        if ( in_array( '*', $enabled, true ) ) {
+            return true;
+        }
+        $canonical = \KiriminAjaOfficial\Services\CourierServiceCatalog::canonicalService( $courier, $service );
+        foreach ( $enabled as $code ) {
+            if ( 0 === strcasecmp( trim( $service ), $code ) || ( null !== $canonical && $canonical === \KiriminAjaOfficial\Services\CourierServiceCatalog::canonicalService( $courier, $code ) ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function validateWhiteListExpedition( $data ) {
+        $datas = array();
+        foreach ( $data as $row ) {
+            $fields = (array) $row;
+            if ( $this->isCourierServiceEnabled( (string) ( $fields['service'] ?? '' ), (string) ( $fields['service_type'] ?? $fields['service_name'] ?? '' ) ) ) {
+                $datas[] = $row;
+            }
+        }
         return $datas;
-        
+    }
+
+    public function hasEnabledCourierServices(): bool {
+        $selection = $this->getCourierServiceSelection();
+        if ( null === $selection ) {
+            return ! empty( $this->getWhitelistExpeditionIds() ) || ! $this->hasLegacyCourierRestriction();
+        }
+        foreach ( $selection as $services ) {
+            if ( ! empty( $services ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function getWhitelistExpeditionIds(): array {
@@ -347,7 +404,8 @@ class SettingRepository{
         $ids = array_filter(
             array_map(
                 static function ( $expedition_id ) {
-                    return sanitize_text_field( (string) $expedition_id );
+                    $id = sanitize_text_field( (string) $expedition_id );
+                    return 'ninja_inter' === strtolower( $id ) ? '' : $id;
                 },
                 $ids
             )
@@ -356,6 +414,20 @@ class SettingRepository{
         self::$whitelist_expedition_ids_cache[ $cache_key ] = array_values( array_unique( $ids ) );
 
         return self::$whitelist_expedition_ids_cache[ $cache_key ];
+    }
+
+    /** Keep an unsupported-only legacy whitelist restrictive rather than allow-all. */
+    private function hasLegacyCourierRestriction(): bool {
+        $row = $this->getSettingByKey( 'origin_whitelist_expedition_id' );
+        if ( ! $row || null === $row->value ) {
+            return false;
+        }
+        foreach ( explode( ',', (string) $row->value ) as $id ) {
+            if ( '' !== trim( sanitize_text_field( $id ) ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -380,32 +452,66 @@ class SettingRepository{
      * $payload['origin_whitelist_expedition_name'] - comma-separated courier names
      * @return true
      */
-    public function storeCourierWhitelist($payload){
+    public function storeCourierWhitelist( $payload ) {
         global $wpdb;
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $existing = $wpdb->get_row("SELECT * FROM {$this->table} WHERE `key`='origin_whitelist_expedition_id'");
-
-        if (empty($existing)){
+        $values = array(
+            'origin_whitelist_expedition_id' => sanitize_text_field( $payload['origin_whitelist_expedition_id'] ?? '' ),
+            'origin_whitelist_expedition_name' => sanitize_text_field( $payload['origin_whitelist_expedition_name'] ?? '' ),
+        );
+        // Legacy clients update CSV only. An existing service policy stays authoritative,
+        // so this compatibility path cannot silently re-enable disabled services.
+        if ( array_key_exists( 'service_selection', $payload ) ) {
+            $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $payload['service_selection'] );
+            $values['origin_whitelist_expedition_services'] = json_encode( (object) $selection );
+        }
+        // The settings table uses the server's default engine (InnoDB on supported
+        // installations). Keep the legacy mirrors and authoritative policy together.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+            throw new \RuntimeException( 'Unable to start courier settings transaction.' );
+        }
+        try {
+            foreach ( $values as $key => $value ) {
+                $this->writeCourierSetting( $key, $value );
+            }
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->insert(
-                $this->table,
-                array('key' => 'origin_whitelist_expedition_id', 'value' => sanitize_text_field($payload['origin_whitelist_expedition_id'])),
-                array('%s', '%s')
-            );
+            if ( false === $wpdb->query( 'COMMIT' ) ) {
+                throw new \RuntimeException( 'Unable to commit courier settings transaction.' );
+            }
+        } catch ( \Throwable $error ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->insert(
-                $this->table,
-                array('key' => 'origin_whitelist_expedition_name', 'value' => sanitize_text_field($payload['origin_whitelist_expedition_name'])),
-                array('%s', '%s')
-            );
+            if ( false === $wpdb->query( 'ROLLBACK' ) ) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Third argument is the previous Throwable, not rendered output; the message is a fixed string.
+                throw new \RuntimeException( 'Unable to roll back courier settings transaction.', 0, $error );
+            }
+            throw $error;
+        } finally {
+            // Never publish intermediate writes through the request-local caches.
+            // Clear all policy keys after commit or rollback, including read failures.
+            foreach ( array( 'origin_whitelist_expedition_id', 'origin_whitelist_expedition_name', 'origin_whitelist_expedition_services' ) as $key ) {
+                unset( self::$setting_cache[ $this->table . '|' . $key ] );
+            }
+            unset( self::$whitelist_expedition_ids_cache[ $this->table . '|origin_whitelist_expedition_id' ] );
+        }
+        return true;
+    }
+
+    private function writeCourierSetting( string $key, string $value ): void {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE `key` = %s", $key ) );
+        if ( ! empty( $wpdb->last_error ) ) {
+            throw new \RuntimeException( 'Unable to read courier settings.' );
+        }
+        if ( $existing ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->update( $this->table, array( 'value' => $value ), array( 'key' => $key ), array( '%s' ), array( '%s' ) );
         } else {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->update($this->table, array('value' => sanitize_text_field($payload['origin_whitelist_expedition_id'])), array('key' => 'origin_whitelist_expedition_id'));
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->update($this->table, array('value' => sanitize_text_field($payload['origin_whitelist_expedition_name'])), array('key' => 'origin_whitelist_expedition_name'));
+            $result = $wpdb->insert( $this->table, array( 'key' => $key, 'value' => $value ), array( '%s', '%s' ) );
         }
-
-        return true;
+        if ( false === $result || ! empty( $wpdb->last_error ) ) {
+            throw new \RuntimeException( 'Unable to save courier settings.' );
+        }
     }
 }

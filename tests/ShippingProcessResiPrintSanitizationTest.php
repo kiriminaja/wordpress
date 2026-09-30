@@ -166,29 +166,30 @@ final class ShippingProcessResiPrintSanitizationTest extends TestCase
     #[Test]
     public function transaction_list_exposes_print_controls_for_all_tab_and_unprinted_badge(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+		$content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
+		$app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            "\$kiriof_is_all_tab = ('all' === \$kiriof_status_filter);",
+            '["all", "processed"]',
             $content,
             'The All tab should be treated as a print-capable tab'
         );
 
         $this->assertStringContainsString(
-            'if ($kiriof_is_processed_tab || $kiriof_is_all_tab)',
+            '"showPrint"',
             $content,
             'Bulk Print button should be rendered on both Processed and All tabs'
         );
 
         $this->assertStringContainsString(
-            "esc_html__('Unprinted', 'kiriminaja-official')",
+            '"unprintedLabel"',
             $content,
             'Expedition & Service column should show Unprinted status for labels that have not been printed'
         );
 
         $this->assertStringNotContainsString(
-            '$kiriof_statusUpper',
-            $content,
+			'row.status.label}{row.status.label}',
+			$app,
             'Expedition & Service column should not render the transaction status twice'
         );
     }

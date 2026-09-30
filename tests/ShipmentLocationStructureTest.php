@@ -43,7 +43,7 @@ class ShipmentLocationStructureTest extends TestCase {
     public function testCheckoutFreezesDefaultOriginOnTheTransaction(): void {
         $service    = $this->read( __DIR__ . '/../inc/Services/CheckoutServices/CreateTransactionService.php' );
         $repository = $this->read( __DIR__ . '/../inc/Repositories/TransactionRepository.php' );
-        $template   = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+        $template   = $this->read( __DIR__ . '/../inc/Services/TransactionListViewModelFactory.php' );
         $pickup     = $this->read( __DIR__ . '/../inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
 
         $this->assertStringContainsString( '$checkoutOriginLocation  = $shipmentLocationService->getDefaultLocation();', $service );
@@ -52,20 +52,21 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringContainsString( "'shipment_location_snapshot'    => ! empty( \$checkoutOriginSnapshot ) ? wp_json_encode( \$checkoutOriginSnapshot )", $service );
         $this->assertStringContainsString( '`shipment_location_id`,', $repository );
         $this->assertStringContainsString( '`shipment_location_snapshot`', $repository );
-        $this->assertStringContainsString( '$kiriof_origin_snapshot[\'location_id\']', $template );
+        $this->assertStringContainsString( "'currentLocationId'", $template );
         $this->assertStringNotContainsString( '$kiriof_origin_location  = ! empty( $kiriof_row->shipment_location_id )\n                        ? $kiriof_location_service->repository()->getById( (int) $kiriof_row->shipment_location_id )\n                        : $kiriof_location_service->getDefaultLocation();', $template );
         $this->assertStringContainsString( '$snapshotLocationId', $pickup );
         $this->assertStringContainsString( '$effectiveLocationId = $snapshotLocationId;', $pickup );
     }
 
     public function testTransactionListDisplaysShipmentRoute(): void {
-        $template = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
+        $template = $this->read( __DIR__ . '/../inc/Services/TransactionListViewModelFactory.php' );
+		$app = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
 
-        $this->assertStringContainsString( "__('Shipment Route', 'kiriminaja-official')", $template );
-        $this->assertStringContainsString( 'shipment_location_snapshot', $template );
-        $this->assertStringContainsString( '$kiriof_originName', $template );
-        $this->assertStringContainsString( "__('To', 'kiriminaja-official')", $template );
-        $this->assertStringContainsString( '$kiriofShippingName', $template );
+		$this->assertStringContainsString( "'route'", $template );
+        $this->assertStringContainsString( '$this->origin_resolver->resolve( $row )', $template );
+		$this->assertStringContainsString( "'origin'", $template );
+		$this->assertStringContainsString( '↓ To', $app );
+		$this->assertStringContainsString( "'destination'", $template );
     }
 
     public function testProductEditorUsesShipmentLocationsMetaboxLinkingToGeneralSettings(): void {
@@ -92,8 +93,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $service    = $this->read( __DIR__ . '/../inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
         $controller = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
         $modal      = $this->read( __DIR__ . '/../inc/Controllers/TransactionProcessController.php' );
-        $tpl        = $this->read( __DIR__ . '/../templates/transaction-process/view/index.php' );
-        $rp_modal   = $this->read( __DIR__ . '/../templates/request-pickup/view/modal-request-pickup.php' );
+        $tpl        = $this->read( __DIR__ . '/../src/lib/transactions/TransactionsApp.svelte' );
+        $rp_modal   = $this->read( __DIR__ . '/../src/lib/payments/PaymentScheduleDialog.svelte' );
         $rp_js      = $this->read( __DIR__ . '/../templates/request-pickup/view/index.php' );
 
         $this->assertStringNotContainsString( 'public function locationId(', $service );
@@ -195,7 +196,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $this->assertStringNotContainsString( 'ShipmentLocationController', $init );
         $this->assertStringNotContainsString( 'kiriminaja-shipment-locations', $pages );
         $this->assertStringNotContainsString( "\$kiriof_base_url . '&section=address'", $admin );
-        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $admin );
+        $provider = $this->read( __DIR__ . '/../inc/Services/SettingsPageData.php' );
+        $this->assertStringContainsString( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses', $provider );
     }
 
     public function testLocationSchemaStoresSubDistrictName(): void {

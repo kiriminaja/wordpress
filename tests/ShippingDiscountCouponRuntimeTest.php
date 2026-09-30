@@ -339,7 +339,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
         $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
         $transactionProcess = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
-        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+        $transactionProcessView = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString('Applied to shipping', $cartTotals);
         $this->assertStringContainsString('Applied to shipping', $reviewOrder);

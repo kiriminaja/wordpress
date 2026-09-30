@@ -17,7 +17,7 @@ interface PaymentListQueryInterface {
      * @param array{key:string,month:string,status:string} $filters List filters.
      * @param int                                         $page Requested page.
      * @param int                                         $items_per_page Page size.
-     * @return array{results:array,page:int,items_per_page:int,total_pages:int}
+     * @return array{results:array,page:int,items_per_page:int,total_pages:int,total:int}
      */
     public function getPage( array $filters, int $page, int $items_per_page ): array;
 

@@ -7,7 +7,7 @@
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
- * License URI:     https://www.gnu.org/licenses/gpl-2.0.html 
+ * License URI:     https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:     kiriminaja-official
  * Domain Path:     /lang
  * Requires Plugins: woocommerce
@@ -91,7 +91,7 @@ define( 'KIRIOF_SLUG', plugin_basename( __DIR__ ) );
 define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
 
 // Temporarily disable KA Credit and PIN while request pickup uses API v6.1.
-define( 'KIRIOF_ENABLE_KA_CREDIT', false );
+define( 'KIRIOF_ENABLE_KA_CREDIT', true );
 define( 'KIRIOF_VERSION', '2.4.0' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
@@ -379,7 +379,7 @@ function kiriof_plugin_update_migration( $upgrader_object, $options ) {
                     if ( file_exists(dirname(__FILE__) . '/vendor/autoload.php')){
                         require_once dirname(__FILE__) . '/vendor/autoload.php';
                     }
-                    
+
                     // Run migration only if class exists
 					if (class_exists('\KiriminAjaOfficial\Migration\SetupMigration')) {
 						(new \KiriminAjaOfficial\Migration\SetupMigration())->register();
@@ -410,7 +410,7 @@ if ( class_exists( 'KiriminAjaOfficial\\Init' ) ) {
 }
 
 /**
- * load 
+ * load
  * function hook folder wc
  */
 $kiriof_woo_files = [
@@ -423,7 +423,7 @@ foreach ( $kiriof_woo_files as $namefile ) {
     include_once KIRIOF_DIR . '/wc/' . $namefile . '.php';
 }
 
-/** 
+/**
  * WooCommerce Init
  * compatibility HPOS version
 */
@@ -440,7 +440,7 @@ function kiriof_before_woocommerce_init() {
 function kiriof_delete_shipping_zone() {
     $data_store = WC_Data_Store::load( 'shipping-zone' );
     $raw_zones  = $data_store->get_zones();
-    
+
     foreach ( $raw_zones as $raw_zone ) {
         $data_methods = empty( $data_store->get_methods( $raw_zone->zone_id, false ) ) ? $data_store->get_methods( $raw_zone->zone_id, true ) : $data_store->get_methods( $raw_zone->zone_id, false );
         foreach ( $data_methods as $methode ) {
@@ -449,13 +449,13 @@ function kiriof_delete_shipping_zone() {
     }
 }
 
-/** 
+/**
  * Add filter to disable sslverify
  * set true to enable sslverify
  * set false to disable sslverify
  */
 add_filter( 'http_request_args', 'kiriof_set_ssl_verify', 10, 2 );
 function kiriof_set_ssl_verify( $args, $url ) {
-    $args['sslverify'] = true; 
+    $args['sslverify'] = true;
     return $args;
 }

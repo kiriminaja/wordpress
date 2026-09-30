@@ -63,6 +63,8 @@ class OnboardingSetupStateService {
 		}
 
 		$courier_setting = $repo->getSettingByKey( 'origin_whitelist_expedition_id' );
+		$courier_policy = $repo->getCourierServiceSelection();
+		$couriers_ready = null === $courier_policy ? ! empty( $courier_setting->value ?? null ) : $repo->hasEnabledCourierServices();
 		$shipping_ready = $this->get_shipping_method_service()->hasEnabledMethod();
 
 		$ship_to_countries  = get_option( 'woocommerce_ship_to_countries', '' );
@@ -89,7 +91,7 @@ class OnboardingSetupStateService {
 			'couriers'       => array(
 				'key'      => 'couriers',
 				'required' => true,
-				'done'     => ! empty( $courier_setting->value ?? null ),
+				'done'     => $couriers_ready,
 				'nav_title' => __( 'Couriers', 'kiriminaja-official' ),
 				'title'    => __( 'Choose courier services', 'kiriminaja-official' ),
 				'description' => __( 'Select the courier services your customers can use at checkout.', 'kiriminaja-official' ),
@@ -181,7 +183,7 @@ class OnboardingSetupStateService {
 
 		if ( $is_connected ) {
 			try {
-				$profile_service = ( new KiriminAjaApiService() )->getProfile();
+				$profile_service = $this->get_api_service()->getProfile();
 				if ( 200 === $profile_service->status && ! empty( $profile_service->data ) ) {
 					$profile = $profile_service->data;
 				} else {

@@ -86,10 +86,11 @@ final class ShippingDiscountCouponCombinationsTest extends TestCase
     public function admin_styles_include_combination_badges_and_options(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-coupon-admin.css');
+        $badges  = file_get_contents(PLUGIN_DIR . '/assets/admin/css/kj-badge.css');
 
         $this->assertStringContainsString('.kiriof-combination-options', $content);
         $this->assertStringContainsString('.kiriof-combination-column', $content);
-        $this->assertStringContainsString('.kiriof-combination-badge', $content);
-        $this->assertStringContainsString('.kiriof-combination-badge.is-disabled', $content);
+        $this->assertStringContainsString('.kiriof-combination-badge', $badges);
+        $this->assertStringContainsString('.kiriof-combination-badge.is-disabled', $badges);
     }
 }

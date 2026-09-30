@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "browser": true,
+    "es2024": true,
+    "node": true
+  },
+  "plugins": ["typescript", "unicorn"],
+  "rules": {
+    "eqeqeq": "error",
+    "no-console": "warn"
+  }
+}

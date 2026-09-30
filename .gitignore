@@ -5,6 +5,12 @@ debug.log
 node_modules
 vendor
 build
+assets/admin/dist
+coverage
+.svelte-kit
+.vite
+*.tsbuildinfo
 .phpunit.cache
 .env
 .paratest.cache
+release-notes.md

@@ -175,7 +175,7 @@ class Kiriof_AdminWoocommerceSettings
         if ( ! $transaction || empty( $transaction->is_deficit ) ) {
             return;
         }
-        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
+        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1.45;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;vertical-align:middle;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
     }
 
     /**
@@ -195,7 +195,7 @@ class Kiriof_AdminWoocommerceSettings
         if ( ! $transaction || empty( $transaction->is_deficit ) ) {
             return;
         }
-        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
+        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1.45;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;vertical-align:middle;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
     }
 }
 
