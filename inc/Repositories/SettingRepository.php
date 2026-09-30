@@ -469,6 +469,7 @@ class SettingRepository{
         } catch ( \Throwable $error ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             if ( false === $wpdb->query( 'ROLLBACK' ) ) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Third argument is the previous Throwable, not rendered output; the message is a fixed string.
                 throw new \RuntimeException( 'Unable to roll back courier settings transaction.', 0, $error );
             }
             throw $error;

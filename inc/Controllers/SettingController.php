@@ -381,6 +381,7 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserve structured JSON for strict parseSelection() validation below; CSV fields are individually sanitized.
             $data = isset( $_POST['data'] ) && is_array( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
             $payload = array(
                 'origin_whitelist_expedition_id' => is_string( $data['whitelist_ids'] ?? '' ) ? sanitize_text_field( $data['whitelist_ids'] ?? '' ) : '',
