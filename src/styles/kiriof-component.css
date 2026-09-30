@@ -2,6 +2,71 @@
 @reference './kiriof-var.css';
 @import 'tailwindcss/utilities.css';
 
+/* WordPress styles text/search inputs even when a composite owns the border.
+ * Slot selectors also cover Command.Input's forwarded slot in portaled content. */
+.kiriof-shadcn input[data-slot='input-group-control'],
+.kiriof-shadcn input[data-slot='command-input'] {
+  @apply !box-border !flex-1 !w-full !min-w-0 !max-w-full !h-full !min-h-0 !m-0 !border-0 !rounded-none !bg-transparent !shadow-none !ring-0 !outline-none !appearance-none;
+}
+
+.kiriof-shadcn input[data-slot='input-group-control']:focus,
+.kiriof-shadcn input[data-slot='input-group-control']:focus-visible,
+.kiriof-shadcn input[data-slot='command-input']:focus,
+.kiriof-shadcn input[data-slot='command-input']:focus-visible {
+  @apply !border-0 !shadow-none !ring-0 !outline-none;
+}
+
+.kiriof-shadcn
+  [data-slot='input-group']:not(:has([aria-invalid='true'])):has(
+    :is([data-slot='input-group-control'], [data-slot='command-input']):focus-visible
+  ) {
+  @apply !border-ring !ring-3 !ring-ring/50;
+}
+
+/* Share the settings switch geometry with every shadcn surface. data-size also
+ * outranks legacy onboarding resets without sacrificing the compact variant. */
+.kiriof-shadcn [data-slot='switch'][data-size] {
+  @apply !box-border !relative !inline-flex !w-9 !min-w-9 !h-5 !min-h-5 !shrink-0 !items-center !m-0 !p-0 !overflow-hidden !border-0 !rounded-full !bg-input !shadow-none !outline-none;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size][data-state='unchecked'] {
+  @apply !bg-input;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size][data-state='checked'] {
+  @apply !bg-primary;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size]:focus-visible {
+  @apply !ring-2 !ring-ring !ring-offset-2 !ring-offset-background;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size='sm'] {
+  @apply !w-7 !min-w-7 !h-4 !min-h-4;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size] [data-slot='switch-thumb'] {
+  @apply !pointer-events-none !absolute !top-0.5 !left-0.5 !block !size-4 !min-w-4 !min-h-4 !rounded-full !bg-white ![box-shadow:0_1px_2px_rgb(0_0_0_/_20%)] !transform-none !transition-[left] !duration-200 !ease-in-out;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size][data-state='unchecked'] [data-slot='switch-thumb'] {
+  @apply !left-0.5 !transform-none;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size][data-state='checked'] [data-slot='switch-thumb'] {
+  @apply !left-4.5 !transform-none;
+}
+
+.kiriof-shadcn [data-slot='switch'][data-size='sm'] [data-slot='switch-thumb'] {
+  @apply !size-3 !min-w-3 !min-h-3;
+}
+
+.kiriof-shadcn
+  [data-slot='switch'][data-size='sm'][data-state='checked']
+  [data-slot='switch-thumb'] {
+  @apply !left-3.5;
+}
+
 .kiriof-card {
   @apply relative overflow-hidden border rounded-xl bg-white shadow-sm;
 }

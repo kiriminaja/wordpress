@@ -66,7 +66,7 @@ export type OnboardingBootstrap = {
   couriers: {
     title: string;
     description: string;
-    i18n: {
+    i18n: Partial<Record<string, string>> & {
       enableAll: string;
       loading: string;
       empty: string;

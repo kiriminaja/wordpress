@@ -2429,3 +2429,97 @@ msgstr ""
 
 msgid "Unavailable"
 msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Fully enabled"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Partially enabled"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Disabled"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Courier services"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Choose the couriers and services available at checkout."
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "%s couriers selected"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "%s services enabled"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Search couriers or services"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Filter couriers by selection"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Enable all services for %s"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Clear services for %s"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Clear"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Collapse %s services"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Expand %s services"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "No couriers found"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Try another courier or service name, or change the selection filter."
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Reset filters"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Changes are saved automatically."
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Disable all"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Your selection is saved when you choose Continue."
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "No courier services are enabled. Customers cannot use KiriminAja shipping until you enable a service."
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Unavailable services are saved choices no longer listed by the courier. You can keep or remove them; they do not guarantee a shipping rate."
+msgstr ""

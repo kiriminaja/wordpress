@@ -166,7 +166,7 @@ class Onboarding extends BaseInit {
 			'couriers'     => array(
 				'title'       => $steps['couriers']['title'],
 				'description' => $steps['couriers']['description'],
-				'i18n'        => array(
+				'i18n'        => array_merge( \KiriminAjaOfficial\Services\CourierServiceUiData::translations(), array(
 					'enableAll'  => __( 'Enable all', 'kiriminaja-official' ),
 					'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
 					'empty'      => __( 'No courier services are available.', 'kiriminaja-official' ),
@@ -178,7 +178,7 @@ class Onboarding extends BaseInit {
 					'allServices' => __( 'All services', 'kiriminaja-official' ),
 					'unavailable' => __( 'Unavailable', 'kiriminaja-official' ),
 					'retry' => __( 'Retry', 'kiriminaja-official' ),
-				),
+				) ),
 			),
 			'shipping'     => array(
 				'title'          => $steps['shipping']['title'],

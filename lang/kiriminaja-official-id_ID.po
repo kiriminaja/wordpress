@@ -4225,3 +4225,93 @@ msgstr "Menyimpan layanan kurir…"
 
 msgid "Unavailable"
 msgstr "Tidak tersedia"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Fully enabled"
+msgstr "Aktif seluruhnya"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Partially enabled"
+msgstr "Aktif sebagian"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Disabled"
+msgstr "Nonaktif"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Courier services"
+msgstr "Layanan kurir"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Choose the couriers and services available at checkout."
+msgstr "Pilih kurir dan layanan yang tersedia saat checkout."
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "%s couriers selected"
+msgstr "%s kurir dipilih"
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "%s services enabled"
+msgstr "%s layanan diaktifkan"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Search couriers or services"
+msgstr "Cari kurir atau layanan"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Filter couriers by selection"
+msgstr "Filter kurir berdasarkan pilihan"
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Enable all services for %s"
+msgstr "Aktifkan semua layanan %s"
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Clear services for %s"
+msgstr "Hapus pilihan layanan %s"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Clear"
+msgstr "Hapus pilihan"
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Collapse %s services"
+msgstr "Tutup layanan %s"
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "Expand %s services"
+msgstr "Buka layanan %s"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "No couriers found"
+msgstr "Tidak ada kurir ditemukan"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Try another courier or service name, or change the selection filter."
+msgstr "Coba nama kurir atau layanan lain, atau ubah filter pilihan."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Reset filters"
+msgstr "Atur ulang filter"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Changes are saved automatically."
+msgstr "Perubahan disimpan secara otomatis."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Your selection is saved when you choose Continue."
+msgstr "Pilihan Anda disimpan saat memilih Lanjutkan."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "No courier services are enabled. Customers cannot use KiriminAja shipping until you enable a service."
+msgstr "Tidak ada layanan kurir aktif. Pelanggan tidak dapat menggunakan pengiriman KiriminAja hingga Anda mengaktifkan layanan."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Unavailable services are saved choices no longer listed by the courier. You can keep or remove them; they do not guarantee a shipping rate."
+msgstr "Layanan tidak tersedia adalah pilihan tersimpan yang tidak lagi tercantum pada kurir. Anda dapat mempertahankan atau menghapusnya; layanan tersebut tidak menjamin tarif pengiriman."

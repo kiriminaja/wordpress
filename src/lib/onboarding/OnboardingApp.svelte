@@ -25,7 +25,6 @@
   import CourierServicePicker from '$lib/couriers/CourierServicePicker.svelte';
   import {
     initializeSelection,
-    selectedCourierCount as countSelectedCouriers,
     hasSelection,
     selectionPayload,
     setAllServices,
@@ -35,6 +34,7 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import SubdistrictCombobox from './SubdistrictCombobox.svelte';
   import {
+    IconAlertCircle,
     IconCheck,
     IconChevronLeft,
     IconChevronRight,
@@ -42,6 +42,7 @@
     IconHelp,
     IconLoader2,
     IconPlugConnected,
+    IconRefresh,
     IconX,
   } from '@tabler/icons-svelte';
   import type { OnboardingBootstrap, OnboardingCourier, OnboardingStep } from './types';
@@ -87,6 +88,7 @@
   let couriersLoading = $state(false);
   let courierLoaded = $state(false);
   let courierLoadGeneration = 0;
+  let courierLoadController: AbortController | undefined;
   let subdistrictQuery = $state('');
   let subdistricts = $state<Area[]>([]);
   let subdistrictLoading = $state(false);
@@ -99,7 +101,6 @@
   const currentIndex = $derived(order.indexOf(current));
   const accountReady = $derived(Boolean(account.connected || done.account));
   const canSubmitAccount = $derived(Boolean(accountReady || setupKey.trim()));
-  const selectedCourierCount = $derived(countSelectedCouriers(courierState.selection));
   const allCouriersEnabled = $derived(
     couriers.length > 0 &&
       couriers.every((courier) =>
@@ -143,7 +144,11 @@
     }
   });
 
-  async function post<T>(action: string, values: Record<string, string> = {}): Promise<T> {
+  async function post<T>(
+    action: string,
+    values: Record<string, string> = {},
+    signal?: AbortSignal,
+  ): Promise<T> {
     const body = new URLSearchParams({
       action,
       nonce: bootstrap.nonce,
@@ -155,6 +160,7 @@
     });
     const response = await fetch(bootstrap.ajaxUrl, {
       method: 'POST',
+      signal,
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
       body,
@@ -360,6 +366,7 @@
   }
 
   function resetCouriers(): void {
+    courierLoadController?.abort();
     courierLoadGeneration += 1;
     couriers = [];
     courierState = { selection: {}, remembered: {} };
@@ -379,10 +386,16 @@
   async function loadCouriers(): Promise<void> {
     if (busy || !done.account || couriersLoading || courierLoaded) return;
     const generation = ++courierLoadGeneration;
+    courierLoadController?.abort();
+    courierLoadController = new AbortController();
     couriersLoading = true;
     courierLoadError = '';
     try {
-      const result = await post<CourierPayload>('kiriof_get_courier_whitelist');
+      const result = await post<CourierPayload>(
+        'kiriof_get_courier_whitelist',
+        {},
+        courierLoadController.signal,
+      );
       if (generation !== courierLoadGeneration) return;
       if (!Array.isArray(result.couriers)) throw new Error(bootstrap.i18n.networkError);
       const loaded = initializeSelection(result);
@@ -405,6 +418,11 @@
   function enableAllCouriers(): void {
     if (!courierLoaded || couriersLoading || busy) return;
     changeCourierSelection(setAllServices(courierState, couriers, true));
+  }
+
+  function disableAllCouriers(): void {
+    if (!courierLoaded || couriersLoading || busy) return;
+    changeCourierSelection(setAllServices(courierState, couriers, false));
   }
 
   async function saveCouriers(): Promise<void> {
@@ -512,6 +530,7 @@
   });
 
   onDestroy(() => {
+    courierLoadController?.abort();
     courierLoadGeneration += 1;
     if (searchTimer) clearTimeout(searchTimer);
     if (map) {
@@ -579,7 +598,7 @@
       {/if}
 
       <!-- Feedback Alerts -->
-      {#if error}
+      {#if error && !(current === 'couriers' && courierLoadError)}
         <div class="shrink-0 px-6 pb-2">
           <Alert variant="destructive">
             <AlertTitle>Unable to continue</AlertTitle>
@@ -728,46 +747,75 @@
             </FieldDescription>
           </div>
         {:else if current === 'couriers'}
-          <div class="mb-3 flex items-center justify-between">
-            <div>
-              {#if !allCouriersEnabled}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy || couriersLoading || !courierLoaded}
-                  onclick={enableAllCouriers}
-                >
-                  {bootstrap.couriers.i18n.enableAll || 'Enable all'}
-                </Button>
-              {/if}
-            </div>
-            <Badge variant="secondary">
-              {selectedCourierCount}
-              {bootstrap.couriers.i18n.enabled || 'enabled'}
-            </Badge>
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy ||
+                couriersLoading ||
+                !courierLoaded ||
+                couriers.length === 0 ||
+                allCouriersEnabled}
+              onclick={enableAllCouriers}
+            >
+              <IconCheck class="mr-1.5 h-4 w-4" aria-hidden="true" />
+              {bootstrap.couriers.i18n.enableAll || 'Enable all'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy ||
+                couriersLoading ||
+                !courierLoaded ||
+                !hasSelection(courierState.selection)}
+              onclick={disableAllCouriers}
+            >
+              <IconX class="mr-1.5 h-4 w-4" aria-hidden="true" />
+              {bootstrap.couriers.i18n.disableAll || 'Disable all'}
+            </Button>
           </div>
 
           {#if couriersLoading}
-            <div class="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-              <IconLoader2 class="h-5 w-5 animate-spin" />
+            <div
+              class="flex min-h-40 flex-col items-center justify-center gap-3 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <IconLoader2 class="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
               <span>{bootstrap.couriers.i18n.loading || 'Loading couriers…'}</span>
             </div>
           {:else if courierLoadError}
-            <Button variant="outline" onclick={loadCouriers} disabled={busy}>{bootstrap.couriers.i18n.retry || 'Retry'}</Button>
+            <Alert variant="destructive">
+              <IconAlertCircle aria-hidden="true" />
+              <AlertDescription>{courierLoadError}</AlertDescription>
+              <Button
+                variant="outline"
+                size="sm"
+                class="mt-3"
+                onclick={loadCouriers}
+                disabled={busy}
+              >
+                <IconRefresh class="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {bootstrap.couriers.i18n.retry || 'Retry'}
+              </Button>
+            </Alert>
           {:else if couriers.length === 0}
-            <div class="py-8 text-center text-muted-foreground">
+            <div class="py-8 text-center text-sm text-muted-foreground">
               <p>{bootstrap.couriers.i18n.empty || 'No courier services are available.'}</p>
             </div>
           {:else}
-            <div class="max-h-[320px] overflow-y-auto pr-1">
-              <CourierServicePicker
-                {couriers}
-                state={courierState}
-                i18n={bootstrap.couriers.i18n}
-                disabled={busy || couriersLoading || !courierLoaded}
-                onChange={changeCourierSelection}
-              />
-            </div>
+            <CourierServicePicker
+              {couriers}
+              compact
+              state={courierState}
+              i18n={bootstrap.couriers.i18n}
+              disabled={busy || couriersLoading || !courierLoaded}
+              onChange={changeCourierSelection}
+            />
+            <p class="mt-3 text-xs leading-5 text-muted-foreground">
+              {bootstrap.couriers.i18n.onboardingSaveHint ||
+                'Your selection is saved when you continue.'}
+            </p>
           {/if}
         {:else if current === 'shipping'}
           <div class="space-y-3">

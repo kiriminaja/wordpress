@@ -67,22 +67,6 @@
   @apply [width:min(920px,100%)] mr-auto ml-auto;
 }
 
-[data-kiriof-settings-page] [data-slot='switch'] {
-  @apply !relative !inline-flex !w-9 !min-w-9 !h-5 !min-h-5 !shrink-0 !items-center !m-0 !p-0 !overflow-hidden !border-0 !rounded-full !bg-input !shadow-none;
-}
-
-[data-kiriof-settings-page] [data-slot='switch'][data-state='checked'] {
-  @apply !bg-primary;
-}
-
-[data-kiriof-settings-page] [data-slot='switch-thumb'] {
-  @apply !absolute ![top:0.125rem] ![left:0.125rem] !block ![width:1rem] ![min-width:1rem] ![height:1rem] ![min-height:1rem] !rounded-full !bg-white ![box-shadow:0_1px_2px_rgb(0_0_0_/_20%)] ![transform:none] ![transition:left_0.2s_ease];
-}
-
-[data-kiriof-settings-page] [data-slot='switch-thumb'][data-state='checked'] {
-  @apply !left-[1.125rem];
-}
-
 [data-kiriof-settings-root][aria-busy='true'] {
   @apply [min-height:180px];
 }

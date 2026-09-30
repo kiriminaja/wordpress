@@ -133,7 +133,7 @@ export type AccountBootstrap = {
 export type CouriersBootstrap = {
   view: 'couriers';
   toolbar: ToolbarConfig;
-  i18n: {
+  i18n: Partial<Record<string, string>> & {
     enableAll: string;
     disableAll: string;
     loading: string;

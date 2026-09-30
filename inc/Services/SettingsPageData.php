@@ -181,7 +181,7 @@ class SettingsPageData {
 		return array(
 			'view' => 'couriers',
 			'toolbar' => $this->settingsToolbar( __( 'Courier List', 'kiriminaja-official' ) ),
-			'i18n' => array(
+			'i18n' => array_merge( CourierServiceUiData::translations(), array(
 				'enableAll'  => __( 'Enable All', 'kiriminaja-official' ),
 				'disableAll' => __( 'Disable All', 'kiriminaja-official' ),
 				'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
@@ -195,7 +195,7 @@ class SettingsPageData {
 				'allServices' => __( 'All services', 'kiriminaja-official' ),
 				'unavailable' => __( 'Unavailable', 'kiriminaja-official' ),
 				'retry' => __( 'Retry', 'kiriminaja-official' ),
-			),
+			) ),
 		);
 	}
 
