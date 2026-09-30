@@ -4,6 +4,20 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+wp_localize_script(
+    'kiriof-request-pickup',
+    'kiriofRequestPickupConfig',
+    array(
+        'redirectUrl' => admin_url( 'admin.php?page=kiriminaja-request-pickup' ),
+        'i18n'        => array(
+            'error'            => __( 'An error occurred.', 'kiriminaja-official' ),
+            'codCharges'       => __( 'COD Package Charges', 'kiriminaja-official' ),
+            'nonCodCharges'    => __( 'Non-COD Package Charges', 'kiriminaja-official' ),
+            'totalCharges'     => __( 'Total Charges', 'kiriminaja-official' ),
+        ),
+    )
+);
+
 /**
  * @var string $locale
  * @var array $results
@@ -48,11 +62,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display filtering
                                         $kiriof_status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
                                         ?>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','');return false" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'All', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','unpaid');return false" <?php echo $kiriof_status_filter === 'unpaid' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Waiting for Payment', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a></li>
-                                        <li><a href="#" onclick="kiriofApplySearch('status','paid');return false" <?php echo $kiriof_status_filter === 'paid' ? 'class="current" aria-current="page"' : ''; ?>><?php esc_html_e( 'Paid', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" class="kiriof-filter-link<?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? ' current' : ''; ?>" data-filter-key="status" data-filter-value="" <?php echo empty( $kiriof_status_filter ) || $kiriof_status_filter === 'all' ? 'aria-current="page"' : ''; ?>><?php esc_html_e( 'All', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['all'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" class="kiriof-filter-link<?php echo $kiriof_status_filter === 'unpaid' ? ' current' : ''; ?>" data-filter-key="status" data-filter-value="unpaid" <?php echo $kiriof_status_filter === 'unpaid' ? 'aria-current="page"' : ''; ?>><?php esc_html_e( 'Waiting for Payment', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['unpaid'] ?? 0 ) ) ); ?>)</span></a></li>
+                                        <li><a href="#" class="kiriof-filter-link<?php echo $kiriof_status_filter === 'paid' ? ' current' : ''; ?>" data-filter-key="status" data-filter-value="paid" <?php echo $kiriof_status_filter === 'paid' ? 'aria-current="page"' : ''; ?>><?php esc_html_e( 'Paid', 'kiriminaja-official' ); ?> <span class="count">(<?php echo esc_html( number_format_i18n( (int) ( $kiriof_statusCounts['paid'] ?? 0 ) ) ); ?>)</span></a></li>
                                     </ul>
-                                    <form class="search-form search-plugins" onsubmit="return false">
+                                    <form class="search-form search-plugins kiriof-payment-search-form">
                                         <label class="screen-reader-text" for="kiriof-payment-search"><?php esc_html_e( 'Search Payments', 'kiriminaja-official' ); ?></label>
                                         <input type="search" id="kiriof-payment-search" class="wp-filter-search" placeholder="<?php esc_attr_e( 'Search payment…', 'kiriminaja-official' ); ?>" value="<?php echo esc_attr( isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>">
                                     </form>
@@ -74,13 +88,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                             }
                                             ?>
                                         </select>
-                                        <button class="button" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_1').value)"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
+                                        <button class="button kiriof-month-apply" type="button" data-month-select="month_search_1"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
                                     </div>
                                     <?php if ( $total_pages > 1 ) : ?>
                                     <div class="tablenav-pages">
                                         <span class="pagination-links">
                                             <?php if ( $prev_page_link ) : ?>
-                                            <a class="prev-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page - 1 ); ?>);return false"><span>&lsaquo;</span></a>
+                                            <a class="prev-page button kiriof-page-link" href="#" data-page="<?php echo (int) ( $page - 1 ); ?>"><span>&lsaquo;</span></a>
                                             <?php else : ?>
                                             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
                                             <?php endif; ?>
@@ -88,7 +102,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 <span class="tablenav-paging-text"><?php echo esc_html( $page ); ?> <?php esc_html_e( 'of', 'kiriminaja-official' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $total_pages ) ); ?></span></span>
                                             </span>
                                             <?php if ( $next_page_link ) : ?>
-                                            <a class="next-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page + 1 ); ?>);return false"><span>&rsaquo;</span></a>
+                                            <a class="next-page button kiriof-page-link" href="#" data-page="<?php echo (int) ( $page + 1 ); ?>"><span>&rsaquo;</span></a>
                                             <?php else : ?>
                                             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
                                             <?php endif; ?>
@@ -115,7 +129,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         if (@$results&&count($results)>0){
                                             foreach($results as $id => $kiriof_row){
                                                 $kiriof_btnGroup='';
-                                                $kiriof_pickup_number_js = esc_js( (string) ( $kiriof_row->pickup_number ?? '' ) );
+                                                $kiriof_pickup_number = esc_attr( (string) ( $kiriof_row->pickup_number ?? '' ) );
                                                 $kiriof_method = strtolower(trim((string) ($kiriof_row->method ?? '')));
                                                 $kiriof_is_top_method = 'top' === $kiriof_method;
 
@@ -128,13 +142,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 if (@$kiriof_row->status!=="paid" && ! $kiriof_is_top_method){
                                                     if (strtotime(@$kiriof_row->pickup_schedule)>strtotime("now")){
                                                         $kiriof_btnGroup.='
-                                                            <button class="button kiriof-payment-button" type="button" data-pickup-number="'.$kiriof_pickup_number_js.'" onclick="showPaymentForm(\''.$kiriof_pickup_number_js.'\')" title="' . esc_attr__( 'Pay', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Pay', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
+                                                            <button class="button kiriof-payment-button" type="button" data-pickup-number="'.$kiriof_pickup_number.'" title="' . esc_attr__( 'Pay', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Pay', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
                                                                 <span class="dashicons dashicons-money-alt" aria-hidden="true" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span>
                                                             </button>
                                                         ';                                                        
                                                     }else{
                                                         $kiriof_btnGroup.= '
-                                                            <button class="button" type="button" onclick="showRescheduleForm(\''.$kiriof_pickup_number_js.'\')" title="' . esc_attr__( 'Reschedule', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Reschedule', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
+                                                            <button class="button kiriof-reschedule-button" type="button" data-pickup-number="'.$kiriof_pickup_number.'" title="' . esc_attr__( 'Reschedule', 'kiriminaja-official' ) . '" aria-label="' . esc_attr__( 'Reschedule', 'kiriminaja-official' ) . '" style="padding:4px;width:32px;height:32px;border:none;box-shadow:none;border-radius:4px">
                                                                 <span class="dashicons dashicons-update-alt" aria-hidden="true" style="font-size:20px;width:20px;height:20px;line-height:20px;"></span>
                                                             </button>
                                                         ';    
@@ -166,7 +180,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                         'class' => [],
                                                         'type' => [],
                                                         'data-pickup-number' => [],
-                                                        'onclick' => [],
                                                         'title' => [],
                                                         'aria-label' => [],
                                                         'style' => [],
@@ -271,7 +284,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                                     <div class="tablenav bottom">
                                         <div class="alignleft actions" style="display:flex;align-items:center">
-                                            <select id="month_search_2" onchange="document.getElementById('month_search_1').value=this.value;kiriofApplySearch('month',this.value)">
+                                            <select id="month_search_2" class="kiriof-month-sync" data-sync-target="month_search_1">
                                                 <option value="" <?php echo empty( $kiriof_month_filter ) ? 'selected' : ''; ?>><?php esc_html_e( 'All Dates', 'kiriminaja-official' ); ?></option>
                                                 <?php
                                                 if ( ! empty( $monthOptions ) && count($monthOptions) > 0 ) {
@@ -281,13 +294,13 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                 }
                                                 ?>
                                             </select>
-                                            <button class="button" type="button" onclick="kiriofApplySearch('month',document.getElementById('month_search_2').value)"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
+                                            <button class="button kiriof-month-apply" type="button" data-month-select="month_search_2"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
                                         </div>
                                         <?php if ( $total_pages > 1 ) : ?>
                                         <div class="tablenav-pages">
                                             <span class="pagination-links">
                                                 <?php if ( $prev_page_link ) : ?>
-                                                <a class="prev-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page - 1 ); ?>);return false"><span>&lsaquo;</span></a>
+                                                <a class="prev-page button kiriof-page-link" href="#" data-page="<?php echo (int) ( $page - 1 ); ?>"><span>&lsaquo;</span></a>
                                                 <?php else : ?>
                                                 <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
                                                 <?php endif; ?>
@@ -295,7 +308,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                                     <span class="tablenav-paging-text"><?php echo esc_html( $page ); ?> <?php esc_html_e( 'of', 'kiriminaja-official' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $total_pages ) ); ?></span></span>
                                                 </span>
                                                 <?php if ( $next_page_link ) : ?>
-                                                <a class="next-page button" href="#" onclick="kiriofGoToPage(<?php echo (int) ( $page + 1 ); ?>);return false"><span>&rsaquo;</span></a>
+                                                <a class="next-page button kiriof-page-link" href="#" data-page="<?php echo (int) ( $page + 1 ); ?>"><span>&rsaquo;</span></a>
                                                 <?php else : ?>
                                                 <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
                                                 <?php endif; ?>
@@ -308,322 +321,3 @@ if ( ! defined( 'ABSPATH' ) ) {
     <?php include 'modal-payment.php' ?>
     <?php include 'modal-request-pickup.php' ?>
 </div>
-
-
-<!--Table Search-->
-<?php ob_start(); ?>
-    function kiriofApplySearch (key,value){
-        if (jQuery(`#table-form [name="${key}"]`).length > 0){
-            jQuery(`#table-form [name="${key}"]`).val(value)
-        }
-        // Clear search when switching status tabs
-        if (key === 'status' && value) {
-            jQuery(`#table-form [name="key"]`).val('');
-            jQuery('#kiriof-payment-search').val('');
-        }
-        jQuery(`#table-form [name="cpage"]`).val('1')
-        jQuery(`#table-form`).trigger('submit')
-    }
-
-    function kiriofGoToPage(page){
-        jQuery(`#table-form [name="cpage"]`).val(page)
-        jQuery(`#table-form`).trigger('submit')
-    }
-
-    // Heartbeat nonce auto-refresh (mirrors setuped/index.php)
-    jQuery(document).on('heartbeat-send', function(e, data){
-        data.kiriof_nonce_check = true;
-    });
-    jQuery(document).on('heartbeat-tick', function(e, data){
-        if (data.kiriof_new_nonce){
-            kiriofAjax.nonce = data.kiriof_new_nonce;
-        }
-    });
-
-    var kiriofPaymentSearchTimer;
-    jQuery(document).on('keyup', '#kiriof-payment-search', function(){
-        clearTimeout(kiriofPaymentSearchTimer);
-        var $input = jQuery(this);
-        kiriofPaymentSearchTimer = setTimeout(function(){
-            kiriofApplySearch('key', $input.val());
-        }, 400);
-    });
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>
-<!--Request Pickup Detail-->
-<?php ob_start(); ?>
-
-    function kjRequestPickupProcess(){
-        jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
-
-        let orderid = jQuery('#request-pickup-modal').find('.kj-modal-content button').data('tid');
-
-        let orderIds = [orderid];
-
-        const modalElem = jQuery('#request-pickup-modal')
-        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
-        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
-        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
-
-        modalElemLoader.removeClass('kj-hidden')
-        modalElemContent.addClass('kj-hidden')
-        modalElemErr.addClass('kj-hidden')
-        
-        jQuery.ajax({
-            type: "post",
-            url: kiriofAjaxRoute(),
-            data: {
-                action: "kiriof_request_pickup_transaction",  // the action to fire in the server
-                data: {
-                    schedule : jQuery('[name="schedule-opt"]:checked').val(),
-                    order_ids : orderIds,
-                    nonce : kiriofAjax.nonce
-                },         // any JS object
-            },
-            complete: function (response) {
-                /** Reset Err*/
-                jQuery('#request-pickup-modal .err_msg').empty()
-                jQuery('#request-pickup-modal .err_msg').addClass('kj-hidden')
-    
-                
-                const resp = JSON.parse(response.responseText).data;
-                if (resp?.status !== 200){
-
-                    modalElemLoader.addClass('kj-hidden')
-                    modalElemErr.addClass('kj-hidden')
-                    modalElemContent.removeClass('kj-hidden')
-                    
-                    jQuery('#request-pickup-modal .err_msg').text('*'+resp?.message)
-                    jQuery('#request-pickup-modal .err_msg').removeClass('kj-hidden')
-                    return
-                }
-
-                const pickupNumber = encodeURIComponent(resp?.data?.pickup_number || '')
-                const redirectBase = `<?php echo esc_url( admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ); ?>&pickup_number=${pickupNumber}`;
-                const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';
-                window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;
-                
-                
-            }
-        })
-    }
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>
-<!--Payment Detail-->
-<?php ob_start(); ?>
-    let showPaymentFormPaymentId = null
-    const kiriofPaymentQrMaxRetries = 20
-    const kiriofPaymentQrRetryDelay = 1000
-    function showPaymentForm(paymentId, retryCount){
-        retryCount = retryCount || 0
-        showPaymentFormPaymentId = paymentId
-        jQuery("#paymentQR").empty()
-
-        const modalElem = jQuery('#payment-modal')
-        const modalElemContent = jQuery('#payment-modal .kj-modal-content')
-        const modalElemLoader = jQuery('#payment-modal .kj-modal-loader')
-        const modalElemErr = jQuery('#payment-modal .kj-err-container')
-
-        modalElem.removeClass('kj-hidden')
-        modalElemLoader.removeClass('kj-hidden')
-        modalElemContent.addClass('kj-hidden')
-        modalElemErr.addClass('kj-hidden')
-
-        jQuery.ajax({
-            type: "post",
-            url: kiriofAjaxRoute(),
-            data: {
-                action: "kiriof_get_payment_form",  // the action to fire in the server
-                data: {
-                    payment_id:paymentId,
-                    nonce : kiriofAjax.nonce
-                },         // any JS object
-            },
-            complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
-
-                if (resp?.status !== 200){
-                    modalElemLoader.addClass('kj-hidden')
-                    modalElemContent.addClass('kj-hidden')
-                    modalElemErr.removeClass('kj-hidden')
-                    return
-                }
-                
-                const remotePayment = resp?.data?.payment_data ?? {};
-                const localPayment = resp?.data?.payment_in_wc_data ?? {};
-                const remoteStatusCode = String(remotePayment?.status_code ?? '').trim();
-                const remotePaymentStatus = String(remotePayment?.payment_status || remotePayment?.status || '').toLowerCase();
-                const localMethod = String(localPayment?.method || '').toLowerCase();
-                const remoteHasPaidTimestamp = !!remotePayment?.paid_at;
-                const remoteHasPaidStatus = ['paid', 'settlement', 'settled', 'success'].includes(remotePaymentStatus);
-                const remoteIsPaid = localMethod === 'qris'
-                    ? (remoteHasPaidTimestamp || remoteHasPaidStatus)
-                    : (remoteStatusCode === '0' || !!remotePayment?.pay_time || remoteHasPaidTimestamp || remoteHasPaidStatus);
-                const localIsPaid = String(localPayment?.status || '').toLowerCase() === 'paid';
-
-                /** cek jika payment sudah dibayar lalu reload list supaya status ikut berubah */
-                if (remoteIsPaid || localIsPaid){
-                    modalElem.addClass('kj-hidden')
-                    window.location.reload()
-                    return
-                }
-                
-                modalElemLoader.addClass('kj-hidden')
-                modalElemContent.removeClass('kj-hidden')
-                modalElemErr.addClass('kj-hidden')
-                
-                const responseData = resp?.data
-                jQuery('#payment-modal #trx-code').text(responseData?.payment_data?.payment_id)
-                jQuery('#payment-modal #trx-expired-at').text(responseData?.expired_at)
-                jQuery('#payment-modal .trx-pay-amount').text(kiriofMoneyFormat(responseData?.sum_fee_non_cod,'Rp'))
-
-                const qrContent = responseData?.payment_data?.qr_content
-                if (!qrContent && retryCount < kiriofPaymentQrMaxRetries) {
-                    modalElemLoader.removeClass('kj-hidden')
-                    modalElemContent.addClass('kj-hidden')
-                    modalElemErr.addClass('kj-hidden')
-                    setTimeout(function() {
-                        showPaymentForm(paymentId, retryCount + 1)
-                    }, kiriofPaymentQrRetryDelay)
-                    return
-                }
-
-                kiriofRenderQrCode('#paymentQR', qrContent, {
-                    width: 256,
-                    height: 256
-                });
-            },
-            error: function (xhr, status, error) {
-                modalElemLoader.addClass('kj-hidden')
-                modalElemContent.addClass('kj-hidden')
-                modalElemErr.removeClass('kj-hidden')
-                console.error("Error fetching payment form:", error);
-            }
-        });
-    }
-    function refreshShowPaymentForm(){
-        showPaymentForm(showPaymentFormPaymentId)
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const pickupNumberToLoad = urlParams.get('pickup_number');
-        const shouldOpenPayment = urlParams.get('open_payment');
-        if (pickupNumberToLoad && (shouldOpenPayment === '1' || shouldOpenPayment === 'true')) {
-            setTimeout(function() {
-                urlParams.delete('pickup_number');
-                urlParams.delete('open_payment');
-                const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '') + window.location.hash;
-                window.history.replaceState(null, '', cleanUrl);
-
-                const paymentButton = Array.from(document.querySelectorAll('.kiriof-payment-button')).find(function(button) {
-                    return button.getAttribute('data-pickup-number') === pickupNumberToLoad
-                        || button.getAttribute('onclick') === "showPaymentForm('" + pickupNumberToLoad + "')";
-                });
-                if (paymentButton) {
-                    paymentButton.click();
-                }
-            }, 150);
-        }
-    });
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>
-<!--Request Pickup-->
-<?php ob_start(); ?>
-
-    function showRescheduleForm(paymentId){
-
-        const modalElem = jQuery('#request-pickup-modal')
-        const modalElemContent = jQuery('#request-pickup-modal .kj-modal-content')
-        const modalElemLoader = jQuery('#request-pickup-modal .kj-modal-loader')
-        const modalElemErr = jQuery('#request-pickup-modal .kj-err-container')
-
-        modalElem.removeClass('kj-hidden')
-        modalElemLoader.removeClass('kj-hidden')
-        modalElemContent.addClass('kj-hidden')
-        modalElemErr.addClass('kj-hidden')
-
-        jQuery.ajax({
-            type: "post",
-            url: kiriofAjaxRoute(),
-            data: {
-                action: "kiriof_get_shipping_reschedule_pickup",  // the action to fire in the server
-                data: {
-                    payment_id:paymentId,
-                    nonce : kiriofAjax.nonce
-                },         // any JS object
-            },
-            complete: function (response) {
-                const resp = JSON.parse(response.responseText).data;
-            
-                if (resp?.status !== 200){
-                    modalElemLoader.addClass('kj-hidden')
-                    modalElemContent.addClass('kj-hidden')
-                    modalElemErr.removeClass('kj-hidden')
-                    alert(resp?.message ?? '<?php echo esc_js(__('An error occurred.', 'kiriminaja-official')); ?>')
-                    return
-                }
-
-                const schedules = resp?.data?.schedules ?? [];
-                const transaction_summary = resp?.data?.transaction_summary ?? {};
-                const sum_cod_fee = 0;
-                const sum_non_cod_fee = transaction_summary?.sum_fee_non_cod ?? 0;
-                const total = sum_non_cod_fee;
-
-                
-                /** transaction_summary*/
-                jQuery('#schedule-transaction-summary').empty()
-                jQuery('#schedule-transaction-summary').append(`
-                <div>
-                    <div class="row">
-                        <div class="col"><?php echo esc_js( __( 'COD Package Charges', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp0</div>
-                    </div>
-                    <div class="row-divider" style="margin-top: .5rem"></div>
-                    <div class="row">
-                        <div class="col"><?php echo esc_js( __( 'Non-COD Package Charges', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat((transaction_summary?.sum_fee_non_cod ?? 0))}</div>
-                    </div>
-                    <div class="row-divider" style="margin-top: .5rem"></div>
-                    <div class="row">
-                        <div class="col"><?php echo esc_js( __( 'Total Charges', 'kiriminaja-official' ) ); ?></div>
-                        <div class="col" style="text-align: right; font-weight: 700">Rp${kiriofMoneyFormat(total)}</div>
-                    </div>
-                </div>
-                `)
-                
-                /** schedules*/
-                
-                jQuery('#schedule-opt-list').empty()
-                jQuery.each(schedules,function (idx,schedule){
-                    jQuery('#schedule-opt-list').append(`
-                        <div style="margin-bottom: .75rem">
-                            <div style="display: flex;align-items: center;justify-items: center;">
-                                <input id="opt_${schedule?.clock}" style="margin: 0" value="${schedule?.clock}" type="radio" name="schedule-opt">
-                                <span style="margin-left: .5rem;margin-top: auto;margin-bottom: auto">
-                                    <label for="opt_${schedule?.clock}">${schedule?.label}</label>                                
-                                </span>
-                            </div>
-                        </div>
-                `)
-                })
-
-                
-                modalElemLoader.addClass('kj-hidden')
-                modalElemContent.removeClass('kj-hidden')
-                modalElemErr.addClass('kj-hidden')
-
-                jQuery('#request-pickup-modal').find('.kj-modal-content button').attr('data-tid',transaction_summary.order_id);
-            }
-        });
-    }
-
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>

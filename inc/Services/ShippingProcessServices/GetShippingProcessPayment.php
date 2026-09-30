@@ -9,14 +9,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 use DateTime;
 use DateTimeZone;
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\PaymentRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
 class GetShippingProcessPayment extends BaseService{
     
     public $payment_id = 0;
     private $transactionsSummary;
     private $timeZone = '';
+    private KiriminajaApiRepository $apiRepository;
+    private PaymentRepository $paymentRepository;
+    private TransactionRepository $transactionRepository;
     
-    public function __construct(){
+    public function __construct(
+        KiriminajaApiRepository $apiRepository,
+        PaymentRepository $paymentRepository,
+        TransactionRepository $transactionRepository
+    ){
         $this->timeZone = wp_timezone_string();
+        $this->apiRepository         = $apiRepository;
+        $this->paymentRepository     = $paymentRepository;
+        $this->transactionRepository = $transactionRepository;
     }
     
     public function payment_id($payment_id){
@@ -25,12 +38,12 @@ class GetShippingProcessPayment extends BaseService{
     }
     
     public function call(){
-        $getKiriofPayment = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPayment([
+        $getKiriofPayment = $this->apiRepository->getPayment([
             'payment_id'=>$this->payment_id
         ]);
         if (!$getKiriofPayment['status']){ return  self::error([],@$getKiriofPayment['data'] ?? 'Terjadi Kesalahan');}
         
-        $paymentRepo = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+        $paymentRepo = $this->paymentRepository;
         $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
         $remotePayment = @$getKiriofPayment['data']->data;
         $remoteStatusCode = trim((string) ($remotePayment->status_code ?? ''));
@@ -99,7 +112,7 @@ class GetShippingProcessPayment extends BaseService{
     }
     
     private function transactionsSummaryProccess(){
-        $transactionRepo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByPickupNumber($this->payment_id);
+        $transactionRepo = $this->transactionRepository->getTransactionByPickupNumber($this->payment_id);
         $count_cod = 0;
         $count_non_cod = 0;
         $sum_fee_cod = 0;
@@ -138,7 +151,7 @@ class GetShippingProcessPayment extends BaseService{
 
     private function hasAwbForPickup($pickupNumber): bool
     {
-        $transactions = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByPickupNumber($pickupNumber);
+        $transactions = $this->transactionRepository->getTransactionByPickupNumber($pickupNumber);
         foreach ((array) $transactions as $transaction) {
             if (trim((string) ($transaction->awb ?? '')) !== '') {
                 return true;

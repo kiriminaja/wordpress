@@ -16,6 +16,12 @@ class ShippingDiscountCouponController {
     private const META_COURIERS = '_kiriof_coupon_couriers';
     private const META_COMBINATIONS = '_kiriof_coupon_combinations';
 
+    private ShippingDiscountRegionRepository $region_repository;
+
+    public function __construct( ?ShippingDiscountRegionRepository $region_repository = null ) {
+        $this->region_repository = $region_repository ?? new ShippingDiscountRegionRepository();
+    }
+
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
         add_filter( 'woocommerce_cart_coupon_types', array( $this, 'registerRuntimeCartCouponTypes' ) );
@@ -611,7 +617,7 @@ class ShippingDiscountCouponController {
 
     private function renderAreaRestrictionFields( int $coupon_id ): void {
         $savedRegions       = $this->getSavedRegions( $coupon_id );
-        $regionRepo         = new ShippingDiscountRegionRepository();
+        $regionRepo         = $this->region_repository;
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
         $provinces      = $regionRepo->getProvinces();
@@ -827,7 +833,7 @@ class ShippingDiscountCouponController {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
-        $regionRepo         = new ShippingDiscountRegionRepository();
+        $regionRepo         = $this->region_repository;
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
         if ( $regionRepo->getProvinceCount() < 1 ) {
@@ -925,7 +931,7 @@ class ShippingDiscountCouponController {
         }
 
         $cacheService = new ShippingDiscountRegionCacheService();
-        $regionRepo   = new ShippingDiscountRegionRepository();
+        $regionRepo   = $this->region_repository;
 
         wp_send_json_success(
             array(
@@ -973,7 +979,7 @@ class ShippingDiscountCouponController {
         }
 
         $provinceId = isset( $_POST['province_id'] ) ? absint( wp_unslash( $_POST['province_id'] ) ) : 0;
-        $repo = new ShippingDiscountRegionRepository();
+        $repo = $this->region_repository;
         $cities = $repo->getCitiesByProvinceId( $provinceId );
 
         if ( empty( $cities ) && $provinceId > 0 ) {

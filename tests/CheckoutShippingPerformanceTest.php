@@ -121,7 +121,7 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'Selected-courier fee calculation should check the cached shipping_price response before calling the API'
         );
         $cacheLookupPosition = strpos( $checkoutCalculation, 'PricingCacheService::get( $pricingPayload )' );
-        $apiCallPosition = strpos( $checkoutCalculation, 'KiriminajaApiRepository())->getPricing($pricingPayload)' );
+        $apiCallPosition = strpos( $checkoutCalculation, '$this->api_repository->getPricing($pricingPayload)' );
         $this->assertNotFalse( $cacheLookupPosition );
         $this->assertNotFalse( $apiCallPosition );
         $this->assertLessThan(
@@ -184,15 +184,15 @@ final class CheckoutShippingPerformanceTest extends TestCase
     }
 
     #[Test]
-    public function pricing_api_uses_a_short_filterable_timeout(): void
+    public function pricing_api_uses_the_sdk_transport(): void
     {
         $repository = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
         $api = file_get_contents( PLUGIN_DIR . '/inc/Base/KiriminAjaApi.php' );
 
-        $this->assertStringContainsString("apply_filters( 'kiriof_pricing_api_timeout', 8 )", $repository);
-        $this->assertStringContainsString("'httpversion' => '1.1'", $repository);
-        $this->assertStringContainsString('$request_args = array()', $api);
-        $this->assertStringContainsString('array_merge( $request_args', $api);
+        $this->assertStringContainsString("'/api/mitra/v6.1/shipping_price'", $repository);
+        $this->assertStringContainsString("'pickup_option'", $repository);
+        $this->assertStringContainsString('new Api()', $api);
+        $this->assertStringNotContainsString('wp_remote_post', $api);
     }
 
     #[Test]

@@ -62,7 +62,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <div style="margin-top: .75rem; font-weight: 600;color: red" class="err_msg kj-hidden"></div>
                         <div class="row-divider" style="margin-top: .75rem"></div>
                         <div>
-                            <button onclick="kjRequestPickupProcess()" class="button button-primary" type="button">
+                            <button class="button button-primary kiriof-request-pickup-submit" type="button">
                                 <span><?php esc_html_e( 'Pick Schedule', 'kiriminaja-official' ); ?></span>
                             </button>
                         </div>
@@ -70,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
                     <div class="kj-err-container" style="padding: 2.5rem; text-align: center">
                         <p style="margin-bottom: 1.5rem"><?php esc_html_e( 'Terjadi Kesalahan !', 'kiriminaja-official' ); ?></p>
-                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button" type="button" onclick="refreshShowDetail()"><?php esc_html_e( 'Refresh', 'kiriminaja-official' ); ?></button>
+                        <button style="background-color: #009b1e; border: 1px solid #009b1e" class="button button-primary woocommerce-save-button kiriof-reschedule-refresh" type="button"><?php esc_html_e( 'Refresh', 'kiriminaja-official' ); ?></button>
                     </div>
 
                 </div>

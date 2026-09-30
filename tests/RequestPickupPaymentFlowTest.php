@@ -7,7 +7,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function request_pickup_list_auto_opens_payment_only_with_explicit_flag(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
 
         $this->assertStringContainsString(
             'new URLSearchParams(window.location.search)',
@@ -16,13 +16,13 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "shouldOpenPayment === '1' || shouldOpenPayment === 'true'",
+            'open === "1" || open === "true"',
             $content,
             'Request pickup page should only auto-open payment modal when open_payment explicitly opts in'
         );
 
         $this->assertStringContainsString(
-            'paymentButton.click();',
+            '.trigger("click")',
             $content,
             'Request pickup page should auto-open payment only through an available payment action'
         );
@@ -73,29 +73,35 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function pick_schedule_redirect_adds_open_payment_only_when_backend_opt_in_exists(): void
     {
-        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
-        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+        $requestPickupContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
+        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
 
         $this->assertStringContainsString(
-            "const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';",
+            'resp.data.open_payment === true',
             $requestPickupContent,
             'Request pickup flow should only append open_payment when backend marks payment modal as required'
         );
 
         $this->assertStringContainsString(
-            'window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;',
+            'window.location.href = openPayment ? url + "&open_payment=1" : url;',
             $requestPickupContent,
             'Request pickup flow should avoid opening Scan to Pay automatically for COD-only pickups'
         );
 
         $this->assertStringContainsString(
-            "const shouldOpenPayment = resp?.data?.open_payment === true || resp?.data?.open_payment === 1 || resp?.data?.open_payment === '1';",
+            'const shouldOpenPayment',
             $transactionProcessContent,
             'Transaction process flow should only append open_payment when backend marks payment modal as required'
         );
 
         $this->assertStringContainsString(
-            'window.location.href = shouldOpenPayment ? `${redirectBase}&open_payment=1` : redirectBase;',
+            'resp?.data?.open_payment === true',
+            $transactionProcessContent,
+            'Transaction process flow should read the backend open_payment flag'
+        );
+
+        $this->assertStringContainsString(
+            'window.location.href = shouldOpenPayment',
             $transactionProcessContent,
             'Transaction process flow should avoid opening Scan to Pay automatically for COD-only pickups'
         );
@@ -125,7 +131,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
         $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
-        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js');
 
         $this->assertStringContainsString(
             "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
@@ -188,31 +194,31 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "const remoteStatusCode = String(remotePayment?.status_code ?? '').trim();",
+            'String(remote.status_code || "").trim()',
             $requestPickupTemplate,
             'Payment modal should use KiriminAja payment status_code mapping instead of HTTP-like status codes'
         );
 
         $this->assertStringContainsString(
-            "remoteStatusCode === '0'",
+            'String(remote.status_code || "").trim() === "0"',
             $requestPickupTemplate,
             'Payment modal should only use status_code 0 for non-QRIS paid flows'
         );
 
         $this->assertStringContainsString(
-            "localMethod === 'qris'",
+            'localMethod === "qris"',
             $requestPickupTemplate,
             'Payment modal should not close QRIS just because status_code is 0 without paid timestamp/status label'
         );
 
         $this->assertStringContainsString(
-            'const remoteHasPaidTimestamp = !!remotePayment?.paid_at;',
+            '!!remote.paid_at',
             $requestPickupTemplate,
             'Payment modal should not close QRIS just because pay_time exists on a newly generated QR'
         );
 
         $this->assertStringContainsString(
-            "const localIsPaid = String(localPayment?.status || '').toLowerCase() === 'paid';",
+            'String(local.status || "").toLowerCase() === "paid"',
             $requestPickupTemplate,
             'Refresh button should reload after QRIS has actually been marked paid'
         );
@@ -258,7 +264,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function request_pickup_credit_pin_supports_temporary_encrypted_browser_cache(): void
     {
-        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+        $transactionProcessContent = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js');
         $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');
 
         $this->assertStringContainsString(
@@ -280,7 +286,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'kjClearCachedPin($modal, \'invalid\');',
+            'kjClearCachedPin($modal, "invalid");',
             $transactionProcessContent,
             'Invalid or outdated PIN responses should clear the saved browser PIN cache'
         );
@@ -314,7 +320,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
     #[Test]
     public function payment_list_fees_column_subtracts_platform_shipping_discount(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php');
 
         $this->assertStringContainsString(
             'kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost',

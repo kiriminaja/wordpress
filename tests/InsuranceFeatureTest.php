@@ -431,6 +431,7 @@ final class InsuranceFeatureTest extends TestCase
     public function settings_list_has_insurance_toggle(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
 
         $this->assertStringContainsString(
             'kiriof_insurance_toggle',
@@ -446,7 +447,7 @@ final class InsuranceFeatureTest extends TestCase
 
         $this->assertStringContainsString(
             'kiriof_store_insurance_data',
-            $content,
+            $script,
             'Settings list JS must call kiriof_store_insurance_data action'
         );
     }
@@ -468,6 +469,7 @@ final class InsuranceFeatureTest extends TestCase
     public function settings_list_checks_woocommerce_shipping_locations(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $provider = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         $this->assertStringContainsString(
             'Shipping Locations',
@@ -477,13 +479,13 @@ final class InsuranceFeatureTest extends TestCase
 
         $this->assertStringContainsString(
             "get_option( 'woocommerce_ship_to_countries'",
-            $content,
+            $provider,
             'Settings wizard must inspect WooCommerce Shipping location(s)'
         );
 
         $this->assertStringContainsString(
             'get_shipping_countries()',
-            $content,
+            $provider,
             'Settings wizard must detect empty shipping countries when Ship to specific countries has no selection'
         );
 
@@ -498,6 +500,7 @@ final class InsuranceFeatureTest extends TestCase
     public function woocommerce_general_settings_include_kiriminaja_origin_mirror_fields(): void
     {
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
+        $script = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
 
         $this->assertStringContainsString(
             "add_filter( 'woocommerce_general_settings'",
@@ -566,14 +569,14 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '$coords.attr(\'data-tip\'',
-            $controller,
+            '$coords.attr("data-tip"',
+            $script,
             'Pin Location coordinates should be exposed as tooltip text instead of visible description text'
         );
 
         $this->assertStringContainsString(
             'kiriminaja_subdistrict_search',
-            $controller,
+            $script,
             'Area mirror field must reuse the KiriminAja area search endpoint'
         );
 
@@ -584,26 +587,26 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'kiriofExtractPostcode',
-            $controller,
+            'extractPostcode',
+            $script,
             'Area mirror field must extract postcode from the selected KiriminAja area'
         );
 
         $this->assertStringContainsString(
             '#woocommerce_store_postcode, [name="woocommerce_store_postcode"]',
-            $controller,
+            $script,
             'Selecting a KiriminAja Area must update WooCommerce Postcode / ZIP automatically'
         );
 
         $this->assertStringContainsString(
-            'kiriofSelectedCountryIsIndonesia',
-            $controller,
+            'function toggleArea()',
+            $script,
             'Area mirror field must only show when WooCommerce Country / State is Indonesia'
         );
 
         $this->assertStringContainsString(
-            "value === 'ID' || value.indexOf('ID:') === 0",
-            $controller,
+            'value === "ID" || value.indexOf("ID:") === 0',
+            $script,
             'Area visibility must support WooCommerce default country values like ID and ID:province'
         );
 
@@ -720,6 +723,7 @@ final class InsuranceFeatureTest extends TestCase
     public function settings_list_checks_product_volumetric_configuration_progress(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/ProductVolumetricReadinessRepository.php');
 
         $this->assertStringContainsString(
             'Product Volumetric Configurations',
@@ -735,55 +739,55 @@ final class InsuranceFeatureTest extends TestCase
 
         $this->assertStringContainsString(
             "child_variation.post_parent = p.ID",
-            $content,
+            $repository,
             'Settings wizard must detect variable products with published variations'
         );
 
         $this->assertStringContainsString(
             "p.post_type = 'product_variation' AND p.post_status IN ('publish','private')",
-            $content,
+            $repository,
             'Settings wizard must count WooCommerce variation rows, which are commonly stored as private, as volumetric-required items'
         );
 
         $this->assertStringContainsString(
             "p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL",
-            $content,
+            $repository,
             'Settings wizard must count simple products but exclude variable parents that have variations'
         );
 
         $this->assertStringContainsString(
             "virtual_meta.meta_key = '_virtual'",
-            $content,
+            $repository,
             'Settings wizard must inspect WooCommerce virtual product metadata'
         );
 
         $this->assertStringContainsString(
             "COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'",
-            $content,
+            $repository,
             'Settings wizard must exclude virtual products from product volumetric progress'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_weight'",
-            $content,
+            $repository,
             'Settings wizard must require product weight'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_length'",
-            $content,
+            $repository,
             'Settings wizard must require product length'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_width'",
-            $content,
+            $repository,
             'Settings wizard must require product width'
         );
 
         $this->assertStringContainsString(
             "meta_key = '_height'",
-            $content,
+            $repository,
             'Settings wizard must require product height'
         );
 

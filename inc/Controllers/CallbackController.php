@@ -7,6 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CallbackController{
+    private \KiriminAjaOfficial\Services\CallbackHandlerService $callback_handler;
+
+    public function __construct( \KiriminAjaOfficial\Services\CallbackHandlerService $callback_handler ) {
+        $this->callback_handler = $callback_handler;
+    }
+
     public function register(){
         /** Adding New Route*/
         add_action( 'init', function (){
@@ -88,7 +94,7 @@ class CallbackController{
             }
             $header = $sanitized_header;
 
-            $service = (new \KiriminAjaOfficial\Services\CallbackHandlerService())->header($header)->body($body)->call();
+            $service = $this->callback_handler->header($header)->body($body)->call();
             if ($service->status!==200){
                 kiriof_log(
                     'warning',

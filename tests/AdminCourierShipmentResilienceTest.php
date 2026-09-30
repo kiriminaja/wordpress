@@ -50,40 +50,41 @@ final class AdminCourierShipmentResilienceTest extends TestCase
     #[Test]
     public function courier_screen_displays_ajax_errors_instead_of_an_empty_state(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/section-couriers.php');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
 
-        $this->assertStringContainsString('function renderError(message)', $content);
-        $this->assertStringContainsString('.fail(function(request)', $content);
-        $this->assertStringContainsString('Could not load couriers. Reload this page and try again.', $content);
+        $this->assertStringContainsString('function error(message)', $content);
+        $this->assertStringContainsString('error(result && result.message)', $content);
+        $this->assertStringContainsString('i18n.courierLoadFailed', $content);
     }
 
     #[Test]
     public function transaction_list_bounds_page_size_and_requeries_the_last_valid_page(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
+        $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
+        $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
 
-        $this->assertStringContainsString('min( $kiriof_per_page, 100 )', $content);
-        $this->assertStringContainsString('min( $kiriof_per_page_get, 100 )', $content);
+        $this->assertStringContainsString('min( $kiriof_per_page, 100 )', $renderer);
+        $this->assertStringContainsString('min( $kiriof_per_page_get, 100 )', $renderer);
         $this->assertStringContainsString(
-            '$kiriof_current_page > $kiriof_total_pages && $kiriof_total_pages > 0',
-            $content
+            '$page > $total_pages && $total_pages > 0',
+            $query
         );
         $this->assertStringContainsString(
-            '$this->pageQuery( $kiriof_per_page, $kiriof_current_page )',
-            $content
+            '$page_data = $this->queryPage( $filters, $items_per_page, $page )',
+            $query
         );
     }
 
     #[Test]
     public function payment_list_clamps_page_and_whitelists_status_before_querying(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/index.php');
+        $content = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php');
 
-        $this->assertStringContainsString("in_array( \$status, array( 'unpaid', 'paid' ), true )", $content);
+        $this->assertStringContainsString("in_array( \$filters['status'], array( 'unpaid', 'paid' ), true )", $content);
         $this->assertStringContainsString('$page > $total_pages && $total_pages > 0', $content);
         $this->assertStringContainsString('$offset = ( $page - 1 ) * $items_per_page;', $content);
         $this->assertLessThan(
-            strpos($content, '/** Main Query*/'),
+            strpos($content, 'ORDER BY kiriminaja_payments.created_at DESC'),
             strpos($content, '$total_pages = (int) ceil'),
             'Payment total and valid page must be resolved before the paginated query runs'
         );

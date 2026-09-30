@@ -8,8 +8,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use \KiriminAjaOfficial\Base\BaseInit;
 use \KiriminAjaOfficial\Base\PageGenerator;
+use KiriminAjaOfficial\Contracts\ProductVolumetricReadinessRepositoryInterface;
+use KiriminAjaOfficial\Contracts\TrackingPageRepositoryInterface;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Services\WooCommerceShippingMethodRegistrationService;
 class Admin extends BaseInit{
-    
+    private ProductVolumetricReadinessRepositoryInterface $product_readiness_repository;
+    private TrackingPageRepositoryInterface $tracking_page_repository;
+    private SettingRepository $setting_repository;
+    private WooCommerceShippingMethodRegistrationService $shipping_method_registration_service;
+
+    public function __construct(
+        ProductVolumetricReadinessRepositoryInterface $product_readiness_repository,
+        TrackingPageRepositoryInterface $tracking_page_repository,
+        SettingRepository $setting_repository,
+        WooCommerceShippingMethodRegistrationService $shipping_method_registration_service
+    ) {
+        parent::__construct();
+        $this->product_readiness_repository = $product_readiness_repository;
+        $this->tracking_page_repository = $tracking_page_repository;
+        $this->setting_repository = $setting_repository;
+        $this->shipping_method_registration_service = $shipping_method_registration_service;
+    }
+
     public function register(){
         /** add pages*/
         
@@ -239,90 +260,17 @@ class Admin extends BaseInit{
             }
         }
 
-        $repo = new \KiriminAjaOfficial\Repositories\SettingRepository();
+        $repo = $this->setting_repository;
 
         // 1. Account Connection
         $setup_key_row = $repo->getSettingByKey('setup_key');
         $is_connected  = ! empty( $setup_key_row->value ?? null );
 
         // 2. Product LWH & Weight.
-        global $wpdb;
-        $product_volumetric_from_sql = "
-            FROM {$wpdb->posts} p
-            LEFT JOIN {$wpdb->posts} child_variation
-                ON child_variation.post_parent = p.ID
-               AND child_variation.post_type = 'product_variation'
-               AND child_variation.post_status IN ('publish','private')
-            LEFT JOIN {$wpdb->postmeta} virtual_meta
-                ON virtual_meta.post_id = p.ID
-               AND virtual_meta.meta_key = '_virtual'
-            LEFT JOIN {$wpdb->postmeta} parent_virtual_meta
-                ON parent_virtual_meta.post_id = p.post_parent
-               AND parent_virtual_meta.meta_key = '_virtual'";
-        $product_volumetric_where_sql = "
-            WHERE (
-                  (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
-                  OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
-              )
-              AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
-        $product_volumetric_ready_sql = "
-            (
-                CAST(
-                    CASE
-                        WHEN p.post_type = 'product_variation'
-                            THEN COALESCE(NULLIF(weight_meta.meta_value, ''), parent_weight_meta.meta_value, '0')
-                        ELSE COALESCE(weight_meta.meta_value, '0')
-                    END
-                    AS DECIMAL(10,2)
-                ) > 0
-                AND CAST(
-                    CASE
-                        WHEN p.post_type = 'product_variation'
-                            THEN COALESCE(NULLIF(length_meta.meta_value, ''), parent_length_meta.meta_value, '0')
-                        ELSE COALESCE(length_meta.meta_value, '0')
-                    END
-                    AS DECIMAL(10,2)
-                ) > 0
-                AND CAST(
-                    CASE
-                        WHEN p.post_type = 'product_variation'
-                            THEN COALESCE(NULLIF(width_meta.meta_value, ''), parent_width_meta.meta_value, '0')
-                        ELSE COALESCE(width_meta.meta_value, '0')
-                    END
-                    AS DECIMAL(10,2)
-                ) > 0
-                AND CAST(
-                    CASE
-                        WHEN p.post_type = 'product_variation'
-                            THEN COALESCE(NULLIF(height_meta.meta_value, ''), parent_height_meta.meta_value, '0')
-                        ELSE COALESCE(height_meta.meta_value, '0')
-                    END
-                    AS DECIMAL(10,2)
-                ) > 0
-            )";
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query fragments are fully internal/static SQL snippets.
-        $product_volumetric_total = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT p.ID)
-             {$product_volumetric_from_sql}
-             {$product_volumetric_where_sql}"
-        );
-        $product_volumetric_configured = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT p.ID)
-             {$product_volumetric_from_sql}
-             LEFT JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
-             LEFT JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
-             LEFT JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
-             LEFT JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
-             LEFT JOIN {$wpdb->postmeta} parent_weight_meta ON parent_weight_meta.post_id = p.post_parent AND parent_weight_meta.meta_key = '_weight'
-             LEFT JOIN {$wpdb->postmeta} parent_length_meta ON parent_length_meta.post_id = p.post_parent AND parent_length_meta.meta_key = '_length'
-             LEFT JOIN {$wpdb->postmeta} parent_width_meta ON parent_width_meta.post_id = p.post_parent AND parent_width_meta.meta_key = '_width'
-             LEFT JOIN {$wpdb->postmeta} parent_height_meta ON parent_height_meta.post_id = p.post_parent AND parent_height_meta.meta_key = '_height'
-             {$product_volumetric_where_sql}
-               AND {$product_volumetric_ready_sql}"
-        );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $product_volumetric_ready = ( $product_volumetric_configured >= $product_volumetric_total );
+        $product_volumetric = $this->product_readiness_repository->getReadiness();
+        $product_volumetric_total = (int) $product_volumetric['total'];
+        $product_volumetric_configured = (int) $product_volumetric['configured'];
+        $product_volumetric_ready = (bool) $product_volumetric['ready'];
         $product_volumetric_label = $product_volumetric_ready
             ? __( 'All Product Configured', 'kiriminaja-official' )
             : sprintf(
@@ -352,18 +300,10 @@ class Admin extends BaseInit{
         $shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
         $shipping_locations_ready = ( 'disabled' !== $ship_to_countries && ! empty( $shipping_countries ) );
         $shipping_option_ready = $shipping_locations_ready
-            && class_exists( '\\KiriminAjaOfficial\\Services\\WooCommerceShippingMethodRegistrationService' )
-            && ( new \KiriminAjaOfficial\Services\WooCommerceShippingMethodRegistrationService() )->hasEnabledMethod();
+            && $this->shipping_method_registration_service->hasEnabledMethod();
 
         // 6. Tracking Page
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $tracking_pages = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->posts}
-             WHERE post_type = 'page'
-               AND post_status = 'publish'
-               AND post_content LIKE '%[kiriminaja-tracking-front-page%'"
-        );
-        $tracking_ready = ( $tracking_pages > 0 );
+        $tracking_ready = $this->tracking_page_repository->hasPublishedTrackingPage();
 
         $step_urls = array(
             'account'            => admin_url( 'admin.php?page=kiriminaja-konfigurasi&section=account' ),

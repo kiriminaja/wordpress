@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @var bool $isOriginShippingDataReady
  * @var object|null $approvedSetupKey
  * @var array $inputValueArr
+ * @var array{total: int, configured: int, ready: bool} $productVolumetricReadiness
  */
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only section navigation
@@ -29,93 +30,13 @@ if ( '' !== $kiriof_section ) {
     return;
 }
 
-// Load COD state for the list page switch
-$kiriof_cod_settings = get_option( 'woocommerce_cod_settings', array() );
-$kiriof_cod_enabled  = isset( $kiriof_cod_settings['enabled'] ) ? $kiriof_cod_settings['enabled'] : 'yes';
-$kiriof_insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
-$kiriof_insurance_enabled = ( $kiriof_insurance_setting && 'yes' === $kiriof_insurance_setting->value ) ? 'yes' : 'no';
-$kiriof_ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );
-$kiriof_shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
-$kiriof_shipping_locations_ready = ( 'disabled' !== $kiriof_ship_to_countries && ! empty( $kiriof_shipping_countries ) );
+// Load list-page state prepared outside the template layer.
+extract( $settingsPageData->prepareList(), EXTR_SKIP );
 $kiriof_wc_general_url = admin_url( 'admin.php?page=wc-settings' );
 
-global $wpdb;
-$kiriof_product_volumetric_from_sql = "
-    FROM {$wpdb->posts} p
-    LEFT JOIN {$wpdb->posts} child_variation
-        ON child_variation.post_parent = p.ID
-       AND child_variation.post_type = 'product_variation'
-       AND child_variation.post_status IN ('publish','private')
-    LEFT JOIN {$wpdb->postmeta} virtual_meta
-        ON virtual_meta.post_id = p.ID
-       AND virtual_meta.meta_key = '_virtual'
-    LEFT JOIN {$wpdb->postmeta} parent_virtual_meta
-        ON parent_virtual_meta.post_id = p.post_parent
-       AND parent_virtual_meta.meta_key = '_virtual'";
-$kiriof_product_volumetric_where_sql = "
-    WHERE (
-          (p.post_type = 'product_variation' AND p.post_status IN ('publish','private'))
-          OR (p.post_type = 'product' AND p.post_status = 'publish' AND child_variation.ID IS NULL)
-      )
-      AND COALESCE(NULLIF(virtual_meta.meta_value, ''), parent_virtual_meta.meta_value, 'no') <> 'yes'";
-$kiriof_product_volumetric_ready_sql = "
-    (
-        CAST(
-            CASE
-                WHEN p.post_type = 'product_variation'
-                    THEN COALESCE(NULLIF(weight_meta.meta_value, ''), parent_weight_meta.meta_value, '0')
-                ELSE COALESCE(weight_meta.meta_value, '0')
-            END
-            AS DECIMAL(10,2)
-        ) > 0
-        AND CAST(
-            CASE
-                WHEN p.post_type = 'product_variation'
-                    THEN COALESCE(NULLIF(length_meta.meta_value, ''), parent_length_meta.meta_value, '0')
-                ELSE COALESCE(length_meta.meta_value, '0')
-            END
-            AS DECIMAL(10,2)
-        ) > 0
-        AND CAST(
-            CASE
-                WHEN p.post_type = 'product_variation'
-                    THEN COALESCE(NULLIF(width_meta.meta_value, ''), parent_width_meta.meta_value, '0')
-                ELSE COALESCE(width_meta.meta_value, '0')
-            END
-            AS DECIMAL(10,2)
-        ) > 0
-        AND CAST(
-            CASE
-                WHEN p.post_type = 'product_variation'
-                    THEN COALESCE(NULLIF(height_meta.meta_value, ''), parent_height_meta.meta_value, '0')
-                ELSE COALESCE(height_meta.meta_value, '0')
-            END
-            AS DECIMAL(10,2)
-        ) > 0
-    )";
-
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query fragments are fully internal/static SQL snippets.
-$kiriof_product_volumetric_total = (int) $wpdb->get_var(
-    "SELECT COUNT(DISTINCT p.ID)
-     {$kiriof_product_volumetric_from_sql}
-     {$kiriof_product_volumetric_where_sql}"
-);
-$kiriof_product_volumetric_configured = (int) $wpdb->get_var(
-    "SELECT COUNT(DISTINCT p.ID)
-     {$kiriof_product_volumetric_from_sql}
-     LEFT JOIN {$wpdb->postmeta} weight_meta ON weight_meta.post_id = p.ID AND weight_meta.meta_key = '_weight'
-     LEFT JOIN {$wpdb->postmeta} length_meta ON length_meta.post_id = p.ID AND length_meta.meta_key = '_length'
-     LEFT JOIN {$wpdb->postmeta} width_meta ON width_meta.post_id = p.ID AND width_meta.meta_key = '_width'
-     LEFT JOIN {$wpdb->postmeta} height_meta ON height_meta.post_id = p.ID AND height_meta.meta_key = '_height'
-     LEFT JOIN {$wpdb->postmeta} parent_weight_meta ON parent_weight_meta.post_id = p.post_parent AND parent_weight_meta.meta_key = '_weight'
-     LEFT JOIN {$wpdb->postmeta} parent_length_meta ON parent_length_meta.post_id = p.post_parent AND parent_length_meta.meta_key = '_length'
-     LEFT JOIN {$wpdb->postmeta} parent_width_meta ON parent_width_meta.post_id = p.post_parent AND parent_width_meta.meta_key = '_width'
-     LEFT JOIN {$wpdb->postmeta} parent_height_meta ON parent_height_meta.post_id = p.post_parent AND parent_height_meta.meta_key = '_height'
-     {$kiriof_product_volumetric_where_sql}
-       AND {$kiriof_product_volumetric_ready_sql}"
-);
-// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-$kiriof_product_volumetric_ready = ( $kiriof_product_volumetric_configured >= $kiriof_product_volumetric_total );
+$kiriof_product_volumetric_total      = $productVolumetricReadiness['total'];
+$kiriof_product_volumetric_configured = $productVolumetricReadiness['configured'];
+$kiriof_product_volumetric_ready      = $productVolumetricReadiness['ready'];
 $kiriof_product_volumetric_status = $kiriof_product_volumetric_ready
     ? __( 'All Product Configured', 'kiriminaja-official' )
     : sprintf(
@@ -279,26 +200,3 @@ $kiriof_products_url = admin_url( 'edit.php?post_type=product' );
 <style>
 <?php include '_section-css-shared.php'; ?>
 </style>
-
-<?php ob_start(); ?>
-    <?php include '_section-js-shared.php'; ?>
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>
-
-<!-- COD Toggle (list page only) -->
-<?php ob_start(); ?>
-    jQuery(document).ready(function($){
-        var $cod=$('#kiriof_cod_toggle'), $ins=$('#kiriof_insurance_toggle');
-        function saveToggle(action, val, $el){
-            $el.prop('disabled',true);
-            jQuery.ajax({type:'post',url:kiriofAjaxRoute(),data:{action:action,data:$.extend({nonce:kiriofAjax.nonce},val)},error:function(){$el.prop('disabled',false).prop('checked',!$el.is(':checked'))},complete:function(r){$el.prop('disabled',false);var p=kiriofParseAjaxResponse(r);if(!(p&&p.status===200))$el.prop('checked',!$el.is(':checked'))}});
-        }
-        $cod.on('change',function(){saveToggle('kiriof_store_config_data',{enable_cod:$(this).is(':checked')?'yes':'no'},$(this))});
-        $ins.on('change',function(){saveToggle('kiriof_store_insurance_data',{enable_insurance:$(this).is(':checked')?'yes':'no'},$(this))});
-    });
-<?php
-$kiriof_inline_script = ob_get_clean();
-wp_add_inline_script( 'kiriof-script', $kiriof_inline_script );
-?>

@@ -1,13 +1,17 @@
 <?php
 namespace KiriminAjaOfficial\Repositories;
 
+use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders are generated from normalized order IDs and receive matching variadic replacements.
+
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- All queries use wpdb::prepare() correctly, table names must be interpolated
-class TransactionRepository{
+class TransactionRepository implements TransactionPrintRepositoryInterface {
     public $table;
     private $wpdb;
     
@@ -525,6 +529,50 @@ class TransactionRepository{
 
     public function invalidateCouriersCache() {
         delete_transient('kiriof_distinct_couriers');
+    }
+
+    /**
+     * Mark transactions as printed by KiriminAja order ID.
+     *
+     * @param string[] $order_ids KiriminAja order IDs.
+     * @return bool
+     */
+    public function markPrintedByOrderIds( array $order_ids ): bool {
+        $order_ids = array_values(
+            array_filter(
+                array_map( 'strval', $order_ids ),
+                static function ( $order_id ) {
+                    return '' !== $order_id;
+                }
+            )
+        );
+
+        if ( empty( $order_ids ) ) {
+            return true;
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $order_ids ), '%s' ) );
+        $query_args   = array_merge(
+            array(
+                1,
+                current_time( 'mysql' ),
+            ),
+            $order_ids
+        );
+
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholder list is generated from normalized order IDs and receives the matching variadic replacements.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN placeholders match the normalized order IDs in $query_args.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET is_printed = %d, printed_at = %s
+                WHERE order_id IN ({$placeholders})",
+                ...$query_args
+            )
+        );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+        return false !== $updated && ! $this->hasError();
     }
 
     /**

@@ -21,6 +21,68 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
+if ( ! function_exists( 'kiriof_setting_repository' ) ) {
+    function kiriof_setting_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_transaction_repository' ) ) {
+    function kiriof_transaction_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_payment_repository' ) ) {
+    function kiriof_payment_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\PaymentRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_api_repository' ) ) {
+    function kiriof_api_repository() {
+        static $repository = null;
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
+        }
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_checkout_service_factory' ) ) {
+    function kiriof_checkout_service_factory() {
+        static $factory = null;
+
+        if ( null === $factory ) {
+            $setting_repository     = new \KiriminAjaOfficial\Repositories\SettingRepository();
+            $transaction_repository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $post_meta_repository   = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();
+            $api_repository         = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
+
+            $factory = new \KiriminAjaOfficial\Services\CheckoutServiceFactory(
+                $setting_repository,
+                $transaction_repository,
+                $post_meta_repository,
+                $api_repository,
+                new \KiriminAjaOfficial\Repositories\CodFeeApiRepository(),
+                new \KiriminAjaOfficial\Services\ShipmentLocationService(
+                    new \KiriminAjaOfficial\Repositories\ShipmentLocationRepository(),
+                    $setting_repository
+                )
+            );
+        }
+
+        return $factory;
+    }
+}
 
 define( 'KIRIOF_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KIRIOF_URL', plugin_dir_url( __FILE__ ) );
@@ -56,6 +118,22 @@ if ( ! function_exists( 'kiriof_helper' ) ) {
         return ( new \KiriminAjaOfficial\Base\Helper() );
     }
 }
+if ( ! function_exists( 'kiriof_tracking_page_repository' ) ) {
+    function kiriof_tracking_page_repository() {
+        static $repository = null;
+
+        if ( null === $repository ) {
+            $repository = new \KiriminAjaOfficial\Repositories\TrackingPageRepository();
+        }
+
+        return $repository;
+    }
+}
+if ( ! function_exists( 'kiriof_get_published_tracking_content' ) ) {
+    function kiriof_get_published_tracking_content() {
+        return kiriof_tracking_page_repository()->findPublishedTrackingContent();
+    }
+}
 if ( ! function_exists( 'kiriof_get_tracking_page_id' ) ) {
     function kiriof_get_tracking_page_id() {
         $page_id = absint( get_option( 'kiriof_tracking_page_id', 0 ) );
@@ -78,20 +156,9 @@ if ( ! function_exists( 'kiriof_get_tracking_page_id' ) ) {
 }
 if ( ! function_exists( 'kiriof_find_tracking_shortcode_page_id' ) ) {
     function kiriof_find_tracking_shortcode_page_id() {
-        global $wpdb;
+        $page = kiriof_tracking_page_repository()->findPreferredTrackingShortcodePage();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return (int) $wpdb->get_var(
-            "SELECT ID FROM {$wpdb->posts}
-             WHERE post_type = 'page'
-               AND post_status NOT IN ('trash', 'auto-draft')
-               AND (
-                   post_content LIKE '%[kiriminaja-tracking-front-page%'
-                   OR post_content LIKE '%[wp-tracking-front-page%'
-               )
-             ORDER BY post_status = 'publish' DESC, ID ASC
-             LIMIT 1"
-        );
+        return isset( $page->ID ) ? (int) $page->ID : 0;
     }
 }
 if ( ! function_exists( 'kiriof_get_tracking_page_url' ) ) {
@@ -278,7 +345,7 @@ function kiriof_activate_plugin() {
         ( new \KiriminAjaOfficial\Services\ShipmentLocationService() )->seedDefaultFromGlobalOrigin();
     }
     (new \KiriminAjaOfficial\Base\Activate())->activate();
-    (new \KiriminAjaOfficial\Pages\AdminPost())->register();
+    ( new \KiriminAjaOfficial\Pages\AdminPost( new \KiriminAjaOfficial\Repositories\TrackingPageRepository() ) )->register();
 
 	// Defer redirect until the next normal admin request. Activation hooks must not redirect.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only activation context detection.

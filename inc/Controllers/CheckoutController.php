@@ -1,6 +1,11 @@
 <?php
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -9,6 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CheckoutController
 {
     private const KIRIOF_MIN_ADDRESS_LENGTH = 10;
+
+    private SettingRepository $setting_repository;
+    private TransactionRepository $transaction_repository;
+    private WpPostMetaRepository $wp_post_meta_repository;
+    private ?CheckoutServiceFactory $checkout_service_factory;
 
     private $key_destination_id     = 'destination_id';
     private $key_destination_name   = 'destination_name';
@@ -24,6 +34,23 @@ class CheckoutController
     private $field_shipping_insurance_key  = 'kiriof_shipping_insurance';
     private $kiriof_virtual_cart_cleanup_printed = false;
     private $kiriof_classic_insurance_printed = false;
+
+    public function __construct(
+        SettingRepository $setting_repository,
+        TransactionRepository $transaction_repository,
+        WpPostMetaRepository $wp_post_meta_repository,
+        CheckoutServiceFactory $checkout_service_factory
+    ) {
+        $this->setting_repository = $setting_repository;
+        $this->transaction_repository = $transaction_repository;
+        $this->wp_post_meta_repository = $wp_post_meta_repository;
+        $this->checkout_service_factory = $checkout_service_factory;
+    }
+
+    private function checkoutServiceFactory(): CheckoutServiceFactory
+    {
+        return $this->checkout_service_factory;
+    }
 
     private function kiriof_cart_needs_shipping(): bool {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'needs_shipping' ) ) {
@@ -139,7 +166,6 @@ class CheckoutController
             // block checkout also treats it as mandatory (shows "Phone" not "Phone (optional)").
             add_filter( 'woocommerce_get_country_locale', array( $this, 'kiriof_require_phone_locale' ), 9999 );
             add_filter( 'woocommerce_default_address_fields', array( $this, 'kiriof_default_address_labels' ), 9999 );
-            add_action( 'wp_footer', array( $this, 'kiriof_block_checkout_require_phone_label' ) );
 
             /** Control COD availability based on KiriminAja Config tab */
             add_filter( 'woocommerce_available_payment_gateways', array($this,'kiriof_filter_cod_availability'), 10, 1 );
@@ -223,13 +249,13 @@ class CheckoutController
         // calculate fees directly. This keeps non-COD insurance fresh too.
         if ( ! $cache_matches || ( $insurance_amt <= 0 && ( 'cod' !== $chosen_payment || $cod_amt <= 0 ) ) ) {
             try {
-                $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService(array(
+                $service = $this->checkoutServiceFactory()->calculation(array(
                     'destination_area_id' => $destination_id,
                     'expedition'          => $this->kiriof_extract_expedition_from_method( $kiriof_method ),
                     'is_insurance'        => $force_insurance,
                     'is_cod'              => ( 'cod' === $chosen_payment ),
                     'wc_cart_contents'    => WC()->cart->get_cart(),
-                )))->call();
+                ))->call();
 
                 if ( 200 === $service->status && ! empty( $service->data['calculation_result'] ) ) {
                     $result        = $service->data['calculation_result'];
@@ -525,7 +551,7 @@ class CheckoutController
         $kiriof_saved_destination_map = WC()->session->get( 'kiriof_destination_postcode_map', array() );
         $kiriof_saved_checkout_postcode = WC()->session->get( 'kiriof_checkout_postcode', '' );
         
-        $insurance_setting        = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting        = $this->setting_repository->getSettingByKey('enable_insurance');
         $kiriof_global_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
         $kiriof_checkout_token     = empty($destination_id) ? false : true;
         require_once (plugin_dir_path(dirname(__FILE__,2)). 'templates/front/form-billing-address.php');
@@ -536,74 +562,7 @@ class CheckoutController
             return;
         }
         $this->kiriof_virtual_cart_cleanup_printed = true;
-        ?>
-        <style>
-            .kiriof-virtual-cart-checkout .kiriof-block-district-field-wrapper,
-            .kiriof-virtual-cart-checkout .kiriof-block-district-source-wrapper,
-            .kiriof-virtual-cart-checkout .kiriof-block-district-select-wrapper,
-            .kiriof-virtual-cart-checkout .kiriof-block-district-warning {
-                display: none !important;
-            }
-        </style>
-        <script>
-        (function() {
-            document.documentElement.classList.add('kiriof-virtual-cart-checkout');
-
-            function kiriofHideVirtualCartDistrictFields() {
-                var selectors = [
-                    '[name*="kiriof_destination_area"]',
-                    '[id*="kiriof_destination_area"]',
-                    '.kiriof-block-district-source',
-                    '.kiriof-block-district-select'
-                ].join(',');
-
-                document.querySelectorAll(selectors).forEach(function(field) {
-                    if (!field || field.id === 'kiriof-block-district-mirror') {
-                        return;
-                    }
-
-                    field.removeAttribute('required');
-                    field.setAttribute('aria-required', 'false');
-                    if ('value' in field) {
-                        field.value = '';
-                    }
-
-                    var wrapper = field.closest(
-                        '.kiriof-block-district-field-wrapper,' +
-                        '.kiriof-block-district-source-wrapper,' +
-                        '.kiriof-block-district-select-wrapper,' +
-                        '.wc-block-components-text-input,' +
-                        '.wc-block-components-address-form__state,' +
-                        '.wc-block-components-combobox,' +
-                        '.form-row,' +
-                        'p'
-                    );
-
-                    if (wrapper && wrapper !== document.body) {
-                        wrapper.style.display = 'none';
-                        wrapper.setAttribute('hidden', 'hidden');
-                    } else {
-                        field.style.display = 'none';
-                        field.setAttribute('hidden', 'hidden');
-                    }
-                });
-
-                document.querySelectorAll('.kiriof-block-district-warning').forEach(function(warning) {
-                    warning.style.display = 'none';
-                    warning.setAttribute('hidden', 'hidden');
-                });
-            }
-
-            kiriofHideVirtualCartDistrictFields();
-            if (document.body && window.MutationObserver) {
-                new MutationObserver(kiriofHideVirtualCartDistrictFields).observe(document.body, {
-                    childList: true,
-                    subtree: true
-                });
-            }
-        })();
-        </script>
-        <?php
+        echo '<span data-kiriof-virtual-cart-cleanup hidden></span>';
     }
     function kiriof_checkout_field_validation() {
         try {
@@ -795,7 +754,7 @@ class CheckoutController
         }
 
         // Avoid duplicate inserts if Woo also fires the classic processed hook.
-        $existing_transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId( $order->get_id() );
+        $existing_transaction = $this->transaction_repository->getTransactionByWCOrderId( $order->get_id() );
         if ( $existing_transaction ) {
             return;
         }
@@ -851,7 +810,7 @@ class CheckoutController
             $payment_method = $this->kiriof_get_checkout_payment_method( $order );
         }
 
-        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
         $insurance = ( $insurance_setting && 'yes' === $insurance_setting->value )
             ? 1
             : (int) WC()->session->get( 'billing_insurance', WC()->session->get( 'kiriof_insurance', 0 ) );
@@ -970,7 +929,7 @@ class CheckoutController
         WC()->session->set( 'kiriof_woocommerce_discount_description', null );
         /** Store Transaction*/
         try {
-            $createTransaction = (new \KiriminAjaOfficial\Services\CheckoutServices\CreateTransactionService([
+            $createTransaction = $this->checkoutServiceFactory()->createTransaction([
                 'order_id'                  => @$order_id,
                 'checkout_post_data'        => @$posted_data,
                 'kiriof_destination_area'       => @$kiriof_destination_area,
@@ -982,7 +941,7 @@ class CheckoutController
                 'woo_discount_amount'       => (float) $woo_discount_amount,
                 'woo_discount_description'  => (string) $woo_discount_description,
                 'destination_zipcode'       => $order ? (string) $order->get_meta( '_kiriof_checkout_postcode', true ) : '',
-            ]))->call();
+            ])->call();
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
         } catch (\Throwable $th){
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$th->getMessage()]);   
@@ -1068,7 +1027,7 @@ class CheckoutController
             );
 
             // Force insurance when global insurance setting is enabled
-            $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+            $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
             if ( $insurance_setting && 'yes' === $insurance_setting->value ) {
                 $insurance_post = '1';
             }
@@ -1204,11 +1163,11 @@ class CheckoutController
                 wp_send_json_error( array( 'msg' => 'Security Check Nonce Checkout' ) );
                 wp_die();
             }
-            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService([
+            $service = $this->checkoutServiceFactory()->pricing([
                 'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'])) :'',
                 'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash($_POST['data']['payment_method'])) : '' ) === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
-            ]))->call();
+            ])->call();
                 
             wp_send_json_success($service);
         }catch (\Throwable $th){
@@ -1228,13 +1187,13 @@ class CheckoutController
                 wp_send_json_error( array( 'msg' => 'Security Check Nonce Checkout' ) );
                 wp_die();
             }
-            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService([
+            $service = $this->checkoutServiceFactory()->calculation([
                 'destination_area_id'   => isset($_POST['data']['destination_area_id']) ? sanitize_text_field( wp_unslash($_POST['data']['destination_area_id'] )) : '',
                 'expedition'            => isset($_POST['data']['expedition']) ? sanitize_text_field( wp_unslash( $_POST['data']['expedition'] )) : '',
                 'is_insurance'          => ( isset($_POST['data']['insurance']) ? sanitize_text_field( wp_unslash( $_POST['data']['insurance'] )) : '' ) === "true",
                 'is_cod'                => ( isset($_POST['data']['payment_method']) ? sanitize_text_field( wp_unslash( $_POST['data']['payment_method'])) : '') === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
-            ]))->call();
+            ])->call();
             wp_send_json_success($service);
         }catch (\Throwable $th){
             wp_send_json_success([
@@ -1246,8 +1205,8 @@ class CheckoutController
         
     }
     function custom_content_thankyou( $order_id ) {
-        $transaction = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId($order_id);
-        $paymentMethod = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdAndMetaKey($order_id,'_payment_method_title');
+        $transaction = $this->transaction_repository->getTransactionByWCOrderId($order_id);
+        $paymentMethod = $this->wp_post_meta_repository->getRequiredRowsByPostIdAndMetaKey($order_id,'_payment_method_title');
         $locale = get_locale();
         
         echo wp_kses_post( '
@@ -1302,7 +1261,7 @@ class CheckoutController
         if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
             return false;
         }
-        $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
+        $transactionKiriminaja = $this->transaction_repository->getTransactionByWCOrderNumber($order->get_id());
         $shipping_methods = $order->get_shipping_methods();
         $shipping_method = array_shift( $shipping_methods );
         $shipping_method_id = $shipping_method ? $shipping_method['method_id'] : '';
@@ -1427,7 +1386,7 @@ class CheckoutController
 
         $courier_filter = array();
         try {
-            $courier_filter = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getWhitelistExpeditionIds();
+            $courier_filter = $this->setting_repository->getWhitelistExpeditionIds();
         } catch ( \Throwable $th ) {
             $courier_filter = array();
         }
@@ -1622,46 +1581,6 @@ class CheckoutController
         return $locales;
     }
 
-    /**
-     * Block checkout renders "(optional)" via JavaScript after the label text.
-     * Inject a tiny inline script on the checkout page that strips any remaining
-     * "(optional)" suffix from the phone label via a MutationObserver, as a
-     * belt-and-suspenders fallback for themes that bypass the locale filter.
-     */
-    public function kiriof_block_checkout_require_phone_label() {
-        if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
-            return;
-        }
-        ?>
-        <script>
-        (function() {
-            var kiriofStripPhoneOptional = function() {
-                document.querySelectorAll(
-                    'label[for*="phone"], .wc-block-components-text-input label, .wc-block-components-address-form label'
-                ).forEach(function(label) {
-                    if (/phone/i.test(label.htmlFor || label.getAttribute('for') || '')) {
-                        label.childNodes.forEach(function(node) {
-                            if (node.nodeType === 3) { // Text node
-                                node.textContent = node.textContent.replace(/\s*\(optional\)/i, '');
-                            }
-                        });
-                        // Also handle span children used by some block themes.
-                        label.querySelectorAll('span').forEach(function(span) {
-                            if (/optional/i.test(span.textContent)) {
-                                span.remove();
-                            }
-                        });
-                    }
-                });
-            };
-            // Run once on load and observe DOM changes from React re-renders.
-            kiriofStripPhoneOptional();
-            var observer = new MutationObserver(kiriofStripPhoneOptional);
-            observer.observe(document.body, { childList: true, subtree: true });
-        })();
-        </script>
-        <?php
-    }
     private function kiriof_remove_fields_checkout($fields,$fields_selected){
         foreach ($fields_selected as $field_key) {
             unset( $fields['billing']['billing_'.$field_key] );
@@ -1738,7 +1657,7 @@ class CheckoutController
         }
         $this->kiriof_classic_insurance_printed = true;
 
-        $insurance_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance');
+        $insurance_setting = $this->setting_repository->getSettingByKey('enable_insurance');
         $force_insurance   = ( $insurance_setting && 'yes' === $insurance_setting->value );
         $checked           = $force_insurance || (int) WC()->session->get( 'kiriof_insurance', 0 ) === 1;
 
@@ -1889,7 +1808,7 @@ class CheckoutController
             return $gateways;
         }
 
-        $enable_cod_setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_cod');
+        $enable_cod_setting = $this->setting_repository->getSettingByKey('enable_cod');
         $enable_cod = $enable_cod_setting ? $enable_cod_setting->value : 'yes';
 
         $cod_settings = get_option('woocommerce_cod_settings', array());

@@ -59,5 +59,5 @@ $kiriof_month_filter = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash
 </select>
 
 <?php if ( $kiriof_show_apply ) : ?>
-<button class="button" type="button" onclick="kiriofSubmitFilters<?php echo esc_attr( $kiriof_filter_suffix === '_1' ? '' : 'Bottom' ); ?>()"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
+<button class="button" type="button" data-kj-filter-submit="<?php echo esc_attr( $kiriof_filter_suffix ); ?>"><?php esc_html_e( 'Apply', 'kiriminaja-official' ); ?></button>
 <?php endif; ?>

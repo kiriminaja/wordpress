@@ -305,10 +305,10 @@
 	}
 
 	var $subdistrict = $root.find('.kiriof-onboarding-subdistrict');
-	if ($subdistrict.length && typeof window.kiriofChoices === 'function' && typeof kiriofOnboarding !== 'undefined') {
+	if ($subdistrict.length && typeof window.Choices === 'function' && typeof kiriofOnboarding !== 'undefined') {
 		var searchTimer;
 		var searchController;
-		var subdistrictChoices = new window.kiriofChoices($subdistrict[0], {
+		var subdistrictChoices = new window.Choices($subdistrict[0], {
 			allowHTML: false,
 			shouldSort: false,
 			searchEnabled: true,

@@ -124,15 +124,28 @@ final class TrackingShortcodeLookupTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "post_content LIKE '%[kiriminaja-tracking-front-page%'",
+            'findPreferredTrackingShortcodePage',
             $adminPost,
-            'Activation must detect the current KiriminAja tracking shortcode'
+            'Activation must delegate tracking shortcode discovery to the repository'
+        );
+
+        $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/TrackingPageRepository.php');
+        $this->assertStringContainsString(
+            "'[kiriminaja-tracking-front-page'",
+            $repository,
+            'Tracking page repository must detect the current KiriminAja tracking shortcode'
         );
 
         $this->assertStringContainsString(
-            "post_content LIKE '%[wp-tracking-front-page%'",
+            "'[wp-tracking-front-page'",
+            $repository,
+            'Tracking page repository must detect the legacy tracking shortcode'
+        );
+
+        $this->assertStringNotContainsString(
+            '$wpdb',
             $adminPost,
-            'Activation must detect the legacy tracking shortcode'
+            'Activation page setup must not access the database directly'
         );
 
         $this->assertStringContainsString(
@@ -168,6 +181,14 @@ final class TrackingShortcodeLookupTest extends TestCase
             'Tracking URL helper must fall back to an existing page containing the tracking shortcode'
         );
 
+        $helper_start = strpos( $plugin, 'function kiriof_find_tracking_shortcode_page_id' );
+        $helper_end   = strpos( $plugin, "if ( ! function_exists( 'kiriof_get_tracking_page_url' )" );
+        $this->assertStringNotContainsString(
+            '$wpdb',
+            substr( $plugin, $helper_start, $helper_end - $helper_start ),
+            'Tracking page helper must delegate shortcode discovery instead of querying the database directly'
+        );
+
         $this->assertStringContainsString(
             'kiriof_get_tracking_page_url',
             $editOrder,
@@ -191,5 +212,17 @@ final class TrackingShortcodeLookupTest extends TestCase
             $editOrder . $checkout,
             'Order tracking links must not hardcode /tracking; they must use the configured tracking page option'
         );
+    }
+
+    #[Test]
+    public function tracking_settings_template_uses_repository_backed_composition_helper(): void
+    {
+        $template = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/section-tracking.php' );
+        $plugin   = file_get_contents( PLUGIN_DIR . '/kiriminaja.php' );
+
+        $this->assertStringNotContainsString( '$wpdb', $template );
+        $this->assertStringNotContainsString( 'new TrackingPageRepository', $template );
+        $this->assertStringContainsString( 'kiriof_get_published_tracking_content()', $template );
+        $this->assertStringContainsString( 'findPublishedTrackingContent()', $plugin );
     }
 }

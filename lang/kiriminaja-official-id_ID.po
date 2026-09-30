@@ -3755,3 +3755,7 @@ msgstr "Total pesanan terhitung: %1$s → %2$s (%3$s)"
 
 msgid "no change"
 msgstr "tidak berubah"
+
+#: inc/Controllers/SettingController.php
+msgid "Flush & Re-fetch Couriers"
+msgstr "Hapus Cache & Ambil Ulang Kurir"

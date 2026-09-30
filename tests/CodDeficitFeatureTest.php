@@ -138,18 +138,18 @@ final class CodDeficitFeatureTest extends TestCase
     }
 
     #[Test]
-    public function cod_fee_api_repository_uses_correct_endpoint(): void
+    public function cod_fee_api_repository_uses_official_sdk(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Repositories/CodFeeApiRepository.php');
-        $this->assertStringContainsString('/api/mitra/calculations/cod', $content);
+        $this->assertStringContainsString('KiriminAja::calculateCOD( $payload )', $content);
     }
 
     #[Test]
-    public function cod_fee_api_repository_reads_results_key_from_response(): void
+    public function cod_fee_api_repository_reads_sdk_response_data(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Repositories/CodFeeApiRepository.php');
-        // Response shape: $response['data']->results (not ->data->results)
-        $this->assertStringContainsString('$response[\'data\']->results', $content);
+        $this->assertStringContainsString('$response->status', $content);
+        $this->assertStringContainsString('$response->data', $content);
     }
 
     #[Test]

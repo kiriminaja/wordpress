@@ -50,17 +50,15 @@ final class LoggingFeatureTest extends TestCase
     }
 
     #[Test]
-    public function kiriminaja_api_requests_send_wordpress_and_plugin_agent_headers(): void
+    public function kiriminaja_api_requests_use_sdk_configuration_and_structured_logs(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Base/KiriminAjaApi.php');
 
-        $this->assertStringContainsString('private function build_user_agent(): string', $content);
-        $this->assertStringContainsString('KiriminAjaOfficial/%s WordPress/%s WooCommerce/%s PHP/%s; %s', $content);
-        $this->assertStringContainsString("defined('WC_VERSION') ? WC_VERSION : 'unknown'", $content);
-        $this->assertStringContainsString('PHP_VERSION', $content);
-        $this->assertStringContainsString("'user-agent' => 'wordpress'", $content);
-        $this->assertStringContainsString("'User-Agent' => 'wordpress'", $content);
-        $this->assertStringContainsString("'X-WP-Agent' => \$wpAgent", $content);
+        $this->assertStringContainsString('KiriminAjaConfig::setBaseUrl( $this->base_url )', $content);
+        $this->assertStringContainsString('KiriminAjaConfig::setApiTokenKey( $api_token )', $content);
+        $this->assertStringContainsString("'request_keys'", $content);
+        $this->assertStringContainsString("'KiriminAja SDK request failed.'", $content);
+        $this->assertStringNotContainsString('wp_remote_post', $content);
     }
 
     #[Test]
@@ -84,6 +82,7 @@ final class LoggingFeatureTest extends TestCase
         $controllerContent = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
         $indexContent = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/index.php');
         $technicalContent = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/section-technical.php');
+        $providerContent = file_get_contents(PLUGIN_DIR . '/inc/Services/SettingsPageData.php');
 
         $this->assertFileDoesNotExist(PLUGIN_DIR . '/templates/setting/setuped/section-cache.php');
         $this->assertStringContainsString("'cache' === \$kiriof_section", $indexContent);
@@ -94,7 +93,7 @@ final class LoggingFeatureTest extends TestCase
         $this->assertStringContainsString("'kiriminaja_webhook'", $controllerContent);
         $this->assertStringContainsString("'shipping_discount_coupon'", $controllerContent);
         $this->assertStringContainsString('redactLogContent', $controllerContent);
-        $this->assertStringContainsString('kiriof_couriers_list_v2', $technicalContent);
+        $this->assertStringContainsString('kiriof_couriers_list_v2', $providerContent);
         $this->assertStringContainsString('kiriof-cache-updated', $technicalContent);
         $this->assertStringContainsString('kiriof-cache-valid-until', $technicalContent);
         $this->assertStringContainsString('kiriof-couriers-cache-updated', $technicalContent);
