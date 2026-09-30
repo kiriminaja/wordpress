@@ -131,6 +131,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         if ( is_array( $status ) ) {
             $status_parts = array();
             $status_args  = array();
+            $payment_join = '';
             $regular_statuses = array_values( array_diff( $status, array( 'all', 'order-issue' ) ) );
             $wc_statuses = array_values( array_intersect( $regular_statuses, array( 'wc-processing', 'wc-on-hold', 'wc-pending' ) ) );
             if ( $wc_statuses ) {
@@ -138,7 +139,10 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 $status_args = array_merge( $status_args, $wc_statuses, array( 'new' ) );
             }
             if ( in_array( 'processed', $regular_statuses, true ) ) {
-                $status_parts[] = "(kiriminaja_transactions.status != 'canceled' AND EXISTS (SELECT 1 FROM {$wpdb->prefix}kiriminaja_payments multi_pay WHERE multi_pay.pickup_number = kiriminaja_transactions.pickup_number))";
+                // Match the working Processed-only payment join. LEFT JOIN keeps
+                // cancelled/new rows without a payment when another status is selected.
+                $payment_join = "LEFT JOIN {$wpdb->prefix}kiriminaja_payments multi_pay ON kiriminaja_transactions.pickup_number = multi_pay.pickup_number";
+                $status_parts[] = "(kiriminaja_transactions.status != 'canceled' AND multi_pay.pickup_number IS NOT NULL)";
             }
             if ( in_array( 'wc-cancelled', $regular_statuses, true ) ) {
                 $status_parts[] = "(orders_tbl.{$o['status']} = %s)";
@@ -146,7 +150,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
             }
             if ( $status_parts ) {
                 $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') AND kiriminaja_transactions.is_deficit = 0 {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . ") AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
-                $from = "FROM {$o['table']} as orders_tbl INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id";
+                $from = "FROM {$o['table']} as orders_tbl INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id {$payment_join}";
                 $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT orders_tbl.{$o['id']}) {$from} {$base_where}", ...array_merge( $status_args, array( $month, $month_like ) ) ) );
                 $results = $wpdb->get_results( $wpdb->prepare( "SELECT orders_tbl.{$o['id']} as wc_order_id, orders_tbl.{$o['date']} as wc_date_created, orders_tbl.{$o['status']} as wc_status, orders_tbl.{$o['status']} as post_status, kiriminaja_transactions.* {$from} {$base_where} GROUP BY orders_tbl.{$o['id']} ORDER BY orders_tbl.{$o['date']} DESC LIMIT %d OFFSET %d", ...array_merge( $status_args, array( $month, $month_like, $per_page, $offset ) ) ) );
                 $this->logDatabaseError();

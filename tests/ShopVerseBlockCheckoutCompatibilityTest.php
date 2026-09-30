@@ -3820,19 +3820,19 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 		$view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '$filters["status"] = "all";',
+            'WordPressTransactionListQuery::normalizeStatusFilter($filters["status"])',
             $renderer,
             'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
         );
 
         $this->assertStringContainsString(
-            '$status = \'all\';',
+            '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );',
             $query,
             'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
         );
 
-        $normalizePosition = strpos($query, '$status = \'all\';');
-        $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $status);');
+        $normalizePosition = strpos($query, '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );');
+        $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $singleStatus);');
         $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
         $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
         $this->assertLessThan(
