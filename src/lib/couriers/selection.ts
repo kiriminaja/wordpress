@@ -21,6 +21,21 @@ export type CourierPayload = {
 export type SelectionState = { selection: ServiceSelection; remembered: ServiceSelection };
 
 const normalized = (value: string): string => value.trim().toLowerCase();
+export function matchesCourierSearch(courier: Courier, query: string): boolean {
+  const term = normalized(query);
+  return (
+    !term ||
+    [
+      courier.name,
+      courier.code,
+      ...courier.services.flatMap((service) => [
+        service.name,
+        service.code,
+        ...(service.aliases ?? []),
+      ]),
+    ].some((value) => normalized(value).includes(term))
+  );
+}
 export function supportedCourier(courier: Pick<Courier, 'code' | 'type' | 'region'>): boolean {
   return (
     Boolean(normalized(courier.code)) &&

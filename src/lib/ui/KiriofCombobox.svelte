@@ -53,7 +53,7 @@
   </Popover.Trigger>
   <Popover.Content class="kiriof-shadcn !z-[100002] w-[var(--bits-popover-anchor-width)] p-0" align="start">
     <Command.Root shouldFilter={false}>
-      <Command.Input bind:value={query} placeholder={placeholder} />
+      <Command.Input bind:value={query} aria-label={placeholder} placeholder={placeholder} />
       <Command.List class="max-h-64">
         {#if filtered.length === 0}
           <Command.Empty>No option found.</Command.Empty>

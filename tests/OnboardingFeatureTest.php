@@ -88,10 +88,10 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'disabled={busy || !canSubmitAccount}', $app );
 		$this->assertStringContainsString( 'class="absolute right-3 top-3 z-20', $app );
 		$this->assertStringContainsString( 'kiriof-onboarding-background', $app );
-		$this->assertStringContainsString( '{#if !allCouriersEnabled}', $app );
+		$this->assertStringContainsString( 'allCouriersEnabled}', $app );
 		$this->assertStringContainsString( '!hasSelection(courierState.selection)', $app );
-		$this->assertStringNotContainsString( 'disableAll', $app );
-		$this->assertStringNotContainsString( "'disableAll'", $page );
+		$this->assertStringContainsString( 'disableAllCouriers', $app );
+		$this->assertStringContainsString( 'CourierServiceUiData::translations()', $page );
 		$this->assertStringContainsString( '[background-image:radial-gradient(', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
 		$this->assertStringContainsString( 'var(--muted-foreground)', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );
 		$this->assertStringContainsString( 'let account = $state(getInitialAccount())', $app );
@@ -197,7 +197,8 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringNotContainsString( 'data-kiriof-settings-fallback', $setup );
 		$this->assertStringContainsString( 'querySelectorAll', $entry );
 		$this->assertStringContainsString( 'mr-auto ml-auto', $styles );
-		$this->assertStringContainsString( "[data-slot='switch-thumb'][data-state='checked']", $styles );
+		$shared_styles = file_get_contents( PLUGIN_DIR . '/src/styles/kiriof-component.css' );
+		$this->assertStringContainsString( "[data-slot='switch'][data-size][data-state='checked'] [data-slot='switch-thumb']", $shared_styles );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/lib/settings/WebhooksSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/TechnicalSection.svelte' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/settings/AccountSection.svelte' );

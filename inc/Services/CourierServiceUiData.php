@@ -9,6 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CourierServiceUiData {
 	public static function translations(): array {
 		return array(
+			'deliveryType' => __( 'Delivery type', 'kiriminaja-official' ),
+			'expressDelivery' => __( 'Express Delivery', 'kiriminaja-official' ),
+			'instantDelivery' => __( 'Instant Delivery', 'kiriminaja-official' ),
+			'instantUnavailable' => __( 'Instant delivery is not available yet.', 'kiriminaja-official' ),
+			'domesticDelivery' => __( 'Domestic Delivery', 'kiriminaja-official' ),
+			'activeOnly' => __( 'Active only', 'kiriminaja-official' ),
+			/* translators: %1$s: active courier count, %2$s: total courier count. */
+			'activeTotal' => __( '%1$s Active / %2$s Total', 'kiriminaja-official' ),
 			'filterAll' => __( 'All', 'kiriminaja-official' ),
 			'filterSelected' => __( 'Fully enabled', 'kiriminaja-official' ),
 			'filterPartial' => __( 'Partially enabled', 'kiriminaja-official' ),

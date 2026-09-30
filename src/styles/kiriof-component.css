@@ -2,17 +2,40 @@
 @reference './kiriof-var.css';
 @import 'tailwindcss/utilities.css';
 
-/* WordPress styles text/search inputs even when a composite owns the border.
- * Slot selectors also cover Command.Input's forwarded slot in portaled content. */
-.kiriof-shadcn input[data-slot='input-group-control'],
-.kiriof-shadcn input[data-slot='command-input'] {
-  @apply !box-border !flex-1 !w-full !min-w-0 !max-w-full !h-full !min-h-0 !m-0 !border-0 !rounded-none !bg-transparent !shadow-none !ring-0 !outline-none !appearance-none;
+/* WordPress native controls must not own a second border or focus ring.
+ * Include the composite in the selector to outrank legacy page resets and keep
+ * these rules off standalone inputs (including standalone file inputs). */
+.kiriof-shadcn [data-slot='input-group'] {
+  @apply !box-border !flex !min-w-0 !items-center;
 }
 
-.kiriof-shadcn input[data-slot='input-group-control']:focus,
-.kiriof-shadcn input[data-slot='input-group-control']:focus-visible,
-.kiriof-shadcn input[data-slot='command-input']:focus,
-.kiriof-shadcn input[data-slot='command-input']:focus-visible {
+.kiriof-shadcn [data-slot='input-group'] > input[data-slot='input-group-control'],
+.kiriof-shadcn [data-slot='input-group'] > input[data-slot='command-input'],
+.kiriof-shadcn [data-slot='input-group'] > textarea[data-slot='input-group-control'] {
+  @apply !box-border !flex-1 !w-full !min-w-0 !max-w-full !m-0 !border-0 !rounded-none !bg-transparent !shadow-none !ring-0 !outline-none !appearance-none;
+}
+
+/* Only inline groups fill a fixed height. Block addons and textareas retain
+ * their intrinsic height, padding and column layout. */
+.kiriof-shadcn
+  [data-slot='input-group']:not(:has(> [data-align='block-start'], > [data-align='block-end']))
+  > input:is([data-slot='input-group-control'], [data-slot='command-input']) {
+  @apply !h-full !min-h-0;
+}
+
+.kiriof-shadcn
+  [data-slot='input-group']
+  > [data-slot='input-group-addon']:is([data-align='inline-start'], [data-align='inline-end']) {
+  @apply !shrink-0;
+}
+
+.kiriof-shadcn
+  [data-slot='input-group']
+  > :is(
+    input[data-slot='input-group-control'],
+    input[data-slot='command-input'],
+    textarea[data-slot='input-group-control']
+  ):is(:focus, :focus-visible) {
   @apply !border-0 !shadow-none !ring-0 !outline-none;
 }
 

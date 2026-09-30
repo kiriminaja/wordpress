@@ -37,7 +37,7 @@
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import CourierCombobox from './CourierCombobox.svelte';
-  import { courierImage } from './courier-images';
+  import CourierLogo from '$lib/ui/CourierLogo.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
@@ -401,9 +401,7 @@
                 </Table.Cell>
                 <Table.Cell>
                   <div class="kiriof-courier-summary">
-                    {#if courierImage(row.courier.code, row.courier.service)}
-                      <img class="kiriof-courier-logo" src={courierImage(row.courier.code, row.courier.service)} alt="" />
-                    {/if}
+                    <CourierLogo code={row.courier.code} service={row.courier.service} />
                     <div class="kiriof-courier-summary__content">
                       <strong class="kiriof-row-title">{row.courier.service}</strong>
                       <span class="kiriof-payment-type {row.courier.paymentLabel === 'COD' ? 'is-cod' : 'is-non-cod'}">

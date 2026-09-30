@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   initializeSelection,
+  matchesCourierSearch,
   selectionPayload,
   toggleCourier,
   toggleService,
@@ -30,6 +31,15 @@ function load(
 }
 
 describe('courier service selection', () => {
+  test('search matches names, codes and aliases without changing selection', () => {
+    const courier = catalog[0];
+    expect(matchesCourierSearch(courier, ' JNE ')).toBe(true);
+    expect(matchesCourierSearch(courier, 'regular')).toBe(true);
+    expect(matchesCourierSearch(courier, 'YeS')).toBe(true);
+    expect(matchesCourierSearch(courier, 'Express')).toBe(true);
+    expect(matchesCourierSearch(courier, '')).toBe(true);
+    expect(matchesCourierSearch(courier, 'missing')).toBe(false);
+  });
   test('explicit empty selection denies all, legacy allowlists expand available services', () => {
     expect(load({}, ['jne']).state.selection).toEqual({});
     expect(load(null, ['jne']).state.selection).toEqual({ jne: ['REG', 'YES'] });

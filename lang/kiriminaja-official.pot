@@ -2523,3 +2523,32 @@ msgstr ""
 #: inc/Services/CourierServiceUiData.php
 msgid "Unavailable services are saved choices no longer listed by the courier. You can keep or remove them; they do not guarantee a shipping rate."
 msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Delivery type"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Express Delivery"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Instant Delivery"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Instant delivery is not available yet."
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Domestic Delivery"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Active only"
+msgstr ""
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "%1$s Active / %2$s Total"
+msgstr ""

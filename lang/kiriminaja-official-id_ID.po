@@ -4315,3 +4315,32 @@ msgstr "Tidak ada layanan kurir aktif. Pelanggan tidak dapat menggunakan pengiri
 #: inc/Services/CourierServiceUiData.php
 msgid "Unavailable services are saved choices no longer listed by the courier. You can keep or remove them; they do not guarantee a shipping rate."
 msgstr "Layanan tidak tersedia adalah pilihan tersimpan yang tidak lagi tercantum pada kurir. Anda dapat mempertahankan atau menghapusnya; layanan tersebut tidak menjamin tarif pengiriman."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Delivery type"
+msgstr "Jenis pengiriman"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Express Delivery"
+msgstr "Pengiriman Ekspres"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Instant Delivery"
+msgstr "Pengiriman Instan"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Instant delivery is not available yet."
+msgstr "Pengiriman instan belum tersedia."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Domestic Delivery"
+msgstr "Pengiriman Domestik"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Active only"
+msgstr "Hanya aktif"
+
+#: inc/Services/CourierServiceUiData.php
+#, php-format
+msgid "%1$s Active / %2$s Total"
+msgstr "%1$s Aktif / %2$s Total"

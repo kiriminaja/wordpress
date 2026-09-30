@@ -14,7 +14,6 @@
   } from '$lib/couriers/selection';
   import type { CouriersBootstrap } from './types';
   import Toolbar from '$lib/ui/Toolbar.svelte';
-  import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import { navigateSettings } from './navigation';
   import { postWordPressAction } from '$lib/wordpress/ajax';
 
@@ -138,7 +137,7 @@
     <span>{bootstrap.i18n.disableAll}</span>
   </Button>
 </Toolbar>
-<KiriofCard class="kiriof-settings-content space-y-4">
+<div class="!grid w-full min-w-0 gap-4">
   {#if loading}
     <div
       class="flex min-h-40 flex-col items-center justify-center gap-3 text-sm text-muted-foreground"
@@ -201,4 +200,4 @@
     {/if}
     <span>{bootstrap.i18n.autoSave ?? 'Changes are saved automatically.'}</span>
   </div>
-</KiriofCard>
+</div>
