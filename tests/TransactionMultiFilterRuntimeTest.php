@@ -51,7 +51,7 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
         $this->assertStringContainsString("(orders_tbl.post_status IN ('wc-processing') AND kiriminaja_transactions.status = 'new')", $sql);
         $this->assertStringContainsString("(kiriminaja_transactions.status != 'canceled' AND EXISTS", $sql);
         $this->assertStringContainsString("(orders_tbl.post_status = 'wc-cancelled')", $sql);
-        $this->assertSame(1, substr_count($sql, 'INNER JOIN wp_kiriminaja_payments'));
+        $this->assertSame(0, substr_count($sql, 'INNER JOIN wp_kiriminaja_payments'));
         $this->assertStringContainsString('is_deficit = 0', $sql);
         $this->assertStringContainsString('GROUP BY orders_tbl.ID', $sql);
     }
