@@ -170,7 +170,7 @@ final class ShippingProcessResiPrintSanitizationTest extends TestCase
 		$app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            '["all", "processed"]',
+            '"showPrint" => "all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true)',
             $content,
             'The All tab should be treated as a print-capable tab'
         );
