@@ -21,6 +21,22 @@ export type CourierPayload = {
 export type SelectionState = { selection: ServiceSelection; remembered: ServiceSelection };
 
 const normalized = (value: string): string => value.trim().toLowerCase();
+const fuzzyNormalized = (value: string): string => normalized(value).replace(/[^a-z0-9]/g, '');
+
+function fuzzyIncludes(value: string, query: string): boolean {
+  const candidate = fuzzyNormalized(value);
+  const term = fuzzyNormalized(query);
+  if (!term) return true;
+  if (candidate.includes(term)) return true;
+
+  let queryIndex = 0;
+  for (const character of candidate) {
+    if (character === term[queryIndex]) queryIndex += 1;
+    if (queryIndex === term.length) return true;
+  }
+  return false;
+}
+
 export function matchesCourierSearch(courier: Courier, query: string): boolean {
   const term = normalized(query);
   return (
@@ -33,7 +49,7 @@ export function matchesCourierSearch(courier: Courier, query: string): boolean {
         service.code,
         ...(service.aliases ?? []),
       ]),
-    ].some((value) => normalized(value).includes(term))
+    ].some((value) => fuzzyIncludes(value, term))
   );
 }
 export function supportedCourier(courier: Pick<Courier, 'code' | 'type' | 'region'>): boolean {

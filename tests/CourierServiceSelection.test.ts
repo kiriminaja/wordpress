@@ -23,6 +23,11 @@ const catalog: Courier[] = [
     ],
   },
 ];
+const fuzzyCatalog: Courier[] = [
+  { code: 'jne', name: 'JNE Express', services: [] },
+  { code: 'jntcargo', name: 'J&T Cargo', services: [] },
+  { code: 'jnt', name: 'J&T Express', services: [] },
+];
 function load(
   service_selection: CourierPayload['service_selection'],
   whitelist_ids: string[] = [],
@@ -39,6 +44,13 @@ describe('courier service selection', () => {
     expect(matchesCourierSearch(courier, 'Express')).toBe(true);
     expect(matchesCourierSearch(courier, '')).toBe(true);
     expect(matchesCourierSearch(courier, 'missing')).toBe(false);
+  });
+  test('search supports punctuation-free and ordered fuzzy courier matches', () => {
+    expect(matchesCourierSearch(fuzzyCatalog[1], 'jt')).toBe(true);
+    expect(matchesCourierSearch(fuzzyCatalog[2], 'jt')).toBe(true);
+    expect(matchesCourierSearch(fuzzyCatalog[0], 'je')).toBe(true);
+    expect(matchesCourierSearch(fuzzyCatalog[0], 'jn')).toBe(true);
+    expect(matchesCourierSearch(fuzzyCatalog[1], 'jx')).toBe(false);
   });
   test('explicit empty selection denies all, legacy allowlists expand available services', () => {
     expect(load({}, ['jne']).state.selection).toEqual({});
