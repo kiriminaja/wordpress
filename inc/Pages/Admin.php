@@ -506,6 +506,11 @@ class Admin extends BaseInit{
             return;
         }
 
+        // TOP merchants do not use KA Credit for pickup payment, so keep their admin bar clean.
+        if ( ( new \KiriminAjaOfficial\Services\SettingService() )->isTopPaymentMethod() ) {
+            return;
+        }
+
         $balance = $this->kiriof_get_credit_balance_for_admin_bar();
         if ( null === $balance ) {
             return;
