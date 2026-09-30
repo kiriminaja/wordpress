@@ -21,6 +21,16 @@ export type CourierPayload = {
 export type SelectionState = { selection: ServiceSelection; remembered: ServiceSelection };
 
 const normalized = (value: string): string => value.trim().toLowerCase();
+const courierNameCollator = new Intl.Collator('id', { sensitivity: 'base', numeric: true });
+
+export function sortCouriersByName(couriers: readonly Courier[]): Courier[] {
+  return [...couriers].sort(
+    (left, right) =>
+      courierNameCollator.compare(left.name.trim(), right.name.trim()) ||
+      courierNameCollator.compare(left.code, right.code),
+  );
+}
+
 const fuzzyNormalized = (value: string): string => normalized(value).replace(/[^a-z0-9]/g, '');
 
 function fuzzyIncludes(value: string, query: string): boolean {

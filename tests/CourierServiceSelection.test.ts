@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   initializeSelection,
   matchesCourierSearch,
+  sortCouriersByName,
   selectionPayload,
   toggleCourier,
   toggleService,
@@ -36,6 +37,51 @@ function load(
 }
 
 describe('courier service selection', () => {
+  test('couriers sort by ascending name without mutating the catalog or service order', () => {
+    const original: Courier[] = [
+      { code: 'tiki', name: 'Tiki', services: [] },
+      { code: 'jne', name: 'JNE Express', services: [] },
+      {
+        code: 'anteraja',
+        name: 'anterAja',
+        services: [
+          { code: 'ND', name: 'Next Day' },
+          { code: 'REG', name: 'Regular' },
+        ],
+      },
+      { code: 'jnt', name: 'J&T Express', services: [] },
+      { code: 'jntcargo', name: 'J&T Cargo', services: [] },
+    ];
+    const sorted = sortCouriersByName(original);
+    expect(sorted.map((courier) => courier.code)).toEqual([
+      'anteraja',
+      'jntcargo',
+      'jnt',
+      'jne',
+      'tiki',
+    ]);
+    expect(original.map((courier) => courier.code)).toEqual([
+      'tiki',
+      'jne',
+      'anteraja',
+      'jnt',
+      'jntcargo',
+    ]);
+    expect(sorted[0].services.map((service) => service.code)).toEqual(['ND', 'REG']);
+    expect(
+      sorted
+        .filter((courier) => matchesCourierSearch(courier, 'jt'))
+        .map((courier) => courier.name),
+    ).toEqual(['J&T Cargo', 'J&T Express']);
+  });
+  test('equal courier names sort consistently by courier code', () => {
+    expect(
+      sortCouriersByName([
+        { code: 'second', name: ' Same Courier ', services: [] },
+        { code: 'first', name: 'same courier', services: [] },
+      ]).map((courier) => courier.code),
+    ).toEqual(['first', 'second']);
+  });
   test('search matches names, codes and aliases without changing selection', () => {
     const courier = catalog[0];
     expect(matchesCourierSearch(courier, ' JNE ')).toBe(true);

@@ -12,6 +12,7 @@
     toggleCourier,
     toggleService,
     matchesCourierSearch,
+    sortCouriersByName,
     type Courier,
     type SelectionState,
   } from '$lib/couriers/selection';
@@ -34,7 +35,7 @@
   const prefix = $props.id();
   let search = $state('');
   const rows = $derived(
-    couriers.map((courier, index) => ({
+    sortCouriersByName(couriers).map((courier, index) => ({
       courier,
       index,
       status: courierSelection(courier, selectionState.selection),
