@@ -93,10 +93,16 @@ class TransactionListViewModelFactory {
 		$origin_address        = $origin['address'];
 		$origin_location_id    = $origin['locationId'];
 		$is_ka_order           = 'wc-processing' === $post_status;
-		$status_label          = $is_deficit
+		$status_label          = $is_express && $is_deficit
 			? __( 'COD Deficit', 'kiriminaja-official' )
 			: ( $is_ka_order ? $helper->transactionStatusLabel( $row->status ) : $helper->wcStatusLabel( $post_status ) );
 		$status_tone           = $this->statusTone( $is_deficit, $post_status, (string) $row->status );
+		$status_presentation   = $is_express
+			? array( 'label' => $status_label, 'tone' => $status_tone, 'deficit' => $is_deficit, 'tooltip' => '', 'issue' => false )
+			: array_merge( InstantDeliveryStatus::describe( $row ), array( 'deficit' => false ) );
+		if ( ! $is_express && $is_deficit ) {
+			$status_presentation['issue'] = $status_presentation['issue'] ?: __( 'Instant order issue', 'kiriminaja-official' );
+		}
 		$address_lines         = array_values(
 			array_filter(
 				array(
@@ -111,7 +117,12 @@ class TransactionListViewModelFactory {
 
 		return array(
 			'deliveryType'    => $delivery_type,
-			'vehicle'         => isset( $row->vehicle ) ? (string) $row->vehicle : null,
+			'vehicle'         => TransactionDeliveryType::normalizeVehicle( $row->vehicle ?? null ),
+			'instantPayment'  => array(
+				'method' => $is_express ? '' : (string) ( $row->instant_payment_method ?? '' ),
+				'status' => $is_express ? '' : (string) ( $row->instant_payment_status ?? '' ),
+				'id'     => $is_express ? '' : (string) ( $row->instant_payment_id ?? '' ),
+			),
 			'id'              => (int) ( $row->id ?? $row->wc_order_id ),
 			'wcOrderId'       => (int) $row->wc_order_id,
 			'wcOrderUrl'      => admin_url( 'post.php?post=' . (int) $row->wc_order_id . '&action=edit' ),
@@ -123,7 +134,7 @@ class TransactionListViewModelFactory {
 				'service'      => $helper->formatServiceName( $row->service, $row->service_name ?? '' ),
 				'paymentLabel' => $is_cod ? __( 'COD', 'kiriminaja-official' ) : __( 'NON COD', 'kiriminaja-official' ),
 			),
-			'status'          => array( 'label' => $status_label, 'tone' => $status_tone, 'deficit' => $is_deficit ),
+			'status'          => $status_presentation,
 			'printStatus'     => ! empty( $row->is_printed ) ? 'printed' : 'unprinted',
 			'awb'             => $awb,
 			'kaOrderId'       => $order_id,

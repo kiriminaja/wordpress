@@ -1,9 +1,11 @@
 import type { ToolbarConfig } from '$lib/ui/toolbar';
-import type { TransactionActionData } from '$lib/transactions/types';
+import type { InstantStatusPresentation, TransactionActionData } from '$lib/transactions/types';
 
 export type TransactionDetailBootstrap = {
   toolbar: ToolbarConfig;
   transaction: {
+    deliveryType: 'express' | 'instant';
+    vehicle: string | null;
     id: number;
     orderId: string;
     orderNumber: string;
@@ -13,7 +15,7 @@ export type TransactionDetailBootstrap = {
     isCod: boolean;
     supportsLiveTracking: boolean;
     pickupNumber: string;
-    status: { label: string; tone: 'primary' | 'info' | 'teal' | 'success' | 'danger' };
+    status: InstantStatusPresentation;
     steps: Array<{ label: string; date: string; completed: boolean }>;
     sender: { name: string; phone: string; address: string[] };
     recipient: { name: string; phone: string; address: string[] };
@@ -24,6 +26,8 @@ export type TransactionDetailBootstrap = {
       courier: { code: string; service: string };
       awb: string;
       paymentStatus: string;
+      paymentMethod: string;
+      paymentId: string;
       costs: {
         orderTotal: number;
         subtotal: number;

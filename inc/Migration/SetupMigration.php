@@ -15,6 +15,7 @@ class SetupMigration {
     public function register(){
         self::settingsTable();
         self::transactionsTable();
+        self::instantMetadataTable();
         self::paymentsTable();
         self::regionCacheTables();
         self::shipmentLocationTable();
@@ -140,6 +141,13 @@ class SetupMigration {
                 `delivery_type` varchar(20) NOT NULL DEFAULT 'express',
                 KEY `delivery_type` (`delivery_type`),
                 `vehicle` varchar(20) DEFAULT NULL,
+                `instant_status_code` int DEFAULT NULL,
+                `instant_payment_status` varchar(20) DEFAULT NULL,
+                `instant_payment_method` varchar(20) DEFAULT NULL,
+                `instant_payment_id` varchar(100) DEFAULT NULL,
+                `destination_latitude` double DEFAULT NULL,
+                `destination_longitude` double DEFAULT NULL,
+                `live_tracking_url` text DEFAULT NULL,
                 `awb` varchar(100) DEFAULT NULL,
                 `rejected_reason` varchar(255) DEFAULT NULL,
                 `weight` int(11) DEFAULT NULL,
@@ -273,6 +281,49 @@ class SetupMigration {
         }
     }
     
+    /** Add nullable remote metadata independently of the existing partition migration. */
+    private function instantMetadataTable() {
+        global $wpdb;
+
+        $suffix      = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
+        $version_key = 'kiriof_instant_metadata_v1' . $suffix;
+        if ( '1' === get_option( $version_key, '' ) ) {
+            return;
+        }
+        $table_name = esc_sql( $wpdb->prefix . 'kiriminaja_transactions' . $suffix );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+            return;
+        }
+        $definitions = array(
+            'instant_status_code'    => 'int DEFAULT NULL',
+            'instant_payment_status' => 'varchar(20) DEFAULT NULL',
+            'instant_payment_method' => 'varchar(20) DEFAULT NULL',
+            'instant_payment_id'     => 'varchar(100) DEFAULT NULL',
+            'destination_latitude'   => 'double DEFAULT NULL',
+            'destination_longitude'  => 'double DEFAULT NULL',
+            'live_tracking_url'      => 'text DEFAULT NULL',
+        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $columns = $wpdb->get_col( "DESCRIBE `$table_name`", 0 );
+        if ( ! is_array( $columns ) || ! empty( $wpdb->last_error ) ) {
+            return;
+        }
+        $successful = true;
+        foreach ( $definitions as $field => $definition ) {
+            if ( ! in_array( $field, $columns, true ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifiers and definitions are fixed internal values.
+                $result = $wpdb->query( "ALTER TABLE `$table_name` ADD `$field` $definition" );
+                $successful = $successful && false !== $result && empty( $wpdb->last_error );
+            }
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $columns = $wpdb->get_col( "DESCRIBE `$table_name`", 0 );
+        if ( $successful && is_array( $columns ) && ! array_diff( array_keys( $definitions ), $columns ) && empty( $wpdb->last_error ) ) {
+            update_option( $version_key, '1', false );
+        }
+    }
+
     private function paymentsTable(){
         global $wpdb;
         /** Payments Table*/

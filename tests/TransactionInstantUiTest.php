@@ -29,9 +29,9 @@ final class TransactionInstantUiTest extends TestCase {
     public function test_instant_rows_are_read_only_with_actual_nullable_vehicle(): void {
         foreach ([['delivery_type' => 'instant'], ['delivery_type' => 'express', 'service' => 'gosend']] as $classification) {
             foreach (['new', 'request_pickup'] as $status) {
-                $row = $this->runFixture('transaction-instant-ui-runtime.php', $classification + ['status' => $status, 'vehicle' => 'car', 'is_deficit' => 1]);
+                $row = $this->runFixture('transaction-instant-ui-runtime.php', $classification + ['status' => $status, 'vehicle' => 'mobil', 'is_deficit' => 1]);
                 $this->assertSame('instant', $row['deliveryType']);
-                $this->assertSame('car', $row['vehicle']);
+                $this->assertSame('mobil', $row['vehicle']);
                 $this->assertTrue($row['selection']['disabled']);
                 $this->assertFalse($row['selection']['canPickup']);
                 $this->assertFalse($row['selection']['canPrint']);
@@ -39,11 +39,16 @@ final class TransactionInstantUiTest extends TestCase {
                     $this->assertFalse($row['actions'][$action], $action);
                 }
                 $this->assertTrue($row['actions']['preview']);
+                $this->assertFalse($row['status']['deficit']);
+                $this->assertNotEmpty($row['status']['issue']);
+                $this->assertNotSame('COD Deficit', $row['status']['label']);
             }
         }
         $row = $this->runFixture('transaction-instant-ui-runtime.php', ['delivery_type' => 'instant']);
         $this->assertNull($row['vehicle']);
-        $this->assertSame('new', $row['status']['label']);
+        $this->assertSame('Waiting for Shipment', $row['status']['label']);
+        $row = $this->runFixture('transaction-instant-ui-runtime.php', ['delivery_type' => 'instant', 'vehicle' => 'car']);
+        $this->assertNull($row['vehicle']);
     }
 
     public function test_express_actions_remain_available(): void {

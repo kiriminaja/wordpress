@@ -40,6 +40,7 @@
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
+  import { instantStatusIcon } from './types';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let {
@@ -209,7 +210,7 @@
   }
 
   /**
-   * Icons for existing local labels only. Remote/Shopify mapping is pending.
+   * Icons for existing Express local labels. Instant uses the shared remote status presentation.
    * Pending/awaiting states (incl. request_pickup) use the clock icon;
    * New uses a package, In Transit a truck, terminal successes a check,
    * returns/warnings an arrow, danger an X.
@@ -439,7 +440,13 @@
                     </div>
                   </div>
                   <div class="kiriof-shipment-states">
-                    {#if row.status.deficit}
+                    {#if row.deliveryType === 'instant'}
+                      {@const InstantIcon = instantStatusIcon(row.status)}
+                      <ActionTooltip label={row.status.tooltip || ''} disabled={!row.status.tooltip}>
+                        <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><InstantIcon />{row.status.label}</span>
+                      </ActionTooltip>
+                      {#if row.status.issue}<ActionTooltip label={String(row.status.issue)}><span class="kiriof-transaction-status is-warning"><IconAlertTriangle />{bootstrap.i18n.instantIssue}</span></ActionTooltip>{/if}
+                    {:else if row.status.deficit}
                       {@const DeficitIcon = statusIcon(row.status.tone, true, row.status)}
                       <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)} kiriof-badge--strong"><DeficitIcon />{row.status.label}</span></ActionTooltip>
                     {:else}
@@ -456,6 +463,11 @@
                 <Table.Cell>
                   <CopyableValue label={bootstrap.i18n.awb} value={row.awb} copyLabel={bootstrap.i18n.copyAwb} copiedLabel={bootstrap.i18n.copied} />
                   <CopyableValue label={bootstrap.i18n.kaOrderId} value={row.kaOrderId} copyLabel={bootstrap.i18n.copyKaOrderId} copiedLabel={bootstrap.i18n.copied} />
+                  {#if row.deliveryType === 'instant'}
+                    {#if row.instantPayment.method}<span class="kiriof-row-muted">{bootstrap.i18n.paymentMethod}: {row.instantPayment.method}</span>{/if}
+                    {#if row.instantPayment.status}<span class="kiriof-row-muted">{bootstrap.i18n.paymentStatus}: {row.instantPayment.status}</span>{/if}
+                    {#if row.instantPayment.id}<span class="kiriof-row-muted">{bootstrap.i18n.paymentId}: {row.instantPayment.id}</span>{/if}
+                  {/if}
                 </Table.Cell>
                 <Table.Cell>
                   <strong class="kiriof-row-title">{row.route.origin}</strong>

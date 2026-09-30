@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import {
+        IconAlertTriangle,
         IconBox,
         IconCashBanknoteEdit,
         IconCheck,
@@ -19,6 +20,8 @@
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import StatusBadge from "$lib/admin-list/StatusBadge.svelte";
+    import ActionTooltip from "$lib/ui/ActionTooltip.svelte";
+    import { instantStatusIcon } from "$lib/transactions/types";
     import KiriofCard from "$lib/ui/KiriofCard.svelte";
     import CopyableValue from "$lib/ui/CopyableValue.svelte";
     import PrintPreviewDialog from "$lib/ui/PrintPreviewDialog.svelte";
@@ -145,12 +148,17 @@
         <main class="!grid min-w-0 gap-4">
             <KiriofCard>
                 <Card.Header class="p-3 border-b">
-                    <Card.Title
-                        ><StatusBadge
-                            label={transaction.status.label}
-                            tone={transaction.status.tone}
-                        /></Card.Title
-                    >
+                    <Card.Title>
+                        {#if transaction.deliveryType === 'instant'}
+                            {@const InstantIcon = instantStatusIcon(transaction.status)}
+                            <ActionTooltip label={transaction.status.tooltip || ''} disabled={!transaction.status.tooltip}>
+                                <span><StatusBadge label={transaction.status.label} tone={transaction.status.tone} icon={InstantIcon} /></span>
+                            </ActionTooltip>
+                            {#if transaction.status.issue}<ActionTooltip label={String(transaction.status.issue)}><span><StatusBadge label={i18n.instantIssue} tone="warning" icon={IconAlertTriangle} /></span></ActionTooltip>{/if}
+                        {:else}
+                            <StatusBadge label={transaction.status.label} tone={transaction.status.tone} />
+                        {/if}
+                    </Card.Title>
                     {#if transaction.pickupNumber}
                         <Card.Action>
                             <div
@@ -172,6 +180,7 @@
                             >{transaction.orderNumber}</strong
                         ><span>{transaction.createdAt}</span>
                     </div>
+                    {#if transaction.deliveryType === 'express' && transaction.steps.length > 0}
                     <div class="relative mt-4 !grid grid-cols-3 pb-1">
                         <span
                             class="absolute top-[13px] left-7 right-7 h-0.5 bg-border"
@@ -217,6 +226,7 @@
                             {/if}
                         {/each}
                     </div>
+                    {/if}
                 </Card.Content>
             </KiriofCard>
 
@@ -340,6 +350,7 @@
                     <div
                         class="!flex !max-w-full flex-wrap !justify-end gap-1.5"
                     >
+                        {#if transaction.deliveryType === 'express'}
                         <StatusBadge
                             label={transaction.paymentLabel}
                             tone={transaction.isCod ? "info" : "neutral"}
@@ -353,6 +364,7 @@
                                     ? "warning"
                                     : "success"}
                             />{/if}
+                        {/if}
                     </div>
                 </Card.Header>
                 <Card.Content class="!grid min-w-0 gap-4 !px-4 !py-4">
@@ -385,6 +397,13 @@
                             />
                         </div>
                     </div>
+                    {#if transaction.deliveryType === 'instant'}
+                        <dl class="!grid min-w-0 gap-2 text-sm">
+                            {#each [[i18n.vehicle, transaction.vehicle || i18n.vehicleUnavailable], [i18n.paymentMethod, transaction.shipment.paymentMethod || '—'], [i18n.paymentStatus, transaction.shipment.paymentStatus || '—'], [i18n.paymentId, transaction.shipment.paymentId || '—']] as [label, value]}
+                                <div class="!flex min-w-0 !justify-between gap-4 text-muted-foreground"><dt>{label}</dt><dd class="m-0 break-all text-right font-semibold text-foreground">{value}</dd></div>
+                            {/each}
+                        </dl>
+                    {/if}
                     <dl class="!grid min-w-0 gap-2 text-sm">
                         <div
                             class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"

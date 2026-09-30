@@ -8,7 +8,7 @@ API reference: [KiriminAja Mitra API](https://developer.kiriminaja.com/docs)
 
 This document records the current gap between the KiriminAja Instant Delivery API and the KiriminAja Official WooCommerce plugin. It covers rate calculation, checkout, transaction persistence, booking, payment, cancellation, tracking, webhook handling, and administration.
 
-Implementation progress is tracked in [ADMIN-INSTANT-TODO.md](ADMIN-INSTANT-TODO.md) and [BUYER-INSTANT-TODO.md](BUYER-INSTANT-TODO.md). The admin foundation now enables both Instant courier-management and transaction-list tabs, persists delivery type and vehicle, partitions transaction queries, and guards Express-only actions. Instant booking, buyer checkout, and complete remote status mapping remain pending. The capability/gap descriptions below are the original planning baseline, not a claim that these foundation changes are still absent.
+Implementation progress is tracked in [ADMIN-INSTANT-TODO.md](ADMIN-INSTANT-TODO.md) and [BUYER-INSTANT-TODO.md](BUYER-INSTANT-TODO.md). The admin implementation enables both Instant courier-management and transaction-list tabs, persists delivery type, vehicle, and remote metadata, partitions transaction queries, and guards Express-only actions. List and detail now share Shopify-derived Instant status presentation and read-only payment/vehicle fields. Instant booking, buyer checkout, remote status query filters, and webhook ingestion remain pending. The capability/gap descriptions below are the original planning baseline, not a claim that these admin changes are still absent.
 
 The checkout assessment covers both:
 

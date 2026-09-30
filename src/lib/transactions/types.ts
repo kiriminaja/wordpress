@@ -1,3 +1,42 @@
+import {
+  IconAlertTriangle,
+  IconClock,
+  IconCircleCheck,
+  IconPackage,
+  IconTruck,
+  IconXboxX,
+} from '@tabler/icons-svelte';
+
+export type InstantStatusPresentation = {
+  label: string;
+  tone: 'info' | 'success' | 'warning' | 'danger' | 'critical' | 'primary' | 'teal';
+  key?: string;
+  tooltip?: string | null;
+  issue?: string | boolean | null;
+};
+
+/** Identical informational Instant status icons in list and detail. */
+export function instantStatusIcon(status: InstantStatusPresentation) {
+  if (status.key === 'on_delivery') return IconTruck;
+  if (status.key === 'shipment_problem' || status.key === 'need_confirmation')
+    return IconAlertTriangle;
+  switch (status.tone) {
+    case 'success':
+      return IconCircleCheck;
+    case 'danger':
+    case 'critical':
+      return IconXboxX;
+    case 'warning':
+      return IconAlertTriangle;
+    case 'teal':
+      return IconTruck;
+    case 'primary':
+      return IconPackage;
+    default:
+      return IconClock;
+  }
+}
+
 export type TransactionFilters = {
   delivery_type: 'express' | 'instant';
   key: string;
@@ -32,6 +71,7 @@ export type TransactionActionData = {
 export type TransactionRow = {
   deliveryType: 'express' | 'instant';
   vehicle: string | null;
+  instantPayment: { method: string; status: string; id: string };
   id: number;
   wcOrderId: number;
   wcOrderUrl: string;
@@ -39,11 +79,7 @@ export type TransactionRow = {
   createdAt: string;
   customer: { name: string; phone: string };
   courier: { code: string; service: string; paymentLabel: string };
-  status: {
-    label: string;
-    tone: 'info' | 'success' | 'warning' | 'danger' | 'critical' | 'primary' | 'teal';
-    deficit: boolean;
-  };
+  status: InstantStatusPresentation & { deficit: boolean };
   printStatus: 'printed' | 'unprinted';
   awb: string;
   kaOrderId: string;

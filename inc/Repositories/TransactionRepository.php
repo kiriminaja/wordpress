@@ -232,6 +232,10 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     
     /** Keep courier edits and the indexed partition in the same write. */
     private function normalizeDeliveryChanges( array $changes, array $condition = array() ): array|false {
+        $changes = $this->normalizeInstantMetadata( $changes );
+        if ( false === $changes ) {
+            return false;
+        }
         $partition_changed = array_key_exists( 'service', $changes ) || array_key_exists( 'delivery_type', $changes );
         $existing          = null;
 
@@ -269,15 +273,72 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $changes;
     }
 
+    /** Validate only supplied metadata; omitted fields must never clear stored values. */
+    private function normalizeInstantMetadata( array $changes ): array|false {
+        foreach ( array( 'instant_status_code', 'instant_payment_status', 'instant_payment_method', 'instant_payment_id', 'destination_latitude', 'destination_longitude', 'live_tracking_url' ) as $field ) {
+            if ( ! array_key_exists( $field, $changes ) || null === $changes[ $field ] ) {
+                continue;
+            }
+            $value = $changes[ $field ];
+            if ( 'instant_status_code' === $field ) {
+                if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^[0-9]+$/D', $value ) ) ) {
+                    return false;
+                }
+                $digits = ltrim( (string) $value, '0' );
+                // The persisted column is a signed MySQL INT, not a platform-sized PHP integer.
+                if ( $value < 0 || strlen( $digits ) > 10 || ( 10 === strlen( $digits ) && strcmp( $digits, '2147483647' ) > 0 ) ) {
+                    return false;
+                }
+                $changes[ $field ] = (int) $digits;
+            } elseif ( 'destination_latitude' === $field || 'destination_longitude' === $field ) {
+                if ( ! ( is_int( $value ) || is_float( $value ) || is_string( $value ) ) || ! is_numeric( $value ) ) {
+                    return false;
+                }
+                $value = (float) $value;
+                $limit = 'destination_latitude' === $field ? 90 : 180;
+                if ( ! is_finite( $value ) || $value < -$limit || $value > $limit ) {
+                    return false;
+                }
+                $changes[ $field ] = $value;
+            } else {
+                if ( ! is_string( $value ) ) {
+                    return false;
+                }
+                if ( 'instant_payment_id' === $field && ( function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value ) ) > 100 ) {
+                    return false;
+                }
+                if ( 'live_tracking_url' === $field ) {
+                    $value = trim( $value );
+                    if ( '' !== $value && ( ! filter_var( $value, FILTER_VALIDATE_URL ) || ! in_array( strtolower( (string) parse_url( $value, PHP_URL_SCHEME ) ), array( 'https', 'http' ), true ) ) ) {
+                        return false;
+                    }
+                    $changes[ $field ] = function_exists( 'esc_url_raw' ) ? esc_url_raw( $value, array( 'https', 'http' ) ) : $value;
+                    continue;
+                }
+                if ( 'instant_payment_status' === $field || 'instant_payment_method' === $field ) {
+                    $value   = strtolower( trim( $value ) );
+                    $allowed = 'instant_payment_status' === $field ? array( 'paid', 'unpaid', 'pending', 'refunded' ) : array( 'credit', 'qris', 'top' );
+                    if ( ! in_array( $value, $allowed, true ) ) {
+                        return false;
+                    }
+                } else {
+                    $value = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( $value ) : trim( preg_replace( '/[\x00-\x1F\x7F]+/', ' ', strip_tags( $value ) ) );
+                }
+                $changes[ $field ] = $value;
+            }
+        }
+        return $changes;
+    }
+
     public function updateTransactionByCallback($payloads){
         $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'], $payloads['condition'] ?? array() );
         if ( false === $payloads['changes'] ) {
             return false;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
+        $updated = $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         
-        return !$this->hasError();
+        return false !== $updated && !$this->hasError();
     }
 
     /**
@@ -342,8 +403,12 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     }
     
     public function createTransaction($payload){
+        $payload = $this->normalizeInstantMetadata( $payload );
+        if ( false === $payload ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-        $this->wpdb->query(
+        $inserted = $this->wpdb->query(
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "INSERT INTO {$this->table} 
@@ -374,9 +439,16 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     `is_deficit`,
                     `cod_minimum`,
                     `shipment_location_id`,
-                    `shipment_location_snapshot`
+                    `shipment_location_snapshot`,
+                    `instant_status_code`,
+                    `instant_payment_status`,
+                    `instant_payment_method`,
+                    `instant_payment_id`,
+                    `destination_latitude`,
+                    `destination_longitude`,
+                    `live_tracking_url`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %s, NULLIF(%s, ''), %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %s, NULLIF(%s, ''), %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s, NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''))",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -403,11 +475,18 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                 $payload['is_deficit'] ?? 0,
                 $payload['cod_minimum'] ?? null,
                 $payload['shipment_location_id'] ?? null,
-                $payload['shipment_location_snapshot'] ?? null
+                $payload['shipment_location_snapshot'] ?? null,
+                $payload['instant_status_code'] ?? '',
+                $payload['instant_payment_status'] ?? '',
+                $payload['instant_payment_method'] ?? '',
+                $payload['instant_payment_id'] ?? '',
+                $payload['destination_latitude'] ?? '',
+                $payload['destination_longitude'] ?? '',
+                $payload['live_tracking_url'] ?? ''
             )
         );
         $this->invalidateCouriersCache();
-        return !$this->hasError();
+        return false !== $inserted && !$this->hasError();
     }
     public function getTransactionByOldestDate(){
         $shippable_order_clause = $this->getShippableOrderExistsSql( 'wp_wc_order_stat_order_id' );
@@ -731,13 +810,13 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];
         
-        $changes = $this->normalizeDeliveryChanges( array_merge( $updateData, array_intersect_key( $payload, array_flip( array( 'delivery_type', 'vehicle' ) ) ) ), $where );
+        $changes = $this->normalizeDeliveryChanges( array_merge( $updateData, array_intersect_key( $payload, array_flip( array( 'delivery_type', 'vehicle', 'instant_status_code', 'instant_payment_status', 'instant_payment_method', 'instant_payment_id', 'destination_latitude', 'destination_longitude', 'live_tracking_url' ) ) ) ), $where );
         if ( false === $changes ) {
             return false;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update($this->table, $changes, $where);
+        $updated = $this->wpdb->update($this->table, $changes, $where);
         $this->invalidateCouriersCache();
-        return !$this->hasError();
+        return false !== $updated && !$this->hasError();
     }
 }

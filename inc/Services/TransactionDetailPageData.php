@@ -93,7 +93,8 @@ class TransactionDetailPageData
         $awb = (string) ($transaction->awb ?? "");
         $is_deficit = !empty($transaction->is_deficit);
         $terminal_statuses = array("shipped", "finished", "returned", "return", "canceled");
-        $is_express = 'express' === TransactionDeliveryType::resolve( $transaction );
+        $delivery_type = TransactionDeliveryType::resolve( $transaction );
+        $is_express = 'express' === $delivery_type;
         $can_cancel = $is_express && !$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true);
         $order_url = $wc_order && method_exists($wc_order, "get_edit_order_url") ? (string) $wc_order->get_edit_order_url() : "";
         $wc_status = $wc_order && method_exists($wc_order, "get_status") ? (string) $wc_order->get_status() : "";
@@ -167,6 +168,8 @@ class TransactionDetailPageData
                 "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
             ),
             "transaction" => [
+                "deliveryType" => $delivery_type,
+                "vehicle" => TransactionDeliveryType::normalizeVehicle($transaction->vehicle ?? null),
                 "id" => (int) ($transaction->id ?? 0),
                 "orderId" => (string) ($transaction->order_id ?? ""),
                 "orderNumber" =>
@@ -174,15 +177,12 @@ class TransactionDetailPageData
                     (string) ($transaction->wp_wc_order_stat_order_id ?? ""),
                 "orderUrl" => $order_url,
                 "createdAt" => $this->date($transaction->created_at ?? ""),
-                "paymentLabel" => $payment_label,
-                "isCod" => $cod_fee > 0,
+                "paymentLabel" => $is_express ? $payment_label : (string) ($transaction->instant_payment_method ?? ""),
+                "isCod" => $is_express && $cod_fee > 0,
                 "supportsLiveTracking" => $is_express && "" !== $awb && "-" !== $awb && "" !== (string) ($transaction->order_id ?? ""),
                 "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
-                "status" => [
-                    "label" => $this->status_label($status),
-                    "tone" => $this->status_tone($status),
-                ],
-                "steps" => $this->steps($transaction, $status),
+                "status" => $this->status_presentation($transaction),
+                "steps" => $is_express ? $this->steps($transaction, $status) : [],
                 "sender" => $sender,
                 "recipient" => [
                     "name" => trim(
@@ -230,7 +230,9 @@ class TransactionDetailPageData
                         "service" => $courier_name,
                     ],
                     "awb" => $awb,
-                    "paymentStatus" => $payment_status,
+                    "paymentStatus" => $is_express ? $payment_status : (string) ($transaction->instant_payment_status ?? ""),
+                    "paymentMethod" => $is_express ? "" : (string) ($transaction->instant_payment_method ?? ""),
+                    "paymentId" => $is_express ? "" : (string) ($transaction->instant_payment_id ?? ""),
                     "costs" => [
                         "orderTotal" => $order_total,
                         "subtotal" => $subtotal,
@@ -302,11 +304,13 @@ class TransactionDetailPageData
         $insurance = (float) ($transaction->insurance_cost ?? 0);
         $cod_fee = (float) ($transaction->cod_fee ?? 0);
         $is_deficit = !empty($transaction->is_deficit);
+        $delivery_type = TransactionDeliveryType::resolve($transaction);
+        $is_express = "express" === $delivery_type;
 
         return [
             "toolbar" => [
                 "logoUrl" => KIRIOF_URL . "assets/admin/img/icon-128x128.png",
-                "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction"),
+                "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction" . ($is_express ? "" : "&delivery_type=instant")),
                 "rootLabel" => __("Transactions", "kiriminaja-official"),
                 "title" => "#" . ($wc_order_id ?: (int) ($transaction->id ?? 0)),
                 "menu" => $this->toolbar_menu(),
@@ -315,17 +319,19 @@ class TransactionDetailPageData
             "locationsUrl" => admin_url("admin.php?page=wc-settings&tab=kiriminaja_warehouses"),
             "bootstrapError" => $message,
             "transaction" => [
+                "deliveryType" => $delivery_type,
+                "vehicle" => TransactionDeliveryType::normalizeVehicle($transaction->vehicle ?? null),
                 "id" => (int) ($transaction->id ?? 0),
                 "orderId" => $order_id,
                 "orderNumber" => "#" . $wc_order_id,
                 "orderUrl" => $wc_order_id ? admin_url("admin.php?page=wc-orders&action=edit&id=" . $wc_order_id) : "",
                 "createdAt" => $this->date($transaction->created_at ?? ""),
-                "paymentLabel" => $cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official"),
-                "isCod" => $cod_fee > 0,
+                "paymentLabel" => $is_express ? ($cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official")) : (string) ($transaction->instant_payment_method ?? ""),
+                "isCod" => $is_express && $cod_fee > 0,
                 "supportsLiveTracking" => false,
                 "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
-                "status" => ["label" => $this->status_label($status), "tone" => $this->status_tone($status)],
-                "steps" => $this->steps($transaction, $status),
+                "status" => $this->status_presentation($transaction),
+                "steps" => $is_express ? $this->steps($transaction, $status) : [],
                 "sender" => ["name" => __("Default origin", "kiriminaja-official"), "phone" => "", "address" => []],
                 "recipient" => ["name" => "", "phone" => "", "address" => []],
                 "package" => ["weight" => (int) ($transaction->weight ?? 0), "length" => (float) ($transaction->length ?? 0), "width" => (float) ($transaction->width ?? 0), "height" => (float) ($transaction->height ?? 0)],
@@ -334,7 +340,9 @@ class TransactionDetailPageData
                 "shipment" => [
                     "courier" => ["code" => strtolower((string) ($transaction->service ?? "")), "service" => (string) ($transaction->service_name ?? $transaction->service ?? "")],
                     "awb" => (string) ($transaction->awb ?? ""),
-                    "paymentStatus" => "",
+                    "paymentStatus" => $is_express ? "" : (string) ($transaction->instant_payment_status ?? ""),
+                    "paymentMethod" => $is_express ? "" : (string) ($transaction->instant_payment_method ?? ""),
+                    "paymentId" => $is_express ? "" : (string) ($transaction->instant_payment_id ?? ""),
                     "costs" => ["orderTotal" => 0, "subtotal" => 0, "totalShipping" => $shipping + $insurance + $cod_fee, "actualShipping" => $shipping, "shippingDiscount" => 0, "shipping" => $shipping, "insurance" => $insurance, "codFee" => $cod_fee, "itemDiscount" => 0, "total" => $shipping + $insurance + $cod_fee],
                     "codValue" => 0,
                     "printUrl" => "",
@@ -499,6 +507,19 @@ class TransactionDetailPageData
             ? ""
             : wp_date("d M Y, H:i", strtotime((string) $value));
     }
+    private function status_presentation(object $transaction): array
+    {
+        if ('instant' === TransactionDeliveryType::resolve($transaction)) {
+            $presentation = InstantDeliveryStatus::describe($transaction);
+            if (!empty($transaction->is_deficit)) {
+                $presentation['issue'] = $presentation['issue'] ?: __('Instant order issue', 'kiriminaja-official');
+            }
+            return $presentation;
+        }
+        $status = (string) ($transaction->status ?? 'new');
+        return ['label' => $this->status_label($status), 'tone' => $this->status_tone($status), 'tooltip' => '', 'issue' => false];
+    }
+
     private function status_label(string $status): string
     {
         $labels = [
@@ -557,6 +578,12 @@ class TransactionDetailPageData
     private function i18n(): array
     {
         return [
+            "vehicle" => __("Vehicle", "kiriminaja-official"),
+            "vehicleUnavailable" => __("Vehicle unavailable", "kiriminaja-official"),
+            "paymentMethod" => __("Payment method", "kiriminaja-official"),
+            "paymentStatus" => __("Payment status", "kiriminaja-official"),
+            "paymentId" => __("Payment ID", "kiriminaja-official"),
+            "instantIssue" => __("Instant order issue", "kiriminaja-official"),
             "pickupId" => __("Pickup ID", "kiriminaja-official"),
             "printLabel" => __("Print Label", "kiriminaja-official"),
             "liveTracking" => __("Live Tracking", "kiriminaja-official"),

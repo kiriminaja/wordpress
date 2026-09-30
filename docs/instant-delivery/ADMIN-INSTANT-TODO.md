@@ -35,11 +35,11 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [x] Add delivery-type query scoping so Instant rows never appear in Regular Delivery.
 - [x] Persist indexed `delivery_type` and nullable `vehicle`; migrate legacy Instant courier rows and retry incomplete schema upgrades.
 - [x] Preserve existing delivery metadata during partial updates and clear stale action selections when switching tabs.
-- [ ] Port the complete status mapping and detail fields from an identified `kaj-shopify-plugin` revision.
+- [x] Port the complete supported Shopify Instant status mapping into a shared WooCommerce status adapter.
 - [x] Do not add the prohibited admin location-confirmation button.
 - [x] Prevent Instant rows from reaching Express pickup, cancellation, COD adjustment, printing, origin-change, or tracking handlers while dedicated handlers are pending.
-- [ ] Show Instant courier/service, vehicle, payment method, order ID, AWB, fee, status, issue badge, and available actions.
-- [ ] Keep `Find New Driver` informational/system-automatic unless the account contract explicitly requires a merchant action.
+- [x] Show Instant courier/service, vehicle, payment method/status/ID, order ID, AWB, fee, status, issue badge, and read-only available actions.
+- [x] Keep `Find New Driver` informational/system-automatic with a tooltip and no manual action.
 
 ## Process Shipment / Request Pickup
 
@@ -64,7 +64,8 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 ## External dependencies
 
 - [x] Supply an identified `kaj-shopify-plugin` revision for GoSend/GrabExpress courier child names: `5a9a2d7a3f738bf98c408312a536de400ba30077`.
-- [ ] Adapt the available Shopify transaction detail/status mapping to WooCommerce before enabling Instant shipment actions; the foundation list currently uses local lifecycle labels.
+- [x] Adapt the available Shopify transaction detail/status mapping to WooCommerce before enabling Instant shipment actions; list and detail now share `InstantDeliveryStatus`.
+- [x] Persist Instant status, payment, coordinate, and tracking metadata with an independent retryable migration.
 - [ ] Confirm the production Instant booking endpoint and response contract.
 - [ ] Confirm `package_type_id` and account entitlement.
 - [ ] Confirm the `Find New Driver` status trigger and terminal-state rules.
@@ -78,7 +79,13 @@ Local reference: `/Users/user1/Kerjaa/kaj-shopify-plugin`, revision `5a9a2d7a3f7
 - `app/helpers/kiriminaja.ts`: mapping depends on internal status, payment state, AWB presence, and Instant readiness. `101` is Find New Driver; `106` is On Delivery; `200` is Delivered; `300`/`302` are Cancelled; `350` is Cancellation Process. Copy the complete mapping, not just these examples, into the transaction adapter.
 - `app/constants/orders/order.status.ts` and `app/models/packageOrder.ts`: use these alongside the helper to establish the order lifecycle mapping. Do not reuse Shopify's location-confirmation action in WordPress.
 
-Next admin slice: shared Shopify status normalization and Instant detail fields, then dedicated pricing/repricing and booking adapters. Delivery-type persistence and isolated Instant queries are complete. Keep booking actions unavailable until origin/destination context and the SDK/API contract are implemented and tested.
+Next admin slice: dedicated pricing/repricing and booking adapters. Delivery-type persistence, isolated Instant queries, shared Shopify status normalization, and Instant detail fields are complete. Keep booking actions unavailable until origin/destination context and the SDK/API contract are implemented and tested.
+
+`InstantDeliveryStatus` uses persisted remote status codes and Instant payment state, never the local shipment enum as a remote payment status. List, detail, and fallback detail use the same labels, tones, issue reasons, and driver-replacement tooltip. Unknown remote combinations remain unknown rather than inheriting local success. Missing destination coordinates are an issue to resolve through the buyer address, not an admin location-confirmation action.
+
+Remote status, payment method/status/ID, destination coordinates, and tracking URL have nullable persisted fields. The independent `kiriof_instant_metadata_v1` migration retries incomplete upgrades even when the earlier partition migration is already complete. Repository writes validate supplied metadata and preserve omitted fields; zero coordinates are valid.
+
+Remote status filters and badge counts still use the existing local query filters. Add Shopify-state filtering/counts alongside booking/webhook ingestion; the display adapter does not claim these operational workflows are complete.
 
 The current settings screen stores preferences only and states that Instant checkout and dispatch are not available yet. This prevents saved courier preferences from implying a working booking flow.
 
@@ -94,7 +101,7 @@ The serving plugin loads compiled assets from `assets/admin/dist`, not Svelte so
 
 - [x] Run focused courier/settings, transaction partition, navigation, action-guard, and migration retry tests.
 - [x] Run frontend lint, formatting, Svelte, accessibility/style checks, and Bun runtime tests.
-- [x] Run `make test` after merging the latest `v3`: 799 tests and 8,005 assertions passed; existing warnings/deprecations remain.
+- [x] Run `make test` for the status/detail slice: 818 tests and 12,321 assertions passed; existing warnings/deprecations remain.
 - [ ] Run `make zip` before packaging/release verification.
 
 Frontend verification passed: formatting, lint, Svelte diagnostics, style checks, payment tests, courier-selection tests, and Instant tab navigation tests. The admin assets were rebuilt with `bun run build`. ZIP regeneration was intentionally skipped at the user's request; local staging files were refreshed only for source parity tests.

@@ -4430,3 +4430,91 @@ msgstr "Tidak ada pilihan yang cocok."
 #, php-format
 msgid "%s selected"
 msgstr "%s dipilih"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Waiting for Shipment"
+msgstr "Menunggu Pengiriman"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Waiting for Airwaybill"
+msgstr "Menunggu Airwaybill"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Ready for Shipment"
+msgstr "Siap Dikirim"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Find New Driver"
+msgstr "Cari Pengemudi Baru"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "On Delivery"
+msgstr "Dalam Pengiriman"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Shipment Problem"
+msgstr "Masalah Pengiriman"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Return Process"
+msgstr "Proses Retur"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Return Finished"
+msgstr "Retur Selesai"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Cancellation Process"
+msgstr "Proses Pembatalan"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Need Confirmation"
+msgstr "Perlu Konfirmasi"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Unknown"
+msgstr "Tidak Diketahui"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Confirm the delivery location with the buyer and update the buyer address with valid destination coordinates before proceeding."
+msgstr "Konfirmasi lokasi pengiriman dengan pembeli dan perbarui alamat pembeli dengan koordinat tujuan yang valid sebelum melanjutkan."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "The delivery destination coordinates are missing or invalid."
+msgstr "Koordinat tujuan pengiriman tidak ada atau tidak valid."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "The system is automatically finding a new driver for this order. No manual action is required."
+msgstr "Sistem sedang mencari pengemudi baru secara otomatis untuk pesanan ini. Tidak diperlukan tindakan manual."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "There is a problem with this shipment."
+msgstr "Terdapat masalah pada pengiriman ini."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "The shipment return was rejected."
+msgstr "Pengembalian pengiriman ditolak."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Instant order issue"
+msgstr "Masalah pengiriman instan"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Vehicle unavailable"
+msgstr "Kendaraan belum ditentukan"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Payment method"
+msgstr "Metode pembayaran"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Payment status"
+msgstr "Status pembayaran"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Payment ID"
+msgstr "ID pembayaran"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Instant shipment actions are not available yet. Saved shipment and payment statuses are shown below."
+msgstr "Tindakan pengiriman instan belum tersedia. Status pengiriman dan pembayaran yang tersimpan ditampilkan di bawah."
