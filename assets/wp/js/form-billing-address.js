@@ -35,6 +35,7 @@
             $ins.closest('.form-row').css('opacity', '0.6');
             }
 
+            kiriofSyncClassicAddressFields();
             getSearchAreaKelurahan();
             kiriofRestoreClassicDistrictSelections();
             changeDistrict();
@@ -79,6 +80,7 @@
                 // update_checkout once so WooCommerce can render native fee rows. Calling
                 // it again from updated_checkout creates an endless loading loop.
                 jQuery(document.body).on( 'updated_checkout', function() {
+                    kiriofSyncClassicAddressFields();
                     kiriofRestoreClassicDistrictSelections();
                     kiriofChangeCodPayment();
                     kiriofChangeDifferentAddress();
@@ -1787,6 +1789,52 @@
             }
         }
 
+        function kiriofGetClassicAddressCountry(addressType) {
+            return String(jQuery('#' + addressType + '_country').val() || '').toUpperCase();
+        }
+
+        function kiriofSyncClassicAddressFields() {
+            if (!kiriofBillingAddressConfig.isCheckout || kiriofIsBlockCheckoutContext()) {
+                return;
+            }
+
+            jQuery.each(['billing', 'shipping'], function(_, addressType) {
+                var isIndonesia = kiriofGetClassicAddressCountry(addressType) === 'ID';
+                var districtId = addressType === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+                var $district = jQuery('#' + districtId);
+                $district.prop('disabled', !isIndonesia).prop('required', isIndonesia).attr('aria-required', String(isIndonesia));
+                var $districtRow = $district.closest('.form-row');
+                $districtRow.toggleClass('kiriof-classic-address-hidden', !isIndonesia).toggleClass('validate-required', isIndonesia);
+                $districtRow.find('label .optional').toggle(!isIndonesia);
+                $districtRow.find('label .required').toggle(isIndonesia);
+                if (isIndonesia && !$districtRow.find('label .required').length) {
+                    $districtRow.find('label').append('&nbsp;<span class="required" aria-hidden="true">*</span>');
+                }
+
+                jQuery.each(['city', 'company', 'postcode', 'state'], function(_, fieldName) {
+                    var $row = jQuery('#' + addressType + '_' + fieldName + '_field.kiriof-native-address-field');
+                    var $input = $row.find(':input');
+                    $row.toggleClass('kiriof-classic-address-hidden', isIndonesia);
+                    $input.prop('disabled', isIndonesia);
+                    if (isIndonesia) {
+                        $row.removeClass('validate-required woocommerce-invalid woocommerce-invalid-required-field');
+                        $input.prop('required', false).attr('aria-required', 'false');
+                    } else {
+                        var required = fieldName === 'company'
+                            ? $input.attr('data-kiriof-required') === '1'
+                            : $row.hasClass('validate-required');
+                        if (fieldName === 'company') {
+                            $row.toggleClass('validate-required', required);
+                        }
+                        $input.prop('required', required).attr('aria-required', String(required));
+                    }
+                });
+            });
+        }
+
+        jQuery(document.body).on('country_to_state_changing.kiriofClassicAddress updated_checkout.kiriofClassicAddress', kiriofSyncClassicAddressFields);
+        jQuery(document).on('change.kiriofClassicAddress', '#billing_country, #shipping_country', kiriofSyncClassicAddressFields);
+
         function kiriofRestoreClassicDistrictSelections() {
             kiriofRestoreClassicDistrictSelection(
                 jQuery('#kiriof_destination_area'),
@@ -1801,6 +1849,10 @@
         }
 
         function kiriofRestoreClassicDistrictSelection($select, district, $nameField) {
+            var addressType = $select.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
+            if (kiriofBillingAddressConfig.isCheckout && kiriofGetClassicAddressCountry(addressType) !== 'ID') {
+                return;
+            }
             if (!$select.length || String($select.val() || '')) {
                 return;
             }
@@ -1833,8 +1885,17 @@
             jQuery(kelurahanArea).off('change.kiriofClassicDistrict').on('change.kiriofClassicDistrict', function () {
                 let root = jQuery(this);
                 let different_address = jQuery('[name="ship_to_different_address"]:checked').length;
-                let country = jQuery('#billing_country').find(':selected').val();
+                let addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
+                let destinationAddressType = different_address > 0 ? 'shipping' : 'billing';
+                let country = kiriofGetClassicAddressCountry(addressType);
+                if (kiriofBillingAddressConfig.isCheckout && country !== 'ID') {
+                    return;
+                }
                 let selectedDistrictLabel = kiriofGetClassicDistrictLabel(root);
+                kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);
+                if (kiriofBillingAddressConfig.isCheckout && addressType !== destinationAddressType) {
+                    return;
+                }
                 let ajaxurl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
                     ? kiriofAjax.ajaxurl
                     : kiriofBillingAddressConfig.ajaxUrl || '';
@@ -1853,9 +1914,6 @@
                     _insurance = 0;
                 }
 
-                kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);
-                
-                
                 jQuery.ajax({
                     url:ajaxurl,
                     type: 'post',
@@ -2104,7 +2162,7 @@
                 .off('change.kiriofDifferentAddress', '[name="ship_to_different_address"]')
                 .on('change.kiriofDifferentAddress', '[name="ship_to_different_address"]', function() {
                     if(jQuery(this).is(':checked')){
-                        jQuery('#kiriof_destination_area').val(jQuery('#kiriof_shipping_destination_area option:selected').val()).trigger("change");
+                        jQuery('#kiriof_shipping_destination_area').trigger('change');
                     }else{
                         jQuery('#kiriof_destination_area').val(jQuery('#kiriof_destination_area option:selected').val()).trigger("change");
                     }

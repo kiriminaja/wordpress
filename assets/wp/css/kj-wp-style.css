@@ -145,6 +145,10 @@ tr.woocommerce-shipping-totals {
 }
 
 /* Checkout */
+.kiriof-classic-address-hidden {
+  display: none !important;
+}
+
 #billing_country_field,
 #shipping_country_field {
   display: none !important;
