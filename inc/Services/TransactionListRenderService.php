@@ -205,18 +205,14 @@ class TransactionListRenderService
             ],
             "rows" => $this->view_model_factory->createRows(
                 $kiriof_results,
-                $kiriof_status_filter,
+                in_array("processed", explode(",", $kiriof_status_filter), true) ? "processed" : $kiriof_status_filter,
             ),
             "shipmentLocations" => $kiriof_shipment_locations,
             "locationsUrl" => admin_url(
                 "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
             ),
             "bulk" => [
-                "showPrint" => in_array(
-                    $kiriof_status_filter,
-                    ["all", "processed"],
-                    true,
-                ),
+                "showPrint" => "all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true),
                 "printAction" => admin_url("admin-post.php"),
                 "printNonce" => wp_create_nonce("kiriof_resi_print_bulk"),
                 "printPreviewNonce" => wp_create_nonce("kiriof_resi_print"),
@@ -240,6 +236,11 @@ class TransactionListRenderService
                 "printed" => __("Printed", "kiriminaja-official"),
                 "unprinted" => __("Unprinted", "kiriminaja-official"),
                 "apply" => __("Apply", "kiriminaja-official"),
+                "searchStatuses" => __("Search statuses…", "kiriminaja-official"),
+                "searchCouriers" => __("Search couriers…", "kiriminaja-official"),
+                "noFilterOptions" => __("No matching options.", "kiriminaja-official"),
+                /* translators: %s: number of selected filter options. */
+                "selectedFilters" => __("%s selected", "kiriminaja-official"),
                 "items" => __("items", "kiriminaja-official"),
                 "pageOf" => __("of", "kiriminaja-official"),
                 "status" => __("All Status", "kiriminaja-official"),
@@ -410,37 +411,18 @@ class TransactionListRenderService
     private function getFilters(): array
     {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin list filters.
-        $filters = [
-            "key" => sanitize_text_field(wp_unslash($_GET["key"] ?? "")),
-            "month" => sanitize_text_field(wp_unslash($_GET["month"] ?? "")),
-            "status" => sanitize_text_field(wp_unslash($_GET["status"] ?? "")),
-            "cod" => sanitize_text_field(wp_unslash($_GET["cod"] ?? "")),
-            "courier" => sanitize_text_field(
-                wp_unslash($_GET["courier"] ?? ""),
-            ),
-            "print_status" => sanitize_text_field(
-                wp_unslash($_GET["print_status"] ?? ""),
-            ),
-        ];
+        $filters = [];
+        foreach (["key", "month", "status", "cod", "courier", "print_status"] as $name) {
+            $value = $_GET[$name] ?? "";
+            $filters[$name] = is_string($value)
+                ? sanitize_text_field(wp_unslash($value))
+                : "";
+        }
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-        if (
-            !in_array(
-                $filters["status"],
-                [
-                    "all",
-                    "wc-processing",
-                    "wc-on-hold",
-                    "wc-pending",
-                    "wc-cancelled",
-                    "processed",
-                    "order-issue",
-                ],
-                true,
-            )
-        ) {
-            $filters["status"] = "all";
-        }
+        $status = WordPressTransactionListQuery::normalizeStatusFilter($filters["status"]);
+        $filters["status"] = is_array($status) ? implode(",", $status) : $status;
+        $filters["courier"] = implode(",", WordPressTransactionListQuery::normalizeCourierFilter($filters["courier"]));
         if (!in_array($filters["print_status"], ["0", "1"], true)) {
             $filters["print_status"] = "";
         }

@@ -36,7 +36,7 @@
   import PrintPreviewDialog from '$lib/ui/PrintPreviewDialog.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
-  import CourierCombobox from './CourierCombobox.svelte';
+  import KiriofMultiFilter from '$lib/ui/KiriofMultiFilter.svelte';
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
@@ -90,17 +90,12 @@
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
   const selectedCount = $derived(selectedRows.length);
-  const statusLabel = $derived(
-    filters.status && filters.status !== 'all'
-      ? bootstrap.statusOptions.find((option) => option.value === filters.status)?.label ?? bootstrap.i18n.status
-      : bootstrap.i18n.status,
-  );
   const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
-  const courierOptions = $derived([{ value: '', label: bootstrap.i18n.allCouriers }, ...bootstrap.couriers]);
+  const courierOptions = $derived(bootstrap.couriers);
   const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
-  const visibleStatusOptions = $derived(bootstrap.statusOptions.filter((option) => option.value !== 'order-issue'));
+  const visibleStatusOptions = $derived(bootstrap.statusOptions.filter((option) => option.value !== 'order-issue' && option.value !== 'all'));
   const pickupOrderIds = $derived(selectedRows.filter((row) => row.selection.canPickup).map((row) => row.kaOrderId));
   const hasActiveFilters = $derived(
     Boolean(
@@ -316,14 +311,20 @@
           </Select.Content>
         </Select.Root>
         {#if !isOrderIssue}
-          <Select.Root type="single" bind:value={filters.status} disabled={refreshing} onValueChange={applySelectFilter}>
-            <Select.Trigger hideIcon><IconAdjustmentsHorizontal /><Select.Value>{statusLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
-            <Select.Content class="kiriof-shadcn">
-              {#each visibleStatusOptions as option}
-                <Select.Item value={option.value}>{option.label} ({option.count})</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
+          <KiriofMultiFilter
+            value={filters.status}
+            options={visibleStatusOptions}
+            allLabel={bootstrap.i18n.status}
+            allValue="all"
+            applyLabel={bootstrap.i18n.apply}
+            searchLabel={bootstrap.i18n.searchStatuses}
+            emptyLabel={bootstrap.i18n.noFilterOptions}
+            selectedLabel={bootstrap.i18n.selectedFilters}
+            disabled={refreshing}
+            onChange={(value) => { filters.status = value; applySelectFilter(); }}
+          >
+            {#snippet prefix()}<IconAdjustmentsHorizontal class="size-4 shrink-0 text-muted-foreground" />{/snippet}
+          </KiriofMultiFilter>
         {/if}
         <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
@@ -333,16 +334,19 @@
             <Select.Item value="0">{bootstrap.i18n.unprinted}</Select.Item>
           </Select.Content>
         </Select.Root>
-        <CourierCombobox
+        <KiriofMultiFilter
           value={filters.courier}
           options={courierOptions}
-          placeholder={bootstrap.i18n.allCouriers}
+          allLabel={bootstrap.i18n.allCouriers}
+          applyLabel={bootstrap.i18n.apply}
+          searchLabel={bootstrap.i18n.searchCouriers}
+          emptyLabel={bootstrap.i18n.noFilterOptions}
+          selectedLabel={bootstrap.i18n.selectedFilters}
           disabled={refreshing}
-          onChange={(value) => {
-            filters.courier = value;
-            applySelectFilter();
-          }}
-        />
+          onChange={(value) => { filters.courier = value; applySelectFilter(); }}
+        >
+          {#snippet prefix()}<IconTruck class="size-4 shrink-0 text-muted-foreground" />{/snippet}
+        </KiriofMultiFilter>
         {#if hasActiveFilters}
           <ActionTooltip label={bootstrap.i18n.clear} disabled={refreshing}><Button class="kiriof-clear-filters" variant="outline" size="icon" disabled={refreshing} onclick={clearFilters} aria-label={bootstrap.i18n.clear}><IconX /></Button></ActionTooltip>
         {/if}
