@@ -139,7 +139,7 @@ class TransactionDetailPageData
 
         $toolbar = [
             "logoUrl" => KIRIOF_URL . "assets/admin/img/icon-128x128.png",
-            "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction"),
+            "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction" . ( $is_express ? "" : "&delivery_type=instant" )),
             "rootLabel" => __("Transactions", "kiriminaja-official"),
             "title" =>
                 "#" .
@@ -176,7 +176,7 @@ class TransactionDetailPageData
                 "createdAt" => $this->date($transaction->created_at ?? ""),
                 "paymentLabel" => $payment_label,
                 "isCod" => $cod_fee > 0,
-                "supportsLiveTracking" => "" !== $awb && "-" !== $awb && "" !== (string) ($transaction->order_id ?? ""),
+                "supportsLiveTracking" => $is_express && "" !== $awb && "-" !== $awb && "" !== (string) ($transaction->order_id ?? ""),
                 "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
                 "status" => [
                     "label" => $this->status_label($status),

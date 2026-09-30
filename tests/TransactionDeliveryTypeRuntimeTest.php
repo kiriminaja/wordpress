@@ -135,4 +135,90 @@ final class TransactionDeliveryTypeRuntimeTest extends TestCase {
         $this->assertSame('mobil', \KiriminAjaOfficial\Services\TransactionDeliveryType::normalizeVehicle('mobil'));
     }
 
+    #[Test]
+    public function partial_courier_writes_preserve_existing_instant_vehicle_but_explicit_null_clears_it(): void {
+        $result = $this->runFixture([
+            'mode' => 'update',
+            'changes' => ['service' => 'gosend'],
+            'prior' => ['service' => 'gosend', 'delivery_type' => 'instant', 'vehicle' => 'motor'],
+        ]);
+        $this->assertTrue($result['ok']);
+        $this->assertSame('instant', $result['updates'][0]['delivery_type']);
+        $this->assertSame('motor', $result['updates'][0]['vehicle']);
+        $this->assertSame('motor', $result['row']['vehicle']);
+
+        $result = $this->runFixture([
+            'mode' => 'update',
+            'changes' => ['service' => 'gosend', 'vehicle' => null],
+            'prior' => ['service' => 'gosend', 'delivery_type' => 'instant', 'vehicle' => 'motor'],
+        ]);
+        $this->assertTrue($result['ok']);
+        $this->assertNull($result['updates'][0]['vehicle']);
+        $this->assertNull($result['row']['vehicle']);
+    }
+
+    #[Test]
+    public function existing_courier_classifies_delivery_type_only_writes_and_lookup_errors_fail_closed(): void {
+        $result = $this->runFixture([
+            'mode' => 'update',
+            'changes' => ['delivery_type' => 'express'],
+            'prior' => ['service' => 'gosend', 'delivery_type' => 'instant', 'vehicle' => 'mobil'],
+        ]);
+        $this->assertTrue($result['ok']);
+        $this->assertSame('instant', $result['updates'][0]['delivery_type']);
+        $this->assertSame('mobil', $result['updates'][0]['vehicle']);
+
+        $result = $this->runFixture([
+            'mode' => 'update',
+            'changes' => ['service' => 'gosend'],
+            'fail_lookup' => true,
+        ]);
+        $this->assertFalse($result['ok']);
+        $this->assertSame([], $result['updates']);
+    }
+
+    #[Test]
+    public function every_writer_repartitions_explicit_express_courier_and_aborts_failed_lookup(): void {
+        foreach (['verified', 'callback', 'full'] as $writer) {
+            $condition = 'full' === $writer ? ['wp_wc_order_stat_order_id' => 42] : ['order_id' => 'test'];
+            $input = [
+                'mode' => 'update', 'writer' => $writer, 'condition' => $condition,
+                'changes' => ['service' => 'jne'],
+                'prior' => ['service' => 'gosend', 'delivery_type' => 'instant', 'vehicle' => 'motor'],
+            ];
+            $result = $this->runFixture($input);
+            $this->assertTrue($result['ok']);
+            $this->assertSame('express', $result['row']['delivery_type']);
+            $this->assertSame('jne', $result['row']['service']);
+            $this->assertNull($result['row']['vehicle']);
+            $this->assertCount(1, $result['queries']);
+            $this->assertStringContainsString('full' === $writer ? 'wp_wc_order_stat_order_id = 42' : "`order_id` = 'test'", $result['queries'][0]);
+
+            $result = $this->runFixture(array_replace($input, ['fail_lookup' => true]));
+            $this->assertFalse($result['ok']);
+            $this->assertSame([], $result['updates']);
+            $this->assertSame('instant', $result['row']['delivery_type']);
+            $this->assertSame('motor', $result['row']['vehicle']);
+            $this->assertSame([], $result['deleted']);
+        }
+    }
+
+    #[Test]
+    public function lifecycle_and_vehicle_only_updates_do_not_read_existing_partition(): void {
+        foreach (['verified', 'callback'] as $writer) {
+            foreach ([['status' => 'shipped'], ['awb' => 'awb-123'], ['vehicle' => null]] as $changes) {
+                $prior = ['service' => 'gosend', 'delivery_type' => 'instant', 'vehicle' => 'motor'];
+                $result = $this->runFixture([
+                    'mode' => 'update', 'writer' => $writer, 'changes' => $changes,
+                    'prior' => $prior, 'fail_lookup' => true,
+                ]);
+                $this->assertTrue($result['ok']);
+                $this->assertSame([], $result['queries']);
+                $this->assertSame([], $result['deleted']);
+                $this->assertSame($changes, $result['updates'][0]);
+                $this->assertSame(array_replace($prior, $changes), $result['row']);
+            }
+        }
+    }
+
 }

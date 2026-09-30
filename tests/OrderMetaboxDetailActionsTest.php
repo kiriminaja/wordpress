@@ -28,6 +28,6 @@ final class OrderMetaboxDetailActionsTest extends TestCase {
         $this->assertStringContainsString( 'history.replaceState(history.state, \'\', url)', $workspace );
         $this->assertStringContainsString( 'openAdjustDeficit && transaction.actions.adjustDeficit', $detail );
         $this->assertStringContainsString( "kind: 'adjust-deficit', data: transaction.actions.data", $detail );
-        $this->assertStringContainsString( '"supportsLiveTracking" => "" !== $awb && "-" !== $awb', $bootstrap );
+        $this->assertStringContainsString( '"supportsLiveTracking" => $is_express && "" !== $awb && "-" !== $awb', $bootstrap );
     }
 }

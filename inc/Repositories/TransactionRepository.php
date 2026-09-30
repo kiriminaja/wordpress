@@ -231,10 +231,37 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     }
     
     /** Keep courier edits and the indexed partition in the same write. */
-    private function normalizeDeliveryChanges( array $changes ): array {
-        if ( array_key_exists( 'service', $changes ) || array_key_exists( 'delivery_type', $changes ) ) {
-            $changes['delivery_type'] = TransactionDeliveryType::resolve( $changes );
-            $changes['vehicle'] = 'instant' === $changes['delivery_type'] ? TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] ?? null ) : null;
+    private function normalizeDeliveryChanges( array $changes, array $condition = array() ): array|false {
+        $partition_changed = array_key_exists( 'service', $changes ) || array_key_exists( 'delivery_type', $changes );
+        $existing          = null;
+
+        if ( $partition_changed ) {
+            if ( array_key_exists( 'order_id', $condition ) && '' !== (string) $condition['order_id'] ) {
+                $existing = $this->getTransactionByOrderId( $condition['order_id'] );
+            } elseif ( array_key_exists( 'wp_wc_order_stat_order_id', $condition ) && '' !== (string) $condition['wp_wc_order_stat_order_id'] ) {
+                $existing = $this->getTransactionByWCOrderId( $condition['wp_wc_order_stat_order_id'] );
+            }
+
+            // A lookup error must not turn a partial write into a destructive write.
+            if ( false === $existing ) {
+                return false;
+            }
+        }
+
+        if ( $partition_changed ) {
+            $classification = is_object( $existing ) ? get_object_vars( $existing ) : array();
+            $classification = array_merge( $classification, $changes );
+            // A new courier must not inherit the old courier's explicit partition.
+            if ( array_key_exists( 'service', $changes ) && ! array_key_exists( 'delivery_type', $changes ) ) {
+                unset( $classification['delivery_type'] );
+            }
+            $changes['delivery_type'] = TransactionDeliveryType::resolve( $classification );
+
+            if ( 'instant' === $changes['delivery_type'] && ! array_key_exists( 'vehicle', $changes ) ) {
+                $changes['vehicle'] = is_object( $existing ) ? TransactionDeliveryType::normalizeVehicle( $existing->vehicle ?? null ) : null;
+            } else {
+                $changes['vehicle'] = 'instant' === $changes['delivery_type'] ? TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] ?? null ) : null;
+            }
             $this->invalidateCouriersCache();
         } elseif ( array_key_exists( 'vehicle', $changes ) ) {
             $changes['vehicle'] = TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] );
@@ -243,7 +270,10 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     }
 
     public function updateTransactionByCallback($payloads){
-        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'] );
+        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'], $payloads['condition'] ?? array() );
+        if ( false === $payloads['changes'] ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         
@@ -257,7 +287,10 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
      * @return bool
      */
     public function updateTransactionByCallbackVerified( $payloads ) {
-        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'] );
+        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'], $payloads['condition'] ?? array() );
+        if ( false === $payloads['changes'] ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $updated = $this->wpdb->update( $this->table, $payloads['changes'], $payloads['condition'] );
 
@@ -698,8 +731,12 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];
         
+        $changes = $this->normalizeDeliveryChanges( array_merge( $updateData, array_intersect_key( $payload, array_flip( array( 'delivery_type', 'vehicle' ) ) ) ), $where );
+        if ( false === $changes ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update($this->table, $this->normalizeDeliveryChanges( array_merge( $updateData, array_intersect_key( $payload, array_flip( array( 'delivery_type', 'vehicle' ) ) ) ) ), $where);
+        $this->wpdb->update($this->table, $changes, $where);
         $this->invalidateCouriersCache();
         return !$this->hasError();
     }

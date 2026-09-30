@@ -121,6 +121,7 @@ class SetupMigration {
         /** Transactions Table*/
         $suffix     = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
         $table_name = esc_sql( $wpdb->prefix . 'kiriminaja_transactions' . $suffix );
+        $status_updated = true;
         /** Only create table if not exist */
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
@@ -185,7 +186,7 @@ class SetupMigration {
             // Ensure 'status' column has the correct enum values
             if (in_array('status', $columns)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
-                $wpdb->query("ALTER TABLE `$table_name` MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
+                $status_updated = false !== $wpdb->query("ALTER TABLE `$table_name` MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
             }
             // Add 'discount_amount' column if it doesn't exist
             if (!in_array('discount_amount', $columns)) {
@@ -259,7 +260,15 @@ class SetupMigration {
         $columns = $wpdb->get_col( "DESCRIBE `$table_name`", 0 );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $index = $wpdb->get_row( $wpdb->prepare( "SHOW INDEX FROM `$table_name` WHERE Key_name = %s", 'delivery_type' ) );
-        if ( ( ! isset( $backfilled ) || false !== $backfilled ) && in_array( 'delivery_type', $columns, true ) && in_array( 'vehicle', $columns, true ) && $index && empty( $wpdb->last_error ) ) {
+        // Later successful queries clear last_error, so verify every added column and
+        // retain the enum ALTER result rather than relying on the final query's error.
+        $required_columns = array(
+            'status', 'canceled_at', 'discount_amount', 'discount_percentage',
+            'woocommerce_discount_amount', 'woocommerce_discount_description',
+            'is_deficit', 'cod_minimum', 'is_printed', 'printed_at',
+            'shipment_location_id', 'shipment_location_snapshot', 'delivery_type', 'vehicle',
+        );
+        if ( $status_updated && ( ! isset( $backfilled ) || false !== $backfilled ) && ! array_diff( $required_columns, $columns ) && $index && empty( $wpdb->last_error ) ) {
             update_option( $version_key, '1', false );
         }
     }

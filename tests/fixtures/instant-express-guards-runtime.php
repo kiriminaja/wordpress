@@ -22,6 +22,7 @@ namespace KiriminAjaOfficial\Repositories {
         function getTransctionByOrderIds( $ids ) { return $this->rows; }
         function getTransactionByOrderId( $id ) { return $this->rows[0]; }
         function getTransactionByWCOrderId( $id ) { return $this->rows[0]; }
+        function getTransactionByAWBforTracking( $id ) { return $GLOBALS['tracking_row']; }
         function updateTransactionByCallback( $data ) { ++$this->writes; }
         function updateTransactionCodValues( ...$args ) { ++$this->writes; }
     }
@@ -29,17 +30,24 @@ namespace KiriminAjaOfficial\Repositories {
         public int $calls = 0;
         function cancelShipment( ...$args ) { ++$this->calls; return array( 'status' => true ); }
         function getPrintAwb( ...$args ) { ++$this->calls; return array(); }
+        function getTracking( ...$args ) { throw new \RuntimeException( 'Unexpected Express tracking request' ); }
     }
 }
 namespace KiriminAjaOfficial\Base { class BaseInit { function logThis( ...$args ) {} } }
 namespace {
     $root = dirname( __DIR__, 2 );
-    foreach ( array( 'Utils/ServiceResponse', 'Base/BaseService', 'Services/TransactionDeliveryType', 'Contracts/TransactionPrintRepositoryInterface', 'Services/TransactionProcessServices/SendRequestPickupTransactionService', 'Services/TransactionProcessServices/CancelTransactionService', 'Controllers/TransactionProcessController', 'Controllers/CodAdjustmentController', 'Controllers/ShippingProcessController' ) as $file ) { require $root . '/inc/' . $file . '.php'; }
+    foreach ( array( 'Utils/ServiceResponse', 'Base/BaseService', 'Services/TransactionDeliveryType', 'Services/KiriminAjaTrackingService', 'Contracts/TransactionPrintRepositoryInterface', 'Services/TransactionProcessServices/SendRequestPickupTransactionService', 'Services/TransactionProcessServices/CancelTransactionService', 'Controllers/TransactionProcessController', 'Controllers/CodAdjustmentController', 'Controllers/ShippingProcessController' ) as $file ) { require $root . '/inc/' . $file . '.php'; }
     $input = json_decode( $argv[1], true );
     $repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
     $repo->rows = array_map( static fn( $row ) => (object) array_merge( array( 'order_id' => 'KA-1', 'status' => 'new', 'awb' => 'AWB', 'is_deficit' => 1 ), $row ), $input['rows'] );
     $api = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
     $operation = $input['operation'];
+    if ( 'tracking' === $operation ) {
+        $GLOBALS['tracking_row'] = $repo->rows[0];
+        $result = ( new \KiriminAjaOfficial\Services\KiriminAjaTrackingService() )->order_number( 'KA-1' )->call();
+        echo json_encode( array( 'message' => $result->message, 'status' => $result->status, 'calls' => 0, 'writes' => 0 ) );
+        exit;
+    }
     $classes = array( 'pickup' => 'Services\\TransactionProcessServices\\SendRequestPickupTransactionService', 'cancel' => 'Services\\TransactionProcessServices\\CancelTransactionService', 'auto' => 'Controllers\\TransactionProcessController', 'origin' => 'Controllers\\TransactionProcessController', 'adjust' => 'Controllers\\CodAdjustmentController', 'deficit' => 'Controllers\\CodAdjustmentController', 'print' => 'Controllers\\ShippingProcessController' );
     $object = ( new \ReflectionClass( 'KiriminAjaOfficial\\' . $classes[$operation] ) )->newInstanceWithoutConstructor();
     $repo_property = in_array( $operation, array( 'pickup', 'auto', 'origin' ), true ) ? 'transactionRepository' : 'transaction_repository';

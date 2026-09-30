@@ -1,12 +1,12 @@
 # Instant Delivery Buyer TODO
 
-Status: Planned; admin courier settings slice is complete
+Status: Planned; admin courier settings and transaction-tab foundation are complete
 
 Last reviewed: 2026-09-30
 
 Scope: Classic Checkout, Checkout Blocks, buyer address, pricing eligibility
 
-This checklist tracks buyer-side work from the Instant Delivery requirement and `.github/docs/instant-delivery-implementation-audit.md`. Admin workflows are tracked separately in `ADMIN-INSTANT-TODO.md`.
+This checklist tracks buyer-side work from the [Instant Delivery requirement](https://telegra.ph/Instant-09-30) and [implementation audit](implementation-audit.md). Admin workflows are tracked separately in [ADMIN-INSTANT-TODO.md](ADMIN-INSTANT-TODO.md).
 
 ## Classic Checkout
 

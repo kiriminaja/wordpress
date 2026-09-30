@@ -13,7 +13,7 @@ final class InstantExpressGuardsRuntimeTest extends TestCase {
     #[Test]
     public function instant_mutations_are_rejected_without_api_calls_or_writes(): void {
         foreach ( array( array( 'delivery_type' => 'instant', 'service' => 'jne' ), array( 'delivery_type' => 'express', 'service' => 'gosend' ) ) as $row ) {
-            foreach ( array( 'pickup', 'cancel', 'adjust', 'deficit', 'print', 'auto', 'origin' ) as $operation ) {
+            foreach ( array( 'pickup', 'cancel', 'adjust', 'deficit', 'print', 'auto', 'origin', 'tracking' ) as $operation ) {
                 $result = $this->runGuard( $operation, array( $row ) );
                 if ( 'auto' !== $operation ) { $this->assertStringContainsString( 'Instant', $result['message'], $operation ); }
                 $this->assertSame( 0, $result['calls'], $operation );
