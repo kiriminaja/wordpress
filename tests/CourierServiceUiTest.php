@@ -48,10 +48,11 @@ final class CourierServiceUiTest extends TestCase {
     public function test_picker_preserves_state_and_uses_accessible_controls(): void {
         $picker = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/CourierServicePicker.svelte' );
         $selection = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/selection.ts' );
-        foreach ( array( 'courierSelection(', 'toggleCourier(', 'toggleService(', '<SettingSwitch', 'checked={status.checked}', 'aria-label=', 'aria-labelledby=', 'for={`${prefix}-service-', 'if (!disabled)', 'sm:grid-cols-2', '2xl:grid-cols-4', '<CourierLogo', '<Tabs.Trigger', 'value="instant"', 'aria-disabled="true"', 'service.name', '{service.code}' ) as $contract ) {
+        foreach ( array( 'courierSelection(', 'toggleCourier(', 'toggleService(', '<SettingSwitch', 'checked={status.checked}', 'aria-label=', 'aria-labelledby=', 'for={`${prefix}-service-', 'if (!disabled)', 'sm:grid-cols-2', '2xl:grid-cols-4', '<CourierLogo', '<Tabs.Trigger', 'value="instant"', 'aria-disabled="true"', 'class="kiriof-shadcn !grid min-w-0 gap-3"', 'service.name', '{service.code}' ) as $contract ) {
             $this->assertStringContainsString( $contract, $picker );
         }
         $this->assertStringNotContainsString( '{@html', $picker );
+        $this->assertStringNotContainsString( 'activeOnly', $picker );
         foreach ( array( 'remembered[courier.code]', 'row.aliases?.some', 'service_selection: JSON.stringify(selection)', 'export function hasSelection(', 'export function setAllServices(', 'unavailable: true' ) as $contract ) {
             $this->assertStringContainsString( $contract, $selection );
         }

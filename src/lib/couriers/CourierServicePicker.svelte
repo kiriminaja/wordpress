@@ -33,7 +33,6 @@
   } = $props();
   const prefix = $props.id();
   let search = $state('');
-  let activeOnly = $state(false);
   const rows = $derived(
     couriers.map((courier, index) => ({
       courier,
@@ -43,9 +42,8 @@
   );
   const visibleRows = $derived(
     rows.filter(
-      ({ courier, status }) =>
-        matchesCourierSearch(courier, search) &&
-        (!activeOnly || status.checked),
+      ({ courier }) =>
+        matchesCourierSearch(courier, search),
     ),
   );
   const serviceCount = $derived(
@@ -64,7 +62,11 @@
   );
 </script>
 
-<Tabs.Root value="express" class="!grid min-w-0 gap-3" aria-busy={disabled}>
+<Tabs.Root
+  value="express"
+  class="kiriof-shadcn !grid min-w-0 gap-3"
+  aria-busy={disabled}
+>
   <div
     class="!flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 sm:p-4"
   >
@@ -102,20 +104,6 @@
           placeholder={i18n.searchCouriers ?? 'Search couriers or services'}
         />
       </InputGroup.Root>
-      <div class="!flex shrink-0 items-center gap-2">
-        <span
-          id={`${prefix}-active-label`}
-          class="text-sm text-muted-foreground"
-          >{i18n.activeOnly ?? 'Active only'}</span
-        >
-        <SettingSwitch
-          checked={activeOnly}
-          label={i18n.activeOnly ?? 'Active only'}
-          onCheckedChange={(checked) => {
-            activeOnly = checked;
-          }}
-        />
-      </div>
     </div>
   </div>
 
@@ -267,13 +255,12 @@
             {i18n.noCouriersFoundDescription ??
               'Try another courier or service name, or change the selection filter.'}
           </p>
-          {#if search || activeOnly}
+          {#if search}
             <Button
               variant="outline"
               size="sm"
               onclick={() => {
                 search = '';
-                activeOnly = false;
               }}>{i18n.resetCourierFilters ?? 'Reset filters'}</Button
             >
           {/if}

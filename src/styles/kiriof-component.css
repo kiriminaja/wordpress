@@ -53,7 +53,7 @@
 }
 
 .kiriof-shadcn [data-slot='switch'][data-size][data-state='unchecked'] {
-  @apply !bg-input;
+  @apply !bg-border;
 }
 
 .kiriof-shadcn [data-slot='switch'][data-size][data-state='checked'] {

@@ -2544,9 +2544,6 @@ msgstr ""
 msgid "Domestic Delivery"
 msgstr ""
 
-#: inc/Services/CourierServiceUiData.php
-msgid "Active only"
-msgstr ""
 
 #: inc/Services/CourierServiceUiData.php
 #, php-format

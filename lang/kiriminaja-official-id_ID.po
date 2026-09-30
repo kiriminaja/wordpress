@@ -4336,9 +4336,6 @@ msgstr "Pengiriman instan belum tersedia."
 msgid "Domestic Delivery"
 msgstr "Pengiriman Domestik"
 
-#: inc/Services/CourierServiceUiData.php
-msgid "Active only"
-msgstr "Hanya aktif"
 
 #: inc/Services/CourierServiceUiData.php
 #, php-format

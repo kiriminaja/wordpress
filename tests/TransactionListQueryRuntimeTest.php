@@ -163,7 +163,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.svg' );
 		$this->assertStringContainsString( 'spx: shopeeExpress', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' ) );
 		$this->assertStringContainsString( 'formatPhone(row.customer.phone)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'courierImage(row.courier.code, row.courier.service)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( '<CourierLogo code={row.courier.code} service={row.courier.service}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( 'courierImage(code, name || service)', file_get_contents( PLUGIN_DIR . '/src/lib/ui/CourierLogo.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/CopyableValue.svelte' );
 		$this->assertStringContainsString( 'navigator.clipboard.writeText(value)', file_get_contents( PLUGIN_DIR . '/src/lib/ui/CopyableValue.svelte' ) );
 		$this->assertStringContainsString( 'CopyableValue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

@@ -26,7 +26,7 @@
 	data-slot="switch"
 	data-size={size}
 	class={cn(
-		"peer relative inline-flex shrink-0 cursor-pointer items-center overflow-hidden rounded-full border-0 p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+		"peer relative inline-flex shrink-0 cursor-pointer items-center overflow-hidden rounded-full border-0 p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-border",
 		size === "sm" ? "h-4 w-7" : "h-5 w-9",
 		className
 	)}

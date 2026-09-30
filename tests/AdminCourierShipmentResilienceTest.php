@@ -55,7 +55,9 @@ final class AdminCourierShipmentResilienceTest extends TestCase
 
         $this->assertStringContainsString('bootstrap.i18n.loadFailed', $content);
         $this->assertStringContainsString('requestError instanceof Error ? requestError.message', $content);
-        $this->assertStringContainsString('role="alert"', $content);
+        $this->assertStringContainsString('<Alert variant="destructive">', $content);
+        $alert = file_get_contents(PLUGIN_DIR . '/src/lib/components/ui/alert/alert.svelte');
+        $this->assertStringContainsString('role="alert"', $alert);
         $this->assertStringContainsString('{:else if !loaded}', $content);
         $this->assertStringContainsString('onclick={loadCouriers}', $content);
         $this->assertStringContainsString('success === false', $ajax);
