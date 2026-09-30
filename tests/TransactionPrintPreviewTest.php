@@ -46,5 +46,7 @@ final class TransactionPrintPreviewTest extends TestCase
 
         $this->assertStringNotContainsString( 'kiriof-print-script', $enqueue );
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/print.min.js' );
+        $this->assertStringNotContainsString( 'kiriof-print-style', $enqueue );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/css/print.min.css' );
     }
 }

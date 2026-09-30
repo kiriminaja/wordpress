@@ -17,6 +17,12 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $this->assertStringNotContainsString( 'wc-qrcode', $enqueue );
         $this->assertStringNotContainsString( 'qr-code-styling', $enqueue );
         $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/lib/qr-code-styling/qr-code-styling.min.js' );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/templates/request-pickup/view/modal-payment.php' );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-request-pickup.js' );
+        $this->assertStringContainsString( 'createPaymentSession', $dialog );
+        $this->assertStringContainsString( 'activeSession.stop();', $dialog );
+        $this->assertStringContainsString( 'onComplete?.();', $dialog );
+        $this->assertStringNotContainsString( 'window.location.reload', $dialog );
     }
 
     #[Test]
@@ -177,7 +183,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $callbackContent = file_get_contents(PLUGIN_DIR . '/inc/Services/CallbackHandlerService.php');
         $requestPickupContent = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php');
         $paymentRefreshContent = file_get_contents(PLUGIN_DIR . '/inc/Services/ShippingProcessServices/GetShippingProcessPayment.php');
-        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/src/lib/payments/ScanToPayDialog.svelte');
+        $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/src/lib/payments/scan-to-pay.ts');
 
         $this->assertStringContainsString(
             "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
@@ -240,13 +246,13 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "String(remote.status_code || '').trim()",
+            "String(remote.status_code ?? '').trim()",
             $requestPickupTemplate,
             'Payment modal should use KiriminAja payment status_code mapping instead of HTTP-like status codes'
         );
 
         $this->assertStringContainsString(
-            "String(remote.status_code || '').trim() === '0'",
+            "String(remote.status_code ?? '').trim() === '0'",
             $requestPickupTemplate,
             'Payment modal should only use status_code 0 for non-QRIS paid flows'
         );

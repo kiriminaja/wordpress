@@ -3,6 +3,12 @@ type AjaxConfig = {
   nonce?: string;
 };
 
+type ServiceRequestOptions = {
+  ajaxUrl?: string;
+  nonce?: string;
+  signal?: AbortSignal;
+};
+
 type RequestOptions = {
   method?: 'GET' | 'POST';
   nested?: boolean;
@@ -86,16 +92,18 @@ function nonce(): string {
 export async function postWordPressAction<T>(
   action: string,
   values: Record<string, string>,
+  options: ServiceRequestOptions = {},
 ): Promise<ServiceResponse<T>> {
   const body = new URLSearchParams({ action });
-  body.set('data[nonce]', nonce());
+  body.set('data[nonce]', options.nonce ?? nonce());
 
   for (const [key, value] of Object.entries(values)) {
     body.set(`data[${key}]`, value);
   }
 
-  const response = await fetch(ajaxUrl(), {
+  const response = await fetch(options.ajaxUrl ?? ajaxUrl(), {
     method: 'POST',
+    signal: options.signal,
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',

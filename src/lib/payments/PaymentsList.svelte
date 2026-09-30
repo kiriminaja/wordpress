@@ -209,5 +209,5 @@
     />
   </KiriofCard>
   <PaymentScheduleDialog bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
-  <ScanToPayDialog bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} i18n={bootstrap.modals} />
+  <ScanToPayDialog bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
 </div>

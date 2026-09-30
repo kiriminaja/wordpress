@@ -122,6 +122,10 @@ class PaymentListRenderService {
 			),
 			'modals'       => array(
 				'scanToPay'    => __( 'Scan to Pay', 'kiriminaja-official' ),
+				'scanDescription' => __( 'Scan this QR with your banking or e-wallet app. Payment status is checked automatically.', 'kiriminaja-official' ),
+				'waitingForPayment' => __( 'Waiting for payment…', 'kiriminaja-official' ),
+				'checkingPayment' => __( 'Checking payment…', 'kiriminaja-official' ),
+				'paymentExpired' => __( 'This payment QR is no longer available. Refresh to check for a new QR.', 'kiriminaja-official' ),
 				'code'         => __( 'Code', 'kiriminaja-official' ),
 				'codCharges'   => __( 'COD Package Charges', 'kiriminaja-official' ),
 				'nonCodCharges'=> __( 'Non-COD Package Charges', 'kiriminaja-official' ),

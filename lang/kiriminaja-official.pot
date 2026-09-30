@@ -2366,3 +2366,19 @@ msgstr ""
 
 msgid "Update the connection and continue using KiriminAja."
 msgstr ""
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Scan this QR with your banking or e-wallet app. Payment status is checked automatically."
+msgstr ""
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Waiting for payment…"
+msgstr ""
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Checking payment…"
+msgstr ""
+
+#: inc/Services/PaymentListRenderService.php
+msgid "This payment QR is no longer available. Refresh to check for a new QR."
+msgstr ""
