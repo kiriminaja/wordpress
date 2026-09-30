@@ -3,6 +3,7 @@
 namespace KiriminAjaOfficial\Queries;
 
 use KiriminAjaOfficial\Contracts\TransactionListQueryInterface;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -17,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WordPressTransactionListQuery implements TransactionListQueryInterface {
     /** @var object WordPress database connection. */
     private $wpdb;
+    /** @var string Current list partition, also used by interface-less counts. */
+    private $delivery_type = 'express';
 
     public function __construct( $wpdb = null ) {
         if ( null === $wpdb ) {
@@ -27,6 +30,10 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     }
 
     public function getPage( array $filters, int $page, int $items_per_page ): array {
+        $this->delivery_type = TransactionDeliveryType::normalize( $filters['delivery_type'] ?? 'express' );
+        if ( 'order-issue' === self::normalizeStatusFilter( $filters['status'] ?? '' ) ) {
+            $this->delivery_type = 'express';
+        }
         $page           = max( 1, $page );
         $items_per_page = max( 1, $items_per_page );
         $page_data      = $this->queryPage( $filters, $items_per_page, $page );
@@ -69,7 +76,16 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $isCancelledFilter  = ('wc-cancelled' === $singleStatus);
         $isAllFilter = ('all' === $singleStatus);
         $isDeficitFilter    = ('order-issue' === $singleStatus);
-        $regular_issue_clause = 'AND kiriminaja_transactions.is_deficit = 0';
+        // Instant booking/status persistence is not implemented yet. Express
+        // payment rows cannot establish that an Instant transaction was processed.
+        if ( $isProcessedFilter && 'instant' === $this->delivery_type ) {
+            return array( 'results' => array(), 'total' => 0 );
+        }
+        $delivery_clause = $this->getDeliveryTypeClause( 'kiriminaja_transactions' );
+        $regular_issue_clause = $delivery_clause;
+        if ( 'express' === $this->delivery_type ) {
+            $regular_issue_clause .= ' AND kiriminaja_transactions.is_deficit = 0';
+        }
 
         $cod_clause = '';
         if ('1' === $cod) {
@@ -137,7 +153,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 $status_parts[] = "(orders_tbl.{$o['status']} IN (" . implode( ', ', array_fill( 0, count( $wc_statuses ), '%s' ) ) . ") AND kiriminaja_transactions.status = %s)";
                 $status_args = array_merge( $status_args, $wc_statuses, array( 'new' ) );
             }
-            if ( in_array( 'processed', $regular_statuses, true ) ) {
+            if ( in_array( 'processed', $regular_statuses, true ) && 'express' === $this->delivery_type ) {
                 $status_parts[] = "(kiriminaja_transactions.status != 'canceled' AND EXISTS (SELECT 1 FROM {$wpdb->prefix}kiriminaja_payments multi_pay WHERE multi_pay.pickup_number = kiriminaja_transactions.pickup_number))";
             }
             if ( in_array( 'wc-cancelled', $regular_statuses, true ) ) {
@@ -145,7 +161,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 $status_args[] = 'wc-cancelled';
             }
             if ( $status_parts ) {
-                $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') AND kiriminaja_transactions.is_deficit = 0 {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . ") AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
+                $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') {$regular_issue_clause} {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . ") AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
                 $from = "FROM {$o['table']} as orders_tbl INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id";
                 $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT orders_tbl.{$o['id']}) {$from} {$base_where}", ...array_merge( $status_args, array( $month, $month_like ) ) ) );
                 $results = $wpdb->get_results( $wpdb->prepare( "SELECT orders_tbl.{$o['id']} as wc_order_id, orders_tbl.{$o['date']} as wc_date_created, orders_tbl.{$o['status']} as wc_status, orders_tbl.{$o['status']} as post_status, kiriminaja_transactions.* {$from} {$base_where} GROUP BY orders_tbl.{$o['id']} ORDER BY orders_tbl.{$o['date']} DESC LIMIT %d OFFSET %d", ...array_merge( $status_args, array( $month, $month_like, $per_page, $offset ) ) ) );
@@ -163,6 +179,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         AND kiriminaja_transactions.is_deficit = 1
+                        {$delivery_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -186,6 +203,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         AND kiriminaja_transactions.is_deficit = 1
+                        {$delivery_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -463,7 +481,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     }
 
     public function getCouriers(): array {
-        $cache_key = 'kiriof_distinct_couriers';
+        $cache_key = 'kiriof_distinct_couriers_' . $this->delivery_type;
         if ( function_exists( 'get_transient' ) ) {
             $cached = get_transient( $cache_key );
             if ( false !== $cached ) {
@@ -473,7 +491,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( 't.wp_wc_order_stat_order_id' );
-        $results = $this->wpdb->get_results( "SELECT DISTINCT service FROM {$table} t WHERE service IS NOT NULL AND service != '' {$clause} ORDER BY service ASC" );
+        $results = $this->wpdb->get_results( "SELECT DISTINCT service FROM {$table} t WHERE service IS NOT NULL AND service != '' {$this->getDeliveryTypeClause( 't' )} {$clause} ORDER BY service ASC" );
         $this->logDatabaseError();
         if ( empty( $this->wpdb->last_error ) && function_exists( 'set_transient' ) ) {
             set_transient( $cache_key, $results, HOUR_IN_SECONDS );
@@ -493,28 +511,32 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
+        $delivery_clause = $this->getDeliveryTypeClause( 't' );
         if ( null === $status || '' === $status || 'all' === $status ) {
-            $sql = $this->wpdb->prepare(
-                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['type_col']} = %s AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.is_deficit = 0 {$clause}",
+            $count = $this->wpdb->get_var( $this->wpdb->prepare(
+                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['type_col']} = %s AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') {$this->getRegularIssueClause()} {$delivery_clause} {$clause}",
                 $o['type_value']
-            );
+            ) );
         } else {
-            $sql = $this->wpdb->prepare(
-                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.status = %s AND t.is_deficit = 0 {$clause}",
+            $count = $this->wpdb->get_var( $this->wpdb->prepare(
+                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.status = %s {$this->getRegularIssueClause()} {$delivery_clause} {$clause}",
                 $status,
                 'new'
-            );
+            ) );
         }
-        $count = $this->wpdb->get_var( $sql );
         $this->logDatabaseError();
         return (int) $count;
     }
     private function getCountProcessed(): int {
+        // No Instant booking read model yet; never infer it from Express payments.
+        if ( 'instant' === $this->delivery_type ) {
+            return 0;
+        }
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $payments = $this->wpdb->prefix . 'kiriminaja_payments';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.status != 'canceled' AND t.is_deficit = 0 {$clause}" );
+        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.status != 'canceled' {$this->getRegularIssueClause()} {$this->getDeliveryTypeClause( 't' )} {$clause}" );
         $this->logDatabaseError();
         return (int) $count;
     }
@@ -523,8 +545,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $sql = $this->wpdb->prepare( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.is_deficit = 0 {$clause}", 'wc-cancelled' );
-        $count = $this->wpdb->get_var( $sql );
+        $count = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s {$this->getRegularIssueClause()} {$this->getDeliveryTypeClause( 't' )} {$clause}", 'wc-cancelled' ) );
         $this->logDatabaseError();
         return (int) $count;
     }
@@ -533,7 +554,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.is_deficit = 1 {$clause}" );
+        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.is_deficit = 1 {$this->getDeliveryTypeClause( 't', 'express' )} {$clause}" );
         $this->logDatabaseError();
         return (int) $count;
     }
@@ -557,5 +578,13 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         if ( ! empty( $this->wpdb->last_error ) && function_exists( 'kiriof_log' ) ) {
             kiriof_log( 'error', (string) $this->wpdb->last_error );
         }
+    }
+
+    private function getRegularIssueClause(): string {
+        return 'express' === $this->delivery_type ? 'AND t.is_deficit = 0' : '';
+    }
+
+    private function getDeliveryTypeClause( string $alias, ?string $delivery_type = null ): string {
+        return $this->wpdb->prepare( "AND {$alias}.delivery_type = %s", $delivery_type ?? $this->delivery_type );
     }
 }

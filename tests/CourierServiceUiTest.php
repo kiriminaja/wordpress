@@ -3,6 +3,17 @@
 use PHPUnit\Framework\TestCase;
 
 final class CourierServiceUiTest extends TestCase {
+    public function test_instant_picker_tab_is_enabled_and_has_selectable_content(): void {
+        $picker = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/CourierServicePicker.svelte' );
+        $this->assertSame( 1, preg_match( '/<Tabs\.Trigger\b(?=[^>]*\bvalue="instant")([^>]*)>/', $picker, $trigger ) );
+        $this->assertDoesNotMatchRegularExpression( '/\b(?:disabled|aria-disabled)\b/', $trigger[1] );
+        $this->assertStringContainsString( 'bind:value={deliveryType}', $picker );
+        $this->assertStringContainsString( "const deliveryTypes: DeliveryType[] = ['express', 'instant']", $picker );
+        $this->assertStringContainsString( '{#each deliveryTypes as tabType (tabType)}', $picker );
+        $this->assertMatchesRegularExpression( '/<Tabs\.Content\s+value=\{tabType\}/', $picker );
+        $this->assertStringContainsString( 'courierDeliveryType(courier) === tabType', $picker );
+    }
+
     public function test_courier_picker_does_not_depend_on_removed_legacy_assets(): void {
         $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
         $this->assertStringNotContainsString( 'enqueueCourierServices', $enqueue );
@@ -48,7 +59,7 @@ final class CourierServiceUiTest extends TestCase {
     public function test_picker_preserves_state_and_uses_accessible_controls(): void {
         $picker = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/CourierServicePicker.svelte' );
         $selection = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/selection.ts' );
-        foreach ( array( 'courierSelection(', 'toggleCourier(', 'toggleService(', '<SettingSwitch', 'checked={status.checked}', 'aria-label=', 'aria-labelledby=', 'for={`${prefix}-service-', 'if (!disabled)', 'sm:grid-cols-2', '2xl:grid-cols-4', '<CourierLogo', '<Tabs.Trigger', 'value="instant"', 'aria-disabled="true"', 'class="kiriof-shadcn !grid min-w-0 gap-3"', 'service.name', '{service.code}' ) as $contract ) {
+        foreach ( array( 'courierSelection(', 'toggleCourier(', 'toggleService(', '<SettingSwitch', 'checked={status.checked}', 'aria-label=', 'aria-labelledby=', 'for={`${prefix}-service-', 'if (!disabled)', 'sm:grid-cols-2', '2xl:grid-cols-4', '<CourierLogo', '<Tabs.Trigger', 'value="instant"', 'value="international"', 'bind:value={deliveryType}', 'courierDeliveryType(courier) === tabType', 'class="kiriof-shadcn !grid min-w-0 gap-3"', 'service.name', '{service.code}' ) as $contract ) {
             $this->assertStringContainsString( $contract, $picker );
         }
         $this->assertStringNotContainsString( '{@html', $picker );
@@ -59,6 +70,15 @@ final class CourierServiceUiTest extends TestCase {
         $switch = file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/switch/switch.svelte' );
         $this->assertStringContainsString( 'focus-visible:', $switch );
         $this->assertStringNotContainsString( '<Checkbox', $picker );
+        $this->assertDoesNotMatchRegularExpression( '/value="instant"\s+disabled/', $picker );
+        $this->assertMatchesRegularExpression( '/value="international"\s+disabled/', $picker );
+        $settings = file_get_contents( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
+        $this->assertStringContainsString( 'setAllServices(selectionState, tabCouriers, enabled)', $settings );
+        $this->assertStringContainsString( 'bind:deliveryType', $settings );
+        $onboarding = file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/OnboardingApp.svelte' );
+        $this->assertStringContainsString( 'setAllServices(courierState, tabCouriers, true)', $onboarding );
+        $this->assertStringContainsString( 'setAllServices(courierState, tabCouriers, false)', $onboarding );
+        $this->assertStringContainsString( 'bind:deliveryType', $onboarding );
         $transactions = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
         $this->assertStringContainsString( '<CourierLogo', $transactions );
         $logo = file_get_contents( PLUGIN_DIR . '/src/lib/ui/CourierLogo.svelte' );

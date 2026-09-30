@@ -212,7 +212,7 @@ class TransactionListRenderService
                 "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
             ),
             "bulk" => [
-                "showPrint" => "all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true),
+                "showPrint" => "express" === $filters["delivery_type"] && ("all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true)),
                 "printAction" => admin_url("admin-post.php"),
                 "printNonce" => wp_create_nonce("kiriof_resi_print_bulk"),
                 "printPreviewNonce" => wp_create_nonce("kiriof_resi_print"),
@@ -223,6 +223,13 @@ class TransactionListRenderService
                 ),
             ],
             "i18n" => [
+                "regularDelivery" => __("Regular Delivery", "kiriminaja-official"),
+                "instantDelivery" => __("Instant Delivery", "kiriminaja-official"),
+                "orderIssue" => __("Order Issue", "kiriminaja-official"),
+                "transactionScope" => __("Transaction scope", "kiriminaja-official"),
+                "vehicle" => __("Vehicle", "kiriminaja-official"),
+                "vehicleUnavailable" => __("Not specified", "kiriminaja-official"),
+                "instantNotice" => __("Instant dispatch is not wired yet. This is a read-only list foundation using local status labels; remote status mapping is pending.", "kiriminaja-official"),
                 "search" => __("Search order…", "kiriminaja-official"),
                 "orderNumber" => __("Order Number", "kiriminaja-official"),
                 "kaOrderId" => __("KA Order ID", "kiriminaja-official"),
@@ -406,13 +413,13 @@ class TransactionListRenderService
     /**
      * Read, sanitize, and normalize list filters.
      *
-     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string}
+     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string,delivery_type:string}
      */
     private function getFilters(): array
     {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin list filters.
         $filters = [];
-        foreach (["key", "month", "status", "cod", "courier", "print_status"] as $name) {
+        foreach (["key", "month", "status", "cod", "courier", "print_status", "delivery_type"] as $name) {
             $value = $_GET[$name] ?? "";
             $filters[$name] = is_string($value)
                 ? sanitize_text_field(wp_unslash($value))
@@ -422,6 +429,13 @@ class TransactionListRenderService
 
         $status = WordPressTransactionListQuery::normalizeStatusFilter($filters["status"]);
         $filters["status"] = is_array($status) ? implode(",", $status) : $status;
+        $filters["delivery_type"] = "order-issue" === $filters["status"]
+            ? "express"
+            : TransactionDeliveryType::normalize($filters["delivery_type"]);
+        if ("instant" === $filters["delivery_type"]) {
+            $filters["cod"] = "";
+            $filters["print_status"] = "";
+        }
         $filters["courier"] = implode(",", WordPressTransactionListQuery::normalizeCourierFilter($filters["courier"]));
         if (!in_array($filters["print_status"], ["0", "1"], true)) {
             $filters["print_status"] = "";

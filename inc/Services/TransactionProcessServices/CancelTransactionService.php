@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use KiriminAjaOfficial\Base\BaseService;
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 class CancelTransactionService extends BaseService {
 
@@ -54,6 +55,10 @@ class CancelTransactionService extends BaseService {
 
             if ( ! $transaction ) {
                 return self::error( [], 'Transaction not found' );
+            }
+
+            if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+                return self::error( [], __( 'Instant shipment cancellation is not available yet.', 'kiriminaja-official' ) );
             }
 
             // Only allow cancel for transactions that haven't been shipped/finished/canceled yet

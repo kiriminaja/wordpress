@@ -4,11 +4,13 @@ export type CourierService = {
   aliases?: string[];
   unavailable?: boolean;
 };
+export type DeliveryType = 'express' | 'instant';
 export type Courier = {
   code: string;
   name: string;
   type?: string;
   region?: string;
+  delivery_type?: DeliveryType;
   services: CourierService[];
   unavailable?: boolean;
 };
@@ -16,6 +18,7 @@ export type ServiceSelection = Record<string, string[]>;
 export type CourierPayload = {
   couriers: Courier[];
   whitelist_ids: string[];
+  legacy_restricted?: boolean;
   service_selection: ServiceSelection | null;
 };
 export type SelectionState = { selection: ServiceSelection; remembered: ServiceSelection };
@@ -62,12 +65,27 @@ export function matchesCourierSearch(courier: Courier, query: string): boolean {
     ].some((value) => fuzzyIncludes(value, term))
   );
 }
-export function supportedCourier(courier: Pick<Courier, 'code' | 'type' | 'region'>): boolean {
+const instantCodes = ['gosend', 'grab_express', 'borzo'];
+
+export function courierDeliveryType(
+  courier: Pick<Courier, 'code' | 'type' | 'delivery_type'>,
+): DeliveryType {
+  return instantCodes.includes(normalized(courier.code)) ||
+    normalized(courier.type ?? '') === 'instant' ||
+    courier.delivery_type === 'instant'
+    ? 'instant'
+    : 'express';
+}
+
+export function supportedCourier(
+  courier: Pick<Courier, 'code' | 'type' | 'region' | 'delivery_type'>,
+): boolean {
   return (
     Boolean(normalized(courier.code)) &&
-    !['ninja_inter', 'gosend', 'grab_express', 'borzo'].includes(normalized(courier.code)) &&
-    !['instant', 'international'].includes(normalized(courier.type ?? '')) &&
-    normalized(courier.region ?? '') !== 'international'
+    normalized(courier.code) !== 'ninja_inter' &&
+    normalized(courier.type ?? '') !== 'international' &&
+    normalized(courier.region ?? '') !== 'international' &&
+    (courierDeliveryType(courier) !== 'instant' || instantCodes.includes(normalized(courier.code)))
   );
 }
 
@@ -80,7 +98,9 @@ export function initializeSelection(payload: CourierPayload): {
     ...courier,
     services: (courier.services?.length
       ? courier.services
-      : [{ code: '*', name: 'All services' }]
+      : courierDeliveryType(courier) === 'instant'
+        ? []
+        : [{ code: '*', name: 'All services' }]
     ).map((service) => ({ ...service })),
   }));
   const legacy = payload.service_selection === null || payload.service_selection === undefined;
@@ -90,6 +110,7 @@ export function initializeSelection(payload: CourierPayload): {
     : payload.service_selection!;
   for (const [rawCode, values] of Object.entries(saved)) {
     if (!Array.isArray(values) || !supportedCourier({ code: rawCode })) continue;
+    if (legacy && instantCodes.includes(normalized(rawCode))) continue;
     const original = (payload.couriers ?? []).find(
       (row) => normalized(row.code) === normalized(rawCode),
     );
@@ -100,16 +121,20 @@ export function initializeSelection(payload: CourierPayload): {
         code: rawCode,
         name: rawCode,
         unavailable: true,
-        services: [{ code: '*', name: 'All services', unavailable: true }],
+        services:
+          courierDeliveryType({ code: rawCode }) === 'instant'
+            ? []
+            : [{ code: '*', name: 'All services', unavailable: true }],
       };
       couriers.push(courier);
     }
-    const expanded = values.includes('*')
-      ? [
-          ...courier.services.map((service) => service.code),
-          ...values.filter((code) => code !== '*'),
-        ]
-      : values;
+    const expanded =
+      values.includes('*') && courier.services.length > 0
+        ? [
+            ...courier.services.map((service) => service.code),
+            ...values.filter((code) => code !== '*'),
+          ]
+        : values;
     selection[courier.code] = [
       ...new Set(
         expanded.map((code) => {
@@ -128,9 +153,10 @@ export function initializeSelection(payload: CourierPayload): {
     }
   }
   // An empty legacy allowlist meant unrestricted shipping, not an explicit deny-all.
-  if (legacy && !(payload.whitelist_ids ?? []).length) {
+  if (legacy && !(payload.whitelist_ids ?? []).length && !payload.legacy_restricted) {
     for (const courier of couriers)
-      selection[courier.code] = courier.services.map((service) => service.code);
+      if (courierDeliveryType(courier) === 'express')
+        selection[courier.code] = courier.services.map((service) => service.code);
   }
   return { couriers, state: { selection, remembered: {} } };
 }
@@ -161,11 +187,11 @@ export function toggleCourier(
   const selection = { ...state.selection };
   const remembered = { ...state.remembered };
   if (enabled)
-    selection[courier.code] = [
-      ...(remembered[courier.code]?.length
-        ? remembered[courier.code]
-        : courier.services.map((service) => service.code)),
-    ];
+    selection[courier.code] = remembered[courier.code]?.length
+      ? remembered[courier.code].filter((code) =>
+          courier.services.some((service) => service.code === code && !service.unavailable),
+        )
+      : courier.services.filter((service) => !service.unavailable).map((service) => service.code);
   else {
     if (selection[courier.code]?.length) remembered[courier.code] = [...selection[courier.code]];
     delete selection[courier.code];
@@ -180,7 +206,12 @@ export function toggleService(
 ): SelectionState {
   const previous = state.selection[courier.code] ?? [];
   const values = previous.filter((value) => value !== code);
-  if (enabled) values.push(code);
+  if (
+    enabled &&
+    (!courier.services.find((service) => service.code === code)?.unavailable ||
+      previous.includes(code))
+  )
+    values.push(code);
   const selection = { ...state.selection };
   const remembered = { ...state.remembered };
   if (values.length) {
@@ -197,12 +228,26 @@ export function setAllServices(
   couriers: Courier[],
   enabled: boolean,
 ): SelectionState {
-  if (!enabled) return { selection: {}, remembered: { ...state.remembered, ...state.selection } };
+  if (!enabled) {
+    return couriers.reduce((next, courier) => toggleCourier(next, courier, false), state);
+  }
   return {
     selection: {
       ...state.selection,
       ...Object.fromEntries(
-        couriers.map((courier) => [courier.code, courier.services.map((service) => service.code)]),
+        couriers
+          .map((courier): [string, string[]] => [
+            courier.code,
+            [
+              ...new Set([
+                ...(state.selection[courier.code] ?? []),
+                ...courier.services
+                  .filter((service) => !service.unavailable)
+                  .map((service) => service.code),
+              ]),
+            ],
+          ])
+          .filter(([, services]) => services.length > 0),
       ),
     },
     remembered: { ...state.remembered },

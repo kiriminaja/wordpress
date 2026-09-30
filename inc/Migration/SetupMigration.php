@@ -1,6 +1,8 @@
 <?php
 namespace KiriminAjaOfficial\Migration;
 
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -111,6 +113,11 @@ class SetupMigration {
      */
     private function transactionsTable(){
         global $wpdb;
+        // Independent of onboarding/setup sync state: upgraded v3 stores need this schema too.
+        $version_key = 'kiriof_transaction_partition_v1' . preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
+        if ( '1' === get_option( $version_key, '' ) ) {
+            return;
+        }
         /** Transactions Table*/
         $suffix     = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $this->suffix );
         $table_name = esc_sql( $wpdb->prefix . 'kiriminaja_transactions' . $suffix );
@@ -129,6 +136,9 @@ class SetupMigration {
                 `status` enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new',
                 `service` varchar(50) DEFAULT NULL,
                 `service_name` varchar(50) DEFAULT NULL,
+                `delivery_type` varchar(20) NOT NULL DEFAULT 'express',
+                KEY `delivery_type` (`delivery_type`),
+                `vehicle` varchar(20) DEFAULT NULL,
                 `awb` varchar(100) DEFAULT NULL,
                 `rejected_reason` varchar(255) DEFAULT NULL,
                 `weight` int(11) DEFAULT NULL,
@@ -216,12 +226,42 @@ class SetupMigration {
                 $wpdb->query("ALTER TABLE `$table_name` ADD shipment_location_id int(11) DEFAULT NULL");
             }
             if (!in_array('shipment_location_snapshot', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+               // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
                 $wpdb->query("ALTER TABLE `$table_name` ADD shipment_location_snapshot text DEFAULT NULL");
             }
+            if (!in_array('delivery_type', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query("ALTER TABLE `$table_name` ADD delivery_type varchar(20) NOT NULL DEFAULT 'express'");
+            }
+            if (!in_array('vehicle', $columns)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query("ALTER TABLE `$table_name` ADD vehicle varchar(20) DEFAULT NULL");
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $delivery_type_index = $wpdb->get_row( $wpdb->prepare( "SHOW INDEX FROM `$table_name` WHERE Key_name = %s", 'delivery_type' ) );
+            if ( ! $delivery_type_index ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query("ALTER TABLE `$table_name` ADD KEY delivery_type (delivery_type)");
+            }
+            // Legacy rows predate the partition column; classify documented Instant couriers.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $backfilled = $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE `$table_name` SET delivery_type = %s WHERE delivery_type != %s AND LOWER(TRIM(service)) IN ('gosend','grab_express','borzo')",
+                    TransactionDeliveryType::normalize( 'instant' ),
+                    TransactionDeliveryType::normalize( 'instant' )
+                )
+            );
             
         }
-        /** Alters*/
+        // Verify the schema before marking complete; failed DDL must be retried.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $columns = $wpdb->get_col( "DESCRIBE `$table_name`", 0 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $index = $wpdb->get_row( $wpdb->prepare( "SHOW INDEX FROM `$table_name` WHERE Key_name = %s", 'delivery_type' ) );
+        if ( ( ! isset( $backfilled ) || false !== $backfilled ) && in_array( 'delivery_type', $columns, true ) && in_array( 'vehicle', $columns, true ) && $index && empty( $wpdb->last_error ) ) {
+            update_option( $version_key, '1', false );
+        }
     }
     
     private function paymentsTable(){

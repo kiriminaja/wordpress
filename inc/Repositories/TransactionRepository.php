@@ -2,6 +2,7 @@
 namespace KiriminAjaOfficial\Repositories;
 
 use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
@@ -229,7 +230,20 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->hasError() ? false : $query;
     }
     
+    /** Keep courier edits and the indexed partition in the same write. */
+    private function normalizeDeliveryChanges( array $changes ): array {
+        if ( array_key_exists( 'service', $changes ) || array_key_exists( 'delivery_type', $changes ) ) {
+            $changes['delivery_type'] = TransactionDeliveryType::resolve( $changes );
+            $changes['vehicle'] = 'instant' === $changes['delivery_type'] ? TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] ?? null ) : null;
+            $this->invalidateCouriersCache();
+        } elseif ( array_key_exists( 'vehicle', $changes ) ) {
+            $changes['vehicle'] = TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] );
+        }
+        return $changes;
+    }
+
     public function updateTransactionByCallback($payloads){
+        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'] );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         
@@ -243,6 +257,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
      * @return bool
      */
     public function updateTransactionByCallbackVerified( $payloads ) {
+        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'] );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $updated = $this->wpdb->update( $this->table, $payloads['changes'], $payloads['condition'] );
 
@@ -307,6 +322,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     `status`, 
                     `service`, 
                     `service_name`, 
+                    `delivery_type`,
+                    `vehicle`,
                     `weight`, 
                     `width`, 
                     `height`, 
@@ -326,7 +343,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     `shipment_location_id`,
                     `shipment_location_snapshot`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %s, NULLIF(%s, ''), %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s)",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -334,6 +351,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                 $payload['status'],
                 $payload['service'],
                 $payload['service_name'],
+                TransactionDeliveryType::resolve( $payload ),
+                TransactionDeliveryType::normalizeVehicle( $payload['vehicle'] ?? null ) ?? '',
                 $payload['weight'],
                 $payload['width'],
                 $payload['height'],
@@ -546,6 +565,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
 
     public function invalidateCouriersCache() {
         delete_transient('kiriof_distinct_couriers');
+        delete_transient('kiriof_distinct_couriers_express');
+        delete_transient('kiriof_distinct_couriers_instant');
     }
 
     /**
@@ -678,7 +699,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];
         
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update($this->table, $updateData, $where);
+        $this->wpdb->update($this->table, $this->normalizeDeliveryChanges( array_merge( $updateData, array_intersect_key( $payload, array_flip( array( 'delivery_type', 'vehicle' ) ) ) ) ), $where);
         $this->invalidateCouriersCache();
         return !$this->hasError();
     }

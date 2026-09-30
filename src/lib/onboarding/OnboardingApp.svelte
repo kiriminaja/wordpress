@@ -28,6 +28,8 @@
     hasSelection,
     selectionPayload,
     setAllServices,
+    courierDeliveryType,
+    type DeliveryType,
     type CourierPayload,
     type SelectionState,
   } from '$lib/couriers/selection';
@@ -84,6 +86,8 @@
   let account = $state(getInitialAccount());
   let couriers = $state<OnboardingCourier[]>([]);
   let courierState = $state<SelectionState>({ selection: {}, remembered: {} });
+  let deliveryType = $state<DeliveryType>('express');
+  const tabCouriers = $derived(couriers.filter((courier) => courierDeliveryType(courier) === deliveryType));
   let courierLoadError = $state('');
   let couriersLoading = $state(false);
   let courierLoaded = $state(false);
@@ -417,12 +421,12 @@
 
   function enableAllCouriers(): void {
     if (!courierLoaded || couriersLoading || busy) return;
-    changeCourierSelection(setAllServices(courierState, couriers, true));
+    changeCourierSelection(setAllServices(courierState, tabCouriers, true));
   }
 
   function disableAllCouriers(): void {
     if (!courierLoaded || couriersLoading || busy) return;
-    changeCourierSelection(setAllServices(courierState, couriers, false));
+    changeCourierSelection(setAllServices(courierState, tabCouriers, false));
   }
 
   async function saveCouriers(): Promise<void> {
@@ -807,6 +811,7 @@
             <CourierServicePicker
               {couriers}
               compact
+              bind:deliveryType
               state={courierState}
               i18n={bootstrap.couriers.i18n}
               disabled={busy || couriersLoading || !courierLoaded}

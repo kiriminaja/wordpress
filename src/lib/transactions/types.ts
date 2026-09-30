@@ -1,4 +1,5 @@
 export type TransactionFilters = {
+  delivery_type: 'express' | 'instant';
   key: string;
   month: string;
   status: string;
@@ -29,6 +30,8 @@ export type TransactionActionData = {
 };
 
 export type TransactionRow = {
+  deliveryType: 'express' | 'instant';
+  vehicle: string | null;
   id: number;
   wcOrderId: number;
   wcOrderUrl: string;

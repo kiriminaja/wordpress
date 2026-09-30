@@ -5,30 +5,83 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Domestic express services, mirrored from Shopify app/helpers/expedition.ts. */
+	/** Courier services mirrored from Shopify app/helpers/expedition.ts. */
 class CourierServiceCatalog {
-	/** Unknown domestic express couriers are allowed; unsupported transport is not. */
-	public static function isSupportedCourier( string $code, array $row = array() ): bool {
+	/**
+	 * Return whether a courier belongs to the requested delivery type.
+	 *
+	 * Express remains the default for backwards compatibility. Instant is
+	 * deliberately limited to the couriers documented by the Instant API.
+	 *
+	 * @param string               $code          Courier code.
+	 * @param array<string, mixed> $row           Raw API row.
+	 * @param string|null          $delivery_type express, instant, or null for both.
+	 */
+	public static function isSupportedCourier( string $code, array $row = array(), ?string $delivery_type = 'express' ): bool {
 		$code = strtolower( trim( $code ) );
 		$type = strtolower( trim( (string) ( $row['type'] ?? '' ) ) );
 		$region = strtolower( trim( (string) ( $row['region'] ?? '' ) ) );
-		return '' !== $code
-			&& ! in_array( $code, array( 'gosend', 'grab_express', 'borzo', 'ninja_inter' ), true )
-			&& ! in_array( $type, array( 'instant', 'international' ), true )
-			&& 'international' !== $region;
+		if ( '' === $code || 'international' === $type || 'international' === $region || 'ninja_inter' === $code ) {
+			return false;
+		}
+
+		$is_instant = in_array( $code, self::instantCodes(), true ) || 'instant' === $type;
+		if ( 'instant' === $delivery_type ) {
+			return $is_instant && in_array( $code, self::instantCodes(), true );
+		}
+		if ( 'express' === $delivery_type ) {
+			return ! $is_instant;
+		}
+
+		return self::isSupportedCourier( $code, $row, 'instant' ) || self::isSupportedCourier( $code, $row, 'express' );
+	}
+
+	/** @return string[] */
+	public static function instantCodes(): array {
+		return array( 'gosend', 'grab_express', 'borzo' );
+	}
+
+	/**
+	 * Shopify 5a9a2d7 courier children; Borzo is disabled in that reference.
+	 *
+	 * These definitions enrich account-returned rows; they do not grant entitlement.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function instantServices(): array {
+		return array(
+			'gosend' => array(
+				'code' => 'gosend',
+				'name' => 'GoSend',
+				'type' => 'instant',
+				'services' => array(
+					array( 'code' => 'instant', 'name' => 'Instant' ),
+					array( 'code' => 'sameday', 'name' => 'Same Day' ),
+				),
+			),
+			'grab_express' => array(
+				'code' => 'grab_express',
+				'name' => 'GrabExpress',
+				'type' => 'instant',
+				'services' => array(
+					array( 'code' => 'instant', 'name' => 'Instant' ),
+					array( 'code' => 'sameday', 'name' => 'Same Day' ),
+				),
+			),
+		);
 	}
 
 	/** Filter raw API/cache rows without changing their public shape. */
-	public static function filterSupported( array $couriers ): array {
-		return array_values( array_filter( $couriers, static function ( $row ) {
+	public static function filterSupported( array $couriers, ?string $delivery_type = 'express' ): array {
+		return array_values( array_filter( $couriers, static function ( $row ) use ( $delivery_type ) {
 			$row = (array) $row;
-			return self::isSupportedCourier( (string) ( $row['code'] ?? '' ), $row );
+			return self::isSupportedCourier( (string) ( $row['code'] ?? '' ), $row, $delivery_type );
 		} ) );
 	}
 
-	public static function filterSelection( array $selection ): array {
-		return array_filter( $selection, static function ( $code ) {
-			return self::isSupportedCourier( (string) $code );
+	public static function filterSelection( array $selection, ?string $delivery_type = null ): array {
+		return array_filter( $selection, static function ( $code ) use ( $delivery_type ) {
+			return self::isSupportedCourier( (string) $code, array(), $delivery_type );
 		}, ARRAY_FILTER_USE_KEY );
 	}
 
@@ -134,14 +187,14 @@ class CourierServiceCatalog {
 	}
 
 	/** Enrich only API-returned couriers; real embedded services remain authoritative. */
-	public static function enrich( array $couriers ): array {
-		$known = self::known();
+	public static function enrich( array $couriers, ?string $delivery_type = 'express' ): array {
+		$known = array_merge( self::known(), self::instantServices() );
 		$result = array();
 		foreach ( $couriers as $row ) {
 			$row = (array) $row;
 			$code = strtolower( trim( (string) ( $row['code'] ?? '' ) ) );
 			$type = strtolower( (string) ( $row['type'] ?? 'regular' ) );
-			if ( ! self::isSupportedCourier( $code, $row ) ) {
+			if ( ! self::isSupportedCourier( $code, $row, $delivery_type ) ) {
 				continue;
 			}
 			$services = array();
@@ -165,29 +218,47 @@ class CourierServiceCatalog {
 				}
 				$services[ $definition['code'] ] = $definition;
 			}
+			$is_instant = self::isSupportedCourier( $code, $row, 'instant' );
 			$result[] = array(
 				'code' => $code,
 				'name' => (string) ( $row['name'] ?? $known[ $code ]['name'] ?? strtoupper( $code ) ),
 				'type' => $type,
-				'services' => $services ? array_values( $services ) : ( $known[ $code ]['services'] ?? array( array( 'code' => '*', 'name' => 'All services' ) ) ),
+				'delivery_type' => $is_instant ? 'instant' : 'express',
+				'services' => $services ? array_values( $services ) : ( $known[ $code ]['services'] ?? ( $is_instant ? array() : array( array( 'code' => '*', 'name' => 'All services' ) ) ) ),
 			);
 		}
 		return $result;
 	}
 
 	/** Known fallback plus cached API services, without requiring a live request. */
-	public static function available(): array {
+	public static function available( ?string $delivery_type = null ): array {
 		$catalog = self::known();
 		if ( function_exists( 'get_transient' ) ) {
 			$cached = get_transient( 'kiriof_couriers_list_v2' );
 			if ( false === $cached ) {
 				$cached = get_transient( 'kiriof_couriers_last_success_cache' );
 			}
-			foreach ( self::enrich( (array) $cached ) as $courier ) {
+			foreach ( self::enrich( (array) $cached, $delivery_type ) as $courier ) {
 				// Save accepts every displayed cached choice as well as known aliases.
 				$courier['services'] = array_merge( $courier['services'], $catalog[ $courier['code'] ]['services'] ?? array() );
 				$catalog[ $courier['code'] ] = $courier;
 			}
+			$instant_cached = get_transient( 'kiriof_couriers_all_v1' );
+			if ( false === $instant_cached ) {
+				$instant_cached = get_transient( 'kiriof_couriers_all_last_success_v1' );
+			}
+			foreach ( self::enrich( (array) $instant_cached, $delivery_type ) as $courier ) {
+				$courier['services'] = array_merge( $courier['services'], $catalog[ $courier['code'] ]['services'] ?? array() );
+				$catalog[ $courier['code'] ] = $courier;
+			}
+		}
+		if ( null !== $delivery_type ) {
+			$catalog = array_filter(
+				$catalog,
+				static function ( $courier ) use ( $delivery_type ) {
+					return self::isSupportedCourier( (string) ( $courier['code'] ?? '' ), (array) $courier, $delivery_type );
+				}
+			);
 		}
 		return $catalog;
 	}
@@ -201,7 +272,7 @@ class CourierServiceCatalog {
 			$catalog[ $key ]['services'] = array_merge( $catalog[ $key ]['services'] ?? array(), $known[ $key ]['services'] ?? array() );
 		}
 		$courier = strtolower( trim( $courier ) );
-		if ( ! self::isSupportedCourier( $courier ) ) {
+		if ( ! self::isSupportedCourier( $courier, array(), null ) ) {
 			return null;
 		}
 		foreach ( $catalog[ $courier ]['services'] ?? array() as $definition ) {

@@ -12,7 +12,12 @@ class CourierServiceUiData {
 			'deliveryType' => __( 'Delivery type', 'kiriminaja-official' ),
 			'expressDelivery' => __( 'Express Delivery', 'kiriminaja-official' ),
 			'instantDelivery' => __( 'Instant Delivery', 'kiriminaja-official' ),
-			'instantUnavailable' => __( 'Instant delivery is not available yet.', 'kiriminaja-official' ),
+			'internationalDelivery' => __( 'International', 'kiriminaja-official' ),
+			'comingSoon' => __( 'Coming soon', 'kiriminaja-official' ),
+			'instantSetupHint' => __( 'Instant preferences are saved here. Instant checkout and shipment processing are not available yet.', 'kiriminaja-official' ),
+			'instantServicesMissing' => __( 'Service details are unavailable for this courier. Refresh courier data or contact support before enabling it.', 'kiriminaja-official' ),
+			'noInstantCouriers' => __( 'No Instant couriers are available for this account.', 'kiriminaja-official' ),
+			'noInstantCouriersHint' => __( 'Check Instant eligibility for your KiriminAja account, then refresh the courier data.', 'kiriminaja-official' ),
 			'domesticDelivery' => __( 'Domestic Delivery', 'kiriminaja-official' ),
 			/* translators: %1$s: active courier count, %2$s: total courier count. */
 			'activeTotal' => __( '%1$s Active / %2$s Total', 'kiriminaja-official' ),

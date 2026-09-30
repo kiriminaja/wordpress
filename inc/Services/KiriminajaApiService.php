@@ -50,40 +50,47 @@ class KiriminajaApiService extends BaseService{
     private const KIRIOF_COURIERS_CACHE_KEY = 'kiriof_couriers_list_v2';
     private const KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY = 'kiriof_couriers_last_success_cache';
     private const KIRIOF_COURIERS_CACHE_TTL = DAY_IN_SECONDS;
+	private const KIRIOF_ALL_COURIERS_CACHE_KEY = 'kiriof_couriers_all_v1';
+	private const KIRIOF_ALL_COURIERS_LAST_SUCCESS_CACHE_KEY = 'kiriof_couriers_all_last_success_v1';
 
-    public function get_couriers(){
-        $cached = get_transient( self::KIRIOF_COURIERS_CACHE_KEY );
+    public function get_couriers( bool $include_instant = false ){
+		$cache_key = $include_instant ? self::KIRIOF_ALL_COURIERS_CACHE_KEY : self::KIRIOF_COURIERS_CACHE_KEY;
+		$fallback_key = $include_instant ? self::KIRIOF_ALL_COURIERS_LAST_SUCCESS_CACHE_KEY : self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY;
+		$delivery_type = $include_instant ? null : 'express';
+        $cached = get_transient( $cache_key );
         if ( false !== $cached ) {
-            return self::success( CourierServiceCatalog::filterSupported( (array) $cached ) );
+            return self::success( CourierServiceCatalog::filterSupported( (array) $cached, $delivery_type ) );
         }
 
         $repo = $this->repository->get_couriers();
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
-            $last_success = get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
+            $last_success = get_transient( $fallback_key );
             if ( false !== $last_success ) {
-                $last_success = CourierServiceCatalog::filterSupported( (array) $last_success );
+                $last_success = CourierServiceCatalog::filterSupported( (array) $last_success, $delivery_type );
                 kiriof_log(
                     'warning',
                     'Courier lookup used the cached fallback because the live API request failed.',
                     array( 'source' => 'kiriminaja_api' )
                 );
-                set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $last_success, self::KIRIOF_COURIERS_CACHE_TTL );
+                set_transient( $cache_key, $last_success, self::KIRIOF_COURIERS_CACHE_TTL );
                 return self::success( $last_success, 'Using cached courier data.', 'courier_cache_fallback' );
             }
 
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
 
-        $data = CourierServiceCatalog::filterSupported( (array) $repo['data']->datas );
-        set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $data, self::KIRIOF_COURIERS_CACHE_TTL );
-        set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $data, WEEK_IN_SECONDS );
+        $data = CourierServiceCatalog::filterSupported( (array) $repo['data']->datas, $delivery_type );
+        set_transient( $cache_key, $data, self::KIRIOF_COURIERS_CACHE_TTL );
+        set_transient( $fallback_key, $data, WEEK_IN_SECONDS );
         return self::success( $data );
     }
 
     public function invalidateCouriersCache( bool $include_last_success = true ): void {
         delete_transient( self::KIRIOF_COURIERS_CACHE_KEY );
+		delete_transient( self::KIRIOF_ALL_COURIERS_CACHE_KEY );
         if ( $include_last_success ) {
             delete_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
+			delete_transient( self::KIRIOF_ALL_COURIERS_LAST_SUCCESS_CACHE_KEY );
         }
     }
 

@@ -4333,6 +4333,30 @@ msgid "Instant delivery is not available yet."
 msgstr "Pengiriman instan belum tersedia."
 
 #: inc/Services/CourierServiceUiData.php
+msgid "International"
+msgstr "Internasional"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Coming soon"
+msgstr "Segera hadir"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Instant preferences are saved here. Instant checkout and shipment processing are not available yet."
+msgstr "Preferensi pengiriman instan disimpan di sini. Checkout dan pemrosesan pengiriman instan belum tersedia."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Service details are unavailable for this courier. Refresh courier data or contact support before enabling it."
+msgstr "Detail layanan kurir ini tidak tersedia. Muat ulang data kurir atau hubungi dukungan sebelum mengaktifkannya."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "No Instant couriers are available for this account."
+msgstr "Tidak ada kurir instan yang tersedia untuk akun ini."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Check Instant eligibility for your KiriminAja account, then refresh the courier data."
+msgstr "Periksa kelayakan Instant untuk akun KiriminAja Anda, lalu muat ulang data kurir."
+
+#: inc/Services/CourierServiceUiData.php
 msgid "Domestic Delivery"
 msgstr "Pengiriman Domestik"
 

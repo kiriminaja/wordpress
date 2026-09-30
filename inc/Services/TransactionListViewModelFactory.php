@@ -48,6 +48,8 @@ class TransactionListViewModelFactory {
 	 * @return array<string, mixed>
 	 */
 	private function createRow( object $row, string $status_filter ): array {
+		$delivery_type         = TransactionDeliveryType::resolve( $row );
+		$is_express            = 'express' === $delivery_type;
 		$helper                = kiriof_helper();
 		$shipping_info         = json_decode( (string) ( $row->shipping_info ?? '{}' ) );
 		$wc_order              = function_exists( 'wc_get_order' ) ? wc_get_order( $row->wc_order_id ) : false;
@@ -81,9 +83,10 @@ class TransactionListViewModelFactory {
 		$order_id              = (string) ( $row->order_id ?? '' );
 		$can_request_pickup    = $is_processable && ( ! $is_deficit || $effective_payout >= 0 );
 		$print_capable_filter  = in_array( $status_filter, array( 'all', 'processed' ), true );
-		$can_print             = $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
+		$can_print             = $is_express && $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
 		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
-		$can_cancel            = '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
+		$can_cancel            = $is_express && '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
+		$can_request_pickup    = $is_express && $can_request_pickup;
 		$checkbox_disabled     = ! $can_print && ! $can_request_pickup;
 		$origin                = $this->origin_resolver->resolve( $row );
 		$origin_name           = $origin['name'];
@@ -107,6 +110,8 @@ class TransactionListViewModelFactory {
 		);
 
 		return array(
+			'deliveryType'    => $delivery_type,
+			'vehicle'         => isset( $row->vehicle ) ? (string) $row->vehicle : null,
 			'id'              => (int) ( $row->id ?? $row->wc_order_id ),
 			'wcOrderId'       => (int) $row->wc_order_id,
 			'wcOrderUrl'      => admin_url( 'post.php?post=' . (int) $row->wc_order_id . '&action=edit' ),
@@ -140,14 +145,14 @@ class TransactionListViewModelFactory {
 				'disabled'  => $checkbox_disabled,
 				'canPickup' => $can_request_pickup,
 				'canPrint'  => $can_print,
-				'title'     => $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ),
+				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : __( 'Instant dispatch is not wired yet.', 'kiriminaja-official' ),
 			),
 			'actions'         => array(
 				'preview'      => true,
-				'changeOrigin' => $is_processable,
-				'adjustDeficit'=> $is_deficit,
-				'cancelDeficit'=> $is_deficit,
-				'print'        => '' !== $awb && 'request_pickup' === (string) $row->status,
+				'changeOrigin' => $is_express && $is_processable,
+				'adjustDeficit'=> $is_express && $is_deficit,
+				'cancelDeficit'=> $is_express && $is_deficit,
+				'print'        => $is_express && '' !== $awb && 'request_pickup' === (string) $row->status,
 				'cancel'       => ! $is_deficit && $can_cancel,
 				'printUrl'     => admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) ),
 			),

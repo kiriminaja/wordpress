@@ -8,7 +8,9 @@
     initializeSelection,
     selectionPayload,
     setAllServices,
+    courierDeliveryType,
     type Courier,
+    type DeliveryType,
     type CourierPayload,
     type SelectionState,
   } from '$lib/couriers/selection';
@@ -19,6 +21,8 @@
 
   let { bootstrap }: { bootstrap: CouriersBootstrap } = $props();
   let couriers = $state<Courier[]>([]);
+  let deliveryType = $state<DeliveryType>('express');
+  const tabCouriers = $derived(couriers.filter((courier) => courierDeliveryType(courier) === deliveryType));
   let selectionState = $state<SelectionState>({ selection: {}, remembered: {} });
   let loading = $state(true);
   let loaded = $state(false);
@@ -97,7 +101,7 @@
 
   function setAll(enabled: boolean): void {
     if (!loaded || loading || saving) return;
-    void persist(setAllServices(selectionState, couriers, enabled));
+    void persist(setAllServices(selectionState, tabCouriers, enabled));
   }
 
   onMount(() => {
@@ -116,8 +120,8 @@
     disabled={!loaded ||
       loading ||
       saving ||
-      couriers.length === 0 ||
-      sameSelection(setAllServices(selectionState, couriers, true), selectionState)}
+      tabCouriers.length === 0 ||
+      sameSelection(setAllServices(selectionState, tabCouriers, true), selectionState)}
     onclick={() => setAll(true)}
   >
     <IconCheck class="kiriof-settings-action-button__icon" aria-hidden="true" />
@@ -129,8 +133,8 @@
     disabled={!loaded ||
       loading ||
       saving ||
-      couriers.length === 0 ||
-      sameSelection(setAllServices(selectionState, couriers, false), selectionState)}
+      tabCouriers.length === 0 ||
+      sameSelection(setAllServices(selectionState, tabCouriers, false), selectionState)}
     onclick={() => setAll(false)}
   >
     <IconX class="kiriof-settings-action-button__icon" aria-hidden="true" />
@@ -162,6 +166,7 @@
   {:else}
     <CourierServicePicker
       {couriers}
+      bind:deliveryType
       i18n={bootstrap.i18n}
       state={selectionState}
       disabled={saving || loading}

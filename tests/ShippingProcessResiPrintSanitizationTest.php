@@ -168,15 +168,16 @@ final class ShippingProcessResiPrintSanitizationTest extends TestCase
     {
 		$content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
 		$app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
+        $view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '["all", "processed"]',
-            $content,
+            "\$print_capable_filter  = in_array( \$status_filter, array( 'all', 'processed' ), true );",
+            $view,
             'The All tab should be treated as a print-capable tab'
         );
 
         $this->assertStringContainsString(
-            '"showPrint"',
+            '"showPrint" => "all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true)',
             $content,
             'Bulk Print button should be rendered on both Processed and All tabs'
         );
@@ -185,6 +186,17 @@ final class ShippingProcessResiPrintSanitizationTest extends TestCase
             '"unprintedLabel"',
             $content,
             'Expedition & Service column should show Unprinted status for labels that have not been printed'
+        );
+
+        $this->assertStringContainsString(
+            "{#if row.printStatus === 'unprinted'}",
+            $app,
+            'The unprinted badge should be conditional on the row print status'
+        );
+        $this->assertStringContainsString(
+            '{bootstrap.i18n.unprintedLabel}</span>',
+            $app,
+            'The unprinted badge should render the translated label'
         );
 
         $this->assertStringNotContainsString(

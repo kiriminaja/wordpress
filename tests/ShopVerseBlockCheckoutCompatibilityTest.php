@@ -3820,19 +3820,36 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 		$view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '$filters["status"] = "all";',
+            '$status = WordPressTransactionListQuery::normalizeStatusFilter($filters["status"]);',
             $renderer,
             'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
         );
 
         $this->assertStringContainsString(
-            '$status = \'all\';',
+            '$filters["status"] = is_array($status) ? implode(",", $status) : $status;',
+            $renderer,
+            'The renderer must pass the normalized status to the page query and UI'
+        );
+
+        require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
+        require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
+        foreach (array('', 'invalid-status', null, array('wc-processing')) as $status) {
+            $this->assertSame(
+                'all',
+                \KiriminAjaOfficial\Queries\WordPressTransactionListQuery::normalizeStatusFilter($status),
+                'Empty/invalid status values must default to all rather than hiding non-processing orders'
+            );
+        }
+
+        $this->assertStringContainsString(
+            '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );',
             $query,
             'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
         );
 
-        $normalizePosition = strpos($query, '$status = \'all\';');
-        $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $status);');
+        $normalizePosition = strpos($query, '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );');
+        $this->assertStringContainsString('$singleStatus = $isMultiStatus ? \'\' : $status;', $query);
+        $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $singleStatus);');
         $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
         $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
         $this->assertLessThan(

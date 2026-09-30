@@ -14,6 +14,7 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 }
 
 require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
+require_once PLUGIN_DIR . '/inc/Services/TransactionDeliveryType.php';
 require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
 
 final class TransactionListQueryRuntimeTest extends TestCase
@@ -58,12 +59,14 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $scope = substr( $app, $start, $end - $start );
 
         $this->assertStringContainsString( 'window.clearTimeout(searchTimer)', $scope );
+        $this->assertStringContainsString( "if (value !== 'order-issue' && value !== 'regular' && value !== 'instant') return", $scope );
+        $this->assertStringContainsString( "delivery_type: value === 'instant' ? 'instant' : 'express'", $scope );
         $this->assertStringContainsString( "status: value === 'order-issue' ? 'order-issue' : 'all'", $scope );
         foreach ( array( 'key', 'month', 'cod', 'courier', 'print_status' ) as $filter ) {
             $this->assertStringContainsString( $filter . ": ''", $scope );
         }
         $this->assertStringNotContainsString( 'per_page:', $scope );
-        $this->assertStringContainsString( "if (!('cpage' in values)) url.searchParams.set('cpage', '1')", $app );
+        $this->assertStringContainsString( "if (!('cpage' in values)) url.searchParams.set('cpage', Object.keys(values).length === 0 ? String(bootstrap.pagination.page) : '1')", $app );
     }
 
     #[Test]
@@ -218,7 +221,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/tabs/index.ts' );
 		$this->assertStringContainsString( '<WorkspaceTabs', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "filters.status === 'order-issue' ? 'order-issue' : 'regular'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+		$this->assertStringContainsString( "isOrderIssue ? 'order-issue' : isInstant ? 'instant' : 'regular'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<div class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( "[data-slot='checkbox'][data-state='checked']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
 		$this->assertStringContainsString( '.kiriof-row-actions [data-slot=\'button\']', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
@@ -239,7 +242,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
         $this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
         $this->assertStringContainsString( 'onclick={openPickupDialog}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringContainsString( 'disabled={!row.selection.canPrint && !row.selection.canPickup}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( "disabled={row.deliveryType === 'instant' || (!row.selection.canPrint && !row.selection.canPickup)}", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'isOrderIssue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'International Delivery', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( "bootstrap.i18n.status", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

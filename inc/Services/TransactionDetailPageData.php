@@ -93,7 +93,8 @@ class TransactionDetailPageData
         $awb = (string) ($transaction->awb ?? "");
         $is_deficit = !empty($transaction->is_deficit);
         $terminal_statuses = array("shipped", "finished", "returned", "return", "canceled");
-        $can_cancel = !$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true);
+        $is_express = 'express' === TransactionDeliveryType::resolve( $transaction );
+        $can_cancel = $is_express && !$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true);
         $order_url = $wc_order && method_exists($wc_order, "get_edit_order_url") ? (string) $wc_order->get_edit_order_url() : "";
         $wc_status = $wc_order && method_exists($wc_order, "get_status") ? (string) $wc_order->get_status() : "";
         $payment_status = $cod_fee > 0 ? "" : ("on-hold" === $wc_status ? __("Unpaid", "kiriminaja-official") : __("Paid", "kiriminaja-official"));
@@ -127,7 +128,7 @@ class TransactionDetailPageData
             $warnings[] = $this->record_warning( $transaction, 'actions', $error );
         }
         $print_url =
-            "" !== (string) ($transaction->awb ?? "")
+            $is_express && "" !== (string) ($transaction->awb ?? "")
                 ? admin_url(
                     "admin-post.php?action=kiriof_resi_print&oids=" .
                         rawurlencode((string) ($transaction->order_id ?? "")) .
@@ -252,9 +253,9 @@ class TransactionDetailPageData
                     "trackingOrder" => (string) ($transaction->order_id ?? ""),
                 ],
                 "actions" => [
-                    "changeOrigin" => "new" === $status,
-                    "adjustDeficit" => $is_deficit,
-                    "cancelDeficit" => $is_deficit,
+                    "changeOrigin" => $is_express && "new" === $status,
+                    "adjustDeficit" => $is_express && $is_deficit,
+                    "cancelDeficit" => $is_express && $is_deficit,
                     "cancel" => $can_cancel,
                     "data" => $action_data,
                 ],

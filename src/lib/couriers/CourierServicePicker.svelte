@@ -4,16 +4,18 @@
   import { Button } from '$lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Tabs from '$lib/components/ui/tabs';
+  import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
   import SettingSwitch from '$lib/ui/SettingSwitch.svelte';
   import {
     courierSelection,
-    selectedCourierCount,
+    courierDeliveryType,
     toggleCourier,
     toggleService,
     matchesCourierSearch,
     sortCouriersByName,
     type Courier,
+    type DeliveryType,
     type SelectionState,
   } from '$lib/couriers/selection';
 
@@ -22,6 +24,7 @@
     state: selectionState,
     disabled = false,
     compact = false,
+    deliveryType = $bindable<DeliveryType>('express'),
     onChange,
     i18n,
   }: {
@@ -29,6 +32,7 @@
     state: SelectionState;
     disabled?: boolean;
     compact?: boolean;
+    deliveryType?: DeliveryType;
     onChange: (next: SelectionState) => void;
     i18n: Partial<Record<string, string>>;
   } = $props();
@@ -41,30 +45,11 @@
       status: courierSelection(courier, selectionState.selection),
     })),
   );
-  const visibleRows = $derived(
-    rows.filter(
-      ({ courier }) =>
-        matchesCourierSearch(courier, search),
-    ),
-  );
-  const serviceCount = $derived(
-    Object.values(selectionState.selection).reduce(
-      (total, services) => total + services.length,
-      0,
-    ),
-  );
-  const courierCount = $derived(selectedCourierCount(selectionState.selection));
-  const hasUnavailable = $derived(
-    couriers.some(
-      (courier) =>
-        courier.unavailable ||
-        courier.services.some((service) => service.unavailable),
-    ),
-  );
+  const deliveryTypes: DeliveryType[] = ['express', 'instant'];
 </script>
 
 <Tabs.Root
-  value="express"
+  bind:value={deliveryType}
   class="kiriof-shadcn !grid min-w-0 gap-3"
   aria-busy={disabled}
 >
@@ -72,7 +57,7 @@
     class="!flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 sm:p-4"
   >
     <Tabs.List
-      class="!h-9 !bg-transparent !p-0"
+      class="!h-auto !max-w-full !flex-wrap !bg-transparent !p-0"
       aria-label={i18n.deliveryType ?? 'Delivery type'}
     >
       <Tabs.Trigger
@@ -82,13 +67,12 @@
       >
       <Tabs.Trigger
         value="instant"
-        disabled
-        class="!h-9 !px-3"
-        title={i18n.instantUnavailable ??
-          'Instant delivery is not available yet.'}
-        aria-disabled="true"
+        class="!h-9 !px-3 data-active:!bg-muted data-active:!shadow-none"
         >{i18n.instantDelivery ?? 'Instant Delivery'}</Tabs.Trigger
       >
+      <Tabs.Trigger value="international" disabled title={i18n.comingSoon ?? 'Coming soon'}>
+        {i18n.internationalDelivery ?? 'International'} · {i18n.comingSoon ?? 'Coming soon'}
+      </Tabs.Trigger>
     </Tabs.List>
     <div
       class="!flex w-full min-w-0 flex-wrap items-center justify-end gap-3 sm:w-auto sm:flex-1"
@@ -108,19 +92,25 @@
     </div>
   </div>
 
+  {#each deliveryTypes as tabType (tabType)}
+  {@const tabRows = rows.filter(({ courier }) => courierDeliveryType(courier) === tabType)}
+  {@const visibleRows = tabRows.filter(({ courier }) => matchesCourierSearch(courier, search))}
+  {@const courierCount = tabRows.filter(({ status }) => status.checked).length}
+  {@const serviceCount = tabRows.reduce((total, { status }) => total + status.count, 0)}
+  {@const hasUnavailable = tabRows.some(({ courier }) => courier.unavailable || courier.services.some((service) => service.unavailable))}
   <Tabs.Content
-    value="express"
+    value={tabType}
     class="!mt-0 !grid min-w-0 gap-4 rounded-xl border border-border bg-card p-3 sm:p-4"
   >
     <div class="!flex flex-wrap items-start justify-between gap-3">
       <div class="!grid gap-1">
         <h2 class="!m-0 !text-sm font-semibold text-foreground">
-          {i18n.domesticDelivery ?? 'Domestic Delivery'}
+          {tabType === 'instant' ? (i18n.instantDelivery ?? 'Instant Delivery') : (i18n.domesticDelivery ?? 'Domestic Delivery')}
         </h2>
         <p class="!m-0 text-xs text-muted-foreground">
           {(i18n.activeTotal ?? '%1$s Active / %2$s Total')
             .replace('%1$s', String(courierCount))
-            .replace('%2$s', String(couriers.length))}
+            .replace('%2$s', String(tabRows.length))}
         </p>
       </div>
       <span
@@ -133,7 +123,10 @@
         )}</span
       >
     </div>
-    {#if courierCount === 0}
+    {#if tabType === 'instant'}
+      <Alert><AlertDescription>{i18n.instantSetupHint ?? 'Instant preferences are saved here. Instant checkout and shipment processing are not available yet.'}</AlertDescription></Alert>
+    {/if}
+    {#if courierCount === 0 && tabType === 'express'}
       <p
         class="!m-0 rounded-lg border border-warning-border bg-warning-background p-3 text-xs text-warning-foreground"
         role="status"
@@ -171,11 +164,14 @@
                     .replace('%2$s', String(courier.services.length))}
                 </p>
               </div>
+          {#if courier.services.length === 0}
+            <p class="!m-0 mt-3 text-xs text-muted-foreground">{i18n.instantServicesMissing ?? 'Service details are unavailable for this courier. Refresh courier data or contact support before enabling it.'}</p>
+          {/if}
             </div>
             <SettingSwitch
               id={`${prefix}-toggle-${index}`}
               checked={status.checked}
-              {disabled}
+              disabled={disabled || (!courier.services.some((service) => !service.unavailable) && !status.checked)}
               label={(i18n.enableCourier ?? 'Enable %s services').replace(
                 '%s',
                 courier.name,
@@ -223,7 +219,7 @@
                 <SettingSwitch
                   id={`${prefix}-service-${index}-${serviceIndex}`}
                   checked={selected}
-                  {disabled}
+                  disabled={disabled || (service.unavailable && !selected)}
                   label={(i18n.enableService ?? 'Enable %1$s for %2$s')
                     .replace('%1$s', service.name)
                     .replace('%2$s', courier.name)}
@@ -250,11 +246,10 @@
         >
           <IconSearch class="size-6 text-muted-foreground" aria-hidden="true" />
           <p class="!m-0 text-sm font-semibold text-foreground">
-            {i18n.noCouriersFound ?? 'No couriers found'}
+            {tabRows.length === 0 && tabType === 'instant' ? (i18n.noInstantCouriers ?? 'No Instant couriers are available for this account.') : (i18n.noCouriersFound ?? 'No couriers found')}
           </p>
           <p class="!m-0 text-xs text-muted-foreground">
-            {i18n.noCouriersFoundDescription ??
-              'Try another courier or service name, or change the selection filter.'}
+            {tabRows.length === 0 && tabType === 'instant' ? (i18n.noInstantCouriersHint ?? 'Check Instant eligibility for your KiriminAja account, then refresh the courier data.') : (i18n.noCouriersFoundDescription ?? 'Try another courier or service name, or change the selection filter.')}
           </p>
           {#if search}
             <Button
@@ -275,4 +270,5 @@
       </p>
     {/if}
   </Tabs.Content>
+  {/each}
 </Tabs.Root>

@@ -12,6 +12,7 @@ namespace Automattic\WooCommerce\Utilities {
 
 namespace {
     define('ABSPATH', dirname(__DIR__, 2) . '/');
+    require_once dirname(__DIR__, 2) . '/inc/Services/TransactionDeliveryType.php';
     require_once dirname(__DIR__, 2) . '/inc/Contracts/TransactionListQueryInterface.php';
     require_once dirname(__DIR__, 2) . '/inc/Queries/WordPressTransactionListQuery.php';
 
