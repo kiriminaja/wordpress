@@ -75,7 +75,7 @@
 <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
 
 {#if bootstrap.mode === 'unconfigured'}
-  <section class="kiriof-connect kiriof-settings-content" aria-labelledby="kiriof-connect-title">
+  <section class="kiriof-shadcn kiriof-connect kiriof-settings-content" aria-labelledby="kiriof-connect-title">
     <div class="kiriof-connect__identity" aria-hidden="true">
       <span>W</span>
       <span class="kiriof-connect__link"><IconLink size={18} stroke={2} /></span>
@@ -106,7 +106,7 @@
     </div>
   </section>
 {:else}
-  <div class="kiriof-settings-root kiriof-settings-content">
+  <div class="kiriof-shadcn kiriof-settings-root kiriof-settings-content">
     {#if error}
       <p class="kiriof-settings-root__message is-error" role="alert">{error}</p>
     {/if}

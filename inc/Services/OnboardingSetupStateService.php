@@ -65,10 +65,7 @@ class OnboardingSetupStateService {
 		$courier_setting = $repo->getSettingByKey( 'origin_whitelist_expedition_id' );
 		$courier_policy = $repo->getCourierServiceSelection();
 		$couriers_ready = null === $courier_policy ? ! empty( $courier_setting->value ?? null ) : $repo->hasEnabledCourierServices();
-		$shipping_ready = false;
-		if ( class_exists( WooCommerceShippingMethodRegistrationService::class ) ) {
-			$shipping_ready = $this->get_shipping_method_service()->hasEnabledMethod();
-		}
+		$shipping_ready = $this->get_shipping_method_service()->hasEnabledMethod();
 
 		$ship_to_countries  = get_option( 'woocommerce_ship_to_countries', '' );
 		$shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();

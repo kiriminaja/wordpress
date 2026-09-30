@@ -3826,12 +3826,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "return 'all';",
+            '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );',
             $query,
             'The page query should default to the all filter instead of hiding non-processing checkout-block transactions'
         );
 
-        $normalizePosition = strpos($query, '$status       = $this->normalizeStatusFilter');
+        $normalizePosition = strpos($query, '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );');
         $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $singleStatus);');
         $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
         $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
