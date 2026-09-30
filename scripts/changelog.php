@@ -16,8 +16,8 @@
  *   minor           — 2.1.4 -> 2.2.0,  auto-rolls to major at .99 (2.99.0 -> 3.0.0)
  *   major           — 2.2.0 -> 3.0.0
  *
- * Reads git log since the last version in readme.txt (or from-ref),
- * filters commits containing "feature/feat" or "fixing/fix" keywords,
+ * Reads first-parent git history since the last version in readme.txt (or
+ * from-ref), keeps user-facing squash commit titles (feat/fix/perf),
  * and prepends the new version entry to the == Changelog == section.
  * Also updates: Stable tag, KIRIOF_VERSION, Version header, and WC tested up to.
  */
@@ -173,7 +173,7 @@ if ( $from_ref ) {
 }
 
 $log_cmd = sprintf(
-    'cd %s && git log %s --format="@@COMMIT@@%%n%%s%%n%%b" -- kiriminaja.php inc/ wc/ templates/ assets/ lang/ frontend/ uninstall.php',
+    'cd %s && git log --first-parent %s --format="%%H%%x1f%%P%%x1f%%s%%x1e"',
     escapeshellarg( $root_dir ),
     $since_arg
 );
@@ -185,53 +185,41 @@ if ( $raw_output === null ) {
     exit( 1 );
 }
 
-// --- Parse merge commits (PR merges) ---
+// --- Parse user-facing squash commits ---
 $features = [];
 $fixes    = [];
-$commits  = array_filter( explode( '@@COMMIT@@', $raw_output ) );
+$commits  = array_filter( explode( chr( 30 ), $raw_output ) );
 
 foreach ( $commits as $commit ) {
-    $lines = array_values(
-        array_filter(
-            array_map( 'trim', explode( "\n", trim( $commit ) ) ),
-            static function ( $line ) {
-                return $line !== '';
-            }
-        )
-    );
-
-    if ( empty( $lines ) ) {
+    $fields = explode( chr( 31 ), trim( $commit ), 3 );
+    if ( count( $fields ) !== 3 ) {
         continue;
     }
 
-    $subject = $lines[0];
-    $title   = $lines[1] ?? '';
-    $pr      = '';
+    [ , $parents, $subject ] = $fields;
+    $parent_list = preg_split( '/\s+/', trim( $parents ) );
 
-    if ( preg_match( '/^Merge pull request #(\d+)\s+from\s+\S+\/(.+?)(?:\s|$)/i', $subject, $m ) ) {
-        $pr = ' (#' . $m[1] . ')';
-
-        if ( empty( $title ) || preg_match( '/^(Merge|Signed-off-by|Co-authored-by|Reviewed-by)/i', $title ) ) {
-            $title = ucfirst( str_replace( '-', ' ', $m[2] ) );
-        }
-    }
-
-    $clean = preg_replace( '/^(AB#\d+\s*)?/', '', $title ?: $subject );
-    $clean = preg_replace( '/^(feat|fix|chore|refactor|docs|style|test|ci|build|perf)(\([^)]*\))?:\s*/i', '', $clean );
-    $clean = trim( $clean );
-
-    if ( empty( $clean ) || preg_match( '/^Merge (branch|pull request)/i', $clean ) ) {
+    // A GitHub squash merge produces one first-parent commit. Exclude true
+    // merge commits and release/build/refactor/test implementation details.
+    if ( count( array_filter( $parent_list ) ) !== 1 ) {
         continue;
     }
 
-    $lower = strtolower( $title ?: $subject );
+    $subject = preg_replace( '/^(AB#\d+\s*)?/', '', trim( $subject ) );
+    if ( ! preg_match( '/^(feat(?:ure)?|fix(?:ing)?|perf)(?:\([^)]*\))?!?:\s*(.+)$/i', $subject, $match ) ) {
+        continue;
+    }
 
-    if ( preg_match( '/\bfeature|feat\b/i', $lower ) ) {
-        $features[] = ucfirst( $clean ) . $pr;
-    } elseif ( preg_match( '/\bfixing|fix\b/i', $lower ) ) {
-        $fixes[] = ucfirst( $clean ) . $pr;
+    $type  = strtolower( $match[1] );
+    $clean = trim( $match[2] );
+    if ( '' === $clean ) {
+        continue;
+    }
+
+    if ( str_starts_with( $type, 'fix' ) ) {
+        $fixes[] = ucfirst( $clean );
     } else {
-        $features[] = ucfirst( $clean ) . $pr;
+        $features[] = ucfirst( $clean );
     }
 }
 

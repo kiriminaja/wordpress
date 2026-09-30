@@ -181,6 +181,38 @@ class SendRequestPickupTransactionService extends BaseService
         return false;
     }
 
+    private function validatePickupSchedule(): ?string
+    {
+        try {
+            $timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : new \DateTimeZone( 'UTC' );
+            $schedule = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $this->schedule, $timezone );
+            $errors = \DateTimeImmutable::getLastErrors();
+            if ( ! $schedule || ( is_array( $errors ) && ( $errors['warning_count'] > 0 || $errors['error_count'] > 0 ) ) ) {
+                return __( 'Please choose a valid pickup date and time.', 'kiriminaja-official' );
+            }
+
+            $now = new \DateTimeImmutable( 'now', $timezone );
+            $earliest = $now->modify( '+1 hour' );
+            $latest = $now->modify( '+7 days' );
+            $hour = (int) $schedule->format( 'G' );
+            $minute = (int) $schedule->format( 'i' );
+
+            if ( $schedule < $earliest ) {
+                return __( 'Pickup must be scheduled at least one hour from now.', 'kiriminaja-official' );
+            }
+            if ( $schedule > $latest ) {
+                return __( 'Pickup must be scheduled within the next seven days.', 'kiriminaja-official' );
+            }
+            if ( $minute !== 0 || $hour < 8 || $hour > 21 ) {
+                return __( 'Please choose one of the available pickup time slots.', 'kiriminaja-official' );
+            }
+        } catch ( \Throwable $throwable ) {
+            return __( 'Please choose a valid pickup date and time.', 'kiriminaja-official' );
+        }
+
+        return null;
+    }
+
     private function isCodPackage(array $package): bool
     {
         return !empty($package['is_cod']) || (float) ($package['cod'] ?? 0) > 0;
@@ -204,6 +236,10 @@ class SendRequestPickupTransactionService extends BaseService
         }
         if (empty($this->schedule)) {
             return self::error([], 'Schedule is required');
+        }
+        $scheduleError = $this->validatePickupSchedule();
+        if ( $scheduleError !== null ) {
+            return self::error( [], $scheduleError );
         }
         
         $getOriginData = $this->getOriginData();

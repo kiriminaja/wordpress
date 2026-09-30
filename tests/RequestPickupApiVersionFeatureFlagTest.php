@@ -12,10 +12,14 @@ final class RequestPickupApiVersionFeatureFlagTest extends TestCase {
 		$service    = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
 		$repository = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
 
-		$this->assertStringContainsString( "define( 'KIRIOF_ENABLE_KA_CREDIT', false );", $plugin );
+		$this->assertStringContainsString( "define( 'KIRIOF_ENABLE_KA_CREDIT', true );", $plugin );
 		$this->assertStringContainsString( 'KIRIOF_ENABLE_KA_CREDIT', $controller );
-		$this->assertStringContainsString( 'if ( KIRIOF_ENABLE_KA_CREDIT ) {', $admin );
 		$this->assertStringContainsString( "add_action( 'admin_bar_menu', array( \$this, 'kiriof_add_credit_balance_admin_bar' ), 61 );", $admin );
+		$this->assertStringContainsString( 'kiriof_add_credit_balance_admin_bar', $admin );
+		$this->assertStringContainsString( 'isTopPaymentMethod()', $admin );
+		$this->assertStringContainsString( 'kiriof_admin_bar_credit_balance', $admin );
+		$this->assertStringContainsString( 'kiriof-ka-credit-balance', $admin );
+		$this->assertStringContainsString( "add_action('wp_ajax_kiriof_get_credit_balance'", $controller );
 		$this->assertStringContainsString( '$isKaCreditEnabled = KIRIOF_ENABLE_KA_CREDIT;', $service );
 		$this->assertStringContainsString( 'sendPickupRequest($payload)', $service );
 		$this->assertStringNotContainsString( 'sendPickupRequestWithFeatureFlag', $repository );

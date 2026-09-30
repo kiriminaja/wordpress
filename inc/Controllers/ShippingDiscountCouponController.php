@@ -600,16 +600,29 @@ class ShippingDiscountCouponController {
     }
 
     public function renderAreaRestrictionsMetabox( $post ) {
-        $this->renderAreaRestrictionFields( (int) $post->ID );
+		$this->renderSvelteCouponPanel( 'area', function () use ( $post ) {
+			$this->renderAreaRestrictionFields( (int) $post->ID );
+		} );
     }
 
     public function renderCourierRestrictionsMetabox( $post ) {
-        $this->renderCourierRestrictionFields( (int) $post->ID );
+		$this->renderSvelteCouponPanel( 'couriers', function () use ( $post ) {
+			$this->renderCourierRestrictionFields( (int) $post->ID );
+		} );
     }
 
     public function renderUsageCombinationsMetabox( $post ) {
-        $this->renderUsageCombinationFields( (int) $post->ID );
+		$this->renderSvelteCouponPanel( 'combinations', function () use ( $post ) {
+			$this->renderUsageCombinationFields( (int) $post->ID );
+		} );
     }
+
+	private function renderSvelteCouponPanel( string $key, callable $renderer ): void {
+		echo '<div data-kiriof-coupon-panel-host="' . esc_attr( $key ) . '"></div>';
+		echo '<div data-kiriof-coupon-panel-fallback="' . esc_attr( $key ) . '">';
+		$renderer();
+		echo '</div>';
+	}
 
     public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
         unset( $coupon_id, $coupon );
@@ -854,7 +867,7 @@ class ShippingDiscountCouponController {
         wp_enqueue_style(
             'kiriof-coupon-admin-style',
             KIRIOF_URL . 'assets/admin/css/kj-coupon-admin.css',
-            array( 'select2' ),
+            array( 'select2', 'kiriof-badge-style' ),
             KIRIOF_VERSION
         );
         wp_enqueue_script(
@@ -864,6 +877,18 @@ class ShippingDiscountCouponController {
             KIRIOF_VERSION,
             true
         );
+
+		$coupon_panel_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-coupon-panels.js';
+		if ( file_exists( $coupon_panel_script ) ) {
+			wp_enqueue_script(
+				'kiriof-coupon-panels',
+				KIRIOF_URL . 'assets/admin/dist/kiriminaja-coupon-panels.js',
+				array( 'kiriof-coupon-admin-script' ),
+				(string) filemtime( $coupon_panel_script ),
+				true
+			);
+			wp_script_add_data( 'kiriof-coupon-panels', 'type', 'module' );
+		}
 
         wp_localize_script(
             'kiriof-coupon-admin-script',

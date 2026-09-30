@@ -2309,7 +2309,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $orderValidationStart = strpos($controller, 'public function kiriof_validateOrder');
         $this->assertNotFalse($orderValidationStart, 'Order validation hook must exist');
-        $orderValidationBody = substr($controller, $orderValidationStart, 1300);
+        $orderValidationBody = substr($controller, $orderValidationStart, strpos($controller, 'public function kiriof_billing_fields', $orderValidationStart) - $orderValidationStart);
         $normalizePosition = strpos($orderValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
         $districtNoticePosition = strpos($orderValidationBody, '<strong>District</strong> is a required field');
         $this->assertNotFalse($normalizePosition, 'Order validation must normalize district POST data first');
@@ -2327,7 +2327,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $normalizerStart = strpos($controller, 'private function kiriof_normalize_classic_destination_post_data()');
         $this->assertNotFalse($normalizerStart, 'District POST normalizer must exist');
-        $normalizerBody = substr($controller, $normalizerStart, 3000);
+        $normalizerBody = substr($controller, $normalizerStart, strpos($controller, 'private function kiriof_get_checkout_posted_address', $normalizerStart) - $normalizerStart);
 
         foreach (array(
             "kiriof_get_session_text_field( 'kiriof_destination_area' )" => 'Normalizer must read the plugin checkout district session value',
@@ -2393,7 +2393,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'if (empty($_POST[\'shipping_method\'][0]) && ! $kiriof_address_too_short)',
+            'if ( empty( $_POST[\'shipping_method\'][0] ) && ! $kiriof_address_too_short )',
             $validateBody,
             'Plugin shipping-required notice should not be added when the address length is the actual blocker'
         );
@@ -3700,7 +3700,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'private function kiriof_add_checkout_fees()');
         $this->assertNotFalse($start, 'Native block checkout fee method must exist');
-        $methodBody = substr($content, $start, 3800);
+        $methodBody = substr($content, $start, strpos($content, 'private function kiriof_fee_cache_matches', $start) - $start);
 
         $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
         $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');
@@ -3817,10 +3817,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
         $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
-        $view = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/view/index.php');
+		$view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '$filters[\'status\'] = \'all\';',
+            '$filters["status"] = "all";',
             $renderer,
             'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
         );
@@ -3842,13 +3842,13 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'wc_get_order($kiriof_row->wc_order_id)',
+			"wc_get_order( \$row->wc_order_id )",
             $view,
             'Transaction list payment label should read the final Woo order payment method, not stale shipping_info meta'
         );
 
-        $wooPaymentPosition = strpos($view, '$kiriof_wcOrder->get_payment_method()');
-        $shippingInfoPosition = strpos($view, '$kiriof_shippingData->_payment_method');
+		$wooPaymentPosition = strpos($view, '$wc_order->get_payment_method()');
+		$shippingInfoPosition = strpos($view, '$shipping_info->_payment_method');
         $this->assertNotFalse($wooPaymentPosition, 'Transaction list must read Woo order payment method');
         $this->assertNotFalse($shippingInfoPosition, 'Transaction list may retain shipping_info payment as fallback');
         $this->assertLessThan(

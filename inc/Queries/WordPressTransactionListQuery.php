@@ -22,6 +22,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         if ( null === $wpdb ) {
             global $wpdb;
         }
+
         $this->wpdb = $wpdb;
     }
 
@@ -53,26 +54,22 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $key          = $filters['key'];
         $month        = $filters['month'];
-        $status       = $filters['status'];
+        $status       = $this->normalizeStatusFilter( $filters['status'] ?? '' );
         $cod          = $filters['cod'];
-        $courier      = $filters['courier'];
+        $courier      = $this->normalizeCourierFilter( $filters['courier'] ?? '' );
         $print_status = $filters['print_status'];
-        $search_by    = $filters['search_by'];
         $month_like   = '';
         if ( '' !== $month ) {
             $month_like = $wpdb->esc_like( $month ) . '%';
         }
 
-        // Whitelist of post_status values exposed by the pill row in the view.
-        // Anything outside the whitelist (including empty) falls back to all.
-        $allowedStatuses = ['all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed', 'order-issue'];
-        if (! in_array($status, $allowedStatuses, true)) {
-            $status = 'all';
-        }
-        $isProcessedFilter  = ('processed' === $status);
-        $isCancelledFilter  = ('wc-cancelled' === $status);
-        $isAllFilter = ('all' === $status);
-        $isDeficitFilter    = ('order-issue' === $status);
+        $isMultiStatus = is_array( $status );
+        $singleStatus = $isMultiStatus ? '' : $status;
+        $isProcessedFilter  = ('processed' === $singleStatus);
+        $isCancelledFilter  = ('wc-cancelled' === $singleStatus);
+        $isAllFilter = ('all' === $singleStatus);
+        $isDeficitFilter    = ('order-issue' === $singleStatus);
+        $regular_issue_clause = 'AND kiriminaja_transactions.is_deficit = 0';
 
         $cod_clause = '';
         if ('1' === $cod) {
@@ -82,8 +79,11 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         }
 
         $courier_clause = '';
-        if ('' !== $courier) {
-            $courier_clause = $wpdb->prepare( "AND kiriminaja_transactions.service = %s", $courier );
+        if ( is_array( $courier ) && count( $courier ) > 1 ) {
+            $placeholders = implode( ', ', array_fill( 0, count( $courier ), '%s' ) );
+            $courier_clause = $wpdb->prepare( "AND kiriminaja_transactions.service IN ({$placeholders})", ...$courier );
+        } elseif ( is_array( $courier ) && count( $courier ) === 1 ) {
+            $courier_clause = $wpdb->prepare( 'AND kiriminaja_transactions.service = %s', $courier[0] );
         }
 
         $print_status_clause = '';
@@ -105,23 +105,52 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $key_clause = '';
         if ('' !== $key) {
-            $key_escaped = $wpdb->esc_like($key);
-            $key_like    = '%' . $key_escaped . '%';
-        } else {
-            $key_like = '';
+            if (0 === strpos($key, 'pid:')) {
+                $pickup_number = sanitize_text_field(substr($key, 4));
+                $key_clause = $wpdb->prepare(
+                    'AND kiriminaja_transactions.pickup_number = %s',
+                    $pickup_number
+                );
+            } else {
+                $key_escaped       = $wpdb->esc_like($key);
+                $key_prefix        = $key_escaped . '%';
+                $key_contains      = '%' . $key_escaped . '%';
+                $order_number_type = ctype_digit($key) ? '%d' : '%s';
+                $order_number      = ctype_digit($key) ? (int) $key : $key;
+                $key_clause        = $wpdb->prepare(
+                    "AND (orders_tbl.{$o['id']} = {$order_number_type} OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
+                    $order_number,
+                    $key_prefix,
+                    $key_contains
+                );
+            }
         }
 
-        if ('' !== $key) {
-            switch ( $search_by ) {
-                case 'ka_order_id':
-                    $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.order_id LIKE %s', $key_like );
-                    break;
-                case 'awb':
-                    $key_clause = $wpdb->prepare( 'AND kiriminaja_transactions.awb LIKE %s', $key_like );
-                    break;
-                default:
-                    $key_clause = $wpdb->prepare( "AND orders_tbl.{$o['id']} LIKE %s", $key_like );
-                    break;
+        // Keep each selected status branch grouped. This prevents the processed
+        // branch from weakening the shipment/status guard of regular orders.
+        if ( is_array( $status ) ) {
+            $status_parts = array();
+            $status_args  = array();
+            $regular_statuses = array_values( array_diff( $status, array( 'all', 'order-issue' ) ) );
+            $wc_statuses = array_values( array_intersect( $regular_statuses, array( 'wc-processing', 'wc-on-hold', 'wc-pending' ) ) );
+            if ( $wc_statuses ) {
+                $status_parts[] = "(orders_tbl.{$o['status']} IN (" . implode( ', ', array_fill( 0, count( $wc_statuses ), '%s' ) ) . ") AND kiriminaja_transactions.status = %s)";
+                $status_args = array_merge( $status_args, $wc_statuses, array( 'new' ) );
+            }
+            if ( in_array( 'processed', $regular_statuses, true ) ) {
+                $status_parts[] = "(kiriminaja_transactions.status != 'canceled' AND EXISTS (SELECT 1 FROM {$wpdb->prefix}kiriminaja_payments multi_pay WHERE multi_pay.pickup_number = kiriminaja_transactions.pickup_number))";
+            }
+            if ( in_array( 'wc-cancelled', $regular_statuses, true ) ) {
+                $status_parts[] = "(orders_tbl.{$o['status']} = %s)";
+                $status_args[] = 'wc-cancelled';
+            }
+            if ( $status_parts ) {
+                $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') AND kiriminaja_transactions.is_deficit = 0 {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . ") AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
+                $from = "FROM {$o['table']} as orders_tbl INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id";
+                $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT orders_tbl.{$o['id']}) {$from} {$base_where}", ...array_merge( $status_args, array( $month, $month_like ) ) ) );
+                $results = $wpdb->get_results( $wpdb->prepare( "SELECT orders_tbl.{$o['id']} as wc_order_id, orders_tbl.{$o['date']} as wc_date_created, orders_tbl.{$o['status']} as wc_status, orders_tbl.{$o['status']} as post_status, kiriminaja_transactions.* {$from} {$base_where} GROUP BY orders_tbl.{$o['id']} ORDER BY orders_tbl.{$o['date']} DESC LIMIT %d OFFSET %d", ...array_merge( $status_args, array( $month, $month_like, $per_page, $offset ) ) ) );
+                $this->logDatabaseError();
+                return array( 'results' => $results, 'total' => $total );
             }
         }
 
@@ -183,6 +212,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         ON kiriminaja_transactions.pickup_number = kiriminaja_payments.pickup_number
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         AND kiriminaja_transactions.status != 'canceled'
+                        {$regular_issue_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -208,6 +238,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         ON kiriminaja_transactions.pickup_number = kiriminaja_payments.pickup_number
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
                         AND kiriminaja_transactions.status != 'canceled'
+                        {$regular_issue_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -231,6 +262,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['status']} = %s
+                        {$regular_issue_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -254,6 +286,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['status']} = %s
+                        {$regular_issue_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -278,6 +311,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                        {$regular_issue_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -300,6 +334,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                     ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                 WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
+                    {$regular_issue_clause}
                     {$cod_clause}
                     {$courier_clause}
                     {$print_status_clause}
@@ -325,6 +360,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['status']} = %s
                         AND kiriminaja_transactions.status = %s
+                        {$regular_issue_clause}
                         {$cod_clause}
                         {$courier_clause}
                         {$print_status_clause}
@@ -350,6 +386,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                 WHERE orders_tbl.{$o['status']} = %s
                     AND kiriminaja_transactions.status = %s
+                    {$regular_issue_clause}
                     {$cod_clause}
                     {$courier_clause}
                     {$print_status_clause}
@@ -376,6 +413,42 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         return ['results' => $results, 'total' => $total];
     }
 
+
+    /** Normalize CSV without accepting array-shaped request parameters. */
+    public static function normalizeStatusFilter( $value ) {
+        $regular = array( 'wc-processing', 'wc-on-hold', 'wc-pending', 'processed', 'wc-cancelled' );
+        if ( ! is_string( $value ) ) {
+            return 'all';
+        }
+        $tokens = array_values( array_unique( array_map( 'trim', explode( ',', substr( $value, 0, 2048 ), 64 ) ) ) );
+        if ( in_array( 'all', $tokens, true ) ) {
+            return 'all';
+        }
+        // The issue tab is a separate scope, never a member of a regular OR.
+        if ( array( 'order-issue' ) === $tokens ) {
+            return 'order-issue';
+        }
+        $selected = array_values( array_intersect( $tokens, $regular ) );
+        if ( ! $selected || count( $selected ) === count( $regular ) ) {
+            return 'all';
+        }
+        return count( $selected ) === 1 ? $selected[0] : $selected;
+    }
+
+    /** Bound query size and reject malformed courier codes rather than rewriting them. */
+    public static function normalizeCourierFilter( $value ): array {
+        if ( ! is_string( $value ) ) {
+            return array();
+        }
+        $tokens = array_map( 'trim', explode( ',', substr( $value, 0, 4096 ), 51 ) );
+        $codes = array();
+        foreach ( array_slice( $tokens, 0, 50 ) as $token ) {
+            if ( preg_match( '/\A[a-zA-Z0-9_-]{1,64}\z/', $token ) ) {
+                $codes[] = $token;
+            }
+        }
+        return array_values( array_unique( $codes ) );
+    }
 
     public function getStatusCounts(): array {
         return array(
@@ -422,12 +495,12 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
         if ( null === $status || '' === $status || 'all' === $status ) {
             $sql = $this->wpdb->prepare(
-                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['type_col']} = %s AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') {$clause}",
+                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['type_col']} = %s AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.is_deficit = 0 {$clause}",
                 $o['type_value']
             );
         } else {
             $sql = $this->wpdb->prepare(
-                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.status = %s {$clause}",
+                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.status = %s AND t.is_deficit = 0 {$clause}",
                 $status,
                 'new'
             );
@@ -441,7 +514,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $payments = $this->wpdb->prefix . 'kiriminaja_payments';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.status != 'canceled' {$clause}" );
+        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.status != 'canceled' AND t.is_deficit = 0 {$clause}" );
         $this->logDatabaseError();
         return (int) $count;
     }
@@ -450,7 +523,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $sql = $this->wpdb->prepare( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s {$clause}", 'wc-cancelled' );
+        $sql = $this->wpdb->prepare( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.is_deficit = 0 {$clause}", 'wc-cancelled' );
         $count = $this->wpdb->get_var( $sql );
         $this->logDatabaseError();
         return (int) $count;

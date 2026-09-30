@@ -22,7 +22,7 @@ class KiriminajaApiService extends BaseService{
     public function sub_district_search($search)
     {
         $repo = $this->repository->sub_district_search($search);
-        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
+        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) ) {
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
         return self::success($repo['data']->result);
@@ -54,13 +54,14 @@ class KiriminajaApiService extends BaseService{
     public function get_couriers(){
         $cached = get_transient( self::KIRIOF_COURIERS_CACHE_KEY );
         if ( false !== $cached ) {
-            return self::success( $cached );
+            return self::success( CourierServiceCatalog::filterSupported( (array) $cached ) );
         }
 
         $repo = $this->repository->get_couriers();
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             $last_success = get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
             if ( false !== $last_success ) {
+                $last_success = CourierServiceCatalog::filterSupported( (array) $last_success );
                 kiriof_log(
                     'warning',
                     'Courier lookup used the cached fallback because the live API request failed.',
@@ -73,16 +74,7 @@ class KiriminajaApiService extends BaseService{
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
 
-        $excluded_types = array( 'instant', 'international' );
-        $data           = array_values(
-            array_filter(
-                (array) $repo['data']->datas,
-                function ( $courier ) use ( $excluded_types ) {
-                    $type = strtolower( (string) ( ( (object) $courier )->type ?? '' ) );
-                    return ! in_array( $type, $excluded_types, true );
-                }
-            )
-        );
+        $data = CourierServiceCatalog::filterSupported( (array) $repo['data']->datas );
         set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $data, self::KIRIOF_COURIERS_CACHE_TTL );
         set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $data, WEEK_IN_SECONDS );
         return self::success( $data );
@@ -168,7 +160,14 @@ class KiriminajaApiService extends BaseService{
             return self::error( array(), $this->extractErrorMessage( $repo, 'Failed to load profile' ) );
         }
 
-        $profile = $repo['data']->results;
+        $body = $repo['data'];
+        $profile = $body->results ?? $body->result ?? $body->data ?? null;
+        if ( null === $profile && ( isset( $body->name ) || isset( $body->email ) || isset( $body->metadata ) ) ) {
+            $profile = $body;
+        }
+        if ( empty( $profile ) ) {
+            return self::error( array(), $this->extractErrorMessage( $repo, 'Failed to load profile' ) );
+        }
         set_transient(self::KIRIOF_PROFILE_CACHE_KEY, $profile, self::KIRIOF_PROFILE_CACHE_TTL);
         set_transient(self::KIRIOF_PROFILE_LAST_SUCCESS_CACHE_KEY, $profile, DAY_IN_SECONDS);
 

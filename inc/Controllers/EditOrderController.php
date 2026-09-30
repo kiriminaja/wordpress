@@ -128,8 +128,11 @@ class EditOrderController{
         }
 
         $data         = $service->data;
-        $tracking_url = kiriof_get_tracking_page_url( array( 'order_id' => $order_id ) );
-        $detail_url   = admin_url( 'admin.php?page=kiriminaja-transaction-process&key=' . $order_id );
+        $detail_url = add_query_arg(
+            'id',
+            absint( $data['transaction_id'] ?? 0 ),
+            admin_url( 'admin.php?page=kiriminaja-transaction-detail' )
+        );
 
         // Extra WC order data for the redesigned metabox.
         $wc_order            = wc_get_order( $order_id );
