@@ -287,6 +287,10 @@ class Enqueue extends BaseInit{
             $kiriof_script_dependencies[] = 'kiriof-leaflet-script';
         }
 
+        if ( 'kiriminaja-konfigurasi' === $page ) {
+            $this->enqueueCourierServices();
+            $kiriof_script_dependencies[] = 'kiriof-courier-services';
+        }
         wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', $kiriof_script_dependencies, KIRIOF_VERSION, true );
         
         // Localize script to pass ajax URL and nonce
@@ -461,7 +465,34 @@ class Enqueue extends BaseInit{
    
     }
 
+	/** Enqueue the shared accessible courier and service picker. */
+	private function enqueueCourierServices(): void {
+		wp_enqueue_style( 'kiriof-courier-services', $this->plugin_url . 'assets/admin/css/kj-courier-services.css', array(), KIRIOF_VERSION );
+		wp_enqueue_script( 'kiriof-courier-services', $this->plugin_url . 'assets/admin/js/kj-courier-services.js', array(), KIRIOF_VERSION, true );
+		wp_localize_script(
+			'kiriof-courier-services',
+			'kiriofCourierServicesI18n',
+			array(
+				/* translators: %1$s: enabled count, %2$s: total count. */
+				'enabledCount' => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
+				/* translators: %s: courier name. */
+				'enableCourier' => __( 'Enable %s services', 'kiriminaja-official' ),
+				/* translators: %1$s: service name, %2$s: courier name. */
+				'enableService' => __( 'Enable %1$s for %2$s', 'kiriminaja-official' ),
+				'allServices' => __( 'All services', 'kiriminaja-official' ),
+				'noCouriers' => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
+				'loading' => __( 'Loading couriers…', 'kiriminaja-official' ),
+				'loadFailed' => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
+				'saveFailed' => __( 'Could not save courier settings.', 'kiriminaja-official' ),
+				'saving' => __( 'Saving courier services…', 'kiriminaja-official' ),
+				'saved' => __( 'Courier services saved.', 'kiriminaja-official' ),
+				'selectService' => __( 'Select at least one courier service.', 'kiriminaja-official' ),
+			)
+		);
+	}
+
 	private function enqueueOnboarding(): void {
+		$this->enqueueCourierServices();
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'jquery' );
@@ -474,7 +505,7 @@ class Enqueue extends BaseInit{
 		wp_enqueue_script(
 			'kiriof-onboarding-script',
 			$this->plugin_url . 'assets/admin/js/kj-onboarding.js',
-			array( 'jquery', 'kiriof-choices-script', 'kiriof-leaflet-script' ),
+			array( 'jquery', 'kiriof-choices-script', 'kiriof-leaflet-script', 'kiriof-courier-services' ),
 			KIRIOF_VERSION,
 			true
 		);

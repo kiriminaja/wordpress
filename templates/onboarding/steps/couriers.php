@@ -13,8 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<button type="button" class="button" data-couriers-all><?php echo esc_html__( 'Enable all', 'kiriminaja-official' ); ?></button>
 			<button type="button" class="button" data-couriers-none><?php echo esc_html__( 'Disable all', 'kiriminaja-official' ); ?></button>
 		</div>
-		<span class="kiriof-onboarding__courier-count" data-courier-count></span>
+		<span class="kiriof-onboarding__courier-count" data-courier-count role="status" aria-live="polite"></span>
 	</div>
-	<div class="kiriof-onboarding__couriers" data-courier-list><span class="spinner is-active"></span> <?php echo esc_html__( 'Loading couriers…', 'kiriminaja-official' ); ?></div>
+	<div class="kiriof-services" data-courier-list><span class="spinner is-active"></span> <?php echo esc_html__( 'Loading couriers…', 'kiriminaja-official' ); ?></div>
 	<div class="kiriof-onboarding__message" data-step-message="couriers" role="alert"></div>
 </section>

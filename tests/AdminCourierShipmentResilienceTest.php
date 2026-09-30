@@ -52,9 +52,10 @@ final class AdminCourierShipmentResilienceTest extends TestCase
     {
         $content = file_get_contents(PLUGIN_DIR . '/templates/setting/setuped/section-couriers.php');
 
-        $this->assertStringContainsString('function renderError(message)', $content);
+        $this->assertStringContainsString('$list.text(parsed.message || strings.loadFailed)', $content);
+        $this->assertStringContainsString('response.success === false', $content);
         $this->assertStringContainsString('.fail(function(request)', $content);
-        $this->assertStringContainsString('Could not load couriers. Reload this page and try again.', $content);
+        $this->assertStringContainsString('Could not load couriers. Reload this page and try again.', file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php'));
     }
 
     #[Test]

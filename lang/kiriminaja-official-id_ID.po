@@ -285,6 +285,7 @@ msgstr "Dasbor WordPress"
 msgid "Your store is ready to ship"
 msgstr "Toko Anda siap mengirim"
 
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php
 msgid "Could not load couriers. Reload this page and try again."
 msgstr "Tidak dapat memuat kurir. Muat ulang halaman ini dan coba lagi."
@@ -293,10 +294,12 @@ msgstr "Tidak dapat memuat kurir. Muat ulang halaman ini dan coba lagi."
 msgid "Could not refresh couriers from the API. The last successful courier list remains available."
 msgstr "Tidak dapat memperbarui kurir dari API. Daftar kurir terakhir yang berhasil masih tersedia."
 
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php
 msgid "Could not save courier settings."
 msgstr "Tidak dapat menyimpan pengaturan kurir."
 
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php
 msgid "No couriers are available for this account."
 msgstr "Tidak ada kurir yang tersedia untuk akun ini."
@@ -1063,6 +1066,7 @@ msgstr "Panjang (%s)"
 msgid "Length Form"
 msgstr "Form Panjang"
 
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php:30
 msgid "Loading couriers…"
 msgstr "Memuat kurir…"
@@ -2481,7 +2485,10 @@ msgstr "Tidak ada kurir"
 msgid "Failed to load couriers."
 msgstr "Gagal memuat kurir."
 
+#. translators: %1$s: enabled count, %2$s: total count.
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php:38
+#, php-format
 msgid "%1$s of %2$s enabled"
 msgstr "%1$s dari %2$s aktif"
 
@@ -3755,3 +3762,31 @@ msgstr "Total pesanan terhitung: %1$s → %2$s (%3$s)"
 
 msgid "no change"
 msgstr "tidak berubah"
+
+#. translators: %s: courier name.
+#: inc/Base/Enqueue.php
+#, php-format
+msgid "Enable %s services"
+msgstr "Aktifkan layanan %s"
+
+#. translators: %1$s: service name, %2$s: courier name.
+#: inc/Base/Enqueue.php
+#, php-format
+msgid "Enable %1$s for %2$s"
+msgstr "Aktifkan %1$s untuk %2$s"
+
+#: inc/Base/Enqueue.php
+msgid "All services"
+msgstr "Semua layanan"
+
+#: inc/Base/Enqueue.php
+msgid "Saving courier services…"
+msgstr "Menyimpan layanan kurir…"
+
+#: inc/Base/Enqueue.php
+msgid "Courier services saved."
+msgstr "Layanan kurir berhasil disimpan."
+
+#: inc/Base/Enqueue.php
+msgid "Select at least one courier service."
+msgstr "Pilih setidaknya satu layanan kurir."

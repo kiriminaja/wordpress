@@ -345,7 +345,8 @@ class Admin extends BaseInit{
 
         // 4. Courier Setup
         $wl_row = $repo->getSettingByKey('origin_whitelist_expedition_id');
-        $courier_ready = ! empty( $wl_row->value ?? null );
+        $courier_policy = $repo->getCourierServiceSelection();
+        $courier_ready = null === $courier_policy ? ! empty( $wl_row->value ?? null ) : $repo->hasEnabledCourierServices();
 
         // 5. KiriminAja Shipping Option
         $ship_to_countries = get_option( 'woocommerce_ship_to_countries', '' );

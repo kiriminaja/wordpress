@@ -93,6 +93,7 @@ class OngkirPricingService extends BaseService{
     
     private function filterOptions($pricingData){
         $options = @$pricingData->results ?? [];
+        $options = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->validateWhiteListExpedition( $options );
         $filteredOptions = [];
         $allOptions = [];
         foreach ($options as $option){

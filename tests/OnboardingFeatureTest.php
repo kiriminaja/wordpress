@@ -88,7 +88,10 @@ final class OnboardingFeatureTest extends TestCase
         }
 
 		$this->assertStringContainsString('&#10003;', $template);
-		$this->assertStringContainsString('woocommerce-input-toggle', $script);
+		$this->assertStringContainsString('window.kiriofCourierServices.create', $script);
+		$this->assertStringContainsString('courierPicker.hasSelection()', $script);
+		$this->assertStringContainsString('onChange: courierChanged', $script);
+		$this->assertStringContainsString("'kiriof-courier-services'", $onboarding_enqueue);
 		$this->assertStringContainsString('data-account-complete', $template);
 		$this->assertStringContainsString('accountComplete', $script);
 		$this->assertStringContainsString('canVisit(target)', $script);

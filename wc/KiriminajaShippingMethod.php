@@ -90,6 +90,10 @@ function kiriof_shipping_method(){
                     return;
                 }
 
+                if ( ! ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->hasEnabledCourierServices() ) {
+                    return;
+                }
+
                 if ($this->hasActiveFreeShippingCoupon()) {
                     if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
                         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );

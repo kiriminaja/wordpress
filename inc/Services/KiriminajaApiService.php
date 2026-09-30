@@ -48,13 +48,14 @@ class KiriminajaApiService extends BaseService{
     public function get_couriers(){
         $cached = get_transient( self::KIRIOF_COURIERS_CACHE_KEY );
         if ( false !== $cached ) {
-            return self::success( $cached );
+            return self::success( CourierServiceCatalog::filterSupported( (array) $cached ) );
         }
 
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->get_couriers();
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
             $last_success = get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY );
             if ( false !== $last_success ) {
+                $last_success = CourierServiceCatalog::filterSupported( (array) $last_success );
                 kiriof_log(
                     'warning',
                     'Courier lookup used the cached fallback because the live API request failed.',
@@ -67,16 +68,7 @@ class KiriminajaApiService extends BaseService{
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
 
-        $excluded_types = array( 'instant', 'international' );
-        $data           = array_values(
-            array_filter(
-                (array) $repo['data']->datas,
-                function ( $courier ) use ( $excluded_types ) {
-                    $type = strtolower( (string) ( ( (object) $courier )->type ?? '' ) );
-                    return ! in_array( $type, $excluded_types, true );
-                }
-            )
-        );
+        $data = CourierServiceCatalog::filterSupported( (array) $repo['data']->datas );
         set_transient( self::KIRIOF_COURIERS_CACHE_KEY, $data, self::KIRIOF_COURIERS_CACHE_TTL );
         set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $data, WEEK_IN_SECONDS );
         return self::success( $data );

@@ -45,6 +45,8 @@ class OnboardingSetupStateService {
 		}
 
 		$courier_setting = $repo->getSettingByKey( 'origin_whitelist_expedition_id' );
+		$courier_policy = $repo->getCourierServiceSelection();
+		$couriers_ready = null === $courier_policy ? ! empty( $courier_setting->value ?? null ) : $repo->hasEnabledCourierServices();
 		$shipping_ready  = false;
 		if ( class_exists( __NAMESPACE__ . '\\WooCommerceShippingMethodRegistrationService' ) ) {
 			$shipping_ready = ( new WooCommerceShippingMethodRegistrationService() )->hasEnabledMethod();
@@ -74,7 +76,7 @@ class OnboardingSetupStateService {
 			'couriers'       => array(
 				'key'      => 'couriers',
 				'required' => true,
-				'done'     => ! empty( $courier_setting->value ?? null ),
+				'done'     => $couriers_ready,
 				'nav_title' => __( 'Couriers', 'kiriminaja-official' ),
 				'title'    => __( 'Choose courier services', 'kiriminaja-official' ),
 				'description' => __( 'Select the courier services your customers can use at checkout.', 'kiriminaja-official' ),
