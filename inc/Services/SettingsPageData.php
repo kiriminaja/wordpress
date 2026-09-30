@@ -188,9 +188,13 @@ class SettingsPageData {
 				'noCouriers' => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
 				'loadFailed' => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
 				'saveFailed' => __( 'Could not save courier settings.', 'kiriminaja-official' ),
+				/* translators: %1$s: enabled couriers, %2$s: total couriers. */
 				'count'      => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
+				/* translators: %1$s: enabled services, %2$s: total services. */
 				'serviceCount' => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
+				/* translators: %s: courier name. */
 				'enableCourier' => __( 'Enable %s services', 'kiriminaja-official' ),
+				/* translators: %1$s: service name, %2$s: courier name. */
 				'enableService' => __( 'Enable %1$s for %2$s', 'kiriminaja-official' ),
 				'allServices' => __( 'All services', 'kiriminaja-official' ),
 				'unavailable' => __( 'Unavailable', 'kiriminaja-official' ),
@@ -272,6 +276,7 @@ class SettingsPageData {
 			array(
 				'label' => __( 'Shipping', 'kiriminaja-official' ),
 				'items' => array(
+					/* translators: %d: number of enabled couriers. */
 					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers', sprintf( __( '%d Enabled', 'kiriminaja-official' ), (int) ( $list_data['kiriof_enabled_courier_count'] ?? 0 ) ), (int) ( $list_data['kiriof_enabled_courier_count'] ?? 0 ) > 0 ? 'ready' : 'warning' ),
 					$this->settingsRootItem( 'insurance', __( 'Shipping Insurance', 'kiriminaja-official' ), __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ), 'insurance', '', '', '', 'insurance' ),
 					$this->settingsRootItem( 'cod', __( 'Cash on Delivery', 'kiriminaja-official' ), __( 'Allow customers to pay when they receive their order.', 'kiriminaja-official' ), 'cod', '', '', '', 'cod' ),

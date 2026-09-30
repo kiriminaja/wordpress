@@ -81,6 +81,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $courier_clause = '';
         if ( is_array( $courier ) && count( $courier ) > 1 ) {
             $placeholders = implode( ', ', array_fill( 0, count( $courier ), '%s' ) );
+            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholder count is derived from the normalized courier list.
             $courier_clause = $wpdb->prepare( "AND kiriminaja_transactions.service IN ({$placeholders})", ...$courier );
         } elseif ( is_array( $courier ) && count( $courier ) === 1 ) {
             $courier_clause = $wpdb->prepare( 'AND kiriminaja_transactions.service = %s', $courier[0] );
@@ -115,14 +116,21 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 $key_escaped       = $wpdb->esc_like($key);
                 $key_prefix        = $key_escaped . '%';
                 $key_contains      = '%' . $key_escaped . '%';
-                $order_number_type = ctype_digit($key) ? '%d' : '%s';
-                $order_number      = ctype_digit($key) ? (int) $key : $key;
-                $key_clause        = $wpdb->prepare(
-                    "AND (orders_tbl.{$o['id']} = {$order_number_type} OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
-                    $order_number,
-                    $key_prefix,
-                    $key_contains
-                );
+                if ( ctype_digit( $key ) ) {
+                    $key_clause = $wpdb->prepare(
+                        "AND (orders_tbl.{$o['id']} = %d OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
+                        (int) $key,
+                        $key_prefix,
+                        $key_contains
+                    );
+                } else {
+                    $key_clause = $wpdb->prepare(
+                        "AND (orders_tbl.{$o['id']} = %s OR kiriminaja_transactions.awb LIKE %s OR kiriminaja_transactions.order_id LIKE %s)",
+                        $key,
+                        $key_prefix,
+                        $key_contains
+                    );
+                }
             }
         }
 
@@ -151,7 +159,9 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
             if ( $status_parts ) {
                 $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') AND kiriminaja_transactions.is_deficit = 0 {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . ") AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
                 $from = "FROM {$o['table']} as orders_tbl INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id {$payment_join}";
+                // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Status branches and their placeholders are assembled together from normalized values.
                 $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT orders_tbl.{$o['id']}) {$from} {$base_where}", ...array_merge( $status_args, array( $month, $month_like ) ) ) );
+                // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Status branches and their placeholders are assembled together from normalized values.
                 $results = $wpdb->get_results( $wpdb->prepare( "SELECT orders_tbl.{$o['id']} as wc_order_id, orders_tbl.{$o['date']} as wc_date_created, orders_tbl.{$o['status']} as wc_status, orders_tbl.{$o['status']} as post_status, kiriminaja_transactions.* {$from} {$base_where} GROUP BY orders_tbl.{$o['id']} ORDER BY orders_tbl.{$o['date']} DESC LIMIT %d OFFSET %d", ...array_merge( $status_args, array( $month, $month_like, $per_page, $offset ) ) ) );
                 $this->logDatabaseError();
                 return array( 'results' => $results, 'total' => $total );

@@ -172,8 +172,11 @@ class Onboarding extends BaseInit {
 					'empty'      => __( 'No courier services are available.', 'kiriminaja-official' ),
 					'enabled'    => __( 'enabled', 'kiriminaja-official' ),
 					'enable'     => __( 'Enable', 'kiriminaja-official' ),
+					/* translators: %1$s: enabled services, %2$s: total services. */
 					'serviceCount' => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
+					/* translators: %s: courier name. */
 					'enableCourier' => __( 'Enable %s services', 'kiriminaja-official' ),
+					/* translators: %1$s: service name, %2$s: courier name. */
 					'enableService' => __( 'Enable %1$s for %2$s', 'kiriminaja-official' ),
 					'allServices' => __( 'All services', 'kiriminaja-official' ),
 					'unavailable' => __( 'Unavailable', 'kiriminaja-official' ),

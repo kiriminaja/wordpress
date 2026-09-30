@@ -15,6 +15,14 @@ use PHPUnit\Framework\Attributes\Test;
 final class PluginStructureTest extends TestCase
 {
     #[Test]
+    public function packaging_excludes_php_development_dotfiles(): void
+    {
+        $makefile = file_get_contents(PLUGIN_DIR . '/Makefile');
+        $this->assertStringContainsString('--exclude=.phpactor.json', $makefile);
+        $this->assertStringContainsString('--exclude=.php-version', $makefile);
+    }
+
+    #[Test]
     public function main_plugin_file_exists(): void
     {
         $this->assertFileExists(PLUGIN_DIR . '/kiriminaja.php');
