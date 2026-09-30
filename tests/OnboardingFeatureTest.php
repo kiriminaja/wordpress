@@ -65,7 +65,7 @@ final class OnboardingFeatureTest extends TestCase
         $this->assertStringContainsString( 'from \'$lib/components/ui/button\'', $app );
         $this->assertStringContainsString( 'from \'$lib/components/ui/card\'', $app );
         $this->assertStringContainsString( 'from \'$lib/components/ui/field\'', $app );
-        $this->assertStringContainsString( 'from \'$lib/components/ui/switch\'', $app );
+        $this->assertStringContainsString( 'CourierServicePicker', $app );
 		$this->assertStringContainsString( 'SubdistrictCombobox', $app );
 		$this->assertStringContainsString( 'ActionTooltip', $app );
 		$this->assertStringNotContainsString( 'title=', $app );
@@ -89,7 +89,7 @@ final class OnboardingFeatureTest extends TestCase
 		$this->assertStringContainsString( 'class="absolute right-3 top-3 z-20', $app );
 		$this->assertStringContainsString( 'kiriof-onboarding-background', $app );
 		$this->assertStringContainsString( '{#if !allCouriersEnabled}', $app );
-		$this->assertStringContainsString( 'disabled={selected && selectedCourierCount === 1}', $app );
+		$this->assertStringContainsString( '!hasSelection(courierState.selection)', $app );
 		$this->assertStringNotContainsString( 'disableAll', $app );
 		$this->assertStringNotContainsString( "'disableAll'", $page );
 		$this->assertStringContainsString( '[background-image:radial-gradient(', file_get_contents( PLUGIN_DIR . '/src/styles/kj-onboarding-svelte.css' ) );

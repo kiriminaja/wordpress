@@ -13,10 +13,25 @@
     CardHeader,
     CardTitle,
   } from '$lib/components/ui/card';
-  import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from '$lib/components/ui/field';
+  import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+    FieldSet,
+  } from '$lib/components/ui/field';
   import { Input } from '$lib/components/ui/input';
   import { Separator } from '$lib/components/ui/separator';
-  import { Switch } from '$lib/components/ui/switch';
+  import CourierServicePicker from '$lib/couriers/CourierServicePicker.svelte';
+  import {
+    initializeSelection,
+    selectedCourierCount as countSelectedCouriers,
+    hasSelection,
+    selectionPayload,
+    setAllServices,
+    type CourierPayload,
+    type SelectionState,
+  } from '$lib/couriers/selection';
   import { Textarea } from '$lib/components/ui/textarea';
   import SubdistrictCombobox from './SubdistrictCombobox.svelte';
   import {
@@ -67,9 +82,11 @@
   let address = $state(getInitialAddress());
   let account = $state(getInitialAccount());
   let couriers = $state<OnboardingCourier[]>([]);
-  let selectedCouriers = $state<Record<string, string>>({});
+  let courierState = $state<SelectionState>({ selection: {}, remembered: {} });
+  let courierLoadError = $state('');
   let couriersLoading = $state(false);
   let courierLoaded = $state(false);
+  let courierLoadGeneration = 0;
   let subdistrictQuery = $state('');
   let subdistricts = $state<Area[]>([]);
   let subdistrictLoading = $state(false);
@@ -82,9 +99,14 @@
   const currentIndex = $derived(order.indexOf(current));
   const accountReady = $derived(Boolean(account.connected || done.account));
   const canSubmitAccount = $derived(Boolean(accountReady || setupKey.trim()));
-  const selectedCourierCount = $derived(Object.keys(selectedCouriers).length);
+  const selectedCourierCount = $derived(countSelectedCouriers(courierState.selection));
   const allCouriersEnabled = $derived(
-    couriers.length > 0 && selectedCourierCount === couriers.length,
+    couriers.length > 0 &&
+      couriers.every((courier) =>
+        courier.services.every((service) =>
+          (courierState.selection[courier.code] ?? []).includes(service.code),
+        ),
+      ),
   );
 
   const stepTitle = $derived.by(() => {
@@ -175,8 +197,11 @@
   }
 
   function go(step: Step): void {
+    if (busy) return;
     if (!canVisit(step)) {
-      setMessage(!done.account ? bootstrap.i18n.accountRequired : bootstrap.i18n.shippingPrerequisite);
+      setMessage(
+        !done.account ? bootstrap.i18n.accountRequired : bootstrap.i18n.shippingPrerequisite,
+      );
       current = !done.account ? 'account' : 'address';
       return;
     }
@@ -202,6 +227,7 @@
   }
 
   async function saveAccount(): Promise<void> {
+    if (busy) return;
     const key = setupKey.trim();
     if (done.account && !key) {
       next();
@@ -212,6 +238,7 @@
       return;
     }
     busy = true;
+    resetCouriers();
     try {
       const result = await post<{
         connected?: boolean;
@@ -227,6 +254,8 @@
       done.account = true;
       setMessage(bootstrap.i18n.accountConnected, true);
       setupKey = '';
+      busy = false;
+      next();
     } catch (requestError) {
       setMessage(requestError instanceof Error ? requestError.message : bootstrap.i18n.saveFailed);
     } finally {
@@ -235,10 +264,14 @@
   }
 
   async function disconnect(): Promise<void> {
+    if (busy) return;
     if (!window.confirm(bootstrap.i18n.disconnectConfirm)) return;
     busy = true;
+    resetCouriers();
     try {
       await post('kiriof_disconnect_integration');
+      done.account = false;
+      account = { ...account, connected: false, profile: null };
       window.location.reload();
     } catch (requestError) {
       setMessage(
@@ -297,6 +330,7 @@
   }
 
   async function saveAddress(): Promise<void> {
+    if (busy) return;
     if (
       Object.values({
         ...address,
@@ -311,6 +345,7 @@
       await post('kiriof_store_origin_data', address as Record<string, string>);
       done.address = true;
       setMessage(bootstrap.i18n.addressSaved, true);
+      busy = false;
       next();
     } catch (requestError) {
       setMessage(requestError instanceof Error ? requestError.message : bootstrap.i18n.saveFailed);
@@ -319,75 +354,74 @@
     }
   }
 
-  async function loadCouriers(): Promise<void> {
-    if (!done.account || couriersLoading || courierLoaded) return;
-    couriersLoading = true;
-    try {
-      const result = await post<{ couriers?: OnboardingCourier[]; whitelist_ids?: string[] }>(
-        'kiriof_get_courier_whitelist',
-      );
-      couriers = result.couriers ?? [];
-      const selected = new Set(result.whitelist_ids ?? []);
-      const loadedSelection = Object.fromEntries(
-        couriers
-          .filter((courier) => selected.has(courier.code))
-          .map((courier) => [courier.code, courier.name]),
-      );
-      selectedCouriers =
-        Object.keys(loadedSelection).length > 0 || couriers.length === 0
-          ? loadedSelection
-          : { [couriers[0].code]: couriers[0].name };
-      courierLoaded = true;
-    } catch (requestError) {
-      setMessage(
-        requestError instanceof Error ? requestError.message : bootstrap.i18n.networkError,
-      );
-    } finally {
-      couriersLoading = false;
-    }
+  function invalidateCourierCompletion(): void {
+    done.couriers = false;
+    done.shipping = false;
   }
 
-  function isCourierSelected(code: string): boolean {
-    return Boolean(selectedCouriers[code]);
+  function resetCouriers(): void {
+    courierLoadGeneration += 1;
+    couriers = [];
+    courierState = { selection: {}, remembered: {} };
+    courierLoaded = false;
+    couriersLoading = false;
+    courierLoadError = '';
+    invalidateCourierCompletion();
   }
 
-  function toggleCourier(courier: OnboardingCourier, checked: boolean): void {
-    if (!checked && isCourierSelected(courier.code) && selectedCourierCount === 1) {
-      setMessage(bootstrap.i18n.courierRequired);
-      return;
-    }
-
-    const nextCouriers = { ...selectedCouriers };
-    if (checked) {
-      nextCouriers[courier.code] = courier.name;
-    } else {
-      delete nextCouriers[courier.code];
-    }
-    selectedCouriers = nextCouriers;
+  function changeCourierSelection(next: SelectionState): void {
+    if (busy || couriersLoading || !courierLoaded || courierLoadError) return;
+    courierState = next;
+    invalidateCourierCompletion();
     setMessage('');
+  }
+
+  async function loadCouriers(): Promise<void> {
+    if (busy || !done.account || couriersLoading || courierLoaded) return;
+    const generation = ++courierLoadGeneration;
+    couriersLoading = true;
+    courierLoadError = '';
+    try {
+      const result = await post<CourierPayload>('kiriof_get_courier_whitelist');
+      if (generation !== courierLoadGeneration) return;
+      if (!Array.isArray(result.couriers)) throw new Error(bootstrap.i18n.networkError);
+      const loaded = initializeSelection(result);
+      couriers = loaded.couriers;
+      courierState = loaded.state;
+      courierLoaded = true;
+      setMessage('');
+    } catch (requestError) {
+      if (generation !== courierLoadGeneration) return;
+      courierLoaded = false;
+      invalidateCourierCompletion();
+      courierLoadError =
+        requestError instanceof Error ? requestError.message : bootstrap.i18n.networkError;
+      setMessage(courierLoadError);
+    } finally {
+      if (generation === courierLoadGeneration) couriersLoading = false;
+    }
   }
 
   function enableAllCouriers(): void {
-    selectedCouriers = Object.fromEntries(
-      couriers.map((courier) => [courier.code, courier.name]),
-    );
-    setMessage('');
+    if (!courierLoaded || couriersLoading || busy) return;
+    changeCourierSelection(setAllServices(courierState, couriers, true));
   }
 
   async function saveCouriers(): Promise<void> {
-    const ids = Object.keys(selectedCouriers);
-    if (!ids.length) {
+    if (busy || couriersLoading || !courierLoaded || courierLoadError) return;
+    if (!hasSelection(courierState.selection)) {
       setMessage(bootstrap.i18n.courierRequired);
       return;
     }
     busy = true;
     try {
-      await post('kiriof_store_courier_whitelist', {
-        whitelist_ids: ids.join(','),
-        whitelist_names: ids.map((id) => selectedCouriers[id]).join(','),
-      });
+      await post(
+        'kiriof_store_courier_whitelist',
+        selectionPayload(courierState.selection, couriers),
+      );
       done.couriers = true;
       setMessage(bootstrap.i18n.couriersSaved, true);
+      busy = false;
       next();
     } catch (requestError) {
       setMessage(requestError instanceof Error ? requestError.message : bootstrap.i18n.saveFailed);
@@ -397,6 +431,7 @@
   }
 
   async function enableShipping(): Promise<void> {
+    if (busy) return;
     if (!done.address || !done.couriers) {
       setMessage(bootstrap.i18n.shippingPrerequisite);
       return;
@@ -404,11 +439,13 @@
     busy = true;
     try {
       const result = await post<{ locations_ready?: boolean }>('kiriof_enable_shipping_method');
-      done.shipping = true;
       if (!result.locations_ready) {
+        done.shipping = false;
+        setMessage(bootstrap.i18n.shippingLocationsRequired);
         return;
       }
       done.shipping = true;
+      busy = false;
       next();
     } catch (requestError) {
       setMessage(requestError instanceof Error ? requestError.message : bootstrap.i18n.saveFailed);
@@ -475,6 +512,7 @@
   });
 
   onDestroy(() => {
+    courierLoadGeneration += 1;
     if (searchTimer) clearTimeout(searchTimer);
     if (map) {
       map.remove();
@@ -510,6 +548,7 @@
           variant="outline"
           size="icon"
           aria-label="Close setup"
+          disabled={busy}
           onclick={() => window.location.assign(bootstrap.dashboardUrl || 'admin.php')}
         >
           <IconX data-icon="inline-start" />
@@ -518,14 +557,18 @@
     {/if}
   </div>
 
-  <div class="relative z-10 my-auto flex w-full max-w-[640px] flex-col items-center justify-center min-h-0">
+  <div
+    class="relative z-10 my-auto flex w-full max-w-[640px] flex-col items-center justify-center min-h-0"
+  >
     <Card
       class="flex flex-col w-full max-h-[calc(100dvh-7rem)] overflow-hidden rounded-xl border border-border bg-card shadow-xl"
     >
       {#if current !== 'complete'}
         <CardHeader class="shrink-0 border-b border-border/60 bg-muted/10 px-6 pt-5 pb-4">
           <div class="max-w-[540px] space-y-1.5">
-            <CardTitle class="text-lg font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-xl">
+            <CardTitle
+              class="text-lg font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-xl"
+            >
               {stepTitle}
             </CardTitle>
             <CardDescription class="max-w-[48ch] text-sm leading-5 text-muted-foreground">
@@ -561,7 +604,9 @@
               class="flex flex-col justify-between gap-4 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center"
             >
               <div class="flex items-center gap-3">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
+                >
                   <IconPlugConnected class="h-5 w-5" />
                 </div>
                 <div class="space-y-1">
@@ -671,7 +716,9 @@
               class="kiriof-map h-40 sm:h-44 w-full overflow-hidden rounded-lg border border-border"
               aria-label={bootstrap.address.i18n.mapHelp}
             ></div>
-            <FieldDescription class="flex items-center justify-between text-xs text-muted-foreground">
+            <FieldDescription
+              class="flex items-center justify-between text-xs text-muted-foreground"
+            >
               <span>{bootstrap.address.i18n.mapHelp}</span>
               <span class="font-mono text-[11px] text-muted-foreground">
                 {address.origin_latitude
@@ -684,7 +731,12 @@
           <div class="mb-3 flex items-center justify-between">
             <div>
               {#if !allCouriersEnabled}
-                <Button variant="secondary" size="sm" onclick={enableAllCouriers}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy || couriersLoading || !courierLoaded}
+                  onclick={enableAllCouriers}
+                >
                   {bootstrap.couriers.i18n.enableAll || 'Enable all'}
                 </Button>
               {/if}
@@ -700,33 +752,21 @@
               <IconLoader2 class="h-5 w-5 animate-spin" />
               <span>{bootstrap.couriers.i18n.loading || 'Loading couriers…'}</span>
             </div>
+          {:else if courierLoadError}
+            <Button variant="outline" onclick={loadCouriers} disabled={busy}>{bootstrap.couriers.i18n.retry || 'Retry'}</Button>
           {:else if couriers.length === 0}
             <div class="py-8 text-center text-muted-foreground">
               <p>{bootstrap.couriers.i18n.empty || 'No courier services are available.'}</p>
             </div>
           {:else}
-            <div class="max-h-[320px] space-y-2 overflow-y-auto pr-1">
-              {#each couriers as courier (courier.code)}
-                {@const selected = isCourierSelected(courier.code)}
-                <div
-                  class="flex items-center justify-between rounded-xl border p-3.5 transition-all {selected
-                    ? 'border-primary/50 bg-primary/5 shadow-xs'
-                    : 'border-border bg-card/60 hover:bg-muted/40'}"
-                >
-                  <div class="space-y-0.5">
-                    <div class="text-sm font-semibold text-foreground">{courier.name}</div>
-                    {#if courier.type}
-                      <div class="text-xs text-muted-foreground">{courier.type}</div>
-                    {/if}
-                  </div>
-                  <Switch
-                    checked={selected}
-                    disabled={selected && selectedCourierCount === 1}
-                    onCheckedChange={(checked: boolean) => toggleCourier(courier, checked)}
-                    aria-label={`Enable ${courier.name}`}
-                  />
-                </div>
-              {/each}
+            <div class="max-h-[320px] overflow-y-auto pr-1">
+              <CourierServicePicker
+                {couriers}
+                state={courierState}
+                i18n={bootstrap.couriers.i18n}
+                disabled={busy || couriersLoading || !courierLoaded}
+                onChange={changeCourierSelection}
+              />
             </div>
           {/if}
         {:else if current === 'shipping'}
@@ -790,7 +830,9 @@
             </a>
           </div>
         {:else}
-          <div class="flex min-h-[300px] flex-col items-center justify-center gap-5 py-10 text-center">
+          <div
+            class="flex min-h-[300px] flex-col items-center justify-center gap-5 py-10 text-center"
+          >
             <div
               class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary"
             >
@@ -823,7 +865,9 @@
                 <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
                 <span>Connecting…</span>
               {:else}
-                <span>{accountReady ? bootstrap.i18n.continue || 'Continue' : 'Connect account'}</span>
+                <span
+                  >{accountReady ? bootstrap.i18n.continue || 'Continue' : 'Connect account'}</span
+                >
                 <IconChevronRight class="ml-1 h-4 w-4" />
               {/if}
             </Button>
@@ -840,7 +884,11 @@
           {:else if current === 'couriers'}
             <Button
               onclick={saveCouriers}
-              disabled={busy || couriersLoading || selectedCourierCount === 0}
+              disabled={busy ||
+                couriersLoading ||
+                !courierLoaded ||
+                Boolean(courierLoadError) ||
+                !hasSelection(courierState.selection)}
             >
               {#if busy}
                 <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
@@ -871,6 +919,5 @@
         </div>
       </CardFooter>
     </Card>
-
   </div>
 </div>

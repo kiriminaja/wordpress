@@ -189,6 +189,12 @@ class SettingsPageData {
 				'loadFailed' => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
 				'saveFailed' => __( 'Could not save courier settings.', 'kiriminaja-official' ),
 				'count'      => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
+				'serviceCount' => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
+				'enableCourier' => __( 'Enable %s services', 'kiriminaja-official' ),
+				'enableService' => __( 'Enable %1$s for %2$s', 'kiriminaja-official' ),
+				'allServices' => __( 'All services', 'kiriminaja-official' ),
+				'unavailable' => __( 'Unavailable', 'kiriminaja-official' ),
+				'retry' => __( 'Retry', 'kiriminaja-official' ),
 			),
 		);
 	}

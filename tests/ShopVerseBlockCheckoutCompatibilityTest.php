@@ -3700,7 +3700,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'private function kiriof_add_checkout_fees()');
         $this->assertNotFalse($start, 'Native block checkout fee method must exist');
-        $methodBody = substr($content, $start, 3800);
+        $methodBody = substr($content, $start, strpos($content, 'private function kiriof_fee_cache_matches', $start) - $start);
 
         $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
         $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');

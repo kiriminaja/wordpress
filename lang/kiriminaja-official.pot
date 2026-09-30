@@ -1453,6 +1453,7 @@ msgstr ""
 msgid "Disable All"
 msgstr ""
 
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php:30
 msgid "Loading couriers…"
 msgstr ""
@@ -2216,7 +2217,10 @@ msgstr ""
 msgid "Failed to load couriers."
 msgstr ""
 
+#. translators: %1$s: enabled count, %2$s: total count.
+#: inc/Base/Enqueue.php
 #: templates/setting/setuped/section-couriers.php:38
+#, php-format
 msgid "%1$s of %2$s enabled"
 msgstr ""
 
@@ -2381,4 +2385,47 @@ msgstr ""
 
 #: inc/Services/PaymentListRenderService.php
 msgid "This payment QR is no longer available. Refresh to check for a new QR."
+msgstr ""
+
+#. translators: %s: courier name.
+#: inc/Base/Enqueue.php
+#, php-format
+msgid "Enable %s services"
+msgstr ""
+
+#. translators: %1$s: service name, %2$s: courier name.
+#: inc/Base/Enqueue.php
+#, php-format
+msgid "Enable %1$s for %2$s"
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "All services"
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "No couriers are available for this account."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Could not load couriers. Reload this page and try again."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Could not save courier settings."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Saving courier services…"
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Courier services saved."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Select at least one courier service."
+msgstr ""
+
+msgid "Unavailable"
 msgstr ""

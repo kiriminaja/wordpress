@@ -1,3 +1,5 @@
+import type { Courier } from '$lib/couriers/selection';
+
 export type OnboardingBootstrap = {
   initialStep: OnboardingStep;
   steps: Array<{ key: OnboardingStep; label: string; done: boolean }>;
@@ -70,6 +72,12 @@ export type OnboardingBootstrap = {
       empty: string;
       enabled: string;
       enable: string;
+      serviceCount?: string;
+      enableCourier?: string;
+      enableService?: string;
+      allServices?: string;
+      unavailable?: string;
+      retry?: string;
     };
   };
   shipping: {
@@ -90,4 +98,4 @@ export type OnboardingBootstrap = {
 };
 
 export type OnboardingStep = 'account' | 'address' | 'couriers' | 'shipping' | 'complete';
-export type OnboardingCourier = { code: string; name: string; type?: string };
+export type OnboardingCourier = Courier;

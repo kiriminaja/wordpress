@@ -462,23 +462,18 @@ class SettingController{
                 wp_send_json_error($couriers_service);
             }
 
-            // Fetch current whitelist from DB
-            $wl_repo = $this->setting_repository->getSettingByArray([
-                'origin_whitelist_expedition_id',
-            ]);
-
-            $whitelist_ids = array();
-            foreach ($wl_repo as $row) {
-                if ('origin_whitelist_expedition_id' === $row->key && ! empty( $row->value ) ) {
-                    $whitelist_ids = array_map( 'trim', explode( ',', $row->value ) );
-                }
+            $repository = $this->setting_repository;
+            $selection = $repository->getCourierServiceSelection();
+            if ( null !== $selection ) {
+                $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::filterSelection( $selection );
             }
 
             wp_send_json_success(array(
                 'status'  => 200,
                 'data'    => array(
-                    'couriers'       => $couriers_service->data,
-                    'whitelist_ids'  => $whitelist_ids,
+                    'couriers'       => \KiriminAjaOfficial\Services\CourierServiceCatalog::enrich( (array) $couriers_service->data ),
+                    'whitelist_ids'  => array_values( array_filter( $repository->getWhitelistExpeditionIds(), array( \KiriminAjaOfficial\Services\CourierServiceCatalog::class, 'isSupportedCourier' ) ) ),
+                    'service_selection' => null === $selection ? null : (object) $selection,
                 ),
             ));
         }catch (Throwable $e){
@@ -495,17 +490,79 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
-            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
-                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
-                : array();
-
-            $whitelist_ids   = isset( $data['whitelist_ids'] ) ? sanitize_text_field( (string) $data['whitelist_ids'] ) : '';
-            $whitelist_names = isset( $data['whitelist_names'] ) ? sanitize_text_field( (string) $data['whitelist_names'] ) : '';
-
-            $this->setting_repository->storeCourierWhitelist(array(
-                'origin_whitelist_expedition_id'  => $whitelist_ids,
-                'origin_whitelist_expedition_name'=> $whitelist_names,
-            ));
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserve structured JSON for strict parseSelection() validation below; CSV fields are individually sanitized.
+            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
+            $payload = array(
+                'origin_whitelist_expedition_id' => is_string( $data['whitelist_ids'] ?? '' ) ? sanitize_text_field( $data['whitelist_ids'] ?? '' ) : '',
+                'origin_whitelist_expedition_name' => is_string( $data['whitelist_names'] ?? '' ) ? sanitize_text_field( $data['whitelist_names'] ?? '' ) : '',
+            );
+            if ( ! array_key_exists( 'service_selection', $data ) ) {
+                foreach ( array_filter( explode( ',', $payload['origin_whitelist_expedition_id'] ) ) as $courier ) {
+                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier ) ) {
+                        throw new \InvalidArgumentException( 'Unsupported courier: ' . $courier . '. Remove international or instant couriers and save again.' );
+                    }
+                }
+            }
+            if ( array_key_exists( 'service_selection', $data ) ) {
+                $repository = $this->setting_repository;
+                $previous_policy = $repository->getCourierServiceSelection();
+                $previous_selection = $previous_policy ?? array();
+                if ( null === $previous_policy ) {
+                    foreach ( $repository->getWhitelistExpeditionIds() as $legacy_courier ) {
+                        $previous_selection[ strtolower( $legacy_courier ) ] = array( '*' );
+                    }
+                }
+                $catalog = \KiriminAjaOfficial\Services\CourierServiceCatalog::available();
+                $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $data['service_selection'] );
+                $stored_ids = $repository->getSettingByKey( 'origin_whitelist_expedition_id' );
+                $stored_names = $repository->getSettingByKey( 'origin_whitelist_expedition_name' );
+                $legacy_ids = explode( ',', (string) ( $stored_ids->value ?? '' ) );
+                $legacy_names = explode( ',', (string) ( $stored_names->value ?? '' ) );
+                $legacy_labels = array();
+                if ( count( $legacy_ids ) === count( $legacy_names ) ) {
+                    foreach ( $legacy_ids as $index => $legacy_id ) {
+                        $legacy_labels[ strtolower( trim( $legacy_id ) ) ] = sanitize_text_field( $legacy_names[ $index ] );
+                    }
+                }
+                $ids = array();
+                $names = array();
+                foreach ( $selection as $courier => &$services ) {
+                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier ) ) {
+                        throw new \InvalidArgumentException( 'Unsupported courier: ' . $courier . '. Remove international or instant couriers and save again.' );
+                    }
+                    // Historical couriers may survive an API removal, but cannot inject CSV fields.
+                    if ( ! isset( $catalog[ $courier ] ) && ( ! array_key_exists( $courier, $previous_selection ) || ! preg_match( '/^[a-z0-9_-]+$/D', $courier ) ) ) {
+                        throw new \InvalidArgumentException( 'Unknown courier code: ' . $courier );
+                    }
+                    $canonical = array();
+                    foreach ( $services as $code ) {
+                        $service = \KiriminAjaOfficial\Services\CourierServiceCatalog::canonicalService( $courier, $code, $catalog );
+                        if ( null === $service ) {
+                            // Only unchanged unavailable choices are grandfathered, per courier.
+                            foreach ( $previous_selection[ $courier ] ?? array() as $saved_code ) {
+                                if ( 0 === strcasecmp( $code, $saved_code ) ) {
+                                    $service = $saved_code;
+                                    break;
+                                }
+                            }
+                            if ( null === $service ) {
+                                throw new \InvalidArgumentException( 'Unknown service code: ' . $code );
+                            }
+                        }
+                        $canonical[] = $service;
+                    }
+                    $services = array_values( array_unique( $canonical ) );
+                    if ( ! empty( $services ) ) {
+                        $ids[] = $courier;
+                        $names[] = $catalog[ $courier ]['name'] ?? ( ( $legacy_labels[ $courier ] ?? '' ) ?: strtoupper( $courier ) );
+                    }
+                }
+                unset( $services );
+                $payload['service_selection'] = wp_json_encode( (object) $selection );
+                $payload['origin_whitelist_expedition_id'] = implode( ',', $ids );
+                $payload['origin_whitelist_expedition_name'] = implode( ',', $names );
+            }
+            $this->setting_repository->storeCourierWhitelist( $payload );
 
             wp_send_json_success(['status' => 200, 'message' => 'Saved']);
         }catch (Throwable $e){

@@ -31,9 +31,9 @@ class SetupMigration {
             $sql = "CREATE TABLE `" . $table_name . "` (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             `key` varchar(255) NULL,
-            `value` varchar(255) NULL,
+            `value` longtext NULL,
             UNIQUE KEY id (id)
-            );";
+            ) ENGINE=InnoDB;";
             require_once(ABSPATH . '/wp-admin/includes/upgrade.php');
             dbDelta($sql);
             /** Settings Table Value*/
@@ -74,6 +74,22 @@ class SetupMigration {
             );
         }
         
+        // Service selections and the all-courier name mirror exceed the old 255-character limit.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $value_column = $wpdb->get_row( $wpdb->prepare( "SHOW COLUMNS FROM `$table_name` LIKE %s", 'value' ) );
+        if ( $value_column && 'longtext' !== strtolower( (string) $value_column->Type ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( "ALTER TABLE `$table_name` MODIFY COLUMN `value` longtext NULL" );
+        }
+
+        // Policy saves update three related rows in a transaction, including on older installs.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $table_name ) );
+        if ( $table_status && 'innodb' !== strtolower( (string) $table_status->Engine ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( "ALTER TABLE `$table_name` ENGINE=InnoDB" );
+        }
+
         /** Alters*/
         // Ensure is_top row exists for existing installs (added after initial release).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

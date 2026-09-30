@@ -60,6 +60,12 @@ class CheckoutCalculationService extends BaseService{
     }
     public function call(){
         $this->carts = $this->wc_cart_contents;
+        $courier_settings = new \KiriminAjaOfficial\Repositories\SettingRepository();
+        $courier = (string) ( $this->expeditionParts[0] ?? '' );
+        $service = (string) ( $this->expeditionParts[1] ?? '' );
+        if ( 0 === stripos( $this->expedition, 'ninja_inter_' ) || ! $courier_settings->hasEnabledCourierServices() || ( '' !== $service && ! $courier_settings->isCourierServiceEnabled( $courier, $service ) ) ) {
+            return self::error( array(), 'Expedition Not Found' );
+        }
         
         /** Origin Data*/
         $settingRepo = $this->setting_repository->getSettingByKey('origin_sub_district_id');
@@ -252,7 +258,7 @@ class CheckoutCalculationService extends BaseService{
             return null;
         }
         
-        $results = $this->pricingData->results ?? [];
+        $results = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->validateWhiteListExpedition( $this->pricingData->results ?? array() );
         $serviceLower = strtolower($service);
         $serviceTypeLower = strtolower($service_type);
         

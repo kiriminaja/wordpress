@@ -207,6 +207,17 @@ class CheckoutController
             return;
         }
 
+        $expedition       = $this->kiriof_extract_expedition_from_method( $kiriof_method );
+        $expedition_parts = explode( '_', $expedition, 2 );
+        $courier_settings = $this->setting_repository;
+        // Check policy before reading cached amounts or attempting a fallback.
+        if ( 0 === stripos( $expedition, 'ninja_inter_' ) || '' === $expedition_parts[0] || '' === ( $expedition_parts[1] ?? '' ) || ! $courier_settings->isCourierServiceEnabled( $expedition_parts[0], $expedition_parts[1] ) ) {
+            WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
+            WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+            WC()->session->set( 'kiriof_cached_fee_context', null );
+            return;
+        }
+
         $chosen_payment = $this->kiriof_get_checkout_payment_method();
         $destination_id = (int) WC()->session->get( 'destination_id', 0 );
         if ( ! $destination_id ) {
@@ -226,6 +237,7 @@ class CheckoutController
             'coupon_codes'    => $discountContext['coupon_codes'],
             'discount_total'  => $discountContext['discount_total'],
             'discount_tax'    => $discountContext['discount_tax'],
+            'courier_services' => $courier_settings->getCourierServiceSelection(),
         );
         $cached_context  = WC()->session->get( 'kiriof_cached_fee_context', array() );
         $cache_matches   = $this->kiriof_fee_cache_matches( $cached_context, $cache_context );
@@ -251,7 +263,7 @@ class CheckoutController
             try {
                 $service = $this->checkoutServiceFactory()->calculation(array(
                     'destination_area_id' => $destination_id,
-                    'expedition'          => $this->kiriof_extract_expedition_from_method( $kiriof_method ),
+                    'expedition'          => $expedition,
                     'is_insurance'        => $force_insurance,
                     'is_cod'              => ( 'cod' === $chosen_payment ),
                     'wc_cart_contents'    => WC()->cart->get_cart(),
@@ -1398,8 +1410,10 @@ class CheckoutController
         }
 
         $courier_filter = array();
+        $courier_services = null;
         try {
             $courier_filter = $this->setting_repository->getWhitelistExpeditionIds();
+            $courier_services = $this->setting_repository->getCourierServiceSelection();
         } catch ( \Throwable $th ) {
             $courier_filter = array();
         }
@@ -1414,6 +1428,7 @@ class CheckoutController
                     'payment_method'   => $this->kiriof_get_checkout_payment_method(),
                     'coupon_context'   => $this->kiriof_get_cart_discount_context(),
                     'courier_filter'   => $courier_filter,
+                    'courier_services' => $courier_services,
                 )
             )
         );

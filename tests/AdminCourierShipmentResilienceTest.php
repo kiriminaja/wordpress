@@ -50,11 +50,15 @@ final class AdminCourierShipmentResilienceTest extends TestCase
     #[Test]
     public function courier_screen_displays_ajax_errors_instead_of_an_empty_state(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/admin/js/kj-settings.js');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte');
+        $ajax = file_get_contents(PLUGIN_DIR . '/src/lib/wordpress/ajax.ts');
 
-        $this->assertStringContainsString('function error(message)', $content);
-        $this->assertStringContainsString('error(result && result.message)', $content);
-        $this->assertStringContainsString('i18n.courierLoadFailed', $content);
+        $this->assertStringContainsString('bootstrap.i18n.loadFailed', $content);
+        $this->assertStringContainsString('requestError instanceof Error ? requestError.message', $content);
+        $this->assertStringContainsString('role="alert"', $content);
+        $this->assertStringContainsString('{:else if !loaded}', $content);
+        $this->assertStringContainsString('onclick={loadCouriers}', $content);
+        $this->assertStringContainsString('success === false', $ajax);
     }
 
     #[Test]

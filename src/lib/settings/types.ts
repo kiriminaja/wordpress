@@ -141,6 +141,12 @@ export type CouriersBootstrap = {
     loadFailed: string;
     saveFailed: string;
     count: string;
+    serviceCount?: string;
+    enableCourier?: string;
+    enableService?: string;
+    allServices?: string;
+    unavailable?: string;
+    retry?: string;
   };
 };
 
