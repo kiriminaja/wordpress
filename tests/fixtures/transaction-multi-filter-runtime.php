@@ -46,7 +46,6 @@ namespace {
         $ref = new \ReflectionClass(\KiriminAjaOfficial\Services\TransactionListRenderService::class);
         $service = $ref->newInstanceWithoutConstructor();
         $method = $ref->getMethod('getFilters');
-        $method->setAccessible(true);
         echo json_encode($method->invoke($service), JSON_THROW_ON_ERROR);
         exit;
     }

@@ -4341,3 +4341,20 @@ msgstr "Pengiriman Domestik"
 #, php-format
 msgid "%1$s Active / %2$s Total"
 msgstr "%1$s Aktif / %2$s Total"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Search statuses…"
+msgstr "Cari status…"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Search couriers…"
+msgstr "Cari kurir…"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "No matching options."
+msgstr "Tidak ada pilihan yang cocok."
+
+#: inc/Services/TransactionListRenderService.php
+#, php-format
+msgid "%s selected"
+msgstr "%s dipilih"
