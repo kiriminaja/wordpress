@@ -37,6 +37,7 @@ function kiriof_instant_shipping_method() {
 				'title'   => array( 'title' => __( 'Title', 'kiriminaja-official' ), 'type' => 'text', 'default' => __( 'KiriminAja Instant', 'kiriminaja-official' ) ),
 			);
 			$this->init_settings();
+			if ( method_exists( $this, 'init_instance_settings' ) ) { $this->init_instance_settings(); }
 			$this->enabled = $this->get_option( 'enabled', 'yes' );
 			$this->title   = $this->get_option( 'title', __( 'KiriminAja Instant', 'kiriminaja-official' ) );
 			$this->quotes  = $quotes;
@@ -86,10 +87,10 @@ function kiriof_instant_shipping_method() {
 				$payment = $session->get( 'payment_method', $session->get( 'kiriof_payment_method', '' ) );
 			}
 			$payment = is_string( $payment ) ? $payment : '';
-			$setting = function_exists( 'kiriof_setting_repository' ) ? kiriof_setting_repository()->getSettingByKey( 'enable_insurance' ) : null;
-			$insurance = 'yes' === ( $setting->value ?? 'yes' ) || in_array( $session->get( 'kiriof_insurance', 0 ), array( true, 1, '1', 'yes' ), true );
-			if ( 'cod' === $payment || $insurance ) {
-				$this->store_status( $session, $package, 'cod' === $payment ? 'cod_not_supported' : 'insurance_not_supported', false, 0 );
+			// Instant has no insurance allowance; Express insurance settings stay unchanged.
+			$insurance = false;
+			if ( 'cod' === strtolower( trim( $payment ) ) ) {
+				$this->store_status( $session, $package, 'cod_not_supported', false, 0 );
 				return;
 			}
 			try {
@@ -107,7 +108,7 @@ function kiriof_instant_shipping_method() {
 			$customer = $wc->customer ?? null;
 			foreach ( array( 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'first_name', 'last_name', 'phone' ) as $field ) {
 				$getter = 'get_shipping_' . $field;
-				if ( empty( $package['destination'][ $field ] ) && $customer && is_callable( array( $customer, $getter ) ) ) {
+				if ( ! array_key_exists( $field, $package['destination'] ) && $customer && is_callable( array( $customer, $getter ) ) ) {
 					$package['destination'][ $field ] = $customer->$getter();
 				}
 			}
@@ -121,7 +122,7 @@ function kiriof_instant_shipping_method() {
 						}
 						$this->add_rate( array(
 							'id' => $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'],
-							'label' => sanitize_text_field( $rate['label'] ),
+							'label' => sanitize_text_field( $rate['label'] ) . ' — ' . __( 'Insurance not supported', 'kiriminaja-official' ),
 							'cost' => (float) $rate['cost'],
 							'meta_data' => array(
 								'kiriof_delivery_type' => 'instant',
@@ -151,11 +152,12 @@ function kiriof_instant_shipping_method() {
 				return false;
 			}
 			foreach ( array( 'courier', 'service' ) as $field ) {
-				if ( ! isset( $rate[ $field ] ) || ! is_string( $rate[ $field ] ) || ! preg_match( '/^[a-z0-9_-]+$/D', $rate[ $field ] ) ) {
+				if ( ! isset( $rate[ $field ] ) || ! is_string( $rate[ $field ] ) || ! preg_match( '/^[A-Za-z0-9_-]+$/D', $rate[ $field ] ) ) {
 					return false;
 				}
 			}
 			return isset( $rate['cost'], $rate['label'], $rate['quote_token'], $rate['expires'], $rate['vehicle'] )
+				&& in_array( $rate['courier'], array( 'gosend', 'grab_express' ), true )
 				&& is_numeric( $rate['cost'] ) && is_finite( (float) $rate['cost'] ) && (float) $rate['cost'] >= 0
 				&& is_string( $rate['label'] ) && '' !== trim( $rate['label'] )
 				&& is_string( $rate['quote_token'] ) && preg_match( '/^[a-zA-Z0-9_-]{1,255}$/D', $rate['quote_token'] )

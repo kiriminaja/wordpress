@@ -32,18 +32,25 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
         $this->assertSame('Buyer', json_decode($row['shipping_info'], true)['_shipping_first_name']);
         $this->assertArrayHasKey('_kiriof_instant_checkout_snapshot', $r['meta']);
         $this->assertSame(1, $r['calls']);
+        $this->assertSame(1, $r['invoice_calls']);
+        $this->assertSame('KiriminAjaOfficial\\Services\\InstantCheckoutQuoteService', $r['production_quote_service']);
+        $this->assertSame(['latitude' => '-6.3', 'longitude' => '106.9'], $r['meta']['_kiriof_buyer_destination_coordinates']);
         $this->assertSame([], $r['locks']);
         $this->assertSame([20, 2], $r['hooks']['woocommerce_store_api_checkout_update_order_from_request']);
     }
 
     #[Test]
     public function final_checkout_rejects_changed_or_unsupported_context_without_remote_calls(): void {
-        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages'] as $scenario) {
+        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'insurance', 'session_insurance', 'private_error'] as $scenario) {
             $r = $this->fixture($scenario);
             $this->assertNotEmpty($r['error'], $scenario);
             $this->assertSame([], $r['rows'], $scenario);
             $this->assertSame(1, $r['calls'], $scenario);
             $this->assertStringNotContainsString('secret', $r['error']);
+            $this->assertSame(400, $r['error_status'], $scenario);
+            $this->assertStringNotContainsString('secret', json_encode($r['logs']));
+            $token = $r['meta']['_kiriof_instant_checkout_snapshot']['rate']['quote_token'] ?? '';
+            if ($token !== '') { $this->assertStringNotContainsString($token, json_encode($r['logs'])); }
             $this->assertSame('kiriminaja_instant', $r['logs'][0]['source']);
         }
     }
@@ -67,5 +74,26 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
         $this->assertSame([], $r['locks']);
         $this->assertSame(1, $r['calls']);
         $this->assertArrayHasKey('_kiriof_instant_checkout_snapshot', $r['meta']);
+        $this->assertSame(1, $r['invoice_calls']);
+    }
+
+    #[Test]
+    public function processing_retries_use_durable_selection_and_recover_expired_locks(): void {
+        foreach (['processed_expiry', 'stale_lock'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertSame('', $r['processed_error'], $scenario);
+            $this->assertCount(1, $r['rows'], $scenario);
+            $this->assertSame(1, $r['invoice_calls'], $scenario);
+            $this->assertSame([], $r['locks'], $scenario);
+        }
+        foreach (['snapshot_edit', 'busy_lock', 'conflict'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertNotEmpty($r['processed_error'], $scenario);
+            $this->assertCount($scenario === 'conflict' ? 1 : 0, $r['rows'], $scenario);
+            $this->assertSame($scenario === 'snapshot_edit' ? 'snapshot_changed' : ($scenario === 'busy_lock' ? 'checkout_busy' : 'transaction_conflict'), $r['logs'][0]['context']['code']);
+        }
     }
 }
+

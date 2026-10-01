@@ -186,6 +186,81 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.root.kiriofBuyerCheckout.active).toBe(true);
 		expect(h.root.kiriofBuyerCheckout.getDestination().postcode).toBe('12345');
 	});
+	const savedAddress = { address_1: 'Main Road', address_2: '', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' };
+	const savedDestination = { version: 2, district_id: '7', district_label: 'Old label', postcode: '12345', country: 'ID', address_type: 'shipping', destination_latitude: '-6.2000000', destination_longitude: '106.8000000', shipping_address: savedAddress };
+	test('reload restores a real saved pin before publication but confirms District independently', async () => {
+		const h = harness({ config: { savedDestination } });
+		Object.assign(h.model.cart.shippingAddress, savedAddress);
+		const api = h.root.kiriofBuyerCheckout;
+		expect(api.setCoordinates(savedAddress, { latitude: 0, longitude: 0 })).toBe(false);
+		expect(api.active).toBe(false);
+		expect(api.getCoordinates(savedAddress)).toEqual({ latitude: '-6.2000000', longitude: '106.8000000', key: JSON.stringify(savedAddress) });
+		expect(api.active).toBe(false); expect(h.publications).toHaveLength(0);
+		h.mount(); h.mountRegisteredBlock();
+		expect(h.publications).toHaveLength(1);
+		expect(api.getDestination().version).toBe(2); expect(api.getDestination().district_id).toBe('');
+		await h.flush(0); expect(h.sends).toHaveLength(0);
+		await h.flush(250); expect(h.lookups).toHaveLength(1); await h.reply();
+		expect(api.getDestination()).toEqual({ ...savedDestination, district_label: 'District Seven' });
+		await h.flush(0); expect(h.sends).toHaveLength(1);
+		expect(h.sends[0].request.data.destination.version).toBe(2);
+		expect(h.sends[0].request.data.destination.destination_latitude).toBe('-6.2000000');
+	});
+	test('explicitly cleared restored pin never revives for the same shipping address', async () => {
+		const h = harness({ config: { savedDestination } }); Object.assign(h.model.cart.shippingAddress, savedAddress);
+		await ready(h);
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(savedAddress, null)).toBe(true); h.render();
+		for (let i = 0; i < 3; i++) { expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull(); h.notify(); }
+		h.unmount(); h.mountRegisteredBlock();
+		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(1);
+		await h.flush(0); expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.destination.version).toBe(1);
+	});
+	test('a different stable street rejects saved pin permanently without repairing its address', async () => {
+		const h = harness({ config: { savedDestination } }); Object.assign(h.model.cart.shippingAddress, savedAddress, { address_1: 'Other Road' });
+		await ready(h);
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull();
+		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(1);
+		Object.assign(h.model.cart.shippingAddress, savedAddress); h.notify();
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull();
+		expect(savedDestination.shipping_address.address_1).toBe('Main Road');
+	});
+	test('empty initial cart and incomplete customer defer saved pin restoration and publishing until hydration', async () => {
+		const h = harness({ config: { savedDestination } }); h.model.cart.needsShipping = false; h.model.cart.shippingAddress = {};
+		h.mount(); expect(h.publications).toHaveLength(0);
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull();
+		h.model.cart.needsShipping = true; h.model.cart.shippingAddress = { postcode: '12345', country: 'ID' }; h.notify();
+		await h.flush(250); await h.reply(); await h.flush(0);
+		expect(h.publications).toHaveLength(0); expect(h.sends).toHaveLength(0);
+		Object.assign(h.model.cart.shippingAddress, savedAddress); h.notify();
+		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2);
+		await h.flush(0); expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.destination).toEqual({ ...savedDestination, district_label: 'District Seven' });
+	});
+	test('saved pin never bypasses District lookup failure or invents a selected district', async () => {
+		const h = harness({ config: { savedDestination } }); Object.assign(h.model.cart.shippingAddress, savedAddress);
+		h.mount(); await h.flush(250); h.lookups[0].reject(new Error('offline')); await h.settle(); await h.flush(0);
+		expect(h.sends).toHaveLength(0); expect(h.status()).toBe('Lookup failed');
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)?.latitude).toBe('-6.2000000');
+		h.retry(); await h.flush(250); await h.reply(1, [{ id: 9, text: 'Other district' }]);
+		expect(h.find('ComboboxControl').props.value).toBeNull();
+	});
+	test('saved coordinate restoration rejects non-plain numbers, range errors and inconsistent address context', async () => {
+		for (const patch of [{ version: 1 }, { destination_latitude: '0x10' }, { destination_longitude: '1e2' }, { destination_latitude: '91' }, { destination_longitude: '181' }, { district_id: '' }, { country: 'SG' }, { postcode: '54321' }]) {
+			const h = harness({ config: { savedDestination: { ...savedDestination, ...patch } } }); Object.assign(h.model.cart.shippingAddress, savedAddress);
+			await ready(h); expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull(); expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(1);
+		}
+	});
+	test('restoration compares all six shipping fields and waits for customer updates to settle', async () => {
+		for (const field of ['address_1', 'address_2', 'city', 'state', 'postcode', 'country']) {
+			const h = harness({ config: { savedDestination } }); Object.assign(h.model.cart.shippingAddress, savedAddress, { [field]: field === 'country' ? 'SG' : 'Different' });
+			h.mount(); expect(h.root.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress)).toBeNull();
+			Object.assign(h.model.cart.shippingAddress, savedAddress); h.notify(); expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull();
+		}
+		const h = harness({ config: { savedDestination: { ...savedDestination, destination_latitude: '0', destination_longitude: 0 } } });
+		Object.assign(h.model.cart.shippingAddress, savedAddress); h.model.customerBusy = true; h.mount();
+		expect(h.publications).toHaveLength(0); expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)).toBeNull();
+		h.model.customerBusy = false; h.notify(); expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)?.latitude).toBe('0.0000000');
+		expect(h.root.kiriofBuyerCheckout.getDestination().destination_longitude).toBe('0.0000000');
+	});
 	test('unrelated carriers remain checkout-valid when district lookup fails', async () => {
 		const h = harness();
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'flat_rate:2', method_id: 'flat_rate', selected: true };

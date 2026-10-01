@@ -35,6 +35,7 @@ final class Init {
             Controllers\EditOrderController::class,
             Controllers\CodAdjustmentController::class,
             Controllers\InstantDeliveryController::class,
+            Controllers\InstantCheckoutController::class,
             Services\InstantCheckoutDiagnosticsService::class,
         ];
     }
@@ -68,6 +69,12 @@ final class Init {
         }
         if ( Services\InstantCheckoutDiagnosticsService::class === $class ) {
             return new Services\InstantCheckoutDiagnosticsService();
+        }
+        if ( Controllers\InstantCheckoutController::class === $class ) {
+            return new Controllers\InstantCheckoutController(
+                new Repositories\SettingRepository(),
+                new Repositories\TransactionRepository()
+            );
         }
         $checkout_service_factory = kiriof_checkout_service_factory();
 

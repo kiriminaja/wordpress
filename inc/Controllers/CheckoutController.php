@@ -805,6 +805,7 @@ class CheckoutController
         if ( ! $order instanceof \WC_Order ) {
             return;
         }
+        if ( $this->kiriof_order_uses_instant( $order ) ) { return; }
 
         // Avoid duplicate inserts if Woo also fires the classic processed hook.
         $existing_transaction = $this->transaction_repository->getTransactionByWCOrderId( $order->get_id() );
@@ -1003,6 +1004,7 @@ class CheckoutController
         if ( ! $order instanceof \WC_Order ) {
             $order = wc_get_order( $order_id );
         }
+        if ( $this->kiriof_order_uses_instant( $order ) ) { return; }
         if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
             $this->kiriof_clear_logistics_session();
             return;
@@ -1135,6 +1137,7 @@ class CheckoutController
     
     // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce checkout flow verifies nonce before this hook runs.
     function afterCheckoutBeforeCreated($order,$data ){
+        if ( $this->kiriof_order_uses_instant( $order ) ) { return; }
         if ( $order instanceof \WC_Order && ! $this->kiriof_order_needs_shipping( $order ) ) {
             $this->kiriof_clear_logistics_session();
             return;
@@ -1547,6 +1550,14 @@ class CheckoutController
         return $packages;
     }
 
+    private function kiriof_order_uses_instant( $order ): bool {
+        if ( ! $order instanceof \WC_Order ) { return false; }
+        foreach ( $order->get_items( 'shipping' ) as $line ) {
+            if ( method_exists( $line, 'get_method_id' ) && 'kiriminaja-instant' === $line->get_method_id() ) { return true; }
+        }
+        return false;
+    }
+
     private function kiriof_get_shipping_rate_cache_key( $package ) {
         $destination_id = WC()->session ? (int) WC()->session->get( 'shipping_destination_id', 0 ) : 0;
         if ( ! $destination_id && WC()->session ) {
@@ -1572,6 +1583,9 @@ class CheckoutController
                 array(
                     'cart_hash'        => $cart_hash,
                     'supported_country' => 'ID',
+                    'instant_pin' => WC()->session ? WC()->session->get( 'kiriof_buyer_destination', null ) : null,
+                    'origin' => $package['origin'] ?? array(),
+                    'instant_quote_window' => WC()->session && 2 === ( WC()->session->get( 'kiriof_buyer_destination', array() )['version'] ?? 0 ) ? intdiv( time(), 60 ) : 0,
                     'destination'      => isset( $package['destination'] ) ? $package['destination'] : array(),
                     'destination_id'   => $destination_id,
                     'insurance'        => WC()->session ? (int) WC()->session->get( 'kiriof_insurance', 0 ) : 0,
@@ -1989,6 +2003,13 @@ class CheckoutController
         $chosen_methods = WC()->session->get('chosen_shipping_methods');
         if (empty($chosen_methods) || !is_array($chosen_methods)) {
             return $gateways;
+        }
+
+        foreach ( $chosen_methods as $method ) {
+            if ( is_string( $method ) && 0 === strpos( $method, 'kiriminaja-instant:' ) ) {
+                unset( $gateways['cod'] );
+                return $gateways;
+            }
         }
 
         $is_kiriminaja_shipping = false;

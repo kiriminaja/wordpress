@@ -415,6 +415,7 @@ if ( class_exists( 'KiriminAjaOfficial\\Init' ) ) {
  */
 $kiriof_woo_files = [
     'KiriminajaShippingMethod',
+    'KiriminajaInstantShippingMethod',
     'OverwriteWoocommercePlugin',
     'AdminWoocommerceSetting',
 ];

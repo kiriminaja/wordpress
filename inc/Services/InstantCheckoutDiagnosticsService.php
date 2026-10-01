@@ -34,7 +34,7 @@ class InstantCheckoutDiagnosticsService {
 		}
 	}
 
-	/** Only booleans and bounded configuration/reason codes leave this method. */
+	/** Only booleans, numeric IDs and bounded configuration/reason codes leave this method. */
 	public function snapshot(): array {
 		$this->settings  = $this->settings ?? new SettingRepository();
 		$this->locations = $this->locations ?? new ShipmentLocationService( null, $this->settings );
@@ -80,16 +80,44 @@ class InstantCheckoutDiagnosticsService {
 		}
 		$zone_known = false;
 		$zone_enabled = false;
-		// Local zone lookup only. Do not initialize shipping, calculate rates or fetch quotes.
-		if ( $address_complete && class_exists( 'WC_Shipping_Zones', false ) ) {
+		$zone_id = null;
+		$zone_methods = array();
+		// Local zone lookup only. Loading method instances does not calculate rates or fetch quotes.
+		if ( $address_complete && class_exists( 'WC_Shipping_Zones' ) ) {
 			try {
 				$zone = \WC_Shipping_Zones::get_zone_matching_package( array( 'destination' => $current ) );
-				if ( is_object( $zone ) && method_exists( $zone, 'get_shipping_methods' ) ) {
-					foreach ( $zone->get_shipping_methods( true ) as $method ) {
-						if ( 'kiriminaja-instant' === ( $method->id ?? null ) && 'yes' === ( $method->enabled ?? null ) ) {
-							$zone_enabled = true;
+				if ( is_object( $zone ) && is_callable( array( $zone, 'get_shipping_methods' ) ) ) {
+					$id = is_callable( array( $zone, 'get_id' ) ) ? $zone->get_id() : null;
+					$methods = array();
+					$enabled = false;
+					// Include disabled rows: WooCommerce applies the admin row's is_enabled to
+					// each instance's enabled property, independently of instance settings.
+					foreach ( $zone->get_shipping_methods( false ) as $key => $method ) {
+						if ( ! is_object( $method ) ) {
+							continue;
+						}
+						$method_id = $method->id ?? null;
+						if ( ! is_string( $method_id ) || 1 !== preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,79}\z/', $method_id ) ) {
+							continue;
+						}
+						$instance_id = is_callable( array( $method, 'get_instance_id' ) ) ? $method->get_instance_id() : ( $method->instance_id ?? $key );
+						$row_enabled = 'yes' === ( $method->enabled ?? null );
+						$stored = $method->instance_settings['enabled'] ?? null;
+						$stored_enabled = in_array( $stored, array( 'yes', 'no' ), true ) ? 'yes' === $stored : null;
+						$methods[] = array(
+							'method_id' => $method_id,
+							'instance_id' => $this->numericId( $instance_id ) ?? 0,
+							'enabled' => $row_enabled,
+							'stored_enabled' => $stored_enabled,
+							'enabled_settings_conflict' => null !== $stored_enabled && $stored_enabled !== $row_enabled,
+						);
+						if ( 'kiriminaja-instant' === $method_id && $row_enabled ) {
+							$enabled = true;
 						}
 					}
+					$zone_id = $this->numericId( $id );
+					$zone_methods = $methods;
+					$zone_enabled = $enabled;
 					$zone_known = true;
 				}
 			} catch ( \Throwable $error ) {
@@ -149,6 +177,8 @@ class InstantCheckoutDiagnosticsService {
 			'timezone_supported' => $timezone_valid,
 			'instant_timezone' => $timezone,
 			'matching_zone_known' => $zone_known,
+			'matching_zone_id' => $zone_id,
+			'matching_zone_methods' => $zone_methods,
 			'method_zone_enabled' => $zone_enabled,
 			'method_registered' => function_exists( 'has_filter' ) && false !== has_filter( 'woocommerce_shipping_methods', 'kiriof_register_instant_shipping_method' ) && function_exists( 'kiriof_register_instant_shipping_method' ),
 			'checkout_integration_ready' => class_exists( 'KiriminAjaOfficial\\Controllers\\InstantCheckoutController', false ),
@@ -225,6 +255,18 @@ class InstantCheckoutDiagnosticsService {
 		}
 		$route = $GLOBALS['wp']->query_vars['rest_route'] ?? '';
 		return is_string( $route ) && 1 === preg_match( '#\A/wc/store/(?:v[0-9]+/)?(?:cart|checkout)(?:/|\z)#', $route );
+	}
+
+	/** Reject arbitrary strings rather than coercing private data into identifiers. */
+	private function numericId( $value ): ?int {
+		if ( is_int( $value ) ) {
+			return $value >= 0 ? $value : null;
+		}
+		if ( is_string( $value ) && 1 === preg_match( '/\A(?:0|[1-9][0-9]*)\z/', $value ) ) {
+			$id = filter_var( $value, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 0 ) ) );
+			return false === $id ? null : $id;
+		}
+		return null;
 	}
 
 	private function text( array $origin, string $key ): string {

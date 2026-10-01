@@ -41,13 +41,15 @@
 	var controllers = new Map();
 	var owner = null;
 	var state = { destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
+	var savedPin = savedCoordinates( config.savedDestination );
+	var restorationAttempted = ! savedPin;
 	var resolveReady;
 	var api = root.kiriofBuyerCheckout = {
 		active: false, pending: true, disabled: false,
 		ready: new Promise( function( resolve ) { resolveReady = resolve; } ),
 		getDestination: function() { return state.destination; },
 		setCoordinates: setCoordinates,
-		getCoordinates: function( address ) { return state.mapPin && state.mapPin.key === shippingAddressKey( address ) ? state.mapPin : null; }
+		getCoordinates: getCoordinates
 	};
 	var readinessTimer = root.setTimeout( function() {
 		api.pending = false;
@@ -161,11 +163,39 @@
 		return snapshot;
 	}
 	function shippingAddressKey( address ) { return JSON.stringify( shippingAddress( address ) ); }
+	function savedCoordinates( destination ) {
+		function plainCoordinate( value, limit ) {
+			return ( 'number' === typeof value || 'string' === typeof value ) && /^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test( String( value ).trim() ) && validCoordinate( value, limit );
+		}
+		if ( ! destination || 2 !== destination.version || ! /^[1-9][0-9]*$/.test( String( destination.district_id ) ) || ! destination.shipping_address ||
+			! plainCoordinate( destination.destination_latitude, 90 ) || ! plainCoordinate( destination.destination_longitude, 180 ) ) { return null; }
+		var address = shippingAddress( destination.shipping_address );
+		if ( ! completeShippingAddress( address ) || 'ID' !== address.country || address.country !== String( destination.country || '' ).toUpperCase() || address.postcode !== String( destination.postcode || '' ).replace( /\s+/g, '' ).toUpperCase() ) { return null; }
+		return { latitude: Number( destination.destination_latitude ).toFixed( 7 ), longitude: Number( destination.destination_longitude ).toFixed( 7 ), key: shippingAddressKey( address ) };
+	}
+	function completeShippingAddress( address ) {
+		return [ 'address_1', 'city', 'state', 'postcode', 'country' ].every( function( key ) { return Boolean( address[ key ] ); } );
+	}
+	function getCoordinates( address ) {
+		var cart = wp.data.select( 'wc/store/cart' );
+		var data = cart.getCartData() || {};
+		var key = shippingAddressKey( address );
+		if ( key !== shippingAddressKey( data.shippingAddress ) ) { return null; }
+		// The map may mount before the District owner. Restore silently here so its
+		// first render and the first published snapshot see the same real pin.
+		// Empty initial cart/customer data is not a failed restoration attempt.
+		if ( ! restorationAttempted && data.needsShipping && ! cart.isCustomerDataUpdating() && completeShippingAddress( shippingAddress( data.shippingAddress ) ) ) {
+			restorationAttempted = true;
+			if ( savedPin.key === key ) { state.mapPin = savedPin; }
+		}
+		return state.mapPin && state.mapPin.key === key ? state.mapPin : null;
+	}
 	function setCoordinates( address, point ) {
 		if ( api.disabled || ! api.active ) { return false; }
 		var cart = wp.data.select( 'wc/store/cart' ).getCartData() || {};
 		if ( shippingAddressKey( address ) !== shippingAddressKey( cart.shippingAddress ) ) { return false; }
 		if ( point && ( ! validCoordinate( point.latitude, 90 ) || ! validCoordinate( point.longitude, 180 ) ) ) { return false; }
+		restorationAttempted = true;
 		setMapPin( point ? { latitude: Number( point.latitude ).toFixed( 7 ), longitude: Number( point.longitude ).toFixed( 7 ), key: shippingAddressKey( address ) } : null );
 		return true;
 	}
@@ -198,7 +228,8 @@
 		var token = useRef( {} ).current;
 		var isOwner = owner === token;
 		var selection = state.selection;
-		var mapPin = state.mapPin || null;
+		var mapPin = getCoordinates( address );
+		var awaitingSavedPin = ! restorationAttempted;
 		var results = state.results;
 		var updateState = state.queue;
 		var retryLookup = state.retryLookup;
@@ -248,15 +279,15 @@
 		}, [] );
 
 		useEffect( function() {
-			if ( ownsEffects() ) { publish( destinationRef.current ); }
-		}, [ destinationKey, isOwner ] );
+			if ( ownsEffects() && ! awaitingSavedPin ) { publish( destinationRef.current ); }
+		}, [ destinationKey, isOwner, awaitingSavedPin ] );
 
 		useEffect( function() {
 			if ( ownsEffects() ) { queue.resume(); }
 		}, [ data.busy, isOwner ] );
 
 		useEffect( function() {
-			if ( ! ownsEffects() || ! cart.needsShipping || data.collection ) {
+			if ( ! ownsEffects() || awaitingSavedPin || ! cart.needsShipping || data.collection ) {
 				return;
 			}
 			// Restore a saved identity before issuing a mutation with an empty district.
@@ -270,7 +301,7 @@
 				insurance: config.globalInsurance ? 1 : 0,
 				force_insurance: 0
 			} );
-		}, [ destinationKey, data.payment, cart.needsShipping, data.collection, required, results.key, results.loading, results.error, isOwner ] );
+		}, [ destinationKey, data.payment, cart.needsShipping, data.collection, required, results.key, results.loading, results.error, isOwner, awaitingSavedPin ] );
 
 		useEffect( function() {
 			if ( ! ownsEffects() ) { return; }

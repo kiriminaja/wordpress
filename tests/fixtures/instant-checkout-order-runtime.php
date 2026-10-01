@@ -8,7 +8,10 @@ namespace KiriminAjaOfficial\Repositories {
     }
 }
 namespace KiriminAjaOfficial\Services\KiriminAja {
-    class GenerateOrderId { public function call() { return 'INSTANT-123'; } }
+    class GenerateOrderId { public int $calls = 0; public function call() { ++$this->calls; return 'INSTANT-' . $this->calls; } }
+}
+namespace Automattic\WooCommerce\StoreApi\Exceptions {
+    class RouteException extends \RuntimeException { public int $status; public function __construct($code, $message, $status) { parent::__construct($message); $this->status = $status; } }
 }
 namespace {
     // Reuse the isolated live quote doubles, with output buffered, not production APIs.
@@ -17,16 +20,36 @@ namespace {
     require __DIR__ . '/instant-checkout-quote-runtime.php';
     ob_end_clean();
     $scenario = $argv[2] ?? '';
+    class OrderSettings extends \KiriminAjaOfficial\Repositories\SettingRepository {
+        public bool $insurance = false;
+        public function getSettingByKey($key) { return $key === 'enable_insurance' ? (object) ['value' => $this->insurance ? 'yes' : 'no'] : parent::getSettingByKey($key); }
+    }
+    $settings = new OrderSettings();
+    $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
     $GLOBALS['hooks'] = []; $GLOBALS['locks'] = []; $GLOBALS['logs'] = [];
     function add_action($hook, $callback, $priority, $args) { $GLOBALS['hooks'][$hook] = [$priority, $args]; }
     function add_option($key, $value, $deprecated = '', $autoload = false) { if (isset($GLOBALS['locks'][$key])) { return false; } $GLOBALS['locks'][$key] = $value; return true; }
     function delete_option($key) { unset($GLOBALS['locks'][$key]); }
+    function get_option($key, $default = '') { return $GLOBALS['locks'][$key] ?? $default; }
+    function wp_cache_delete($key, $group) {}
+    class LockDatabase {
+        public string $options = 'wp_options';
+        public function prepare($sql, ...$args) { return [$sql, $args]; }
+        public function query($query) {
+            [$sql, $args] = $query;
+            if (str_starts_with($sql, 'UPDATE')) { [$owner, $key, $previous] = $args; if (($GLOBALS['locks'][$key] ?? null) !== $previous) { return 0; } $GLOBALS['locks'][$key] = $owner; return 1; }
+            [$key, $owner] = $args; if (($GLOBALS['locks'][$key] ?? null) !== $owner) { return 0; } unset($GLOBALS['locks'][$key]); return 1;
+        }
+    }
+    $GLOBALS['wpdb'] = new LockDatabase();
     class OrderShipping {
         public string $method = 'kiriminaja-instant'; public int $instance = 4; public $total = 18000; public array $meta;
         public function __construct($rate) { foreach (['courier', 'service', 'vehicle', 'quote_token'] as $key) { $this->meta['kiriof_instant_' . $key] = $rate[$key]; } $this->meta['kiriof_instant_quote_expires'] = $rate['expires']; }
         public function get_method_id() { return $this->method; }
         public function get_instance_id() { return $this->instance; }
         public function get_total() { return $this->total; }
+        public function get_cost() { return $this->total; }
+        public function get_meta_data() { return $this->meta; }
         public function get_meta($key) { return $this->meta[$key] ?? ''; }
     }
     class OrderFixture {
@@ -39,6 +62,7 @@ namespace {
         public function get_payment_method() { return $this->payment; }
         public function set_payment_method($value) { $this->payment = $value; }
         public function get_discount_total() { return 100; }
+        public function save_meta_data() {}
         public function __call($name, $args) { if (str_starts_with($name, 'get_shipping_')) { return $this->address[substr($name, 13)] ?? ''; } if (str_starts_with($name, 'set_shipping_')) { $this->address[substr($name, 13)] = $args[0]; } }
     }
     class OrderRequest { public array $params; public function get_param($key) { return $this->params[$key] ?? null; } }
@@ -58,9 +82,13 @@ namespace {
     $line = new OrderShipping($quote['rates'][0]); $order = new OrderFixture($package['destination'], $line);
     $request = new OrderRequest(); $request->params = ['shipping_address' => $order->address, 'payment_method' => 'bacs', 'extensions' => ['kiriminaja-official' => ['destination' => $destination]]];
     $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
-    $controller = new \KiriminAjaOfficial\Controllers\InstantCheckoutController($settings, $transactions, $service, new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId());
-    $controller->register(); $error = ''; $processedError = '';
+    $controller = new \KiriminAjaOfficial\Controllers\InstantCheckoutController($settings, $transactions, $service, $generator = new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId());
+    $controller->register(); $error = ''; $processedError = ''; $errorStatus = null;
+    $wc->packages[0]['rates'] = [clone $line];
     switch ($scenario) {
+        case 'insurance': $settings->insurance = true; break;
+        case 'session_insurance': $wc->session->set('kiriof_insurance', 1); break;
+        case 'private_error': $settings->throw = true; break;
         case 'price': $line->total = 17999; break;
         case 'fraction': $line->total = 18000.1; break;
         case 'pin': $request->params['extensions']['kiriminaja-official']['destination']['destination_latitude'] = '-6.4'; break;
@@ -78,10 +106,17 @@ namespace {
         case 'packages': $wc->packages[] = $package; break;
         case 'express': $line->method = 'kiriminaja-official'; break;
         case 'insert': $transactions->fail = true; break;
+        case 'missing_rates': $wc->packages[0]['rates'] = []; break;
+        case 'rate_vehicle': $wc->packages[0]['rates'][0]->meta['kiriof_instant_vehicle'] = 'car'; break;
+        case 'stale_lock': $GLOBALS['locks']['_kiriof_instant_checkout_lock_123'] = (time() - 10) . ':' . str_repeat('a', 32); break;
+        case 'busy_lock': $GLOBALS['locks']['_kiriof_instant_checkout_lock_123'] = (time() + 300) . ':' . str_repeat('a', 32); break;
         case 'classic': $wc->session->set('kiriof_buyer_destination', $destination); break;
     }
-    try { if ($scenario === 'classic') { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); }
+    try { if ($scenario === 'classic') { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
     if ($error === '') {
+        if ($scenario === 'snapshot_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['context']['destination']['destination_latitude'] = '-6.4'; }
+        if ($scenario === 'processed_expiry') { $wc->session->data = []; }
+        if ($scenario === 'conflict') { $transactions->rows[] = (object) ['delivery_type' => 'instant', 'service' => 'grab_express']; }
         try {
             $controller->afterStoreApiCheckoutOrderProcessed($order);
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
@@ -91,5 +126,5 @@ namespace {
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
         }
     }
-    echo json_encode(['error' => $error, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
+    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
 }
