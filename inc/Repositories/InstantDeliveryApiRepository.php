@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use KiriminAja\Base\Api\Api;
+use KiriminAjaOfficial\Infrastructure\InstantApiTransport;
 use KiriminAja\Models\ShippingPriceInstantData;
 use KiriminAja\Responses\ServiceResponse;
 use KiriminAja\Services\KiriminAja;
@@ -14,6 +14,71 @@ use KiriminAjaOfficial\Base\KiriminAjaApi;
 
 /** Official SDK adapter for Instant delivery; never retries remote operations. */
 class InstantDeliveryApiRepository extends KiriminAjaApi {
+	public function tracking( string $order_id ): array {
+		if ( ! $this->valid_order_id( $order_id ) ) {
+			return $this->failure( 'Invalid Instant order ID.' );
+		}
+		// The SDK tracking wrapper discards the documented code-2/null result.
+		// Bypass the inherited error logger: upstream errors can contain PII.
+		try {
+			[ $transport, $body ] = ( new InstantApiTransport() )->get( 'api/mitra/v4/instant/tracking/' . rawurlencode( $order_id ) );
+			$body = $this->lifecycle_body( $body );
+			if ( true !== $transport || null === $body ) {
+				return $this->failure( 'Instant tracking failed.' );
+			}
+			if ( is_bool( $body->status ?? null ) && in_array( $body->code ?? null, array( 2, '2' ), true ) && property_exists( $body, 'result' ) && null === $body->result ) {
+				return array( 'status' => false, 'data' => 'Instant tracking data was not found.', 'not_found' => true );
+			}
+			if ( true !== ( $body->status ?? null ) || ! in_array( $body->code ?? null, array( 0, '0' ), true ) || ! is_object( $body->result ?? null ) || $order_id !== ( $body->result->order_id ?? null ) ) {
+				return $this->failure( 'Instant tracking failed.' );
+			}
+			return array( 'status' => true, 'data' => $body );
+		} catch ( \Throwable $throwable ) {
+			return $this->failure( 'Instant tracking failed.' );
+		}
+	}
+
+	public function cancel( string $order_id ): array {
+		if ( ! $this->valid_order_id( $order_id ) ) {
+			return $this->failure( 'Invalid Instant order ID.' );
+		}
+		try {
+			[ $transport, $body ] = ( new InstantApiTransport() )->delete( 'api/mitra/v4/instant/pickup/void/' . rawurlencode( $order_id ) );
+			$body = $this->lifecycle_body( $body );
+			if ( true !== $transport || null === $body || true !== ( $body->status ?? null ) || ! in_array( $body->code ?? null, array( 0, '0' ), true ) || ! is_object( $body->result ?? null ) ) {
+				return $this->failure( 'Instant cancellation failed.' );
+			}
+			$packages = $body->result->packages ?? null;
+			if ( ! is_array( $packages ) || ! array_is_list( $packages ) || 1 !== count( $packages ) || ! is_object( $packages[0] ) || $order_id !== ( $packages[0]->order_id ?? null ) || ! in_array( $packages[0]->service ?? null, array( 'gosend', 'grab_express' ), true ) ) {
+				return $this->failure( 'Instant cancellation failed.' );
+			}
+			// A successful void operation can still report status 105. Do not
+			// rewrite its remote status or assert that tracking says "cancelled".
+			// The caller must also verify this package's service against its row.
+			return array( 'status' => true, 'data' => $body, 'operation_accepted' => true );
+		} catch ( \Throwable $throwable ) {
+			return $this->failure( 'Instant cancellation failed.' );
+		}
+	}
+
+	private function valid_order_id( string $order_id ): bool {
+		return 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', $order_id );
+	}
+
+	/** Normalize SDK associative bodies without accepting scalar/list bodies. */
+	private function lifecycle_body( $body ): ?object {
+		if ( ! is_object( $body ) && ( ! is_array( $body ) || array_is_list( $body ) ) ) {
+			return null;
+		}
+		$code = is_array( $body ) ? ( $body['code'] ?? null ) : ( $body->code ?? null );
+		// JSON normalization must not turn floating-point zero into code 0.
+		if ( ! is_int( $code ) && ! is_string( $code ) ) {
+			return null;
+		}
+		$normalized = json_decode( wp_json_encode( $body ) );
+		return is_object( $normalized ) ? $normalized : null;
+	}
+
 	public function price( array $payload ): array {
 		if ( empty( $payload['service'] ) || ! is_array( $payload['service'] ) || array_diff( $payload['service'], array( 'gosend', 'grab_express' ) ) ) {
 			return $this->failure( 'Unsupported Instant courier.' );
@@ -81,9 +146,9 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		}
 
 		// The inherited post() logs remote errors, which may echo the PIN.
-		// Use the configured SDK transport directly; never retry or expose errors.
+		// Use the bounded Instant transport directly; never retry or expose errors.
 		try {
-			[ $transport, $body ] = ( new Api() )->post( 'api/mitra/v6.2/instant/request_pickup', $payload );
+			[ $transport, $body ] = ( new InstantApiTransport() )->post( 'api/mitra/v6.2/instant/request_pickup', $payload );
 			if ( ! $transport || ! is_array( $body ) || true !== ( $body['status'] ?? null ) ) {
 				return $this->failure( 'Instant booking failed.' );
 			}
@@ -131,7 +196,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		$validation = $this->call_sdk(
 			static function () use ( $pin ) {
 				try {
-					[ $transport, $body ] = ( new Api() )->post( 'api/mitra/v6.2/pin/validate', array( 'pin' => $pin ) );
+					[ $transport, $body ] = ( new InstantApiTransport() )->post( 'api/mitra/v6.2/pin/validate', array( 'pin' => $pin ) );
 					return new ServiceResponse( $transport && is_array( $body ) && true === ( $body['status'] ?? null ), 'PIN validation failed.', is_array( $body ) ? $body : null );
 				} catch ( \Throwable $throwable ) {
 					return new ServiceResponse( false, 'PIN validation failed.', null );

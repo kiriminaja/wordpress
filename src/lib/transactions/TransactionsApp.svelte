@@ -41,7 +41,8 @@
   import InstantProcessDialog from './InstantProcessDialog.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
-  import { instantStatusIcon } from './types';
+  import InstantOperationDialog from './InstantOperationDialog.svelte';
+  import { safeInstantTrackingUrl, type InstantOperationMode, instantStatusIcon } from './types';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let {
@@ -82,6 +83,7 @@
   let searchTimer: number | null = null;
   let instantDialogOpen = $state(false);
   let instantOrderIds = $state<string[]>([]);
+  let instantOperation = $state<{ mode: InstantOperationMode; id: string } | null>(null);
   let pickupDialogOpen = $state(false);
   let actionDialog = $state<TransactionActionDialog | null>(null);
   let printPreviewOpen = $state(false);
@@ -312,7 +314,7 @@
           <AutoRefresh
             storageKey="kiriof-transactions-refresh-interval"
             loading={refreshing}
-            disabled={pickupDialogOpen || instantDialogOpen || printPreviewOpen || actionDialog !== null}
+            disabled={pickupDialogOpen || instantDialogOpen || printPreviewOpen || actionDialog !== null || instantOperation !== null}
             hint={bootstrap.i18n.autoRefresh}
             options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
             onRefresh={refreshList}
@@ -512,6 +514,13 @@
                       <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
                     {#if row.deliveryType === 'instant' && isInstant}
+                      {@const trackingUrl = safeInstantTrackingUrl(row.actions.liveTrackingUrl)}
+                      {#if row.actions.track}
+                        {#if trackingUrl}<Button variant="outline" size="sm" href={trackingUrl} target="_blank" rel="noopener noreferrer">{bootstrap.i18n.liveTracking}</Button>
+                        {:else}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}>{bootstrap.i18n.liveTracking}</Button>{/if}
+                      {/if}
+                      {#if row.actions.reconcile}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}>{bootstrap.i18n.instantReconcile}</Button>{/if}
+                      {#if row.actions.cancel}<Button variant="destructive" size="sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })}>{bootstrap.i18n.instantCancel}</Button>{/if}
                       {#if row.actions.process}<ActionTooltip label={bootstrap.i18n.processShipment}><Button variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])} aria-label={bootstrap.i18n.processShipment}><IconTruck /></Button></ActionTooltip>{/if}
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
                     {/if}
@@ -555,6 +564,9 @@
     i18n={bootstrap.i18n}
   />
   <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
+  {/if}
+  {#if instantOperation}
+    <InstantOperationDialog mode={instantOperation.mode} orderIds={[instantOperation.id]} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onClose={(completed) => { instantOperation = null; if (completed) refreshList(); }} />
   {/if}
   <InstantProcessDialog bind:open={instantDialogOpen} orderIds={instantOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onComplete={refreshList} />
   <PrintPreviewDialog deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={isInstant ? bootstrap.bulk.nonce : bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />

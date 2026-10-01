@@ -43,8 +43,11 @@ export type TransactionDetailBootstrap = {
       codValue: number;
       printUrl: string;
       trackingOrder: string;
+      liveTrackingUrl: string;
     };
     actions: {
+      track: boolean;
+      reconcile: boolean;
       changeOrigin: boolean;
       adjustDeficit: boolean;
       cancelDeficit: boolean;

@@ -19,11 +19,13 @@ class CallbackHandlerService extends BaseService {
     private $transactionRepository;
     private $paymentRepository;
     private $apiToken;
+    private $instantWebhookService;
 
-    public function __construct( $transactionRepository, $paymentRepository, $apiToken ) {
+    public function __construct( $transactionRepository, $paymentRepository, $apiToken, ?InstantWebhookService $instantWebhookService = null ) {
         $this->transactionRepository = $transactionRepository;
         $this->paymentRepository     = $paymentRepository;
         $this->apiToken              = $apiToken;
+        $this->instantWebhookService = $instantWebhookService;
     }
 
     public function header( $header ) {
@@ -37,16 +39,22 @@ class CallbackHandlerService extends BaseService {
     }
 
     public function call() {
+        $this->packages = array();
+        $this->transactions = array();
+        $this->transactionsByOrderId = array();
+        $this->processing = null;
         if ( ! $this->headerValidation() ) {
             $this->logWebhookEvent( 'warning', 'KiriminAja webhook authorization failed because the bearer token did not match the saved API key.' );
             return self::error( array(), 'Authorization failed', 401 );
         }
 
-        if ( isset( $this->body->data ) && ! empty( $this->body->data ) ) {
-            $this->packages = (array) $this->body->data;
-        } elseif ( isset( $this->body->packages ) && ! empty( $this->body->packages ) ) {
-            $this->packages = (array) $this->body->packages;
+        // Validate routing identities while they are still raw, before any lookup or mutation.
+        if ( ! $this->validateRoutingPayload() ) {
+            return self::error( array(), 'Invalid callback payload', 400 );
         }
+        $this->packages = ! empty( $this->body->data )
+            ? $this->body->data
+            : ( $this->body->packages ?? array() );
 
         $orderIds = $this->getPackageOrderIds();
         if ( empty( $orderIds ) ) {
@@ -78,7 +86,34 @@ class CallbackHandlerService extends BaseService {
             return self::error( array( 'unmatched_order_ids' => $unmatchedOrderIds ), 'Not all transactions were found', 503 );
         }
 
-        switch ( (string) ( $this->body->method ?? '' ) ) {
+        $deliveryTypes = array();
+        foreach ( $this->transactions as $transaction ) {
+            $deliveryTypes[ TransactionDeliveryType::resolve( $transaction ) ] = true;
+        }
+        if ( count( $deliveryTypes ) > 1 ) {
+            return self::error( array(), 'Mixed Express and Instant callbacks are not supported', 400 );
+        }
+        if ( isset( $deliveryTypes['instant'] ) ) {
+            $handler = $this->instantWebhookService ?? new InstantWebhookService( new InstantShipmentState( $this->transactionRepository ) );
+            $this->processing = $handler->handle( $this->body, $this->transactions );
+            if ( ! $this->processing['status'] ) {
+                $context = array( 'order_ids' => $orderIds, 'failed_order_ids' => $this->processing['failed_order_ids'] );
+                $this->logWebhookEvent( 'warning', 'KiriminAja Instant webhook could not be processed.', $context );
+                return self::error( $context, $this->processing['message'], $this->processing['http_status'] ?? 503 );
+            }
+            return self::success( array(), 'Success' );
+        }
+
+        // Instant consumes the original decoded payload. Only legacy Express values
+        // receive the request sanitizer, after authentication and exact routing.
+        if ( function_exists( 'kiriof_sanitize_recursive' ) ) {
+            $this->body = kiriof_sanitize_recursive( $this->body );
+            $this->packages = ! empty( $this->body->data )
+                ? $this->body->data
+                : ( $this->body->packages ?? array() );
+        }
+
+        switch ( $this->body->method ) {
             case 'return_finished_packages':
                 $this->processing = $this->returnFinishedPackages();
                 break;
@@ -122,11 +157,44 @@ class CallbackHandlerService extends BaseService {
         return self::success( array(), 'Success' );
     }
 
+    private function validateRoutingPayload(): bool {
+        if ( ! is_object( $this->body ) || ! isset( $this->body->method ) || ! is_string( $this->body->method ) ) {
+            return false;
+        }
+        $hasPackages = false;
+        foreach ( array( 'data', 'packages' ) as $field ) {
+            if ( ! property_exists( $this->body, $field ) ) {
+                continue;
+            }
+            $hasPackages = true;
+            $packages = $this->body->{$field};
+            if ( ! is_array( $packages ) || count( $packages ) > 200 ) {
+                return false;
+            }
+            $seen = array();
+            foreach ( $packages as $package ) {
+                if ( ! is_object( $package ) && ! is_array( $package ) ) {
+                    return false;
+                }
+                $orderId = $this->packageValue( $package, 'order_id' );
+                if ( ! is_string( $orderId ) || strlen( $orderId ) > 100
+                    || 1 !== preg_match( '/\A[A-Za-z0-9_-]+\z/', $orderId ) || isset( $seen[ $orderId ] ) ) {
+                    return false;
+                }
+                $seen[ $orderId ] = true;
+            }
+        }
+        return $hasPackages;
+    }
+
     private function headerValidation() {
         $authorization = '';
         foreach ( (array) $this->header as $key => $value ) {
             if ( 'authorization' === strtolower( (string) $key ) ) {
-                $authorization = trim( (string) $value );
+                if ( ! is_string( $value ) ) {
+                    return false;
+                }
+                $authorization = trim( $value );
                 break;
             }
         }
@@ -385,7 +453,7 @@ class CallbackHandlerService extends BaseService {
             array_merge(
                 array(
                     'source'          => 'kiriminaja_webhook',
-                    'callback_method' => is_object( $this->body ) ? (string) ( $this->body->method ?? '' ) : '',
+                    'callback_method' => is_object( $this->body ) && isset( $this->body->method ) && is_string( $this->body->method ) ? $this->body->method : '',
                     'package_count'   => count( (array) $this->packages ),
                 ),
                 $context

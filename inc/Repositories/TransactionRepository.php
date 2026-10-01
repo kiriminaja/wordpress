@@ -209,6 +209,116 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return true;
     }
 
+    /**
+     * Reserve cancellation before DELETE; only reconciliation may resolve code 350.
+     *
+     * @param string $id KiriminAja order ID.
+     * @param int    $expected_code Last confirmed, cancellable remote status code.
+     * @return bool Whether exactly one Instant transaction was claimed.
+     */
+    public function claimInstantCancellation( string $id, int $expected_code ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic claim; invalidate only after success.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET instant_status_code = 350,
+                    rejected_reason = 'Instant cancellation requires reconciliation.'
+                WHERE order_id = %s
+                    AND delivery_type = 'instant'
+                    AND service IN ('gosend', 'grab_express')
+                    AND status IN ('pending', 'request_pickup')
+                    AND instant_status_code IN (100, 101, 105, 110)
+                    AND instant_status_code = %d
+                    AND instant_payment_id IS NOT NULL
+                    AND instant_payment_id <> ''
+                    AND (instant_payment_status IS NULL OR instant_payment_status <> 'refunded')",
+                $id,
+                $expected_code
+            )
+        );
+
+        if ( 1 !== $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+
+        $this->invalidateCouriersCache();
+        return true;
+    }
+
+    /**
+     * Compare and swap Instant lifecycle metadata without changing its identity.
+     * Expected values are a stored snapshot: never sanitize or normalize them.
+     *
+     * @param string $id KiriminAja order ID.
+     * @param array  $expected Stored lifecycle fields, including status and code.
+     * @param array  $changes Incoming lifecycle metadata.
+     * @return bool Whether the guarded write succeeded or its exact final state exists.
+     */
+    public function compareAndSwapInstant( string $id, array $expected, array $changes ): bool {
+        $fields = array(
+            'status', 'instant_status_code', 'instant_payment_status', 'instant_payment_id',
+            'instant_payment_method', 'awb', 'live_tracking_url', 'rejected_reason',
+            'created_at', 'request_pickup_at', 'shipped_at', 'return_finished_at',
+            'finished_at', 'rejected_at', 'returned_at', 'canceled_at',
+            'shipping_info', 'shipment_location_snapshot', 'vehicle', 'shipping_cost',
+        );
+        if ( '' === $id || empty( $changes ) || ! array_key_exists( 'status', $expected ) || ! array_key_exists( 'instant_status_code', $expected ) ) {
+            return false;
+        }
+        $condition = array( 'order_id' => $id, 'delivery_type' => 'instant' );
+        foreach ( $expected as $field => $value ) {
+            if ( array_key_exists( $field, $condition ) ) {
+                if ( $condition[ $field ] !== $value ) {
+                    return false;
+                }
+                continue;
+            }
+            if ( ! in_array( $field, $fields, true ) || ( null !== $value && ! is_scalar( $value ) ) ) {
+                return false;
+            }
+            $condition[ $field ] = $value;
+        }
+        foreach ( $changes as $field => $value ) {
+            if ( ! in_array( $field, $fields, true ) || ( null !== $value && ! is_scalar( $value ) ) ) {
+                return false;
+            }
+        }
+        // Validate incoming metadata only; immutable partitions are not in the allowlist.
+        $changes = $this->normalizeDeliveryChanges( $changes );
+        if ( false === $changes ) {
+            return false;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guarded atomic lifecycle write.
+        $updated = $this->wpdb->update( $this->table, $changes, $condition );
+        if ( false === $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+        if ( $updated > 0 ) {
+            return true;
+        }
+
+        $transaction = $this->getTransactionByOrderId( $id );
+        if ( ! is_object( $transaction ) ) {
+            return false;
+        }
+        // Replaced expectations must match the new value; every other guard stays
+        // mandatory. In particular, a metadata-only write cannot bypass a status race.
+        foreach ( array_merge( $condition, $changes ) as $field => $value ) {
+            if ( ! property_exists( $transaction, $field ) ) {
+                return false;
+            }
+            $stored = $transaction->{$field};
+            if ( null === $stored || null === $value ) {
+                if ( $stored !== $value ) {
+                    return false;
+                }
+            } elseif ( (string) $stored !== (string) $value ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public function getTransactionByWCOrderNumber($wp_wc_order_stat_order_id){
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row(

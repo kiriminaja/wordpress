@@ -164,6 +164,36 @@ class Enqueue extends BaseInit{
             }
         }
     }
+
+    private function buyer_checkout_config(): array {
+        $session = WC()->session;
+        $customer = WC()->customer;
+        $district = $customer ? ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->get( $customer, 'shipping' ) : array( 'id' => '', 'name' => '' );
+        $setting = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'enable_insurance' );
+
+        return array(
+            'enabled' => function_exists( 'woocommerce_store_api_register_endpoint_data' ) && class_exists( '\Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema' ),
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( KIRIOF_NONCE ),
+            'globalInsurance' => $setting && 'yes' === $setting->value,
+            'savedDistrictByPostcode' => $session ? (array) $session->get( 'kiriof_destination_postcode_map', array() ) : array(),
+            'savedDestination' => $session ? $session->get( 'kiriof_buyer_destination', null ) : null,
+            'district' => $district,
+            'districtPostcode' => $customer ? (string) $customer->get_shipping_postcode() : '',
+            'i18n' => array(
+                'district' => __( 'District', 'kiriminaja-official' ),
+                'selectDistrict' => __( 'Select District', 'kiriminaja-official' ),
+                'postcodeRequired' => __( 'Enter your shipping postcode to find your district.', 'kiriminaja-official' ),
+                'districtRequired' => __( 'Please select your District to view shipping options.', 'kiriminaja-official' ),
+                'loading' => __( 'Loading districts…', 'kiriminaja-official' ),
+                'empty' => __( 'No districts found. Check your shipping postcode.', 'kiriminaja-official' ),
+                'lookupFailed' => __( 'Districts could not be loaded. Please retry.', 'kiriminaja-official' ),
+                'saving' => __( 'Updating shipping totals…', 'kiriminaja-official' ),
+                'updateFailed' => __( 'Shipping totals could not be updated. Please retry.', 'kiriminaja-official' ),
+                'retry' => __( 'Retry', 'kiriminaja-official' ),
+            ),
+        );
+    }
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
         // Only load on pages where the plugin's UI actually runs: cart, checkout,
@@ -206,7 +236,7 @@ class Enqueue extends BaseInit{
         wp_register_script(
             'kiriof-form-billing-address',
             $this->plugin_url . 'assets/wp/js/form-billing-address.js',
-            array( 'kiriof-script' ),
+            $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : array( 'kiriof-script' ),
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
@@ -271,10 +301,32 @@ class Enqueue extends BaseInit{
         }
 
         if ( $this->isBlockCartOrCheckoutPage() ) {
+            wp_register_script(
+                'kiriof-checkout-session',
+                $this->plugin_url . 'assets/wp/js/kiriof-checkout-session.js',
+                array(),
+                KIRIOF_VERSION,
+                true
+            );
+            wp_enqueue_script(
+                'kiriof-buyer-checkout',
+                $this->plugin_url . 'assets/wp/js/kiriof-buyer-checkout.js',
+                array( 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout' ),
+                KIRIOF_VERSION,
+                true
+            );
+            wp_enqueue_style( 'wp-components' );
+            wp_enqueue_style(
+                'kiriof-buyer-checkout',
+                $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css',
+                array(),
+                KIRIOF_VERSION
+            );
+            wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
             wp_enqueue_script(
                 'kiriof-block-checkout',
                 $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
-                array( 'kiriof-script', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ),
+                array( 'kiriof-script', 'kiriof-buyer-checkout', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );

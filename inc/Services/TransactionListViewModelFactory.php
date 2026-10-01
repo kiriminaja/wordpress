@@ -85,7 +85,8 @@ class TransactionListViewModelFactory {
 		$print_capable_filter  = in_array( $status_filter, array( 'all', 'processed' ), true );
 		$can_print             = $is_express && $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
 		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
-		$can_cancel            = $is_express && '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
+		$can_cancel            = $is_express ? ( '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true ) ) : InstantShipmentState::canCancel( $row );
+		$can_remote_instant    = ! $is_express && 'new' !== (string) $row->status && in_array( strtolower( trim( (string) ( $row->service ?? '' ) ) ), array( 'gosend', 'grab_express' ), true );
 		$can_request_pickup    = $is_express && $can_request_pickup;
 		$can_process_instant   = ! $is_express && InstantShipmentContext::canProcess( $row ) && $wc_order
 			&& ! in_array( $wc_order->get_status(), array( 'cancelled', 'completed', 'refunded', 'failed', 'trash' ), true )
@@ -164,13 +165,16 @@ class TransactionListViewModelFactory {
 				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ),
 			),
 			'actions'         => array(
+				'track'        => $can_remote_instant,
+				'reconcile'    => $can_remote_instant,
+				'liveTrackingUrl' => $is_express ? '' : InstantShipmentState::trackingUrl( $row->live_tracking_url ?? null ),
 				'preview'      => true,
 				'process'      => (bool) $can_process_instant,
 				'changeOrigin' => $is_express && $is_processable,
 				'adjustDeficit'=> $is_express && $is_deficit,
 				'cancelDeficit'=> $is_express && $is_deficit,
 				'print'        => $is_express ? ( '' !== $awb && 'request_pickup' === (string) $row->status ) : $can_print,
-				'cancel'       => ! $is_deficit && $can_cancel,
+				'cancel'       => ( ! $is_express || ! $is_deficit ) && $can_cancel,
 				'printUrl'     => $is_express
 					? admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) )
 					: ( $can_print ? admin_url( 'admin-post.php?action=kiriof_instant_labels&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_instant_labels' ) ) : '' ),

@@ -4,6 +4,7 @@ namespace KiriminAjaOfficial\Controllers;
 use InvalidArgumentException;
 use KiriminAjaOfficial\Services\InstantDispatchService;
 use KiriminAjaOfficial\Services\InstantLabelService;
+use KiriminAjaOfficial\Services\InstantOperationsService;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -13,10 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class InstantDeliveryController {
 	private InstantDispatchService $dispatch_service;
 	private InstantLabelService $label_service;
+	private InstantOperationsService $operations_service;
 
-	public function __construct( InstantDispatchService $dispatch_service, InstantLabelService $label_service ) {
-		$this->dispatch_service = $dispatch_service;
-		$this->label_service    = $label_service;
+	public function __construct( InstantDispatchService $dispatch_service, InstantLabelService $label_service, InstantOperationsService $operations_service ) {
+		$this->dispatch_service   = $dispatch_service;
+		$this->label_service      = $label_service;
+		$this->operations_service = $operations_service;
 	}
 
 	public function register(): void {
@@ -24,6 +27,9 @@ class InstantDeliveryController {
 		add_action( 'wp_ajax_kiriof_instant_dispatch', array( $this, 'dispatch' ) );
 		add_action( 'wp_ajax_kiriof_instant_payment', array( $this, 'payment' ) );
 		add_action( 'wp_ajax_kiriof_instant_label_preview', array( $this, 'labelPreview' ) );
+		add_action( 'wp_ajax_kiriof_instant_tracking', array( $this, 'tracking' ) );
+		add_action( 'wp_ajax_kiriof_instant_reconcile', array( $this, 'reconcile' ) );
+		add_action( 'wp_ajax_kiriof_instant_cancel', array( $this, 'cancel' ) );
 		add_action( 'admin_post_kiriof_instant_labels', array( $this, 'labels' ) );
 	}
 
@@ -43,6 +49,18 @@ class InstantDeliveryController {
 		$this->ajax( 'labelPreview' );
 	}
 
+	public function tracking(): void {
+		$this->ajax( 'tracking' );
+	}
+
+	public function reconcile(): void {
+		$this->ajax( 'reconcile' );
+	}
+
+	public function cancel(): void {
+		$this->ajax( 'cancel' );
+	}
+
 	/** Validate authorization and the complete request before invoking any service. */
 	private function ajax( string $operation ): void {
 		try {
@@ -58,7 +76,29 @@ class InstantDeliveryController {
 			}
 			$data = wp_unslash( $_POST['data'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each used field is strictly validated below; unslash the payload exactly once.
 			$ids  = $this->postedIds( $data );
+			if ( in_array( $operation, array( 'tracking', 'reconcile', 'cancel' ), true ) ) {
+				if ( count( $ids ) > 10 ) {
+					$this->invalid();
+				}
+				foreach ( $ids as $id ) {
+					if ( ! is_string( $id ) ) {
+						$this->invalid();
+					}
+				}
+			}
 			switch ( $operation ) {
+				case 'tracking':
+					$result = $this->operations_service->track( $ids );
+					break;
+				case 'reconcile':
+					$result = $this->operations_service->reconcile( $ids );
+					break;
+				case 'cancel':
+					if ( 1 !== count( $ids ) || ! isset( $data['confirmed'] ) || 'yes' !== $data['confirmed'] ) {
+						$this->invalid();
+					}
+					$result = $this->operations_service->cancel( $ids );
+					break;
 				case 'quote':
 					$result = $this->dispatch_service->quote( $ids );
 					break;
@@ -80,7 +120,11 @@ class InstantDeliveryController {
 					$this->label_service->prepare( $ids );
 					$result = array(
 						'url'  => add_query_arg(
-							array( 'action' => 'kiriof_instant_labels', 'oids' => implode( ',', $ids ), '_wpnonce' => wp_create_nonce( 'kiriof_instant_labels' ) ),
+							array(
+								'action'   => 'kiriof_instant_labels',
+								'oids'     => implode( ',', $ids ),
+								'_wpnonce' => wp_create_nonce( 'kiriof_instant_labels' ),
+							),
 							admin_url( 'admin-post.php' )
 						),
 						'type' => 'html',
@@ -88,13 +132,30 @@ class InstantDeliveryController {
 			}
 		} catch ( InvalidArgumentException $error ) {
 			// These services use fixed, translated validation messages, not remote API errors.
-			wp_send_json_error( array( 'status' => 400, 'message' => $error->getMessage() ) );
+			wp_send_json_error(
+				array(
+					'status'  => 400,
+					'message' => $error->getMessage(),
+				),
+				400
+			);
 			return;
 		} catch ( \Throwable $error ) {
-			wp_send_json_error( array( 'status' => 400, 'message' => $this->failureMessage() ) );
+			wp_send_json_error(
+				array(
+					'status'  => 503,
+					'message' => $this->failureMessage(),
+				),
+				503
+			);
 			return;
 		}
-		wp_send_json_success( array( 'status' => 200, 'data' => $result ) );
+		wp_send_json_success(
+			array(
+				'status' => 200,
+				'data'   => $result,
+			)
+		);
 	}
 
 	public function labels(): void {

@@ -112,9 +112,20 @@ function kiriof_shipping_method(){
                 if ( empty( $destination_id ) ) {
                     $destination_id = WC()->session->get( 'destination_id' );
                 }
+                $buyer_destination = WC()->session->get( 'kiriof_buyer_destination', null );
+                if ( is_array( $buyer_destination ) ) {
+                    $destination_id = $buyer_destination['district_id'] ?? '';
+                    $package_destination = $package['destination'] ?? array();
+                    $package_postcode = strtoupper( preg_replace( '/\s+/', '', (string) ( $package_destination['postcode'] ?? '' ) ) );
+                    $package_country = strtoupper( (string) ( $package_destination['country'] ?? '' ) );
+                    if ( ( '' !== $package_postcode && $package_postcode !== ( $buyer_destination['postcode'] ?? '' ) )
+                        || ( '' !== $package_country && $package_country !== ( $buyer_destination['country'] ?? '' ) ) ) {
+                        $destination_id = '';
+                    }
+                }
                 // Fallback: read from customer additional fields in case the
                 // session was not persisted between API requests.
-                if ( empty( $destination_id ) ) {
+                if ( empty( $destination_id ) && ! is_array( $buyer_destination ) ) {
                     try {
                         if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
                             $meta_keys = array(

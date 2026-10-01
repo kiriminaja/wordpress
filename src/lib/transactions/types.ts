@@ -105,6 +105,9 @@ export type TransactionRow = {
     title: string;
   };
   actions: {
+    track: boolean;
+    reconcile: boolean;
+    liveTrackingUrl: string;
     preview: boolean;
     process: boolean;
     changeOrigin: boolean;
@@ -178,4 +181,31 @@ export interface InstantPayment {
 export interface InstantDispatchResult {
   rows: Array<{ id: string; status: string; awb: string; message: string }>;
   payments: InstantPayment[];
+}
+
+export type InstantOperationMode = 'tracking' | 'reconcile' | 'cancel';
+export type InstantOperationRow = {
+  id: string;
+  status: 'tracked' | 'not_found' | 'unknown' | 'reconciled' | 'cancel_requested' | 'canceled';
+  tracking_url: string;
+  message: string;
+};
+
+/** External courier URLs are allowed, but never credentials or executable schemes. */
+export function safeInstantTrackingUrl(value: unknown): string {
+  // eslint-disable-next-line no-control-regex -- Reject unsafe control bytes in external URLs.
+  if (typeof value !== 'string' || value.length > 2048 || /[\x00-\x20\x7f\\]/.test(value))
+    return '';
+  try {
+    if (!/^https?:\/\//i.test(value) || value.split('/')[2]?.includes('@')) return '';
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) &&
+      url.hostname &&
+      !url.username &&
+      !url.password
+      ? url.href
+      : '';
+  } catch {
+    return '';
+  }
 }

@@ -21,6 +21,10 @@ namespace {
     function __($text, $domain): string { return $text; }
     function admin_url($url): string { return $url; }
     function absint($value): int { return abs((int) $value); }
+    function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
+    function esc_url_raw($url, $protocols = null): string {
+        return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), $protocols ?? ['http', 'https'], true) ? $url : '';
+    }
     function wp_create_nonce($action): string { return 'nonce'; }
     function wp_date($format, $timestamp, $timezone = null): string { return date($format, $timestamp); }
     function kiriof_helper() {
@@ -32,6 +36,8 @@ namespace {
     }
     require ABSPATH . 'inc/Services/TransactionDeliveryType.php';
     require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
+    // Load the production static lifecycle guards; no repository instance is needed.
+    require ABSPATH . 'inc/Services/InstantShipmentState.php';
     require ABSPATH . 'inc/Services/TransactionProcessServices/RecipientDataResolver.php';
     require ABSPATH . 'inc/Services/InstantShipmentContext.php';
     require ABSPATH . 'inc/Services/InstantLabelService.php';

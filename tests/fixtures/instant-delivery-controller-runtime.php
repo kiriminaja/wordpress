@@ -24,7 +24,7 @@ namespace {
 	function add_action( $hook, $callback ) { $GLOBALS['hooks'][] = array( $hook, get_class( $callback[0] ), $callback[1] ); }
 	function nocache_headers() { $GLOBALS['events'][] = array( 'nocache' ); }
 	function wp_send_json_success( $data ) { $GLOBALS['responses'][] = array( 'success' => true, 'data' => $data ); throw new ControllerResponse( 'json-success' ); }
-	function wp_send_json_error( $data ) { $GLOBALS['responses'][] = array( 'success' => false, 'data' => $data ); throw new ControllerResponse( 'json-error' ); }
+	function wp_send_json_error( $data, $status_code = null ) { $GLOBALS['http_status'] = $status_code; $GLOBALS['responses'][] = array( 'success' => false, 'data' => $data ); throw new ControllerResponse( 'json-error' ); }
 	function wp_die( $message ) { $GLOBALS['responses'][] = array( 'die' => $message ); throw new ControllerResponse( 'die' ); }
 	function kiriof_checkout_service_factory() { return new \stdClass(); }
 	function controller_spy( $method, $args ) {
@@ -34,7 +34,7 @@ namespace {
 			if ( 'validation' === $GLOBALS['input']['service_error'] ) { throw new \InvalidArgumentException( 'Fixed validation message.' ); }
 			throw new \RuntimeException( '<secret>remote token and PIN</secret>' );
 		}
-		return array( 'spy_result' => $method );
+		return $GLOBALS['input']['service_result'] ?? array( 'spy_result' => $method );
 	}
 }
 namespace KiriminAjaOfficial\Repositories {
@@ -43,6 +43,13 @@ namespace KiriminAjaOfficial\Repositories {
 }
 namespace KiriminAjaOfficial\Services {
 	class InstantShipmentContext {}
+	class InstantOperationsService {
+		public array $dependencies;
+		public function __construct( \KiriminAjaOfficial\Repositories\TransactionRepository $repository, \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository $api, InstantShipmentState $state ) { $this->dependencies = func_get_args(); }
+		public function track( array $ids ): array { return \controller_spy( 'track', func_get_args() ); }
+		public function reconcile( array $ids ): array { return \controller_spy( 'reconcile', func_get_args() ); }
+		public function cancel( array $ids ): array { return \controller_spy( 'cancel', func_get_args() ); }
+	}
 	class InstantDispatchService {
 		public array $dependencies;
 		public function __construct( \KiriminAjaOfficial\Repositories\TransactionRepository $repository, \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository $api, InstantShipmentContext $context ) { $this->dependencies = func_get_args(); }
@@ -69,23 +76,32 @@ namespace {
 	mkdir( $temp . '/templates/instant', 0700, true );
 	file_put_contents( $temp . '/templates/instant/labels.php', '<?php echo "LOCAL-TEMPLATE:" . json_encode( $labels );' );
 	define( 'KIRIOF_DIR', $temp . '/' );
+	require $root . '/inc/Services/InstantShipmentState.php';
 	require $root . '/inc/Controllers/InstantDeliveryController.php';
 	require $root . '/inc/Init.php';
 	$instantiate = new \ReflectionMethod( \KiriminAjaOfficial\Init::class, 'instantiate' );
 	$controller = $instantiate->invoke( null, \KiriminAjaOfficial\Controllers\InstantDeliveryController::class );
 	$dispatch = ( new \ReflectionProperty( $controller, 'dispatch_service' ) )->getValue( $controller );
 	$label = ( new \ReflectionProperty( $controller, 'label_service' ) )->getValue( $controller );
+	$operations = ( new \ReflectionProperty( $controller, 'operations_service' ) )->getValue( $controller );
+	$state_repository = ( new \ReflectionProperty( $operations->dependencies[2], 'repo' ) )->getValue( $operations->dependencies[2] );
 	$composition = array(
 		'controller' => get_class( $controller ),
 		'dispatch' => get_class( $dispatch ),
 		'label' => get_class( $label ),
+		'operations' => get_class( $operations ),
 		'dispatch_dependencies' => array_map( 'get_class', $dispatch->dependencies ),
 		'label_dependencies' => array_map( 'get_class', $label->dependencies ),
-		'shared_repository' => $dispatch->dependencies[0] === $label->dependencies[0],
+		'operations_dependencies' => array_map( 'get_class', $operations->dependencies ),
+		'shared_repository' => $dispatch->dependencies[0] === $label->dependencies[0] && $dispatch->dependencies[0] === $operations->dependencies[0],
+		'shared_api' => $dispatch->dependencies[1] === $operations->dependencies[1],
+		'shared_state_repository' => $state_repository === $operations->dependencies[0],
+		'required_dependencies' => ( new \ReflectionMethod( $controller, '__construct' ) )->getNumberOfRequiredParameters(),
 		'listed_count' => count( array_keys( \KiriminAjaOfficial\Init::get_services(), get_class( $controller ), true ) ),
 	);
 	$controller->register();
 	$_POST = array( 'data' => array( 'nonce' => 'valid:kiriof_ajax', 'order_ids' => '["KA-1",2]', 'confirmed' => 'yes', 'token' => 'quote-token', 'method' => 'credit', 'pin' => '1234', 'payment_id' => 'PAY-1' ) );
+	if ( in_array( $input['operation'] ?? '', array( 'tracking', 'reconcile', 'cancel' ), true ) ) { $_POST['data']['order_ids'] = '["KA-1"]'; }
 	if ( array_key_exists( 'data', $input ) ) { $_POST['data'] = $input['data']; }
 	if ( isset( $input['fields'] ) ) { $_POST['data'] = array_replace( $_POST['data'], $input['fields'] ); }
 	foreach ( $input['unset'] ?? array() as $key ) { unset( $_POST['data'][$key] ); }
@@ -100,5 +116,5 @@ namespace {
 	$html = ob_get_clean();
 	unlink( $temp . '/templates/instant/labels.php' );
 	rmdir( $temp . '/templates/instant' ); rmdir( $temp . '/templates' ); rmdir( $temp );
-	echo json_encode( array( 'composition' => $composition, 'events' => $GLOBALS['events'], 'calls' => $GLOBALS['calls'], 'responses' => $GLOBALS['responses'], 'hooks' => $GLOBALS['hooks'], 'headers' => $GLOBALS['headers'], 'html' => $html, 'sentinel' => $sentinel ), JSON_THROW_ON_ERROR );
+	echo json_encode( array( 'composition' => $composition, 'events' => $GLOBALS['events'], 'calls' => $GLOBALS['calls'], 'responses' => $GLOBALS['responses'], 'hooks' => $GLOBALS['hooks'], 'headers' => $GLOBALS['headers'], 'http_status' => $GLOBALS['http_status'] ?? null, 'html' => $html, 'sentinel' => $sentinel ), JSON_THROW_ON_ERROR );
 }

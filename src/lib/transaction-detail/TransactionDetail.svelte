@@ -21,7 +21,8 @@
     import * as Card from "$lib/components/ui/card";
     import StatusBadge from "$lib/admin-list/StatusBadge.svelte";
     import ActionTooltip from "$lib/ui/ActionTooltip.svelte";
-    import { instantStatusIcon } from "$lib/transactions/types";
+    import InstantOperationDialog from "$lib/transactions/InstantOperationDialog.svelte";
+    import { safeInstantTrackingUrl, type InstantOperationMode, instantStatusIcon } from "$lib/transactions/types";
     import KiriofCard from "$lib/ui/KiriofCard.svelte";
     import CopyableValue from "$lib/ui/CopyableValue.svelte";
     import PrintPreviewDialog from "$lib/ui/PrintPreviewDialog.svelte";
@@ -47,6 +48,8 @@
     let trackingError = $state("");
     let loadingTracking = $state(false);
     let actionDialog = $state<TransactionActionDialog | null>(null);
+    let instantOperation = $state<InstantOperationMode | null>(null);
+    const liveTrackingUrl = $derived(safeInstantTrackingUrl(transaction.shipment.liveTrackingUrl));
     let printPreviewOpen = $state(false);
 
     function finishAction(): void {
@@ -137,6 +140,13 @@
                 <IconRoute data-icon="inline-start" />
                 {i18n.liveTracking}
             </Button>
+        {/if}
+        {#if transaction.deliveryType === 'instant'}
+            {#if transaction.actions.track}
+                {#if liveTrackingUrl}<Button variant="outline" href={liveTrackingUrl} target="_blank" rel="noopener noreferrer">{i18n.liveTracking}</Button>
+                {:else}<Button variant="outline" onclick={() => (instantOperation = 'tracking')}>{i18n.liveTracking}</Button>{/if}
+            {/if}
+            {#if transaction.actions.reconcile}<Button variant="outline" onclick={() => (instantOperation = 'reconcile')}>{i18n.instantReconcile}</Button>{/if}
         {/if}
     </Toolbar>
 
@@ -563,11 +573,10 @@
                     {#if transaction.actions.cancel}
                         <Button
                             variant="destructive"
-                            onclick={() =>
-                                (actionDialog = {
-                                    kind: "cancel",
-                                    data: transaction.actions.data,
-                                })}
+                            onclick={() => {
+                                if (transaction.deliveryType === 'instant') instantOperation = 'cancel';
+                                else actionDialog = { kind: "cancel", data: transaction.actions.data };
+                            }}
                             ><IconX
                                 data-icon="inline-start"
                             />{i18n.cancel}</Button
@@ -624,6 +633,7 @@
             {/if}
         </aside>
     </div>
+    {#if transaction.deliveryType === 'express'}
     <TransactionActionDialogs
         bind:action={actionDialog}
         locations={bootstrap.shipmentLocations}
@@ -632,5 +642,9 @@
         {i18n}
         onComplete={finishAction}
     />
-    <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.printPreviewNonce} {i18n} />
+    {/if}
+    {#if instantOperation}
+        <InstantOperationDialog mode={instantOperation} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} {i18n} onClose={(completed) => { instantOperation = null; if (completed) finishAction(); }} />
+    {/if}
+    <PrintPreviewDialog deliveryType={transaction.deliveryType} bind:open={printPreviewOpen} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={transaction.deliveryType === 'instant' ? bootstrap.ajax.nonce : bootstrap.ajax.printPreviewNonce} {i18n} />
 </div>

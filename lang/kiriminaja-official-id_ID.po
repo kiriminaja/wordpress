@@ -13,6 +13,38 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
 
+#: inc/Base/Enqueue.php
+msgid "Enter your shipping postcode to find your district."
+msgstr "Masukkan kode pos pengiriman untuk mencari kelurahan Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Loading districts…"
+msgstr "Memuat kelurahan…"
+
+#: inc/Base/Enqueue.php
+msgid "No districts found. Check your shipping postcode."
+msgstr "Kelurahan tidak ditemukan. Periksa kode pos pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Districts could not be loaded. Please retry."
+msgstr "Kelurahan tidak dapat dimuat. Silakan coba lagi."
+
+#: inc/Base/Enqueue.php
+msgid "Updating shipping totals…"
+msgstr "Memperbarui total ongkos kirim…"
+
+#: inc/Base/Enqueue.php
+msgid "Shipping totals could not be updated. Please retry."
+msgstr "Total ongkos kirim tidak dapat diperbarui. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php
+msgid "Please select a valid shipping district matching your shipping address."
+msgstr "Silakan pilih kelurahan yang valid dan sesuai dengan alamat pengiriman Anda."
+
+#: inc/Controllers/CheckoutController.php
+msgid "Could not verify your shipping district. Please try again."
+msgstr "Kelurahan pengiriman Anda tidak dapat diverifikasi. Silakan coba lagi."
+
 #: inc/Services/SettingsPageData.php
 msgid "Saving…"
 msgstr "Menyimpan…"
@@ -4862,3 +4894,195 @@ msgstr "Ongkir (IDR)"
 #: templates/instant/labels.php:60
 msgid "Not a courier-issued shipping label. Carrier-issued label availability remains unconfirmed. The AWB is displayed as text only; this local label does not confirm carrier acceptance."
 msgstr "Ini bukan label pengiriman yang diterbitkan oleh kurir. Ketersediaan label resmi kurir belum dapat dipastikan. Nomor resi (AWB) hanya ditampilkan sebagai teks; label lokal ini tidak membuktikan bahwa kiriman telah diterima oleh kurir."
+
+#: inc/Services/TransactionDetailPageData.php:595 inc/Services/TransactionListRenderService.php:264
+msgid "Check remote status"
+msgstr "Periksa status di server"
+
+#: inc/Services/TransactionDetailPageData.php:596 inc/Services/TransactionListRenderService.php:265
+msgid "Cancel Instant shipment"
+msgstr "Batalkan pengiriman Instant"
+
+#: inc/Services/TransactionDetailPageData.php:597 inc/Services/TransactionListRenderService.php:266
+msgid "Confirm cancellation of this Instant shipment only. This does not cancel the WooCommerce order or issue a WooCommerce refund. A cancellation request may still be pending."
+msgstr "Konfirmasikan pembatalan pengiriman Instant ini saja. Tindakan ini tidak membatalkan pesanan WooCommerce atau memproses pengembalian dana WooCommerce. Permintaan pembatalan mungkin masih tertunda."
+
+#: inc/Services/TransactionDetailPageData.php:598 inc/Services/TransactionListRenderService.php:267
+msgid "Check the remote shipment state explicitly. No operation runs until you confirm below."
+msgstr "Periksa secara langsung status pengiriman di server. Tidak ada tindakan yang dijalankan sebelum Anda mengonfirmasikannya di bawah."
+
+#: inc/Services/TransactionDetailPageData.php:599 inc/Services/TransactionListRenderService.php:268
+msgid "The operation outcome is unknown. No automatic retry will occur. Check remote shipment state before attempting another operation."
+msgstr "Hasil tindakan belum diketahui. Tidak akan ada percobaan ulang otomatis. Periksa status pengiriman di server sebelum mencoba tindakan lain."
+
+#: inc/Services/TransactionDetailPageData.php:600 inc/Services/TransactionListRenderService.php:269
+msgid "Tracking available"
+msgstr "Pelacakan tersedia"
+
+#: inc/Services/TransactionDetailPageData.php:601 inc/Services/TransactionListRenderService.php:270
+msgid "Shipment not found"
+msgstr "Pengiriman tidak ditemukan"
+
+#: inc/Services/TransactionDetailPageData.php:602 inc/Services/TransactionListRenderService.php:271
+msgid "Shipment state reconciled"
+msgstr "Status pengiriman telah diselaraskan"
+
+#: inc/Services/TransactionDetailPageData.php:603 inc/Services/TransactionListRenderService.php:272
+msgid "Cancellation requested"
+msgstr "Pembatalan telah diminta"
+
+#: inc/Services/TransactionDetailPageData.php:604 inc/Services/TransactionListRenderService.php:273
+msgid "Shipment canceled"
+msgstr "Pengiriman dibatalkan"
+
+#: inc/Services/InstantOperationsService.php:35
+msgid "Select 1 to 10 Instant shipments; cancellation requires exactly one shipment."
+msgstr "Pilih 1 hingga 10 pengiriman Instant; pembatalan mengharuskan pemilihan tepat satu pengiriman."
+
+#: inc/Services/InstantOperationsService.php:116
+msgid "Instant tracking data was not found. Reconciliation is required before retrying."
+msgstr "Data pelacakan Instant tidak ditemukan. Penyelarasan status diperlukan sebelum mencoba lagi."
+
+#: inc/Services/InstantOperationsService.php:177 inc/Services/InstantOperationsService.php:193
+msgid "This Instant shipment cannot be canceled."
+msgstr "Pengiriman Instant ini tidak dapat dibatalkan."
+
+#: inc/Services/InstantOperationsService.php:243
+msgid "Instant cancellation was requested. Reconcile to confirm the shipment state."
+msgstr "Pembatalan Instant telah diminta. Selaraskan status untuk memastikan status pengiriman."
+
+#: inc/Services/InstantOperationsService.php:300
+msgid "Instant shipment state requires reconciliation. Please wait before checking again."
+msgstr "Status pengiriman Instant perlu diselaraskan. Harap tunggu sebelum memeriksa lagi."
+
+#: inc/Services/InstantOperationsService.php:304
+msgid "Invalid Instant shipment selection or remote identity."
+msgstr "Pilihan pengiriman Instant atau identitas di server tidak valid."
+
+#: inc/Services/TransactionListRenderService.php:233
+msgid "Instant shipments require price and payment review before dispatch. Local labels, remote status checks, live tracking, and eligible shipment cancellation are available; remote outcomes may remain unknown."
+msgstr "Pengiriman Instant memerlukan peninjauan harga dan pembayaran sebelum dikirim. Label lokal, pemeriksaan status di server, pelacakan langsung, dan pembatalan pengiriman yang memenuhi syarat tersedia; hasil tindakan di server mungkin tetap belum diketahui."
+
+#: inc/Services/TransactionListRenderService.php:274
+msgid "Automatic payment checks stopped after the time limit. Refresh payment status manually."
+msgstr "Pemeriksaan pembayaran otomatis dihentikan karena batas waktu tercapai. Perbarui status pembayaran secara manual."
+
+#: inc/Services/TransactionListRenderService.php:275
+msgid "This payment has expired. Automatic payment checks stopped."
+msgstr "Pembayaran ini telah kedaluwarsa. Pemeriksaan pembayaran otomatis dihentikan."
+
+#: inc/Services/TransactionListRenderService.php:276
+msgid "Automatic payment checks stopped after repeated errors. Refresh payment status manually."
+msgstr "Pemeriksaan pembayaran otomatis dihentikan setelah terjadi kesalahan berulang. Perbarui status pembayaran secara manual."
+
+#: inc/Services/TransactionListRenderService.php:277
+msgid "Checking payment status…"
+msgstr "Memeriksa status pembayaran…"
+
+#: inc/Services/InstantShipmentState.php:351
+msgid "Instant shipment delivered."
+msgstr "Pengiriman Instant telah diterima."
+
+#: inc/Services/InstantShipmentState.php:358
+msgid "Instant shipment canceled. The WooCommerce order was not canceled."
+msgstr "Pengiriman Instant dibatalkan. Pesanan WooCommerce tidak dibatalkan."
+
+#: inc/Services/InstantShipmentState.php:372
+msgid "Invalid Instant shipment state or identity."
+msgstr "Status atau identitas pengiriman Instant tidak valid."
+
+#: inc/Services/InstantShipmentState.php:376
+msgid "Unable to verify Instant shipment state. Please retry."
+msgstr "Tidak dapat memverifikasi status pengiriman Instant. Silakan coba lagi."
+
+#: inc/Services/InstantDispatchService.php:160
+msgid "Unable to save the prepared Instant shipment."
+msgstr "Tidak dapat menyimpan pengiriman Instant yang telah disiapkan."
+
+#: inc/Infrastructure/InstantApiTransport.php:24
+msgid "Instant network request failed."
+msgstr "Permintaan jaringan Instant gagal."
+
+#: inc/Infrastructure/InstantApiTransport.php:40 inc/Infrastructure/InstantApiTransport.php:45
+msgid "Instant response exceeds limit."
+msgstr "Respons Instant melebihi batas."
+
+#: inc/Controllers/CallbackController.php:139
+msgid "Unable to process KiriminAja callback. Please retry."
+msgstr "Tidak dapat memproses callback KiriminAja. Silakan coba lagi."
+
+#: inc/Services/InstantWebhookService.php:24
+msgid "Unsupported Instant callback method"
+msgstr "Metode callback Instant tidak didukung"
+
+#: inc/Services/InstantWebhookService.php:27
+msgid "Instant callback requires between 1 and 200 data rows"
+msgstr "Callback Instant memerlukan 1 hingga 200 baris data"
+
+#: inc/Services/InstantWebhookService.php:33
+msgid "Invalid local Instant transaction"
+msgstr "Transaksi Instant lokal tidak valid"
+
+#: inc/Services/InstantWebhookService.php:39
+msgid "Unsupported or duplicate Instant transaction"
+msgstr "Transaksi Instant tidak didukung atau duplikat"
+
+#: inc/Services/InstantWebhookService.php:45
+msgid "Instant data must match every local order exactly once"
+msgstr "Data Instant harus cocok dengan setiap pesanan lokal tepat satu kali"
+
+#: inc/Services/InstantWebhookService.php:50
+msgid "Invalid Instant package metadata"
+msgstr "Metadata paket Instant tidak valid"
+
+#: inc/Services/InstantWebhookService.php:54
+msgid "Instant package metadata contains unknown or duplicate orders"
+msgstr "Metadata paket Instant berisi pesanan yang tidak dikenal atau duplikat"
+
+#: inc/Services/InstantWebhookService.php:60
+msgid "Invalid Instant payment metadata"
+msgstr "Metadata pembayaran Instant tidak valid"
+
+#: inc/Services/InstantWebhookService.php:69
+msgid "Invalid local Instant lifecycle"
+msgstr "Tahapan pengiriman Instant lokal tidak valid"
+
+#: inc/Services/InstantWebhookService.php:79
+msgid "Instant status contradicts callback method"
+msgstr "Status Instant bertentangan dengan metode callback"
+
+#: inc/Services/InstantWebhookService.php:82
+msgid "Conflicting Instant status metadata"
+msgstr "Metadata status Instant saling bertentangan"
+
+#: inc/Services/InstantWebhookService.php:87
+msgid "Invalid Instant AWB"
+msgstr "Nomor resi Instant tidak valid"
+
+#: inc/Services/InstantWebhookService.php:91
+msgid "Instant courier metadata does not match local order"
+msgstr "Metadata kurir Instant tidak cocok dengan pesanan lokal"
+
+#: inc/Services/InstantWebhookService.php:97
+msgid "Instant payment metadata does not match local order"
+msgstr "Metadata pembayaran Instant tidak cocok dengan pesanan lokal"
+
+#: inc/Services/InstantWebhookService.php:101
+msgid "Conflicting Instant payment identifiers"
+msgstr "Identitas pembayaran Instant saling bertentangan"
+
+#: inc/Services/InstantWebhookService.php:104
+msgid "Conflicting Instant AWB metadata"
+msgstr "Metadata nomor resi Instant saling bertentangan"
+
+#: inc/Services/InstantWebhookService.php:119
+msgid "Instant metadata requires a remote status"
+msgstr "Metadata Instant memerlukan status dari server"
+
+#: inc/Services/InstantWebhookService.php:123
+msgid "Instant payment requires a remote status"
+msgstr "Pembayaran Instant memerlukan status dari server"
+
+#: inc/Services/InstantWebhookService.php:147
+msgid "One or more Instant updates could not be verified"
+msgstr "Satu atau lebih pembaruan Instant tidak dapat diverifikasi"

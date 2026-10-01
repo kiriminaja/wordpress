@@ -69,7 +69,7 @@ final class TransactionInstantUiTest extends TestCase {
 
     private function assertNoExpressActions(array $row): void {
         $this->assertFalse($row['selection']['canPickup']);
-        foreach (['changeOrigin', 'adjustDeficit', 'cancelDeficit', 'cancel'] as $action) {
+        foreach (['changeOrigin', 'adjustDeficit', 'cancelDeficit'] as $action) {
             $this->assertFalse($row['actions'][$action], $action);
         }
         $this->assertTrue($row['actions']['preview']);
@@ -84,6 +84,7 @@ final class TransactionInstantUiTest extends TestCase {
             $this->assertFalse($new['selection']['canPrint']);
             $this->assertFalse($new['actions']['print']);
             $this->assertNoExpressActions($new);
+            $this->assertFalse($new['actions']['cancel']);
 
             // The order fake has a deleted product: labels use dispatch snapshots,
             // not the mutable WC catalog. Both WC lookups must return an order.
@@ -94,6 +95,8 @@ final class TransactionInstantUiTest extends TestCase {
             $this->assertTrue($booked['selection']['canPrint']);
             $this->assertTrue($booked['actions']['print']);
             $this->assertNoExpressActions($booked);
+            // An AWB alone does not confirm a cancelable Instant booking.
+            $this->assertFalse($booked['actions']['cancel']);
         }
     }
 
@@ -153,9 +156,22 @@ final class TransactionInstantUiTest extends TestCase {
         $this->assertTrue($row['selection']['canPickup']);
         $this->assertTrue($row['actions']['changeOrigin']);
         $this->assertTrue($row['actions']['cancel']);
+        $this->assertFalse($row['actions']['track']);
+        $this->assertFalse($row['actions']['reconcile']);
+        $this->assertSame('', $row['actions']['liveTrackingUrl']);
         $row = $this->runFixture('transaction-instant-ui-runtime.php', ['status' => 'request_pickup']);
         $this->assertTrue($row['selection']['canPrint']);
         $this->assertTrue($row['actions']['print']);
+        foreach (['shipped', 'finished', 'returned', 'return', 'canceled'] as $status) {
+            $row = $this->runFixture('transaction-instant-ui-runtime.php', ['status' => $status]);
+            $this->assertFalse($row['actions']['cancel']);
+        }
+        foreach (['list', 'detail'] as $mode) {
+            $row = $this->runFixture('transaction-instant-ui-runtime.php', ['mode' => $mode, 'is_deficit' => 1]);
+            $this->assertFalse($row['actions']['cancel']);
+            $this->assertTrue($row['actions']['adjustDeficit']);
+            $this->assertTrue($row['actions']['cancelDeficit']);
+        }
     }
 
     public function test_workspace_navigation_and_ui_safety_contract(): void {

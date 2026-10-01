@@ -7,6 +7,7 @@
   import { Button } from '$lib/components/ui/button';
   import { postWordPressAction } from '$lib/wordpress/ajax';
   import { InstantProcessSession, quoteExpired, reviewedIds } from './instant-process-session';
+  import { createInstantPaymentPoller, paymentTerminal, type PaymentPollPhase, type PollPayment } from './instant-payment-poller';
   import type { InstantQuote, InstantDispatchResult, InstantPayment } from './types';
 
   let { open = $bindable(false), orderIds, ajaxUrl, nonce, i18n, onComplete }: {
@@ -22,11 +23,27 @@
   let pin = $state('');
   let busy = $state(false);
   let error = $state('');
+  let checkingPayments = $state(false);
+  let pollPhases = $state<Record<string, PaymentPollPhase>>({});
   let now = $state(Date.now());
   let generation = 0;
   let controller: AbortController | null = null;
   let clock: ReturnType<typeof setInterval> | null = null;
   const session = new InstantProcessSession();
+  const paymentPoller = createInstantPaymentPoller({
+    request: async (payment, signal) => {
+      const validatedIds = paymentIds(payment);
+      if (!validatedIds.length) throw new Error(text('actionError'));
+      const data = await call<PollPayment>('kiriof_instant_payment', { payment_id: payment.id, order_ids: JSON.stringify(validatedIds) }, signal);
+      return { ...data, order_ids: validatedIds };
+    },
+    onUpdate: (payment) => {
+      if (open && result) result = { ...result, payments: result.payments.map((item) => item.id === payment.id ? payment : item) };
+    },
+    onPhase: (id, phase) => { pollPhases = { ...pollPhases, [id]: phase }; },
+    onChecking: (value) => { checkingPayments = value; },
+    isVisible: () => typeof document === 'undefined' || document.visibilityState !== 'hidden',
+  });
   const expired = $derived(quote ? quoteExpired(quote, now) : false);
   const ids = $derived(quote ? reviewedIds(quote, checked, acknowledged) : []);
   const chosenCount = $derived(quote?.rows.filter((row) => checked[row.id] && row.eligible).length ?? 0);
@@ -36,6 +53,7 @@
   function money(value: number | null): string { return value === null ? '—' : `Rp${new Intl.NumberFormat('id-ID').format(value)}`; }
   function cleanup(): void {
     generation += 1;
+    paymentPoller.stop(); pollPhases = {};
     controller?.abort(); controller = null;
     if (clock) clearInterval(clock);
     clock = null; pin = ''; quote = null;
@@ -81,7 +99,12 @@
     controller = new AbortController();
     try {
       const data = await call<InstantDispatchResult>('kiriof_instant_dispatch', { token, order_ids: JSON.stringify(dispatchedIds), method, pin: secret, confirmed: 'yes' }, controller.signal);
-      if (current === generation && open) result = { ...data, rows: allIds.map((id) => data.rows.find((row) => row.id === id) ?? { id, status: dispatchedIds.includes(id) ? 'unknown' : 'skipped', awb: '', message: dispatchedIds.includes(id) ? text('instantUnknown') : '' }) };
+      if (current === generation && open) {
+        result = { ...data, rows: allIds.map((id) => data.rows.find((row) => row.id === id) ?? { id, status: dispatchedIds.includes(id) ? 'unknown' : 'skipped', awb: '', message: dispatchedIds.includes(id) ? text('instantUnknown') : '' }) };
+        if (clock) clearInterval(clock);
+        clock = null;
+        paymentPoller.start(data.payments.filter((payment) => paymentIds(payment).length));
+      }
     } catch {
       if (current === generation && open) {
         result = { rows: allIds.map((id) => ({ id, status: dispatchedIds.includes(id) ? 'unknown' : 'skipped', awb: '', message: dispatchedIds.includes(id) ? text('instantUnknown') : '' })), payments: [] };
@@ -92,16 +115,13 @@
   function paymentIds(payment: InstantPayment): string[] {
     return payment.order_ids?.filter((id) => result?.rows.some((row) => row.id === id && row.status === 'booked')) ?? [];
   }
-  async function refreshPayment(payment: InstantPayment): Promise<void> {
-    const validatedIds = paymentIds(payment);
-    if (busy || !payment.id || !validatedIds.length) return;
-    busy = true; error = ''; const current = generation;
-    controller = new AbortController();
-    try {
-      const data = await call<InstantPayment>('kiriof_instant_payment', { payment_id: payment.id, order_ids: JSON.stringify(validatedIds) }, controller.signal);
-      if (current === generation && open && result && data.id === payment.id) result = { ...result, payments: result.payments.map((item) => item.id === payment.id ? { ...data, order_ids: validatedIds } : item) };
-    } catch (cause) { if (current === generation && open) error = cause instanceof Error ? cause.message : text('actionError'); }
-    finally { if (current === generation) busy = false; }
+  function refreshPayment(payment: InstantPayment): void {
+    if (busy || checkingPayments || !payment.id || !paymentIds(payment).length) return;
+    paymentPoller.refresh(payment.id);
+  }
+  function pollStopped(payment: InstantPayment): string {
+    const phase = pollPhases[payment.id];
+    return phase === 'timeout' ? text('instantPaymentPollTimeout') : phase === 'expired' ? text('instantPaymentPollExpired') : phase === 'error' ? text('instantPaymentPollError') : '';
   }
   $effect(() => {
     const identity = open ? orderIds.join('|') : '';
@@ -143,8 +163,10 @@
         {#each result.payments as payment, index (index)}
           <div class="grid gap-2 rounded-md border p-3">
             <p>{text('paymentId')}: {payment.id} — {text('paymentStatus')}: {text(`instantPayment_${payment.status}`)}</p><strong>{money(payment.amount)}</strong>
-            {#if payment.qr_content && payment.status !== 'paid'}<svg use:qr={{ data: payment.qr_content }} width="240" height="240" role="img" aria-label={text('instantQrLabel')}></svg>{/if}
-            {#if payment.status !== 'paid'}<Button variant="outline" disabled={busy || !paymentIds(payment).length} onclick={() => void refreshPayment(payment)}>{text('instantRefreshPayment')}</Button>{/if}
+            {#if payment.qr_content && !paymentTerminal(payment) && pollPhases[payment.id] !== 'expired'}<svg use:qr={{ data: payment.qr_content }} width="240" height="240" role="img" aria-label={text('instantQrLabel')}></svg>{/if}
+            {#if pollStopped(payment)}<p role="status" class="text-sm">{pollStopped(payment)}</p>{/if}
+            {#if checkingPayments}<p role="status" class="text-sm">{text('instantPaymentChecking')}</p>{/if}
+            {#if !paymentTerminal(payment)}<Button variant="outline" disabled={busy || checkingPayments || !paymentIds(payment).length} onclick={() => void refreshPayment(payment)}>{text('instantRefreshPayment')}</Button>{/if}
           </div>
         {/each}
       {/if}

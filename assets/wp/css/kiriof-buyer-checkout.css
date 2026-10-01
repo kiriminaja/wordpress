@@ -1,0 +1,29 @@
+/* The additional field remains registered for unsupported Blocks installations. */
+.kiriof-buyer-checkout-active .wc-block-components-address-form .wc-block-components-text-input:has(input[name*="kiriof_destination_area"]),
+.kiriof-buyer-checkout-active .wc-block-components-address-form .wc-block-components-text-input:has(input[id*="kiriof_destination_area"]),
+.kiriof-buyer-checkout-active .wc-block-components-address-form .wc-block-components-text-input:has(input[id*="kiriof-destination-area"]) {
+	display: none;
+}
+
+.kiriof-buyer-district {
+	margin-block: 1em;
+	min-width: 0;
+}
+
+.kiriof-buyer-district .components-base-control,
+.kiriof-buyer-district .components-combobox-control__suggestions-container {
+	width: 100%;
+}
+
+.kiriof-buyer-district .components-combobox-control__input {
+	font: inherit;
+	min-height: 44px;
+}
+
+.kiriof-buyer-district p {
+	margin-block: 0.5em;
+}
+
+.kiriof-buyer-district button {
+	min-height: 44px;
+}

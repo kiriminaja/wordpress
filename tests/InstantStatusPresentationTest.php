@@ -11,6 +11,42 @@ final class InstantStatusPresentationTest extends TestCase {
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
+    public function test_supported_booking_metadata_and_status_are_preserved_in_list_detail_and_fallback(): void {
+        foreach ([100, 105, 106, 200, 300, 350] as $code) {
+            $payload = [
+                'delivery_type' => 'instant', 'service' => 'grab_express', 'vehicle' => 'motor',
+                'status' => 'request_pickup', 'awb' => '', 'order_id' => 'KA-BOOKED',
+                'instant_status_code' => $code, 'instant_payment_id' => 'PAY-BOOKED',
+                'instant_payment_method' => 'qris', 'instant_payment_status' => 'paid',
+                'shipping_cost' => 12000, 'live_tracking_url' => 'https://tracking.example.test/KA-BOOKED',
+                'shipping_info' => json_encode(['_shipping_first_name' => 'Booked recipient', '_shipping_address_1' => 'Booked street', 'instant_items' => [['name' => 'Booked item', 'qty' => 2]]], JSON_THROW_ON_ERROR),
+                'shipment_location_snapshot' => json_encode(['origin_name' => 'Booked warehouse', 'origin_address' => 'Booked origin'], JSON_THROW_ON_ERROR),
+            ];
+            $list = $this->row($payload);
+            $this->assertSame(['method' => 'qris', 'status' => 'paid', 'id' => 'PAY-BOOKED'], $list['instantPayment']);
+            $this->assertSame(in_array($code, [100, 105], true), $list['actions']['cancel']);
+            foreach (['detail', 'fallback'] as $mode) {
+                $detail = $this->row($payload + ['mode' => $mode]);
+                foreach (['key', 'label', 'tone', 'tooltip', 'issue'] as $field) {
+                    $this->assertSame($list['status'][$field], $detail['status'][$field], "$code/$mode/$field");
+                }
+                $this->assertSame('instant', $detail['deliveryType']);
+                $this->assertSame('motor', $detail['vehicle']);
+                $this->assertSame('KA-BOOKED', $detail['orderId']);
+                $this->assertSame('KA-BOOKED', $detail['shipment']['trackingOrder']);
+                $this->assertSame('', $detail['shipment']['awb']);
+                $this->assertSame('PAY-BOOKED', $detail['shipment']['paymentId']);
+                $this->assertSame('qris', $detail['shipment']['paymentMethod']);
+                $this->assertSame('paid', $detail['shipment']['paymentStatus']);
+                $this->assertSame(12000, $detail['shipment']['costs']['actualShipping']);
+                $this->assertSame('https://tracking.example.test/KA-BOOKED', $detail['shipment']['liveTrackingUrl']);
+                $this->assertSame($mode === 'detail' && in_array($code, [100, 105], true), $detail['actions']['cancel']);
+                $this->assertSame($mode === 'detail', $detail['actions']['track']);
+                $this->assertSame($mode === 'detail', $detail['actions']['reconcile']);
+            }
+        }
+    }
+
     public function test_instant_remote_status_is_shared_by_list_detail_and_fallback(): void {
         foreach ([100, 101, 105, 106, 110, 200, 300, 350, 401, 400, 701, 999] as $code) {
             $payload = ['delivery_type' => 'instant', 'instant_status_code' => $code, 'instant_payment_status' => 'paid', 'vehicle' => 'mobil'];

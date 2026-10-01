@@ -165,14 +165,20 @@ final class Init {
 
         if ( Controllers\InstantDeliveryController::class === $class ) {
             $transaction_repository = new Repositories\TransactionRepository();
+            $instant_api_repository = new Repositories\InstantDeliveryApiRepository();
 
             return new $class(
                 new Services\InstantDispatchService(
                     $transaction_repository,
-                    new Repositories\InstantDeliveryApiRepository(),
+                    $instant_api_repository,
                     new Services\InstantShipmentContext()
                 ),
-                new Services\InstantLabelService( $transaction_repository )
+                new Services\InstantLabelService( $transaction_repository ),
+                new Services\InstantOperationsService(
+                    $transaction_repository,
+                    $instant_api_repository,
+                    new Services\InstantShipmentState( $transaction_repository )
+                )
             );
         }
 

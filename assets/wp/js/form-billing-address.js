@@ -90,6 +90,15 @@
         }); 
 
         function kiriofInitBlockCheckoutCompatibility() {
+            if (window.kiriofBuyerCheckout && window.kiriofBuyerCheckout.pending) {
+                window.kiriofBuyerCheckout.ready.then(function(active) {
+                    if (!active) { kiriofInitBlockCheckoutCompatibility(); }
+                });
+                return;
+            }
+            if (kiriofUsesNativeBuyerCheckout()) {
+                return;
+            }
             if (window.kiriofBlockCheckoutCompatibilityInitialized) {
                 return;
             }
@@ -2327,6 +2336,10 @@
             return jQuery('.wp-block-woocommerce-checkout, .wc-block-checkout, .wc-block-components-sidebar-layout').length > 0;
         }
 
+        function kiriofUsesNativeBuyerCheckout() {
+            return !!(window.kiriofBuyerCheckout && window.kiriofBuyerCheckout.active && jQuery('.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart').length);
+        }
+
         function kiriofFindBlockShippingPackageId(rateId) {
             if (!rateId || typeof wp === 'undefined' || !wp.data || !wp.data.select) {
                 return null;
@@ -2657,6 +2670,12 @@
         }
 
         function kiriofCodInsurance(){
+            if (window.kiriofBuyerCheckout && window.kiriofBuyerCheckout.pending) {
+                return;
+            }
+            if (kiriofUsesNativeBuyerCheckout()) {
+                return;
+            }
            
             let different_address = jQuery(`[name="ship_to_different_address"]:checked`).length;
             

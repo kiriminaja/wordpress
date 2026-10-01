@@ -15,11 +15,13 @@ class InstantDispatchService {
 	private TransactionRepository $repo;
 	private InstantDeliveryApiRepository $api;
 	private InstantShipmentContext $context;
+	private InstantShipmentState $state;
 
-	public function __construct( TransactionRepository $repo, InstantDeliveryApiRepository $api, InstantShipmentContext $context ) {
+	public function __construct( TransactionRepository $repo, InstantDeliveryApiRepository $api, InstantShipmentContext $context, ?InstantShipmentState $state = null ) {
 		$this->repo = $repo;
 		$this->api = $api;
 		$this->context = $context;
+		$this->state = $state ?? new InstantShipmentState( $repo );
 	}
 
 	/** Compare-and-delete: an expired/replaced owner must never delete a newer lease. */
@@ -136,6 +138,28 @@ class InstantDispatchService {
 				}
 				$claims[] = (string) $id;
 			}
+			// Persist the reviewed request before any outbound booking. An ambiguous
+			// response must remain recoverable without reading mutable WooCommerce data.
+			$prepared = array();
+			foreach ( $contexts as $id => $ctx ) {
+				try {
+					$current = $this->repo->getTransactionByOrderId( (string) $id );
+					if ( ! is_object( $current ) || 'pending' !== $current->status || null !== ( $current->instant_status_code ?? null ) || ! in_array( $current->instant_payment_id ?? null, array( null, '' ), true ) ) {
+						throw new RuntimeException();
+					}
+					$metadata = $this->bookingMetadata( $current, $ctx, $method );
+					$expected = array( 'order_id' => (string) $id, 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_id' => $current->instant_payment_id ?? null, 'awb' => $current->awb ?? null );
+					foreach ( array_keys( $metadata ) as $field ) {
+						$expected[ $field ] = $current->{$field} ?? null;
+					}
+					if ( ! $this->repo->compareAndSwapInstant( (string) $id, $expected, $metadata ) ) {
+						throw new RuntimeException();
+					}
+					$prepared[ $id ] = $metadata;
+				} catch ( \Throwable $error ) {
+					throw new RuntimeException( esc_html__( 'Unable to save the prepared Instant shipment.', 'kiriminaja-official' ) );
+				}
+			}
 			if ( $quote['expires'] <= time() || ! delete_transient( $key ) ) {
 				throw new RuntimeException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
 			}
@@ -165,6 +189,7 @@ class InstantDispatchService {
 					$payment['qr_content'] = '';
 				}
 				$payment['order_ids'] = array();
+				$payment_statuses = array();
 				$matches = array();
 				foreach ( (array) ( $data['packages'] ?? array() ) as $package ) {
 					$package = (array) $package;
@@ -178,13 +203,16 @@ class InstantDispatchService {
 					$matched = $matches[ $id ] ?? array();
 					if ( 1 === count( $matched ) && '' !== $payment['id'] ) {
 						try {
-							$changes = $this->bookingChanges( $rows[ $id ], $ctx, $matched[0], $payment, $method );
-							if ( $this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'status' => 'pending' ), 'changes' => $changes ) ) ) {
-								$report['status'] = 'booked';
-								$report['awb'] = $changes['awb'] ?? '';
-								$report['message'] = __( 'Instant shipment booked.', 'kiriminaja-official' );
-								$payment['order_ids'][] = $id;
-							}
+							$metadata = $this->bookingChanges( $ctx, $matched[0], $prepared[ $id ] );
+							$effective = $this->state->confirmBooking( (string) $id, $matched[0], $payment, $metadata );
+							$saved = $this->repo->getTransactionByOrderId( (string) $id );
+							$awb = is_object( $saved ) ? ( $saved->awb ?? '' ) : ( $matched[0]['awb'] ?? '' );
+							$report['status'] = 'booked';
+							$report['shipment_status'] = $effective['status'];
+							$report['awb'] = is_string( $awb ) && $this->safeId( $awb ) ? $awb : '';
+							$report['message'] = __( 'Instant shipment booked.', 'kiriminaja-official' );
+							$payment['order_ids'][] = $id;
+							$payment_statuses[] = is_object( $saved ) ? ( $saved->instant_payment_status ?? null ) : $payment['status'];
 						} catch ( \Throwable $error ) {
 							// Accepted remotely but unverified locally: keep the durable claim.
 						}
@@ -192,7 +220,10 @@ class InstantDispatchService {
 					if ( 'unknown' === $report['status'] ) {
 						try {
 							// Persist only a fixed reconciliation note; never release the claim or attach payment.
-							$this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'status' => 'pending' ), 'changes' => array( 'rejected_reason' => 'Check remote state before retrying' ) ) );
+							$current = $this->repo->getTransactionByOrderId( (string) $id );
+							if ( is_object( $current ) && 'pending' === $current->status && empty( $current->instant_status_code ) && empty( $current->rejected_reason ) ) {
+								$this->repo->compareAndSwapInstant( (string) $id, array( 'order_id' => $id, 'status' => 'pending', 'instant_status_code' => $current->instant_status_code ?? null, 'rejected_reason' => $current->rejected_reason ?? null ), array( 'rejected_reason' => 'Check remote state before retrying' ) );
+							}
 						} catch ( \Throwable $error ) {
 							// A failed issue write must not turn an ambiguous booking into a success.
 						}
@@ -200,6 +231,7 @@ class InstantDispatchService {
 					$result['rows'][] = $report;
 				}
 				if ( ! empty( $payment['order_ids'] ) ) {
+					$payment['status'] = $this->effectivePaymentStatus( $payment_statuses );
 					$result['payments'][] = $payment;
 				}
 			}
@@ -236,15 +268,19 @@ class InstantDispatchService {
 			throw new RuntimeException( esc_html__( 'The Instant payment response is invalid.', 'kiriminaja-official' ) );
 		}
 		$payment['id'] = $payment_id;
-		// Unknown remote values are pending for display, but must not overwrite known state.
+		// Unknown remote values must not invent pending or overwrite persisted payment state.
 		$raw = (array) ( $data['payment'] ?? $data );
-		if ( null !== $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null ) ) {
-			foreach ( $rows as $id => $row ) {
-				if ( ! $this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'instant_payment_id' => $payment_id ), 'changes' => array( 'instant_payment_status' => $payment['status'] ) ) ) ) {
-					throw new RuntimeException( esc_html__( 'Unable to save the Instant payment status.', 'kiriminaja-official' ) );
-				}
+		$known = $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null );
+		$statuses = array();
+		foreach ( $rows as $id => $row ) {
+			$merge = array( 'id' => $payment_id );
+			if ( null !== $known ) {
+				$merge['status'] = $known;
 			}
+			$effective = $this->state->mergePayment( (string) $id, $merge );
+			$statuses[] = $effective['status'];
 		}
+		$payment['status'] = $this->effectivePaymentStatus( $statuses );
 		return $payment;
 	}
 
@@ -337,8 +373,18 @@ class InstantDispatchService {
 		return $groups;
 	}
 
-	private function bookingChanges( object $row, array $ctx, array $remote, array $payment, string $method ): array {
-		$status = $this->integer( $remote['status'] ?? $remote['status_code'] ?? null );
+	private function bookingChanges( array $ctx, array $remote, array $metadata ): array {
+		// Match the complete courier identity to the quoted request, not merely position/ID.
+		foreach ( array( 'order_id', 'service', 'service_type' ) as $field ) {
+			if ( ! isset( $remote[ $field ] ) || $remote[ $field ] !== $ctx['package'][ $field ] ) {
+				throw new RuntimeException();
+			}
+		}
+		return $metadata + array( 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ) );
+	}
+
+	/** Trusted local request metadata only: no acceptance timestamp or credentials. */
+	private function bookingMetadata( object $row, array $ctx, string $method ): array {
 		$destination = $ctx['package']['destination'];
 		$snapshot = json_decode( (string) ( $row->shipping_info ?? '{}' ), true );
 		$snapshot = is_array( $snapshot ) ? $snapshot : array();
@@ -350,15 +396,7 @@ class InstantDispatchService {
 		$snapshot['instant_items'] = $ctx['package']['items'];
 		$origin = $ctx['origin'];
 		$origin['timezone'] = $ctx['pricing']['timezone'];
-		$changes = array( 'order_id' => $ctx['package']['order_id'], 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_status_code' => $status, 'instant_payment_id' => $payment['id'], 'instant_payment_method' => $method, 'instant_payment_status' => $payment['status'], 'status' => 'request_pickup', 'rejected_reason' => null, 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ), 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );
-		$awb = $remote['awb'] ?? null;
-		if ( is_string( $awb ) && $this->safeId( $awb ) ) {
-			$changes['awb'] = $awb;
-		}
-		$url = $remote['live_tracking_url'] ?? $remote['tracking_url'] ?? $remote['live_tracking'] ?? null;
-		if ( is_string( $url ) && strlen( $url ) <= 2048 && filter_var( $url, FILTER_VALIDATE_URL ) && in_array( strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) ) {
-			$changes['live_tracking_url'] = $url;
-		}
+		$changes = array( 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_payment_method' => $method, 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );
 		return $changes;
 	}
 
@@ -373,6 +411,16 @@ class InstantDispatchService {
 			// Optional display amount must never invalidate a matched booking.
 		}
 		return array( 'id' => is_string( $id ) && $this->safeId( $id ) ? $id : '', 'status' => $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null ) ?? 'pending', 'amount' => $amount, 'qr_content' => is_string( $qr ) && strlen( $qr ) <= 8192 && ! preg_match( '/[\x00-\x1f\x7f]/', $qr ) ? $qr : '' );
+	}
+
+	/** One payment can cover multiple rows; terminal refund/paid observations win. */
+	private function effectivePaymentStatus( array $statuses ): string {
+		foreach ( array( 'refunded', 'paid', 'unpaid', 'pending' ) as $status ) {
+			if ( in_array( $status, $statuses, true ) ) {
+				return $status;
+			}
+		}
+		return 'pending';
 	}
 
 	private function paymentStatus( $value ): ?string {

@@ -3,7 +3,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantDeliveryControllerRuntimeTest extends TestCase {
-	private const AJAX = array( 'quote', 'dispatch', 'payment', 'labelPreview' );
+	private const AJAX = array( 'quote', 'dispatch', 'payment', 'labelPreview', 'tracking', 'reconcile', 'cancel' );
 	private const INVALID = 'Invalid Instant request parameters.';
 
 	private function run_controller( array $input = array() ): array {
@@ -20,6 +20,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			$this->assertSame( array( array( 'die' => $message ) ), $result['responses'] );
 			$this->assertSame( 'die', $result['sentinel'] );
 		} else {
+			$this->assertSame( 400, $result['http_status'] );
 			$this->assertSame( array( array( 'success' => false, 'data' => array( 'status' => 400, 'message' => $message ) ) ), $result['responses'] );
 			$this->assertSame( 'json-error', $result['sentinel'] );
 		}
@@ -33,9 +34,14 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			'controller' => 'KiriminAjaOfficial\\Controllers\\InstantDeliveryController',
 			'dispatch' => 'KiriminAjaOfficial\\Services\\InstantDispatchService',
 			'label' => 'KiriminAjaOfficial\\Services\\InstantLabelService',
+			'operations' => 'KiriminAjaOfficial\\Services\\InstantOperationsService',
 			'dispatch_dependencies' => array( 'KiriminAjaOfficial\\Repositories\\TransactionRepository', 'KiriminAjaOfficial\\Repositories\\InstantDeliveryApiRepository', 'KiriminAjaOfficial\\Services\\InstantShipmentContext' ),
 			'label_dependencies' => array( 'KiriminAjaOfficial\\Repositories\\TransactionRepository' ),
+			'operations_dependencies' => array( 'KiriminAjaOfficial\\Repositories\\TransactionRepository', 'KiriminAjaOfficial\\Repositories\\InstantDeliveryApiRepository', 'KiriminAjaOfficial\\Services\\InstantShipmentState' ),
 			'shared_repository' => true,
+			'shared_api' => true,
+			'shared_state_repository' => true,
+			'required_dependencies' => 3,
 			'listed_count' => 1,
 		), $result['composition'] );
 		$this->assertSame( array(
@@ -43,11 +49,14 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			array( 'wp_ajax_kiriof_instant_dispatch', $result['composition']['controller'], 'dispatch' ),
 			array( 'wp_ajax_kiriof_instant_payment', $result['composition']['controller'], 'payment' ),
 			array( 'wp_ajax_kiriof_instant_label_preview', $result['composition']['controller'], 'labelPreview' ),
+			array( 'wp_ajax_kiriof_instant_tracking', $result['composition']['controller'], 'tracking' ),
+			array( 'wp_ajax_kiriof_instant_reconcile', $result['composition']['controller'], 'reconcile' ),
+			array( 'wp_ajax_kiriof_instant_cancel', $result['composition']['controller'], 'cancel' ),
 			array( 'admin_post_kiriof_instant_labels', $result['composition']['controller'], 'labels' ),
 		), $result['hooks'] );
 		$source = file_get_contents( PLUGIN_DIR . '/inc/Controllers/InstantDeliveryController.php' );
 		$this->assertStringNotContainsString( 'nopriv', $source );
-		$this->assertStringContainsString( '__construct( InstantDispatchService $dispatch_service, InstantLabelService $label_service )', $source );
+		$this->assertStringContainsString( '__construct( InstantDispatchService $dispatch_service, InstantLabelService $label_service, InstantOperationsService $operations_service )', $source );
 	}
 
 	#[Test]
@@ -83,11 +92,45 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			foreach ( $invalid as $ids ) {
 				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
 			}
-			foreach ( array( array( 1 ), array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), range( 1, 50 ) ) as $ids ) {
+			$valid = array( array( 1 ), array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), range( 1, 50 ) );
+			if ( in_array( $operation, array( 'tracking', 'reconcile', 'cancel' ), true ) ) {
+				$valid = 'cancel' === $operation ? array( array( 'KA_2-x' ) ) : array( array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), array_map( 'strval', range( 1, 10 ) ) );
+			}
+			foreach ( $valid as $ids ) {
 				$result = $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
 				$this->assertTrue( $result['responses'][0]['success'] );
 				$this->assertSame( $ids, $result['calls'][0][1][ 'dispatch' === $operation ? 1 : 0 ] );
 			}
+		}
+	}
+
+	#[Test]
+	public function lifecycle_routes_enforce_string_ids_limits_and_explicit_single_cancel_consent(): void {
+		foreach ( array( 'tracking', 'reconcile', 'cancel' ) as $operation ) {
+			foreach ( array( array( 1 ), array( 'KA-1', 2 ), array_map( 'strval', range( 1, 11 ) ) ) as $ids ) {
+				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
+			}
+		}
+		foreach ( array( null, true, false, 1, 'true', 'YES', ' yes', 'yes ', '<b>yes</b>', array( 'yes' ), array( 'confirmed' => 'yes' ) ) as $confirmed ) {
+			$this->assert_rejected( array( 'operation' => 'cancel', 'fields' => array( 'confirmed' => $confirmed ) ) );
+		}
+		$this->assert_rejected( array( 'operation' => 'cancel', 'unset' => array( 'confirmed' ) ) );
+		$this->assert_rejected( array( 'operation' => 'cancel', 'fields' => array( 'order_ids' => '["KA-1","KA-2"]' ) ) );
+		foreach ( array( 'tracking' => 'track', 'reconcile' => 'reconcile', 'cancel' => 'cancel' ) as $operation => $method ) {
+			$result = $this->run_controller( array( 'operation' => $operation, 'unset' => array( 'token', 'method', 'pin', 'payment_id' ) ) );
+			$this->assertSame( array( array( $method, array( array( 'KA-1' ) ) ) ), $result['calls'] );
+			$this->assertSame( array( array( 'capability', 'manage_woocommerce' ), array( 'nonce', 'valid:kiriof_ajax', 'kiriof_ajax' ), array( 'service', $method ) ), $result['events'] );
+			$this->assertSame( array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => array( 'spy_result' => $method ) ) ) ), $result['responses'] );
+		}
+	}
+
+	#[Test]
+	public function lifecycle_unknown_reports_are_returned_as_success_without_retries_or_other_services(): void {
+		$report = array( 'rows' => array( array( 'id' => 'KA-1', 'status' => 'unknown', 'tracking_url' => '', 'message' => 'Reconciliation required.' ) ) );
+		foreach ( array( 'tracking', 'reconcile', 'cancel' ) as $operation ) {
+			$result = $this->run_controller( array( 'operation' => $operation, 'service_result' => $report ) );
+			$this->assertCount( 1, $result['calls'] );
+			$this->assertSame( array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => $report ) ) ), $result['responses'] );
 		}
 	}
 
@@ -190,6 +233,10 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 				$this->assertSame( '', $result['html'] );
 				$this->assertSame( array(), $result['headers'] );
 				$this->assertSame( $message, 'labels' === $operation ? $result['responses'][0]['die'] : $result['responses'][0]['data']['message'] );
+				if ( 'labels' !== $operation ) {
+					$this->assertSame( 'validation' === $error ? 400 : 503, $result['http_status'] );
+					$this->assertSame( $result['http_status'], $result['responses'][0]['data']['status'] );
+				}
 				$this->assertSame( 'labels' === $operation ? 'die' : 'json-error', $result['sentinel'] );
 			}
 		}

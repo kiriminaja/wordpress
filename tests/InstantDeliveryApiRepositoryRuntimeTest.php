@@ -46,6 +46,9 @@ namespace KiriminAja\Services {
 		public static function requestPickupInstant( ...$args ) { throw new \RuntimeException( 'Legacy booking forbidden' ); }
 	}
 }
+namespace KiriminAjaOfficial\Infrastructure {
+	class InstantApiTransport extends \KiriminAja\Base\Api\Api {}
+}
 namespace {
 	define( 'ABSPATH', __DIR__ );
 	function wp_json_encode( $value ) { return json_encode( $value ); }

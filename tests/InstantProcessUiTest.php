@@ -16,7 +16,8 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertStringContainsString('$wc_order->is_paid()', $source);
         $this->assertStringContainsString("'canProcess' => (bool) \$can_process_instant", $source);
         $this->assertStringContainsString("'changeOrigin' => \$is_express && \$is_processable", $source);
-        $this->assertStringContainsString("'cancel'       => ! \$is_deficit && \$can_cancel", $source);
+        $this->assertStringContainsString("\$can_cancel            = \$is_express ? ( '' !== \$awb && ! in_array( (string) \$row->status, \$terminal_statuses, true ) ) : InstantShipmentState::canCancel( \$row );", $source);
+        $this->assertStringContainsString("'cancel'       => ( ! \$is_express || ! \$is_deficit ) && \$can_cancel", $source);
         $this->assertStringNotContainsString('->build(', $source);
     }
 

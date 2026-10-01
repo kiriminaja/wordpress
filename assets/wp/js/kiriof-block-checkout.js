@@ -437,6 +437,9 @@
   }
 
   function invalidateBlockShippingRates() {
+    if (window.kiriofBuyerCheckout && (window.kiriofBuyerCheckout.active || window.kiriofBuyerCheckout.pending)) {
+      return;
+    }
     if (!wp || !wp.data || !wp.data.dispatch) {
       return;
     }

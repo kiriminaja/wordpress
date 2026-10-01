@@ -49,7 +49,7 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [x] Show saved/current prices and require per-order price-change acknowledgment plus explicit submission confirmation.
 - [x] Enforce 1–10 packages per compatible origin/courier/vehicle request; split larger selections and report partial outcomes.
 - [x] Reject Express/Borzo rows from the Instant dispatch path and keep existing Express endpoints unchanged.
-- [x] Normalize account-verified TOP, QRIS, and KA Credit payments; validate PIN/credit before claiming orders and expose manual payment refresh for matched bookings.
+- [x] Normalize account-verified TOP, QRIS, and KA Credit payments; validate PIN/credit before claiming orders and provide bounded automatic polling plus manual payment refresh for matched bookings.
 - [x] Reuse the stored `order_id`; use atomic pending claims, expiring owner leases, and consumed quote tokens to prevent duplicate bookings.
 - [x] Persist verified remote payment/status/AWB/tracking data and immutable sender/recipient/item snapshots immediately after a matched booking response.
 - [x] Use official SDK Instant pricing and an explicit SDK-transport adapter for the documented v6.2 request schema.
@@ -65,10 +65,13 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 
 ## Cancellation, tracking, and webhooks
 
-- [ ] Route Instant cancellation to `DELETE /api/mitra/v4/instant/pickup/void/{order_id}`.
-- [ ] Route Instant tracking to the Instant endpoint and render only `live_tracking_url`.
-- [ ] Add an Instant webhook branch for `shipped_packages`, `canceled_packages`, and `finished_packages`.
-- [ ] Make webhook persistence idempotent and order by lifecycle state.
+- [x] Route Instant cancellation to the dedicated DELETE endpoint with a durable claim before the remote request; do not infer final cancellation from request acceptance.
+- [x] Route tracking/reconciliation to the Instant endpoint and render only validated live-tracking URLs; not-found does not release an uncertain booking claim.
+- [x] Add an authenticated Instant webhook branch for shipped, canceled, and finished methods; reject mixed Express/Instant batches and malformed metadata before mutation.
+- [x] Use strict CAS, monotonic lifecycle/payment merging, callback replay protection, and reload/recompute after concurrent changes.
+- [x] Complete eligible WooCommerce orders after delivered confirmation; keep shipment cancellation separate from WooCommerce cancellation/refunds.
+- [x] Preserve newer callback states when booking responses or payment refreshes arrive late; persist reviewed shipment context before outbound booking.
+- [x] Bound direct Instant network requests and manual/automatic browser payment checks; preserve exact callback credentials and payload identities.
 - [x] Keep ambiguous booking outcomes in the Instant tab with a fixed issue reason and durable pending claim; never automatically resubmit an uncertain booking.
 
 ## External dependencies
@@ -89,13 +92,13 @@ Local reference: `/Users/user1/Kerjaa/kaj-shopify-plugin`, revision `5a9a2d7a3f7
 - `app/helpers/kiriminaja.ts`: mapping depends on internal status, payment state, AWB presence, and Instant readiness. `101` is Find New Driver; `106` is On Delivery; `200` is Delivered; `300`/`302` are Cancelled; `350` is Cancellation Process. Copy the complete mapping, not just these examples, into the transaction adapter.
 - `app/constants/orders/order.status.ts` and `app/models/packageOrder.ts`: use these alongside the helper to establish the order lifecycle mapping. Do not reuse Shopify's location-confirmation action in WordPress.
 
-Next admin slice: Sandbox response validation, dedicated cancellation/tracking, and webhook ingestion. The Process Shipment and local-label flows are implemented for eligible existing Instant records. Buyer pin capture is still pending: rows without valid saved coordinates/address associations remain blocked by server-side validation.
+Next release step: perform the authorized Sandbox/end-to-end verification in [ADMIN-INSTANT-RELEASE-GATES.md](ADMIN-INSTANT-RELEASE-GATES.md). Cancellation, tracking, reconciliation, callbacks, and bounded payment polling are implemented and regression-tested. Valid saved coordinate/address context remains mandatory; this admin work does not supply missing buyer pins.
 
 `InstantDeliveryStatus` uses persisted remote status codes and Instant payment state, never the local shipment enum as a remote payment status. List, detail, and fallback detail use the same labels, tones, issue reasons, and driver-replacement tooltip. Unknown remote combinations remain unknown rather than inheriting local success. Missing destination coordinates are an issue to resolve through the buyer address, not an admin location-confirmation action.
 
 Remote status, payment method/status/ID, destination coordinates, and tracking URL have nullable persisted fields. The independent `kiriof_instant_metadata_v1` migration retries incomplete upgrades even when the earlier partition migration is already complete. Repository writes validate supplied metadata and preserve omitted fields; zero coordinates are valid.
 
-Processed filtering and badge counts now use persisted Instant booking evidence without joining Express payment rows. Full Shopify-state query filtering remains pending alongside webhook ingestion.
+Processed filtering and badge counts use persisted Instant booking evidence without joining Express payment rows. Full Shopify-state query filtering remains a separate UI/query enhancement; webhook ingestion is now implemented.
 
 The settings screen stores supported courier preferences in one grid. Enabling Instant preferences does not imply buyer checkout is implemented; dispatch requires an eligible saved Instant record with coordinates, physical item data, and valid origin/address snapshots.
 
@@ -116,4 +119,6 @@ The serving plugin loads compiled assets from `assets/admin/dist`, not Svelte so
 
 Frontend verification passed: formatting, lint, Svelte diagnostics, style checks, payment tests, courier-selection tests, and Instant tab navigation tests. The admin assets were rebuilt with `bun run build`. ZIP regeneration was intentionally skipped at the user's request; local staging files were refreshed only for source parity tests.
 
-The dispatch, context, atomic claim, authenticated endpoint, immutable label, Processed-query, and preview-session regressions passed. The changed shipping paths also passed WordPress/Plugin Check security, nonce, escaping, alternative-function, prepared-SQL, and database-parameter sniffs. No live shipment or payment was submitted. Payment refresh is manual in this slice; closing the modal stops its requests. Ambiguous remote responses remain blocked pending manual reconciliation.
+The dispatch, context, atomic claim, authenticated endpoint, immutable label, Processed-query, preview, lifecycle, payment-polling, callback, and concurrency regressions passed. Changed shipping paths passed WordPress/Plugin Check security, nonce, escaping, alternative-function, prepared-SQL, and database-parameter sniffs. No live shipment or payment was submitted. Closing the modal stops polling; ambiguous outcomes require explicit remote reconciliation and never cause automatic rebooking.
+
+The local engineering improvements are not a verified 9/10 production rating. Real account responses, carrier-label behavior, upstream SDK facade timeout support, and the other unchecked [release gates](ADMIN-INSTANT-RELEASE-GATES.md) must be confirmed first.
