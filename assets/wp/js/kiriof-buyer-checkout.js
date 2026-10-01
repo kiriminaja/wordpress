@@ -1,7 +1,8 @@
 ( function( root, wp, wc ) {
 	'use strict';
 
-	var config = root.kiriofBuyerCheckoutConfig || {};
+	var settings = wc && wc.wcSettings;
+	var config = root.kiriofBuyerCheckoutConfig || ( settings && settings.getSetting ? settings.getSetting( 'kiriminaja-official-buyer_data', {} ) : {} );
 	var blocks = wc && wc.blocksCheckout;
 	var session = root.kiriofBuyerCheckoutSession;
 	var namespace = 'kiriminaja-official';
@@ -13,7 +14,7 @@
 	var checkoutDispatch;
 	var validationDispatch;
 
-	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.components || ! wp.components.ComboboxControl || ! wp.plugins || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
+	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.components || ! wp.components.ComboboxControl || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
 		return;
 	}
 	try {
@@ -38,14 +39,15 @@
 	var savedSelections = Object.assign( {}, config.savedDistrictByPostcode || {} );
 	// Prefer in-address mounts over fallback order-summary mounts.
 	var controllers = new Map();
-	var hasInnerPlacement = false;
 	var owner = null;
 	var state = { destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
 	var resolveReady;
 	var api = root.kiriofBuyerCheckout = {
 		active: false, pending: true, disabled: false,
 		ready: new Promise( function( resolve ) { resolveReady = resolve; } ),
-		getDestination: function() { return state.destination; }
+		getDestination: function() { return state.destination; },
+		setCoordinates: setCoordinates,
+		getCoordinates: function( address ) { return state.mapPin && state.mapPin.key === shippingAddressKey( address ) ? state.mapPin : null; }
 	};
 	var readinessTimer = root.setTimeout( function() {
 		api.pending = false;
@@ -64,6 +66,13 @@
 
 	function setSelection( next ) { setShared( 'selection', next ); }
 	function setResults( next ) { setShared( 'results', next ); }
+	function setMapPin( next ) {
+		var value = 'function' === typeof next ? next( state.mapPin || null ) : next;
+		if ( value && ( ! validCoordinate( value.latitude, 90 ) || ! validCoordinate( value.longitude, 180 ) ) ) {
+			return;
+		}
+		setShared( 'mapPin', value );
+	}
 	var queue = session.createQueue( {
 		send: function( snapshot ) {
 			return blocks.extensionCartUpdate( {
@@ -83,17 +92,40 @@
 	} );
 	state.queue = queue.getState();
 
-	function destinationForAddress( selection, address ) {
-		return session.normalizeDestination( {
+	function destinationForAddress( selection, address, coordinates ) {
+		var destination = session.normalizeDestination( {
 			district_id: selection ? selection.id : '',
 			district_label: selection ? selection.label : '',
 			postcode: String( address.postcode || '' ).replace( /\s+/g, '' ).toUpperCase(),
 			country: address.country || 'ID',
-			address_type: 'shipping'
+			address_type: 'shipping',
+			destination_latitude: '',
+			destination_longitude: ''
 		} );
+		if ( coordinates && validCoordinate( coordinates.latitude, 90 ) && validCoordinate( coordinates.longitude, 180 ) ) {
+			destination = Object.assign( {}, destination, {
+				destination_latitude: String( coordinates.latitude ).trim(),
+				destination_longitude: String( coordinates.longitude ).trim(),
+				version: 2,
+				shipping_address: shippingAddress( address )
+			} );
+		}
+		return destination;
+	}
+
+	function validCoordinate( value, limit ) {
+		if ( null === value || undefined === value || ( 'string' === typeof value && '' === value.trim() ) ) {
+			return false;
+		}
+		if ( 'number' !== typeof value && 'string' !== typeof value ) {
+			return false;
+		}
+		var number = Number( value );
+		return isFinite( number ) && Math.abs( number ) <= limit;
 	}
 
 	function publish( destination ) {
+		if ( JSON.stringify( state.destination ) === JSON.stringify( destination ) ) { return; }
 		state.destination = destination;
 		checkoutDispatch.setExtensionData( namespace, { destination: destination } );
 	}
@@ -108,10 +140,38 @@
 		}
 	}
 
+	function hasInnerPlacement() {
+		return Array.from( controllers.values() ).some( function( placement ) { return 'shipping-address' === placement; } );
+	}
+	function electOwner() {
+		var preferred = hasInnerPlacement() ? 'shipping-address' : 'order-summary';
+		if ( owner && controllers.get( owner ) === preferred ) { return; }
+		owner = null;
+		controllers.forEach( function( placement, token ) {
+			if ( ! owner && placement === preferred ) { owner = token; }
+		} );
+	}
+	function shippingAddress( address ) {
+		var snapshot = {};
+		[ 'address_1', 'address_2', 'city', 'state', 'postcode', 'country' ].forEach( function( key ) {
+			snapshot[ key ] = String( address && address[ key ] || '' ).trim();
+		} );
+		snapshot.postcode = snapshot.postcode.replace( /\s+/g, '' ).toUpperCase();
+		snapshot.country = snapshot.country.toUpperCase();
+		return snapshot;
+	}
+	function shippingAddressKey( address ) { return JSON.stringify( shippingAddress( address ) ); }
+	function setCoordinates( address, point ) {
+		if ( api.disabled || ! api.active ) { return false; }
+		var cart = wp.data.select( 'wc/store/cart' ).getCartData() || {};
+		if ( shippingAddressKey( address ) !== shippingAddressKey( cart.shippingAddress ) ) { return false; }
+		if ( point && ( ! validCoordinate( point.latitude, 90 ) || ! validCoordinate( point.longitude, 180 ) ) ) { return false; }
+		setMapPin( point ? { latitude: Number( point.latitude ).toFixed( 7 ), longitude: Number( point.longitude ).toFixed( 7 ), key: shippingAddressKey( address ) } : null );
+		return true;
+	}
+
 	function DistrictControl( props ) {
-		var slot = props && props.slot
-			? String( props.slot )
-			: ( props && props.children && props.children.slot ? String( props.children.slot ) : 'order-summary' );
+		var slot = props && props.slot ? props.slot : 'order-summary';
 		var data = wp.data.useSelect( function( select ) {
 			var cart = select( 'wc/store/cart' );
 			var checkout = select( 'wc/store/checkout' );
@@ -134,21 +194,11 @@
 		var kiriminajaSelected = ! selected.length || selected.some( function( rate ) {
 			return 'kiriminaja-official' === rate.method_id || /^kiriminaja-official(?:_|:)/.test( rate.rate_id || '' );
 		} );
-		function controlsHasInnerPlacement() {
-			return hasInnerPlacement || Array.from( controllers.values() ).some( function( placement ) { return 'shipping-address' === placement; } );
-		}
-		function electOwner() {
-			var preferred = controlsHasInnerPlacement() ? 'shipping-address' : 'order-summary';
-			var current = owner ? controllers.get( owner ) : undefined;
-			if ( current === preferred ) { return; }
-			owner = null;
-			controllers.forEach( function( placement, token ) { if ( ! owner && placement === preferred ) { owner = token; } } );
-		}
-		var revision = useState( 0 );
 		var revision = useState( 0 );
 		var token = useRef( {} ).current;
-		var isOwner = ! owner || owner === token;
+		var isOwner = owner === token;
 		var selection = state.selection;
+		var mapPin = state.mapPin || null;
 		var results = state.results;
 		var updateState = state.queue;
 		var retryLookup = state.retryLookup;
@@ -156,24 +206,22 @@
 		var filter = filterState[ 0 ];
 		var setFilter = filterState[ 1 ];
 		var currentSelection = selection && selection.key === addressKey ? selection : null;
-		var destination = destinationForAddress( currentSelection, address );
+		var currentPin = mapPin && mapPin.key === shippingAddressKey( address ) ? mapPin : null;
+		var destination = destinationForAddress( currentSelection, address, currentPin );
 		var destinationKey = JSON.stringify( destination );
 		var lookupGeneration = useRef( 0 );
 		var destinationRef = useRef( destination );
 		destinationRef.current = destination;
+		var pinAddressKey = shippingAddressKey( address );
+		useEffect( function() {
+			if ( state.mapPin && state.mapPin.key !== pinAddressKey ) { setMapPin( null ); }
+		}, [ pinAddressKey ] );
 
-		function ownsEffects() {
-			// Production h() passes element props inside children in some
-			// harnesses, so accept either shape when locating placement.
-			var placement = slot;
-			if ( ! placement && props && props.children && props.children.slot ) { placement = String( props.children.slot ); }
-			return ! api.disabled && owner === token && ( 'shipping-address' === placement || ( 'order-summary' === placement && ! controlsHasInnerPlacement() ) );
-		}
+		function ownsEffects() { return ! api.disabled && owner === token && Boolean( data.cart ); }
 
 		useEffect( function() {
 			if ( api.disabled ) { return; }
 			controllers.set( token, slot );
-			if ( 'shipping-address' === slot ) { hasInnerPlacement = true; }
 			electOwner();
 			listeners.add( revision[ 1 ] );
 			api.active = true;
@@ -187,7 +235,6 @@
 			return function() {
 				listeners.delete( revision[ 1 ] );
 				controllers.delete( token );
-				if ( 'shipping-address' === slot && ! controlsHasInnerPlacement() ) { hasInnerPlacement = false; }
 				electOwner();
 				if ( ! owner ) {
 					setValidation( '' );
@@ -298,7 +345,7 @@
 			if ( ownsEffects() ) { setValidation( required && kiriminajaSelected ? message : '' ); }
 		}, [ message, required, kiriminajaSelected, isOwner ] );
 
-		if ( api.disabled || ! required ) { return null; }
+		if ( api.disabled || ! required || ( 'order-summary' === slot && hasInnerPlacement() ) ) { return null; }
 		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? strings.lookupFailed : ( results.options.length ? message : strings.empty ) ) );
 		return h( 'div', { className: 'kiriof-buyer-district kiriof-buyer-district--inner-block' },
 			h( wp.components.ComboboxControl, {
@@ -342,9 +389,11 @@
 	}
 	if ( supportsDistrictInnerBlock ) {
 		blocks.registerCheckoutBlock( {
+			force: true,
 			metadata: {
 				name: 'kiriminaja-official/checkout-district',
-				parent: [ 'woocommerce/checkout-shipping-address-block' ]
+				parent: [ 'woocommerce/checkout-shipping-address-block' ],
+				attributes: { lock: { type: 'object', default: { remove: true, move: true } } }
 			},
 			component: function() { return h( DistrictControl, { slot: 'shipping-address' } ); }
 		} );

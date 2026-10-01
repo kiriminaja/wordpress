@@ -5086,3 +5086,71 @@ msgstr "Pembayaran Instant memerlukan status dari server"
 #: inc/Services/InstantWebhookService.php:147
 msgid "One or more Instant updates could not be verified"
 msgstr "Satu atau lebih pembaruan Instant tidak dapat diverifikasi"
+
+#: inc/Base/Enqueue.php
+msgid "Clear delivery pin"
+msgstr "Hapus pin pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Could not access your location. Choose a pin or enter coordinates manually."
+msgstr "Lokasi Anda tidak dapat diakses. Pilih pin atau masukkan koordinat secara manual."
+
+#: inc/Base/Enqueue.php
+msgid "Delivery pin"
+msgstr "Pin pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Delivery pin placed."
+msgstr "Pin pengiriman telah dipilih."
+
+#: inc/Base/Enqueue.php
+msgid "Enter valid latitude and longitude coordinates."
+msgstr "Masukkan koordinat lintang dan bujur yang valid."
+
+#: inc/Base/Enqueue.php
+msgid "Load the map (connects to the tile provider)"
+msgstr "Muat peta (terhubung ke penyedia peta)"
+
+#: inc/Base/Enqueue.php
+msgid "Map is unavailable in this checkout."
+msgstr "Peta tidak tersedia di checkout ini."
+
+#: inc/Base/Enqueue.php
+msgid "Map unavailable. You can still enter coordinates manually."
+msgstr "Peta tidak tersedia. Anda tetap dapat memasukkan koordinat secara manual."
+
+#: inc/Base/Enqueue.php
+msgid "Optional. A delivery pin helps the courier find your address."
+msgstr "Opsional. Pin pengiriman membantu kurir menemukan alamat Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Set delivery pin"
+msgstr "Tetapkan pin pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Tap the map to place your delivery pin."
+msgstr "Ketuk peta untuk memilih pin pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Tap the map to place your delivery pin. Use the arrow keys to move the map and Enter to select a pin."
+msgstr "Ketuk peta untuk memilih pin pengiriman. Gunakan tombol panah untuk menggeser peta dan Enter untuk memilih pin."
+
+#: inc/Base/Enqueue.php
+msgid "Use my current location"
+msgstr "Gunakan lokasi saya saat ini"
+
+#: inc/Base/Enqueue.php
+msgid "Your browser will ask for location permission. Your location is used only when you choose this option."
+msgstr "Browser akan meminta izin lokasi. Lokasi Anda hanya digunakan ketika Anda memilih opsi ini."
+
+#: inc/Base/Enqueue.php
+msgid "KiriminAja Delivery Map"
+msgstr "Peta Pengiriman KiriminAja"
+
+#: inc/Base/Enqueue.php
+msgid "Optional delivery pin for the shipping address."
+msgstr "Pin pengiriman opsional untuk alamat pengiriman."
+
+#: inc/Base/Enqueue.php
+msgid "Optional. Customers can choose a delivery pin at checkout."
+msgstr "Opsional. Pelanggan dapat memilih pin pengiriman saat checkout."

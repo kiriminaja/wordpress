@@ -3,6 +3,12 @@
 	if ( ! wp || ! wp.blocks || ! wp.blockEditor || ! wp.element ) { return; }
 	var h = wp.element.createElement;
 	wp.blocks.registerBlockType( 'kiriminaja-official/checkout-district', {
+		title: wp.i18n.__( 'KiriminAja District', 'kiriminaja-official' ),
+		description: wp.i18n.__( 'Searchable shipping destination district.', 'kiriminaja-official' ),
+		category: 'woocommerce',
+		parent: [ 'woocommerce/checkout-shipping-address-block' ],
+		attributes: { lock: { type: 'object', default: { remove: true, move: true } } },
+		supports: { html: false, multiple: false, reusable: false, inserter: false, lock: false },
 		edit: function() {
 			return h( 'div', wp.blockEditor.useBlockProps( { className: 'kiriof-buyer-district kiriof-buyer-district--editor' } ),
 				h( 'label', null, wp.i18n.__( 'District', 'kiriminaja-official' ) ),

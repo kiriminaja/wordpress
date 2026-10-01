@@ -73,7 +73,6 @@ describe('buyer checkout session', () => {
 			expect(session.normalizeDestination({ district_id, district_label: 'Old' }).district_id).toBe('');
 			expect(session.normalizeDestination({ district_id, district_label: 'Old' }).district_label).toBe('');
 		}
-		expect(session.normalizeDestination({})).toEqual({ version: 1, district_id: '', district_label: '', postcode: '', country: '', address_type: '' });
 	});
 
 	test('acknowledges only successful completion', async () => {

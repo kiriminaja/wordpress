@@ -80,6 +80,10 @@ namespace {
         public function get_payment_method() { return 'bacs'; }
         public function get_shipping_postcode() { return $GLOBALS['fixture_input']['order_postcode'] ?? '12345'; }
         public function get_shipping_country() { return $GLOBALS['fixture_input']['order_country'] ?? 'ID'; }
+        public function get_shipping_address_1() { return $GLOBALS['fixture_input']['order_address']['address_1'] ?? 'Main street'; }
+        public function get_shipping_address_2() { return $GLOBALS['fixture_input']['order_address']['address_2'] ?? ''; }
+        public function get_shipping_city() { return $GLOBALS['fixture_input']['order_address']['city'] ?? 'Jakarta'; }
+        public function get_shipping_state() { return $GLOBALS['fixture_input']['order_address']['state'] ?? 'JK'; }
         public function get_meta( $key, $single = true ) { return $this->meta[$key] ?? ''; }
         public function delete_meta_data( $key ) { unset( $this->meta[$key] ); }
         public function save() {}
@@ -164,5 +168,6 @@ namespace {
     $result['lookup_calls'] = $GLOBALS['lookup_calls'] ?? array();
     $result['customer_saves'] = $GLOBALS['customer_saves'] ?? array();
     $result['session'] = WC()->session->values;
+    if ( isset( $order ) ) { $result['meta'] = $order->meta; }
     echo json_encode( $result, JSON_THROW_ON_ERROR );
 }

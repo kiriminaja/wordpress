@@ -1,9 +1,9 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "kiriminaja-official/checkout-district",
-  "title": "KiriminAja District",
-  "description": "Searchable shipping destination district.",
+  "name": "kiriminaja-official/map-checkout",
+  "title": "KiriminAja Delivery Map",
+  "description": "Optional delivery pin for the shipping address.",
   "category": "woocommerce",
   "parent": [
     "woocommerce/checkout-shipping-address-block"
@@ -25,7 +25,7 @@
       }
     }
   },
-  "editorScript": "kiriof-checkout-district-editor",
-  "script": "kiriof-buyer-checkout",
+  "editorScript": "kiriof-map-checkout-editor",
+  "script": "kiriof-map-checkout",
   "style": "kiriof-buyer-checkout"
 }

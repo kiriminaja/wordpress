@@ -177,6 +177,7 @@ class Enqueue extends BaseInit{
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( KIRIOF_NONCE ),
             'globalInsurance' => $setting && 'yes' === $setting->value,
+            'map' => $this->map_checkout_config(),
             'savedDistrictByPostcode' => $session ? (array) $session->get( 'kiriof_destination_postcode_map', array() ) : array(),
             'savedDestination' => $session ? $session->get( 'kiriof_buyer_destination', null ) : null,
             'district' => $district,
@@ -192,25 +193,71 @@ class Enqueue extends BaseInit{
                 'saving' => __( 'Updating shipping totals…', 'kiriminaja-official' ),
                 'updateFailed' => __( 'Shipping totals could not be updated. Please retry.', 'kiriminaja-official' ),
                 'retry' => __( 'Retry', 'kiriminaja-official' ),
+                'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
+                'mapHelp' => __( 'Tap the map to place your delivery pin.', 'kiriminaja-official' ),
+                'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
+                'mapLocate' => __( 'Use my current location', 'kiriminaja-official' ),
+                'mapUnavailable' => __( 'Map is unavailable in this checkout.', 'kiriminaja-official' ),
             ),
         );
     }
+    /** Public map settings: initial viewport is not buyer-selected coordinates. */
+    public function map_checkout_config(): array {
+        $tiles = (string) apply_filters( 'kiriof_map_checkout_tiles_url', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' );
+        if ( 0 !== strpos( $tiles, 'https://' ) ) {
+            $tiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        }
+        return array(
+            'enabled' => (bool) apply_filters( 'kiriof_map_checkout_enabled', true ),
+            'defaultCenter' => array( -6.2088, 106.8456 ),
+            'zoom' => 13,
+            'tiles' => $tiles,
+            'attribution' => wp_kses_post( (string) apply_filters( 'kiriof_map_checkout_attribution', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' ) ),
+            'i18n' => array(
+                'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
+                'mapHelp' => __( 'Tap the map to place your delivery pin. Use the arrow keys to move the map and Enter to select a pin.', 'kiriminaja-official' ),
+                'mapOptional' => __( 'Optional. A delivery pin helps the courier find your address.', 'kiriminaja-official' ),
+                'mapConsent' => __( 'Load the map (connects to the tile provider)', 'kiriminaja-official' ),
+                'mapLocate' => __( 'Use my current location', 'kiriminaja-official' ),
+                'mapPermission' => __( 'Your browser will ask for location permission. Your location is used only when you choose this option.', 'kiriminaja-official' ),
+                'mapLocationFailed' => __( 'Could not access your location. Choose a pin or enter coordinates manually.', 'kiriminaja-official' ),
+                'mapClear' => __( 'Clear delivery pin', 'kiriminaja-official' ),
+                'mapLatitude' => __( 'Latitude', 'kiriminaja-official' ),
+                'mapLongitude' => __( 'Longitude', 'kiriminaja-official' ),
+                'mapApply' => __( 'Set delivery pin', 'kiriminaja-official' ),
+                'mapInvalid' => __( 'Enter valid latitude and longitude coordinates.', 'kiriminaja-official' ),
+                'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
+                'mapUnavailable' => __( 'Map unavailable. You can still enter coordinates manually.', 'kiriminaja-official' ),
+            ),
+        );
+    }
+
     /** Register once for native Blocks and the legacy frontend fallback. */
     public function register_buyer_checkout_assets( bool $localize = false ): void {
         $scripts = array(
             'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
+            'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
             'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-map-checkout' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-checkout-session', 'kiriof-leaflet', 'wp-element', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-map-checkout-editor' => array( 'blocks/map-checkout/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
             'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
         );
         foreach ( $scripts as $handle => $asset ) {
             if ( ! wp_script_is( $handle, 'registered' ) ) {
-                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], KIRIOF_VERSION, true );
+                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], 'kiriof-leaflet' === $handle ? '1.9.4' : KIRIOF_VERSION, true );
             }
         }
+        if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
+            wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+        }
         if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
-            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'wp-components' ), KIRIOF_VERSION );
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet', 'wp-components' ), KIRIOF_VERSION );
         }
         if ( $localize ) {
+            $map_data = wp_scripts()->get_data( 'kiriof-map-checkout', 'data' );
+            if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
+                wp_localize_script( 'kiriof-map-checkout', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+            }
             $data = wp_scripts()->get_data( 'kiriof-buyer-checkout', 'data' );
             if ( ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' ) ) {
                 wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
@@ -327,6 +374,7 @@ class Enqueue extends BaseInit{
         if ( $this->isBlockCartOrCheckoutPage() ) {
             $this->register_buyer_checkout_assets( true );
             wp_enqueue_script( 'kiriof-buyer-checkout' );
+            wp_enqueue_script( 'kiriof-map-checkout' );
             wp_enqueue_style( 'wp-components' );
             wp_enqueue_style( 'kiriof-buyer-checkout' );
             wp_enqueue_script(

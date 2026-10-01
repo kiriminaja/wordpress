@@ -44,9 +44,9 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		clearValidationError: (id: string) => validations.push({ clear: id }),
 	};
 	const select = (name: string) => ({ 'wc/store/cart': cartStore, 'wc/store/checkout': checkoutStore, 'wc/store/payment': paymentStore } as any)[name];
-	let plugin: any, pluginName = '', component: any, cursor = 0;
+	let plugin: any, pluginName = '', cursor = 0;
 	const registeredBlocks: any[] = [];
-	type Instance = { hooks: any[]; tree: Node | null; dirty: boolean; mounted: boolean };
+	type Instance = { component: any; props: any; hooks: any[]; tree: Node | null; dirty: boolean; mounted: boolean };
 	const instances: Instance[] = [];
 	let current: Instance;
 	let effects: (() => void)[] = [];
@@ -84,10 +84,10 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		registerCheckoutBlock: options.inner === false ? undefined : (registration: any) => { registeredBlocks.push(registration); },
 		extensionCartUpdate: (request: any) => { const task = deferred(); sends.push({ request, ...task }); return task.promise; },
 	};
-	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district' };
+	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
 	const root: any = {
 		wp, wc: { blocksCheckout: blocks }, setTimeout, clearTimeout,
-		kiriofBuyerCheckoutConfig: { enabled: options.enabled !== false, nonce: 'nonce', ajaxUrl: '/ajax', globalInsurance: true, i18n: strings, ...options.config },
+		kiriofBuyerCheckoutConfig: { enabled: options.enabled !== false, nonce: 'nonce', ajaxUrl: '/ajax', globalInsurance: true, map: { enabled: true }, i18n: strings, ...options.config },
 		fetch: (url: string, init: any) => { const task = deferred(); lookups.push({ url, init, ...task }); return task.promise; },
 		addEventListener: (name: string, callback: () => void, init: any) => { events[name] = { callback, once: !!init?.once }; },
 	};
@@ -117,7 +117,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 			if (++count > 50) throw new Error('Hook render failed to converge');
 			for (const instance of instances) {
 				if (!instance.mounted || !instance.dirty) continue;
-				current = instance; instance.dirty = false; cursor = 0; effects = []; instance.tree = component();
+				current = instance; instance.dirty = false; cursor = 0; effects = []; instance.tree = instance.component(instance.props);
 				for (const effect of effects) effect();
 			}
 		}
@@ -126,16 +126,15 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		if (!plugin) throw new Error('Plugin was not registered');
 		const slot = plugin.render();
 		expect(slot.type).toBe('OrderMetaSlot');
-		component = slot.children[0].type;
-		instances.push({ hooks: [], tree: null, dirty: true, mounted: true }); render();
+		const child = slot.children[0];
+		instances.push({ component: child.type, props: child.props, hooks: [], tree: null, dirty: true, mounted: true }); render();
 		return instances.length - 1;
 	}
 	function mountRegisteredBlock(index = 0) {
 		const registration = registeredBlocks[index];
 		expect(typeof registration?.component).toBe('function');
 		const rendered = registration.component();
-		component = () => rendered.type( rendered.props );
-		instances.push({ hooks: [], tree: null, dirty: true, mounted: true });
+		instances.push({ component: rendered.type, props: rendered.props, hooks: [], tree: null, dirty: true, mounted: true });
 		render();
 		return instances.length - 1;
 	}
@@ -161,7 +160,8 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	function notify() { for (const callback of subscribers) callback(); render(); }
 	function pagehide(persisted = false) { const event = events.pagehide; event?.callback({ persisted }); if (event?.once) delete events.pagehide; }
 	function unmount(index = 0) { const instance = instances[index]; instance.mounted = false; for (const hook of instance.hooks) hook?.cleanup?.(); render(); }
-	return { root, plugin: () => plugin, pluginName: () => pluginName, classes, queries, model, publications, validations, sends, lookups, subscribers, timers, registeredBlocks: () => registeredBlocks,
+	return { root, model, timers, lookups, sends, publications, validations, classes, queries, subscribers,
+		plugin: () => plugin, pluginName: () => pluginName, registeredBlocks: () => registeredBlocks,
 		mount, mountRegisteredBlock, render, settle, flush, reply, notify, pagehide, unmount, find, findIn,
 		choose: (id: string | null) => { find('ComboboxControl').props.onChange(id); render(); },
 		retry: () => { find('button').props.onClick(); render(); },
@@ -175,7 +175,8 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	test('registers one in-address District component with shared District logic', async () => {
 		const h = harness();
 		expect(h.registeredBlocks()).toHaveLength(1);
-		expect(h.registeredBlocks()[0].metadata).toEqual({ name: 'kiriminaja-official/checkout-district', parent: ['woocommerce/checkout-shipping-address-block'] });
+		expect(h.registeredBlocks()[0].metadata).toEqual({ name: 'kiriminaja-official/checkout-district', parent: ['woocommerce/checkout-shipping-address-block'], attributes: { lock: { type: 'object', default: { remove: true, move: true } } } });
+		expect(h.registeredBlocks()[0].force).toBe(true);
 		expect(typeof h.registeredBlocks()[0].component).toBe('function');
 		h.mountRegisteredBlock();
 		await h.flush(250);
@@ -278,9 +279,11 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.find('ComboboxControl').props.value).toBe('7');
 	});
 	test('feature detection fails closed and supports ExperimentalOrderMeta', () => {
-		for (const missing of ['session', 'update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment', 'plugins']) {
+		for (const missing of ['session', 'update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment']) {
 			const h = harness({ missing }); expect(h.root.kiriofBuyerCheckout).toBeUndefined(); expect(h.plugin()).toBeUndefined(); expect(h.classes).toEqual([]);
 		}
+		const innerOnly = harness({ missing: 'plugins' }); innerOnly.mountRegisteredBlock();
+		expect(innerOnly.root.kiriofBuyerCheckout.active).toBe(true); expect(innerOnly.plugin()).toBeUndefined();
 		expect(harness({ enabled: false }).registeredBlocks()).toHaveLength(0);
 		expect(harness({ missing: 'slot' }).registeredBlocks()).toHaveLength(1);
 		const experimental = harness({ slot: 'ExperimentalOrderMeta' }); experimental.mount(); expect(experimental.find('ComboboxControl')).toBeDefined();
@@ -389,4 +392,83 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 			expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
 		}
 	});
+	test('public zero pin publishes version 2 with exactly six normalized shipping fields and the latest queued payload', async () => {
+		const h = harness();
+		Object.assign(h.model.cart.shippingAddress, { address_1: ' Main Road ', address_2: ' Unit 2 ', city: ' Jakarta ', state: ' JK ', postcode: ' 12 345 ', country: 'id', first_name: 'Buyer', phone: 'private' });
+		await ready(h); h.choose('7');
+		const address = { ...h.model.cart.shippingAddress };
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(address, { latitude: 0, longitude: 0 })).toBe(true); h.render();
+		const destination = h.root.kiriofBuyerCheckout.getDestination();
+		expect(destination).toEqual({ version: 2, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping', destination_latitude: '0.0000000', destination_longitude: '0.0000000', shipping_address: { address_1: 'Main Road', address_2: 'Unit 2', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' } });
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination }]);
+		h.model.payment = 'bacs'; h.render(); await h.flush(0);
+		expect(h.sends).toHaveLength(1);
+		expect(h.sends[0].request.data).toEqual({ action: 'sync_checkout', destination, payment_method: 'bacs', insurance: 1, force_insurance: 0 });
+		expect(Object.isFrozen(h.sends[0].request.data.destination.shipping_address)).toBe(true);
+	});
+	test('a map-only destination still requires district after its update completes', async () => {
+		const h = harness(); await ready(h);
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude: 0, longitude: 106 })).toBe(true); h.render();
+		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2);
+		expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
+		await h.flush(0); expect(h.sends).toHaveLength(1); h.sends[0].resolve(); await h.settle();
+		expect(h.validations.at(-1)).toEqual({ 'kiriof-buyer-destination': { message: 'District required', hidden: false } });
+		expect(h.find('ComboboxControl').props.value).toBeNull();
+	});
+	test('changing address_1 invalidates a pin without losing district and rejects stale coordinate callbacks', async () => {
+		const h = harness(); await ready(h); h.choose('7');
+		const oldAddress = { ...h.model.cart.shippingAddress, address_1: 'Old road' };
+		Object.assign(h.model.cart.shippingAddress, oldAddress); h.render();
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(oldAddress, { latitude: -6, longitude: 106 })).toBe(true); h.render();
+		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2);
+		h.model.cart.shippingAddress.address_1 = 'New road'; h.render();
+		expect(h.root.kiriofBuyerCheckout.getDestination()).toEqual({ version: 1, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping' });
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress)).toBeNull();
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(oldAddress, { latitude: 1, longitude: 2 })).toBe(false);
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(oldAddress, null)).toBe(false);
+		h.render(); await h.flush(0);
+		expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.destination.version).toBe(1);
+	});
+	test('clearing coordinates with null queues a version 1 district-only destination', async () => {
+		const h = harness(); await ready(h); h.choose('7');
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude: 0, longitude: 0 })).toBe(true); h.render(); await h.flush(0);
+		h.sends[0].resolve(); await h.settle();
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, null)).toBe(true); h.render();
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress)).toBeNull(); await h.flush(0);
+		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data.destination).toEqual({ version: 1, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping' });
+	});
+	test('pin changes during an inflight update serialize only the latest point', async () => {
+		const h = harness(); await ready(h); h.choose('7'); await h.flush(0);
+		const first = h.sends[0].request.data;
+		for (const latitude of [0, -6.2]) {
+			expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude, longitude: 106.8 })).toBe(true); h.render(); await h.flush(0);
+		}
+		expect(h.sends).toHaveLength(1); expect(first.destination.version).toBe(1);
+		h.sends[0].resolve(); await h.settle(); await h.flush(0);
+		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data.destination.destination_latitude).toBe('-6.2000000');
+		expect(h.sends[1].request.data.destination.version).toBe(2);
+	});
+	test('pending item operations gate coordinate snapshots and resume with the newest point', async () => {
+		const h = harness(); h.model.pendingItems = true; await ready(h); h.choose('7');
+		for (const latitude of [1, 0]) {
+			expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude, longitude: 0 })).toBe(true); h.render(); await h.flush(0);
+		}
+		expect(h.sends).toHaveLength(0); h.model.pendingItems = false; h.notify(); await h.flush(0);
+		expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.destination.destination_latitude).toBe('0.0000000');
+	});
+	test('shipping-address owner suppresses OrderMeta fallback and transfers pin state after unmount', async () => {
+		const h = harness(); const fallback = h.mount(); await h.flush(250); await h.reply();
+		const inner = h.mountRegisteredBlock();
+		expect(h.findIn(fallback, 'ComboboxControl')).toBeUndefined(); expect(h.findIn(inner, 'ComboboxControl')).toBeDefined();
+		h.findIn(inner, 'ComboboxControl').props.onChange('7'); h.render();
+		expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude: 0, longitude: 0 })).toBe(true); h.render(); await h.flush(0);
+		expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(1);
+		h.sends[0].resolve(); await h.settle(); h.unmount(inner);
+		expect(h.findIn(fallback, 'ComboboxControl').props.value).toBe('7');
+		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2); expect(h.root.kiriofBuyerCheckout.active).toBe(true);
+		h.model.payment = 'bacs'; h.render(); await h.flush(0);
+		expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(2);
+		expect(h.sends[1].request.data.destination.destination_latitude).toBe('0.0000000'); expect(h.sends[1].request.data.payment_method).toBe('bacs');
+	});
+
 });

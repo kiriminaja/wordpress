@@ -35,16 +35,153 @@ final class BuyerDestinationRuntimeTest extends TestCase {
         return array( 'district_id' => '222', 'district_label' => 'New district', 'postcode' => '12345', 'country' => 'ID', 'address_type' => 'shipping', 'version' => 1 );
     }
 
+    private static function mapDestination(): array {
+        $destination = self::destination();
+        $destination['destination_latitude'] = '-6.2';
+        $destination['destination_longitude'] = '106.8';
+        $destination['version'] = 2;
+        $destination['shipping_address'] = array( 'address_1' => 'Main street', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID' );
+        return $destination;
+    }
+
     #[Test]
-    public function checkout_schema_exposes_typed_destination_without_coordinates(): void {
+    public function checkout_schema_exposes_typed_destination_with_optional_coordinates(): void {
         $result = $this->runFixture( array( 'operation' => 'schema' ) );
         $this->assertSame( 'checkout', $result['schema']['endpoint'] );
         $this->assertSame( 'kiriminaja-official', $result['schema']['namespace'] );
         $properties = $result['schema']['schema']['destination']['properties'];
         $this->assertSame( array( 'string', 'integer' ), $properties['district_id']['type'] );
         $this->assertSame( array( 'shipping' ), $properties['address_type']['enum'] );
-        $this->assertSame( array( 1 ), $properties['version']['enum'] );
-        $this->assertArrayNotHasKey( 'coordinates', $properties );
+        $this->assertSame( array( 1, 2 ), $properties['version']['enum'] );
+        $this->assertArrayHasKey( 'destination_latitude', $properties );
+        $this->assertArrayHasKey( 'destination_longitude', $properties );
+        $this->assertSame( array_keys( self::destination() ), $result['schema']['schema']['destination']['required'] );
+        $this->assertSame( -90, $properties['destination_latitude']['minimum'] );
+        $this->assertSame( 180, $properties['destination_longitude']['maximum'] );
+        $this->assertSame( array_keys( self::mapDestination()['shipping_address'] ), $properties['shipping_address']['required'] );
+    }
+
+    #[Test]
+    public function original_six_field_contract_and_empty_coordinate_keys_remain_version_one(): void {
+        foreach ( array( self::destination(), self::destination() + array( 'destination_latitude' => '', 'destination_longitude' => '' ) ) as $destination ) {
+            $result = $this->runFixture( array( 'operation' => 'normalize', 'destination' => $destination ) );
+            $this->assertSame( self::destination(), $result['destination'] );
+            $result = $this->runFixture( array( 'operation' => 'sync', 'data' => array( 'action' => 'sync_checkout', 'destination' => $destination ) ) );
+            $this->assertSame( self::destination(), $result['session']['kiriof_buyer_destination'] );
+            $this->assertNull( $result['session']['kiriof_buyer_destination_coordinates'] );
+        }
+    }
+
+    #[Test]
+    public function real_zero_and_precision_seven_coordinates_are_preserved(): void {
+        $destination = self::mapDestination();
+        $destination['destination_latitude'] = 0;
+        $destination['destination_longitude'] = 106.123456789;
+        $result = $this->order( array( 'extensions' => array( 'kiriminaja-official' => array( 'destination' => $destination ) ) ) );
+        $this->assertArrayNotHasKey( 'error', $result );
+        $this->assertSame( array( 'latitude' => '0', 'longitude' => '106.1234568' ), $result['meta']['_kiriof_buyer_destination_coordinates'] );
+    }
+
+    #[Test]
+    public function nonfinite_native_php_coordinates_are_rejected(): void {
+        if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', dirname( __DIR__ ) . '/' ); }
+        require_once dirname( __DIR__ ) . '/inc/Services/BuyerDestination.php';
+        foreach ( array( NAN, INF, -INF, true, false, array() ) as $value ) {
+            try {
+                \KiriminAjaOfficial\Services\BuyerDestination::coordinate( $value, 90 );
+                $this->fail( 'Invalid native coordinate was accepted.' );
+            } catch ( \InvalidArgumentException $error ) {
+                $this->assertSame( 'Invalid shipping destination.', $error->getMessage() );
+            }
+        }
+    }
+
+    #[Test]
+    public function pins_are_bound_to_all_six_address_fields_and_not_only_postcode(): void {
+        $destination = self::mapDestination();
+        foreach ( array_keys( $destination['shipping_address'] ) as $field ) {
+            $address = $destination['shipping_address'];
+            $address[$field] = 'country' === $field ? 'US' : 'Changed';
+            $result = $this->order( array( 'extensions' => array( 'kiriminaja-official' => array( 'destination' => $destination ) ), 'shipping_address' => $address ) );
+            $this->assertSame( 'kiriof_invalid_destination', $result['error']['code'], $field );
+            $this->assertArrayNotHasKey( '_kiriof_buyer_destination_coordinates', $result['meta'] );
+        }
+        $result = $this->order( array( 'extensions' => array( 'kiriminaja-official' => array( 'destination' => $destination ) ) ), array( 'order_address' => array( 'address_1' => 'Edited street' ) ) );
+        $this->assertSame( 'kiriof_invalid_destination', $result['error']['code'] );
+        $destination['district_id'] = ''; $destination['district_label'] = '';
+        $result = $this->order( array( 'extensions' => array( 'kiriminaja-official' => array( 'destination' => $destination ) ) ) );
+        $this->assertSame( 'kiriof_invalid_destination', $result['error']['code'] );
+    }
+
+    #[Test]
+    public function version_one_checkout_removes_stale_order_coordinates(): void {
+        $result = $this->order( array( 'extensions' => array( 'kiriminaja-official' => array( 'destination' => self::destination() ) ) ), array( 'meta' => array( '_kiriof_buyer_destination' => self::mapDestination(), '_kiriof_buyer_destination_coordinates' => array( 'latitude' => '-6.2', 'longitude' => '106.8' ) ) ) );
+        $this->assertArrayNotHasKey( 'error', $result );
+        $this->assertSame( self::destination(), $result['meta']['_kiriof_buyer_destination'] );
+        $this->assertArrayNotHasKey( '_kiriof_buyer_destination_coordinates', $result['meta'] );
+    }
+
+    #[Test]
+    public function map_coordinates_are_optional_and_persisted_with_required_district(): void {
+        $result = $this->runFixture( array( 'operation' => 'normalize', 'destination' => self::mapDestination() ) );
+        $this->assertSame( self::mapDestination(), $result['destination'] );
+        $destination = self::mapDestination();
+        $destination['destination_latitude'] = '-6.200000';
+        $destination['destination_longitude'] = '106.800000';
+        $result = $this->runFixture( array( 'operation' => 'sync', 'session' => array(), 'data' => array( 'action' => 'sync_checkout', 'destination' => $destination ) ) );
+        $this->assertSame( '-6.2', $result['session']['kiriof_buyer_destination']['destination_latitude'] );
+        $this->assertSame( '106.8', $result['session']['kiriof_buyer_destination']['destination_longitude'] );
+        $this->assertSame( array( 'latitude' => '-6.2', 'longitude' => '106.8' ), $result['session']['kiriof_buyer_destination_coordinates'] );
+        $result = $this->order( array( 'extensions' => array( 'kiriminaja-official' => array( 'destination' => self::mapDestination() ) ), 'shipping_address' => array( 'postcode' => '12345', 'country' => 'ID' ) ) );
+        $this->assertSame( self::mapDestination(), $result['meta']['_kiriof_buyer_destination'] );
+        $this->assertSame( array( 'latitude' => '-6.2', 'longitude' => '106.8' ), $result['meta']['_kiriof_buyer_destination_coordinates'] );
+    }
+
+    #[Test]
+    #[DataProvider( 'invalidCoordinates' )]
+    public function invalid_map_coordinates_fail_closed( $destination ): void {
+        $result = $this->runFixture( array( 'operation' => 'sync', 'session' => array(), 'data' => array( 'action' => 'sync_checkout', 'destination' => $destination ) ) );
+        $this->assertSame( 'kiriof_invalid_destination', $result['error']['code'] );
+        $this->assertSame( 400, $result['error']['status'] );
+    }
+
+    public static function invalidCoordinates(): array {
+        $destination = self::destination();
+        $latitude = $destination;
+        $latitude['destination_latitude'] = '-6.2';
+        $latitude['version'] = 2;
+        $longitude = $destination;
+        $longitude['destination_longitude'] = '106.8';
+        $longitude['version'] = 2;
+        $outOfRange = self::mapDestination();
+        $outOfRange['destination_latitude'] = '91';
+        $notNumeric = self::mapDestination();
+        $notNumeric['destination_longitude'] = 'east';
+        $versionMismatch = $destination;
+        $versionMismatch['version'] = 2;
+        $cases = array(
+            'missing longitude' => array( $latitude ),
+            'missing latitude' => array( $longitude ),
+            'latitude out of range' => array( $outOfRange ),
+            'longitude not numeric' => array( $notNumeric ),
+            'version 2 without coordinates' => array( $versionMismatch ),
+        );
+        foreach ( array( true, array(), 'NaN', 'INF', '1e1', '+1', '01', ' 1 ', '181' ) as $index => $value ) {
+            $invalid = self::mapDestination();
+            $invalid['destination_longitude'] = $value;
+            $cases['bad longitude ' . $index] = array( $invalid );
+        }
+        $invalid = self::mapDestination(); unset( $invalid['shipping_address'] );
+        $cases['missing snapshot'] = array( $invalid );
+        $invalid = self::mapDestination(); unset( $invalid['shipping_address']['city'] );
+        $cases['incomplete snapshot'] = array( $invalid );
+        $invalid = self::mapDestination(); $invalid['shipping_address']['address_1'] = array();
+        $cases['invalid snapshot type'] = array( $invalid );
+        $invalid = self::mapDestination(); $invalid['shipping_address']['postcode'] = '99999';
+        $cases['snapshot postcode inconsistent'] = array( $invalid );
+        $invalid = self::mapDestination(); $invalid['version'] = 1;
+        $cases['version 1 nonempty pin'] = array( $invalid );
+        return $cases;
     }
 
     #[Test]
@@ -109,7 +246,7 @@ final class BuyerDestinationRuntimeTest extends TestCase {
             'postcode' => array( null, 12345, array(), '' ),
             'country' => array( null, 'Indonesia', '' ),
             'address_type' => array( 'billing', null ),
-            'version' => array( 2, '1', true ),
+            'version' => array( 0, 3, '1', true, '2' ),
         ) as $field => $values ) {
             foreach ( $values as $index => $value ) {
                 $destination = self::destination();
@@ -252,8 +389,9 @@ final class BuyerDestinationRuntimeTest extends TestCase {
 
     #[Test]
     public function legacy_update_clears_modern_contract_marker(): void {
-        $result = $this->runFixture( array( 'operation' => 'sync', 'session' => array( 'kiriof_buyer_destination' => self::destination() ), 'data' => array( 'destination_id' => 111, 'destination_name' => 'Legacy' ) ) );
+        $result = $this->runFixture( array( 'operation' => 'sync', 'session' => array( 'kiriof_buyer_destination' => self::destination(), 'kiriof_buyer_destination_coordinates' => array( 'latitude' => '0', 'longitude' => '0' ) ), 'data' => array( 'destination_id' => 111, 'destination_name' => 'Legacy' ) ) );
         $this->assertNull( $result['session']['kiriof_buyer_destination'] );
+        $this->assertNull( $result['session']['kiriof_buyer_destination_coordinates'] );
     }
 
     #[Test]
@@ -267,7 +405,7 @@ final class BuyerDestinationRuntimeTest extends TestCase {
     #[Test]
     public function transaction_failure_retains_retry_context_and_success_persists_customer(): void {
         $meta = array( '_kiriof_buyer_destination' => self::destination(), '_kiriof_checkout_destination_present' => '1', '_kiriof_checkout_destination_area' => '222', '_kiriof_checkout_destination_area_name' => 'New district', '_kiriof_checkout_expedition' => 'jnt_EZ' );
-        $session = array( 'kiriof_buyer_destination' => self::destination(), 'kiriof_expedition' => 'jnt_EZ', 'kiriof_destination_area' => '222' );
+        $session = array( 'kiriof_buyer_destination' => self::destination(), 'kiriof_buyer_destination_coordinates' => array( 'latitude' => '0', 'longitude' => '0' ), 'kiriof_expedition' => 'jnt_EZ', 'kiriof_destination_area' => '222' );
         foreach ( array( array( 'transaction_status' => 400 ), array( 'transaction_throw' => true ) ) as $extra ) {
             $result = $this->runFixture( $extra + array( 'operation' => 'processed', 'customer' => true, 'meta' => $meta, 'session' => $session ) );
             $this->assertSame( $meta, $result['meta'] );
@@ -278,6 +416,7 @@ final class BuyerDestinationRuntimeTest extends TestCase {
         $this->assertSame( array( array( 'shipping', '222', 'New district' ) ), $result['customer_saves'] );
         $this->assertNull( $result['session']['kiriof_buyer_destination'] );
         $this->assertArrayNotHasKey( '_kiriof_checkout_expedition', $result['meta'] );
+        $this->assertNull( $result['session']['kiriof_buyer_destination_coordinates'] );
         $this->assertArrayNotHasKey( '_kiriof_checkout_destination_present', $result['meta'] );
         $this->assertSame( self::destination(), $result['meta']['_kiriof_buyer_destination'] );
     }

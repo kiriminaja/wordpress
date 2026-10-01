@@ -11,7 +11,7 @@ final class BuyerCheckoutIntegration implements IntegrationInterface {
 		wp_enqueue_style( 'wp-components' );
 		wp_enqueue_style( 'kiriof-buyer-checkout' );
 	}
-	public function get_script_handles() { return array( 'kiriof-buyer-checkout' ); }
-	public function get_editor_script_handles() { return array( 'kiriof-checkout-district-editor' ); }
+	public function get_script_handles() { return array( 'kiriof-buyer-checkout', 'kiriof-map-checkout' ); }
+	public function get_editor_script_handles() { return array( 'kiriof-checkout-district-editor', 'kiriof-map-checkout-editor' ); }
 	public function get_script_data() { return ( new Enqueue() )->buyer_checkout_config(); }
 }

@@ -95,6 +95,7 @@ class CheckoutController
             'kiriof_destination_area',
             'kiriof_destination_area_name',
             'kiriof_buyer_destination',
+            'kiriof_buyer_destination_coordinates',
             'kiriof_insurance',
             'billing_insurance',
             'force_insurance',
@@ -106,6 +107,22 @@ class CheckoutController
         ) as $key ) {
             WC()->session->set( $key, null );
         }
+    }
+
+    /** Prevent class-only child wrappers from triggering Woo's legacy root migration. */
+    public function kiriof_identify_checkout_child( $content, $block ) {
+        $name = $block['blockName'] ?? '';
+        if ( ! is_string( $name ) || 0 !== strpos( $name, 'woocommerce/checkout-' ) || ! class_exists( '\WP_HTML_Tag_Processor' ) ) {
+            return $content;
+        }
+        $processor = new \WP_HTML_Tag_Processor( $content );
+        if ( ! $processor->next_tag( array( 'tag_name' => 'DIV', 'class_name' => 'wp-block-' . str_replace( '/', '-', $name ) ) ) ) {
+            return $content;
+        }
+        if ( null === $processor->get_attribute( 'data-block-name' ) ) {
+            $processor->set_attribute( 'data-block-name', $name );
+        }
+        return $processor->get_updated_html();
     }
 
     public function register()
@@ -123,6 +140,7 @@ class CheckoutController
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_store_api_update_callback'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_destination_schema'));
             add_action('init', array($this, 'kiriof_register_district_checkout_block'));
+            add_filter( 'render_block', array( $this, 'kiriof_identify_checkout_child' ), 9, 2 );
 
             /** Validation Custom field Sub District */
             add_action( 'woocommerce_checkout_process', array($this,'kiriof_checkout_field_validation') );
@@ -837,6 +855,8 @@ class CheckoutController
         }
 
         if ( empty( $shipping_method ) || 0 !== strpos( $shipping_method, 'kiriminaja-official' ) ) {
+            $order->delete_meta_data( BuyerDestination::COORDINATE_META_KEY );
+            $order->delete_meta_data( BuyerDestination::META_KEY );
             return;
         }
 
@@ -844,6 +864,10 @@ class CheckoutController
         $modern = ( is_array( $extensions ) && array_key_exists( 'kiriminaja-official', $extensions ) )
             || is_array( WC()->session->get( 'kiriof_buyer_destination', null ) );
         $destination = null;
+        if ( ! $modern ) {
+            $order->delete_meta_data( BuyerDestination::COORDINATE_META_KEY );
+            $order->delete_meta_data( BuyerDestination::META_KEY );
+        }
         if ( $modern ) {
             $payload = is_array( $extensions ) ? ( $extensions['kiriminaja-official'] ?? null ) : null;
             $destination = $this->kiriof_normalize_buyer_destination( is_array( $payload ) ? ( $payload['destination'] ?? null ) : null );
@@ -861,8 +885,32 @@ class CheckoutController
                     $this->kiriof_destination_error();
                 }
             }
+            if ( 2 === $destination['version'] ) {
+                $current_address = array();
+                foreach ( BuyerDestination::ADDRESS_FIELDS as $key ) {
+                    $getter = 'get_shipping_' . $key;
+                    $current_address[$key] = is_array( $address ) && array_key_exists( $key, $address )
+                        ? $address[$key]
+                        : ( method_exists( $order, $getter ) ? $order->$getter() : null );
+                }
+                try {
+                    $current_address = BuyerDestination::address( $current_address );
+                } catch ( \InvalidArgumentException $error ) {
+                    $this->kiriof_destination_error();
+                }
+                if ( $destination['shipping_address'] !== $current_address ) {
+                    $this->kiriof_destination_error();
+                }
+            }
             $destination = $this->kiriof_resolve_buyer_destination( $destination );
             $order->update_meta_data( BuyerDestination::META_KEY, $destination );
+            $coordinates = $this->kiriof_buyer_coordinates( $destination );
+            if ( null !== $coordinates ) {
+                // Optional buyer-selected pin only; district remains authoritative.
+                $order->update_meta_data( BuyerDestination::COORDINATE_META_KEY, $coordinates );
+            } else {
+                $order->delete_meta_data( BuyerDestination::COORDINATE_META_KEY );
+            }
             $order->update_meta_data( '_kiriof_checkout_destination_present', '1' );
             $order->update_meta_data( '_kiriof_checkout_postcode', $destination['postcode'] );
         }
@@ -1056,6 +1104,7 @@ class CheckoutController
         WC()->session->set( 'kiriof_woocommerce_discount_amount', null );
         WC()->session->set( 'kiriof_woocommerce_discount_description', null );
         WC()->session->set( 'kiriof_buyer_destination', null );
+        WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
         if ( $explicit_destination && isset( WC()->customer ) && is_object( WC()->customer ) ) {
             $snapshot = $order->get_meta( BuyerDestination::META_KEY, true );
             if ( is_array( $snapshot ) && ! empty( $snapshot['district_id'] ) ) {
@@ -2138,23 +2187,16 @@ class CheckoutController
      * fees, validation, or order behavior.
      */
     public function kiriof_register_district_checkout_block() {
-        if ( ! $this->kiriof_cart_needs_shipping() ) {
-            $this->kiriof_clear_logistics_session();
-            return;
-        }
+        // Registration runs in the editor and before WooCommerce initializes a cart.
         if ( ! function_exists( 'register_block_type_from_metadata' ) ) {
             return;
         }
-
-        $metadata = KIRIOF_DIR . 'blocks/checkout-district';
-        if ( ! file_exists( trailingslashit( $metadata ) . 'block.json' ) ) {
-            return;
+        foreach ( array( 'checkout-district' => 'district', 'map-checkout' => 'map' ) as $directory => $renderer ) {
+            register_block_type_from_metadata(
+                KIRIOF_DIR . 'blocks/' . $directory,
+                array( 'render_callback' => array( $this, 'kiriof_render_' . $renderer . '_checkout_block' ) )
+            );
         }
-
-        register_block_type_from_metadata(
-            $metadata,
-            array( 'render_callback' => array( $this, 'kiriof_render_district_checkout_block' ) )
-        );
     }
 
     /**
@@ -2167,7 +2209,12 @@ class CheckoutController
      * @return string
      */
     public function kiriof_render_district_checkout_block() {
-        return '<div class="kiriof-buyer-district kiriof-buyer-district--inner-block" data-kiriof-district-inner-block="shipping"></div>';
+        return '<div class="wp-block-kiriminaja-official-checkout-district kiriof-buyer-district kiriof-buyer-district--inner-block" data-block-name="kiriminaja-official/checkout-district" data-kiriof-district-inner-block="shipping"></div>';
+    }
+
+    /** Server shell hydrated by the native map component, never a selected pin. */
+    public function kiriof_render_map_checkout_block() {
+        return '<div class="wp-block-kiriminaja-official-map-checkout kiriof-buyer-map kiriof-buyer-map--inner-block" data-block-name="kiriminaja-official/map-checkout" data-kiriof-map-inner-block="shipping"></div>';
     }
 
     public function kiriof_register_destination_schema() {
@@ -2193,6 +2240,16 @@ class CheckoutController
         }
         // Old versions without Store API exceptions must still fail closed.
         throw new \InvalidArgumentException( $message );
+    }
+
+    private function kiriof_buyer_coordinates( array $destination ) {
+        if ( 2 !== ( $destination['version'] ?? 1 ) || '' === ( $destination['destination_latitude'] ?? '' ) || '' === ( $destination['destination_longitude'] ?? '' ) ) {
+            return null;
+        }
+        return array(
+            'latitude' => $destination['destination_latitude'],
+            'longitude' => $destination['destination_longitude'],
+        );
     }
 
     private function kiriof_normalize_buyer_destination( $value ): array {
@@ -2267,6 +2324,7 @@ class CheckoutController
         if ( $destination ) {
             $destination = $this->kiriof_resolve_buyer_destination( $destination );
             WC()->session->set( 'kiriof_buyer_destination', $destination );
+            WC()->session->set( 'kiriof_buyer_destination_coordinates', $this->kiriof_buyer_coordinates( $destination ) );
             foreach ( array( 'destination_id', 'shipping_destination_id', 'kiriof_destination_area' ) as $key ) {
                 WC()->session->set( $key, $destination['district_id'] );
             }
@@ -2341,6 +2399,7 @@ class CheckoutController
 
         WC()->session->set( 'kiriof_buyer_destination', null );
         $shipping_method  = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( wp_unslash( $data['shipping_metode_id'] ) ) : '';
+        WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
         $destination_id   = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
         $destination_name = isset( $data['destination_name'] ) ? sanitize_text_field( wp_unslash( $data['destination_name'] ) ) : '';
         $payment_method   = isset( $data['payment_method'] ) ? sanitize_text_field( wp_unslash( $data['payment_method'] ) ) : '';
@@ -2461,6 +2520,7 @@ class CheckoutController
                 wp_die();
             }
             WC()->session->set( 'kiriof_buyer_destination', null );
+            WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
             $shipping_method  = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( $data['shipping_metode_id'] ) : '';
             $destination_id   = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
             $destination_name = isset( $data['destination_name'] ) ? sanitize_text_field( $data['destination_name'] ) : '';

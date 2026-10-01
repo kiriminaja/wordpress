@@ -5,6 +5,47 @@
 	display: none;
 }
 
+.kiriof-buyer-map {
+	min-width: 0;
+	margin-block: 1em;
+}
+
+.kiriof-buyer-map button,
+.kiriof-buyer-map input {
+	min-height: 44px;
+	font: inherit;
+}
+
+.kiriof-buyer-map button {
+	margin-block: 0.5em;
+	margin-inline-end: 0.5em;
+}
+
+.kiriof-buyer-map__coordinates {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1em;
+	margin-block: 1em;
+}
+
+.kiriof-buyer-map__coordinates label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+	min-width: 0;
+}
+
+.kiriof-buyer-map__coordinates input {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+@media (max-width: 480px) {
+	.kiriof-buyer-map__coordinates {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 .kiriof-buyer-district {
 	margin-block: 1em;
 	min-width: 0;
@@ -32,4 +73,20 @@
 
 .kiriof-buyer-district button {
 	min-height: 44px;
+}
+
+.kiriof-buyer-map__canvas {
+	min-height: 240px;
+	width: 100%;
+	z-index: 0;
+}
+
+.kiriof-buyer-map__canvas.leaflet-container {
+	font: inherit;
+	min-height: 240px;
+}
+
+.kiriof-buyer-map__title {
+	font-weight: 600;
+	margin-block: 0.5em;
 }
