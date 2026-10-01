@@ -419,6 +419,10 @@ function kiriof_shipping_method(){
                 $filteredOptions = [];
                 $allOptions = [];
                 foreach ($options as $option){
+                    // A complete address or map pin does not opt checkout into Instant.
+                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( (string) ( $option->service ?? '' ), (array) $option, 'express' ) ) {
+                        continue;
+                    }
                     $shipping_cost = $option->cost - $option->discount_amount;
                     $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
 
