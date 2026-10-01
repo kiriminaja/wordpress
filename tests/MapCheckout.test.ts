@@ -100,6 +100,17 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 		const h = fixture(); expect(Object.keys(h.api).sort()).toEqual(['createMapSession', 'normalizePoint']);
 		expect(h.root.kiriofBuyerMapTest).toBeUndefined();
 	});
+	test('same selected location recenters an interrupted camera move without republishing', () => {
+		const moving: boolean[] = [];
+		const h = fixture({ onMove: (value: boolean) => moving.push(value) });
+		h.session.pick(1, 2, true);
+		h.maps[0].fire('movestart');
+		h.maps[0].center = { lat: 3, lng: 4 };
+		h.click(1, 2);
+		expect(h.maps[0].getCenter()).toEqual({ lat: 1, lng: 2 });
+		expect(h.selections).toHaveLength(1);
+		expect(moving).toEqual([true, false]);
+	});
 	test('default center is view-only: no marker, persistence, or geolocation', () => {
 		const h = fixture(); expect(h.session.getPoint()).toBeNull(); expect(h.markers).toHaveLength(0);
 		expect(h.selections).toHaveLength(0); expect(h.locations).toHaveLength(0);
@@ -137,6 +148,80 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 		expect(h.session.getPoint()).toEqual({ latitude: '0.0000000', longitude: '0.0000000' }); expect(h.markers).toHaveLength(0);
 		const bad = fixture({ initial: { latitude: false, longitude: 1 } }); expect(bad.maps[0].views).toHaveLength(1); expect(bad.session.getPoint()).toBeNull();
 	});
+	test('drag camera makes no selection or geolocation request until moveend', () => {
+		const moves: boolean[] = []; const h = fixture({ onMove: (moving: boolean) => moves.push(moving) }); const map = h.maps[0];
+		map.fire('movestart'); map.center = { lat: -3, lng: 4 }; map.fire('move');
+		expect(h.selections).toEqual([]); expect(h.locations).toEqual([]); expect(map.centerReads).toBe(0); expect(moves).toEqual([true]);
+		map.fire('moveend'); expect(map.centerReads).toBe(1); expect(moves).toEqual([true, false]);
+		expect(h.session.getPoint()).toEqual({ latitude: '-3.0000000', longitude: '4.0000000' }); expect(h.selections).toHaveLength(1); expect(h.markers).toHaveLength(0);
+	});
+	test('stray moveend without movestart never selects default center', () => {
+		const h = fixture(); h.maps[0].fire('moveend'); expect(h.selections).toEqual([]); expect(h.maps[0].centerReads).toBe(0);
+	});
+	test('duplicate moveend reads center and publishes only once', () => {
+		const h = fixture(); h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; h.maps[0].fire('moveend'); h.maps[0].fire('moveend');
+		expect(h.selections).toHaveLength(1); expect(h.maps[0].centerReads).toBe(1);
+	});
+	test('normalized identical centers deduplicate persistence across movements', () => {
+		const h = fixture(); const map = h.maps[0];
+		for (const lat of [1, 1.000000001]) { map.fire('movestart'); map.center = { lat, lng: 2 }; map.fire('moveend'); }
+		expect(h.selections).toHaveLength(1); expect(map.centerReads).toBe(2);
+	});
+	test('keyboard arrow movement selects camera center on moveend, Enter deduplicates it', () => {
+		const h = fixture(); const map = h.maps[0]; map.fire('keydown', { originalEvent: { key: 'ArrowRight' } }); expect(h.selections).toEqual([]);
+		map.fire('movestart'); map.center = { lat: 0, lng: 1 }; map.fire('moveend'); map.fire('keydown', { originalEvent: { key: 'Enter' } });
+		expect(h.selections).toEqual([{ latitude: '0.0000000', longitude: '1.0000000' }]); expect(h.locations).toHaveLength(0);
+	});
+	test('Enter explicitly selects current camera center without requiring prior movement', () => {
+		const h = fixture(); const map = h.maps[0]; map.center = { lat: 0, lng: 0 }; map.fire('keydown', {}); expect(h.selections).toHaveLength(0);
+		map.fire('keydown', { originalEvent: { key: 'Enter' } }); expect(h.session.getPoint()).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
+	});
+	test('programmatic pick pan suppresses synchronous movement callbacks and double saves', () => {
+		const moves: boolean[] = []; const h = fixture({ onMove: (moving: boolean) => moves.push(moving) });
+		expect(h.session.pick(3, 4, true)).toBe(true); expect(h.maps[0].center).toEqual({ lat: 3, lng: 4 }); expect(h.selections).toHaveLength(1);
+		expect(moves).toEqual([]); expect(h.maps[0].centerReads).toBe(0); h.maps[0].fire('moveend'); expect(h.selections).toHaveLength(1);
+	});
+	test('initial programmatic pan is suppressed and custom default center is not selected', () => {
+		const moves: boolean[] = []; const h = fixture({ defaultCenter: [5, 6], initial: { latitude: 1, longitude: 2 }, onMove: (value: boolean) => moves.push(value) });
+		expect(h.maps[0].views).toEqual([{ center: [5, 6], zoom: 13 }, { center: [1, 2], zoom: 16 }]); expect(h.selections).toEqual([]); expect(moves).toEqual([]);
+		const blank = fixture({ defaultCenter: [5, 6] }); expect(blank.session.getPoint()).toBeNull(); expect(blank.selections).toEqual([]);
+	});
+	test('camera drag immediately invalidates geolocation success and errors before moveend', () => {
+		const h = fixture(); h.session.locate(); h.maps[0].fire('movestart'); h.maps[0].center = { lat: 3, lng: 4 };
+		h.position(0, 5, 6); h.locations[0].failure({ code: 1 }); expect(h.selections).toEqual([]); expect(h.errors).toEqual([]); expect(h.maps[0].center).toEqual({ lat: 3, lng: 4 });
+		h.maps[0].fire('moveend'); expect(h.session.getPoint()).toEqual({ latitude: '3.0000000', longitude: '4.0000000' });
+	});
+	test('same-center movement still invalidates a pending geolocation', () => {
+		const h = fixture(); h.click(1, 2); h.session.locate(); h.maps[0].fire('movestart'); h.maps[0].fire('moveend'); h.position(0, 5, 6);
+		expect(h.selections).toHaveLength(1); expect(h.session.getPoint()).toEqual({ latitude: '1.0000000', longitude: '2.0000000' });
+	});
+	test('invalid camera center reports invalid without replacing an existing selection', () => {
+		const h = fixture(); h.click(1, 2); h.maps[0].fire('movestart'); h.maps[0].center = { lat: 91, lng: 2 }; h.maps[0].fire('moveend');
+		expect(h.errors).toEqual(['invalid']); expect(h.selections).toHaveLength(1); expect(h.session.getPoint()).toEqual({ latitude: '1.0000000', longitude: '2.0000000' });
+	});
+	test('rejected movement persistence leaves selection null without forcing camera back', () => {
+		const h = fixture({ onSelect: () => false }); h.maps[0].fire('movestart'); h.maps[0].center = { lat: 3, lng: 4 }; h.maps[0].fire('moveend');
+		expect(h.session.getPoint()).toBeNull(); expect(h.maps[0].center).toEqual({ lat: 3, lng: 4 }); expect(h.maps[0].views).toHaveLength(1);
+	});
+	test('pick without pan changes selection but leaves camera view unchanged', () => {
+		const h = fixture(); h.session.pick(3, 4); expect(h.maps[0].views).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: -6.2088, lng: 106.8456 });
+		expect(h.session.getPoint()).toEqual({ latitude: '3.0000000', longitude: '4.0000000' });
+	});
+	test('clear rejected by persistence keeps the prior selection', () => {
+		const writes: any[] = []; const h = fixture({ onSelect: (point: any) => { writes.push(point); return point !== null; } }); h.click(1, 2); h.session.clear();
+		expect(writes.at(-1)).toBeNull(); expect(h.session.getPoint()).toEqual({ latitude: '1.0000000', longitude: '2.0000000' });
+	});
+	test('geolocation pan does not signal movement or select twice', () => {
+		const moves: boolean[] = []; const h = fixture({ onMove: (value: boolean) => moves.push(value) }); h.session.locate(); h.position(0, -6, 106);
+		expect(h.selections).toHaveLength(1); expect(moves).toEqual([]); expect(h.maps[0].centerReads).toBe(0); expect(h.maps[0].center).toEqual({ lat: -6, lng: 106 });
+	});
+	test('invalid geolocation coordinates report invalid and do not pan', () => {
+		const h = fixture(); h.session.locate(); h.position(0, 91, 0); expect(h.errors).toEqual(['invalid']); expect(h.selections).toEqual([]); expect(h.maps[0].views).toHaveLength(1);
+	});
+	test('dispose during movement prevents late moveend and Enter selection', () => {
+		const h = fixture(); const map = h.maps[0]; map.fire('movestart'); h.session.dispose(); map.center = { lat: 3, lng: 4 }; map.fire('moveend'); map.fire('keydown', { originalEvent: { key: 'Enter' } });
+		expect(h.selections).toEqual([]); expect(map.centerReads).toBe(0); expect(map.removed).toBe(1);
+	});
 	test('getPoint returns a defensive copy', () => {
 		const h = fixture(); h.session.pick(1, 2); const point = h.session.getPoint(); point.latitude = '99'; expect(h.session.getPoint().latitude).toBe('1.0000000');
 	});
@@ -173,7 +258,7 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 	});
 	test('resize observes the actual container and delayed invalidation uses no pan', () => {
 		const h = fixture(); expect(h.observers[0].nodes).toEqual([h.node]); expect(h.scheduled[0].delay).toBe(150);
-		h.scheduled[0].callback(); h.observers[0].callback(); expect(h.maps[0].invalidations).toEqual([{ pan: false }, { pan: false }]);
+		h.scheduled[0].callback(); h.observers[0].callback(); expect(h.maps[0].invalidations).toEqual([{ pan: false }, { pan: false }]); expect(h.selections).toEqual([]); expect(h.locations).toEqual([]); expect(h.maps[0].centerReads).toBe(0);
 	});
 	test('dispose cancels resize timer, disconnects observer, removes map and handlers exactly once', () => {
 		const h = fixture(); h.click(1, 2); h.session.dispose(); h.session.dispose();
@@ -284,6 +369,17 @@ describe('MapControl: actual React commit/ref runtime (optional installed React 
 			h.model.collection = true; h.render(); expect(h.container.childElementCount).toBe(0); expect(h.maps[0].removed).toBe(1);
 			h.model.collection = false; h.model.cart.shippingAddress.country = 'US'; h.render(); expect(h.container.childElementCount).toBe(0);
 			h.model.cart.shippingAddress.country = 'ID'; h.model.cart.needsShipping = false; h.render(); expect(h.container.childElementCount).toBe(0); expect(h.writes).toHaveLength(0);
+		} finally { h.cleanup(); }
+	});
+	uiTest('unchanged rerender does not recreate the map or publish default center', () => {
+		const h = uiHarness(); try {
+			h.render(); h.render(); expect(h.maps).toHaveLength(1); expect(h.maps[0].removed).toBe(0); expect(h.writes).toEqual([]); expect(h.locations).toEqual([]);
+		} finally { h.cleanup(); }
+	});
+	uiTest('returning from collection creates a fresh default view without saving', () => {
+		const h = uiHarness(); try {
+			h.model.collection = true; h.render(); h.model.collection = false; h.render();
+			expect(h.maps).toHaveLength(2); expect(h.maps[1].container.isConnected).toBe(true); expect(h.maps[1].center).toEqual({ lat: -6.2088, lng: 106.8456 }); expect(h.writes).toEqual([]); expect(h.locations).toEqual([]);
 		} finally { h.cleanup(); }
 	});
 	uiTest('unmount invalidates pending location and cleans up the automatic session', () => {

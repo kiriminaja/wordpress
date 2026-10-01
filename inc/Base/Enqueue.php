@@ -215,19 +215,16 @@ class Enqueue extends BaseInit{
             'attribution' => wp_kses_post( (string) apply_filters( 'kiriof_map_checkout_attribution', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' ) ),
             'i18n' => array(
                 'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
-                'mapHelp' => __( 'Tap the map to place your delivery pin. Use the arrow keys to move the map and Enter to select a pin.', 'kiriminaja-official' ),
+                'mapHelp' => __( 'Move the map to position the pin. Your delivery location saves automatically when you stop.', 'kiriminaja-official' ),
                 'mapOptional' => __( 'Optional. A delivery pin helps the courier find your address.', 'kiriminaja-official' ),
-                'mapConsent' => __( 'Load the map (connects to the tile provider)', 'kiriminaja-official' ),
-                'mapLocate' => __( 'Use my current location', 'kiriminaja-official' ),
+                'mapLocate' => __( 'Current location', 'kiriminaja-official' ),
                 'mapPermission' => __( 'Your browser will ask for location permission. Your location is used only when you choose this option.', 'kiriminaja-official' ),
-                'mapLocationFailed' => __( 'Could not access your location. Choose a pin or enter coordinates manually.', 'kiriminaja-official' ),
+                'mapLocationFailed' => __( 'Could not access your location. Move the map to choose your delivery pin.', 'kiriminaja-official' ),
                 'mapClear' => __( 'Clear delivery pin', 'kiriminaja-official' ),
-                'mapLatitude' => __( 'Latitude', 'kiriminaja-official' ),
-                'mapLongitude' => __( 'Longitude', 'kiriminaja-official' ),
-                'mapApply' => __( 'Set delivery pin', 'kiriminaja-official' ),
-                'mapInvalid' => __( 'Enter valid latitude and longitude coordinates.', 'kiriminaja-official' ),
+                'mapInvalid' => __( 'This map location is invalid. Please choose another location.', 'kiriminaja-official' ),
                 'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
-                'mapUnavailable' => __( 'Map unavailable. You can still enter coordinates manually.', 'kiriminaja-official' ),
+                'mapMoving' => __( 'Move the map to position your delivery pin…', 'kiriminaja-official' ),
+                'mapUnavailable' => __( 'Map unavailable. You can continue with your shipping address.', 'kiriminaja-official' ),
             ),
         );
     }
@@ -244,14 +241,17 @@ class Enqueue extends BaseInit{
         );
         foreach ( $scripts as $handle => $asset ) {
             if ( ! wp_script_is( $handle, 'registered' ) ) {
-                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], 'kiriof-leaflet' === $handle ? '1.9.4' : KIRIOF_VERSION, true );
+                $asset_path = KIRIOF_DIR . $asset[0];
+                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
             }
         }
         if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
             wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
         }
         if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
-            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet', 'wp-components' ), KIRIOF_VERSION );
+            $style_path = KIRIOF_DIR . 'assets/wp/css/kiriof-buyer-checkout.css';
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet', 'wp-components' ), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
         }
         if ( $localize ) {
             $map_data = wp_scripts()->get_data( 'kiriof-map-checkout', 'data' );

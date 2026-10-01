@@ -30,6 +30,7 @@
 			ignoreMove = true;
 			try { map.setView( [ Number( point.latitude ), Number( point.longitude ) ], 16, { animate: false } ); }
 			finally { ignoreMove = false; }
+			if ( moving ) { moving = false; if ( options.onMove ) { options.onMove( false ); } }
 		}
 
 		function pick( latitude, longitude, pan ) {
@@ -37,7 +38,7 @@
 			var point = normalizePoint( latitude, longitude );
 			if ( ! point ) { report( 'invalid' ); return false; }
 			locationSequence++;
-			if ( selected && selected.latitude === point.latitude && selected.longitude === point.longitude ) { return true; }
+			if ( selected && selected.latitude === point.latitude && selected.longitude === point.longitude ) { if ( pan ) { show( point ); } return true; }
 			if ( options.onSelect && false === options.onSelect( point ) ) { return false; }
 			selected = point;
 			if ( pan ) { show( point ); }

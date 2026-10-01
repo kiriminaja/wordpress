@@ -20,11 +20,17 @@ Line references describe the reviewed source and may move as implementation chan
 - The real checkout factory shares successful five-digit postcode lookups through a five-minute transient cache. Native and classic fee-cache keys include the cart hash, so merchandise changes invalidate cached insurance/COD fees.
 - Classic checkout and unsupported Blocks installations retain the legacy adapter. Modern activation waits for an actual shipping-address control mount; a missing inner block yields to the constrained SlotFill fallback. In-address mounts take priority over fallback summary mounts, with one shared destination model and one effect owner. Experimental Slot availability remains version-sensitive.
 
-The version-1 contract is `extensions['kiriminaja-official']['destination']` with `version`, `district_id`, `district_label`, `postcode`, `country`, and `address_type: 'shipping'`. It deliberately contains no coordinate confirmation or Instant quote claim. Leaflet destination coordinates, address fingerprints, Instant rate eligibility, and buyer dispatch remain separate future work.
+The original version-1 contract remains backward compatible. Version 2 adds optional `destination_latitude`, `destination_longitude`, and a six-field `shipping_address` snapshot. Coordinates never replace district validation. A changed street, city, province, postcode, or country invalidates the pin, and final server validation checks the complete address binding.
+
+`kiriminaja-official/map-checkout` is a locked shipping-address inner block. Its Leaflet map renders automatically with a fixed center indicator and a top-right Current location button. Map movement saves the center on `moveend`, not on every animation frame. Initial centering/resizing never selects the default center. Device location is requested only on button activation and browser permission; no automatic location permission prompt, address geocoding, or Google dependency is used. Automatic rendering connects to the configured HTTPS tile provider; retain attribution and document provider use in the store privacy notice.
+
+There are no manual coordinate inputs, Apply button, or Load map button. Keyboard arrows move the map and Enter selects its center. Map failure does not make an optional pin mandatory. The pin is saved as order metadata; buyer Instant quotes and dispatch are not implemented by this map change.
+
+Checkout layout recovery has one placement owner: the native WooCommerce forced-block registry. Server `render_block_data` insertion and metadata Block Hooks were removed. Missing native checkout-child identities are annotated before WooCommerce legacy migration, without modifying saved templates. The actual WooCommerce 10.6 renderer regression reproduces section multiplication from class-only child wrappers and confirms normalized identity retains one layout.
 
 Current placement is the shipping-address step, not the order summary. WooCommerce supports a checkout inner block under `woocommerce/checkout-shipping-address-block`; the server registers `kiriminaja-official/checkout-district` and its component replaces the payment-surface placement with the same shared destination state, queue ownership, validation, extension data, and saved-restore logic.
 
-Verification coverage: `BuyerCheckoutSession.test.ts`, `BuyerCheckoutAdapter.test.ts`, `CheckoutRaceRuntimeTest.php`, `BuyerDestinationRuntimeTest.php`, `BuyerShippingDestinationRuntimeTest.php`, and `DistrictSearchCacheRuntimeTest.php`. Buyer JavaScript tests/lint are included in `frontend:check` through `test:buyer`. Tests use isolated fixtures/store mocks, not a real browser or live courier API.
+Verification coverage: `BuyerCheckoutSession.test.ts`, `BuyerCheckoutAdapter.test.ts`, `CheckoutRaceRuntimeTest.php`, `BuyerDestinationRuntimeTest.php`, `BuyerShippingDestinationRuntimeTest.php`, and `DistrictSearchCacheRuntimeTest.php`. Buyer JavaScript tests/lint are included in `frontend:check` through `test:buyer`. Tests cover isolated state/Leaflet fixtures, an optional installed React DOM runtime, and the actual WooCommerce renderer/WordPress tokenizer when their external test source paths are provided. No live courier API or local WordPress server was used.
 
 ## Feasibility assessment
 
@@ -155,15 +161,15 @@ Literal Select2 integration would need its own lifecycle-managed DOM subtree. It
 
 ## P2: Leaflet destination picker
 
-A custom checkout block can render Leaflet and submit latitude/longitude. The basic Fields API does not expose a map field type. The reviewed buyer checkout path does not currently provide destination-coordinate collection and persistence.
+The custom `map-checkout` block renders Leaflet and submits optional latitude/longitude through the version-2 destination snapshot. The basic Fields API does not expose a map field type. Coordinate collection and order persistence are implemented; buyer Instant quoting remains separate work.
 
 Use Leaflet, not Google Maps. The repository already declares `leaflet` (`^1.9.4`) and `@types/leaflet` in `package.json`. Leaflet handles map interaction; it does not supply map tiles, address search, reverse geocoding, or KiriminAja district identity. Choose those services separately without introducing a Google Maps dependency.
 
 - [ ] Confirm whether coordinates support delivery accuracy, instant-delivery quoting, or both before defining downstream behavior.
-- [ ] Render the picker in a custom inner block. If a Slot/Fill is used, verify its placement and version support; `Experimental` slots are not stable contracts.
-- [ ] Reuse the existing Leaflet dependency and load its CSS/marker assets only where needed. Initialize it inside a dedicated block container, call `invalidateSize` when the container becomes visible or changes size, and call `remove` on unmount to prevent duplicate maps and listeners.
+- [x] Render the picker in a custom inner block. If a Slot/Fill is used, verify its placement and version support; `Experimental` slots are not stable contracts.
+- [x] Reuse bundled Leaflet in a dedicated block container, resize through `invalidateSize`, and call `remove` on unmount. The fixed center indicator needs no Leaflet marker assets.
 - [ ] Choose a configurable tile provider with appropriate attribution, usage limits, caching, availability, and any required credentials. Do not assume the public OpenStreetMap tile service provides unlimited capacity or an SLA; comply with its tile policy if used.
-- [ ] Define click-to-place and draggable-marker behavior. If address search or reverse geocoding is needed, select a separate non-Google service and document its privacy, rate-limit, and usage requirements.
+- [x] Define click-to-center and camera-movement selection behavior. If address search or reverse geocoding is needed, select a separate non-Google service and document its privacy, rate-limit, and usage requirements.
 - [ ] Define latitude/longitude validation, order persistence, optional customer persistence, and downstream shipping payloads.
 - [ ] Use extension cart updates when coordinates affect quotes; include checkout extension data for final order submission.
 - [ ] Define how a map location resolves to a valid KiriminAja district ID. Leaflet coordinates and geocoder address labels do not automatically supply that identity.
@@ -196,7 +202,7 @@ Do not mark the picker complete merely because a map renders. Quote calculation,
 - [ ] Apply WordPress Coding Standards and keep existing unrelated worktree changes untouched.
 - [ ] For implementation changes to packaged source, run `make zip` before final verification and use `make test` as the default PHP runner.
 
-These are implementation gates, not universal theme-compatibility claims. This pass runs the buyer adapter/queue tests, PHP runtime checks, frontend build checks, and `make zip`. Archive integrity, buyer source parity, and development-file exclusions are verified. Real WooCommerce browser/theme testing and Leaflet/Instant buyer coverage remain outstanding.
+These are implementation gates, not universal theme-compatibility claims. This pass runs 102 buyer/map JavaScript tests, 1,150 PHP tests, frontend checks, and `make zip`. Archive integrity, buyer source parity, and development-file exclusions are verified. Real WooCommerce browser/theme testing and buyer Instant quoting remain outstanding; warnings/deprecations in the PHP suite are not represented as failures.
 
 ## References
 

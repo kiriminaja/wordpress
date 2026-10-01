@@ -5154,3 +5154,27 @@ msgstr "Pin pengiriman opsional untuk alamat pengiriman."
 #: inc/Base/Enqueue.php
 msgid "Optional. Customers can choose a delivery pin at checkout."
 msgstr "Opsional. Pelanggan dapat memilih pin pengiriman saat checkout."
+
+#: inc/Base/Enqueue.php
+msgid "Move the map to position the pin. Your delivery location saves automatically when you stop."
+msgstr "Geser peta untuk menempatkan pin. Lokasi pengiriman tersimpan otomatis setelah Anda berhenti."
+
+#: inc/Base/Enqueue.php
+msgid "Current location"
+msgstr "Lokasi saat ini"
+
+#: inc/Base/Enqueue.php
+msgid "Could not access your location. Move the map to choose your delivery pin."
+msgstr "Lokasi Anda tidak dapat diakses. Geser peta untuk memilih pin pengiriman."
+
+#: inc/Base/Enqueue.php
+msgid "This map location is invalid. Please choose another location."
+msgstr "Lokasi peta ini tidak valid. Silakan pilih lokasi lain."
+
+#: inc/Base/Enqueue.php
+msgid "Move the map to position your delivery pin…"
+msgstr "Geser peta untuk menempatkan pin pengiriman…"
+
+#: inc/Base/Enqueue.php
+msgid "Map unavailable. You can continue with your shipping address."
+msgstr "Peta tidak tersedia. Anda dapat melanjutkan dengan alamat pengiriman."
