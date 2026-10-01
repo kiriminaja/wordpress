@@ -125,6 +125,8 @@
 	var useState = wp.element.useState;
 	var useEffect = wp.element.useEffect;
 	var useRef = wp.element.useRef;
+	// Resolve the optional hook once so later bridge availability cannot change hook order.
+	var usePresentation = root.kiriofAddressPresentation && root.kiriofAddressPresentation.usePresentation;
 	var strings = config.i18n || {};
 	function addressSnapshot( address ) {
 		var snapshot = {};
@@ -134,6 +136,7 @@
 		return snapshot;
 	}
 	function MapControl() {
+		var presentation = usePresentation ? usePresentation() : { editing: true };
 		var data = wp.data.useSelect( function( select ) {
 			var checkout = select( 'wc/store/checkout' );
 			return { cart: select( 'wc/store/cart' ).getCartData(), collection: checkout.prefersCollection ? checkout.prefersCollection() : false };
@@ -141,7 +144,7 @@
 		var cart = data.cart || {};
 		var address = addressSnapshot( cart.shippingAddress || {} );
 		var addressKey = JSON.stringify( address );
-		var visible = Boolean( cart.needsShipping && address.country === 'ID' && ! data.collection );
+		var visible = Boolean( presentation.editing && cart.needsShipping && address.country === 'ID' && ! data.collection );
 		var node = useRef( null );
 		var session = useRef( null );
 		var latest = useRef( { address: address, key: addressKey } );

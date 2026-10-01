@@ -3,7 +3,7 @@
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/** Capability copy belongs to every native rate, not to the selected-rate UI. */
+/** Courier names stay clean; capability copy belongs to the native description. */
 final class CheckoutRatePresentationRuntimeTest extends TestCase {
 	public function test_explicit_capability_flags_and_unknown_values_in_arrays_and_objects(): void {
 		$cases = array();
@@ -43,8 +43,8 @@ final class CheckoutRatePresentationRuntimeTest extends TestCase {
 			'infinite string fee' => array( array( 'insurance' => 'INF' ), '' ),
 			'NaN string fee' => array( array( 'insurance' => 'NaN' ), '' ),
 			'boolean fee is not a price' => array( array( 'insurance' => true ), '' ),
-			'positive fee' => array( array( 'insurance' => 1250 ), 'With Insurance' ),
-			'numeric string fee' => array( array( 'insurance' => '1250.50' ), 'With Insurance' ),
+			'positive fee' => array( array( 'insurance' => 1250 ), 'Additional Insurance Supported' ),
+			'numeric string fee' => array( array( 'insurance' => '1250.50' ), 'Additional Insurance Supported' ),
 			'force insurance' => array( array( 'force_insurance' => true ), 'With Insurance' ),
 			'force insurance integer' => array( array( 'force_insurance' => 1 ), 'With Insurance' ),
 			'force insurance disabled' => array( array( 'force_insurance' => false ), '' ),
@@ -61,7 +61,7 @@ final class CheckoutRatePresentationRuntimeTest extends TestCase {
 			foreach ( array( false, true ) as $requested ) {
 				foreach ( array( false, true ) as $object ) {
 					$cases[] = compact( 'row', 'requested', 'object' );
-					$expected[] = $requested && '' === $unrequested ? 'With Insurance' : $unrequested;
+					$expected[] = $requested && in_array( $unrequested, array( '', 'Additional Insurance Supported' ), true ) ? 'With Insurance' : $unrequested;
 				}
 			}
 		}
@@ -85,7 +85,7 @@ final class CheckoutRatePresentationRuntimeTest extends TestCase {
 	}
 
 	#[DataProvider( 'requested_states' )]
-	public function test_all_native_rates_include_service_and_capability_before_courier_selection( bool $insured ): void {
+	public function test_native_rates_keep_clean_names_and_selected_service_capability_descriptions( bool $insured ): void {
 		$input = array( 'insured' => $insured, 'ninja_cod' => true, 'presentation' => array(
 			'ninja' => array( 'insurance_supported' => true, 'insurance' => 0 ),
 			'tiki' => array( 'setting' => array( 'allow_insurance' => false ), 'insurance' => 0 ),
@@ -110,7 +110,9 @@ final class CheckoutRatePresentationRuntimeTest extends TestCase {
 		foreach ( $expected as $key => list( $base, $description, $cost ) ) {
 			$rate = $result['history'][0]['rates']['kiriminaja-official_' . $key];
 			$this->assertSame( $description, $rate['meta_data']['kiriof_rate_description'] );
-			$this->assertSame( $base . ' — ' . $description, $rate['label'] );
+			$this->assertSame( $base, $rate['label'] );
+			$this->assertSame( $description, $result['native_display']['kiriminaja-official_' . $key]['description'] );
+			$this->assertSame( $rate['meta_data']['kiriof_rate_eta'], $result['native_display']['kiriminaja-official_' . $key]['delivery_time'] );
 			$this->assertSame( $cost, $rate['cost'], 'Presentation must not modify API-zero insurance prices.' );
 			$this->assertSame( strip_tags( $rate['label'] ), $rate['label'], 'Woo core receives plain labels, not HTML.' );
 		}

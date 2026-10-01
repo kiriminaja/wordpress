@@ -48,6 +48,12 @@ namespace {
 		public function get_option( $key, $default = '' ) { return $this->settings[$key] ?? $default; }
 		public function add_rate( $rate ) { $this->rates[$rate['id']] = $rate; }
 	}
+	class WC_Shipping_Rate {
+		public $description = '';
+		public $delivery_time = '';
+		public function set_description( $value ) { $this->description = $value; }
+		public function set_delivery_time( $value ) { $this->delivery_time = $value; }
+	}
 	function WC() { return $GLOBALS['buyer_switch_wc']; }
 	function add_action( ...$args ) {}
 	function add_filter( ...$args ) {}
@@ -154,7 +160,7 @@ namespace {
 			'shipping_metode_id' => 'kiriminaja-official_jne_REG',
 		) );
 		if ( '' === $step[0] ) {
-			// The first native rate list must be informative before any courier is chosen.
+			// Names stay clean before any courier is chosen; details are native descriptions.
 			unset( WC()->session->values['chosen_shipping_methods'], WC()->session->values['kiriof_chosen_shipping_methods'], WC()->session->values['kiriof_expedition'] );
 		}
 		// Each calculation is a fresh Woo rate collection, not stale add_rate entries.
@@ -174,8 +180,15 @@ namespace {
 		\KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, $invalid );
 		$invalid_results[] = \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::get( $payload );
 	}
+	$native_display = array();
+	$display_method = new \ReflectionMethod( $method, 'applyRateDisplayMetadata' );
+	foreach ( $history[0]['rates'] as $id => $rate ) {
+		$method->rates[$id] = new WC_Shipping_Rate();
+		$display_method->invoke( $method, $id, $rate['meta_data']['kiriof_rate_description'], $rate['meta_data']['kiriof_rate_eta'] );
+		$native_display[$id] = get_object_vars( $method->rates[$id] );
+	}
 	echo json_encode( array( 'history' => $history, 'pricing_payloads' => $GLOBALS['buyer_switch_requests'],
-		'lookup_calls' => $GLOBALS['buyer_switch_lookups'], 'invalid_cache_results' => $invalid_results,
+		'native_display' => $native_display, 'lookup_calls' => $GLOBALS['buyer_switch_lookups'], 'invalid_cache_results' => $invalid_results,
 		'network_calls' => $GLOBALS['buyer_switch_network'], 'instant_constructions' => $GLOBALS['buyer_switch_constructions'], 'warnings' => $GLOBALS['buyer_switch_warnings'],
 	), JSON_THROW_ON_ERROR );
 }

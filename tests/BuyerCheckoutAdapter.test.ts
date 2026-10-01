@@ -445,6 +445,16 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		h.model.cart.shippingRates[0].shipping_rates[0].rate_id = 'kiriminaja:sicepat'; h.render();
 		await h.flush(0); expect(h.sends).toHaveLength(1);
 	});
+	test('Instant selection still validates a required district without owning courier selection', async () => {
+		const h = harness();
+		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:7:gosend:instant', method_id: 'kiriminaja-instant', selected: true };
+		await ready(h);
+		await h.flush(0); h.sends[0].resolve(); await h.settle();
+		expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('District required');
+		h.choose('7'); await h.flush(0); h.sends[1].resolve(); await h.settle();
+		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+		expect(h.sends[0].request.data.shipping_method).toBeUndefined();
+	});
 	test('filters district labels locally without issuing new search requests', async () => {
 		const h = harness(); h.mount(); await h.flush(250);
 		await h.reply(0, [{ id: 7, text: 'North district' }, { id: 8, text: 'South district' }]);

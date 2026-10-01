@@ -24,9 +24,25 @@ The original version-1 contract remains backward compatible. Version 2 adds opti
 
 `kiriminaja-official/map-checkout` is a locked shipping-address inner block. Its Leaflet map renders automatically with a fixed center indicator and a top-right Current location button. Map movement saves the center on `moveend`, not on every animation frame. Initial centering/resizing never selects the default center. Device location is requested only on button activation and browser permission; no automatic location permission prompt, address geocoding, or Google dependency is used. Automatic rendering connects to the configured HTTPS tile provider; retain attribution and document provider use in the store privacy notice.
 
-There are no manual coordinate inputs, Apply button, or Load map button. Keyboard arrows move the map and Enter selects its center. Map failure does not make an optional pin mandatory. The pin is saved as order metadata; buyer Instant quotes and dispatch are not implemented by this map change.
+There are no manual coordinate inputs, Apply button, or Load map button. Keyboard arrows move the map and Enter selects its center. Map failure does not make an optional pin mandatory. The pin is saved as order metadata. The separate Instant quote/order path consumes an address-bound version-2 pin; collecting a pin alone never guarantees a deliverable quote.
 
-Buyer checkout remains Express-only even after every address field is completed and a pin is placed, moved, or cleared. GoSend, GrabExpress, Borzo, and rows tagged Instant are excluded from both checkout rate consumers regardless of admin service enablement. `BuyerInstantExclusionRuntimeTest` exercises the production destination sync and shipping filters against fresh and cached mixed pricing results, including COD/insurance and genuine zero coordinates; it also rejects construction of an Instant pricing client. Pin changes do not grant Instant checkout eligibility.
+### Collapsed shipping-address presentation
+
+On supported Checkout Blocks markup, a collapsed native shipping-address card contains plugin-owned status badges: green **Pin Location**, orange **Need Pin Location**, and **District Not Set** when district identity is missing. During lookup/restoration it shows **Checking District…** rather than implying a validated district. A pin warning is informational for Express, not a new checkout requirement; pins remain mandatory for Instant. Labels are translated, use visible text/icons as well as color, and announce changes politely.
+
+District and map controls render only while Woo's shipping address is editing. Guest/open forms continue to show them automatically. District lookup, saved-state restoration, extension publication, validation, and the shared mutation queue continue while the UI is collapsed. Closing disposes the Leaflet session, cancels pending geolocation, and retains the saved address-bound pin. Reopening restores the pin without silently choosing a default or asking for permission.
+
+WooCommerce 10.6's internal `CustomerAddress` uses private `useCheckoutAddress` edit state. Its native `AddressCard` has no public child slot; the shipping-address frontend renders plugin children outside that wrapper. Therefore `kiriof-address-presentation.js` uses one shared, filtered `MutationObserver` to follow native shipping wrapper `is-editing` and the shipping Edit control's `aria-expanded`. A React portal renders only our badges in our host inside the card. It never replaces inputs, intercepts Edit clicks, changes native selection, or reads private React state. There is no polling/timer loop; plugin map/district/badge and billing mutations are filtered out before discovery. Native step/card replacement reconnects the portal; the last subscriber removes its host and observer.
+
+Bridge asset dependencies keep hook order stable. If native markup, `MutationObserver`, or `createPortal` is unavailable, the integration fails open: controls remain visible instead of leaving buyers unable to edit required data. This is a narrow markup-dependent compatibility bridge, not a universal public card API. Local real-React/DOM regression coverage does not replace deployed theme/browser testing.
+
+Express consumers remain Express-only: GoSend, GrabExpress, Borzo, and rows tagged Instant are excluded from Express pricing, even with a pin. A separate zone-managed `kiriminaja-instant` method now quotes enabled GoSend/GrabExpress services, validates current cart/origin/address/pin/payment context, and persists an unbooked Instant transaction. Successful authorized courier-policy saves provision companion Instant methods only in zones with enabled Express; existing disabled Instant instances stay disabled.
+
+Courier labels contain only the courier/service name. Express service and insurance capability/coverage text stays in the native selected-rate description. Instant keeps the API hour ETA without unsupported-insurance text. Its raw `shipping_costs` is the delivery charge and its validated `admin_fee` is a separate native cart/order fee, so their sum equals API `total_price` exactly once. Booking retains raw shipping cost. Final validation rejects missing, changed, taxed, or duplicate Instant admin-fee rows.
+
+The `woocommerce_package_rates` filter now orders the combined Express/Instant choices by displayed delivery cost ascending, then case-insensitive courier/service name, matching the existing Express ordering. Exact cost/name ties preserve original order. Separate Instant admin fees are not added to the delivery-cost sort key. Associative rate IDs, rate objects, amounts, metadata and selected courier state remain unchanged; other providers and invalid entries retain their own list slots. This runs per package after zone methods produce their rates, for Classic and Store API, without client-side DOM rearrangement. Rate-presentation cache version 3 invalidates existing method-grouped cached lists after installation.
+
+WooCommerce's shipping-chosen-method filter provides the default rate as argument one and the previous package selection as argument three. Preserve the available third-argument selection rather than replacing Instant with the first Express rate or a stale legacy mirror. Regression coverage includes native Instant/Express retention and multi-package state isolation.
 
 ### Courier switching and COD
 
@@ -34,7 +50,7 @@ Changing only the selected courier must not change the available Express list or
 
 `PricingCacheService` now detaches incoming/outgoing pricing object graphs so consumers cannot narrow or mutate the shared quote; invalid response graphs are not cacheable. The COD gateway fallback has a per-controller reentrancy guard that resets through `finally`, avoiding recursive available-gateway resolution during transitions. These fixes do not establish that either bug caused every merchant-visible rate change. A captured payment/rate request sequence is still needed if rates disappear while payment, address, cart, policy, and insurance are unchanged.
 
-Enabling buyer Instant rates is a separate change to the earlier Express-only requirement. It needs coordinate-based Instant quotes, exact enabled service/vehicle checks, quote refresh on address/pin/cart/origin changes, payment eligibility, and order/transaction snapshots validated against the selected quote. Do not display GoSend/Grab using Express API rows or lift the exclusion solely because coordinates exist.
+The separate Instant implementation supersedes the earlier globally Express-only requirement. It uses coordinate-based Instant quotes, exact enabled service/vehicle checks, context-bound quote expiry, payment eligibility, and durable order/transaction snapshots validated against the selected quote. Do not display GoSend/Grab using Express API rows or lift the exclusion solely because coordinates exist.
 
 Checkout layout recovery has one placement owner: the native WooCommerce forced-block registry. Server `render_block_data` insertion and metadata Block Hooks were removed. Missing native checkout-child identities are annotated before WooCommerce legacy migration, without modifying saved templates. The actual WooCommerce 10.6 renderer regression reproduces section multiplication from class-only child wrappers and confirms normalized identity retains one layout.
 
@@ -171,7 +187,7 @@ Literal Select2 integration would need its own lifecycle-managed DOM subtree. It
 
 ## P2: Leaflet destination picker
 
-The custom `map-checkout` block renders Leaflet and submits optional latitude/longitude through the version-2 destination snapshot. The basic Fields API does not expose a map field type. Coordinate collection and order persistence are implemented; buyer Instant quoting remains separate work.
+The custom `map-checkout` block renders Leaflet and submits optional latitude/longitude through the version-2 destination snapshot. The basic Fields API does not expose a map field type. Coordinate collection and order persistence are implemented; buyer Instant quoting is implemented separately from Express pricing.
 
 Use Leaflet, not Google Maps. The repository already declares `leaflet` (`^1.9.4`) and `@types/leaflet` in `package.json`. Leaflet handles map interaction; it does not supply map tiles, address search, reverse geocoding, or KiriminAja district identity. Choose those services separately without introducing a Google Maps dependency.
 
@@ -212,7 +228,7 @@ Do not mark the picker complete merely because a map renders. Quote calculation,
 - [ ] Apply WordPress Coding Standards and keep existing unrelated worktree changes untouched.
 - [ ] For implementation changes to packaged source, run `make zip` before final verification and use `make test` as the default PHP runner.
 
-These are implementation gates, not universal theme-compatibility claims. This pass runs 102 buyer/map JavaScript tests, 1,150 PHP tests, frontend checks, and `make zip`. Archive integrity, buyer source parity, and development-file exclusions are verified. Real WooCommerce browser/theme testing and buyer Instant quoting remain outstanding; warnings/deprecations in the PHP suite are not represented as failures.
+These are implementation gates, not universal theme-compatibility claims. This pass runs 102 buyer/map JavaScript tests, 1,150 PHP tests, frontend checks, and `make zip`. Archive integrity, buyer source parity, and development-file exclusions are verified. Real WooCommerce browser/theme testing and live Instant quote/booking validation remain outstanding; warnings/deprecations in the PHP suite are not represented as failures.
 
 ## References
 

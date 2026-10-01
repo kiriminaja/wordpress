@@ -40,15 +40,21 @@ Common reasons:
 | `default_origin_postcode_invalid` | The pickup postcode is not five digits. |
 | `timezone_unsupported` | The store/pickup timezone cannot be mapped to WIB, WITA, or WIT. |
 | `cod_unsupported` | COD is selected; this Instant implementation does not support COD. |
-| `insurance_unsupported` | Global shipping insurance is enabled; Instant does not support it in this integration. |
+| `insurance_unsupported` | Instant insurance is unsupported. Global Express insurance preferences are preserved but ignored by Instant; enabling them alone does not block Instant. |
 | `diagnostics_unavailable` | A local diagnostic dependency failed. The raw exception is intentionally not exposed. |
 
-The currently configured default origin may differ from a package-specific warehouse origin. These logs explicitly describe configured-store readiness, not a package-specific live quote. A registered order-integration class alone is not a live rate result. The broader buyer Instant flow must still validate service entitlement, quote expiry, selected price, cart/origin/pin fingerprints, and transaction persistence before selectable rates are enabled.
+The currently configured default origin may differ from a package-specific warehouse origin. These logs explicitly describe configured-store readiness, not a package-specific live quote. A registered order-integration class alone is not a live rate result. The implemented buyer Instant flow validates service entitlement, quote expiry, selected raw shipping/admin/total amounts, cart/origin/pin fingerprints, and transaction persistence. Live quote availability remains API-dependent.
 
-Shipping-method calculations, when that method is active in the completed integration, log `Instant checkout rate calculation completed.` to the same source with a fixed code, availability boolean, rate count, and instance ID. They do not echo remote error messages.
+Shipping-method calculations, when that method is enabled in the matching zone, log `Instant checkout rate calculation completed.` to the same source with a fixed code, availability boolean, rate count, and instance ID. They do not echo remote error messages.
 
 ## What to share for investigation
 
 Send the newest readiness entry's reason codes/boolean context, its timestamp, the installed plugin version, WooCommerce version, and whether COD/global insurance was selected. For the reported fatal, send the latest stack trace and whether it still occurs after a complete-package replacement. Do not send API keys, PINs, session cookies, customer addresses, or exact coordinates.
 
 No live courier pricing, booking, payment, or cancellation requests were performed to verify this diagnostic patch.
+
+## Courier selection and totals
+
+Install the complete rebuilt package when investigating Instant reverting to Express. The shipping-selection filter now uses WooCommerce's previous package selection (third argument), rather than its default first rate. An available native Instant rate must survive totals recalculation. Rates that disappear because of changed context or expiry are not revived from a stale mirror.
+
+Instant names stay clean; API hour ETA remains native delivery time. Admin Fee is a separate native totals row. Delivery plus Admin Fee equals API `total_price`, while booking uses `shipping_costs`. Order validation checks the durable fee identity and amount; it does not silently substitute an Express transaction.

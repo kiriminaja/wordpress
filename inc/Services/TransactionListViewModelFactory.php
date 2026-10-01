@@ -105,6 +105,14 @@ class TransactionListViewModelFactory {
 		$status_presentation   = $is_express
 			? array( 'label' => $status_label, 'tone' => $status_tone, 'deficit' => $is_deficit, 'tooltip' => '', 'issue' => false )
 			: array_merge( InstantDeliveryStatus::describe( $row ), array( 'deficit' => false ) );
+		// An Instant shipment state must not conceal WooCommerce's order hold.
+		// Prefer the live order over a potentially stale query status (legacy/HPOS).
+		$instant_wc_status = $wc_order ? (string) $wc_order->get_status() : preg_replace( '/^wc-/', '', $post_status );
+		if ( ! $is_express && 'on-hold' === $instant_wc_status ) {
+			$status_presentation['key']   = 'wc-on-hold';
+			$status_presentation['label'] = __( 'On Hold', 'kiriminaja-official' );
+			$status_presentation['tone']  = 'warning';
+		}
 		if ( ! $is_express && $is_deficit ) {
 			$status_presentation['issue'] = $status_presentation['issue'] ?: __( 'Instant order issue', 'kiriminaja-official' );
 		}

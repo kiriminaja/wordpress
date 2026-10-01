@@ -158,6 +158,11 @@ import type { ToolbarConfig } from '$lib/ui/toolbar';
 
 export interface InstantQuoteRow {
   id: string;
+  wc_order_number?: string;
+  courier?: string;
+  service?: string;
+  origin_label?: string;
+  destination_label?: string;
   before: number | null;
   after: number | null;
   changed: boolean;

@@ -5,6 +5,55 @@
 	display: none;
 }
 
+/* Only the plugin-owned portal host is added to Woo's native address card. */
+.wc-block-components-address-card:has(> .kiriof-address-status-host) {
+	flex-wrap: wrap;
+}
+
+.kiriof-address-status-host {
+	flex-basis: 100%;
+	min-width: 0;
+}
+
+.kiriof-address-status {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5em;
+	margin-block-start: 0.75em;
+}
+
+.kiriof-address-status__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+	max-width: 100%;
+	padding: 0.25em 0.75em;
+	border-radius: 999px;
+	font-size: 0.875em;
+	font-weight: 500;
+	line-height: 1.5;
+	color: #102016;
+}
+
+.kiriof-address-status__badge.is-complete {
+	background: #50fa7b;
+}
+
+.kiriof-address-status__badge.is-warning {
+	background: #ffab66;
+	color: #231500;
+}
+
+.kiriof-address-status__badge svg {
+	flex-shrink: 0;
+}
+
+@media (forced-colors: active) {
+	.kiriof-address-status__badge {
+		border: 1px solid CanvasText;
+	}
+}
+
 .kiriof-buyer-map {
 	min-width: 0;
 	margin-block: 1em;

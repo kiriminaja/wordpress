@@ -19,6 +19,8 @@ class InstantCheckoutController {
 	public const CUSTOMER_TOTAL_META_KEY = '_kiriof_instant_customer_shipping_total';
 	public const ADMIN_FEE_META_KEY = '_kiriof_instant_admin_fee';
 	public const INVOICE_META_KEY = '_kiriof_instant_checkout_invoice';
+	public const CART_FEE_ID = 'kiriof_instant_admin_fee';
+	public const FEE_TYPE = 'instant_admin_fee';
 	private SettingRepository $settings;
 	private TransactionRepository $transactions;
 	private InstantCheckoutQuoteService $quotes;
@@ -31,7 +33,62 @@ class InstantCheckoutController {
 		$this->generator = $generator ?? new GenerateOrderId( $settings, $transactions );
 	}
 
+	/** Use only the exact selected, current quote. validate() never calls the API. */
+	public function addAdminFee( $cart ): void {
+		try {
+			$wc = WC();
+			$packages = $wc->shipping()->get_packages();
+			$chosen = $wc->session->get( 'chosen_shipping_methods', array() );
+			if ( ! is_array( $packages ) || 1 !== count( $packages ) || ! is_array( $chosen ) || 1 !== count( $chosen ) ) {
+				return;
+			}
+
+			$key = key( $packages );
+			$package = $packages[ $key ];
+			$id = $chosen[ $key ] ?? null;
+			$rate = is_string( $id ) ? ( $package['rates'][ $id ] ?? null ) : null;
+			if ( ! $rate || 'kiriminaja-instant' !== $rate->get_method_id() || $id !== $rate->get_id() ) {
+				return;
+			}
+			$meta = $rate->get_meta_data();
+			if ( $id !== 'kiriminaja-instant:' . $rate->get_instance_id() . ':' . ( $meta['kiriof_instant_courier'] ?? '' ) . ':' . ( $meta['kiriof_instant_service'] ?? '' ) ) {
+				return;
+			}
+			$package['destination'] = is_array( $package['destination'] ?? null ) ? $package['destination'] : array();
+			foreach ( array_merge( BuyerDestination::ADDRESS_FIELDS, array( 'first_name', 'last_name', 'phone' ) ) as $field ) {
+				$getter = 'get_shipping_' . $field;
+				if ( ! array_key_exists( $field, $package['destination'] ) && is_callable( array( $wc->customer ?? null, $getter ) ) ) {
+					$package['destination'][ $field ] = $wc->customer->$getter();
+				}
+			}
+			$payment = $wc->session->get( 'chosen_payment_method', '' );
+			if ( ! is_string( $payment ) || '' === $payment ) {
+				$payment = $wc->session->get( 'payment_method', $wc->session->get( 'kiriof_payment_method', '' ) );
+			}
+			$destination = BuyerDestination::normalize( $wc->session->get( 'kiriof_buyer_destination', null ) );
+			$snapshot = $this->quotes->validate( (string) ( $meta['kiriof_instant_quote_token'] ?? '' ), (string) ( $meta['kiriof_instant_courier'] ?? '' ), (string) ( $meta['kiriof_instant_service'] ?? '' ), $package, $destination, is_string( $payment ) ? $payment : '', false );
+			$amounts = $snapshot['rate'];
+			if ( ! InstantCheckoutQuoteService::validRateAmounts( $amounts ) || (float) $rate->get_cost() !== (float) $amounts['shipping_costs'] || 'motor' !== ( $meta['kiriof_instant_vehicle'] ?? null ) || (string) ( $meta['kiriof_instant_quote_expires'] ?? '' ) !== (string) $amounts['expires'] || $amounts['admin_fee'] <= 0 ) {
+				return;
+			}
+			// Stable ID prevents duplicate charges within a totals calculation.
+			$cart->fees_api()->add_fee( array( 'id' => self::CART_FEE_ID, 'name' => __( 'Admin Fee', 'kiriminaja-official' ), 'amount' => $amounts['admin_fee'], 'taxable' => false ) );
+		} catch ( \Throwable $error ) {
+			// A stale or unsupported selection must not create an unvalidated fee.
+		}
+	}
+
+	/** Durable identity is independent of translations or editable fee names. */
+	public function tagAdminFee( $item, $fee_key, $order, $cart ): void {
+		if ( self::CART_FEE_ID === $fee_key ) {
+			$item->add_meta_data( '_kiriof_fee_type', self::FEE_TYPE, true );
+		}
+	}
+
 	public function register(): void {
+		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'addAdminFee' ), 20, 1 );
+		// Store API also calls WC_Checkout::create_order_fee_lines (same hook).
+		add_action( 'woocommerce_checkout_create_order_fee_item', array( $this, 'tagAdminFee' ), 20, 4 );
 		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'afterStoreApiCheckoutUpdateOrderFromRequest' ), 20, 2 );
 		add_action( 'woocommerce_store_api_checkout_order_processed', array( $this, 'afterStoreApiCheckoutOrderProcessed' ), 20, 1 );
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'afterCheckoutBeforeCreated' ), 20, 2 );
@@ -154,8 +211,13 @@ class InstantCheckoutController {
 		throw new \InvalidArgumentException( 'rate_invalid' );
 		}
 		$found = false;
+		$chosen = WC()->session->get( 'chosen_shipping_methods', array() );
+		$expected = 'kiriminaja-instant:' . $instance . ':' . $line->get_meta( 'kiriof_instant_courier' ) . ':' . $line->get_meta( 'kiriof_instant_service' );
+		if ( ! is_array( $chosen ) || 1 !== count( $chosen ) || reset( $chosen ) !== $expected ) {
+			throw new \InvalidArgumentException( 'selection_changed' );
+		}
 		foreach ( $package['rates'] as $rate ) {
-			if ( 'kiriminaja-instant' !== $rate->get_method_id() || $instance !== (int) $rate->get_instance_id() ) {
+			if ( $expected !== $rate->get_id() || 'kiriminaja-instant' !== $rate->get_method_id() || $instance !== (int) $rate->get_instance_id() ) {
 				continue;
 			}
 			$meta = $rate->get_meta_data();
@@ -172,8 +234,23 @@ class InstantCheckoutController {
 	private function checkSnapshot( $order, $line, array $snapshot ): void {
 		$rate = $snapshot['rate'] ?? array();
 		$context = $snapshot['context'] ?? array();
-		if ( 'cod' === strtolower( $order->get_payment_method() ) || ! InstantCheckoutQuoteService::validRateAmounts( $rate ) || (float) $line->get_total() !== (float) $rate['cost'] || 'motor' !== ( $rate['vehicle'] ?? null ) || 'motor' !== $line->get_meta( 'kiriof_instant_vehicle' ) || (string) ( $rate['expires'] ?? '' ) !== (string) $line->get_meta( 'kiriof_instant_quote_expires' ) || empty( $context['items'] ) || empty( $context['origin'] ) || ( $context['insurance'] ?? null ) !== false || ( $context['payment_method'] ?? null ) !== $order->get_payment_method() ) {
+		if ( 'cod' === strtolower( $order->get_payment_method() ) || ! InstantCheckoutQuoteService::validRateAmounts( $rate ) || (float) $line->get_total() !== (float) $rate['shipping_costs'] || 'motor' !== ( $rate['vehicle'] ?? null ) || 'motor' !== $line->get_meta( 'kiriof_instant_vehicle' ) || (string) ( $rate['expires'] ?? '' ) !== (string) $line->get_meta( 'kiriof_instant_quote_expires' ) || empty( $context['items'] ) || empty( $context['origin'] ) || ( $context['insurance'] ?? null ) !== false || ( $context['payment_method'] ?? null ) !== $order->get_payment_method() ) {
 			throw new \InvalidArgumentException( 'snapshot_invalid' );
+		}
+		$fees = array();
+		foreach ( $order->get_items( 'fee' ) as $fee ) {
+			if ( self::FEE_TYPE === $fee->get_meta( '_kiriof_fee_type' ) || __( 'Admin Fee', 'kiriminaja-official' ) === $fee->get_name() ) {
+				$fees[] = $fee;
+			}
+		}
+		if ( count( $fees ) !== ( $rate['admin_fee'] > 0 ? 1 : 0 ) ) {
+			throw new \InvalidArgumentException( 'snapshot_invalid' );
+		}
+		if ( $fees ) {
+			$fee = reset( $fees );
+			if ( self::FEE_TYPE !== $fee->get_meta( '_kiriof_fee_type' ) || (float) $fee->get_total() !== (float) $rate['admin_fee'] || (float) $fee->get_total_tax() !== 0.0 || (float) $line->get_total() + (float) $fee->get_total() !== (float) $rate['total_price'] ) {
+				throw new \InvalidArgumentException( 'snapshot_invalid' );
+			}
 		}
 		foreach ( array( 'courier', 'service', 'quote_token' ) as $field ) {
 			if ( ( $rate[ $field ] ?? null ) !== $line->get_meta( 'kiriof_instant_' . $field ) ) {

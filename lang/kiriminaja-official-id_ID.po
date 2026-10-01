@@ -5254,3 +5254,131 @@ msgstr "Tidak ada tarif pengiriman Instant untuk alamat dan keranjang ini."
 #: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
 msgid "The store pickup address is not ready for Instant delivery."
 msgstr "Alamat penjemputan toko belum siap untuk pengiriman Instant."
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "Additional Insurance Supported"
+msgstr "Asuransi tambahan tersedia"
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "With Insurance"
+msgstr "Dengan asuransi"
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "No Insurance Support"
+msgstr "Asuransi tidak didukung"
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "Admin Fee"
+msgstr "Biaya admin"
+
+msgid "District Not Set"
+msgstr "Kecamatan belum dipilih"
+
+msgid "Checking District…"
+msgstr "Memeriksa kecamatan…"
+
+msgid "Need Pin Location"
+msgstr "Perlu tandai lokasi"
+
+msgid "Optional for Express. Required for Instant delivery."
+msgstr "Opsional untuk Express. Wajib untuk pengiriman Instant."
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "Instant delivery could not be confirmed. Please refresh your shipping quote and try again."
+msgstr "Pengiriman Instant tidak dapat dikonfirmasi. Perbarui tarif pengiriman dan coba lagi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Review the latest courier prices and shipment details before confirming your booking."
+msgstr "Tinjau tarif kurir terbaru dan rincian pengiriman sebelum mengonfirmasi pemesanan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Prices have expired. They will refresh automatically before you can confirm."
+msgstr "Tarif telah kedaluwarsa. Tarif akan diperbarui otomatis sebelum Anda dapat mengonfirmasi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Instant Rates"
+msgstr "Tarif Instant"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Instant courier rates may change at any time. Review updated prices before booking. Shipments are never booked automatically."
+msgstr "Tarif kurir Instant dapat berubah sewaktu-waktu. Tinjau tarif terbaru sebelum memesan. Pengiriman tidak pernah dipesan secara otomatis."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Order Information"
+msgstr "Informasi pesanan"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "orders changed"
+msgstr "pesanan berubah"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Select shipment"
+msgstr "Pilih pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Courier / service"
+msgstr "Kurir / layanan"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Origin"
+msgstr "Asal"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price changed"
+msgstr "Tarif berubah"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Show less"
+msgstr "Tampilkan lebih sedikit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Show more"
+msgstr "Tampilkan lebih banyak"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Shipping Information"
+msgstr "Informasi pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "selected shipments"
+msgstr "pengiriman dipilih"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price Gap"
+msgstr "Selisih tarif"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price increase"
+msgstr "Tarif naik"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price decrease"
+msgstr "Tarif turun"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Total Shipment"
+msgstr "Total pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Totals include selected eligible shipments only and compare carrier shipping charges. Checkout insurance and customer admin fees are not included."
+msgstr "Total hanya mencakup pengiriman terpilih yang memenuhi syarat dan membandingkan ongkos kirim kurir. Asuransi checkout dan biaya admin pelanggan tidak termasuk."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "I confirm the reviewed prices and shipment terms."
+msgstr "Saya mengonfirmasi tarif yang ditinjau dan ketentuan pengiriman."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Prices are valid for 2 minutes and refresh automatically when time runs out. Each refresh clears confirmation, price-change approvals, and any payment PIN."
+msgstr "Tarif berlaku selama 2 menit dan diperbarui otomatis setelah waktunya habis. Setiap pembaruan menghapus konfirmasi, persetujuan perubahan tarif, dan PIN pembayaran."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Prices could not be refreshed. Review prices again to continue; no shipment has been booked."
+msgstr "Tarif tidak dapat diperbarui. Tinjau tarif lagi untuk melanjutkan; belum ada pengiriman yang dipesan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Refreshing prices…"
+msgstr "Memperbarui tarif…"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Confirm & continue to payment"
+msgstr "Konfirmasi & lanjutkan ke pembayaran"

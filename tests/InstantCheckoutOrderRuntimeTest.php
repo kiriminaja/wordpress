@@ -41,7 +41,7 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
 
     #[Test]
     public function final_checkout_rejects_changed_or_unsupported_context_without_remote_calls(): void {
-        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'private_error'] as $scenario) {
+        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'private_error', 'missing_fee', 'duplicate_fee', 'renamed_duplicate_fee', 'tampered_fee', 'taxed_fee', 'untagged_fee', 'wrong_selection', 'missing_selection'] as $scenario) {
             $r = $this->fixture($scenario);
             $this->assertNotEmpty($r['error'], $scenario);
             $this->assertSame([], $r['rows'], $scenario);
@@ -103,7 +103,7 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
             $this->assertSame('', $r['error'], $scenario);
             $this->assertSame('', $r['processed_error'], $scenario);
             $this->assertCount(1, $r['rows']);
-            $this->assertSame($raw + 1000, $r['shipping_total']);
+            $this->assertSame($raw, $r['shipping_total']);
             $this->assertSame($raw, $r['rows'][0]['shipping_cost']);
             $this->assertSame($raw + 1000, $r['meta']['_kiriof_instant_customer_shipping_total']);
             $this->assertSame(1000, $r['meta']['_kiriof_instant_admin_fee']);
@@ -114,7 +114,9 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
             $this->assertSame($raw, $shipping['_kiriof_instant_shipping_cost']);
             $this->assertSame($raw + 1000, $shipping['_kiriof_instant_shipping_total']);
             $this->assertSame(1000, $shipping['_kiriof_instant_admin_fee']);
-            $this->assertSame([], $r['fee_lines']);
+            $this->assertCount(1, $r['fee_lines']);
+            $this->assertSame(1000, $r['fee_lines'][0]['total']);
+            $this->assertSame('instant_admin_fee', $r['fee_lines'][0]['meta']['_kiriof_fee_type']);
             $this->assertSame(0, $r['rows'][0]['insurance_cost']);
             $this->assertSame(0, $r['rows'][0]['cod_fee']);
         }
@@ -122,12 +124,33 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
 
     #[Test]
     public function durable_breakdown_and_receipt_tampering_cannot_create_transactions(): void {
-        foreach (['snapshot_fee_edit', 'receipt_fee_edit', 'receipt_total_edit'] as $scenario) {
+        foreach (['snapshot_fee_edit', 'receipt_fee_edit', 'receipt_total_edit', 'processed_fee_edit', 'processed_fee_missing'] as $scenario) {
             $r = $this->fixture($scenario);
             $this->assertSame('', $r['error'], $scenario);
             $this->assertNotEmpty($r['processed_error'], $scenario);
             $this->assertSame([], $r['rows'], $scenario);
             $this->assertSame(1, $r['calls'], $scenario);
+        }
+    }
+
+    #[Test]
+    public function native_cart_fee_is_validated_exactly_once_and_zero_fee_does_not_clutter(): void {
+        foreach (['', 'insurance', 'session_insurance', 'opaque_price_meta', 'example_total'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertCount(1, $r['cart_fees'], $scenario);
+            $this->assertSame(['id' => 'kiriof_instant_admin_fee', 'name' => 'Admin Fee', 'amount' => 1000, 'taxable' => false], $r['cart_fees']['kiriof_instant_admin_fee']);
+            $this->assertSame(1, $r['calls']);
+        }
+        foreach (['express', 'wrong_selection', 'missing_selection', 'missing_rates', 'rate_vehicle', 'expiry', 'cart', 'origin', 'disabled', 'cod', 'packages', 'zero_admin', 'zero_price'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame([], $r['cart_fees'], $scenario);
+            $this->assertSame(1, $r['calls'], $scenario);
+            if (str_starts_with($scenario, 'zero_')) {
+                $this->assertSame('', $r['error']);
+                $this->assertSame('', $r['processed_error']);
+                $this->assertSame([], $r['fee_lines']);
+                $this->assertCount(1, $r['rows']);
+            }
         }
     }
 

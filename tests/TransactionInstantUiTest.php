@@ -183,7 +183,9 @@ final class TransactionInstantUiTest extends TestCase {
         $this->assertStringContainsString('printPreviewOrderIds = [];', $app);
         $this->assertStringContainsString('row.vehicle || bootstrap.i18n.vehicleUnavailable', $app);
         $this->assertStringContainsString("{#if row.deliveryType !== 'instant'}", $app);
-        $this->assertStringContainsString('bootstrap.i18n.instantNotice', $app);
+        $this->assertStringNotContainsString('bootstrap.i18n.instantNotice', $app);
+        $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
+        $this->assertStringNotContainsString('Instant shipments require price and payment review before dispatch.', $renderer);
         $this->assertStringNotContainsString('disabled: true', $app);
     }
 

@@ -321,9 +321,6 @@
           />
         </div>
       </nav>
-      {#if isInstant}
-        <p role="status" class="text-sm text-muted-foreground">{bootstrap.i18n.instantNotice}</p>
-      {/if}
       <form
         class="kiriof-transactions-filterrow"
         class:is-order-issue={isOrderIssue}

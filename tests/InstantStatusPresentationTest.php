@@ -5,6 +5,36 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantStatusPresentationTest extends TestCase {
+    public function test_instant_list_keeps_live_woocommerce_on_hold_without_changing_shipment_actions(): void {
+        foreach (['wc-processing', 'wc-on-hold'] as $query_status) {
+            foreach (['new', 'request_pickup', 'shipped'] as $shipment_status) {
+                $payload = [
+                    'delivery_type' => 'instant', 'service' => 'gosend', 'vehicle' => 'motor',
+                    'post_status' => $query_status, 'status' => $shipment_status,
+                    'wc_order' => ['status' => 'on-hold', 'paid' => false],
+                    'awb' => '', 'instant_status_code' => null,
+                ];
+                $row = $this->row($payload);
+                $this->assertSame('On Hold', $row['status']['label']);
+                $this->assertSame('wc-on-hold', $row['status']['key']);
+                $this->assertSame('warning', $row['status']['tone']);
+                $this->assertFalse($row['actions']['process']);
+                $this->assertFalse($row['selection']['canProcess']);
+            }
+        }
+        $missing_order = $this->row(['delivery_type' => 'instant', 'post_status' => 'wc-on-hold']);
+        $this->assertSame('On Hold', $missing_order['status']['label']);
+        $processing = $this->row(['delivery_type' => 'instant', 'post_status' => 'wc-on-hold', 'wc_order' => ['status' => 'processing']]);
+        $this->assertSame('Waiting for Shipment', $processing['status']['label'], 'Live order state wins over a stale query row');
+        $remote = $this->row(['delivery_type' => 'instant', 'instant_status_code' => 101, 'wc_order' => ['status' => 'on-hold']]);
+        $this->assertSame('On Hold', $remote['status']['label']);
+        $this->assertNotEmpty($remote['status']['tooltip'], 'Keep remote informational context');
+        $issue = $this->row(['delivery_type' => 'instant', 'is_deficit' => 1, 'wc_order' => ['status' => 'on-hold']]);
+        $this->assertSame('On Hold', $issue['status']['label']);
+        $this->assertNotEmpty($issue['status']['issue']);
+        $this->assertFalse($issue['status']['deficit']);
+    }
+
     private function row(array $payload): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
         $this->assertNotNull($output);

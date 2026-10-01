@@ -184,6 +184,11 @@ class Enqueue extends BaseInit{
             'districtPostcode' => $customer ? (string) $customer->get_shipping_postcode() : '',
             'i18n' => array(
                 'district' => __( 'District', 'kiriminaja-official' ),
+                'districtNotSet' => __( 'District Not Set', 'kiriminaja-official' ),
+                'checkingDistrict' => __( 'Checking District…', 'kiriminaja-official' ),
+                'pinLocation' => __( 'Pin Location', 'kiriminaja-official' ),
+                'needPinLocation' => __( 'Need Pin Location', 'kiriminaja-official' ),
+                'pinRequirement' => __( 'Optional for Express. Required for Instant delivery.', 'kiriminaja-official' ),
                 'selectDistrict' => __( 'Select District', 'kiriminaja-official' ),
                 'postcodeRequired' => __( 'Enter your shipping postcode to find your district.', 'kiriminaja-official' ),
                 'districtRequired' => __( 'Please select your District to view shipping options.', 'kiriminaja-official' ),
@@ -234,8 +239,9 @@ class Enqueue extends BaseInit{
         $scripts = array(
             'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
             'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
-            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout', 'wc-settings' ) ),
-            'kiriof-map-checkout' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-checkout-session', 'kiriof-leaflet', 'wp-element', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) ),
+            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-map-checkout' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-leaflet', 'wp-element', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
             'kiriof-map-checkout-editor' => array( 'blocks/map-checkout/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
             'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
         );

@@ -72,6 +72,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function collapsed_address_badges_have_a_plugin_scoped_full_width_row(): void
+    {
+        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        $this->assertStringContainsString( '.wc-block-components-address-card:has(> .kiriof-address-status-host)', $css );
+        $this->assertStringContainsString( 'flex-wrap: wrap;', $css );
+        $this->assertStringContainsString( 'flex-basis: 100%;', $css );
+        $this->assertStringContainsString( '@media (forced-colors: active)', $css );
+    }
+
+    #[Test]
     public function modern_buyer_checkout_loads_session_script_and_bypasses_legacy_block_writers(): void
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
@@ -82,6 +92,14 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $this->assertStringContainsString("'kiriof-checkout-session'", $enqueue, 'The modern buyer session transport must have its own registered handle');
         $this->assertStringContainsString('assets/wp/js/kiriof-checkout-session.js', $enqueue);
+        $this->assertStringContainsString("'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) )", $enqueue);
+        foreach ( array( 'kiriof-buyer-checkout', 'kiriof-map-checkout' ) as $handle ) {
+            $this->assertMatchesRegularExpression(
+                '/\x27' . preg_quote( $handle, '/' ) . '\x27 => array\( [^\n]+array\( \x27kiriof-address-presentation\x27/',
+                $enqueue,
+                'Address presentation must load before its consumers to keep hook order stable'
+            );
+        }
         $this->assertStringContainsString("'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
         $this->assertStringContainsString("'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
         $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig'", $enqueue);

@@ -122,8 +122,8 @@ function kiriof_instant_shipping_method() {
 						}
 						$this->add_rate( array(
 							'id' => $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'],
-							'label' => sanitize_text_field( $rate['label'] ) . ' — ' . __( 'No Insurance Support', 'kiriminaja-official' ) . ' • ' . sprintf( __( 'Admin Fee %s', 'kiriminaja-official' ), wp_strip_all_tags( wc_price( $rate['admin_fee'] ) ) ),
-							'cost' => (float) $rate['cost'],
+							'label' => sanitize_text_field( $rate['label'] ),
+							'cost' => (float) $rate['shipping_costs'],
 							'meta_data' => array(
 								'kiriof_delivery_type' => 'instant',
 								'kiriof_instant_quote_token' => $rate['quote_token'],

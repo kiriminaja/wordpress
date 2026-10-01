@@ -6,9 +6,88 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantDispatchRuntimeTest extends TestCase {
+    #[Test]
+    public function saved_database_decimal_prices_are_returned_as_numeric_json(): void {
+        $r = $this->runFixture( array( 'quote_only' => true, 'row' => array( 'shipping_cost' => '15000.00' ) ) );
+        $this->assertSame( 15000, $r['quote']['rows'][0]['before'] );
+        $this->assertTrue( $r['quote']['rows'][0]['eligible'] );
+        foreach ( array( 'NaN', -1, true, null ) as $invalid ) {
+            $r = $this->runFixture( array( 'quote_only' => true, 'row' => array( 'shipping_cost' => $invalid ) ) );
+            $this->assertNull( $r['quote']['rows'][0]['before'] );
+            $this->assertFalse( $r['quote']['rows'][0]['eligible'] );
+            $this->assertSame( array(), $r['books'] );
+        }
+    }
+
     private function runFixture(array $input = []): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-dispatch-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string)$output, true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    #[Test]
+    public function review_is_an_allowlisted_local_display_with_fresh_two_minute_quotes(): void {
+        $r = $this->runFixture(['quote_only'=>true, 'repeat_quote'=>true, 'count'=>2, 'distinct_last'=>true]);
+        $this->assertSame('', $r['error']);
+        $this->assertSame([
+            'id'=>'KA-1', 'before'=>15000, 'after'=>18000, 'changed'=>true, 'eligible'=>true, 'error'=>'',
+            'wc_order_number'=>'SHOP-1001', 'courier'=>'gosend', 'service'=>'sameday',
+            'origin_label'=>'Test Sender', 'destination_label'=>'Booked Full Name',
+        ], $r['quote']['rows'][0]);
+        $this->assertSame('KA-2', $r['quote']['rows'][1]['id']);
+        $this->assertSame('Second Sender', $r['quote']['rows'][1]['origin_label']);
+        $this->assertSame('Second Recipient', $r['quote']['rows'][1]['destination_label']);
+        $this->assertSame($r['quote']['rows'], $r['repeat_quote']['rows']);
+        $this->assertNotSame($r['quote']['token'], $r['repeat_quote']['token']);
+        $this->assertMatchesRegularExpression('/\A[a-f0-9]{32}\z/', $r['quote']['token']);
+        $this->assertEqualsWithDelta(120, $r['quote']['expires_at'] - $r['quoted_at'], 1);
+        $this->assertSame([120,120], array_values($r['transient_ttls']));
+        $this->assertSame(4, $r['prices']);
+        $this->assertSame(2, $r['profiles']);
+        $this->assertSame([], $r['books']);
+        $this->assertSame([], $r['claims']);
+        $this->assertSame([], $r['writes']);
+        $display = json_encode($r['quote']);
+        foreach (['fingerprint','contexts','pricing','phone','latitude','longitude','0812345678','Complete recipient street','Long enough original warehouse address','items','timezone','metadata','pin'] as $private) {
+            $this->assertStringNotContainsString($private, $display);
+        }
+        $r = $this->runFixture(['quote_only'=>true, 'repeat_quote'=>true, 'profile'=>'TOP']);
+        $this->assertSame(['top'], $r['quote']['payment_methods']);
+        $this->assertSame(['top'], $r['repeat_quote']['payment_methods']);
+        $this->assertSame([], $r['books']);
+    }
+
+    #[Test]
+    public function review_labels_are_plain_text_optional_and_only_follow_valid_contexts(): void {
+        $r = $this->runFixture(['quote_only'=>true, 'order_number'=>"<b>SHOP-42</b>\n", 'origin_name'=>'<b>Warehouse</b>', 'destination_name'=>'<i>Recipient</i>']);
+        $row = $r['quote']['rows'][0];
+        $this->assertSame('SHOP-42', $row['wc_order_number']);
+        $this->assertSame('Warehouse', $row['origin_label']);
+        $this->assertSame('Recipient', $row['destination_label']);
+        $this->assertSame('KA-1', $row['id']);
+        $r = $this->runFixture(['quote_only'=>true, 'origin_name'=>'', 'destination_name'=>'']);
+        $this->assertSame('Long enough original warehouse address', $r['quote']['rows'][0]['origin_label']);
+        $this->assertArrayNotHasKey('destination_label', $r['quote']['rows'][0]);
+        foreach (['order_missing','order_number_missing_method','order_number_throw'] as $case) {
+            $r = $this->runFixture(['quote_only'=>true, $case=>true]);
+            $this->assertSame('1', $r['quote']['rows'][0]['wc_order_number']);
+            $this->assertTrue($r['quote']['rows'][0]['eligible']);
+            $this->assertStringNotContainsString('Secret order lookup error', json_encode($r['quote']));
+        }
+        foreach ([null, 0, -1, true, 'invalid', 1.5] as $id) {
+            $r = $this->runFixture(['quote_only'=>true, 'row'=>['wp_wc_order_stat_order_id'=>$id]]);
+            $this->assertArrayNotHasKey('wc_order_number', $r['quote']['rows'][0]);
+        }
+        foreach (['context_validation','context_runtime','ineligible_last'] as $case) {
+            $r = $this->runFixture(['quote_only'=>true, $case=>true]);
+            $row = $r['quote']['rows'][0];
+            $this->assertFalse($row['eligible']);
+            $this->assertSame('KA-1', $row['id']);
+            $this->assertSame('SHOP-1001', $row['wc_order_number']);
+            foreach (['courier','service','origin_label','destination_label'] as $field) {
+                $this->assertArrayNotHasKey($field, $row);
+            }
+            $this->assertSame(0, $r['prices']);
+        }
     }
 
     #[Test]
@@ -64,6 +143,9 @@ final class InstantDispatchRuntimeTest extends TestCase {
             $this->assertFalse($r['quote']['rows'][0]['eligible']);
             $this->assertNotEmpty($r['error']);
             $this->assertSame([], $r['books']);
+            foreach (['courier','service','origin_label','destination_label'] as $field) {
+                $this->assertArrayNotHasKey($field, $r['quote']['rows'][0]);
+            }
         }
         $r = $this->runFixture(['count'=>2,'ineligible_last'=>true,'dispatch_ids'=>['KA-1']]);
         $this->assertFalse($r['quote']['rows'][1]['eligible']);

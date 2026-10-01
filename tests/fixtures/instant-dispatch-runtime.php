@@ -4,23 +4,25 @@ define( 'ABSPATH', __DIR__ );
 function __( $text, $domain = '' ) { return $text; }
 function esc_html__( $text, $domain = '' ) { return htmlspecialchars( __( $text, $domain ), ENT_QUOTES, 'UTF-8' ); }
 function esc_url_raw($url, $protocols = []) { return $url; }
+function sanitize_text_field($text) { return is_scalar($text) ? trim(preg_replace('/[\r\n\t ]+/', ' ', strip_tags((string)$text))) : ''; }
 class DispatchWooOrder {
     public string $status = 'processing'; public array $meta = []; public int $completions = 0;
     public function get_status() { return $this->status; }
+    public function get_order_number() { if (!empty($GLOBALS['input']['order_number_throw'])) { throw new RuntimeException('Secret order lookup error'); } return $GLOBALS['input']['order_number'] ?? 'SHOP-1001'; }
     public function update_status($status, $note = '') { $this->status = $status; ++$this->completions; }
     public function get_meta($key, $single = true) { return $this->meta[$key] ?? ''; }
     public function update_meta_data($key, $value) { $this->meta[$key] = $value; }
     public function add_order_note($note) { return 1; }
     public function save() { return 1; }
 }
-function wc_get_order($id) { if (!$id) { return false; } return $GLOBALS['woo'][$id] ??= new DispatchWooOrder(); }
+function wc_get_order($id) { if (!$id || !empty($GLOBALS['input']['order_missing'])) { return false; } if (!empty($GLOBALS['input']['order_number_missing_method'])) { return new stdClass(); } return $GLOBALS['woo'][$id] ??= new DispatchWooOrder(); }
 function wp_json_encode( $value ) { return json_encode( $value ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 function maybe_serialize( $value ) { return is_array($value) || is_object($value) ? serialize($value) : $value; }
 function wp_cache_delete( $key, $group = '' ) { return true; }
 function get_option( $key ) { return $GLOBALS['options'][$key] ?? false; }
 function get_current_user_id() { return $GLOBALS['user']; }
-function set_transient( $key, $value, $ttl ) { $GLOBALS['transients'][$key] = $value; return true; }
+function set_transient( $key, $value, $ttl ) { $GLOBALS['transients'][$key] = $value; $GLOBALS['transient_ttls'][$key] = $ttl; return true; }
 function get_transient( $key ) { return $GLOBALS['transients'][$key] ?? false; }
 function delete_transient( $key ) { if (!isset($GLOBALS['transients'][$key])) { return false; } unset($GLOBALS['transients'][$key]); return true; }
 function add_option( $key, $value, $deprecated = '', $autoload = false ) { if (isset($GLOBALS['options'][$key])) { return false; } $GLOBALS['options'][$key] = $value; return true; }
@@ -89,6 +91,13 @@ class DispatchContext extends \KiriminAjaOfficial\Services\InstantShipmentContex
         if (!empty($GLOBALS['input']['context_runtime'])) { throw new RuntimeException('Secret upstream error 123456'); }
         if (!self::canProcess($row) || !empty($row->ineligible)) { throw new RuntimeException('Invalid context'); }
         $ctx = ['origin'=>['name'=>'Test Sender','phone'=>'0812345678','address'=>$row->origin ?? 'Long enough original warehouse address','zipcode'=>'12345','latitude'=>-6.2,'longitude'=>106.8], 'package'=>['order_id'=>$row->order_id,'destination'=>['name'=>'Booked Full Name','phone'=>'0812345678','address'=>'Complete recipient street, City, 12345','latitude'=>-6.3,'longitude'=>106.9],'service'=>$row->service,'service_type'=>$row->service_name,'vehicle'=>'motor','shipping_cost'=>$row->shipping_cost,'items'=>[['name'=>'Item','qty'=>1]],'package_type_id'=>7], 'pricing'=>['timezone'=>'WIB','id'=>$row->order_id]];
+        foreach (['origin_name'=>['origin','name'], 'destination_name'=>['package','destination','name']] as $key=>$path) {
+            if (array_key_exists($key, $GLOBALS['input'])) {
+                if (count($path) === 2) { $ctx[$path[0]][$path[1]] = $GLOBALS['input'][$key]; }
+                else { $ctx[$path[0]][$path[1]][$path[2]] = $GLOBALS['input'][$key]; }
+            }
+        }
+        if (!empty($GLOBALS['input']['distinct_last']) && 'KA-2' === $row->order_id) { $ctx['origin']['name'] = 'Second Sender'; $ctx['package']['destination']['name'] = 'Second Recipient'; }
         $ctx['fingerprint'] = hash('sha256', json_encode([$ctx, $row->mutation ?? '']));
         return $ctx;
     }
@@ -153,7 +162,7 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
     }
 }
 $GLOBALS['input'] = json_decode($argv[1] ?? '{}', true, 512, JSON_THROW_ON_ERROR);
-$in = $GLOBALS['input']; $GLOBALS['user'] = 1; $GLOBALS['transients'] = []; $GLOBALS['options'] = [];
+$in = $GLOBALS['input']; $GLOBALS['user'] = 1; $GLOBALS['transients'] = []; $GLOBALS['transient_ttls'] = []; $GLOBALS['options'] = [];
 $repo = new DispatchRepo(); $GLOBALS['repo'] = $repo; $GLOBALS['woo'] = []; $api = new DispatchApi(); $context = new DispatchContext();
 for ($i=1; $i<=($in['count'] ?? 1); ++$i) { $id = 'KA-' . $i; $repo->rows[$id] = (object)array_merge(['id'=>$i,'wp_wc_order_stat_order_id'=>$i,'order_id'=>$id,'service'=>'gosend','service_name'=>'sameday','vehicle'=>'motor','status'=>'new','shipping_cost'=>15000,'shipping_info'=>'{"_shipping_city":"Saved City","custom":"keep"}'], $in['row'] ?? []); }
 if (!empty($in['ineligible_last'])) { end($repo->rows)->ineligible = true; }
@@ -163,6 +172,8 @@ $result = ['error'=>'','quote'=>null,'dispatch'=>null,'retry_error'=>''];
 try {
     $ids = $in['ids'] ?? array_keys($repo->rows);
     $quote = $service->quote($ids); $result['quote'] = $quote;
+    $result['quoted_at'] = time();
+    if (!empty($in['repeat_quote'])) { $result['repeat_quote'] = $service->quote($ids); }
     if (!empty($in['user_change'])) { $GLOBALS['user'] = 2; }
     if (!empty($in['stale'])) { $repo->rows['KA-1']->mutation = 'changed'; }
     if (!empty($in['expire'])) { $GLOBALS['transients']['kiriof_instant_quote_' . $quote['token']]['expires'] = time()-1; }
@@ -185,7 +196,7 @@ try {
         if (!empty($in['refresh'])) { $result['refresh'] = $service->refreshPayment($dispatch_ids,$in['refresh_pid'] ?? 'PAY-1'); }
     }
 } catch (Throwable $error) { $result['error'] = $error->getMessage(); }
-$result += ['claims'=>$repo->claims,'releases'=>$repo->releases,'writes'=>$repo->writes,'gets'=>$repo->gets,'woo'=>$GLOBALS['woo'],'books'=>$api->books,'prepared_at_book'=>$api->preparedAtBook,'prices'=>$api->prices,'profiles'=>$api->profiles,'credits'=>$api->credits,'payments_called'=>$api->payments,'rows'=>array_values($repo->rows),'transients'=>$GLOBALS['transients'],'options'=>$GLOBALS['options']];
+$result += ['claims'=>$repo->claims,'releases'=>$repo->releases,'writes'=>$repo->writes,'gets'=>$repo->gets,'woo'=>$GLOBALS['woo'],'books'=>$api->books,'prepared_at_book'=>$api->preparedAtBook,'prices'=>$api->prices,'profiles'=>$api->profiles,'credits'=>$api->credits,'payments_called'=>$api->payments,'rows'=>array_values($repo->rows),'transients'=>$GLOBALS['transients'],'transient_ttls'=>$GLOBALS['transient_ttls'],'options'=>$GLOBALS['options']];
 if (!empty($in['can_select'])) { $result['can_select'] = array_map([\KiriminAjaOfficial\Services\InstantShipmentContext::class, 'canProcess'], array_values($repo->rows)); }
 $result['can_print'] = array_map([\KiriminAjaOfficial\Services\InstantLabelService::class, 'canPrint'], array_values($repo->rows));
 echo json_encode($result, JSON_THROW_ON_ERROR);

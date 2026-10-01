@@ -9,6 +9,65 @@ final class CheckoutRaceRuntimeTest extends TestCase {
     private const NEW_RATE = 'kiriminaja-official_jnt_EZ';
 
     #[Test]
+    public function rate_refresh_preserves_native_instant_instead_of_first_express(): void {
+        $instant = 'kiriminaja-instant:7:gosend:instant';
+        $native = array( $instant, 'flat_rate:2' );
+        $result = $this->runFixture( array(
+            'operation' => 'choose',
+            'session' => array( 'chosen_shipping_methods' => $native, 'kiriof_chosen_shipping_methods' => array( self::OLD_RATE ) ),
+            'selections' => array( array( 'method' => self::OLD_RATE, 'previous' => $instant, 'available' => array( self::OLD_RATE, $instant ) ) ),
+        ) );
+        $this->assertSame( array( $instant ), $result['methods'] );
+        $this->assertSame( $native, $result['session']['chosen_shipping_methods'] );
+    }
+
+    #[Test]
+    #[DataProvider( 'refreshSelections' )]
+    public function refresh_uses_exact_package_selection_without_restoring_shadow( string $previous, array $available, string $default, string $expected ): void {
+        $session = array( 'chosen_shipping_methods' => array( $previous ), 'kiriof_chosen_shipping_methods' => array( self::OLD_RATE ) );
+        $result = $this->runFixture( array(
+            'operation' => 'choose', 'session' => $session,
+            'selections' => array( array( 'method' => $default, 'previous' => $previous, 'available' => $available ) ),
+        ) );
+        $this->assertSame( array( $expected ), $result['methods'] );
+        $this->assertSame( $session, $result['session'] );
+    }
+
+    public static function refreshSelections(): array {
+        $instant = 'kiriminaja-instant:7:gosend:instant';
+        return array(
+            'Express retained' => array( self::NEW_RATE, array( self::OLD_RATE, self::NEW_RATE ), self::OLD_RATE, self::NEW_RATE ),
+            'Instant retained with empty default' => array( $instant, array( self::OLD_RATE, $instant ), '', $instant ),
+            'Instant quote removed' => array( $instant, array( self::OLD_RATE ), self::OLD_RATE, self::OLD_RATE ),
+            'Express quote removed' => array( self::NEW_RATE, array( $instant ), $instant, $instant ),
+            'no rates' => array( $instant, array(), '', '' ),
+            'no valid default must not restore shadow' => array( $instant, array( self::OLD_RATE ), '', '' ),
+        );
+    }
+
+    #[Test]
+    #[DataProvider( 'multiPackageRequests' )]
+    public function overlapping_package_rates_do_not_apply_package_zero_request_to_other_packages( array $post ): void {
+        $instant = 'kiriminaja-instant:7:gosend:instant';
+        $native = array( self::NEW_RATE, $instant );
+        $session = array( 'chosen_shipping_methods' => $native, 'kiriof_chosen_shipping_methods' => array( self::OLD_RATE ) );
+        $result = $this->runFixture( array(
+            'operation' => 'choose', 'session' => $session, 'post' => $post, 'route' => '/wc/store/v1/cart/select-shipping-rate',
+            'selections' => array_map( static fn( $previous ) => array( 'method' => self::OLD_RATE, 'previous' => $previous, 'available' => array( self::OLD_RATE, self::NEW_RATE, $instant ) ), $native ),
+        ) );
+        $this->assertSame( $native, $result['methods'] );
+        $this->assertSame( $session, $result['session'] );
+    }
+
+    public static function multiPackageRequests(): array {
+        return array(
+            'classic' => array( array( 'shipping_method' => array( self::NEW_RATE, 'kiriminaja-instant:7:gosend:instant' ) ) ),
+            'legacy AJAX' => array( array( 'shipping_metode_id' => self::NEW_RATE ) ),
+            'Store API package zero' => array( array( 'rate_id' => self::NEW_RATE, 'package_id' => 0 ) ),
+        );
+    }
+
+    #[Test]
     public function native_selection_wins_without_collapsing_multiple_packages(): void {
         $native = array( self::NEW_RATE, 'flat_rate:2' );
         $result = $this->runFixture( array(
@@ -29,7 +88,7 @@ final class CheckoutRaceRuntimeTest extends TestCase {
         $result = $this->runFixture( array(
             'operation' => 'choose', 'post' => array( 'rate_id' => self::NEW_RATE ), 'route' => '/wc/store/v1/cart/select-shipping-rate',
             'session' => array( 'chosen_shipping_methods' => $native ),
-            'selections' => array( array( 'method' => self::OLD_RATE, 'available' => array( self::OLD_RATE, self::NEW_RATE ) ) ),
+            'selections' => array( array( 'method' => self::OLD_RATE, 'previous' => self::NEW_RATE, 'available' => array( self::OLD_RATE, self::NEW_RATE ) ) ),
         ) );
         $this->assertSame( array( self::NEW_RATE ), $result['methods'] );
         $this->assertSame( $native, $result['session']['chosen_shipping_methods'] );
@@ -37,13 +96,13 @@ final class CheckoutRaceRuntimeTest extends TestCase {
 
     #[Test]
     #[DataProvider( 'explicitSelections' )]
-    public function explicit_request_selection_still_wins( array $post, string $route ): void {
+    public function explicit_request_selection_still_wins( array $post, string $route, string $expected = self::NEW_RATE ): void {
         $result = $this->runFixture( array(
             'operation' => 'choose', 'post' => $post, 'route' => $route,
             'session' => array( 'kiriof_chosen_shipping_methods' => array( self::OLD_RATE ) ),
-            'selections' => array( array( 'method' => self::OLD_RATE, 'available' => array( self::OLD_RATE, self::NEW_RATE ) ) ),
+            'selections' => array( array( 'method' => self::OLD_RATE, 'available' => array( self::OLD_RATE, self::NEW_RATE, $expected ) ) ),
         ) );
-        $this->assertSame( array( self::NEW_RATE ), $result['methods'] );
+        $this->assertSame( array( $expected ), $result['methods'] );
     }
 
     public static function explicitSelections(): array {
@@ -51,6 +110,9 @@ final class CheckoutRaceRuntimeTest extends TestCase {
             'classic' => array( array( 'shipping_method' => array( self::NEW_RATE ) ), '/wc/store/v1/cart' ),
             'legacy AJAX' => array( array( 'shipping_metode_id' => self::NEW_RATE ), '/wc/store/v1/cart' ),
             'Store API' => array( array( 'rate_id' => self::NEW_RATE ), '/wc/store/v1/cart/select-shipping-rate' ),
+            'classic Instant' => array( array( 'shipping_method' => array( 'kiriminaja-instant:7:gosend:instant' ) ), '/wc/store/v1/cart', 'kiriminaja-instant:7:gosend:instant' ),
+            'AJAX Instant' => array( array( 'shipping_metode_id' => 'kiriminaja-instant:7:gosend:instant' ), '/wc/store/v1/cart', 'kiriminaja-instant:7:gosend:instant' ),
+            'Store API Instant' => array( array( 'rate_id' => 'kiriminaja-instant:7:gosend:instant' ), '/wc/store/v1/cart/select-shipping-rate', 'kiriminaja-instant:7:gosend:instant' ),
         );
     }
 

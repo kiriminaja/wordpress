@@ -259,7 +259,7 @@ function kiriof_shipping_method(){
                     // Those values are stored in the WC session (kiriof_shipping_coupon_rate_meta).
                     $rate = array(
                         'id'        => $this->id . '_' . $row['key'],
-                        'label'     => $row['value'] . ( empty( $rowMeta['kiriof_rate_description'] ) ? '' : ' — ' . $rowMeta['kiriof_rate_description'] ),
+                        'label'     => $row['value'],
                         'cost'      => $row['cost'],
                         'meta_data' => array(
                             'kiriof_rate_eta'           => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
@@ -392,6 +392,7 @@ function kiriof_shipping_method(){
                 }
 
                 if ( '' !== $description && method_exists( $this->rates[ $rate_id ], 'set_description' ) ) {
+                    // WooCommerce shows these details beneath the selected courier.
                     $this->rates[ $rate_id ]->set_description( $description );
                 }
 

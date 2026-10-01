@@ -102,7 +102,7 @@ namespace {
     switch ( $input['operation'] ) {
         case 'choose':
             foreach ( $input['selections'] as $selection ) {
-                $result['methods'][] = $controller->kiriof_shipping_chosen_method( $selection['method'], array_fill_keys( $selection['available'], true ) );
+                $result['methods'][] = $controller->kiriof_shipping_chosen_method( $selection['method'], array_fill_keys( $selection['available'], true ), $selection['previous'] ?? false );
             }
             break;
         case 'sync':

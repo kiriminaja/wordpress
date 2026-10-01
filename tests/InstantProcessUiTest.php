@@ -5,6 +5,13 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantProcessUiTest extends TestCase {
+    public function test_instant_checkboxes_do_not_inherit_the_vertical_express_dialog_reset(): void {
+        $css = $this->source( 'src/styles/admin-list.css' );
+        $this->assertStringContainsString( ".kiriof-instant-process-dialog [data-slot='field'][data-orientation='horizontal']", $css );
+        $this->assertStringContainsString( '@apply !flex-row !items-start !gap-3;', $css );
+        $this->assertStringContainsString( '.kiriof-instant-process-dialog dl dd', $css );
+    }
+
     private function source(string $path): string {
         return file_get_contents(PLUGIN_DIR . '/' . $path);
     }
@@ -40,12 +47,17 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertStringContainsString('session.consume(quote.token)', $source);
         $this->assertStringContainsString("? 'unknown' : 'skipped'", $source);
         $this->assertStringContainsString('if (completed) onComplete?.()', $source);
-        $this->assertStringContainsString('if (busy) return;', $source);
-        $this->assertStringContainsString("escapeKeydownBehavior={busy ? 'ignore' : 'close'}", $source);
+        $this->assertStringContainsString('if (dispatching) return;', $source);
+        $this->assertStringContainsString("escapeKeydownBehavior={dispatching ? 'ignore' : 'close'}", $source);
         $this->assertStringContainsString('order_ids: JSON.stringify(validatedIds)', $source);
         $this->assertStringContainsString('acknowledged', $source);
         $this->assertStringContainsString('instantConfirm', $source);
         $this->assertStringNotContainsString('i18n[key] || key', $source);
+        $this->assertStringContainsString('{#if !topAccount}', $source);
+        $this->assertStringContainsString('quoteClock.start(data)', $source);
+        $this->assertStringContainsString('void review(true)', $source);
+        $this->assertStringContainsString('acknowledged = {}; confirmed = false;', $source);
+        $this->assertStringContainsString('reviewSelection(data, previousChecked)', $source);
         preg_match_all("/text\('([^']+)'\)/", $source, $matches);
         $renderer = $this->source('inc/Services/TransactionListRenderService.php');
         foreach (array_unique($matches[1]) as $key) {

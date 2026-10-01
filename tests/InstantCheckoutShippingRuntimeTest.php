@@ -55,8 +55,8 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 	public function test_safe_rate_metadata_diagnostics_and_fixed_failure_messages(): void {
 		$result = $this->run_fixture();
 		$rate = $result['rates_one'][0];
-		$this->assertSame( 'GoSend Instant — No Insurance Support • Admin Fee Rp1.000', $rate['label'] );
-		$this->assertSame( 55000, $rate['cost'] );
+		$this->assertSame( 'GoSend Instant', $rate['label'] );
+		$this->assertSame( 54000, $rate['cost'] );
 		$this->assertSame( array( 'kiriof_delivery_type', 'kiriof_instant_quote_token', 'kiriof_instant_courier', 'kiriof_instant_service', 'kiriof_instant_vehicle', 'kiriof_instant_quote_expires' ), array_keys( $rate['meta_data'] ) );
 		$this->assertSame( '1-2 hours', $rate['delivery_time'] );
 		$this->assertSame( 'motor', $rate['meta_data']['kiriof_instant_vehicle'] );
@@ -89,7 +89,7 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 		$this->assertSame( 'kiriminaja-instant', $rate['method_id'] );
 		$this->assertSame( 55, $rate['instance_id'] );
 		$this->assertSame( '1-2 hours', $rate['delivery_time'] );
-		$this->assertSame( 'GoSend Instant — No Insurance Support • Admin Fee Rp1.000', $rate['label'] );
+		$this->assertSame( 'GoSend Instant', $rate['label'] );
 		$this->assertSame( array( 'existing:3' ), $result['chosen'] );
 	}
 
@@ -104,7 +104,7 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 		}
 		$this->assertCount( 1, $result['zero_rates'] );
 		$this->assertSame( 0, $result['zero_rates'][0]['cost'] );
-		$this->assertSame( 'GoSend Instant — No Insurance Support • Admin Fee Rp0', $result['zero_rates'][0]['label'] );
+		$this->assertSame( 'GoSend Instant', $result['zero_rates'][0]['label'] );
 	}
 
 }

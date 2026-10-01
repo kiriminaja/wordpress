@@ -47,6 +47,11 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [x] Add a separate Instant dispatch service and Process Shipment dialog without a schedule picker.
 - [x] Reprice using the same origin/destination before dispatch; use a user-bound 120-second quote and revalidate the complete context fingerprint before submission.
 - [x] Show saved/current prices and require per-order price-change acknowledgment plus explicit submission confirmation.
+- [x] Clear Instant price-review layout: rate-change notice, expandable order details (merchant order number, validated courier/service, origin and recipient labels), five-order preview/show-more, changed-order count and selected-shipment Before/After/Price Gap/Total summary. Totals explicitly compare carrier shipping charges, not buyer checkout admin fees or insurance.
+- [x] Hide the payment selector and payment PIN entirely when the verified account offers only TOP; continue sending the exact `top` dispatch mode and omit the outbound API payment method. TOP does not imply payment is settled.
+- [x] Countdown uses the server's 120-second quote expiry and automatically requotes on visible expiry without booking. Preserve exclusions/skip choice and valid payment choice, but clear confirmations, changed-price acknowledgments and credit PIN on every refresh. Repeated, expired or malformed quote responses and refresh errors stop automatic activity and offer explicit recovery.
+- [x] Abort stale quote responses/timers on close, unmount or changed selection; allow cancelling read-only price refresh, but block dialog dismissal during dispatch. Dispatch consumes the token and stops the quote clock; unknown booking outcomes are never automatically retried.
+- [x] Reuse the SDK's `php-http/curl-client` and Nyholm PSR-7 factories for Instant transport instead of bundling Guzzle. Inherit SDK headers/JSON/query construction; keep 25-second overall and 5-second connection timeouts, HTTPS/TLS verification, no redirects/retries, fixed silent failures, and a 2 MiB response cap enforced by both progress and a bounded response stream.
 - [x] Enforce 1–10 packages per compatible origin/courier/vehicle request; split larger selections and report partial outcomes.
 - [x] Reject Express/Borzo rows from the Instant dispatch path and keep existing Express endpoints unchanged.
 - [x] Normalize account-verified TOP, QRIS, and KA Credit payments; validate PIN/credit before claiming orders and provide bounded automatic polling plus manual payment refresh for matched bookings.
@@ -54,6 +59,7 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [x] Persist verified remote payment/status/AWB/tracking data and immutable sender/recipient/item snapshots immediately after a matched booking response.
 - [x] Use official SDK Instant pricing and an explicit SDK-transport adapter for the documented v6.2 request schema.
 - [ ] Verify actual Sandbox booking/payment responses and courier acceptance before declaring production readiness. The OpenAPI success shape is a mock, not a production guarantee.
+- [ ] Browser-check the deployed dialog styles, TOP versus QRIS/credit controls, background/foreground expiry, cancellation and failed refresh recovery. Local Svelte/DOM tests replace UI boundaries and transport, not live WooCommerce admin/theme/API integration.
 
 ## Print Labels
 

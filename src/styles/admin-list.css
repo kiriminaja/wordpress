@@ -422,6 +422,24 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-transaction-dialog-content [data-slot='field-label'] {
   @apply !text-foreground ![font-size:13px] !font-semibold;
 }
+/* Respect horizontal confirmation controls in the Instant review. The legacy
+ * dialog rule above deliberately keeps Express fields vertical. */
+.kiriof-instant-process-dialog [data-slot='field'][data-orientation='horizontal'] {
+  @apply !flex-row !items-start !gap-3;
+}
+.kiriof-instant-process-dialog
+  [data-slot='field'][data-orientation='horizontal']
+  > [data-slot='checkbox'] {
+  @apply !mt-0.5 !shrink-0;
+}
+.kiriof-instant-process-dialog
+  [data-slot='field'][data-orientation='horizontal']
+  > [data-slot='field-label'] {
+  @apply !min-w-0 !font-normal !leading-normal;
+}
+.kiriof-instant-process-dialog dl dd {
+  @apply !m-0;
+}
 .kiriof-transaction-dialog-content [data-slot='field-description'] {
   @apply !text-muted-foreground !text-xs;
 }

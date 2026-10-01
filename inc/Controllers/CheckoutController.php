@@ -171,6 +171,7 @@ class CheckoutController
             
             /** remove Cache Shipping triger update_checkout */
             add_filter( 'woocommerce_cart_shipping_packages', array($this,'kiriof_shipping_rate_cache_invalidation'), 100 );
+            add_filter( 'woocommerce_package_rates', array( $this, 'kiriof_sort_package_rates' ), 100, 2 );
             /** Validate Shipping Kirimin aja */
             add_action('woocommerce_review_order_before_cart_contents', array($this,'kiriof_validateOrder'), 10);
             add_action('woocommerce_after_checkout_validation', array($this,'kiriof_validateOrder'), 10, 2);
@@ -180,7 +181,7 @@ class CheckoutController
              */
             add_filter('woocommerce_checkout_fields', array($this,'kiriof_billing_fields'), 9999);            
             add_filter( 'woocommerce_checkout_get_value', array( $this, 'kiriof_checkout_district_value' ), 20, 2 );
-            add_filter('woocommerce_shipping_chosen_method', array($this,'kiriof_shipping_chosen_method'), 10, 2);
+            add_filter('woocommerce_shipping_chosen_method', array($this,'kiriof_shipping_chosen_method'), 10, 3);
             
             add_filter( 'woocommerce_cart_needs_shipping', array($this,'kiriof_filter_cart_needs_shipping'));
             
@@ -1550,6 +1551,11 @@ class CheckoutController
         return $packages;
     }
 
+    /** Woo combines zone methods before this filter, for classic and Store API. */
+    public function kiriof_sort_package_rates( $rates, $package ) {
+        return is_array( $rates ) ? \KiriminAjaOfficial\Services\CheckoutRatePresentation::sortPackageRates( $rates ) : $rates;
+    }
+
     private function kiriof_order_uses_instant( $order ): bool {
         if ( ! $order instanceof \WC_Order ) { return false; }
         foreach ( $order->get_items( 'shipping' ) as $line ) {
@@ -1581,6 +1587,8 @@ class CheckoutController
         return md5(
             wp_json_encode(
                 array(
+                    // Rebuild cached Woo rates after the combined Express/Instant sort.
+                    'rate_presentation_version' => 3,
                     'cart_hash'        => $cart_hash,
                     'supported_country' => 'ID',
                     'instant_pin' => WC()->session ? WC()->session->get( 'kiriof_buyer_destination', null ) : null,
@@ -1917,23 +1925,26 @@ class CheckoutController
      *
      * @param string $method Chosen shipping method.
      * @param array $available_methods Available shipping methods.
+     * @param string|false $chosen_method Previously selected native rate for this package.
      * @return string
      */
     // phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only checkout method selection during WooCommerce checkout request.
-    public function kiriof_shipping_chosen_method($method, $available_methods) {
+    public function kiriof_shipping_chosen_method($method, $available_methods, $chosen_method = false) {
+        // This filter receives a DEFAULT rate, not the native selection. Woo passes
+        // the previous selection as its third argument when rates are refreshed.
+        $native_methods = WC()->session->get( 'chosen_shipping_methods', array() );
+        $single_package = ( ! is_array( $native_methods ) || count( $native_methods ) <= 1 )
+            && ( ! isset( $_POST['shipping_method'] ) || ! is_array( $_POST['shipping_method'] ) || count( $_POST['shipping_method'] ) <= 1 );
         // Classic checkout: shipping_method[0] is POSTed explicitly.
-        if (isset($_POST['shipping_method'][0]) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] )), $available_methods)) {
-            $posted_method = sanitize_text_field( wp_unslash($_POST['shipping_method'][0]));
+        if ( $single_package && isset( $_POST['shipping_method'][0] ) && is_string( $_POST['shipping_method'][0] ) && array_key_exists( sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ) ), $available_methods ) ) {
+            $posted_method = sanitize_text_field( wp_unslash( $_POST['shipping_method'][0] ));
             WC()->session->set( 'kiriof_chosen_shipping_methods', array( $posted_method ) );
             WC()->session->set( 'chosen_shipping_methods', array( $posted_method ) );
             return $posted_method;
         }
 
-        // Plugin AJAX fee updates post shipping_metode_id, not Woo's classic
-        // shipping_method[0]. During the same request Woo recalculates totals and
-        // may pass the previous/default method as $method; keep the just-posted
-        // courier as the source of truth so the Store API cart GET reflects it.
-        if ( isset( $_POST['shipping_metode_id'] ) ) {
+        // Legacy AJAX explicitly selects a rate during totals recalculation.
+        if ( $single_package && isset( $_POST['shipping_metode_id'] ) && is_string( $_POST['shipping_metode_id'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The AJAX handler validates kiriof-update-checkout before cart totals are calculated.
             $posted_kiriof_method = sanitize_text_field( wp_unslash( $_POST['shipping_metode_id'] ) );
             if ( array_key_exists( $posted_kiriof_method, $available_methods ) ) {
@@ -1943,23 +1954,30 @@ class CheckoutController
             }
         }
 
-        // Block checkout select-shipping-rate requests carry the buyer-selected
-        // rate_id in the Store API JSON body. Prefer it over the stale logged-in
-        // session method Woo may pass as $method while the cart is recalculating.
+        // Explicit Store API JSON selections beat a stale single-package session.
         $store_api_method = $this->kiriof_get_store_api_selected_shipping_rate();
-        if ( '' !== $store_api_method && array_key_exists( $store_api_method, $available_methods ) ) {
+        if ( $single_package && '' !== $store_api_method && array_key_exists( $store_api_method, $available_methods ) ) {
             return $store_api_method;
         }
 
-        // WooCommerce owns the native selection, including its package indexes.
-        // Never replace that array with a stale, single-package plugin mirror.
+        // Retain either Express or Instant only while the exact native rate exists.
+        // Do not infer a package index from a rate ID: different packages can share it.
+        if ( is_string( $chosen_method ) && array_key_exists( $chosen_method, $available_methods ) ) {
+            return $chosen_method;
+        }
+
+        // Let Woo choose the default if the previous rate is no longer available.
         if ( '' !== (string) $method && array_key_exists( (string) $method, $available_methods ) ) {
             return $method;
         }
 
+        // The legacy mirror is only usable when no native package selection exists.
         $kiriof_chosen_methods = WC()->session->get( 'kiriof_chosen_shipping_methods', array() );
         if (
-            is_array( $kiriof_chosen_methods )
+            $single_package
+            && false === $chosen_method
+            && empty( $native_methods )
+            && is_array( $kiriof_chosen_methods )
             && ! empty( $kiriof_chosen_methods[0] )
             && array_key_exists( $kiriof_chosen_methods[0], $available_methods )
         ) {

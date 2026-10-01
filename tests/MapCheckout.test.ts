@@ -274,7 +274,7 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 });
 
 const uiTest = React && loadRenderer && happy ? test : test.skip;
-function uiHarness(options: { noLeaflet?: boolean } = {}) {
+function uiHarness(options: { noLeaflet?: boolean; editing?: boolean } = {}) {
 	const window = new happy.Window({ url: 'https://checkout.example.test' });
 	const saved = new Map<string, PropertyDescriptor | undefined>();
 	for (const [key, value] of Object.entries({ window, document: window.document, navigator: window.navigator, HTMLElement: window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true })) {
@@ -282,14 +282,22 @@ function uiHarness(options: { noLeaflet?: boolean } = {}) {
 	}
 	const model = { cart: { needsShipping: true, shippingAddress: { address_1: 'First Street', city: 'Jakarta', country: 'ID', postcode: '12345' } }, collection: false };
 	const writes: any[] = [], registrations: any[] = [];
+	const coordinates = new Map<string, any>();
+	const presentation = { editing: options.editing ?? true, cardTarget: null };
 	const root: any = window;
-	const f = fixture({}, root); f.session.dispose(); f.maps.length = 0; f.markers.length = 0;
+	const f = fixture({}, root); f.session.dispose(); f.maps.length = 0; f.markers.length = 0; f.tiles.length = 0;
 	root.L = options.noLeaflet ? undefined : f.L;
 	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (success: any, failure: any, options: any) => f.locations.push({ success, failure, options }) } });
 	root.kiriofMapCheckoutConfig = { enabled: true, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
 		mapTitle: 'Delivery pin', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapClear: 'Clear pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Choose a pin', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
 	} };
-	root.kiriofBuyerCheckout = { getCoordinates: () => null, setCoordinates: (address: any, point: any) => { writes.push({ address, point }); return true; } };
+	root.kiriofBuyerCheckout = {
+		getCoordinates: (address: any) => coordinates.get(JSON.stringify(address)) || null,
+		setCoordinates: (address: any, point: any) => { writes.push({ address, point }); coordinates.clear(); if (point) coordinates.set(JSON.stringify(address), { ...point }); return true; },
+	};
+	// Controlled bridge double isolates the map lifecycle from native DOM discovery.
+	// The production hook is resolved before MapControl mounts, just like this double.
+	if (options.editing !== undefined) root.kiriofAddressPresentation = { usePresentation: () => presentation };
 	root.wp = { element: React, data: { useSelect: (callback: any) => callback((name: string) => name === 'wc/store/cart' ? { getCartData: () => model.cart } : { prefersCollection: () => model.collection }) }, plugins: { registerPlugin() { throw new Error('Map must not register OrderMeta plugin'); } } };
 	root.wc = { blocksCheckout: { registerCheckoutBlock: (registration: any) => registrations.push(registration), get OrderMeta() { throw new Error('Map must not access OrderMeta'); } } };
 	runInNewContext(source, { window: root });
@@ -301,10 +309,52 @@ function uiHarness(options: { noLeaflet?: boolean } = {}) {
 	const click = (text: string) => React.act(() => { const target = button(text); expect(target).toBeDefined(); target.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
 	const cleanup = () => { React.act(() => reactRoot.unmount()); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } };
 	render();
-	return { ...f, root, model, writes, registrations, container, render, click, button, cleanup };
+	return { ...f, root, model, writes, registrations, presentation, coordinates, container, render, click, button, cleanup };
 }
 
 describe('MapControl: actual React commit/ref runtime (optional installed React + DOM)', () => {
+	uiTest('collapsed presentation does not create a map, tiles, or geolocation; editing opens automatically without selecting', () => {
+		const h = uiHarness({ editing: false }); try {
+			expect(h.container.childElementCount).toBe(0); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0);
+			expect(h.locations).toEqual([]); expect(h.writes).toEqual([]);
+			h.presentation.editing = true; h.render();
+			expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.maps[0].container.isConnected).toBe(true);
+			expect(h.maps[0].views).toEqual([{ center: [-6.2088, 106.8456], zoom: 13 }]);
+			expect(h.button('Load map')).toBeUndefined(); expect(h.button('Clear pin')).toBeUndefined();
+			expect(h.locations).toEqual([]); expect(h.writes).toEqual([]);
+		} finally { h.cleanup(); }
+	});
+	uiTest('closing editing disposes the map and ignores pending location; reopening restores saved coordinates without writes', () => {
+		const h = uiHarness({ editing: true }); try {
+			React.act(() => h.maps[0].fire('click', { latlng: { lat: 0, lng: 0 } })); h.click('Locate me');
+			const saved = [...h.coordinates.values()][0];
+			h.presentation.editing = false; h.render();
+			expect(h.container.childElementCount).toBe(0); expect(h.maps[0].removed).toBe(1);
+			expect(h.observers.at(-1).disconnected).toBe(1); expect(h.pending.size).toBe(0);
+			React.act(() => { h.position(0, 5, 6); h.locations[0].failure({ code: 1 }); });
+			expect(h.writes).toHaveLength(1); expect([...h.coordinates.values()]).toEqual([saved]);
+			h.presentation.editing = true; h.render();
+			expect(h.maps).toHaveLength(2); expect(h.maps[1].views).toEqual([{ center: [-6.2088, 106.8456], zoom: 13 }, { center: [0, 0], zoom: 16 }]);
+			expect(h.button('Clear pin')).toBeDefined(); expect(h.container.textContent).toContain('Pin placed');
+			expect(h.writes).toHaveLength(1); expect(h.locations).toHaveLength(1);
+		} finally { h.cleanup(); }
+	});
+	uiTest('address change while collapsed cannot restore a pin from the old buyer snapshot', () => {
+		const h = uiHarness({ editing: true }); try {
+			React.act(() => h.maps[0].fire('click', { latlng: { lat: 1, lng: 2 } }));
+			h.presentation.editing = false; h.render(); h.model.cart.shippingAddress.address_1 = 'Second Street'; h.render();
+			expect(h.maps).toHaveLength(1); expect(h.writes).toHaveLength(1);
+			h.presentation.editing = true; h.render();
+			expect(h.maps[1].views).toEqual([{ center: [-6.2088, 106.8456], zoom: 13 }]); expect(h.button('Clear pin')).toBeUndefined();
+			expect(h.writes).toHaveLength(1); expect(h.locations).toEqual([]);
+		} finally { h.cleanup(); }
+	});
+	uiTest('bridge loaded after registration cannot change the optional hook or legacy fail-open behavior', () => {
+		const h = uiHarness(); try {
+			h.root.kiriofAddressPresentation = { usePresentation() { throw new Error('Late hook must not be called'); } }; h.render();
+			expect(h.maps).toHaveLength(1); expect(h.maps[0].removed).toBe(0); expect(h.writes).toEqual([]);
+		} finally { h.cleanup(); }
+	});
 	uiTest('forced shipping-address registration auto-mounts one connected map without consent or geolocation', () => {
 		const h = uiHarness(); try {
 			expect(h.registrations).toHaveLength(1); expect(h.registrations[0].force).toBe(true);

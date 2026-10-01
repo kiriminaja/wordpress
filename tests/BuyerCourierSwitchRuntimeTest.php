@@ -34,7 +34,7 @@ final class BuyerCourierSwitchRuntimeTest extends TestCase {
 		$expected = array();
 		foreach ( array( array( 'ninja', 'Standard', 17000, 'Standard service', $ninja_cod ), array( 'tiki', 'REG', 21500, 'Regular service', true ), array( 'jne', 'REG', 24000, 'Regular service', true ) ) as $row ) {
 			$id = 'kiriminaja-official_' . $row[0] . '_' . $row[1];
-			$expected[$id] = array( 'id' => $id, 'label' => strtoupper( $row[0] ) . ' ' . $row[1] . ' — ' . $row[3] . ( $insured ? ' • With Insurance' : '' ), 'cost' => $row[2], 'meta_data' => array(
+			$expected[$id] = array( 'id' => $id, 'label' => strtoupper( $row[0] ) . ' ' . $row[1], 'cost' => $row[2], 'meta_data' => array(
 				'kiriof_rate_eta' => '1-2 business days',
 				'kiriof_rate_description' => $row[3] . ( $insured ? ' • With Insurance' : '' ),
 				'kiriof_rate_service' => $row[0], 'kiriof_rate_service_type' => $row[1], 'kiriof_rate_cod_available' => $row[4] ? 'yes' : 'no',

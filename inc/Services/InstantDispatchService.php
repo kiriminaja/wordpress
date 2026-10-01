@@ -41,8 +41,14 @@ class InstantDispatchService {
 		$reports = array();
 		$contexts = array();
 		foreach ( $rows as $id => $row ) {
-			$report = array( 'id' => $id, 'before' => $row->shipping_cost ?? null, 'after' => null, 'changed' => false, 'eligible' => false, 'error' => '' );
+			$report = array( 'id' => $id, 'before' => null, 'after' => null, 'changed' => false, 'eligible' => false, 'error' => '' );
+			$order_number = $this->orderNumber( $row );
+			if ( '' !== $order_number ) {
+				$report['wc_order_number'] = $order_number;
+			}
 			try {
+				// Database decimals commonly arrive as strings; return a numeric JSON price.
+				$report['before'] = $this->integer( $row->shipping_cost ?? null );
 				try {
 					$ctx = $this->context->build( $row );
 				} catch ( InvalidArgumentException $error ) {
@@ -52,6 +58,20 @@ class InstantDispatchService {
 					continue;
 				}
 				$price = $this->price( $this->api->price( $ctx['pricing'] ), $ctx['package'] );
+				// Eligible presentation is an explicit allowlist, never the context or API response.
+				$report['courier'] = sanitize_text_field( $ctx['package']['service'] );
+				$report['service'] = sanitize_text_field( $ctx['package']['service_type'] );
+				$origin_label = sanitize_text_field( $ctx['origin']['name'] ?? '' );
+				if ( '' === $origin_label ) {
+					$origin_label = sanitize_text_field( $ctx['origin']['address'] ?? '' );
+				}
+				$destination_label = sanitize_text_field( $ctx['package']['destination']['name'] ?? '' );
+				if ( '' !== $origin_label ) {
+					$report['origin_label'] = $origin_label;
+				}
+				if ( '' !== $destination_label ) {
+					$report['destination_label'] = $destination_label;
+				}
 				$ctx['price'] = $price;
 				$contexts[ $id ] = $ctx;
 				$report['after'] = $price;
@@ -308,6 +328,29 @@ class InstantDispatchService {
 			$rows[ $id ] = $row;
 		}
 		return array_replace( $normalized, $rows );
+	}
+
+	/** Merchant-facing identifier only; never replace the canonical transaction ID. */
+	private function orderNumber( object $row ): string {
+		$id = $row->wp_wc_order_stat_order_id ?? null;
+		if ( ( ! is_int( $id ) && ! is_string( $id ) ) || ! preg_match( '/\A[1-9][0-9]*\z/', (string) $id ) ) {
+			return '';
+		}
+		try {
+			$order = wc_get_order( $id );
+			if ( is_object( $order ) && method_exists( $order, 'get_order_number' ) ) {
+				$number = $order->get_order_number();
+				if ( is_string( $number ) || is_int( $number ) ) {
+					$number = sanitize_text_field( (string) $number );
+					if ( '' !== $number ) {
+						return $number;
+					}
+				}
+			}
+		} catch ( \Throwable $error ) {
+			// Optional display lookup must not invalidate a quote or expose errors.
+		}
+		return (string) $id;
 	}
 
 	private function paymentMethods(): array {

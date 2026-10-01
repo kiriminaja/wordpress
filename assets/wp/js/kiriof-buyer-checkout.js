@@ -17,6 +17,13 @@
 	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.components || ! wp.components.ComboboxControl || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
 		return;
 	}
+
+	function addressBadge( text, complete, title ) {
+		return h( 'span', { className: 'kiriof-address-status__badge ' + ( complete ? 'is-complete' : 'is-warning' ), title: title },
+			h( 'svg', { viewBox: '0 0 24 24', width: 18, height: 18, fill: 'none', stroke: 'currentColor', strokeWidth: 2, 'aria-hidden': 'true', focusable: 'false' },
+				complete ? h( 'path', { d: 'm5 12 4 4 10-10' } ) : h( 'path', { d: 'M8 3h8l5 5v8l-5 5H8l-5-5V8Z M12 7v6 M12 16v1' } )
+			), text );
+	}
 	try {
 		checkoutDispatch = wp.data.dispatch( 'wc/store/checkout' );
 		validationDispatch = wp.data.dispatch( 'wc/store/validation' );
@@ -34,6 +41,8 @@
 	var useEffect = element.useEffect;
 	var useState = element.useState;
 	var useRef = element.useRef;
+	// Stable for this entry point; the bridge is an asset dependency, not a late hook.
+	var usePresentation = root.kiriofAddressPresentation && root.kiriofAddressPresentation.usePresentation;
 	var strings = config.i18n || {};
 	var listeners = new Set();
 	var savedSelections = Object.assign( {}, config.savedDistrictByPostcode || {} );
@@ -202,6 +211,7 @@
 
 	function DistrictControl( props ) {
 		var slot = props && props.slot ? props.slot : 'order-summary';
+		var presentation = usePresentation ? usePresentation() : { editing: true, cardTarget: null };
 		var data = wp.data.useSelect( function( select ) {
 			var cart = select( 'wc/store/cart' );
 			var checkout = select( 'wc/store/checkout' );
@@ -222,7 +232,7 @@
 		var rates = ( cart.shippingRates || [] ).flatMap( function( pkg ) { return pkg.shipping_rates || []; } );
 		var selected = rates.filter( function( rate ) { return rate.selected; } );
 		var kiriminajaSelected = ! selected.length || selected.some( function( rate ) {
-			return 'kiriminaja-official' === rate.method_id || /^kiriminaja-official(?:_|:)/.test( rate.rate_id || '' );
+			return 'kiriminaja-official' === rate.method_id || 'kiriminaja-instant' === rate.method_id || /^kiriminaja-(?:official|instant)(?:_|:)/.test( rate.rate_id || '' );
 		} );
 		var revision = useState( 0 );
 		var token = useRef( {} ).current;
@@ -377,6 +387,16 @@
 		}, [ message, required, kiriminajaSelected, isOwner ] );
 
 		if ( api.disabled || ! required || ( 'order-summary' === slot && hasInnerPlacement() ) ) { return null; }
+		if ( ! presentation.editing && element.createPortal ) {
+			if ( ! isOwner || ! presentation.cardTarget ) { return null; }
+			var checking = results.loading || results.key !== addressKey || awaitingSavedPin;
+			var districtReady = currentSelection && ! checking && ! results.error;
+			return element.createPortal( h( 'div', { className: 'kiriof-address-status', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+				! districtReady ? addressBadge( checking ? strings.checkingDistrict : strings.districtNotSet, false ) : null,
+				addressBadge( currentPin ? strings.pinLocation : strings.needPinLocation, Boolean( currentPin ), strings.pinRequirement ),
+				updateState.error ? addressBadge( strings.updateFailed, false ) : null
+			), presentation.cardTarget );
+		}
 		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? strings.lookupFailed : ( results.options.length ? message : strings.empty ) ) );
 		return h( 'div', { className: 'kiriof-buyer-district kiriof-buyer-district--inner-block' },
 			h( wp.components.ComboboxControl, {
