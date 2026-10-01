@@ -19,6 +19,8 @@ class CheckoutController
     /** Postcode lookup results, including failures, for this request only. */
     private array $kiriof_district_lookup_cache = array();
 
+    private bool $kiriof_resolving_cod_gateways = false;
+
     private SettingRepository $setting_repository;
     private TransactionRepository $transaction_repository;
     private WpPostMetaRepository $wp_post_meta_repository;
@@ -1964,6 +1966,12 @@ class CheckoutController
      * @return array
      */
     public function kiriof_filter_cod_availability($gateways) {
+        // The fallback runs this same WooCommerce filter again. Leave that
+        // inner pass untouched so native availability and other filters win.
+        if ( $this->kiriof_resolving_cod_gateways ) {
+            return $gateways;
+        }
+
         if ( ! $this->kiriof_cart_needs_shipping() ) {
             $this->kiriof_clear_logistics_session();
             if ( isset( $gateways['cod'] ) ) {
@@ -2033,7 +2041,12 @@ class CheckoutController
         }
 
         if ($cod_gateway_enabled && $has_kiriminaja_wildcard && !isset($gateways['cod'])) {
-            $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+            $this->kiriof_resolving_cod_gateways = true;
+            try {
+                $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+            } finally {
+                $this->kiriof_resolving_cod_gateways = false;
+            }
             if (isset($available_gateways['cod'])) {
                 $gateways['cod'] = $available_gateways['cod'];
             }
