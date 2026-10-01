@@ -20,14 +20,14 @@ namespace KiriminAjaOfficial\Services {
         public function repository() { return new class { public function getDefault() { return (object) ['id' => 1]; } }; }
         public function locationToOrigin($location): array { return $this->origin; }
     }
-    class InstantCheckoutQuoteService { public function __construct() { throw new \RuntimeException('No quotes allowed'); } }
 }
 namespace {
     define('ABSPATH', __DIR__);
     $input = json_decode($argv[1] ?? '{}', true);
     $scenario = $input['scenario'] ?? '';
-    if ('ready' === $scenario) { eval('namespace KiriminAjaOfficial\\Controllers; class InstantCheckoutController {}'); }
+    if (in_array($scenario, ['ready', 'insurance', 'method_missing', 'zone_enabled', 'zone_disabled'], true)) { eval('namespace KiriminAjaOfficial\\Controllers; class InstantCheckoutController {}'); }
     if ('method_missing' !== $scenario) { class Kiriof_Instant_Shipping_Method_Controller {} }
+    function kiriof_register_instant_shipping_method($methods) { return $methods; }
     function sanitize_text_field($text) { return trim(strip_tags($text)); }
     function wp_timezone_string() { return $GLOBALS['timezone'] ?? 'Asia/Jakarta'; }
     function WC() { return $GLOBALS['wc']; }
@@ -52,6 +52,7 @@ namespace {
     $GLOBALS['logs'] = []; $GLOBALS['hooks'] = []; $GLOBALS['network'] = 0;
     if ( in_array($scenario, ['rest', 'other_rest'], true) ) { define('REST_REQUEST', true); $GLOBALS['wp'] = (object) ['query_vars' => ['rest_route' => 'rest' === $scenario ? '/wc/store/v1/cart' : '/wp/v2/posts']]; }
     require dirname(__DIR__, 2) . '/inc/Services/BuyerDestination.php';
+    require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutQuoteService.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutDiagnosticsService.php';
     $lazy = new \KiriminAjaOfficial\Services\InstantCheckoutDiagnosticsService();
     $lazy->register();
@@ -76,9 +77,18 @@ namespace {
         case 'credentials': $settings->credential = ''; break;
         case 'throw': $settings->fail = true; break;
         case 'timezone': $GLOBALS['timezone'] = 'UTC'; break;
+        case 'timezone_invalid': $locations->origin['origin_timezone'] = 'UTC'; break;
+        case 'timezone_lower': $locations->origin['origin_timezone'] = ' wita '; break;
         case 'makassar': $GLOBALS['timezone'] = 'Asia/Makassar'; break;
         case 'jayapura': $GLOBALS['timezone'] = 'Asia/Jayapura'; break;
         case 'virtual': WC()->cart->shipping = false; break;
+    }
+    if (in_array($scenario, ['zone_enabled', 'zone_disabled'], true)) {
+        class WC_Shipping_Zones {
+            public static function get_zone_matching_package($package) {
+                return new class { public function get_shipping_methods($enabled) { return $GLOBALS['scenario'] === 'zone_enabled' ? [(object) ['id' => 'kiriminaja-instant', 'enabled' => 'yes']] : []; } };
+            }
+        }
     }
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutDiagnosticsService($settings, $locations);
     $snapshot = null;

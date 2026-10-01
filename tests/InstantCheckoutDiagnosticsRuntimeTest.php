@@ -52,6 +52,9 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
             $r = $this->runFixture($scenario);
             $this->assertFalse($r['snapshot']['destination_pin_valid']);
             $this->assertContains('destination_pin_missing_or_invalid', $r['snapshot']['reasons']);
+            $this->assertNotContains('destination_address_changed_or_invalid', $r['snapshot']['reasons']);
+            $this->assertFalse($r['snapshot']['coordinate_session_present']);
+            $this->assertSame('v1' === $scenario ? 1 : 0, $r['snapshot']['destination_version']);
         }
     }
 
@@ -88,23 +91,26 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function cod_global_insurance_and_missing_credentials_block_local_readiness(): void {
-        foreach (['cod' => 'cod_unsupported', 'insurance' => 'insurance_unsupported', 'credentials' => 'account_unavailable'] as $scenario => $reason) {
+    public function cod_and_missing_credentials_block_but_global_insurance_does_not(): void {
+        foreach (['cod' => 'cod_unsupported', 'credentials' => 'account_unavailable'] as $scenario => $reason) {
             $this->assertContains($reason, $this->runFixture($scenario)['snapshot']['reasons']);
         }
     }
 
     #[Test]
     public function timezone_support_tracks_indonesian_regions(): void {
-        $this->assertFalse($this->runFixture('timezone')['snapshot']['timezone_supported']);
+        $this->assertTrue($this->runFixture('timezone')['snapshot']['timezone_supported']);
+        $this->assertSame('WIB', $this->runFixture('timezone')['snapshot']['instant_timezone']);
+        $this->assertSame('WITA', $this->runFixture('timezone_lower')['snapshot']['instant_timezone']);
+        $this->assertFalse($this->runFixture('timezone_invalid')['snapshot']['timezone_supported']);
         foreach (['makassar', 'jayapura'] as $scenario) {
             $this->assertTrue($this->runFixture($scenario)['snapshot']['timezone_supported']);
         }
     }
 
     #[Test]
-    public function registration_requires_both_hook_and_loaded_method_class(): void {
-        foreach (['filter_missing', 'method_missing'] as $scenario) {
+    public function registration_requires_hook_and_callback_not_a_loaded_shipping_class(): void {
+        foreach (['filter_missing'] as $scenario) {
             $this->assertContains('method_not_registered', $this->runFixture($scenario)['snapshot']['reasons']);
         }
     }
@@ -141,4 +147,29 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
             $this->assertCount(1, $this->runFixture($scenario)['logs'], $scenario);
         }
     }
+    #[Test]
+    public function global_insurance_is_reported_but_instant_opts_out(): void {
+        $r = $this->runFixture('insurance')['snapshot'];
+        $this->assertTrue($r['insurance_enabled']);
+        $this->assertFalse($r['instant_insurance_enabled']);
+        $this->assertFalse($r['instant_insurance_supported']);
+        $this->assertTrue($r['ready']);
+        $this->assertNotContains('insurance_unsupported', $r['reasons']);
+        $this->assertTrue($this->runFixture('method_missing')['snapshot']['method_registered']);
+    }
+
+    #[Test]
+    public function zone_disable_reason_requires_a_known_matching_zone(): void {
+        $unknown = $this->runFixture('ready')['snapshot'];
+        $this->assertFalse($unknown['matching_zone_known']);
+        $this->assertNotContains('method_not_enabled_in_matching_zone', $unknown['reasons']);
+        $enabled = $this->runFixture('zone_enabled');
+        $this->assertTrue($enabled['snapshot']['matching_zone_known']);
+        $this->assertTrue($enabled['snapshot']['method_zone_enabled']);
+        $this->assertTrue($enabled['snapshot']['ready']);
+        $disabled = $this->runFixture('zone_disabled');
+        $this->assertContains('method_not_enabled_in_matching_zone', $disabled['snapshot']['reasons']);
+        $this->assertSame(0, $disabled['network']);
+    }
+
 }

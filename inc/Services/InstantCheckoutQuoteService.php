@@ -24,6 +24,27 @@ class InstantCheckoutQuoteService {
 		$this->api = $api;
 	}
 
+	/** Instant has its own Indonesian timezone; never mutate or infer WordPress timezone. */
+	public static function normalizeTimezone( array $origin ): string {
+		foreach ( array( 'timezone', 'origin_timezone' ) as $key ) {
+			if ( ! array_key_exists( $key, $origin ) ) {
+				continue;
+			}
+			if ( ! is_string( $origin[ $key ] ) ) {
+				throw new InvalidArgumentException( 'timezone_unsupported' );
+			}
+			$timezone = strtoupper( trim( $origin[ $key ] ) );
+			if ( '' === $timezone ) {
+				continue;
+			}
+			if ( ! in_array( $timezone, array( 'WIB', 'WITA', 'WIT' ), true ) ) {
+				throw new InvalidArgumentException( 'timezone_unsupported' );
+			}
+			return $timezone;
+		}
+		return 'WIB';
+	}
+
 	/** @return array{eligible:bool,code:string,message:string,rates:array,context:?array} */
 	public function quote( array $package, array $destination, string $payment_method, bool $insurance ): array {
 		try {
@@ -33,6 +54,7 @@ class InstantCheckoutQuoteService {
 		} catch ( \Throwable $error ) {
 			return $this->failure( 'context_unavailable' );
 		}
+		$live_checked = false;
 		try {
 			$session = $this->session();
 			if ( null === $session ) {
@@ -41,12 +63,13 @@ class InstantCheckoutQuoteService {
 			$cache = $this->cache( $session );
 			$key = $context['fingerprint'];
 			if ( isset( $cache[ $key ] ) && $this->compatible( $cache[ $key ], $context ) ) {
-				return $this->success( $cache[ $key ]['rates'], $context );
+				return $this->success( $cache[ $key ]['rates'], $context, true );
 			}
 			$this->api = $this->api ?? new InstantDeliveryApiRepository();
+			$live_checked = true;
 			$rates = $this->rates( $this->api->price( $context['pricing'] ), $context['policy'] );
 			if ( empty( $rates ) ) {
-				return $this->failure( 'no_rates' );
+				return $this->failure( 'no_rates', true );
 			}
 			$expires = time() + self::TTL;
 			foreach ( $rates as &$rate ) {
@@ -63,7 +86,7 @@ class InstantCheckoutQuoteService {
 			return $this->success( $rates, $context );
 		} catch ( \Throwable $error ) {
 			// Upstream exceptions may contain addresses, tokens or credentials.
-			return $this->failure( 'quote_unavailable' );
+			return $this->failure( 'quote_unavailable', $live_checked );
 		}
 	}
 
@@ -189,14 +212,7 @@ class InstantCheckoutQuoteService {
 		if ( ! $this->length( $origin['name'], 10, 40 ) || ! $this->phone( $origin['phone'] ) || ! $this->length( $origin['address'], 20, 250 ) || ! preg_match( '/\A[0-9]{5}\z/', $origin['zipcode'] ) ) {
 			throw new InvalidArgumentException( 'origin_invalid' );
 		}
-		$timezone = $this->text( $source, array( 'timezone', 'origin_timezone' ) );
-		if ( '' === $timezone ) {
-			$zones = array( 'Asia/Jakarta' => 'WIB', 'Asia/Pontianak' => 'WIB', 'Asia/Makassar' => 'WITA', 'Asia/Jayapura' => 'WIT' );
-			$timezone = $zones[ wp_timezone_string() ] ?? '';
-		}
-		if ( ! in_array( $timezone, array( 'WIB', 'WITA', 'WIT' ), true ) ) {
-			throw new InvalidArgumentException( 'timezone_unsupported' );
-		}
+		$timezone = self::normalizeTimezone( $source );
 		$origin['timezone'] = $timezone;
 		$origin['country'] = $country;
 		$items = array();
@@ -394,12 +410,14 @@ class InstantCheckoutQuoteService {
 		return $data;
 	}
 
-	private function success( array $rates, array $context ): array {
+	private function success( array $rates, array $context, bool $cached = false ): array {
+		$this->trace( 'ok', true, $cached, count( $rates ), ! $cached );
 		return array( 'eligible' => true, 'code' => 'ok', 'message' => '', 'rates' => $rates, 'context' => $context );
 	}
 
-	private function failure( string $reason ): array {
+	private function failure( string $reason, bool $live_checked = false ): array {
 		$reason = $this->reason( $reason );
+		$this->trace( $reason, false, false, 0, $live_checked );
 		$messages = array(
 			'cod_unsupported' => __( 'Cash on delivery is not supported for Instant delivery.', 'kiriminaja-official' ),
 			'insurance_unsupported' => __( 'Insurance is not supported for Instant delivery.', 'kiriminaja-official' ),
@@ -413,6 +431,21 @@ class InstantCheckoutQuoteService {
 			'no_rates' => __( 'No Instant delivery rates are available for this address and cart.', 'kiriminaja-official' ),
 		);
 		return array( 'eligible' => false, 'code' => $reason, 'message' => $messages[ $reason ] ?? __( 'Instant delivery could not be quoted. Please try again.', 'kiriminaja-official' ), 'rates' => array(), 'context' => null );
+	}
+
+	/** Never log request/response payloads, fingerprints, credentials or quote tokens. */
+	private function trace( string $code, bool $eligible, bool $cached = false, int $rate_count = 0, bool $live_checked = false ): void {
+		if ( ! function_exists( 'kiriof_log' ) ) {
+			return;
+		}
+		try {
+			kiriof_log( $eligible ? 'info' : 'warning', 'Instant checkout quote result.', array(
+				'code' => 'ok' === $code ? 'ok' : $this->reason( $code ), 'eligible' => $eligible, 'live_quote_checked' => $live_checked,
+				'cached' => $cached, 'rate_count' => $rate_count, 'backtrace' => false,
+			), 'kiriminaja_instant' );
+		} catch ( \Throwable $error ) {
+			// Observability must not interrupt checkout.
+		}
 	}
 
 	/** Only internal reason codes may cross the buyer boundary, even for repository exceptions. */

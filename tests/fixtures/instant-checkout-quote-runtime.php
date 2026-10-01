@@ -48,6 +48,8 @@ namespace KiriminAjaOfficial\Services {
 }
 namespace {
     define('ABSPATH', __DIR__);
+    $GLOBALS['logs'] = [];
+    function kiriof_log($level, $message, $context, $source) { if (($GLOBALS['scenario'] ?? '') === 'logger_throw') { throw new RuntimeException('private logging failure'); } $GLOBALS['logs'][] = compact('level', 'message', 'context', 'source'); }
     function __($text, $domain = '') { return $text; }
     function sanitize_text_field($text) { return trim(strip_tags($text)); }
     function wp_timezone_string() { return $GLOBALS['timezone'] ?? 'Asia/Jakarta'; }
@@ -99,6 +101,8 @@ namespace {
         case 'origin_bad': $package['origin'] = []; break;
         case 'origin_missing': $locations->missing = true; break;
         case 'timezone': $GLOBALS['timezone'] = 'UTC'; break;
+        case 'timezone_invalid': $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['timezone'] = 'UTC'; break;
+        case 'timezone_lower': $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['origin_timezone'] = ' wita '; break;
         case 'name': $package['destination']['first_name'] = ''; $package['destination']['last_name'] = ''; break;
         case 'phone': $package['destination']['phone'] = '123'; break;
         case 'postcode': $package['destination']['postcode'] = '123'; break;
@@ -144,5 +148,5 @@ namespace {
         try { $validated = $service->validate($rate['quote_token'], $rate['courier'], $rate['service'], $package, $destination, $payment, $insurance); }
         catch (\Throwable $error) { $validation_error = $error->getMessage(); }
     }
-    echo json_encode(['quote' => $quote, 'again' => $again, 'validated' => $validated, 'validation_error' => $validation_error, 'calls' => $api->calls, 'payloads' => $api->payloads, 'cache' => WC()->session->data]);
+    echo json_encode(['quote' => $quote, 'again' => $again, 'validated' => $validated, 'validation_error' => $validation_error, 'calls' => $api->calls, 'payloads' => $api->payloads, 'cache' => WC()->session->data, 'logs' => $GLOBALS['logs'], 'wp_timezone' => wp_timezone_string()]);
 }

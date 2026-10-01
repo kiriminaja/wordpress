@@ -55,22 +55,46 @@ class InstantCheckoutDiagnosticsService {
 		$insurance = $this->settings->getSettingByKey( 'enable_insurance' );
 		$wc = function_exists( 'WC' ) ? WC() : null;
 		$session = $wc->session ?? null;
+		$raw_pin = $session && method_exists( $session, 'get' ) ? $session->get( 'kiriof_buyer_destination', null ) : null;
 		$pin_valid = false;
 		$address_matches = false;
+		$current = array();
+		$address_complete = false;
 		try {
-			$pin = BuyerDestination::normalize( $session ? $session->get( 'kiriof_buyer_destination', null ) : null );
-			$pin_valid = 2 === $pin['version'] && '' !== $pin['district_id'];
-			$current = array();
 			foreach ( BuyerDestination::ADDRESS_FIELDS as $field ) {
 				$getter = 'get_shipping_' . $field;
 				$current[ $field ] = $wc->customer->$getter();
 			}
 			$current = BuyerDestination::address( $current );
-			$address_matches = $pin_valid && $current === $pin['shipping_address'] && 'ID' === $current['country']
-				&& '' !== $current['address_1'] && '' !== $current['city'] && '' !== $current['state']
+			$address_complete = 'ID' === $current['country'] && '' !== $current['address_1'] && '' !== $current['city'] && '' !== $current['state']
 				&& 1 === preg_match( '/\A[0-9]{5}\z/', $current['postcode'] );
 		} catch ( \Throwable $error ) {
+			$current = array();
+		}
+		try {
+			$pin = BuyerDestination::normalize( $raw_pin );
+			$pin_valid = 2 === $pin['version'] && '' !== $pin['district_id'];
+			$address_matches = $pin_valid && $address_complete && $current === $pin['shipping_address'];
+		} catch ( \Throwable $error ) {
 			// Malformed or legacy destinations are expected; never log their contents.
+		}
+		$zone_known = false;
+		$zone_enabled = false;
+		// Local zone lookup only. Do not initialize shipping, calculate rates or fetch quotes.
+		if ( $address_complete && class_exists( 'WC_Shipping_Zones', false ) ) {
+			try {
+				$zone = \WC_Shipping_Zones::get_zone_matching_package( array( 'destination' => $current ) );
+				if ( is_object( $zone ) && method_exists( $zone, 'get_shipping_methods' ) ) {
+					foreach ( $zone->get_shipping_methods( true ) as $method ) {
+						if ( 'kiriminaja-instant' === ( $method->id ?? null ) && 'yes' === ( $method->enabled ?? null ) ) {
+							$zone_enabled = true;
+						}
+					}
+					$zone_known = true;
+				}
+			} catch ( \Throwable $error ) {
+				// An unknown zone is not proof that the method is disabled.
+			}
 		}
 		// Inspect the stored default only; getDefaultLocation() can seed/repair rows.
 		$origin = $this->locations->locationToOrigin( $this->locations->repository()->getDefault() );
@@ -90,12 +114,14 @@ class InstantCheckoutDiagnosticsService {
 		}
 		$phone = $this->text( $origin, 'origin_phone' );
 		$country = $this->text( $origin, 'origin_country' );
-		$timezone = $this->text( $origin, 'timezone' );
-		if ( '' === $timezone ) {
-			$timezone = $this->text( $origin, 'origin_timezone' );
+		$timezone = '';
+		$timezone_valid = false;
+		try {
+			$timezone = InstantCheckoutQuoteService::normalizeTimezone( $origin );
+			$timezone_valid = true;
+		} catch ( \Throwable $error ) {
+			// Explicit invalid source timezones fail closed; WordPress timezone is unrelated.
 		}
-		$timezone_valid = '' !== $timezone ? in_array( $timezone, array( 'WIB', 'WITA', 'WIT' ), true )
-			: ( function_exists( 'wp_timezone_string' ) && in_array( wp_timezone_string(), array( 'Asia/Jakarta', 'Asia/Pontianak', 'Asia/Makassar', 'Asia/Jayapura' ), true ) );
 		$result = array(
 			'code' => 'configured_store_readiness',
 			'plugin_version' => defined( 'KIRIOF_VERSION' ) ? KIRIOF_VERSION : 'unknown',
@@ -104,7 +130,13 @@ class InstantCheckoutDiagnosticsService {
 			'services_enabled' => ! empty( $services ),
 			'credential_present' => is_object( $credential ) && is_string( $credential->value ?? null ) && '' !== trim( $credential->value ),
 			'insurance_enabled' => 'yes' === ( $insurance->value ?? null ),
+			'instant_insurance_enabled' => false,
+			'instant_insurance_supported' => false,
 			'payment_is_cod' => $session && 'cod' === strtolower( trim( (string) $session->get( 'chosen_payment_method', '' ) ) ),
+			'destination_version' => is_int( $raw_pin['version'] ?? null ) && in_array( $raw_pin['version'], array( 1, 2 ), true ) ? $raw_pin['version'] : 0,
+			'coordinate_session_present' => is_array( $raw_pin ) && isset( $raw_pin['destination_latitude'], $raw_pin['destination_longitude'] ),
+			'destination_district_recorded' => is_array( $raw_pin ) && ( is_string( $raw_pin['district_id'] ?? null ) || is_int( $raw_pin['district_id'] ?? null ) ) && 1 === preg_match( '/\A[1-9][0-9]*\z/', (string) ( $raw_pin['district_id'] ?? '' ) ),
+			'destination_address_complete' => $address_complete,
 			'destination_pin_valid' => $pin_valid,
 			'destination_address_matches' => $address_matches,
 			'default_origin_present' => ! empty( $origin ),
@@ -115,7 +147,10 @@ class InstantCheckoutDiagnosticsService {
 			'default_origin_postcode_valid' => 1 === preg_match( '/\A[0-9]{5}\z/', $this->text( $origin, 'origin_zip_code' ) ),
 			'default_origin_country_valid' => '' === $country || 'ID' === strtoupper( $country ),
 			'timezone_supported' => $timezone_valid,
-			'method_registered' => function_exists( 'has_filter' ) && false !== has_filter( 'woocommerce_shipping_methods', 'kiriof_register_instant_shipping_method' ) && class_exists( 'Kiriof_Instant_Shipping_Method_Controller', false ),
+			'instant_timezone' => $timezone,
+			'matching_zone_known' => $zone_known,
+			'method_zone_enabled' => $zone_enabled,
+			'method_registered' => function_exists( 'has_filter' ) && false !== has_filter( 'woocommerce_shipping_methods', 'kiriof_register_instant_shipping_method' ) && function_exists( 'kiriof_register_instant_shipping_method' ),
 			'checkout_integration_ready' => class_exists( 'KiriminAjaOfficial\\Controllers\\InstantCheckoutController', false ),
 		);
 		$checks = array(
@@ -129,11 +164,14 @@ class InstantCheckoutDiagnosticsService {
 		);
 		$result['reasons'] = array();
 		foreach ( $checks as $check => $reason ) {
-			if ( ! $result[ $check ] ) {
+			if ( ! $result[ $check ] && ( 'destination_address_matches' !== $check || $pin_valid ) ) {
 				$result['reasons'][] = $reason;
 			}
 		}
-		foreach ( array( 'insurance_enabled' => 'insurance_unsupported', 'payment_is_cod' => 'cod_unsupported' ) as $check => $reason ) {
+		if ( $zone_known && ! $zone_enabled ) {
+			$result['reasons'][] = 'method_not_enabled_in_matching_zone';
+		}
+		foreach ( array( 'payment_is_cod' => 'cod_unsupported' ) as $check => $reason ) {
 			if ( $result[ $check ] ) {
 				$result['reasons'][] = $reason;
 			}

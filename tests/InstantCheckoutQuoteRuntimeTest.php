@@ -31,7 +31,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function context_guards_fail_closed_without_api_calls(): void {
-        foreach (['cod', 'insurance', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
+        foreach (['cod', 'insurance', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone_invalid', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertFalse($r['quote']['eligible'], $scenario);
             $this->assertSame([], $r['quote']['rates'], $scenario);
@@ -77,4 +77,32 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
         $this->assertSame(2, $r['quote']['context']['weight']);
         $this->assertSame(1, $r['quote']['context']['items'][0]['width']);
     }
+    #[Test]
+    public function instant_timezone_defaults_to_wib_independently_of_wordpress(): void {
+        $r = $this->runFixture(['scenario' => 'timezone']);
+        $this->assertTrue($r['quote']['eligible']);
+        $this->assertSame('WIB', $r['payloads'][0]['timezone']);
+        $this->assertSame('UTC', $r['wp_timezone']);
+        $this->assertSame('WITA', $this->runFixture(['scenario' => 'timezone_lower'])['payloads'][0]['timezone']);
+        $this->assertSame('timezone_unsupported', $this->runFixture(['scenario' => 'timezone_invalid'])['quote']['code']);
+        $this->assertSame('insurance_unsupported', $this->runFixture(['scenario' => 'insurance'])['quote']['code']);
+    }
+
+    #[Test]
+    public function quote_traces_only_fixed_codes_and_safe_live_cache_metadata(): void {
+        $r = $this->runFixture();
+        $this->assertSame('ok', $r['logs'][0]['context']['code']);
+        $this->assertTrue($r['logs'][0]['context']['live_quote_checked']);
+        $this->assertTrue($r['logs'][1]['context']['cached']);
+        $this->assertFalse($r['logs'][1]['context']['live_quote_checked']);
+        $this->assertSame('kiriminaja_instant', $r['logs'][0]['source']);
+        foreach (['secret', 'Buyer', '081234567890', '106.8', 'quote_token'] as $private) {
+            $this->assertStringNotContainsString($private, json_encode($r['logs']));
+        }
+        $this->assertSame('destination_invalid', $this->runFixture(['scenario' => 'no_pin'])['logs'][0]['context']['code']);
+        $this->assertSame('quote_unavailable', $this->runFixture(['scenario' => 'throw'])['logs'][0]['context']['code']);
+        $this->assertTrue($this->runFixture(['scenario' => 'api_failure'])['logs'][0]['context']['live_quote_checked']);
+        $this->assertTrue($this->runFixture(['scenario' => 'logger_throw'])['quote']['eligible']);
+    }
+
 }
