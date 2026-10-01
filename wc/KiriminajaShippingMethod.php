@@ -73,6 +73,13 @@ function kiriof_shipping_method(){
             }
     
             public function calculate_shipping( $package = array() ){
+                if ( 'ID' !== ( $package['destination']['country'] ?? '' ) ) {
+                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
+                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
+                    }
+                    return;
+                }
+
                 if ( ! $this->kiriof_has_sufficient_checkout_address( $package ) ) {
                     if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
                         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
