@@ -1,0 +1,67 @@
+<?php
+namespace {
+	define( 'ABSPATH', __DIR__ );
+	function __( $text, $domain = '' ) { return $text; }
+	function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
+	function esc_html__( $text, $domain = '' ) { return esc_html( $text ); }
+	function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
+	function number_format_i18n( $number, $decimals = 0 ) { return number_format( $number, $decimals ); }
+	function wc_get_order( $id ) { return empty( $GLOBALS['input']['missing_order'] ) ? new LabelOrder() : false; }
+	function wp_remote_get( ...$args ) { ++$GLOBALS['calls']; throw new \RuntimeException( 'Remote call forbidden' ); }
+	function update_option( ...$args ) { ++$GLOBALS['writes']; throw new \RuntimeException( 'Write forbidden' ); }
+	class LabelOrder {
+		function get_status() { return $GLOBALS['input']['wc_status'] ?? 'processing'; }
+		function get_order_number() { return $GLOBALS['input']['wc_reference'] ?? 'WC-42'; }
+		function get_address( $type ) { throw new \RuntimeException( 'Changed destination must not be read' ); }
+		function get_items( $type ) { return array( new LabelItem( false ), new LabelItem( true ) ); }
+	}
+	class LabelItem {
+		private bool $virtual;
+		function __construct( bool $virtual ) { $this->virtual = $virtual; }
+		function get_product() { return new LabelProduct( $this->virtual ); }
+		function get_name() { return $this->virtual ? 'Virtual excluded' : ( $GLOBALS['input']['item_name'] ?? 'Physical item' ); }
+		function get_quantity() { return 2; }
+	}
+	class LabelProduct {
+		private bool $virtual;
+		function __construct( bool $virtual ) { $this->virtual = $virtual; }
+		function needs_shipping() { return ! $this->virtual && empty( $GLOBALS['input']['no_physical'] ); }
+	}
+}
+namespace KiriminAjaOfficial\Repositories {
+	class TransactionRepository {
+		public array $ids = array();
+		function getTransactionByOrderIds( $ids ) { $this->ids = $ids; return $GLOBALS['rows']; }
+		function markPrintedByOrderIds( ...$args ) { ++$GLOBALS['writes']; throw new \RuntimeException( 'Print write forbidden' ); }
+	}
+}
+namespace {
+	$input = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );
+	$GLOBALS['input'] = $input;
+	$GLOBALS['writes'] = 0;
+	$GLOBALS['calls'] = 0;
+	$root = dirname( __DIR__, 2 );
+	foreach ( array( 'Services/TransactionDeliveryType', 'Services/ShipmentLocationService', 'Services/TransactionOriginResolver', 'Services/TransactionProcessServices/RecipientDataResolver', 'Services/InstantLabelService' ) as $file ) { require $root . '/inc/' . $file . '.php'; }
+	$defaults = array( 'order_id' => 'KA-1', 'wp_wc_order_stat_order_id' => 42, 'service' => 'gosend', 'service_name' => 'Instant', 'vehicle' => 'motor', 'status' => 'request_pickup', 'instant_status_code' => 100, 'awb' => 'AWB-123', 'weight' => 1000, 'shipping_cost' => 12000, 'instant_payment_method' => 'credit', 'instant_payment_status' => 'paid', 'shipping_info' => json_encode( array( '_shipping_first_name' => 'Booked recipient', '_shipping_phone' => '0812345678', '_shipping_address_1' => 'Booked street', '_shipping_city' => 'Booked city' ) ), 'shipment_location_snapshot' => json_encode( array( 'origin_name' => 'Booked sender', 'origin_phone' => '0823456789', 'origin_address' => 'Booked origin', 'origin_city' => 'Origin city' ) ) );
+	$GLOBALS['rows'] = array_map( static fn( $row ) => (object) array_merge( $defaults, $row ), $input['rows'] ?? array( array() ) );
+	$repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+	$result = array( 'labels' => array(), 'html' => '', 'error' => '' );
+	try {
+		$labels = ( new \KiriminAjaOfficial\Services\InstantLabelService( $repo ) )->prepare( $input['ids'] ?? array( 'KA-1' ) );
+		$result['labels'] = $labels;
+		if ( ! empty( $input['poison'] ) ) {
+			$poison = '<img src=x onerror=alert(1)>';
+			foreach ( $labels as &$label ) {
+				foreach ( array( 'order_id', 'wc_reference', 'awb', 'courier', 'service', 'vehicle', 'weight', 'payment_method', 'payment_status' ) as $field ) { $label[ $field ] = $poison; }
+				foreach ( array( 'sender', 'recipient' ) as $field ) { $label[ $field ] = array( 'name' => $poison, 'phone' => $poison, 'address' => array( $poison ) ); }
+				$label['items'] = array( array( 'name' => $poison, 'quantity' => $poison ) );
+			}
+			unset( $label );
+		}
+		ob_start(); require $root . '/templates/instant/labels.php'; $result['html'] = ob_get_clean();
+	} catch ( \InvalidArgumentException $error ) { $result['error'] = $error->getMessage(); }
+	$result['ids'] = $repo->ids;
+	$result['writes'] = $GLOBALS['writes'];
+	$result['calls'] = $GLOBALS['calls'];
+	echo json_encode( $result, JSON_THROW_ON_ERROR );
+}

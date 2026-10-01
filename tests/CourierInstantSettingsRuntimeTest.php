@@ -15,6 +15,7 @@ final class CourierInstantSettingsRuntimeTest extends TestCase {
     public function test_fallback_discovery_uses_only_matching_cache_family(): void { $this->runScenario( 'fallback' ); }
     public function test_missing_instant_children_never_invent_services_or_wildcards(): void { $this->runScenario( 'missing' ); }
     public function test_controller_validates_and_roundtrips_explicit_services(): void { $this->runScenario( 'controller' ); }
+    public function test_retired_borzo_cannot_reappear_from_persisted_policy_or_cache(): void { $this->runScenario( 'retired' ); }
     public function test_legacy_csv_does_not_opt_in_instant(): void { $this->runScenario( 'legacy' ); }
     public function test_cache_invalidation_clears_both_families_and_preserves_optional_fallbacks(): void { $this->runScenario( 'invalidation' ); }
     public function test_get_requires_permission(): void { $this->runScenario( 'get-permission' ); }

@@ -33,6 +33,7 @@ final class Init {
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,
             Controllers\CodAdjustmentController::class,
+            Controllers\InstantDeliveryController::class,
         ];
     }
     /**
@@ -159,6 +160,19 @@ final class Init {
                     $transaction_repository
                 ),
                 $checkout_service_factory
+            );
+        }
+
+        if ( Controllers\InstantDeliveryController::class === $class ) {
+            $transaction_repository = new Repositories\TransactionRepository();
+
+            return new $class(
+                new Services\InstantDispatchService(
+                    $transaction_repository,
+                    new Repositories\InstantDeliveryApiRepository(),
+                    new Services\InstantShipmentContext()
+                ),
+                new Services\InstantLabelService( $transaction_repository )
             );
         }
 

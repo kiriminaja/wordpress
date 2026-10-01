@@ -3,15 +3,29 @@
 use PHPUnit\Framework\TestCase;
 
 final class CourierServiceUiTest extends TestCase {
-    public function test_instant_picker_tab_is_enabled_and_has_selectable_content(): void {
+    public function test_picker_shows_all_delivery_types_in_one_searchable_grid(): void {
         $picker = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/CourierServicePicker.svelte' );
-        $this->assertSame( 1, preg_match( '/<Tabs\.Trigger\b(?=[^>]*\bvalue="instant")([^>]*)>/', $picker, $trigger ) );
-        $this->assertDoesNotMatchRegularExpression( '/\b(?:disabled|aria-disabled)\b/', $trigger[1] );
-        $this->assertStringContainsString( 'bind:value={deliveryType}', $picker );
-        $this->assertStringContainsString( "const deliveryTypes: DeliveryType[] = ['express', 'instant']", $picker );
-        $this->assertStringContainsString( '{#each deliveryTypes as tabType (tabType)}', $picker );
-        $this->assertMatchesRegularExpression( '/<Tabs\.Content\s+value=\{tabType\}/', $picker );
-        $this->assertStringContainsString( 'courierDeliveryType(courier) === tabType', $picker );
+        foreach ( array( 'sortCouriersByName(couriers)', 'rows.filter(({ courier }) => matchesCourierSearch(courier, search))', '{#each visibleRows as { courier, index, status } (courier.code)}', "search = \$bindable('')", 'showSearch = true', '{#if showSearch}', "search = '';" ) as $contract ) {
+            $this->assertStringContainsString( $contract, $picker );
+        }
+        foreach ( array( '<Tabs.', "from '\$lib/components/ui/tabs'", 'deliveryType', 'courierDeliveryType', 'instantSetupHint', 'not available yet', 'not yet available', 'noInstantCouriers' ) as $removed ) {
+            $this->assertStringNotContainsString( $removed, $picker );
+        }
+    }
+
+    public function test_search_is_adjacent_to_bulk_controls_and_bound_to_shared_picker(): void {
+        foreach ( array( 'src/lib/settings/CouriersSection.svelte', 'src/lib/onboarding/OnboardingApp.svelte' ) as $file ) {
+            $adapter = file_get_contents( PLUGIN_DIR . '/' . $file );
+            $this->assertStringContainsString( 'type="search"', $adapter );
+            $this->assertStringContainsString( 'bind:search', $adapter );
+            $this->assertStringContainsString( 'showSearch={false}', $adapter );
+            $this->assertStringContainsString( 'aria-label=', $adapter );
+            $this->assertStringNotContainsString( 'deliveryType', $adapter );
+            $this->assertStringNotContainsString( 'courierDeliveryType', $adapter );
+            $this->assertStringNotContainsString( 'tabCouriers', $adapter );
+            $enable = str_contains( $file, '/settings/' ) ? 'onclick={() => setAll(true)}' : 'onclick={enableAllCouriers}';
+            $this->assertLessThan( strpos( $adapter, $enable ), strpos( $adapter, 'type="search"' ) );
+        }
     }
 
     public function test_courier_picker_does_not_depend_on_removed_legacy_assets(): void {
@@ -59,7 +73,7 @@ final class CourierServiceUiTest extends TestCase {
     public function test_picker_preserves_state_and_uses_accessible_controls(): void {
         $picker = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/CourierServicePicker.svelte' );
         $selection = file_get_contents( PLUGIN_DIR . '/src/lib/couriers/selection.ts' );
-        foreach ( array( 'courierSelection(', 'toggleCourier(', 'toggleService(', '<SettingSwitch', 'checked={status.checked}', 'aria-label=', 'aria-labelledby=', 'for={`${prefix}-service-', 'if (!disabled)', 'sm:grid-cols-2', '2xl:grid-cols-4', '<CourierLogo', '<Tabs.Trigger', 'value="instant"', 'value="international"', 'bind:value={deliveryType}', 'courierDeliveryType(courier) === tabType', 'class="kiriof-shadcn !grid min-w-0 gap-3"', 'service.name', '{service.code}' ) as $contract ) {
+        foreach ( array( 'courierSelection(', 'toggleCourier(', 'toggleService(', '<SettingSwitch', 'checked={status.checked}', 'aria-label=', 'aria-labelledby=', 'for={`${prefix}-service-', 'if (!disabled)', 'sm:grid-cols-2', '2xl:grid-cols-4', '<CourierLogo', 'class="kiriof-shadcn !grid min-w-0 gap-3"', 'service.name', '{service.code}' ) as $contract ) {
             $this->assertStringContainsString( $contract, $picker );
         }
         $this->assertStringNotContainsString( '{@html', $picker );
@@ -70,15 +84,13 @@ final class CourierServiceUiTest extends TestCase {
         $switch = file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/switch/switch.svelte' );
         $this->assertStringContainsString( 'focus-visible:', $switch );
         $this->assertStringNotContainsString( '<Checkbox', $picker );
-        $this->assertDoesNotMatchRegularExpression( '/value="instant"\s+disabled/', $picker );
-        $this->assertMatchesRegularExpression( '/value="international"\s+disabled/', $picker );
         $settings = file_get_contents( PLUGIN_DIR . '/src/lib/settings/CouriersSection.svelte' );
-        $this->assertStringContainsString( 'setAllServices(selectionState, tabCouriers, enabled)', $settings );
-        $this->assertStringContainsString( 'bind:deliveryType', $settings );
+        $this->assertStringContainsString( 'setAllServices(selectionState, couriers, enabled)', $settings );
+        $this->assertStringContainsString( 'bind:search', $settings );
         $onboarding = file_get_contents( PLUGIN_DIR . '/src/lib/onboarding/OnboardingApp.svelte' );
-        $this->assertStringContainsString( 'setAllServices(courierState, tabCouriers, true)', $onboarding );
-        $this->assertStringContainsString( 'setAllServices(courierState, tabCouriers, false)', $onboarding );
-        $this->assertStringContainsString( 'bind:deliveryType', $onboarding );
+        $this->assertStringContainsString( 'setAllServices(courierState, couriers, true)', $onboarding );
+        $this->assertStringContainsString( 'setAllServices(courierState, couriers, false)', $onboarding );
+        $this->assertStringContainsString( 'bind:search={courierSearch}', $onboarding );
         $transactions = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
         $this->assertStringContainsString( '<CourierLogo', $transactions );
         $logo = file_get_contents( PLUGIN_DIR . '/src/lib/ui/CourierLogo.svelte' );

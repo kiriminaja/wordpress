@@ -2,6 +2,7 @@
   import { IconDownload, IconExternalLink, IconPrinter } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import KiriofDialog from '$lib/ui/KiriofDialog.svelte';
+  import { postWordPressAction } from '$lib/wordpress/ajax';
 
   type PreviewResponse = { url: string };
 
@@ -11,17 +12,20 @@
     ajaxUrl,
     nonce,
     i18n,
+    deliveryType = 'express',
   }: {
     open?: boolean;
     orderIds: string[];
     ajaxUrl: string;
     nonce: string;
     i18n: Record<string, string>;
+    deliveryType?: 'express' | 'instant';
   } = $props();
 
   let pdfUrl = $state('');
   let loading = $state(false);
   let error = $state('');
+  let frame = $state<HTMLIFrameElement>();
 
   async function loadPreview(): Promise<void> {
     if (orderIds.length === 0 || loading) return;
@@ -30,6 +34,14 @@
     pdfUrl = '';
 
     try {
+      if (deliveryType === 'instant') {
+        const response = await postWordPressAction<PreviewResponse>('kiriof_instant_label_preview', { order_ids: JSON.stringify(orderIds) }, { ajaxUrl, nonce });
+        if (!response.data?.url) throw new Error(i18n.printPreviewError ?? 'Unable to load label preview.');
+        const url = new URL(response.data.url, window.location.href);
+        if (url.origin !== window.location.origin || url.searchParams.get('action') !== 'kiriof_instant_labels') throw new Error(i18n.printPreviewError ?? 'Unable to load label preview.');
+        pdfUrl = url.href;
+        return;
+      }
       const body = new URLSearchParams({ action: 'kiriof_print_label_preview', nonce });
       for (const orderId of orderIds) body.append('oids[]', orderId);
       const response = await fetch(ajaxUrl, {
@@ -63,7 +75,10 @@
   }
 
   function print(): void {
-    window.print();
+    if (deliveryType === 'instant') {
+      frame?.contentWindow?.focus();
+      frame?.contentWindow?.print();
+    } else window.print();
   }
 
   $effect(() => {
@@ -92,7 +107,7 @@
         <Button variant="outline" onclick={() => void loadPreview()}>{i18n.retry ?? 'Retry'}</Button>
       </div>
     {:else if pdfUrl}
-      <iframe class="size-full border-0 bg-white" src={pdfUrl} title={i18n.printPreview ?? 'Label preview'}></iframe>
+      <iframe bind:this={frame} class="size-full border-0 bg-white" src={pdfUrl} title={i18n.printPreview ?? 'Label preview'}></iframe>
     {/if}
   </div>
 
@@ -100,7 +115,7 @@
     <div class="!flex !items-center !justify-end gap-2">
       <Button variant="outline" onclick={print}><IconPrinter data-icon="inline-start" />{i18n.print ?? 'Print'}</Button>
       <Button variant="outline" href={pdfUrl} target="_blank" rel="noopener noreferrer"><IconExternalLink data-icon="inline-start" />{i18n.openInNewTab ?? 'Open in new tab'}</Button>
-      <Button href={pdfUrl} target="_blank" rel="noopener noreferrer" download><IconDownload data-icon="inline-start" />{i18n.download ?? 'Download'}</Button>
+      {#if deliveryType === 'express'}<Button href={pdfUrl} target="_blank" rel="noopener noreferrer" download><IconDownload data-icon="inline-start" />{i18n.download ?? 'Download'}</Button>{/if}
     </div>
   {/if}
 </KiriofDialog>

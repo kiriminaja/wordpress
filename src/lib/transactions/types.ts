@@ -97,9 +97,16 @@ export type TransactionRow = {
     itemCoupon: string;
     shippingCoupon: string;
   };
-  selection: { disabled: boolean; canPickup: boolean; canPrint: boolean; title: string };
+  selection: {
+    disabled: boolean;
+    canPickup: boolean;
+    canProcess: boolean;
+    canPrint: boolean;
+    title: string;
+  };
   actions: {
     preview: boolean;
+    process: boolean;
     changeOrigin: boolean;
     adjustDeficit: boolean;
     cancelDeficit: boolean;
@@ -145,3 +152,30 @@ export type TransactionsBootstrap = {
   };
 };
 import type { ToolbarConfig } from '$lib/ui/toolbar';
+
+export interface InstantQuoteRow {
+  id: string;
+  before: number | null;
+  after: number | null;
+  changed: boolean;
+  eligible: boolean;
+  error: string;
+}
+export interface InstantQuote {
+  token: string;
+  expires_at: number;
+  rows: InstantQuoteRow[];
+  payment_methods: string[];
+  batch_count: number;
+}
+export interface InstantPayment {
+  id: string;
+  status: string;
+  amount: number | null;
+  qr_content: string;
+  order_ids: string[];
+}
+export interface InstantDispatchResult {
+  rows: Array<{ id: string; status: string; awb: string; message: string }>;
+  payments: InstantPayment[];
+}

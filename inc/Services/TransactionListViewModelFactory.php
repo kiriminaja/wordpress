@@ -87,7 +87,11 @@ class TransactionListViewModelFactory {
 		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
 		$can_cancel            = $is_express && '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
 		$can_request_pickup    = $is_express && $can_request_pickup;
-		$checkbox_disabled     = ! $can_print && ! $can_request_pickup;
+		$can_process_instant   = ! $is_express && InstantShipmentContext::canProcess( $row ) && $wc_order
+			&& ! in_array( $wc_order->get_status(), array( 'cancelled', 'completed', 'refunded', 'failed', 'trash' ), true )
+			&& ( $wc_order->is_paid() || 'processing' === $wc_order->get_status() );
+		$can_print             = $is_express ? $can_print : InstantLabelService::canPrint( $row );
+		$checkbox_disabled     = ! $can_print && ! $can_request_pickup && ! $can_process_instant;
 		$origin                = $this->origin_resolver->resolve( $row );
 		$origin_name           = $origin['name'];
 		$origin_address        = $origin['address'];
@@ -155,15 +159,17 @@ class TransactionListViewModelFactory {
 			'selection'       => array(
 				'disabled'  => $checkbox_disabled,
 				'canPickup' => $can_request_pickup,
+				'canProcess' => (bool) $can_process_instant,
 				'canPrint'  => $can_print,
-				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : __( 'Instant dispatch is not wired yet.', 'kiriminaja-official' ),
+				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ),
 			),
 			'actions'         => array(
 				'preview'      => true,
+				'process'      => (bool) $can_process_instant,
 				'changeOrigin' => $is_express && $is_processable,
 				'adjustDeficit'=> $is_express && $is_deficit,
 				'cancelDeficit'=> $is_express && $is_deficit,
-				'print'        => $is_express && '' !== $awb && 'request_pickup' === (string) $row->status,
+				'print'        => $is_express ? ( '' !== $awb && 'request_pickup' === (string) $row->status ) : $can_print,
 				'cancel'       => ! $is_deficit && $can_cancel,
 				'printUrl'     => admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) ),
 			),

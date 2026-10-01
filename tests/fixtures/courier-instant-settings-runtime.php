@@ -72,12 +72,13 @@ $raw = array(
     array( 'code' => 'gosend', 'name' => 'GoSend', 'type' => 'instant', 'services' => array( array( 'code' => 'GO-INSTANT', 'name' => 'Instant' ), array( 'code' => 'GO-SAMEDAY', 'name' => 'Same Day' ) ) ),
     array( 'code' => 'grab_express', 'name' => 'Grab', 'services' => array( array( 'code' => 'GRAB-BIKE' ) ) ),
     array( 'code' => 'borzo', 'type' => ' INSTANT ' ),
+    array( 'code' => ' BORZO ', 'services' => array( array( 'code' => 'INSTANT' ) ) ),
     array( 'code' => 'instantx', 'type' => 'instant' ),
     array( 'code' => 'ninja_inter', 'type' => 'regular' ),
     array( 'code' => 'overseas', 'region' => ' INTERNATIONAL ' ),
     array( 'code' => 'foreign', 'type' => 'international' ),
 );
-$all_codes = array( 'jne', 'gosend', 'grab_express', 'borzo' );
+$all_codes = array( 'jne', 'gosend', 'grab_express' );
 $GLOBALS['api_result'] = array( 'status' => true, 'data' => (object) array( 'status' => true, 'datas' => $raw ) );
 function save( $data, $success ): void {
     global $controller, $wpdb;
@@ -127,7 +128,7 @@ switch ( $scenario ) {
         same( array_column( $api->get_couriers( true )->data, 'code' ), $all_codes );
         same( array_column( $api->get_couriers()->data, 'code' ), array( 'jne' ) );
         same( $GLOBALS['api_calls'], 0 );
-        same( array_keys( Catalog::available( 'instant' ) ), array( 'gosend', 'grab_express', 'borzo' ) );
+        same( array_keys( Catalog::available( 'instant' ) ), array( 'gosend', 'grab_express' ) );
         same( isset( Catalog::available( 'express' )['gosend'] ), false );
         same( Catalog::canonicalService( 'gosend', 'go-instant' ), 'GO-INSTANT' );
         break;
@@ -156,15 +157,14 @@ switch ( $scenario ) {
         same( $settings['couriers'][0]['services'], array( array( 'code' => 'instant', 'name' => 'Instant' ), array( 'code' => 'sameday', 'name' => 'Same Day' ) ) );
         same( $settings['couriers'][1]['delivery_type'], 'instant' );
         same( $settings['couriers'][1]['services'], array( array( 'code' => 'instant', 'name' => 'Instant' ), array( 'code' => 'sameday', 'name' => 'Same Day' ) ) );
-        same( $settings['couriers'][2]['delivery_type'], 'instant' );
-        same( $settings['couriers'][2]['services'], array() );
-        same( $settings['couriers'][3]['services'], array( array( 'code' => '*', 'name' => 'All services' ) ) );
+        same( array_column( $settings['couriers'], 'code' ), array( 'gosend', 'grab_express', 'mystery' ) );
+        same( $settings['couriers'][2]['services'], array( array( 'code' => '*', 'name' => 'All services' ) ) );
         foreach ( Catalog::instantCodes() as $code ) {
             same( Catalog::canonicalService( $code, '*' ), null );
             save( array( 'service_selection' => json_encode( array( $code => array( '*' ) ) ) ), false );
-            save( array( 'service_selection' => json_encode( array( $code => array( 'INSTANT' ) ) ) ), 'borzo' !== $code );
+            save( array( 'service_selection' => json_encode( array( $code => array( 'INSTANT' ) ) ) ), true );
         }
-        save( array( 'service_selection' => '{"gosend":[],"grab_express":[],"borzo":[]}' ), true );
+        save( array( 'service_selection' => '{"gosend":[],"grab_express":[]}' ), true );
         same( $repository->hasEnabledCourierServices(), false );
         same( $repository->getWhitelistExpeditionIds(), array() );
         break;
@@ -173,8 +173,8 @@ switch ( $scenario ) {
         same( array_column( $settings['couriers'], 'code' ), $all_codes );
         same( $settings['service_selection'], null );
         same( $GLOBALS['api_calls'], 1 );
-        save( array( 'service_selection' => '{"GoSend":["go-instant","GO-INSTANT"],"grab_express":["grab-bike"],"borzo":[],"jne":["reg23"]}', 'whitelist_ids' => 'attacker', 'whitelist_names' => 'Attacker' ), true );
-        $policy = array( 'gosend' => array( 'GO-INSTANT' ), 'grab_express' => array( 'GRAB-BIKE' ), 'borzo' => array(), 'jne' => array( 'REG' ) );
+        save( array( 'service_selection' => '{"GoSend":["go-instant","GO-INSTANT"],"grab_express":["grab-bike"],"jne":["reg23"]}', 'whitelist_ids' => 'attacker', 'whitelist_names' => 'Attacker' ), true );
+        $policy = array( 'gosend' => array( 'GO-INSTANT' ), 'grab_express' => array( 'GRAB-BIKE' ), 'jne' => array( 'REG' ) );
         same( $repository->getCourierServiceSelection(), $policy );
         same( json_decode( $wpdb->rows['origin_whitelist_expedition_services'], true ), $policy );
         same( $repository->getWhitelistExpeditionIds(), array( 'gosend', 'grab_express', 'jne' ) );
@@ -185,7 +185,7 @@ switch ( $scenario ) {
         same( (array) getSettings()['service_selection'], $policy );
         same( $reloaded->isCourierServiceEnabled( 'GOSEND', 'go-instant' ), true );
         same( $reloaded->isCourierServiceEnabled( 'gosend', 'GO-SAMEDAY' ), false );
-        foreach ( array( '{"gosend":["*"]}', '{"gosend":["REG"]}', '{"grab_express":["GO-INSTANT"]}', '{"borzo":["INSTANT"]}', '{"ninja_inter":["*"]}', '{"instantx":["INSTANT"]}', '{"gosend":[0]}', '[]' ) as $bad ) { save( array( 'service_selection' => $bad ), false ); }
+        foreach ( array( '{"gosend":["*"]}', '{"gosend":["REG"]}', '{"grab_express":["GO-INSTANT"]}', '{"borzo":["INSTANT"]}', '{"borzo":[]}', '{"borzo":["*"]}', '{"ninja_inter":["*"]}', '{"instantx":["INSTANT"]}', '{"gosend":[0]}', '[]' ) as $bad ) { save( array( 'service_selection' => $bad ), false ); }
         $rates = array( array( 'service' => 'jne', 'service_type' => 'REG23' ), (object) array( 'service' => 'gosend', 'service_type' => 'GO-INSTANT' ), array( 'service' => 'grab_express', 'service_type' => 'GRAB-BIKE' ), array( 'service' => 'jne', 'type' => 'instant', 'service_type' => 'REG' ) );
         same( $repository->validateWhiteListExpedition( $rates ), array( $rates[0] ) );
         save( array( 'service_selection' => '{"gosend":[]}' ), true );
@@ -193,13 +193,47 @@ switch ( $scenario ) {
         same( $reloaded->getWhitelistExpeditionIds(), array() );
         same( $wpdb->rows['origin_name'], 'Untouched origin' );
         break;
+    case 'retired':
+        same( Catalog::instantCodes(), array( 'gosend', 'grab_express' ) );
+        foreach ( array( 'borzo', ' BORZO ' ) as $code ) {
+            foreach ( array( null, 'express', 'instant' ) as $type ) {
+                same( Catalog::isSupportedCourier( $code, array(), $type ), false );
+                same( Catalog::isSupportedCourier( $code, array( 'type' => 'instant' ), $type ), false );
+            }
+        }
+        same( $repository->isCourierServiceEnabled( 'borzo', 'INSTANT' ), false );
+        $GLOBALS['transients']['kiriof_couriers_all_v1'] = $raw;
+        foreach ( array( '["INSTANT"]', '["*"]', '[]' ) as $services ) {
+            $repository->storeCourierWhitelist( array( 'service_selection' => '{"borzo":' . $services . ',"jne":["REG"]}', 'origin_whitelist_expedition_id' => 'Borzo,jne' ) );
+            $repository->clearCache();
+            same( $repository->getCourierServiceSelection(), array( 'jne' => array( 'REG' ) ) );
+            same( $repository->isCourierServiceEnabled( ' BORZO ', 'INSTANT' ), false );
+            same( $repository->isCourierServiceEnabled( 'borzo', '*' ), false );
+            same( $repository->getWhitelistExpeditionIds(), array( 'jne' ) );
+            $settings = getSettings();
+            same( array_column( $settings['couriers'], 'code' ), $all_codes );
+            same( (array) $settings['service_selection'], array( 'jne' => array( 'REG' ) ) );
+            save( array( 'service_selection' => '{"borzo":' . $services . ',"jne":["REG"]}' ), false );
+            save( array( 'whitelist_ids' => 'borzo,jne' ), false );
+        }
+        $repository->storeCourierWhitelist( array( 'service_selection' => '{"borzo":["*"]}', 'origin_whitelist_expedition_id' => 'borzo' ) );
+        same( $repository->getCourierServiceSelection(), array() );
+        same( $repository->hasEnabledCourierServices(), false );
+        save( array( 'service_selection' => '{"jne":["REG"]}' ), true );
+        same( $repository->getCourierServiceSelection(), array( 'jne' => array( 'REG' ) ) );
+        break;
     case 'legacy':
-        foreach ( array( '', 'gosend,grab_express,borzo', 'jne,gosend' ) as $ids ) {
+        foreach ( array( '', 'borzo', 'gosend,grab_express,borzo', 'jne,gosend' ) as $ids ) {
             $repository->storeCourierWhitelist( array( 'origin_whitelist_expedition_id' => $ids ) );
             same( $repository->getCourierServiceSelection(), null );
-            foreach ( Catalog::instantCodes() as $code ) { same( $repository->isCourierServiceEnabled( $code, 'ANY' ), false ); }
+            if ( 'borzo' === $ids ) {
+                same( $repository->getWhitelistExpeditionIds(), array() );
+                same( $repository->hasEnabledCourierServices(), false );
+                same( $repository->isCourierServiceEnabled( 'jne', 'REG' ), false );
+            }
+            foreach ( array_merge( Catalog::instantCodes(), array( 'borzo' ) ) as $code ) { same( $repository->isCourierServiceEnabled( $code, 'ANY' ), false ); }
         }
-        foreach ( Catalog::instantCodes() as $code ) { save( array( 'whitelist_ids' => $code, 'whitelist_names' => 'Instant' ), false ); }
+        foreach ( array_merge( Catalog::instantCodes(), array( 'borzo' ) ) as $code ) { save( array( 'whitelist_ids' => $code, 'whitelist_names' => 'Instant' ), false ); }
         $repository->storeCourierWhitelist( array( 'origin_whitelist_expedition_id' => 'gosend' ) );
         save( array( 'service_selection' => '{"gosend":["*"]}' ), false );
         $repository->storeCourierWhitelist( array( 'origin_whitelist_expedition_id' => 'ninja_inter' ) );

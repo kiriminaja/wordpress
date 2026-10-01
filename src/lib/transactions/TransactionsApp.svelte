@@ -38,6 +38,7 @@
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import KiriofMultiFilter from '$lib/ui/KiriofMultiFilter.svelte';
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
+  import InstantProcessDialog from './InstantProcessDialog.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
   import { instantStatusIcon } from './types';
@@ -79,6 +80,8 @@
   let selected = $state<Record<string, boolean>>({});
   let refreshing = $state(false);
   let searchTimer: number | null = null;
+  let instantDialogOpen = $state(false);
+  let instantOrderIds = $state<string[]>([]);
   let pickupDialogOpen = $state(false);
   let actionDialog = $state<TransactionActionDialog | null>(null);
   let printPreviewOpen = $state(false);
@@ -86,11 +89,13 @@
 
   const isOrderIssue = $derived(filters.status === 'order-issue');
   const isInstant = $derived(!isOrderIssue && filters.delivery_type === 'instant');
-  const readOnly = $derived(isOrderIssue || isInstant);
-  const selectedRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType !== 'instant' && selected[row.kaOrderId]));
-  const selectableRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType !== 'instant' && !row.selection.disabled));
+  const readOnly = $derived(isOrderIssue);
+  const selectedRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType === (isInstant ? 'instant' : 'express') && !row.selection.disabled && selected[row.kaOrderId]));
+  const selectableRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType === (isInstant ? 'instant' : 'express') && !row.selection.disabled));
   const allSelected = $derived(selectableRows.length > 0 && selectableRows.every((row) => selected[row.kaOrderId]));
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
+  const selectedProcessCount = $derived(selectedRows.filter((row) => row.selection.canProcess).length);
+  const processOrderIds = $derived(selectedRows.filter((row) => row.selection.canProcess).map((row) => row.kaOrderId));
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
   const selectedCount = $derived(selectedRows.length);
   const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
@@ -174,14 +179,20 @@
   }
 
   function toggleRow(row: TransactionRow, checked: boolean): void {
-    if (readOnly || row.deliveryType === 'instant') return;
+    if (readOnly || row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')) return;
     selected = { ...selected, [row.kaOrderId]: checked };
   }
 
   function openPrintPreview(orderIds: string[]): void {
-    if (isInstant || orderIds.length === 0) return;
+    if (readOnly || orderIds.length === 0) return;
     printPreviewOrderIds = orderIds;
     printPreviewOpen = true;
+  }
+
+  function openInstantDialog(orderIds: string[]): void {
+    if (!isInstant || readOnly || !orderIds.length) return;
+    instantOrderIds = [...orderIds];
+    instantDialogOpen = true;
   }
 
   function printSelected(): void {
@@ -261,17 +272,21 @@
 
 <div class="kiriof-shadcn kiriof-admin-list-app kiriof-transactions-app">
   <Toolbar toolbar={bootstrap.toolbar}>
-    {#if !isInstant}
     <div class="kiriof-transactions-toolbar__actions">
       <Button id="kj-print-btn" variant="outline" disabled={refreshing || selectedPrintCount === 0} onclick={printSelected}>
         <IconPrinter data-icon="inline-start" />
         <span>{bootstrap.i18n.print} ({selectedPrintCount} of {selectedCount})</span>
       </Button>
+      {#if isInstant}
+      <Button disabled={refreshing || selectedProcessCount === 0} onclick={() => openInstantDialog(processOrderIds)}>
+        <span>{bootstrap.i18n.processShipment} ({selectedProcessCount} {bootstrap.i18n.pageOf} {selectedCount})</span>
+      </Button>
+      {:else}
       <Button id="kj-request-pickup-btn" disabled={refreshing || selectedPickupCount === 0} onclick={openPickupDialog}>
         <span>{bootstrap.i18n.requestPickup} ({selectedPickupCount} of {selectedCount})</span>
       </Button>
+      {/if}
     </div>
-    {/if}
   </Toolbar>
 
   <KiriofCard class="kiriof-transactions-card">
@@ -297,7 +312,7 @@
           <AutoRefresh
             storageKey="kiriof-transactions-refresh-interval"
             loading={refreshing}
-            disabled={pickupDialogOpen || actionDialog !== null}
+            disabled={pickupDialogOpen || instantDialogOpen || printPreviewOpen || actionDialog !== null}
             hint={bootstrap.i18n.autoRefresh}
             options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
             onRefresh={refreshList}
@@ -407,7 +422,7 @@
                     <ActionTooltip label={row.selection.title} disabled={!row.selection.title}>
                       <Checkbox
                         checked={Boolean(selected[row.kaOrderId])}
-                        disabled={row.deliveryType === 'instant' || (!row.selection.canPrint && !row.selection.canPickup)}
+                        disabled={row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')}
                         name="transaction_id[]"
                         value={row.kaOrderId}
                         data-can-pickup={row.selection.canPickup ? '1' : '0'}
@@ -496,6 +511,10 @@
                     {#if row.actions.preview}
                       <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
+                    {#if row.deliveryType === 'instant' && isInstant}
+                      {#if row.actions.process}<ActionTooltip label={bootstrap.i18n.processShipment}><Button variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])} aria-label={bootstrap.i18n.processShipment}><IconTruck /></Button></ActionTooltip>{/if}
+                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
+                    {/if}
                     {#if row.deliveryType !== 'instant'}
                     {#if row.actions.changeOrigin}
                       <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })} aria-label={bootstrap.i18n.changeOrigin}><IconSwitch2 /></Button></ActionTooltip>
@@ -536,6 +555,7 @@
     i18n={bootstrap.i18n}
   />
   <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
-  <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
   {/if}
+  <InstantProcessDialog bind:open={instantDialogOpen} orderIds={instantOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onComplete={refreshList} />
+  <PrintPreviewDialog deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
 </div>

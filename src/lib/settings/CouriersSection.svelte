@@ -2,15 +2,14 @@
   import { onDestroy, onMount } from 'svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
-  import { IconAlertCircle, IconCheck, IconLoader2, IconRefresh, IconX } from '@tabler/icons-svelte';
+  import { IconAlertCircle, IconCheck, IconLoader2, IconRefresh, IconSearch, IconX } from '@tabler/icons-svelte';
+  import * as InputGroup from '$lib/components/ui/input-group';
   import CourierServicePicker from '$lib/couriers/CourierServicePicker.svelte';
   import {
     initializeSelection,
     selectionPayload,
     setAllServices,
-    courierDeliveryType,
     type Courier,
-    type DeliveryType,
     type CourierPayload,
     type SelectionState,
   } from '$lib/couriers/selection';
@@ -21,8 +20,8 @@
 
   let { bootstrap }: { bootstrap: CouriersBootstrap } = $props();
   let couriers = $state<Courier[]>([]);
-  let deliveryType = $state<DeliveryType>('express');
-  const tabCouriers = $derived(couriers.filter((courier) => courierDeliveryType(courier) === deliveryType));
+  const prefix = $props.id();
+  let search = $state('');
   let selectionState = $state<SelectionState>({ selection: {}, remembered: {} });
   let loading = $state(true);
   let loaded = $state(false);
@@ -101,7 +100,7 @@
 
   function setAll(enabled: boolean): void {
     if (!loaded || loading || saving) return;
-    void persist(setAllServices(selectionState, tabCouriers, enabled));
+    void persist(setAllServices(selectionState, couriers, enabled));
   }
 
   onMount(() => {
@@ -114,33 +113,45 @@
   });
 </script>
 
-<Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings}>
-  <Button
-    class="kiriof-settings-action-button"
-    disabled={!loaded ||
-      loading ||
-      saving ||
-      tabCouriers.length === 0 ||
-      sameSelection(setAllServices(selectionState, tabCouriers, true), selectionState)}
-    onclick={() => setAll(true)}
-  >
-    <IconCheck class="kiriof-settings-action-button__icon" aria-hidden="true" />
-    <span>{bootstrap.i18n.enableAll}</span>
-  </Button>
-  <Button
-    class="kiriof-settings-action-button"
-    variant="outline"
-    disabled={!loaded ||
-      loading ||
-      saving ||
-      tabCouriers.length === 0 ||
-      sameSelection(setAllServices(selectionState, tabCouriers, false), selectionState)}
-    onclick={() => setAll(false)}
-  >
-    <IconX class="kiriof-settings-action-button__icon" aria-hidden="true" />
-    <span>{bootstrap.i18n.disableAll}</span>
-  </Button>
-</Toolbar>
+<div class="contents [&_.kiriof-app-toolbar]:flex-wrap [&_.kiriof-app-toolbar__actions]:w-full [&_.kiriof-app-toolbar__actions]:max-w-full [&_.kiriof-app-toolbar__actions]:flex-wrap sm:[&_.kiriof-app-toolbar__actions]:w-auto">
+  <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings}>
+    <InputGroup.Root class="!h-9 !w-full !min-w-0 !bg-background sm:!w-64">
+      <InputGroup.Addon align="inline-start"><IconSearch class="size-4" aria-hidden="true" /></InputGroup.Addon>
+      <InputGroup.Input
+        id={`${prefix}-search`}
+        type="search"
+        bind:value={search}
+        aria-label={bootstrap.i18n.searchCouriers ?? 'Search couriers or services'}
+        placeholder={bootstrap.i18n.searchCouriers ?? 'Search couriers or services'}
+      />
+    </InputGroup.Root>
+    <Button
+      class="kiriof-settings-action-button"
+      disabled={!loaded ||
+        loading ||
+        saving ||
+        couriers.length === 0 ||
+        sameSelection(setAllServices(selectionState, couriers, true), selectionState)}
+      onclick={() => setAll(true)}
+    >
+      <IconCheck class="kiriof-settings-action-button__icon" aria-hidden="true" />
+      <span>{bootstrap.i18n.enableAll}</span>
+    </Button>
+    <Button
+      class="kiriof-settings-action-button"
+      variant="outline"
+      disabled={!loaded ||
+        loading ||
+        saving ||
+        couriers.length === 0 ||
+        sameSelection(setAllServices(selectionState, couriers, false), selectionState)}
+      onclick={() => setAll(false)}
+    >
+      <IconX class="kiriof-settings-action-button__icon" aria-hidden="true" />
+      <span>{bootstrap.i18n.disableAll}</span>
+    </Button>
+  </Toolbar>
+</div>
 <div class="!grid w-full min-w-0 gap-4">
   {#if loading}
     <div
@@ -166,7 +177,8 @@
   {:else}
     <CourierServicePicker
       {couriers}
-      bind:deliveryType
+      bind:search
+      showSearch={false}
       i18n={bootstrap.i18n}
       state={selectionState}
       disabled={saving || loading}

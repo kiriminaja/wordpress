@@ -333,8 +333,7 @@ class SettingRepository{
         }
         try {
             $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $row->value );
-            unset( $selection['ninja_inter'] );
-            return $selection;
+            return \KiriminAjaOfficial\Services\CourierServiceCatalog::filterSelection( $selection );
         } catch ( \InvalidArgumentException $e ) {
             return array();
         }
@@ -342,7 +341,7 @@ class SettingRepository{
 
     public function isCourierServiceEnabled( string $courier, string $service ): bool {
         $courier = strtolower( trim( $courier ) );
-        if ( 'ninja_inter' === $courier ) {
+        if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier, array(), null ) ) {
             return false;
         }
         $selection = $this->getCourierServiceSelection();
@@ -408,7 +407,7 @@ class SettingRepository{
             array_map(
                 static function ( $expedition_id ) {
                     $id = sanitize_text_field( (string) $expedition_id );
-                    return 'ninja_inter' === strtolower( $id ) ? '' : $id;
+                    return \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $id, array(), null ) ? $id : '';
                 },
                 $ids
             )

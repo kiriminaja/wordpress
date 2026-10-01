@@ -21,7 +21,7 @@ class CourierServiceCatalog {
 		$code = strtolower( trim( $code ) );
 		$type = strtolower( trim( (string) ( $row['type'] ?? '' ) ) );
 		$region = strtolower( trim( (string) ( $row['region'] ?? '' ) ) );
-		if ( '' === $code || 'international' === $type || 'international' === $region || 'ninja_inter' === $code ) {
+		if ( '' === $code || 'borzo' === $code || 'international' === $type || 'international' === $region || 'ninja_inter' === $code ) {
 			return false;
 		}
 
@@ -38,7 +38,7 @@ class CourierServiceCatalog {
 
 	/** @return string[] */
 	public static function instantCodes(): array {
-		return array( 'gosend', 'grab_express', 'borzo' );
+		return array( 'gosend', 'grab_express' );
 	}
 
 	/**

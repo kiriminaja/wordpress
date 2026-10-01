@@ -1,0 +1,173 @@
+<?php
+namespace KiriminAjaOfficial\Controllers;
+
+use InvalidArgumentException;
+use KiriminAjaOfficial\Services\InstantDispatchService;
+use KiriminAjaOfficial\Services\InstantLabelService;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** Authenticated admin endpoints for Instant shipments and local labels. */
+class InstantDeliveryController {
+	private InstantDispatchService $dispatch_service;
+	private InstantLabelService $label_service;
+
+	public function __construct( InstantDispatchService $dispatch_service, InstantLabelService $label_service ) {
+		$this->dispatch_service = $dispatch_service;
+		$this->label_service    = $label_service;
+	}
+
+	public function register(): void {
+		add_action( 'wp_ajax_kiriof_instant_quote', array( $this, 'quote' ) );
+		add_action( 'wp_ajax_kiriof_instant_dispatch', array( $this, 'dispatch' ) );
+		add_action( 'wp_ajax_kiriof_instant_payment', array( $this, 'payment' ) );
+		add_action( 'wp_ajax_kiriof_instant_label_preview', array( $this, 'labelPreview' ) );
+		add_action( 'admin_post_kiriof_instant_labels', array( $this, 'labels' ) );
+	}
+
+	public function quote(): void {
+		$this->ajax( 'quote' );
+	}
+
+	public function dispatch(): void {
+		$this->ajax( 'dispatch' );
+	}
+
+	public function payment(): void {
+		$this->ajax( 'payment' );
+	}
+
+	public function labelPreview(): void {
+		$this->ajax( 'labelPreview' );
+	}
+
+	/** Validate authorization and the complete request before invoking any service. */
+	private function ajax( string $operation ): void {
+		try {
+			if ( ! current_user_can( 'manage_woocommerce' ) ) {
+				throw new InvalidArgumentException( __( 'Insufficient permissions', 'kiriminaja-official' ) );
+			}
+			if ( ! isset( $_POST['data'] ) || ! is_array( $_POST['data'] ) ) {
+				$this->invalid();
+			}
+			$data = $_POST['data']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is validated below.
+			if ( ! isset( $data['nonce'] ) || ! is_string( $data['nonce'] ) || ! wp_verify_nonce( wp_unslash( $data['nonce'] ), KIRIOF_NONCE ) ) {
+				throw new InvalidArgumentException( __( 'Security check failed', 'kiriminaja-official' ) );
+			}
+			$ids = $this->postedIds( $data );
+			switch ( $operation ) {
+				case 'quote':
+					$result = $this->dispatch_service->quote( $ids );
+					break;
+				case 'dispatch':
+					// Review is explicit; truthy values and sanitized lookalikes are not consent.
+					if ( ! isset( $data['confirmed'] ) || ! is_string( $data['confirmed'] ) || 'yes' !== wp_unslash( $data['confirmed'] ) ) {
+						throw new InvalidArgumentException( __( 'Review and confirm the Instant shipping costs before dispatch.', 'kiriminaja-official' ) );
+					}
+					$token  = $this->field( $data, 'token' );
+					$method = $this->field( $data, 'method' );
+					$pin    = array_key_exists( 'pin', $data ) ? $this->field( $data, 'pin', true ) : '';
+					$result = $this->dispatch_service->dispatch( $token, $ids, $method, $pin );
+					break;
+				case 'payment':
+					$payment_id = $this->field( $data, 'payment_id' );
+					$result     = $this->dispatch_service->refreshPayment( $ids, $payment_id );
+					break;
+				default:
+					$this->label_service->prepare( $ids );
+					$result = array(
+						'url'  => add_query_arg(
+							array( 'action' => 'kiriof_instant_labels', 'oids' => implode( ',', $ids ), '_wpnonce' => wp_create_nonce( 'kiriof_instant_labels' ) ),
+							admin_url( 'admin-post.php' )
+						),
+						'type' => 'html',
+					);
+			}
+		} catch ( InvalidArgumentException $error ) {
+			// These services use fixed, translated validation messages, not remote API errors.
+			wp_send_json_error( array( 'status' => 400, 'message' => $error->getMessage() ) );
+			return;
+		} catch ( \Throwable $error ) {
+			wp_send_json_error( array( 'status' => 400, 'message' => $this->failureMessage() ) );
+			return;
+		}
+		wp_send_json_success( array( 'status' => 200, 'data' => $result ) );
+	}
+
+	public function labels(): void {
+		try {
+			if ( ! current_user_can( 'manage_woocommerce' ) ) {
+				throw new InvalidArgumentException( __( 'Insufficient permissions', 'kiriminaja-official' ) );
+			}
+			// Verify the exact nonce, never a sanitized value or the general AJAX nonce.
+			if ( ! isset( $_GET['_wpnonce'] ) || ! is_string( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'kiriof_instant_labels' ) ) {
+				throw new InvalidArgumentException( __( 'Security check failed', 'kiriminaja-official' ) );
+			}
+			nocache_headers();
+			if ( ! isset( $_GET['oids'] ) || ! is_string( $_GET['oids'] ) ) {
+				$this->invalid();
+			}
+			$ids    = $this->validateIds( explode( ',', wp_unslash( $_GET['oids'] ) ) );
+			$labels = $this->label_service->prepare( $ids );
+		} catch ( InvalidArgumentException $error ) {
+			wp_die( esc_html( $error->getMessage() ) );
+			return;
+		} catch ( \Throwable $error ) {
+			wp_die( esc_html( $this->failureMessage() ) );
+			return;
+		}
+		header( 'Content-Type: text/html; charset=UTF-8' );
+		header( 'X-Frame-Options: SAMEORIGIN' );
+		// The local template uses inline CSS and a print button script.
+		header( "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'" );
+		include KIRIOF_DIR . 'templates/instant/labels.php';
+	}
+
+	private function postedIds( array $data ): array {
+		if ( ! isset( $data['order_ids'] ) || ! is_string( $data['order_ids'] ) ) {
+			$this->invalid();
+		}
+		// Decode without associative conversion so a JSON object cannot masquerade as a list.
+		$ids = json_decode( wp_unslash( $data['order_ids'] ) );
+		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $ids ) ) {
+			$this->invalid();
+		}
+		return $this->validateIds( $ids );
+	}
+
+	private function validateIds( array $ids ): array {
+		if ( count( $ids ) < 1 || count( $ids ) > 50 ) {
+			$this->invalid();
+		}
+		$seen = array();
+		foreach ( $ids as $id ) {
+			if ( ( ! is_string( $id ) && ! is_int( $id ) ) || ! preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', (string) $id ) || sanitize_text_field( (string) $id ) !== (string) $id || isset( $seen[ (string) $id ] ) ) {
+				$this->invalid();
+			}
+			$seen[ (string) $id ] = true;
+		}
+		return $ids;
+	}
+
+	private function field( array $data, string $key, bool $allow_empty = false ): string {
+		if ( ! isset( $data[ $key ] ) || ! is_string( $data[ $key ] ) ) {
+			$this->invalid();
+		}
+		$value = wp_unslash( $data[ $key ] );
+		$clean = sanitize_text_field( $value );
+		if ( $clean !== $value || ( ! $allow_empty && '' === $clean ) ) {
+			$this->invalid();
+		}
+		return $clean;
+	}
+
+	private function invalid(): void {
+		throw new InvalidArgumentException( __( 'Invalid Instant request parameters.', 'kiriminaja-official' ) );
+	}
+
+	private function failureMessage(): string {
+		return __( 'Unable to complete the Instant request. Please try again.', 'kiriminaja-official' );
+	}
+}

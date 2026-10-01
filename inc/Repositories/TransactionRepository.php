@@ -146,6 +146,69 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->hasError() ? false : $query;
     }
     
+    /**
+     * Atomically reserve an unbooked instant shipment before any remote submission.
+     *
+     * @param string $order_id KiriminAja order ID.
+     * @return bool Whether exactly one transaction was claimed.
+     */
+    public function claimInstantDispatch( string $order_id ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic write; invalidate only after a successful claim.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET status = 'pending'
+                WHERE order_id = %s
+                    AND delivery_type = 'instant'
+                    AND service IN ('gosend', 'grab_express')
+                    AND status = 'new'
+                    AND (instant_payment_id IS NULL OR instant_payment_id = '')
+                    AND (awb IS NULL OR awb = '')
+                    AND instant_status_code IS NULL",
+                $order_id
+            )
+        );
+
+        if ( 1 !== $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+
+        $this->invalidateCouriersCache();
+        return true;
+    }
+
+    /**
+     * Release an unbooked claim only when dispatch aborts before calling the API.
+     * Never use this after a remote submission, including an ambiguous response.
+     *
+     * @param string $order_id KiriminAja order ID.
+     * @return bool Whether exactly one pending transaction was released.
+     */
+    public function releaseInstantDispatch( string $order_id ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic write; invalidate only after a successful release.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET status = 'new'
+                WHERE order_id = %s
+                    AND delivery_type = 'instant'
+                    AND service IN ('gosend', 'grab_express')
+                    AND status = 'pending'
+                    AND (instant_payment_id IS NULL OR instant_payment_id = '')
+                    AND (awb IS NULL OR awb = '')
+                    AND instant_status_code IS NULL",
+                $order_id
+            )
+        );
+
+        if ( 1 !== $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+
+        $this->invalidateCouriersCache();
+        return true;
+    }
+
     public function getTransactionByWCOrderNumber($wp_wc_order_stat_order_id){
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row(

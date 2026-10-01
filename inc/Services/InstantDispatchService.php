@@ -1,0 +1,370 @@
+<?php
+namespace KiriminAjaOfficial\Services;
+
+use InvalidArgumentException;
+use RuntimeException;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** One-shot, user-bound Instant quotes and conservative remote booking reconciliation. */
+class InstantDispatchService {
+	private TransactionRepository $repo;
+	private InstantDeliveryApiRepository $api;
+	private InstantShipmentContext $context;
+
+	public function __construct( TransactionRepository $repo, InstantDeliveryApiRepository $api, InstantShipmentContext $context ) {
+		$this->repo = $repo;
+		$this->api = $api;
+		$this->context = $context;
+	}
+
+	public function quote( array $ids ): array {
+		$rows = $this->selection( $ids );
+		$methods = $this->paymentMethods();
+		$reports = array();
+		$contexts = array();
+		foreach ( $rows as $id => $row ) {
+			$report = array( 'id' => $id, 'before' => $row->shipping_cost ?? null, 'after' => null, 'changed' => false, 'eligible' => false, 'error' => '' );
+			try {
+				try {
+					$ctx = $this->context->build( $row );
+				} catch ( InvalidArgumentException $error ) {
+					// Context validation uses fixed translated messages, never remote errors.
+					$report['error'] = $error->getMessage();
+					$reports[] = $report;
+					continue;
+				}
+				$price = $this->price( $this->api->price( $ctx['pricing'] ), $ctx['package'] );
+				$ctx['price'] = $price;
+				$contexts[ $id ] = $ctx;
+				$report['after'] = $price;
+				$report['changed'] = (int) $report['before'] !== $price;
+				$report['eligible'] = true;
+			} catch ( \Throwable $error ) {
+				// Never echo an API exception: upstream errors may contain credentials.
+				$report['error'] = __( 'This Instant shipment could not be quoted. Check its addresses, items and courier service.', 'kiriminaja-official' );
+			}
+			$reports[] = $report;
+		}
+		$token = bin2hex( random_bytes( 16 ) );
+		$expires = time() + 120;
+		if ( ! set_transient( $this->quoteKey( $token ), array( 'user' => get_current_user_id(), 'expires' => $expires, 'contexts' => $contexts, 'methods' => $methods ), 120 ) ) {
+			throw new RuntimeException( __( 'Unable to save the Instant quote.', 'kiriminaja-official' ) );
+		}
+		return array( 'token' => $token, 'expires_at' => $expires, 'rows' => $reports, 'payment_methods' => $methods, 'batch_count' => count( $this->groups( $contexts ) ) );
+	}
+
+	public function dispatch( string $token, array $ids, string $method, string $pin = '' ): array {
+		if ( ! preg_match( '/\A[a-f0-9]{32}\z/', $token ) ) {
+			throw new InvalidArgumentException( __( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+		}
+		$key = $this->quoteKey( $token );
+		$quote = get_transient( $key );
+		if ( ! is_array( $quote ) || $quote['user'] !== get_current_user_id() || $quote['expires'] <= time() ) {
+			throw new InvalidArgumentException( __( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+		}
+		$rows = $this->selection( $ids );
+		foreach ( $rows as $id => $row ) {
+			if ( ! isset( $quote['contexts'][ $id ] ) ) {
+				throw new InvalidArgumentException( __( 'Select only eligible shipments from this quote.', 'kiriminaja-official' ) );
+			}
+		}
+		$locks = array();
+		$claims = array();
+		$processed = false;
+		try {
+			foreach ( $rows as $id => $row ) {
+				$lock = 'kiriof_instant_dispatch_' . hash( 'sha256', $id );
+				if ( ! add_option( $lock, 'locked', '', false ) ) {
+					throw new RuntimeException( __( 'An Instant shipment is already being processed.', 'kiriminaja-official' ) );
+				}
+				$locks[] = $lock;
+			}
+			// Reload after acquiring locks, then validate the complete batch before any claim.
+			$rows = $this->selection( $ids );
+			$contexts = array();
+			$total = 0;
+			foreach ( $rows as $id => $row ) {
+				$ctx = $this->context->build( $row );
+				if ( ! hash_equals( $quote['contexts'][ $id ]['fingerprint'], $ctx['fingerprint'] ) ) {
+					throw new RuntimeException( __( 'The shipment has changed. Request a new Instant quote.', 'kiriminaja-official' ) );
+				}
+				$ctx['price'] = $quote['contexts'][ $id ]['price'];
+				$ctx['package']['shipping_cost'] = $ctx['price'];
+				$contexts[ $id ] = $ctx;
+				if ( $total > PHP_INT_MAX - $ctx['price'] ) {
+					throw new RuntimeException( __( 'The Instant total is invalid.', 'kiriminaja-official' ) );
+				}
+				$total += $ctx['price'];
+			}
+			$methods = $this->paymentMethods();
+			if ( $methods !== $quote['methods'] || ! in_array( $method, $methods, true ) ) {
+				throw new InvalidArgumentException( __( 'The selected Instant payment method is unavailable. Request a new quote.', 'kiriminaja-official' ) );
+			}
+			if ( 'credit' === $method ) {
+				if ( ! preg_match( '/\A[0-9]{6}\z/', $pin ) || true !== ( $this->api->validateCredit( $pin, $total )['status'] ?? false ) ) {
+					throw new RuntimeException( __( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
+				}
+			}
+			foreach ( $rows as $id => $row ) {
+				if ( ! $this->repo->claimInstantDispatch( (string) $id ) ) {
+					throw new RuntimeException( __( 'An Instant shipment is already being processed.', 'kiriminaja-official' ) );
+				}
+				$claims[] = (string) $id;
+			}
+			if ( $quote['expires'] <= time() || ! delete_transient( $key ) ) {
+				throw new RuntimeException( __( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+			}
+			$processed = true;
+			$result = array( 'rows' => array(), 'payments' => array() );
+			foreach ( $this->groups( $contexts ) as $group ) {
+				$first = reset( $group );
+				$origin = $first['origin'];
+				$payload = $origin + array( 'packages' => array_values( array_column( $group, 'package' ) ) );
+				// TOP is account-configured: omit the API method, never infer paid.
+				// UI QRIS is merchant payment (not COD), represented by API cash.
+				if ( 'top' !== $method ) {
+					$payload['payment_method'] = 'qris' === $method ? 'cash' : 'credit';
+				}
+				if ( 'credit' === $method ) {
+					$payload['pin'] = $pin;
+				}
+				try {
+					$response = $this->api->book( $payload );
+					$data = true === ( $response['status'] ?? false ) ? $this->result( $response ) : array();
+				} catch ( \Throwable $error ) {
+					$data = array();
+				}
+				$payment = $this->paymentData( $data['payment'] ?? array() );
+				$payment['order_ids'] = array();
+				$matches = array();
+				foreach ( (array) ( $data['packages'] ?? array() ) as $package ) {
+					$package = (array) $package;
+					$order_id = $package['order_id'] ?? null;
+					if ( is_string( $order_id ) && isset( $group[ $order_id ] ) ) {
+						$matches[ $order_id ][] = $package;
+					}
+				}
+				foreach ( $group as $id => $ctx ) {
+					$report = array( 'id' => $id, 'status' => 'unknown', 'awb' => '', 'message' => __( 'Check remote state before retrying', 'kiriminaja-official' ) );
+					$matched = $matches[ $id ] ?? array();
+					if ( 1 === count( $matched ) && '' !== $payment['id'] ) {
+						try {
+							$changes = $this->bookingChanges( $rows[ $id ], $ctx, $matched[0], $payment, $method );
+							if ( $this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'status' => 'pending' ), 'changes' => $changes ) ) ) {
+								$report['status'] = 'booked';
+								$report['awb'] = $changes['awb'] ?? '';
+								$report['message'] = __( 'Instant shipment booked.', 'kiriminaja-official' );
+								$payment['order_ids'][] = $id;
+							}
+						} catch ( \Throwable $error ) {
+							// Accepted remotely but unverified locally: keep the durable claim.
+						}
+					}
+					$result['rows'][] = $report;
+				}
+				if ( ! empty( $payment['order_ids'] ) ) {
+					$result['payments'][] = $payment;
+				}
+			}
+			return $result;
+		} finally {
+			if ( ! $processed ) {
+				foreach ( $claims as $id ) {
+					$this->repo->releaseInstantDispatch( $id );
+				}
+			}
+			foreach ( $locks as $lock ) {
+				delete_option( $lock );
+			}
+		}
+	}
+
+	public function refreshPayment( array $ids, string $payment_id ): array {
+		$rows = $this->selection( $ids );
+		if ( ! $this->safeId( $payment_id ) ) {
+			throw new InvalidArgumentException( __( 'Invalid Instant payment ID.', 'kiriminaja-official' ) );
+		}
+		foreach ( $rows as $row ) {
+			if ( $payment_id !== ( $row->instant_payment_id ?? '' ) ) {
+				throw new InvalidArgumentException( __( 'The payment does not belong to every selected Instant shipment.', 'kiriminaja-official' ) );
+			}
+		}
+		$response = $this->api->payment( $payment_id );
+		if ( true !== ( $response['status'] ?? false ) ) {
+			throw new RuntimeException( __( 'Unable to refresh the Instant payment.', 'kiriminaja-official' ) );
+		}
+		$data = $this->result( $response );
+		$payment = $this->paymentData( $data['payment'] ?? $data );
+		if ( '' !== $payment['id'] && $payment_id !== $payment['id'] ) {
+			throw new RuntimeException( __( 'The Instant payment response is invalid.', 'kiriminaja-official' ) );
+		}
+		$payment['id'] = $payment_id;
+		// Unknown remote values are pending for display, but must not overwrite known state.
+		$raw = (array) ( $data['payment'] ?? $data );
+		if ( null !== $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null ) ) {
+			foreach ( $rows as $id => $row ) {
+				if ( ! $this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'instant_payment_id' => $payment_id ), 'changes' => array( 'instant_payment_status' => $payment['status'] ) ) ) ) {
+					throw new RuntimeException( __( 'Unable to save the Instant payment status.', 'kiriminaja-official' ) );
+				}
+			}
+		}
+		return $payment;
+	}
+
+	private function selection( array $ids ): array {
+		if ( count( $ids ) < 1 || count( $ids ) > 50 ) {
+			throw new InvalidArgumentException( __( 'Select between 1 and 50 Instant shipments.', 'kiriminaja-official' ) );
+		}
+		$normalized = array();
+		foreach ( $ids as $id ) {
+			if ( ( ! is_int( $id ) && ! is_string( $id ) ) || ! $this->safeId( (string) $id ) || isset( $normalized[ (string) $id ] ) ) {
+				throw new InvalidArgumentException( __( 'Invalid or duplicate Instant shipment ID.', 'kiriminaja-official' ) );
+			}
+			$normalized[ (string) $id ] = true;
+		}
+		$found = $this->repo->getTransactionByOrderIds( array_keys( $normalized ) );
+		if ( ! is_array( $found ) || count( $found ) !== count( $normalized ) ) {
+			throw new InvalidArgumentException( __( 'Every selected Instant shipment must exist exactly once.', 'kiriminaja-official' ) );
+		}
+		$rows = array();
+		foreach ( $found as $row ) {
+			$id = is_object( $row ) ? (string) ( $row->order_id ?? '' ) : '';
+			if ( ! isset( $normalized[ $id ] ) || isset( $rows[ $id ] ) || 'instant' !== TransactionDeliveryType::resolve( $row ) || ! in_array( strtolower( (string) $row->service ), array( 'gosend', 'grab_express' ), true ) ) {
+				throw new InvalidArgumentException( __( 'Select only supported Instant shipments.', 'kiriminaja-official' ) );
+			}
+			$rows[ $id ] = $row;
+		}
+		return array_replace( $normalized, $rows );
+	}
+
+	private function paymentMethods(): array {
+		try {
+			$profile = $this->api->profile();
+			$data = (array) ( $profile['data']->results ?? array() );
+			$metadata = (array) ( $data['metadata'] ?? array() );
+			$method = $metadata['payment_method'] ?? null;
+			if ( true !== ( $profile['status'] ?? false ) || ! is_string( $method ) || '' === trim( $method ) ) {
+				throw new RuntimeException();
+			}
+			return 'TOP' === strtoupper( trim( $method ) ) ? array( 'top' ) : array( 'qris', 'credit' );
+		} catch ( \Throwable $error ) {
+			throw new RuntimeException( __( 'Unable to verify Instant account payment methods.', 'kiriminaja-official' ) );
+		}
+	}
+
+	private function price( array $response, array $package ): int {
+		if ( true !== ( $response['status'] ?? false ) ) {
+			throw new RuntimeException();
+		}
+		$matches = array();
+		foreach ( $this->result( $response ) as $courier ) {
+			$courier = (array) $courier;
+			if ( ( $courier['name'] ?? null ) !== $package['service'] ) {
+				continue;
+			}
+			foreach ( (array) ( $courier['costs'] ?? array() ) as $cost ) {
+				$cost = (array) $cost;
+				if ( ( $cost['service_type'] ?? null ) === $package['service_type'] ) {
+					$price = (array) ( $cost['price'] ?? array() );
+					$matches[] = $this->integer( $price['shipping_costs'] ?? null );
+				}
+			}
+		}
+		if ( 1 !== count( $matches ) ) {
+			throw new RuntimeException();
+		}
+		return $matches[0];
+	}
+
+	private function result( array $response ): array {
+		$data = (array) ( $response['data'] ?? array() );
+		$result = (array) ( $data['result'] ?? $data['results'] ?? array() );
+		// The SDK already extracts result; tolerate one extra result envelope.
+		return (array) ( $result['result'] ?? $result['results'] ?? $result );
+	}
+
+	private function groups( array $contexts ): array {
+		$buckets = array();
+		foreach ( $contexts as $id => $ctx ) {
+			$origin = $ctx['origin'];
+			ksort( $origin );
+			$key = hash( 'sha256', wp_json_encode( array( $origin, $ctx['package']['service'], $ctx['package']['vehicle'] ) ) );
+			$buckets[ $key ][ $id ] = $ctx;
+		}
+		$groups = array();
+		foreach ( $buckets as $bucket ) {
+			foreach ( array_chunk( $bucket, 10, true ) as $chunk ) {
+				$groups[] = $chunk;
+			}
+		}
+		return $groups;
+	}
+
+	private function bookingChanges( object $row, array $ctx, array $remote, array $payment, string $method ): array {
+		$status = $this->integer( $remote['status'] ?? $remote['status_code'] ?? null );
+		$destination = $ctx['package']['destination'];
+		$snapshot = json_decode( (string) ( $row->shipping_info ?? '{}' ), true );
+		$snapshot = is_array( $snapshot ) ? $snapshot : array();
+		foreach ( array( 'first_name' => $destination['name'], 'last_name' => '', 'address_1' => $destination['address'], 'address_2' => '', 'phone' => $destination['phone'], 'country' => 'ID' ) as $field => $value ) {
+			$snapshot[ '_shipping_' . $field ] = $value;
+		}
+		$snapshot['destination_latitude'] = $destination['latitude'];
+		$snapshot['destination_longitude'] = $destination['longitude'];
+		$snapshot['instant_items'] = $ctx['package']['items'];
+		$origin = $ctx['origin'];
+		$origin['timezone'] = $ctx['pricing']['timezone'];
+		$changes = array( 'order_id' => $ctx['package']['order_id'], 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_status_code' => $status, 'instant_payment_id' => $payment['id'], 'instant_payment_method' => $method, 'instant_payment_status' => $payment['status'], 'status' => 'request_pickup', 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ), 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );
+		$awb = $remote['awb'] ?? null;
+		if ( is_string( $awb ) && $this->safeId( $awb ) ) {
+			$changes['awb'] = $awb;
+		}
+		$url = $remote['live_tracking_url'] ?? $remote['tracking_url'] ?? $remote['live_tracking'] ?? null;
+		if ( is_string( $url ) && strlen( $url ) <= 2048 && filter_var( $url, FILTER_VALIDATE_URL ) && in_array( strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) ) {
+			$changes['live_tracking_url'] = $url;
+		}
+		return $changes;
+	}
+
+	private function paymentData( $raw ): array {
+		$raw = (array) $raw;
+		$id = $raw['id'] ?? $raw['payment_id'] ?? '';
+		$qr = $raw['qr_content'] ?? $raw['qris_content'] ?? $raw['qr_string'] ?? '';
+		$amount = null;
+		try {
+			$amount = $this->integer( $raw['amount'] ?? $raw['total_amount'] ?? null );
+		} catch ( \Throwable $error ) {
+			// Optional display amount must never invalidate a matched booking.
+		}
+		return array( 'id' => is_string( $id ) && $this->safeId( $id ) ? $id : '', 'status' => $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null ) ?? 'pending', 'amount' => $amount, 'qr_content' => is_string( $qr ) && strlen( $qr ) <= 8192 && ! preg_match( '/[\x00-\x1f\x7f]/', $qr ) ? $qr : '' );
+	}
+
+	private function paymentStatus( $value ): ?string {
+		if ( 0 === $value || '0' === $value ) {
+			return 'paid';
+		}
+		if ( 9 === $value || '9' === $value ) {
+			return 'unpaid';
+		}
+		return is_string( $value ) && in_array( strtolower( $value ), array( 'paid', 'unpaid', 'pending', 'refunded' ), true ) ? strtolower( $value ) : null;
+	}
+
+	private function integer( $value ): int {
+		if ( is_bool( $value ) || ! is_numeric( $value ) || ! is_finite( (float) $value ) || (float) $value < 0 || (float) $value >= PHP_INT_MAX || floor( (float) $value ) !== (float) $value ) {
+			throw new RuntimeException();
+		}
+		return (int) $value;
+	}
+
+	private function safeId( string $id ): bool {
+		return 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', $id );
+	}
+
+	private function quoteKey( string $token ): string {
+		return 'kiriof_instant_quote_' . $token;
+	}
+}

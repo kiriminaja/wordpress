@@ -65,7 +65,7 @@ export function matchesCourierSearch(courier: Courier, query: string): boolean {
     ].some((value) => fuzzyIncludes(value, term))
   );
 }
-const instantCodes = ['gosend', 'grab_express', 'borzo'];
+const instantCodes = ['gosend', 'grab_express'];
 
 export function courierDeliveryType(
   courier: Pick<Courier, 'code' | 'type' | 'delivery_type'>,
@@ -83,6 +83,7 @@ export function supportedCourier(
   return (
     Boolean(normalized(courier.code)) &&
     normalized(courier.code) !== 'ninja_inter' &&
+    normalized(courier.code) !== 'borzo' &&
     normalized(courier.type ?? '') !== 'international' &&
     normalized(courier.region ?? '') !== 'international' &&
     (courierDeliveryType(courier) !== 'instant' || instantCodes.includes(normalized(courier.code)))

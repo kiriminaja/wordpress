@@ -215,7 +215,7 @@ describe('courier service selection', () => {
   });
   test('missing Instant children do not invent wildcard services or enable an empty courier', () => {
     const result = initializeSelection({
-      couriers: [{ code: 'borzo', name: 'Borzo', type: 'instant', services: [] }],
+      couriers: [{ code: 'gosend', name: 'GoSend', type: 'instant', services: [] }],
       whitelist_ids: [],
       service_selection: null,
     });
@@ -224,6 +224,23 @@ describe('courier service selection', () => {
     expect(supportedCourier({ code: 'unknown', type: 'instant' })).toBe(false);
     expect(supportedCourier({ code: 'borzo', region: 'international' })).toBe(false);
     expect(supportedCourier({ code: 'gosend' })).toBe(true);
+  });
+  test('retired Borzo is rejected even without Instant metadata or with saved choices', () => {
+    for (const code of ['borzo', ' Borzo ']) {
+      expect(supportedCourier({ code })).toBe(false);
+      expect(supportedCourier({ code, type: 'instant' })).toBe(false);
+      for (const service_selection of [null, { [code]: ['*', 'INSTANT'] }, { [code]: [] }]) {
+        const result = initializeSelection({
+          couriers: [...catalog, { code, name: 'Borzo', services: [{ code: 'INSTANT', name: 'Instant' }] }],
+          whitelist_ids: [code],
+          service_selection,
+        });
+        expect(result.couriers.map((courier) => courier.code)).toEqual(['jne']);
+        expect(result.state.selection).toEqual({});
+        expect(result.state.remembered).toEqual({});
+      }
+      expect(load({ jne: ['REG'], [code]: ['INSTANT'] }).state.selection).toEqual({ jne: ['REG'] });
+    }
   });
   test('unsupported-only legacy restrictions do not become unrestricted Express shipping', () => {
     const result = initializeSelection({
