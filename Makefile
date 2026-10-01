@@ -4,7 +4,7 @@ PLUGIN_SLUG := kiriminaja-official
 BUN := $(shell command -v bun 2>/dev/null || printf '%s' "$$HOME/.bun/bin/bun")
 
 # Read version from kiriminaja.php KIRIOF_VERSION
-VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/")
+VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9][0-9A-Za-z.-]*\)'.*/\1/")
 
 BUILD_DIR := build
 STAGE_DIR := $(BUILD_DIR)/$(PLUGIN_SLUG)
@@ -121,8 +121,9 @@ tag:
 
 release: changelog
 	@# Re-read version after changelog bumped it
-	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
-	@php scripts/release-notes.php "$(VERSION)" "release-notes.md"
+	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9][0-9A-Za-z.-]*\)'.*/\1/"))
+	@php scripts/release-notes.php "$(VERSION)" > release-notes.md
+	@printf '\n### Assets\n\n- `kiriminaja-official.zip` (v%s), WP.org-ready build.\n' "$(VERSION)" >> release-notes.md
 	@$(MAKE) zip
 	@echo ""
 	@echo "Release v$(VERSION) ready!"
@@ -134,7 +135,7 @@ release: changelog
 
 publish: release
 	@# Full flow: build, commit, tag, push
-	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9.]*\)'.*/\1/"))
+	$(eval VERSION := $(shell grep "KIRIOF_VERSION" kiriminaja.php | sed "s/.*'\([0-9][0-9A-Za-z.-]*\)'.*/\1/"))
 	git add -A
 	git commit -m "chore: release v$(VERSION)"
 	@$(MAKE) tag

@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * Generate changelog from git commits and update readme.txt
+ * Generate a PR-based changelog from GitHub release notes and update readme.txt.
  *
  * Usage:
  *   php scripts/changelog.php [version] [from-ref] [bump-type]
@@ -9,22 +9,24 @@
  *   make changelog BUMP=minor             # bumps minor (e.g. 2.1.4 -> 2.2.0)
  *   make changelog BUMP=major             # bumps major (e.g. 2.2.0 -> 3.0.0)
  *   make changelog V=2.2.0               # explicit version
- *   make changelog V=2.2.0 FROM=abc1234  # explicit version + starting ref
+ *   make changelog V=2.2.0 FROM=v2.1.9  # explicit version + previous release tag
  *
  * Bump types:
  *   patch (default) — 2.1.3 -> 2.1.4, auto-rolls to minor at .99 (2.1.99 -> 2.2.0)
  *   minor           — 2.1.4 -> 2.2.0,  auto-rolls to major at .99 (2.99.0 -> 3.0.0)
  *   major           — 2.2.0 -> 3.0.0
  *
- * Reads first-parent git history since the last version in readme.txt (or
- * from-ref), keeps user-facing squash commit titles (feat/fix/perf),
- * and prepends the new version entry to the == Changelog == section.
+ * Uses GitHub's generated release notes since the previous release tag.
+ * Requires an authenticated gh CLI and a pushed release branch.
+ * Prepends the new version entry to the == Changelog == section.
  * Also updates: Stable tag, KIRIOF_VERSION, Version header, and WC tested up to.
  */
 
 if ( php_sapi_name() !== 'cli' ) {
     exit( 'This script must be run from the command line.' );
 }
+
+require_once __DIR__ . '/release-notes.php';
 
 $root_dir   = dirname( __DIR__ );
 $readme     = $root_dir . '/readme.txt';
@@ -45,8 +47,8 @@ if ( $version !== null ) {
     $version = ltrim( $version, 'vV' );
 }
 
-// Validate version is a semver-ish string; otherwise treat as missing.
-if ( $version !== null && ! preg_match( '/^\d+(\.\d+){0,2}$/', $version ) ) {
+// Accept explicit prerelease versions used by the publish workflow.
+if ( $version !== null && ! preg_match( '/^\d+(\.\d+){0,2}(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?$/', $version ) ) {
     fwrite( STDERR, "Warning: Ignoring invalid version argument '{$version}'. Falling back to bump.\n" );
     $version = null;
 }
@@ -120,7 +122,7 @@ echo "Generating changelog for version {$version}...\n";
 // --- Read readme.txt ---
 $readme_content = file_get_contents( $readme );
 
-// --- Find the last version tag in changelog to scope git log ---
+// Use the latest changelog version as the previous GitHub release tag.
 $last_version = null;
 if ( preg_match( '/^== Changelog ==\s*\n= ([^\s=]+) =/m', $readme_content, $m ) ) {
     $last_version = $m[1];
@@ -132,134 +134,25 @@ if ( $last_version === $version ) {
     exit( 0 );
 }
 
-// --- Determine commit range ---
-// Priority: git tag > grep commit by version > optional --from arg
-$since_arg = '';
-
-if ( $from_ref ) {
-    // Explicit ref passed as second argument
-    $since_arg = escapeshellarg( $from_ref ) . '..HEAD';
-    echo "Using explicit range: {$from_ref}..HEAD\n";
-} elseif ( $last_version ) {
-    // Try git tag first
-    $tag_cmd   = sprintf(
-        'cd %s && git tag -l %s 2>/dev/null',
-        escapeshellarg( $root_dir ),
-        escapeshellarg( $last_version )
-    );
-    $tag_exists = trim( (string) shell_exec( $tag_cmd ) );
-
-    if ( $tag_exists ) {
-        $since_arg = escapeshellarg( $last_version ) . '..HEAD';
-        echo "Using tag range: {$last_version}..HEAD\n";
-    } else {
-        // Find the commit that set this version in kiriminaja.php (current branch only)
-        $escaped  = escapeshellarg( "KIRIOF_VERSION', '{$last_version}'" );
-        $find_cmd = sprintf(
-            'cd %s && git log --oneline --format=%%H -S %s -- kiriminaja.php | head -1',
-            escapeshellarg( $root_dir ),
-            $escaped
-        );
-        $since_hash = trim( shell_exec( $find_cmd ) );
-
-        if ( $since_hash ) {
-            $since_arg = escapeshellarg( $since_hash ) . '..HEAD';
-            echo "Using commit range: {$since_hash}..HEAD\n";
-        } else {
-            echo "Warning: Could not find boundary for {$last_version}. Reading last 30 commits.\n";
-            $since_arg = '-30';
-        }
-    }
-}
-
-$log_cmd = sprintf(
-    'cd %s && git log --first-parent %s --format="%%H%%x1f%%P%%x1f%%s%%x1e"',
-    escapeshellarg( $root_dir ),
-    $since_arg
-);
-
-$raw_output = shell_exec( $log_cmd );
-
-if ( $raw_output === null ) {
-    fwrite( STDERR, "Error: git log failed.\n" );
+$marker = '== Changelog ==';
+$pos    = strpos( $readme_content, $marker );
+if ( false === $pos ) {
+    fwrite( STDERR, "Error: '== Changelog ==' section not found in readme.txt.\n" );
     exit( 1 );
 }
 
-// --- Parse user-facing squash commits ---
-$features = [];
-$fixes    = [];
-$commits  = array_filter( explode( chr( 30 ), $raw_output ) );
-
-foreach ( $commits as $commit ) {
-    $fields = explode( chr( 31 ), trim( $commit ), 3 );
-    if ( count( $fields ) !== 3 ) {
-        continue;
-    }
-
-    [ , $parents, $subject ] = $fields;
-    $parent_list = preg_split( '/\s+/', trim( $parents ) );
-
-    // A GitHub squash merge produces one first-parent commit. Exclude true
-    // merge commits and release/build/refactor/test implementation details.
-    if ( count( array_filter( $parent_list ) ) !== 1 ) {
-        continue;
-    }
-
-    $subject = preg_replace( '/^(AB#\d+\s*)?/', '', trim( $subject ) );
-    if ( ! preg_match( '/^(feat(?:ure)?|fix(?:ing)?|perf)(?:\([^)]*\))?!?:\s*(.+)$/i', $subject, $match ) ) {
-        continue;
-    }
-
-    $type  = strtolower( $match[1] );
-    $clean = trim( $match[2] );
-    if ( '' === $clean ) {
-        continue;
-    }
-
-    if ( str_starts_with( $type, 'fix' ) ) {
-        $fixes[] = ucfirst( $clean );
-    } else {
-        $features[] = ucfirst( $clean );
-    }
+try {
+    $previous_tag = $from_ref ?: ( $last_version ? 'v' . $last_version : null );
+    $notes = kiriof_generate_release_notes( $root_dir, $version, $previous_tag );
+} catch ( Throwable $error ) {
+    fwrite( STDERR, 'Error: ' . $error->getMessage() . "\n" );
+    exit( 1 );
 }
 
-// Deduplicate
-$features = array_unique( $features );
-$fixes    = array_unique( $fixes );
-
-if ( empty( $features ) && empty( $fixes ) ) {
-    echo "No feature/fixing commits found since {$last_version}. Skipping changelog entry.\n";
-} else {
-    // --- Build changelog entry ---
-    $entry = "= {$version} =\n";
-
-    foreach ( $features as $f ) {
-        $entry .= "- {$f}\n";
-    }
-    foreach ( $fixes as $f ) {
-        $entry .= "- {$f}\n";
-    }
-
-    echo "Found " . count( $features ) . " feature(s) and " . count( $fixes ) . " fix(es).\n";
-
-    // --- Insert into readme.txt ---
-    $marker = '== Changelog ==';
-    $pos    = strpos( $readme_content, $marker );
-
-    if ( $pos === false ) {
-        fwrite( STDERR, "Error: '== Changelog ==' section not found in readme.txt.\n" );
-        exit( 1 );
-    }
-
-    $before = substr( $readme_content, 0, $pos + strlen( $marker ) );
-    $after  = substr( $readme_content, $pos + strlen( $marker ) );
-
-    $new_content = $before . "\n" . $entry . $after;
-
-    file_put_contents( $readme, $new_content );
-
-    echo "Updated readme.txt with changelog for version {$version}.\n";
-}
+$before = substr( $readme_content, 0, $pos + strlen( $marker ) );
+$after  = ltrim( substr( $readme_content, $pos + strlen( $marker ) ), "\r\n" );
+file_put_contents( $readme, $before . "\n= {$version} =\n{$notes}\n\n" . $after );
+echo "Updated readme.txt with GitHub release notes for version {$version}.\n";
 
 // --- Also update Stable tag and Version header ---
 $new_content = file_get_contents( $readme );

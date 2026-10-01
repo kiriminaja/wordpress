@@ -99,6 +99,7 @@ make release BUMP=major       # auto-bump major
 make release V=2.5.0          # explicit version
 make release 2.5.0            # shorthand (positional)
 make release v2.5.0           # shorthand with leading "v"
+make release V=2.5.0-beta.1   # explicit prerelease
 make publish                  # full flow: build + commit + tag + push
 
 # --- Individual steps ---
@@ -108,6 +109,10 @@ make tag                      # create local git tag v$(VERSION)
 ```
 
 `BUMP` rules: `patch` auto-rolls to `minor` at `.99`; `minor` auto-rolls to `major` at `.99`.
+
+Changelogs use GitHub's generated release notes, with one entry per pull request rather than individual commits. Install the GitHub CLI, run `gh auth login`, and push the release branch before running `make changelog` or `make release`. `FROM` selects the previous release tag, for example `make changelog FROM=v2.4.2`.
+
+The publish workflow reads the version's saved changelog from `readme.txt` and uses the same notes for the GitHub release. You can edit that entry before tagging without having GitHub generate a different change list. No version bump or release is created by opening a pull request.
 
 ### Branching
 

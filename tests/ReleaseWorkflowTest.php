@@ -8,14 +8,13 @@ use PHPUnit\Framework\TestCase;
 final class ReleaseWorkflowTest extends TestCase
 {
     #[Test]
-    public function changelog_uses_first_parent_user_facing_commit_titles(): void
+    public function changelog_uses_github_pr_based_release_notes(): void
     {
         $changelog = file_get_contents( PLUGIN_DIR . '/scripts/changelog.php' );
 
-        $this->assertStringContainsString( 'git log --first-parent', $changelog );
-        $this->assertStringContainsString( "'/^(feat(?:ure)?|fix(?:ing)?|perf)", $changelog );
-        $this->assertStringNotContainsString( "'chore'", $changelog );
-        $this->assertStringNotContainsString( "'build'", $changelog );
+        $this->assertStringContainsString( 'kiriof_generate_release_notes', $changelog );
+        $this->assertStringContainsString( "require_once __DIR__ . '/release-notes.php';", $changelog );
+        $this->assertStringNotContainsString( 'git log', $changelog );
     }
 
     #[Test]
