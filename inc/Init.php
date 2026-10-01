@@ -30,6 +30,7 @@ final class Init {
             Controllers\ShippingDiscountCouponController::class,
             Controllers\CheckoutController::class,
             Controllers\AccountAddressController::class,
+            Blocks\BuyerCheckoutRegistration::class,
             Controllers\TrackingFrontPageController::class,
             Controllers\EditOrderController::class,
             Controllers\CodAdjustmentController::class,

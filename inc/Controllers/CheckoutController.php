@@ -122,6 +122,7 @@ class CheckoutController
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_block_checkout_fields'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_store_api_update_callback'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_destination_schema'));
+            add_action('init', array($this, 'kiriof_register_district_checkout_block'));
 
             /** Validation Custom field Sub District */
             add_action( 'woocommerce_checkout_process', array($this,'kiriof_checkout_field_validation') );
@@ -2129,6 +2130,46 @@ class CheckoutController
      * recalculates the cart so Insurance and COD Fee render as native fees.
      */
     /** Checkout extension schema is optional on older WooCommerce versions. */
+    /**
+     * Register the in-address District block without touching checkout data.
+     *
+     * WooCommerce decides which saved checkout layout/template applies. This only
+     * makes the shipping-address parent available; it never registers shipping,
+     * fees, validation, or order behavior.
+     */
+    public function kiriof_register_district_checkout_block() {
+        if ( ! $this->kiriof_cart_needs_shipping() ) {
+            $this->kiriof_clear_logistics_session();
+            return;
+        }
+        if ( ! function_exists( 'register_block_type_from_metadata' ) ) {
+            return;
+        }
+
+        $metadata = KIRIOF_DIR . 'blocks/checkout-district';
+        if ( ! file_exists( trailingslashit( $metadata ) . 'block.json' ) ) {
+            return;
+        }
+
+        register_block_type_from_metadata(
+            $metadata,
+            array( 'render_callback' => array( $this, 'kiriof_render_district_checkout_block' ) )
+        );
+    }
+
+    /**
+     * Render the District placeholder inside the shipping-address step.
+     *
+     * The dynamic component replaces this server shell. There is intentionally no
+     * duplicate Blocks additional field: the existing registered text-field stays
+     * as the legacy fallback for installations where this parent is unavailable.
+     *
+     * @return string
+     */
+    public function kiriof_render_district_checkout_block() {
+        return '<div class="kiriof-buyer-district kiriof-buyer-district--inner-block" data-kiriof-district-inner-block="shipping"></div>';
+    }
+
     public function kiriof_register_destination_schema() {
         $schema = '\Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema';
         if ( ! function_exists( 'woocommerce_store_api_register_endpoint_data' ) || ! class_exists( $schema ) ) {

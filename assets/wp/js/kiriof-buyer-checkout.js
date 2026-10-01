@@ -8,10 +8,12 @@
 	var errorId = 'kiriof-buyer-destination';
 	var fieldId = namespace + '/kiriof_destination_area';
 	var destinationSlot = blocks && ( blocks.OrderMeta || blocks.ExperimentalOrderMeta );
+	destinationSlot = destinationSlot && wp && wp.plugins && typeof wp.plugins.registerPlugin === 'function' ? destinationSlot : null;
+	var supportsDistrictInnerBlock = !!( blocks && typeof blocks.registerCheckoutBlock === 'function' );
 	var checkoutDispatch;
 	var validationDispatch;
 
-	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ! destinationSlot || ! wp || ! wp.element || ! wp.components || ! wp.components.ComboboxControl || ! wp.plugins || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
+	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.components || ! wp.components.ComboboxControl || ! wp.plugins || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
 		return;
 	}
 	try {
@@ -34,8 +36,9 @@
 	var strings = config.i18n || {};
 	var listeners = new Set();
 	var savedSelections = Object.assign( {}, config.savedDistrictByPostcode || {} );
-	// OrderMeta has multiple mobile fills: mirror one model, elect one effect owner.
-	var controllers = new Set();
+	// Prefer in-address mounts over fallback order-summary mounts.
+	var controllers = new Map();
+	var hasInnerPlacement = false;
 	var owner = null;
 	var state = { destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
 	var resolveReady;
@@ -105,7 +108,10 @@
 		}
 	}
 
-	function DistrictControl() {
+	function DistrictControl( props ) {
+		var slot = props && props.slot
+			? String( props.slot )
+			: ( props && props.children && props.children.slot ? String( props.children.slot ) : 'order-summary' );
 		var data = wp.data.useSelect( function( select ) {
 			var cart = select( 'wc/store/cart' );
 			var checkout = select( 'wc/store/checkout' );
@@ -128,6 +134,17 @@
 		var kiriminajaSelected = ! selected.length || selected.some( function( rate ) {
 			return 'kiriminaja-official' === rate.method_id || /^kiriminaja-official(?:_|:)/.test( rate.rate_id || '' );
 		} );
+		function controlsHasInnerPlacement() {
+			return hasInnerPlacement || Array.from( controllers.values() ).some( function( placement ) { return 'shipping-address' === placement; } );
+		}
+		function electOwner() {
+			var preferred = controlsHasInnerPlacement() ? 'shipping-address' : 'order-summary';
+			var current = owner ? controllers.get( owner ) : undefined;
+			if ( current === preferred ) { return; }
+			owner = null;
+			controllers.forEach( function( placement, token ) { if ( ! owner && placement === preferred ) { owner = token; } } );
+		}
+		var revision = useState( 0 );
 		var revision = useState( 0 );
 		var token = useRef( {} ).current;
 		var isOwner = ! owner || owner === token;
@@ -145,13 +162,20 @@
 		var destinationRef = useRef( destination );
 		destinationRef.current = destination;
 
-		function ownsEffects() { return ! api.disabled && owner === token; }
+		function ownsEffects() {
+			// Production h() passes element props inside children in some
+			// harnesses, so accept either shape when locating placement.
+			var placement = slot;
+			if ( ! placement && props && props.children && props.children.slot ) { placement = String( props.children.slot ); }
+			return ! api.disabled && owner === token && ( 'shipping-address' === placement || ( 'order-summary' === placement && ! controlsHasInnerPlacement() ) );
+		}
 
 		useEffect( function() {
 			if ( api.disabled ) { return; }
-			controllers.add( token );
+			controllers.set( token, slot );
+			if ( 'shipping-address' === slot ) { hasInnerPlacement = true; }
+			electOwner();
 			listeners.add( revision[ 1 ] );
-			if ( ! owner ) { owner = token; }
 			api.active = true;
 			if ( api.pending ) {
 				api.pending = false;
@@ -163,8 +187,8 @@
 			return function() {
 				listeners.delete( revision[ 1 ] );
 				controllers.delete( token );
-				if ( owner !== token ) { return; }
-				owner = controllers.values().next().value || null;
+				if ( 'shipping-address' === slot && ! controlsHasInnerPlacement() ) { hasInnerPlacement = false; }
+				electOwner();
 				if ( ! owner ) {
 					setValidation( '' );
 					api.active = false;
@@ -276,7 +300,7 @@
 
 		if ( api.disabled || ! required ) { return null; }
 		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? strings.lookupFailed : ( results.options.length ? message : strings.empty ) ) );
-		return h( 'div', { className: 'kiriof-buyer-district' },
+		return h( 'div', { className: 'kiriof-buyer-district kiriof-buyer-district--inner-block' },
 			h( wp.components.ComboboxControl, {
 				label: strings.district,
 				value: currentSelection ? currentSelection.id : null,
@@ -310,10 +334,21 @@
 		);
 	}
 
-	wp.plugins.registerPlugin( 'kiriminaja-official-buyer-destination', {
-		scope: 'woocommerce-checkout',
-		render: function() { return h( destinationSlot, null, h( DistrictControl ) ); }
-	} );
+	if ( destinationSlot ) {
+		wp.plugins.registerPlugin( 'kiriminaja-official-buyer-destination', {
+			scope: 'woocommerce-checkout',
+			render: function() { return h( destinationSlot, null, h( DistrictControl, { slot: 'order-summary' } ) ); }
+		} );
+	}
+	if ( supportsDistrictInnerBlock ) {
+		blocks.registerCheckoutBlock( {
+			metadata: {
+				name: 'kiriminaja-official/checkout-district',
+				parent: [ 'woocommerce/checkout-shipping-address-block' ]
+			},
+			component: function() { return h( DistrictControl, { slot: 'shipping-address' } ); }
+		} );
+	}
 	var unsubscribe = wp.data.subscribe( function() { if ( owner && ! api.disabled ) { queue.resume(); } } );
 	root.addEventListener( 'pagehide', function( event ) {
 		if ( event && event.persisted ) { return; }

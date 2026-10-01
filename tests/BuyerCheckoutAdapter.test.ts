@@ -15,7 +15,7 @@ type Node = { type: any; props: any; children: any[] };
 // A small commit-phase hook runner: effects run after render, changed effects clean
 // up first, setters are stable, and updates during effects cause another render.
 // Both production scripts execute unchanged in the same browser-like VM.
-function harness(options: { block?: boolean; enabled?: boolean; slot?: string; missing?: string; config?: any } = {}) {
+function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any } = {}) {
 	const timers = new Map<number, { delay: number; callback: () => void }>();
 	let nextTimer = 0;
 	const setTimeout = (callback: () => void, delay = 0) => { timers.set(++nextTimer, { callback, delay }); return nextTimer; };
@@ -45,6 +45,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; m
 	};
 	const select = (name: string) => ({ 'wc/store/cart': cartStore, 'wc/store/checkout': checkoutStore, 'wc/store/payment': paymentStore } as any)[name];
 	let plugin: any, pluginName = '', component: any, cursor = 0;
+	const registeredBlocks: any[] = [];
 	type Instance = { hooks: any[]; tree: Node | null; dirty: boolean; mounted: boolean };
 	const instances: Instance[] = [];
 	let current: Instance;
@@ -80,6 +81,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; m
 	};
 	const blocks: any = {
 		[options.slot || 'OrderMeta']: 'OrderMetaSlot',
+		registerCheckoutBlock: options.inner === false ? undefined : (registration: any) => { registeredBlocks.push(registration); },
 		extensionCartUpdate: (request: any) => { const task = deferred(); sends.push({ request, ...task }); return task.promise; },
 	};
 	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district' };
@@ -99,6 +101,8 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; m
 	runInNewContext(sessionSource, context);
 	if (options.missing === 'session') delete root.kiriofBuyerCheckoutSession;
 	if (options.missing === 'slot') delete blocks[options.slot || 'OrderMeta'];
+	if (options.missing === 'inner') delete blocks.registerCheckoutBlock;
+	if (options.missing === 'plugins') delete wp.plugins;
 	if (options.missing === 'update') delete blocks.extensionCartUpdate;
 	if (options.missing === 'useSelect') delete wp.data.useSelect;
 	if (options.missing === 'validation') delete validationDispatch.clearValidationError;
@@ -126,6 +130,15 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; m
 		instances.push({ hooks: [], tree: null, dirty: true, mounted: true }); render();
 		return instances.length - 1;
 	}
+	function mountRegisteredBlock(index = 0) {
+		const registration = registeredBlocks[index];
+		expect(typeof registration?.component).toBe('function');
+		const rendered = registration.component();
+		component = () => rendered.type( rendered.props );
+		instances.push({ hooks: [], tree: null, dirty: true, mounted: true });
+		render();
+		return instances.length - 1;
+	}
 	function find(type: string, node: any = instances.find(instance => instance.mounted)?.tree): any {
 		if (!node || typeof node !== 'object') return undefined;
 		if (node.type === type) return node;
@@ -148,8 +161,8 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; m
 	function notify() { for (const callback of subscribers) callback(); render(); }
 	function pagehide(persisted = false) { const event = events.pagehide; event?.callback({ persisted }); if (event?.once) delete events.pagehide; }
 	function unmount(index = 0) { const instance = instances[index]; instance.mounted = false; for (const hook of instance.hooks) hook?.cleanup?.(); render(); }
-	return { root, plugin: () => plugin, pluginName: () => pluginName, classes, queries, model, publications, validations, sends, lookups, subscribers, timers,
-		mount, render, settle, flush, reply, notify, pagehide, unmount, find, findIn,
+	return { root, plugin: () => plugin, pluginName: () => pluginName, classes, queries, model, publications, validations, sends, lookups, subscribers, timers, registeredBlocks: () => registeredBlocks,
+		mount, mountRegisteredBlock, render, settle, flush, reply, notify, pagehide, unmount, find, findIn,
 		choose: (id: string | null) => { find('ComboboxControl').props.onChange(id); render(); },
 		retry: () => { find('button').props.onClick(); render(); },
 		status: () => find('p')?.children[0],
@@ -159,6 +172,19 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; m
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
 describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
+	test('registers one in-address District component with shared District logic', async () => {
+		const h = harness();
+		expect(h.registeredBlocks()).toHaveLength(1);
+		expect(h.registeredBlocks()[0].metadata).toEqual({ name: 'kiriminaja-official/checkout-district', parent: ['woocommerce/checkout-shipping-address-block'] });
+		expect(typeof h.registeredBlocks()[0].component).toBe('function');
+		h.mountRegisteredBlock();
+		await h.flush(250);
+		expect(h.lookups).toHaveLength(1);
+		await h.reply();
+		expect(h.find('ComboboxControl')).toBeDefined();
+		expect(h.root.kiriofBuyerCheckout.active).toBe(true);
+		expect(h.root.kiriofBuyerCheckout.getDestination().postcode).toBe('12345');
+	});
 	test('unrelated carriers remain checkout-valid when district lookup fails', async () => {
 		const h = harness();
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'flat_rate:2', method_id: 'flat_rate', selected: true };
@@ -252,11 +278,13 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.find('ComboboxControl').props.value).toBe('7');
 	});
 	test('feature detection fails closed and supports ExperimentalOrderMeta', () => {
-		for (const missing of ['session', 'slot', 'update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment']) {
+		for (const missing of ['session', 'update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment', 'plugins']) {
 			const h = harness({ missing }); expect(h.root.kiriofBuyerCheckout).toBeUndefined(); expect(h.plugin()).toBeUndefined(); expect(h.classes).toEqual([]);
 		}
-		expect(harness({ enabled: false }).plugin()).toBeUndefined();
+		expect(harness({ enabled: false }).registeredBlocks()).toHaveLength(0);
+		expect(harness({ missing: 'slot' }).registeredBlocks()).toHaveLength(1);
 		const experimental = harness({ slot: 'ExperimentalOrderMeta' }); experimental.mount(); expect(experimental.find('ComboboxControl')).toBeDefined();
+		const slotOnly = harness({ missing: 'inner' }); slotOnly.mount(); expect(slotOnly.find('ComboboxControl')).toBeDefined();
 	});
 	test('debounces lookup, validates district, filters bad IDs and publishes canonical selection', async () => {
 		const h = harness(); h.model.cart.shippingAddress.postcode = ' 12 345 '; h.mount();

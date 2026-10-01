@@ -10,6 +10,12 @@
 	min-width: 0;
 }
 
+/* The in-address inner block sits with native Postal Code and Phone fields. */
+.kiriof-buyer-district--inner-block {
+	margin-block: 0 1em;
+	width: 100%;
+}
+
 .kiriof-buyer-district .components-base-control,
 .kiriof-buyer-district .components-combobox-control__suggestions-container {
 	width: 100%;

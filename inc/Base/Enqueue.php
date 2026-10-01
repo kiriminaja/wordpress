@@ -165,14 +165,15 @@ class Enqueue extends BaseInit{
         }
     }
 
-    private function buyer_checkout_config(): array {
-        $session = WC()->session;
-        $customer = WC()->customer;
+    public function buyer_checkout_config(): array {
+        $wc = function_exists( 'WC' ) && ( ! function_exists( 'is_admin' ) || ! is_admin() ) ? WC() : null;
+        $session = $wc->session ?? null;
+        $customer = $wc->customer ?? null;
         $district = $customer ? ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->get( $customer, 'shipping' ) : array( 'id' => '', 'name' => '' );
-        $setting = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'enable_insurance' );
+        $setting = $wc ? ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'enable_insurance' ) : null;
 
         return array(
-            'enabled' => function_exists( 'woocommerce_store_api_register_endpoint_data' ) && class_exists( '\Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema' ),
+            'enabled' => function_exists( 'woocommerce_store_api_register_update_callback' ) && function_exists( 'woocommerce_store_api_register_endpoint_data' ) && class_exists( '\Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema' ),
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( KIRIOF_NONCE ),
             'globalInsurance' => $setting && 'yes' === $setting->value,
@@ -194,6 +195,29 @@ class Enqueue extends BaseInit{
             ),
         );
     }
+    /** Register once for native Blocks and the legacy frontend fallback. */
+    public function register_buyer_checkout_assets( bool $localize = false ): void {
+        $scripts = array(
+            'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
+            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
+        );
+        foreach ( $scripts as $handle => $asset ) {
+            if ( ! wp_script_is( $handle, 'registered' ) ) {
+                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], KIRIOF_VERSION, true );
+            }
+        }
+        if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'wp-components' ), KIRIOF_VERSION );
+        }
+        if ( $localize ) {
+            $data = wp_scripts()->get_data( 'kiriof-buyer-checkout', 'data' );
+            if ( ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' ) ) {
+                wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+            }
+        }
+    }
+
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
         // Only load on pages where the plugin's UI actually runs: cart, checkout,
@@ -301,28 +325,10 @@ class Enqueue extends BaseInit{
         }
 
         if ( $this->isBlockCartOrCheckoutPage() ) {
-            wp_register_script(
-                'kiriof-checkout-session',
-                $this->plugin_url . 'assets/wp/js/kiriof-checkout-session.js',
-                array(),
-                KIRIOF_VERSION,
-                true
-            );
-            wp_enqueue_script(
-                'kiriof-buyer-checkout',
-                $this->plugin_url . 'assets/wp/js/kiriof-buyer-checkout.js',
-                array( 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout' ),
-                KIRIOF_VERSION,
-                true
-            );
+            $this->register_buyer_checkout_assets( true );
+            wp_enqueue_script( 'kiriof-buyer-checkout' );
             wp_enqueue_style( 'wp-components' );
-            wp_enqueue_style(
-                'kiriof-buyer-checkout',
-                $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css',
-                array(),
-                KIRIOF_VERSION
-            );
-            wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+            wp_enqueue_style( 'kiriof-buyer-checkout' );
             wp_enqueue_script(
                 'kiriof-block-checkout',
                 $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
@@ -334,25 +340,8 @@ class Enqueue extends BaseInit{
     }
 
     private function isBlockCartOrCheckoutPage() {
-        $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
-        if ( $checkout_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
-            return true;
-        }
-        $cart_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'cart' ) : 0;
-        if ( $cart_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/cart', $cart_page_id ) ) {
-            return true;
-        }
-        if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_checkout_block_default' ) ) {
-            if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_checkout_block_default() ) {
-                return true;
-            }
-        }
-        if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_cart_block_default' ) ) {
-            if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_cart_block_default() ) {
-                return true;
-            }
-        }
-        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+        global $post;
+        if ( function_exists( 'has_block' ) && $post && ( has_block( 'woocommerce/checkout', $post ) || has_block( 'woocommerce/cart', $post ) ) ) {
             return true;
         }
         return false;
@@ -386,6 +375,9 @@ class Enqueue extends BaseInit{
      * @return bool
      */
     private function shouldEnqueueFront() {
+        if ( $this->isBlockCartOrCheckoutPage() ) {
+            return true;
+        }
         // WooCommerce commerce pages.
         if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
             return true;

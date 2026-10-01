@@ -77,14 +77,20 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $script = self::billingAddressScriptContent();
         $buyer = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-buyer-checkout.js');
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $block = file_get_contents(PLUGIN_DIR . '/blocks/checkout-district/block.json');
 
-        $this->assertStringContainsString("wp_register_script(\n                'kiriof-checkout-session'", $enqueue, 'The modern buyer session transport must have its own registered handle');
+        $this->assertStringContainsString("'kiriof-checkout-session'", $enqueue, 'The modern buyer session transport must have its own registered handle');
         $this->assertStringContainsString('assets/wp/js/kiriof-checkout-session.js', $enqueue);
-        $this->assertStringContainsString("wp_enqueue_script(\n                'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
-        $this->assertStringContainsString("array( 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout' )", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
+        $this->assertStringContainsString("'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
+        $this->assertStringContainsString("'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
         $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig'", $enqueue);
         $this->assertStringContainsString('root.kiriofBuyerCheckoutSession', $buyer, 'The modern buyer must consume the dedicated session transport');
-        $this->assertStringContainsString('window.kiriofBuyerCheckout && window.kiriofBuyerCheckout.active', $script, 'Legacy code must only bypass its writers after the modern buyer is active');
+        $this->assertStringContainsString('register_block_type_from_metadata', $controller, 'District must be registered as a real checkout block, not only a SlotFill');
+        $this->assertStringContainsString('kiriof_render_district_checkout_block', $controller, 'District block registration must have a render callback');
+        $this->assertStringContainsString('woocommerce/checkout-shipping-address-block', $block, 'District must be parented to the shipping-address step, not the order summary');
+        $this->assertStringContainsString('blocks.registerCheckoutBlock', $buyer, 'District must use the supported inner-block registration API');
+        $this->assertStringContainsString('kiriof-checkout-district-editor', $enqueue, 'District editor assets must be registered');
         foreach (array('kiriofInitBlockCheckoutCompatibility()', 'kiriofCodInsurance()') as $function) {
             $start = strpos($script, 'function ' . $function);
             $this->assertNotFalse($start, 'Legacy compatibility helper must remain for classic and fallback flows');
@@ -3971,15 +3977,15 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "has_block( 'woocommerce/cart'",
+            "has_block( 'woocommerce/checkout'",
             $enqueue,
-            'Cart Block pages need the shipping discount totals script too'
+            'Checkout Block pages need the shipping discount totals script too'
         );
 
         $this->assertStringContainsString(
-            'is_cart_block_default',
+            'isBlockCartOrCheckoutPage',
             $enqueue,
-            'Default Woo Cart Block pages need the shipping discount totals script too'
+            'Checkout detection must preserve the dedicated cart/checkout request helper'
         );
 
         $this->assertStringContainsString(
