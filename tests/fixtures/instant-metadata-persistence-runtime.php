@@ -1,5 +1,5 @@
 <?php
-/** Isolated production persistence harness; no WordPress sanitizers are required. */
+/** Isolated production persistence harness with WordPress boundary stubs. */
 declare(strict_types=1);
 
 $root = dirname(__DIR__, 2);
@@ -14,6 +14,19 @@ function get_option($key, $default = '') { return $GLOBALS['options'][$key] ?? $
 function update_option($key, $value, $autoload = false) { $GLOBALS['options'][$key] = $value; return true; }
 function esc_sql($value) { return $value; }
 function delete_transient($key) { $GLOBALS['deleted'][] = $key; }
+function wp_parse_url($url, $component = -1) {
+    $GLOBALS['wordpress_helpers'][] = 'wp_parse_url';
+    return parse_url($url, $component);
+}
+function esc_url_raw($url, $protocols = null) {
+    $GLOBALS['wordpress_helpers'][] = 'esc_url_raw';
+    return $url;
+}
+function sanitize_text_field($value) {
+    $GLOBALS['wordpress_helpers'][] = 'sanitize_text_field';
+    $value = preg_replace('@<(script|style)[^>]*?>.*?</\1>@si', '', $value);
+    return trim(preg_replace('/[\x00-\x1F\x7F]+/', ' ', strip_tags($value)));
+}
 function dbDelta($sql) {
     $wpdb = $GLOBALS['wpdb'];
     $wpdb->queries[] = $sql;
@@ -149,4 +162,4 @@ if ('migration' === ($input['mode'] ?? '')) {
 }
 unlink($temp . '/wp-admin/includes/upgrade.php');
 rmdir($temp . '/wp-admin/includes'); rmdir($temp . '/wp-admin'); rmdir($temp);
-echo json_encode(['ok' => $ok, 'row' => $wpdb->row, 'queries' => $wpdb->queries, 'prepared' => $wpdb->prepared, 'updates' => $wpdb->updates, 'deleted' => $GLOBALS['deleted'], 'columns' => $wpdb->columns, 'options' => $GLOBALS['options'], 'first_options' => $first_options ?? [], 'first_queries' => $first_queries ?? [], 'second_count' => $second_count ?? 0], JSON_THROW_ON_ERROR);
+echo json_encode(['ok' => $ok, 'row' => $wpdb->row, 'queries' => $wpdb->queries, 'prepared' => $wpdb->prepared, 'updates' => $wpdb->updates, 'deleted' => $GLOBALS['deleted'], 'columns' => $wpdb->columns, 'options' => $GLOBALS['options'], 'first_options' => $first_options ?? [], 'first_queries' => $first_queries ?? [], 'second_count' => $second_count ?? 0, 'wordpress_helpers' => $GLOBALS['wordpress_helpers'] ?? []], JSON_THROW_ON_ERROR);

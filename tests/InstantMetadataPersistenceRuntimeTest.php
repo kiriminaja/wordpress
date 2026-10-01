@@ -141,4 +141,13 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
             $this->assertSame(101, $result['row']['instant_status_code']);
         }
     }
+
+    #[Test]
+    public function metadata_validation_uses_wordpress_helpers_and_removes_script_contents(): void {
+        $result = $this->runFixture(['changes' => ['instant_payment_id' => '<script>discard</script><b>PAY-1</b>', 'live_tracking_url' => 'https://example.test/track']]);
+        $this->assertTrue($result['ok']);
+        $this->assertSame('PAY-1', $result['row']['instant_payment_id']);
+        $this->assertSame('https://example.test/track', $result['row']['live_tracking_url']);
+        $this->assertSame(['sanitize_text_field', 'wp_parse_url', 'esc_url_raw'], $result['wordpress_helpers']);
+    }
 }

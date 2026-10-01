@@ -309,10 +309,10 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                 }
                 if ( 'live_tracking_url' === $field ) {
                     $value = trim( $value );
-                    if ( '' !== $value && ( ! filter_var( $value, FILTER_VALIDATE_URL ) || ! in_array( strtolower( (string) parse_url( $value, PHP_URL_SCHEME ) ), array( 'https', 'http' ), true ) ) ) {
+                    if ( '' !== $value && ( ! filter_var( $value, FILTER_VALIDATE_URL ) || ! in_array( strtolower( (string) wp_parse_url( $value, PHP_URL_SCHEME ) ), array( 'https', 'http' ), true ) ) ) {
                         return false;
                     }
-                    $changes[ $field ] = function_exists( 'esc_url_raw' ) ? esc_url_raw( $value, array( 'https', 'http' ) ) : $value;
+                    $changes[ $field ] = esc_url_raw( $value, array( 'https', 'http' ) );
                     continue;
                 }
                 if ( 'instant_payment_status' === $field || 'instant_payment_method' === $field ) {
@@ -322,7 +322,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                         return false;
                     }
                 } else {
-                    $value = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( $value ) : trim( preg_replace( '/[\x00-\x1F\x7F]+/', ' ', strip_tags( $value ) ) );
+                    $value = sanitize_text_field( $value );
                 }
                 $changes[ $field ] = $value;
             }

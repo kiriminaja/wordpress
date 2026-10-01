@@ -256,6 +256,7 @@ class SetupMigration {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $backfilled = $wpdb->query(
                 $wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table identifier is derived from the WordPress prefix and sanitized migration suffix; data values are prepared.
                     "UPDATE `$table_name` SET delivery_type = %s WHERE delivery_type != %s AND LOWER(TRIM(service)) IN ('gosend','grab_express','borzo')",
                     TransactionDeliveryType::normalize( 'instant' ),
                     TransactionDeliveryType::normalize( 'instant' )
@@ -312,8 +313,9 @@ class SetupMigration {
         $successful = true;
         foreach ( $definitions as $field => $definition ) {
             if ( ! in_array( $field, $columns, true ) ) {
+                $column_name = esc_sql( $field );
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifiers and definitions are fixed internal values.
-                $result = $wpdb->query( "ALTER TABLE `$table_name` ADD `$field` $definition" );
+                $result = $wpdb->query( "ALTER TABLE `$table_name` ADD `$column_name` $definition" );
                 $successful = $successful && false !== $result && empty( $wpdb->last_error );
             }
         }
