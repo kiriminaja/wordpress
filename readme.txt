@@ -137,73 +137,18 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 
 == Changelog ==
 = 2.4.2 =
-- * feat(couriers): manage services in onboarding and settings
-- Release v2.4.0
-- Update the transaction process table and preview to show the
-- Split shipping coupon discounts from KiriminAja platform discounts
-- Inline prepared sql in getAll
-- Update SetupMigration table creation syntax for dbDelta compatibility
-- Update WooCommerce shipping line item total and recalculate totals
-- # Conflicts:
-- Release v2.3.11
-- Save the default shipment location snapshot during transaction checkout.
-- Add Choices.js library
-- Replace Select2/selectWoo with bundled Choices.js in the onboarding
-- Calculate the new order total from the non-shipping total plus the new
-- Add compact collapsible summaries for origin and courier selection,
-- Store courier comparison objects in jQuery modal data instead of DOM
-- Release v2.3.10
-- Use radio selection and limit locations
-- Merge remote-tracking branch 'origin/main' into feat/multi-origin-shipping
-- Release v2.3.9
-- Require API credentials before marking account connected and reset
-- Update fulfillment note assertions and translations
-- Preserve native address fields for non-ID countries (#280)
-- Fix change origin replacement consent layout
-- Render district results above map
-- Harden subdistrict search
-- Use stable native modal selects
-- Stabilize modal courier selects
-- Address QA pickup regressions
-- Use transaction shipment origins
-- Cover dev regression feedback
+Full Changelog: https://github.com/kiriminaja/wordpress/compare/v2.4.1...v2.4.2
 
 = 2.4.1 =
-- * feat(couriers): manage services in onboarding and settings
-- Preserve native address fields for non-ID countries (#280)
+- fix(checkout): preserve address fields for non-ID countries (#280)
+- feat(couriers): manage services in onboarding and settings (#281)
+
+Full Changelog: https://github.com/kiriminaja/wordpress/compare/v2.4.0...v2.4.1
 
 = 2.4.0 =
-- Update the transaction process table and preview to show the
-- Split shipping coupon discounts from KiriminAja platform discounts
-- Inline prepared sql in getAll
-- Update SetupMigration table creation syntax for dbDelta compatibility
-- Update WooCommerce shipping line item total and recalculate totals
-- # Conflicts:
-- Save the default shipment location snapshot during transaction checkout.
-- Calculate the new order total from the non-shipping total plus the new
-- Add compact collapsible summaries for origin and courier selection,
-- Store courier comparison objects in jQuery modal data instead of DOM
-- Use radio selection and limit locations
-- Merge remote-tracking branch 'origin/main' into feat/multi-origin-shipping
-- Update fulfillment note assertions and translations
-- Require consent only when the selected courier service changes. Simplify
-- Validate location data and database operations before saving, preserve a
-- Show full addresses and guide users to manage locations when no
-- Multi origin shipping
-- - New WooCommerce settings tab replaces inline General-tab location management
-- Use detail based address
-- Move the multi origin to general page
-- Move the configurations into general
-- Initialize multi-origin setup
-- Fix change origin replacement consent layout
-- Use stable native modal selects
-- Stabilize modal courier selects
-- Address QA pickup regressions
-- Use transaction shipment origins
-- Cover dev regression feedback
-- Resolve plugin check errors
-- Edit and add modal
-- Multi-row shipment glitches
+- feat(shipping): allow seller to ship from different location (#264)
+
+Full Changelog: https://github.com/kiriminaja/wordpress/compare/v2.3.11...v2.4.0
 
 = 2.3.11 =
 - Add Choices.js library
