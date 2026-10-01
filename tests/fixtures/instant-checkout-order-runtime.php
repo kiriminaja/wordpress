@@ -15,7 +15,7 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
 }
 namespace {
     // Reuse the isolated live quote doubles, with output buffered, not production APIs.
-    $argv[1] = '{}';
+    $argv[1] = json_encode(['scenario' => ($argv[2] ?? '') === 'example_total' ? 'example_total' : '']);
     ob_start();
     require __DIR__ . '/instant-checkout-quote-runtime.php';
     ob_end_clean();
@@ -43,8 +43,8 @@ namespace {
     }
     $GLOBALS['wpdb'] = new LockDatabase();
     class OrderShipping {
-        public string $method = 'kiriminaja-instant'; public int $instance = 4; public $total = 18000; public array $meta;
-        public function __construct($rate) { foreach (['courier', 'service', 'vehicle', 'quote_token'] as $key) { $this->meta['kiriof_instant_' . $key] = $rate[$key]; } $this->meta['kiriof_instant_quote_expires'] = $rate['expires']; }
+        public string $method = 'kiriminaja-instant'; public int $instance = 4; public $total = 19000; public array $meta;
+        public function __construct($rate) { $this->total = $rate['cost']; foreach (['courier', 'service', 'vehicle', 'quote_token'] as $key) { $this->meta['kiriof_instant_' . $key] = $rate[$key]; } $this->meta['kiriof_instant_quote_expires'] = $rate['expires']; }
         public function get_method_id() { return $this->method; }
         public function get_instance_id() { return $this->instance; }
         public function get_total() { return $this->total; }
@@ -86,6 +86,7 @@ namespace {
     $controller->register(); $error = ''; $processedError = ''; $errorStatus = null;
     $wc->packages[0]['rates'] = [clone $line];
     switch ($scenario) {
+        case 'opaque_price_meta': $line->meta['kiriof_instant_admin_fee'] = -999; $line->meta['kiriof_instant_shipping_cost'] = -999; break;
         case 'insurance': $settings->insurance = true; break;
         case 'session_insurance': $wc->session->set('kiriof_insurance', 1); break;
         case 'private_error': $settings->throw = true; break;
@@ -115,6 +116,9 @@ namespace {
     try { if ($scenario === 'classic') { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
     if ($error === '') {
         if ($scenario === 'snapshot_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['context']['destination']['destination_latitude'] = '-6.4'; }
+        if ($scenario === 'snapshot_fee_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['rate']['admin_fee']++; }
+        if ($scenario === 'receipt_fee_edit') { $order->meta['_kiriof_instant_admin_fee']++; }
+        if ($scenario === 'receipt_total_edit') { $order->meta['_kiriof_instant_customer_shipping_total']++; }
         if ($scenario === 'processed_expiry') { $wc->session->data = []; }
         if ($scenario === 'conflict') { $transactions->rows[] = (object) ['delivery_type' => 'instant', 'service' => 'grab_express']; }
         try {
@@ -126,5 +130,5 @@ namespace {
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
         }
     }
-    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
+    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'shipping_total' => $line->total, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
 }

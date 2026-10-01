@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class InstantCheckoutQuoteService {
 	public const SESSION_KEY = 'kiriof_instant_checkout_quotes';
 	private const TTL = 120;
+	private const AMOUNT_VERSION = 2;
 	private const MAX_QUOTES = 8;
 	private SettingRepository $settings;
 	private ShipmentLocationService $locations;
@@ -78,7 +79,7 @@ class InstantCheckoutQuoteService {
 			}
 			unset( $rate );
 			unset( $cache[ $key ] );
-			$cache[ $key ] = array( 'context' => $context, 'rates' => $rates, 'expires' => $expires );
+			$cache[ $key ] = array( 'amount_version' => self::AMOUNT_VERSION, 'context' => $context, 'rates' => $rates, 'expires' => $expires );
 			while ( count( $cache ) > self::MAX_QUOTES ) {
 				array_shift( $cache );
 			}
@@ -144,9 +145,7 @@ class InstantCheckoutQuoteService {
 		if ( 'cod' === strtolower( trim( $payment ) ) ) {
 			throw new InvalidArgumentException( 'cod_unsupported' );
 		}
-		if ( $insurance ) {
-			throw new InvalidArgumentException( 'insurance_unsupported' );
-		}
+		// Express/global insurance preferences do not apply to Instant.
 		$policy = $this->enabledInstant();
 		if ( empty( $policy ) ) {
 			throw new InvalidArgumentException( 'services_disabled' );
@@ -319,15 +318,38 @@ class InstantCheckoutQuoteService {
 					continue;
 				}
 				$price = (array) ( $cost['price'] ?? array() );
-				try {
-					$amount = $this->integer( $price['shipping_costs'] ?? null, 0 );
-				} catch ( InvalidArgumentException $error ) {
+				$rate = array( 'courier' => $courier, 'service' => $service, 'label' => $this->label( $courier, $service ),
+					'cost' => $price['total_price'] ?? null, 'shipping_costs' => $price['shipping_costs'] ?? null,
+					'admin_fee' => $price['admin_fee'] ?? null, 'total_price' => $price['total_price'] ?? null,
+					'estimation' => $cost['estimation'] ?? null, 'vehicle' => 'motor' );
+				if ( ! self::validRateAmounts( $rate ) ) {
 					continue;
 				}
-				$rates[ $key ] = array( 'courier' => $courier, 'service' => $service, 'label' => $this->label( $courier, $service ), 'cost' => $amount, 'vehicle' => 'motor' );
+				// Preserve the upstream hour estimate; never reinterpret it as days.
+				$rate['estimation'] = sanitize_text_field( $rate['estimation'] );
+				$rates[ $key ] = $rate;
 			}
 		}
 		return array_values( array_diff_key( $rates, $duplicates ) );
+	}
+
+	/** Strict API amounts, also required for cached quotes and durable receipts. */
+	public static function validRateAmounts( array $rate ): bool {
+		foreach ( array( 'cost', 'shipping_costs', 'admin_fee', 'total_price' ) as $field ) {
+			if ( ! is_int( $rate[ $field ] ?? null ) || $rate[ $field ] < 0 ) {
+				return false;
+			}
+		}
+		if ( $rate['shipping_costs'] > PHP_INT_MAX - $rate['admin_fee']
+			|| $rate['total_price'] !== $rate['shipping_costs'] + $rate['admin_fee'] || $rate['cost'] !== $rate['total_price'] ) {
+			return false;
+		}
+		$eta = $rate['estimation'] ?? null;
+		if ( ! is_string( $eta ) || '' === trim( $eta ) || preg_match( '/[<>\\x00-\\x1f\\x7f]/', $eta ) ) {
+			return false;
+		}
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $eta ) : strlen( $eta );
+		return $length <= 80 && '' !== sanitize_text_field( $eta );
 	}
 
 	private function label( string $courier, string $service ): string {
@@ -350,12 +372,12 @@ class InstantCheckoutQuoteService {
 	}
 
 	private function compatible( array $entry, array $context ): bool {
-		if ( ( $entry['context'] ?? null ) !== $context || ! is_int( $entry['expires'] ?? null ) || $entry['expires'] <= time() || ! is_array( $entry['rates'] ?? null ) || empty( $entry['rates'] ) ) {
+		if ( ( $entry['amount_version'] ?? null ) !== self::AMOUNT_VERSION || ( $entry['context'] ?? null ) !== $context || ! is_int( $entry['expires'] ?? null ) || $entry['expires'] <= time() || ! is_array( $entry['rates'] ?? null ) || empty( $entry['rates'] ) ) {
 			return false;
 		}
 		foreach ( $entry['rates'] as $rate ) {
 			if ( ! is_array( $rate ) || ! is_string( $rate['quote_token'] ?? null ) || ! preg_match( '/\A[a-f0-9]{64}\z/', $rate['quote_token'] )
-				|| ! is_int( $rate['cost'] ?? null ) || $rate['cost'] < 0 || 'motor' !== ( $rate['vehicle'] ?? null ) || ( $rate['expires'] ?? null ) !== $entry['expires']
+				|| ! self::validRateAmounts( $rate ) || 'motor' !== ( $rate['vehicle'] ?? null ) || ( $rate['expires'] ?? null ) !== $entry['expires']
 				|| ! is_string( $rate['courier'] ?? null ) || ! isset( $context['policy'][ $rate['courier'] ] ) || ! is_string( $rate['service'] ?? null ) || ! $this->settings->isCourierServiceEnabled( $rate['courier'], $rate['service'] ) ) {
 				return false;
 			}

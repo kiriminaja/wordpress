@@ -568,6 +568,7 @@ class SettingController{
                 $payload['origin_whitelist_expedition_name'] = implode( ',', $names );
             }
             $this->setting_repository->storeCourierWhitelist( $payload );
+            if ( function_exists( 'do_action' ) ) { do_action( 'kiriof_courier_settings_saved' ); }
 
             wp_send_json_success(['status' => 200, 'message' => 'Saved']);
         }catch (Throwable $e){

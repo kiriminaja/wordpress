@@ -15,7 +15,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
     public function live_quotes_are_session_bound_exact_and_cached(): void {
         $r = $this->runFixture();
         $this->assertTrue($r['quote']['eligible']);
-        $this->assertSame(18000, $r['quote']['rates'][0]['cost']);
+        $this->assertSame(19000, $r['quote']['rates'][0]['cost']);
         $this->assertSame('GO-INSTANT', $r['quote']['rates'][0]['service']);
         $this->assertSame('motor', $r['quote']['rates'][0]['vehicle']);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $r['quote']['rates'][0]['quote_token']);
@@ -31,7 +31,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function context_guards_fail_closed_without_api_calls(): void {
-        foreach (['cod', 'insurance', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone_invalid', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
+        foreach (['cod', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone_invalid', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertFalse($r['quote']['eligible'], $scenario);
             $this->assertSame([], $r['quote']['rates'], $scenario);
@@ -44,7 +44,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function malformed_remote_quotes_never_cache_or_expose_errors(): void {
-        foreach (['api_failure', 'throw', 'status_string', 'price_negative', 'price_fraction', 'price_bool', 'price_missing', 'duplicate', 'wrong_courier', 'wrong_service', 'car', 'malformed'] as $scenario) {
+        foreach (['api_failure', 'throw', 'status_string', 'price_negative', 'price_fraction', 'price_bool', 'price_missing', 'duplicate', 'wrong_courier', 'wrong_service', 'car', 'malformed', 'total_string', 'total_fraction', 'total_bool', 'total_negative', 'total_disagree', 'double_count', 'total_missing', 'admin_missing', 'admin_negative', 'shipping_string', 'overflow', 'eta_html', 'eta_long', 'eta_array', 'eta_empty', 'eta_control', 'eta_missing'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertFalse($r['quote']['eligible'], $scenario);
             $this->assertSame([], $r['quote']['rates'], $scenario);
@@ -59,7 +59,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function validation_rebuilds_context_without_api_and_blocks_stale_or_forged_tokens(): void {
-        foreach (['mutate_cart', 'mutate_name', 'mutate_phone', 'mutate_pin', 'mutate_origin', 'mutate_policy', 'mutate_payment', 'mutate_insurance', 'expire', 'clear_session', 'forge', 'wrong_selection', 'mutate_package_id', 'mutate_dimensions', 'mutate_variation', 'mutate_value', 'mutate_fractional_value', 'mutate_fractional_dimensions', 'mutate_credentials'] as $scenario) {
+        foreach (['mutate_cart', 'mutate_name', 'mutate_phone', 'mutate_pin', 'mutate_origin', 'mutate_policy', 'mutate_payment', 'expire', 'clear_session', 'forge', 'wrong_selection', 'mutate_package_id', 'mutate_dimensions', 'mutate_variation', 'mutate_value', 'mutate_fractional_value', 'mutate_fractional_dimensions', 'mutate_credentials'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertTrue($r['quote']['eligible'], $scenario);
             $this->assertNotEmpty($r['validation_error'], $scenario);
@@ -85,7 +85,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
         $this->assertSame('UTC', $r['wp_timezone']);
         $this->assertSame('WITA', $this->runFixture(['scenario' => 'timezone_lower'])['payloads'][0]['timezone']);
         $this->assertSame('timezone_unsupported', $this->runFixture(['scenario' => 'timezone_invalid'])['quote']['code']);
-        $this->assertSame('insurance_unsupported', $this->runFixture(['scenario' => 'insurance'])['quote']['code']);
+        $this->assertTrue($this->runFixture(['scenario' => 'insurance'])['quote']['eligible']);
     }
 
     #[Test]
@@ -103,6 +103,29 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
         $this->assertSame('quote_unavailable', $this->runFixture(['scenario' => 'throw'])['logs'][0]['context']['code']);
         $this->assertTrue($this->runFixture(['scenario' => 'api_failure'])['logs'][0]['context']['live_quote_checked']);
         $this->assertTrue($this->runFixture(['scenario' => 'logger_throw'])['quote']['eligible']);
+    }
+
+    #[Test]
+    public function customer_total_includes_admin_fee_and_preserves_hour_estimate(): void {
+        $r = $this->runFixture(['scenario' => 'example_total']);
+        $rate = $r['quote']['rates'][0];
+        $this->assertSame(55000, $rate['cost']);
+        $this->assertSame(55000, $rate['total_price']);
+        $this->assertSame(54000, $rate['shipping_costs']);
+        $this->assertSame(1000, $rate['admin_fee']);
+        $this->assertSame('1-2 hours', $rate['estimation']);
+        $this->assertSame(0, $this->runFixture(['scenario' => 'zero_admin'])['quote']['rates'][0]['admin_fee']);
+        $this->assertTrue($this->runFixture(['scenario' => 'mutate_insurance'])['validated']['context']['insurance'] === false);
+    }
+
+    #[Test]
+    public function incompatible_cached_amounts_are_refreshed_not_reused(): void {
+        foreach (['cache_old', 'cache_total', 'cache_admin', 'cache_cost', 'cache_eta', 'cache_expiry', 'cache_context'] as $scenario) {
+            $r = $this->runFixture(['scenario' => $scenario]);
+            $this->assertTrue($r['again']['eligible'], $scenario);
+            $this->assertSame(2, $r['calls'], $scenario);
+            $this->assertNotSame($r['quote']['rates'][0]['quote_token'], $r['again']['rates'][0]['quote_token'], $scenario);
+        }
     }
 
 }

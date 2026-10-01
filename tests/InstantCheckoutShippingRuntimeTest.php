@@ -23,14 +23,19 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 		$this->assertSame( 'kiriminaja-instant:22:gosend:instant', $result['rates_two'][0]['id'] );
 	}
 
-	public function test_ineligible_destinations_cod_and_insurance_never_request_quotes(): void {
+	public function test_ineligible_destinations_and_cod_skip_quotes_but_insurance_settings_are_ignored(): void {
 		$result = $this->run_fixture();
-		foreach ( array( 'missing' => 'destination_required', 'cod' => 'cod_not_supported', 'insurance' => 'insurance_not_supported' ) as $key => $code ) {
+		foreach ( array( 'missing' => 'destination_required', 'cod' => 'cod_not_supported' ) as $key => $code ) {
 			$this->assertSame( 0, $result[ $key ]['calls'] );
 			$this->assertSame( $code, array_values( $result[ $key ]['status'] )[0]['code'] );
 			$this->assertFalse( array_values( $result[ $key ]['status'] )[0]['eligible'] );
 		}
-		$this->assertSame( 0, $result['explicit_calls'] );
+		$this->assertSame( 1, $result['insurance']['calls'] );
+		$this->assertFalse( $result['insurance']['request']['insurance'] );
+		$this->assertCount( 1, $result['insurance']['rates'] );
+		$this->assertSame( 2, $result['explicit_calls']['calls'] );
+		$this->assertFalse( $result['explicit_calls']['request']['insurance'] );
+		$this->assertCount( 1, $result['explicit_calls']['rates'] );
 		$this->assertSame( 'no', $result['setting'] );
 	}
 
@@ -50,9 +55,10 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 	public function test_safe_rate_metadata_diagnostics_and_fixed_failure_messages(): void {
 		$result = $this->run_fixture();
 		$rate = $result['rates_one'][0];
-		$this->assertSame( 'GoSend Instant', $rate['label'] );
-		$this->assertSame( 12345, $rate['cost'] );
+		$this->assertSame( 'GoSend Instant — No Insurance Support • Admin Fee Rp1.000', $rate['label'] );
+		$this->assertSame( 55000, $rate['cost'] );
 		$this->assertSame( array( 'kiriof_delivery_type', 'kiriof_instant_quote_token', 'kiriof_instant_courier', 'kiriof_instant_service', 'kiriof_instant_vehicle', 'kiriof_instant_quote_expires' ), array_keys( $rate['meta_data'] ) );
+		$this->assertSame( '1-2 hours', $rate['delivery_time'] );
 		$this->assertSame( 'motor', $rate['meta_data']['kiriof_instant_vehicle'] );
 		$this->assertCount( 2, $result['success_status'] );
 		foreach ( $result['success_status'] as $status ) {
@@ -67,4 +73,38 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 			$this->assertStringNotContainsString( $private, $public );
 		}
 	}
+	public function test_zone_registration_instance_settings_and_disabled_instances_are_local(): void {
+		$result = $this->run_fixture();
+		$this->assertTrue( $result['instance_settings_initialized'] );
+		$this->assertSame( array( 'id' => 33, 'enabled' => 'yes' ), $result['zone'] );
+		$this->assertSame( array( 'available' => false, 'calls' => 0, 'rates' => array() ), $result['disabled'] );
+	}
+
+	public function test_uppercase_service_keeps_identity_and_native_delivery_time_before_selection(): void {
+		$result = $this->run_fixture();
+		$this->assertCount( 2, $result['uppercase_rates'] );
+		$rate = $result['uppercase_rates'][1];
+		$this->assertSame( 'kiriminaja-instant:55:gosend:GO-INSTANT', $rate['id'] );
+		$this->assertSame( 'GO-INSTANT', $rate['meta_data']['kiriof_instant_service'] );
+		$this->assertSame( 'kiriminaja-instant', $rate['method_id'] );
+		$this->assertSame( 55, $rate['instance_id'] );
+		$this->assertSame( '1-2 hours', $rate['delivery_time'] );
+		$this->assertSame( 'GoSend Instant — No Insurance Support • Admin Fee Rp1.000', $rate['label'] );
+		$this->assertSame( array( 'existing:3' ), $result['chosen'] );
+	}
+
+	public function test_invalid_totals_and_quote_fields_are_rejected_and_zero_total_is_valid(): void {
+		$result = $this->run_fixture();
+		$this->assertCount( 20, $result['invalid'] );
+		foreach ( $result['invalid'] as $name => $case ) {
+			$this->assertSame( array(), $case['rates'], $name );
+			$this->assertSame( 'unavailable', $case['status']['code'], $name );
+			$this->assertFalse( $case['status']['eligible'], $name );
+			$this->assertSame( 0, $case['status']['count'], $name );
+		}
+		$this->assertCount( 1, $result['zero_rates'] );
+		$this->assertSame( 0, $result['zero_rates'][0]['cost'] );
+		$this->assertSame( 'GoSend Instant — No Insurance Support • Admin Fee Rp0', $result['zero_rates'][0]['label'] );
+	}
+
 }

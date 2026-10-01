@@ -259,7 +259,7 @@ function kiriof_shipping_method(){
                     // Those values are stored in the WC session (kiriof_shipping_coupon_rate_meta).
                     $rate = array(
                         'id'        => $this->id . '_' . $row['key'],
-                        'label'     => $row['value'],
+                        'label'     => $row['value'] . ( empty( $rowMeta['kiriof_rate_description'] ) ? '' : ' — ' . $rowMeta['kiriof_rate_description'] ),
                         'cost'      => $row['cost'],
                         'meta_data' => array(
                             'kiriof_rate_eta'           => (string) ( $rowMeta['kiriof_rate_eta'] ?? '' ),
@@ -550,9 +550,8 @@ function kiriof_shipping_method(){
                     $parts[] = $service_label;
                 }
 
-                if ( ! empty( $kiriof_insurance ) ) {
-                    $parts[] = __( 'Includes insurance', 'kiriminaja-official' );
-                }
+                $insurance_label = \KiriminAjaOfficial\Services\CheckoutRatePresentation::insuranceLabel( $option, ! empty( $kiriof_insurance ) );
+                if ( '' !== $insurance_label ) { $parts[] = $insurance_label; }
 
                 return implode( ' • ', array_filter( $parts ) );
             }

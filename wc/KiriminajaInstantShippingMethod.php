@@ -122,7 +122,7 @@ function kiriof_instant_shipping_method() {
 						}
 						$this->add_rate( array(
 							'id' => $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'],
-							'label' => sanitize_text_field( $rate['label'] ) . ' — ' . __( 'Insurance not supported', 'kiriminaja-official' ),
+							'label' => sanitize_text_field( $rate['label'] ) . ' — ' . __( 'No Insurance Support', 'kiriminaja-official' ) . ' • ' . sprintf( __( 'Admin Fee %s', 'kiriminaja-official' ), wp_strip_all_tags( wc_price( $rate['admin_fee'] ) ) ),
 							'cost' => (float) $rate['cost'],
 							'meta_data' => array(
 								'kiriof_delivery_type' => 'instant',
@@ -133,6 +133,10 @@ function kiriof_instant_shipping_method() {
 								'kiriof_instant_quote_expires' => (int) $rate['expires'],
 							),
 						) );
+						$rate_id = $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'];
+						if ( isset( $this->rates[$rate_id] ) && method_exists( $this->rates[$rate_id], 'set_delivery_time' ) ) {
+							$this->rates[$rate_id]->set_delivery_time( $rate['estimation'] );
+						}
 						++$count;
 					}
 				}
@@ -156,7 +160,11 @@ function kiriof_instant_shipping_method() {
 					return false;
 				}
 			}
-			return isset( $rate['cost'], $rate['label'], $rate['quote_token'], $rate['expires'], $rate['vehicle'] )
+            return isset( $rate['cost'], $rate['label'], $rate['quote_token'], $rate['expires'], $rate['vehicle'] )
+				&& isset( $rate['shipping_costs'], $rate['admin_fee'], $rate['total_price'], $rate['estimation'] )
+				&& is_int( $rate['shipping_costs'] ) && $rate['shipping_costs'] >= 0 && is_int( $rate['admin_fee'] ) && $rate['admin_fee'] >= 0
+				&& is_int( $rate['total_price'] ) && $rate['total_price'] === $rate['cost'] && $rate['total_price'] - $rate['admin_fee'] === $rate['shipping_costs']
+				&& is_string( $rate['estimation'] ) && '' !== $rate['estimation']
 				&& in_array( $rate['courier'], array( 'gosend', 'grab_express' ), true )
 				&& is_numeric( $rate['cost'] ) && is_finite( (float) $rate['cost'] ) && (float) $rate['cost'] >= 0
 				&& is_string( $rate['label'] ) && '' !== trim( $rate['label'] )

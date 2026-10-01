@@ -159,6 +159,36 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function matching_zone_details_distinguish_zero_disabled_missing_and_registration(): void {
+        foreach ([0, 1] as $zoneId) {
+            $enabled = $this->runFixture('zone_enabled', ['zone_id' => $zoneId]);
+            $this->assertSame($zoneId, $enabled['snapshot']['matching_zone_id']);
+            $this->assertSame([['method_id' => 'kiriminaja-instant', 'instance_id' => 73, 'enabled' => true, 'stored_enabled' => true, 'enabled_settings_conflict' => false]], $enabled['snapshot']['matching_zone_methods']);
+            $this->assertTrue($enabled['snapshot']['ready']);
+            $disabled = $this->runFixture('zone_disabled', ['zone_id' => $zoneId]);
+            $this->assertSame($zoneId, $disabled['snapshot']['matching_zone_id']);
+            $this->assertFalse($disabled['snapshot']['matching_zone_methods'][0]['enabled']);
+            $this->assertContains('method_not_enabled_in_matching_zone', $disabled['snapshot']['reasons']);
+            $this->assertNotContains('method_not_registered', $disabled['snapshot']['reasons']);
+            $missing = $this->runFixture('zone_missing', ['zone_id' => $zoneId]);
+            $this->assertSame('kiriminaja-official', $missing['snapshot']['matching_zone_methods'][0]['method_id']);
+            $this->assertContains('method_not_enabled_in_matching_zone', $missing['snapshot']['reasons']);
+            $unregistered = $this->runFixture('zone_unregistered', ['zone_id' => $zoneId]);
+            $this->assertContains('method_not_registered', $unregistered['snapshot']['reasons']);
+            $this->assertNotContains('method_not_enabled_in_matching_zone', $unregistered['snapshot']['reasons']);
+            foreach ([$enabled, $disabled, $missing, $unregistered] as $result) {
+                $this->assertSame(0, $result['network']);
+                $this->assertStringNotContainsString('Private merchant title', json_encode($result));
+            }
+        }
+        $conflict = $this->runFixture('zone_conflict')['snapshot'];
+        $this->assertTrue($conflict['matching_zone_methods'][0]['stored_enabled']);
+        $this->assertFalse($conflict['matching_zone_methods'][0]['enabled']);
+        $this->assertTrue($conflict['matching_zone_methods'][0]['enabled_settings_conflict']);
+        $this->assertFalse($conflict['method_zone_enabled']);
+    }
+
+    #[Test]
     public function zone_disable_reason_requires_a_known_matching_zone(): void {
         $unknown = $this->runFixture('ready')['snapshot'];
         $this->assertFalse($unknown['matching_zone_known']);

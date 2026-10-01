@@ -25,7 +25,7 @@ namespace {
     define('ABSPATH', __DIR__);
     $input = json_decode($argv[1] ?? '{}', true);
     $scenario = $input['scenario'] ?? '';
-    if (in_array($scenario, ['ready', 'insurance', 'method_missing', 'zone_enabled', 'zone_disabled'], true)) { eval('namespace KiriminAjaOfficial\\Controllers; class InstantCheckoutController {}'); }
+    if (in_array($scenario, ['ready', 'insurance', 'method_missing', 'zone_enabled', 'zone_disabled', 'zone_missing', 'zone_conflict', 'zone_unregistered'], true)) { eval('namespace KiriminAjaOfficial\\Controllers; class InstantCheckoutController {}'); }
     if ('method_missing' !== $scenario) { class Kiriof_Instant_Shipping_Method_Controller {} }
     function kiriof_register_instant_shipping_method($methods) { return $methods; }
     function sanitize_text_field($text) { return trim(strip_tags($text)); }
@@ -36,7 +36,7 @@ namespace {
     function is_admin() { return 'admin' === $GLOBALS['scenario']; }
     function is_order_received_page() { return 'received' === $GLOBALS['scenario']; }
     function wp_doing_ajax() { return false; }
-    function has_filter($hook, $callback) { return 'filter_missing' === $GLOBALS['scenario'] ? false : 10; }
+    function has_filter($hook, $callback) { return in_array($GLOBALS['scenario'], ['filter_missing', 'zone_unregistered'], true) ? false : 10; }
     function add_action($hook, $callback, $priority = 10, $args = 1) { $GLOBALS['hooks'][$hook] = [$priority, $args]; }
     function kiriof_log($level, $message, $context, $source) { $GLOBALS['logs'][] = compact('level', 'message', 'context', 'source'); }
     function wp_remote_post() { ++$GLOBALS['network']; throw new RuntimeException('Network forbidden'); }
@@ -51,6 +51,33 @@ namespace {
     class DiagnosticsCart { public bool $shipping = true; public function needs_shipping() { return $this->shipping; } }
     $GLOBALS['logs'] = []; $GLOBALS['hooks'] = []; $GLOBALS['network'] = 0;
     if ( in_array($scenario, ['rest', 'other_rest'], true) ) { define('REST_REQUEST', true); $GLOBALS['wp'] = (object) ['query_vars' => ['rest_route' => 'rest' === $scenario ? '/wc/store/v1/cart' : '/wp/v2/posts']]; }
+    if (in_array($scenario, ['zone_enabled', 'zone_disabled', 'zone_missing', 'zone_conflict', 'zone_unregistered'], true)) {
+        // Define the boundary before loading/snapshotting diagnostics; never load real
+        // shipping classes (their buyer-specific is_enabled() gates need an address).
+        class DiagnosticsZoneMethod {
+            public string $id = 'kiriminaja-instant';
+            public int $instance_id = 73;
+            public string $enabled;
+            public array $instance_settings;
+            public function __construct() {
+                $this->enabled = in_array($GLOBALS['scenario'], ['zone_enabled', 'zone_unregistered'], true) ? 'yes' : 'no';
+                $this->instance_settings = ['enabled' => 'zone_conflict' === $GLOBALS['scenario'] ? 'yes' : $this->enabled, 'title' => 'Private merchant title'];
+            }
+            public function is_enabled() { throw new RuntimeException('Buyer-specific gates must not run'); }
+            public function get_instance_id() { return $this->instance_id; }
+        }
+        class WC_Shipping_Zones {
+            public static function get_zone_matching_package($package) {
+                return new class {
+                    public function get_id() { return (int) ($GLOBALS['input']['zone_id'] ?? 1); }
+                    public function get_shipping_methods($enabled) {
+                        if (false !== $enabled) { throw new RuntimeException('Disabled rows must be included'); }
+                        return 'zone_missing' === $GLOBALS['scenario'] ? [(object) ['id' => 'kiriminaja-official', 'instance_id' => 72, 'enabled' => 'yes']] : [new DiagnosticsZoneMethod()];
+                    }
+                };
+            }
+        }
+    }
     require dirname(__DIR__, 2) . '/inc/Services/BuyerDestination.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutQuoteService.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutDiagnosticsService.php';
@@ -82,13 +109,6 @@ namespace {
         case 'makassar': $GLOBALS['timezone'] = 'Asia/Makassar'; break;
         case 'jayapura': $GLOBALS['timezone'] = 'Asia/Jayapura'; break;
         case 'virtual': WC()->cart->shipping = false; break;
-    }
-    if (in_array($scenario, ['zone_enabled', 'zone_disabled'], true)) {
-        class WC_Shipping_Zones {
-            public static function get_zone_matching_package($package) {
-                return new class { public function get_shipping_methods($enabled) { return $GLOBALS['scenario'] === 'zone_enabled' ? [(object) ['id' => 'kiriminaja-instant', 'enabled' => 'yes']] : []; } };
-            }
-        }
     }
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutDiagnosticsService($settings, $locations);
     $snapshot = null;

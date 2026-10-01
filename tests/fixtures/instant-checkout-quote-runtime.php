@@ -15,12 +15,22 @@ namespace KiriminAjaOfficial\Repositories {
         public function price(array $payload): array {
             ++$this->calls; $this->payloads[] = $payload;
             if ('throw' === $this->scenario) { throw new \RuntimeException('secret-api-key'); }
-            $cost = ['service_type' => 'GO-INSTANT', 'price' => ['shipping_costs' => 18000]];
+            $cost = ['service_type' => 'GO-INSTANT', 'price' => ['shipping_costs' => 18000, 'admin_fee' => 1000, 'total_price' => 19000], 'estimation' => '1-2 hours'];
             if ('price_negative' === $this->scenario) { $cost['price']['shipping_costs'] = -1; }
             if ('price_fraction' === $this->scenario) { $cost['price']['shipping_costs'] = 1.2; }
             if ('price_bool' === $this->scenario) { $cost['price']['shipping_costs'] = true; }
             if ('price_missing' === $this->scenario) { unset($cost['price']); }
-            if ('zero_price' === $this->scenario) { $cost['price']['shipping_costs'] = 0; }
+            if ('zero_price' === $this->scenario) { $cost['price'] = ['shipping_costs' => 0, 'admin_fee' => 0, 'total_price' => 0]; }
+            if ('example_total' === $this->scenario) { $cost['price'] = ['shipping_costs' => 54000, 'admin_fee' => 1000, 'total_price' => 55000]; }
+            if ('zero_admin' === $this->scenario) { $cost['price']['admin_fee'] = 0; $cost['price']['total_price'] = 18000; }
+            foreach (['total_string' => '19000', 'total_fraction' => 19000.5, 'total_bool' => true, 'total_negative' => -1, 'total_disagree' => 20000, 'double_count' => 20000] as $scenario => $value) { if ($this->scenario === $scenario) { $cost['price']['total_price'] = $value; } }
+            if ('total_missing' === $this->scenario) { unset($cost['price']['total_price']); }
+            if ('admin_missing' === $this->scenario) { unset($cost['price']['admin_fee']); }
+            if ('admin_negative' === $this->scenario) { $cost['price']['admin_fee'] = -1; }
+            if ('shipping_string' === $this->scenario) { $cost['price']['shipping_costs'] = '18000'; }
+            if ('overflow' === $this->scenario) { $cost['price'] = ['shipping_costs' => PHP_INT_MAX, 'admin_fee' => 1, 'total_price' => PHP_INT_MAX]; }
+            foreach (['eta_html' => '<b>1-2 hours</b>', 'eta_long' => str_repeat('a', 81), 'eta_array' => [], 'eta_empty' => '', 'eta_control' => "1\n2 hours"] as $scenario => $value) { if ($this->scenario === $scenario) { $cost['estimation'] = $value; } }
+            if ('eta_missing' === $this->scenario) { unset($cost['estimation']); }
             if ('wrong_service' === $this->scenario) { $cost['service_type'] = 'SECRET'; }
             if ('car' === $this->scenario) { $cost['vehicle'] = 'car'; }
             $row = ['name' => 'gosend', 'costs' => [$cost]];
@@ -117,6 +127,20 @@ namespace {
     }
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
     $quote = $service->quote($package, $destination, $payment, $insurance);
+    if (str_starts_with($scenario, 'cache_') && $scenario !== 'cache_bound') {
+        foreach (WC()->session->data['kiriof_instant_checkout_quotes'] as &$entry) {
+            switch ($scenario) {
+                case 'cache_old': unset($entry['amount_version'], $entry['rates'][0]['total_price'], $entry['rates'][0]['admin_fee']); break;
+                case 'cache_total': $entry['rates'][0]['total_price']++; break;
+                case 'cache_admin': $entry['rates'][0]['admin_fee']++; break;
+                case 'cache_cost': $entry['rates'][0]['cost'] = 18000; break;
+                case 'cache_eta': $entry['rates'][0]['estimation'] = '<b>hours</b>'; break;
+                case 'cache_expiry': $entry['rates'][0]['expires']++; break;
+                case 'cache_context': $entry['context']['origin']['timezone'] = 'WITA'; break;
+            }
+        }
+        unset($entry);
+    }
     $again = $service->quote($package, $destination, $payment, $insurance);
     if ('cache_bound' === $scenario) {
         for ($i = 1; $i <= 10; ++$i) { $package['package_id'] = $i; $service->quote($package, $destination, $payment, $insurance); }

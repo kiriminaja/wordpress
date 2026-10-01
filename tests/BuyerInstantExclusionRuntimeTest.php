@@ -82,11 +82,12 @@ final class BuyerInstantExclusionRuntimeTest extends TestCase {
 		// Wrong-type JNE REG row has a lower price and the same ID: asserting the
 		// exact price catches a leak even if add_rate overwrites duplicate IDs.
 		$this->assertSame( 9500, $rate['cost'] );
+		$this->assertSame( 'JNE REG — Regular service' . ( $flags ? ' • With Insurance' : '' ), $rate['label'] );
 		$this->assertSame( 'jne', $rate['meta_data']['kiriof_rate_service'] );
 		$this->assertSame( 'REG', $rate['meta_data']['kiriof_rate_service_type'] );
 		$this->assertSame( 'yes', $rate['meta_data']['kiriof_rate_cod_available'] );
 		$this->assertSame( '1-2 business days', $rate['meta_data']['kiriof_rate_eta'] );
-		$this->assertSame( $flags ? 'Regular service • Includes insurance' : 'Regular service', $rate['meta_data']['kiriof_rate_description'] );
+		$this->assertSame( $flags ? 'Regular service • With Insurance' : 'Regular service', $rate['meta_data']['kiriof_rate_description'] );
 		$this->assertArrayNotHasKey( 'kiriof_shipping_coupon_original_cost', $rate['meta_data'] );
 		$this->assertSame( array( array( 'service' => 'jne', 'service_type' => 'REG', 'type' => 'express' ) ), $result['coupon_rows'] );
 		$this->assertSame( array( 'kiriminaja-official_jne_REG' ), array_keys( $result['coupon_rate_meta'] ) );

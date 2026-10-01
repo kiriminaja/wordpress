@@ -69,6 +69,8 @@ final class BuyerShippingDestinationRuntimeTest extends TestCase {
 		$this->assertCount( 1, $result['rates'] );
 		$this->assertSame( 'kiriminaja-official_jne_REG', $result['rates'][0]['id'] );
 		$this->assertSame( 10000, $result['rates'][0]['cost'] );
+		// This fixture deliberately supplies no display metadata: do not add an empty suffix.
+		$this->assertSame( 'JNE REG', $result['rates'][0]['label'] );
 		$this->assertSame( array(), $result['warnings'] );
 	}
 }

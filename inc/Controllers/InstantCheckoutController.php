@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class InstantCheckoutController {
 	public const SNAPSHOT_META_KEY = '_kiriof_instant_checkout_snapshot';
 	public const SELECTION_META_KEY = '_kiriof_instant_checkout_selection';
+	public const CUSTOMER_TOTAL_META_KEY = '_kiriof_instant_customer_shipping_total';
+	public const ADMIN_FEE_META_KEY = '_kiriof_instant_admin_fee';
 	public const INVOICE_META_KEY = '_kiriof_instant_checkout_invoice';
 	private SettingRepository $settings;
 	private TransactionRepository $transactions;
@@ -115,6 +117,8 @@ class InstantCheckoutController {
 			$snapshot = $this->quotes->validate( (string) $line->get_meta( 'kiriof_instant_quote_token' ), (string) $line->get_meta( 'kiriof_instant_courier' ), (string) $line->get_meta( 'kiriof_instant_service' ), $package, $destination, $order->get_payment_method(), false );
 			$this->checkSnapshot( $order, $line, $snapshot );
 			$order->update_meta_data( self::SNAPSHOT_META_KEY, $snapshot );
+			$order->update_meta_data( self::CUSTOMER_TOTAL_META_KEY, $snapshot['rate']['total_price'] );
+			$order->update_meta_data( self::ADMIN_FEE_META_KEY, $snapshot['rate']['admin_fee'] );
 			$order->update_meta_data( self::SELECTION_META_KEY, hash( 'sha256', wp_json_encode( $snapshot ) ) );
 			$order->update_meta_data( BuyerDestination::META_KEY, $destination );
 			$order->update_meta_data( BuyerDestination::COORDINATE_META_KEY, array( 'latitude' => $destination['destination_latitude'], 'longitude' => $destination['destination_longitude'] ) );
@@ -168,7 +172,7 @@ class InstantCheckoutController {
 	private function checkSnapshot( $order, $line, array $snapshot ): void {
 		$rate = $snapshot['rate'] ?? array();
 		$context = $snapshot['context'] ?? array();
-		if ( 'cod' === strtolower( $order->get_payment_method() ) || ! is_int( $rate['cost'] ?? null ) || $rate['cost'] < 0 || (float) $line->get_total() !== (float) $rate['cost'] || 'motor' !== ( $rate['vehicle'] ?? null ) || 'motor' !== $line->get_meta( 'kiriof_instant_vehicle' ) || (string) ( $rate['expires'] ?? '' ) !== (string) $line->get_meta( 'kiriof_instant_quote_expires' ) || empty( $context['items'] ) || empty( $context['origin'] ) || ( $context['insurance'] ?? null ) !== false || ( $context['payment_method'] ?? null ) !== $order->get_payment_method() ) {
+		if ( 'cod' === strtolower( $order->get_payment_method() ) || ! InstantCheckoutQuoteService::validRateAmounts( $rate ) || (float) $line->get_total() !== (float) $rate['cost'] || 'motor' !== ( $rate['vehicle'] ?? null ) || 'motor' !== $line->get_meta( 'kiriof_instant_vehicle' ) || (string) ( $rate['expires'] ?? '' ) !== (string) $line->get_meta( 'kiriof_instant_quote_expires' ) || empty( $context['items'] ) || empty( $context['origin'] ) || ( $context['insurance'] ?? null ) !== false || ( $context['payment_method'] ?? null ) !== $order->get_payment_method() ) {
 			throw new \InvalidArgumentException( 'snapshot_invalid' );
 		}
 		foreach ( array( 'courier', 'service', 'quote_token' ) as $field ) {
@@ -216,6 +220,9 @@ class InstantCheckoutController {
 				throw new \RuntimeException( 'snapshot_missing' );
 			}
 			$this->checkSnapshot( $order, $line, $snapshot );
+			if ( (string) $order->get_meta( self::CUSTOMER_TOTAL_META_KEY ) !== (string) $snapshot['rate']['total_price'] || (string) $order->get_meta( self::ADMIN_FEE_META_KEY ) !== (string) $snapshot['rate']['admin_fee'] ) {
+				throw new \RuntimeException( 'snapshot_changed' );
+			}
 			if ( ! hash_equals( (string) $order->get_meta( self::SELECTION_META_KEY ), hash( 'sha256', wp_json_encode( $snapshot ) ) ) || $order->get_meta( BuyerDestination::META_KEY ) !== $snapshot['context']['destination'] ) {
 				throw new \RuntimeException( 'snapshot_changed' );
 			}
@@ -231,7 +238,8 @@ class InstantCheckoutController {
 			foreach ( array( 'name' => 'name', 'phone' => 'phone', 'address' => 'address', 'zipcode' => 'zip_code', 'latitude' => 'latitude', 'longitude' => 'longitude', 'country' => 'country' ) as $from => $to ) {
 				$origin[ 'origin_' . $to ] = $context['origin'][ $from ];
 			}
-			$shipping = array();
+			// Keep booking/admin repricing on the raw carrier cost; the buyer paid total once.
+			$shipping = array( '_kiriof_instant_admin_fee' => $rate['admin_fee'], '_kiriof_instant_shipping_total' => $rate['total_price'], '_kiriof_instant_shipping_cost' => $rate['shipping_costs'] );
 			foreach ( $this->orderAddress( $order ) as $field => $value ) {
 				$shipping[ '_shipping_' . $field ] = $value;
 			}
@@ -241,7 +249,7 @@ class InstantCheckoutController {
 				$order->update_meta_data( self::INVOICE_META_KEY, $invoice );
 				$order->save_meta_data();
 			}
-			$payload = array( 'order_id' => $invoice, 'delivery_type' => 'instant', 'vehicle' => 'motor', 'service' => $rate['courier'], 'service_name' => $rate['service'], 'status' => 'new', 'shipping_info' => wp_json_encode( $shipping ), 'weight' => $context['weight'], 'shipping_cost' => $rate['cost'], 'insurance_cost' => 0, 'cod_fee' => 0, 'transaction_value' => $context['item_value'], 'wp_wc_order_stat_order_id' => $order->get_id(), 'created_at' => gmdate( 'Y-m-d H:i:s' ), 'destination_sub_district_id' => $context['destination']['district_id'], 'destination_sub_district' => $context['destination']['district_label'], 'destination_latitude' => $context['destination']['destination_latitude'], 'destination_longitude' => $context['destination']['destination_longitude'], 'shipment_location_id' => $origin['location_id'], 'shipment_location_snapshot' => wp_json_encode( $origin ), 'discount_amount' => 0, 'discount_percentage' => 0, 'woocommerce_discount_amount' => (float) $order->get_discount_total(), 'woocommerce_discount_description' => '', 'is_deficit' => 0, 'cod_minimum' => null );
+			$payload = array( 'order_id' => $invoice, 'delivery_type' => 'instant', 'vehicle' => 'motor', 'service' => $rate['courier'], 'service_name' => $rate['service'], 'status' => 'new', 'shipping_info' => wp_json_encode( $shipping ), 'weight' => $context['weight'], 'shipping_cost' => $rate['shipping_costs'], 'insurance_cost' => 0, 'cod_fee' => 0, 'transaction_value' => $context['item_value'], 'wp_wc_order_stat_order_id' => $order->get_id(), 'created_at' => gmdate( 'Y-m-d H:i:s' ), 'destination_sub_district_id' => $context['destination']['district_id'], 'destination_sub_district' => $context['destination']['district_label'], 'destination_latitude' => $context['destination']['destination_latitude'], 'destination_longitude' => $context['destination']['destination_longitude'], 'shipment_location_id' => $origin['location_id'], 'shipment_location_snapshot' => wp_json_encode( $origin ), 'discount_amount' => 0, 'discount_percentage' => 0, 'woocommerce_discount_amount' => (float) $order->get_discount_total(), 'woocommerce_discount_description' => '', 'is_deficit' => 0, 'cod_minimum' => null );
 			foreach ( array( 'length', 'width', 'height' ) as $dimension ) {
 				$payload[ $dimension ] = max( array_column( $context['items'], $dimension ) );
 			}

@@ -41,7 +41,7 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
 
     #[Test]
     public function final_checkout_rejects_changed_or_unsupported_context_without_remote_calls(): void {
-        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'insurance', 'session_insurance', 'private_error'] as $scenario) {
+        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'private_error'] as $scenario) {
             $r = $this->fixture($scenario);
             $this->assertNotEmpty($r['error'], $scenario);
             $this->assertSame([], $r['rows'], $scenario);
@@ -95,5 +95,41 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
             $this->assertSame($scenario === 'snapshot_edit' ? 'snapshot_changed' : ($scenario === 'busy_lock' ? 'checkout_busy' : 'transaction_conflict'), $r['logs'][0]['context']['code']);
         }
     }
+    #[Test]
+    public function customer_total_and_admin_fee_are_pinned_without_double_charging(): void {
+        foreach (['example_total', 'insurance', 'session_insurance', 'opaque_price_meta'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $raw = $scenario === 'example_total' ? 54000 : 18000;
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertSame('', $r['processed_error'], $scenario);
+            $this->assertCount(1, $r['rows']);
+            $this->assertSame($raw + 1000, $r['shipping_total']);
+            $this->assertSame($raw, $r['rows'][0]['shipping_cost']);
+            $this->assertSame($raw + 1000, $r['meta']['_kiriof_instant_customer_shipping_total']);
+            $this->assertSame(1000, $r['meta']['_kiriof_instant_admin_fee']);
+            $rate = $r['meta']['_kiriof_instant_checkout_snapshot']['rate'];
+            $this->assertSame($raw, $rate['shipping_costs']);
+            $this->assertSame($raw + 1000, $rate['total_price']);
+            $shipping = json_decode($r['rows'][0]['shipping_info'], true);
+            $this->assertSame($raw, $shipping['_kiriof_instant_shipping_cost']);
+            $this->assertSame($raw + 1000, $shipping['_kiriof_instant_shipping_total']);
+            $this->assertSame(1000, $shipping['_kiriof_instant_admin_fee']);
+            $this->assertSame([], $r['fee_lines']);
+            $this->assertSame(0, $r['rows'][0]['insurance_cost']);
+            $this->assertSame(0, $r['rows'][0]['cod_fee']);
+        }
+    }
+
+    #[Test]
+    public function durable_breakdown_and_receipt_tampering_cannot_create_transactions(): void {
+        foreach (['snapshot_fee_edit', 'receipt_fee_edit', 'receipt_total_edit'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertNotEmpty($r['processed_error'], $scenario);
+            $this->assertSame([], $r['rows'], $scenario);
+            $this->assertSame(1, $r['calls'], $scenario);
+        }
+    }
+
 }
 

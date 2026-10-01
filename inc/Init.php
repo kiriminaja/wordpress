@@ -37,6 +37,7 @@ final class Init {
             Controllers\InstantDeliveryController::class,
             Controllers\InstantCheckoutController::class,
             Services\InstantCheckoutDiagnosticsService::class,
+            Services\InstantShippingZoneProvisioningService::class,
         ];
     }
     /**

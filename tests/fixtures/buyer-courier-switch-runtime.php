@@ -107,6 +107,9 @@ namespace {
 		) as $row ) {
 			// Deliberately omit setting/COD fees: Ninja capability comes ONLY from API cod.
 			$rows[] = (object) array( 'service' => $row[0], 'service_type' => $row[1], 'service_name' => $row[1], 'type' => $row[2], 'cost' => $row[3], 'discount_amount' => $row[4], 'cod' => $row[5], 'etd' => '1-2' );
+			if ( isset( $GLOBALS['buyer_switch_input']['presentation'][$row[0]] ) ) {
+				foreach ( $GLOBALS['buyer_switch_input']['presentation'][$row[0]] as $key => $value ) { $rows[count( $rows ) - 1]->$key = $value; }
+			}
 		}
 		return (object) array( 'status' => true, 'results' => $rows );
 	}
@@ -139,7 +142,10 @@ namespace {
 	require_once ABSPATH . 'wc/KiriminajaShippingMethod.php';
 	kiriof_shipping_method();
 	$history = array();
-	foreach ( array( array( 'ninja_Standard', 'bacs' ), array( 'tiki_REG', 'bacs' ), array( 'tiki_REG', 'cod' ), array( 'ninja_Standard', 'bacs' ) ) as $step ) {
+	$steps = isset( $input['presentation'] )
+		? array( array( '', 'bacs' ), array( 'jne_REG', 'bacs' ) )
+		: array( array( 'ninja_Standard', 'bacs' ), array( 'tiki_REG', 'bacs' ), array( 'tiki_REG', 'cod' ), array( 'ninja_Standard', 'bacs' ) );
+	foreach ( $steps as $step ) {
 		// Woo owns the current selection; a delayed extension request still carries the old one.
 		WC()->session->set( 'chosen_shipping_methods', array( 'kiriminaja-official_' . $step[0] ) );
 		$controller->kiriof_store_api_update_checkout( array(
@@ -147,6 +153,10 @@ namespace {
 			'insurance' => $input['insured'], 'force_insurance' => $input['insured'],
 			'shipping_metode_id' => 'kiriminaja-official_jne_REG',
 		) );
+		if ( '' === $step[0] ) {
+			// The first native rate list must be informative before any courier is chosen.
+			unset( WC()->session->values['chosen_shipping_methods'], WC()->session->values['kiriof_chosen_shipping_methods'], WC()->session->values['kiriof_expedition'] );
+		}
 		// Each calculation is a fresh Woo rate collection, not stale add_rate entries.
 		$method = new \Kiriof_Shipping_Method_Controller( 7 );
 		$method->calculate_shipping( array( 'contents' => array(), 'destination' => $address ) );
