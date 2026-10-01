@@ -1463,6 +1463,7 @@ class CheckoutController
             wp_json_encode(
                 array(
                     'cart_hash'        => $cart_hash,
+                    'supported_country' => 'ID',
                     'destination'      => isset( $package['destination'] ) ? $package['destination'] : array(),
                     'destination_id'   => $destination_id,
                     'insurance'        => WC()->session ? (int) WC()->session->get( 'kiriof_insurance', 0 ) : 0,
