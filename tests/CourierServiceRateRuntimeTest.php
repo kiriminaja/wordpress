@@ -74,6 +74,8 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		$this->assertSame( $result['regular'], $result['unchanged'] );
 		$this->assertNotSame( $result['regular'], $result['express'] );
 		$this->assertNotSame( $result['express'], $result['deny_all'] );
+		$this->assertNotSame( $result['legacy_country_policy'], $result['regular'] );
+		$this->assertNotSame( $result['deny_all'], $result['foreign_country'] );
 		$this->assertSame( $result['destination'], $result['returned_destination'] );
 		$this->assertSame( 0, $result['network_calls'] );
 	}
@@ -96,5 +98,22 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		$this->assertNotFalse( $rate );
 		$this->assertLessThan( $coupon, $guard );
 		$this->assertLessThan( $rate, $coupon );
+	}
+
+	public function test_shipping_rejects_foreign_and_unknown_package_countries_before_pricing_or_free_coupons(): void {
+		$result = $this->run_fixture( 'destination_country' );
+		foreach ( array( 'paid', 'free' ) as $mode ) {
+			foreach ( array( 'ireland', 'us', 'empty', 'missing', 'malformed' ) as $country ) {
+				$this->assertSame( array(), $result[ $mode ][ $country ]['rates'], "$mode $country" );
+				$this->assertSame( array(), $result[ $mode ][ $country ]['meta'], "$mode $country" );
+				$this->assertSame( 0, $result[ $mode ][ $country ]['coupon_reads'], "$mode $country" );
+			}
+		}
+		$this->assertSame( 'kiriminaja-official_jne_REG', $result['paid']['indonesia']['rates'][0]['id'] );
+		$this->assertSame( 12000, $result['paid']['indonesia']['rates'][0]['cost'] );
+		$this->assertSame( 'kiriminaja-official_free', $result['free']['indonesia']['rates'][0]['id'] );
+		$this->assertSame( 0, $result['free']['indonesia']['rates'][0]['cost'] );
+		$this->assertSame( array( array( 'kiriminaja-official_jne_REG' ), array(), array( 'kiriminaja-official_jne_REG' ) ), $result['transition'] );
+		$this->assertSame( 0, $result['network_calls'] );
 	}
 }

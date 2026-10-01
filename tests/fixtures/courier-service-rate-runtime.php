@@ -31,12 +31,13 @@ final class CourierRateCoupon {
 }
 final class CourierRateCart {
 	public $coupon_reads = 0;
+	public $free_shipping = true;
 	public $fees = array();
 	public function needs_shipping() { return true; }
 	public function get_cart() { return array(); }
 	public function add_fee( $name, $amount, $taxable = false ) { $this->fees[] = array( 'name' => $name, 'amount' => $amount ); }
 	public function get_cart_hash() { return 'unchanged-cart'; }
-	public function get_coupons() { ++$this->coupon_reads; return array( 'free' => new CourierRateCoupon() ); }
+	public function get_coupons() { ++$this->coupon_reads; return $this->free_shipping ? array( 'free' => new CourierRateCoupon() ) : array(); }
 	public function get_shipping_total() { return 0; }
 	public function get_cart_contents_total() { return 10000; }
 	public function get_discount_total() { return 0; }
@@ -52,6 +53,17 @@ function wp_json_encode( $value ) { return json_encode( $value, JSON_THROW_ON_ER
 function get_transient( $key ) { return false; }
 function get_option( $key, $default = false ) { return $default; }
 function __( $text, $domain = '' ) { return $text; }
+function add_action( ...$args ) {}
+function add_filter( ...$args ) {}
+function kiriof_log( ...$args ) {}
+function set_transient( ...$args ) { return true; }
+function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
+function wc_price( $amount ) { return (string) $amount; }
+class WC_Shipping_Method {
+	public $id = 'kiriminaja-official';
+	public $rates = array();
+	public function add_rate( $rate ) { $this->rates[ $rate['id'] ] = $rate; }
+}
 function kiriof_get_tracking_page_id() { return 0; }
 function kiriof_money_format( $value ) { return number_format( $value ); }
 function kiriof_helper() {
@@ -172,6 +184,19 @@ switch ( $argv[1] ?? '' ) {
 		$result['deny_all'] = $controller->kiriof_shipping_rate_cache_invalidation( $package )[0]['rate_cache'];
 		$result['destination'] = $package[0]['destination'];
 		$result['returned_destination'] = $regular[0]['destination'];
+		$legacy_context = array(
+			'cart_hash' => WC()->cart->get_cart_hash(),
+			'destination' => $package[0]['destination'],
+			'destination_id' => 456,
+			'insurance' => 0,
+			'payment_method' => ( new ReflectionMethod( $controller, 'kiriof_get_checkout_payment_method' ) )->invoke( $controller ),
+			'coupon_context' => ( new ReflectionMethod( $controller, 'kiriof_get_cart_discount_context' ) )->invoke( $controller ),
+			'courier_filter' => array( 'jne' ),
+			'courier_services' => array( 'jne' => array( 'REG' ) ),
+		);
+		$result['legacy_country_policy'] = md5( wp_json_encode( $legacy_context ) );
+		$package[0]['destination']['country'] = 'IE';
+		$result['foreign_country'] = $controller->kiriof_shipping_rate_cache_invalidation( $package )[0]['rate_cache'];
 		$result['network_calls'] = $GLOBALS['rate_network_calls'];
 		break;
 	case 'fees':
@@ -195,6 +220,62 @@ switch ( $argv[1] ?? '' ) {
 		$result['empty_services'] = ( new OnboardingSetupStateService() )->get_steps()['couriers']['done'];
 		rate_policy( '{"jne":["REG"]}' );
 		$result['enabled'] = ( new OnboardingSetupStateService() )->get_steps()['couriers']['done'];
+		break;
+	case 'destination_country':
+		require_once ABSPATH . 'inc/Services/CheckoutServices/PricingCacheService.php';
+		require_once ABSPATH . 'inc/Services/ShippingDiscountCouponService.php';
+		require_once ABSPATH . 'wc/KiriminajaShippingMethod.php';
+		kiriof_shipping_method();
+		$payload = array(
+			'subdistrict_origin' => 123,
+			'subdistrict_destination' => 456,
+			'weight' => 0,
+			'length' => 0,
+			'width' => 0,
+			'height' => 0,
+			'insurance' => 0,
+			'item_value' => 10000,
+			'courier' => array( 'jne' ),
+		);
+		$pricing = (object) array( 'results' => array( (object) array(
+			'service' => 'jne',
+			'service_type' => 'REG',
+			'service_name' => 'Regular',
+			'cost' => 12000,
+			'discount_amount' => 0,
+		) ) );
+		\KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, $pricing );
+		WC()->session->set( 'shipping_destination_id', 456 );
+		WC()->customer = new class {
+			public function get_shipping_country() { return 'ID'; }
+			public function get_billing_country() { return 'IE'; }
+		};
+		foreach ( array( false, true ) as $free_shipping ) {
+			WC()->cart->free_shipping = $free_shipping;
+			foreach ( array( 'indonesia' => 'ID', 'ireland' => 'IE', 'us' => 'US', 'empty' => '', 'missing' => null, 'malformed' => array( 'ID' ) ) as $name => $country ) {
+				$destination = array( 'address_1' => 'Jalan Jakarta Nomor 123' );
+				if ( null !== $country ) {
+					$destination['country'] = $country;
+				}
+				WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'stale' => array( 'cost' => 12000 ) ) );
+				WC()->cart->coupon_reads = 0;
+				$method = ( new ReflectionClass( 'Kiriof_Shipping_Method_Controller' ) )->newInstanceWithoutConstructor();
+				$method->calculate_shipping( array( 'contents' => array(), 'destination' => $destination ) );
+				$result[ $free_shipping ? 'free' : 'paid' ][ $name ] = array(
+					'rates' => array_values( $method->rates ),
+					'meta' => WC()->session->get( 'kiriof_shipping_coupon_rate_meta' ),
+					'coupon_reads' => WC()->cart->coupon_reads,
+				);
+			}
+		}
+		WC()->cart->free_shipping = false;
+		$method = ( new ReflectionClass( 'Kiriof_Shipping_Method_Controller' ) )->newInstanceWithoutConstructor();
+		foreach ( array( 'ID', 'IE', 'ID' ) as $country ) {
+			$method->rates = array();
+			$method->calculate_shipping( array( 'contents' => array(), 'destination' => array( 'country' => $country, 'address_1' => 'Jalan Jakarta Nomor 123' ) ) );
+			$result['transition'][] = array_keys( $method->rates );
+		}
+		$result['network_calls'] = $GLOBALS['rate_network_calls'];
 		break;
 	default:
 		throw new InvalidArgumentException( 'Unknown fixture action' );
