@@ -5,9 +5,13 @@ namespace {
 	define( 'KIRIOF_NONCE', 'kiriof_ajax' );
 	class ControllerResponse extends \RuntimeException {}
 	function __( $text, $domain = '' ) { return $text; }
+	function esc_html__( $text, $domain = '' ) { return esc_html( __( $text, $domain ) ); }
 	function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 	function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
-	function wp_unslash( $value ) { return stripslashes( $value ); }
+	function wp_unslash( $value ) {
+		if ( is_array( $value ) ) { return array_map( 'wp_unslash', $value ); }
+		return is_string( $value ) ? stripslashes( $value ) : $value;
+	}
 	function controller_slash( $value ) {
 		if ( is_array( $value ) ) { return array_map( 'controller_slash', $value ); }
 		return is_string( $value ) ? addslashes( $value ) : $value;

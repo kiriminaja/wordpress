@@ -52,7 +52,7 @@ if ( ! isset( $labels ) || ! is_array( $labels ) || empty( $labels ) ) {
 			<?php endforeach; ?>
 		</section>
 		<?php endforeach; ?>
-		<h2><?php echo esc_html__( 'Current physical items', 'kiriminaja-official' ); ?></h2>
+		<h2><?php echo esc_html__( 'Booked physical items', 'kiriminaja-official' ); ?></h2>
 		<ul><?php foreach ( $label['items'] as $item ) : ?><li><?php echo esc_html( $item['name'] . ' × ' . $item['quantity'] ); ?></li><?php endforeach; ?></ul>
 		<p><?php echo esc_html__( 'Weight (g)', 'kiriminaja-official' ); ?>: <?php echo esc_html( $label['weight'] ); ?></p>
 		<p><?php echo esc_html__( 'Payment method / status', 'kiriminaja-official' ); ?>: <?php echo esc_html( $label['payment_method'] . ' / ' . $label['payment_status'] ); ?></p>

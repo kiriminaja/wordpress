@@ -55,7 +55,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		foreach ( self::AJAX as $operation ) {
 			$result = $this->assert_rejected( array( 'operation' => $operation, 'capable' => false, 'data' => null ), 'Insufficient permissions' );
 			$this->assertSame( array( array( 'capability', 'manage_woocommerce' ) ), $result['events'] );
-			foreach ( array( null, '', 'wrong', 'valid:kiriof_instant_labels', array( 'valid:kiriof_ajax' ), 123, '<b>valid:kiriof_ajax</b>' ) as $nonce ) {
+			foreach ( array( null, '', 'wrong', 'valid:kiriof_instant_labels', array( 'valid:kiriof_ajax' ), 123, '<b>valid:kiriof_ajax</b>', ' valid:kiriof_ajax ', 'valid:kiriof_ajax\\' ) as $nonce ) {
 				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'nonce' => $nonce ) ), 'Security check failed' );
 			}
 			$this->assert_rejected( array( 'operation' => $operation, 'unset' => array( 'nonce' ) ), 'Security check failed' );
@@ -78,7 +78,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	#[Test]
 	public function id_batches_enforce_one_to_fifty_unique_exact_safe_string_or_integer_ids(): void {
 		$invalid = array( array(), array( 'KA-1', 'KA-1' ), array( 1, '1' ), range( 1, 51 ) );
-		foreach ( array( '', ' KA-1', 'KA-1 ', '-KA', '_KA', 'A.B', 'A/B', 'A,B', "A\nB", '<b>A</b>', 'é', str_repeat( 'a', 101 ), null, true, false, 1.2, array( 'KA' ), (object) array( 'id' => 'KA' ) ) as $id ) { $invalid[] = array( $id ); }
+		foreach ( array( '', ' KA-1', 'KA-1 ', '-KA', '_KA', 'A.B', 'A/B', 'A\\B', 'A\\\\B', 'A,B', "A\nB", '<b>A</b>', 'é', str_repeat( 'a', 101 ), null, true, false, 1.2, array( 'KA' ), (object) array( 'id' => 'KA' ) ) as $id ) { $invalid[] = array( $id ); }
 		foreach ( self::AJAX as $operation ) {
 			foreach ( $invalid as $ids ) {
 				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
@@ -133,6 +133,15 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	}
 
 	#[Test]
+	public function scalar_fields_preserve_literal_backslashes_after_one_unslash(): void {
+		$fields = array( 'token' => 'quote\\token', 'method' => 'credit\\method', 'pin' => '12\\34' );
+		$result = $this->run_controller( array( 'operation' => 'dispatch', 'fields' => $fields ) );
+		$this->assertSame( array( array( 'dispatch', array( $fields['token'], array( 'KA-1', 2 ), $fields['method'], $fields['pin'] ) ) ), $result['calls'] );
+		$result = $this->run_controller( array( 'operation' => 'payment', 'fields' => array( 'payment_id' => 'PAY\\1' ) ) );
+		$this->assertSame( array( array( 'refreshPayment', array( array( 'KA-1', 2 ), 'PAY\\1' ) ) ), $result['calls'] );
+	}
+
+	#[Test]
 	public function payment_id_is_validated_only_for_payment_and_other_endpoints_ignore_it(): void {
 		foreach ( array( null, array( 'PAY' ), 123, true, '', ' PAY ', '<b>PAY</b>' ) as $value ) {
 			$this->assert_rejected( array( 'operation' => 'payment', 'fields' => array( 'payment_id' => $value ) ) );
@@ -149,7 +158,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	public function label_render_requires_dedicated_nonce_and_cannot_use_legacy_bypass(): void {
 		$result = $this->assert_rejected( array( 'operation' => 'labels', 'capable' => false ), 'Insufficient permissions' );
 		$this->assertSame( array( array( 'capability', 'manage_woocommerce' ) ), $result['events'] );
-		foreach ( array( null, '', 'wrong', 'valid:kiriof_ajax', array( 'valid:kiriof_instant_labels' ), '<b>valid:kiriof_instant_labels</b>' ) as $nonce ) {
+		foreach ( array( null, '', 'wrong', 'valid:kiriof_ajax', array( 'valid:kiriof_instant_labels' ), '<b>valid:kiriof_instant_labels</b>', ' valid:kiriof_instant_labels ', 'valid:kiriof_instant_labels\\' ) as $nonce ) {
 			$this->assert_rejected( array( 'operation' => 'labels', 'legacy_bypass' => true, 'get' => array( '_wpnonce' => $nonce, 'oids' => 'KA-1' ) ), 'Security check failed' );
 		}
 		$this->assert_rejected( array( 'operation' => 'labels', 'legacy_bypass' => true, 'get' => array( 'oids' => 'KA-1' ) ), 'Security check failed' );
@@ -157,7 +166,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 
 	#[Test]
 	public function render_validates_ids_then_prepares_and_renders_local_template_with_security_headers(): void {
-		foreach ( array( null, array( 'KA' ), 1, '', 'KA,KA', 'KA,', ',KA', ' KA', '<b>KA</b>', implode( ',', range( 1, 51 ) ) ) as $oids ) {
+		foreach ( array( null, array( 'KA' ), 1, '', 'KA,KA', 'KA,', ',KA', ' KA', 'KA\\1', '<b>KA</b>', implode( ',', range( 1, 51 ) ) ) as $oids ) {
 			$this->assert_rejected( array( 'operation' => 'labels', 'get' => array( '_wpnonce' => 'valid:kiriof_instant_labels', 'oids' => $oids ) ) );
 		}
 		$this->assert_rejected( array( 'operation' => 'labels', 'get' => array( '_wpnonce' => 'valid:kiriof_instant_labels' ) ) );

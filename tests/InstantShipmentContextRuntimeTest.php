@@ -86,7 +86,7 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
 
     #[Test]
     public function stale_destination_addresses_fail_and_timezones_are_never_guessed(): void {
-        foreach ([['address_1'=>'Changed street'], ['address_2'=>''], ['postcode'=>'54321']] as $address) {
+        foreach ([['address_1'=>'Changed street'], ['address_2'=>''], ['postcode'=>'54321'], ['city'=>'Bandung'], ['state'=>'JB'], ['country'=>'SG'], ['country'=>'']] as $address) {
             $this->assertFalse($this->runFixture(['address'=>$address])['ok']);
         }
         foreach (['Asia/Jakarta'=>'WIB', 'Asia/Pontianak'=>'WIB', 'Asia/Makassar'=>'WITA', 'Asia/Jayapura'=>'WIT'] as $zone=>$expected) {
@@ -97,6 +97,47 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
         }
         $this->assertSame('WIT', $this->runFixture(['zone'=>'UTC', 'origin'=>['timezone'=>'WIT']])['context']['pricing']['timezone']);
         $this->assertFalse($this->runFixture(['origin'=>['timezone'=>'unknown']])['ok']);
-        $this->assertTrue($this->runFixture(['row'=>['shipping_info'=>'{}']])['ok']);
+        $this->assertFalse($this->runFixture(['row'=>['shipping_info'=>'{}']])['ok']);
+    }
+
+    #[Test]
+    public function persisted_cod_and_insurance_cannot_be_hidden_by_a_changed_payment_method(): void {
+        foreach (['cod_fee', 'insurance_cost'] as $field) {
+            foreach ([1, '1500.00'] as $amount) {
+                $result = $this->runFixture(['payment'=>'bacs', 'row'=>[$field=>$amount]]);
+                $this->assertFalse($result['ok']);
+                $this->assertStringContainsString('cod_fee' === $field ? 'Cash on delivery' : 'Insurance', $result['error']);
+            }
+        }
+        $this->assertTrue($this->runFixture(['row'=>['cod_fee'=>0, 'insurance_cost'=>0, 'is_deficit'=>1]])['ok']);
+    }
+
+    #[Test]
+    public function requires_a_valid_saved_street_associated_with_the_current_address(): void {
+        foreach ([null, '', 'invalid', 'null', '[]', '{}', '"street"', '{', '{"_shipping_postcode":"12345"}', '{"_shipping_address_1":""}', '{"_shipping_address_1":{}}'] as $snapshot) {
+            $result = $this->runFixture(['row'=>['shipping_info'=>$snapshot]]);
+            $this->assertFalse($result['ok'], json_encode($snapshot));
+            $this->assertStringContainsString('saved recipient address', $result['error']);
+        }
+        // Legacy billing snapshots need a matching street, not newly invented fields.
+        foreach (['_billing_address_1', 'billing_address_1', 'address_1', '_shipping_address_1'] as $key) {
+            $snapshot = json_encode([$key=>'Jalan Sudirman Number 123']);
+            $this->assertTrue($this->runFixture(['row'=>['shipping_info'=>$snapshot]])['ok']);
+            $this->assertFalse($this->runFixture(['row'=>['shipping_info'=>$snapshot], 'address'=>['address_1'=>'Other street']])['ok']);
+            $this->assertFalse($this->runFixture(['row'=>['shipping_info'=>$snapshot], 'address'=>['country'=>'SG']])['ok']);
+        }
+        $this->assertFalse($this->runFixture(['snapshot'=>['_shipping_country'=>'SG']])['ok']);
+    }
+
+    #[Test]
+    public function saved_coordinates_must_match_including_valid_zero_pins(): void {
+        foreach (['destination_', '_kiriof_destination_', 'kiriof_destination_'] as $prefix) {
+            $this->assertTrue($this->runFixture(['snapshot'=>[$prefix . 'latitude'=>0, $prefix . 'longitude'=>'0']])['ok']);
+            foreach (['latitude', 'longitude'] as $axis) {
+                $result = $this->runFixture(['snapshot'=>[$prefix . $axis=>1]]);
+                $this->assertFalse($result['ok']);
+                $this->assertStringContainsString('saved destination coordinates', $result['error']);
+            }
+        }
     }
 }

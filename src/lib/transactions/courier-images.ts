@@ -1,5 +1,4 @@
 import anteraja from '../../assets/images/kiriminaja-kurir/Anteraja.png';
-import borzo from '../../assets/images/kiriminaja-kurir/Borzo.png';
 import gosend from '../../assets/images/kiriminaja-kurir/Gosend.png';
 import grabExpress from '../../assets/images/kiriminaja-kurir/grab_express.png';
 import idExpress from '../../assets/images/kiriminaja-kurir/ID Express.png';
@@ -22,7 +21,6 @@ import tiki from '../../assets/images/kiriminaja-kurir/TIKI.png';
 
 export const courierImages: Record<string, string> = {
   anteraja,
-  borzo,
   gosend,
   grab_express: grabExpress,
   idx: idExpress,

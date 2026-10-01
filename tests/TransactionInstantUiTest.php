@@ -26,7 +26,7 @@ final class TransactionInstantUiTest extends TestCase {
         $this->assertSame('order-issue', $filters['status']);
     }
 
-    public function test_instant_rows_are_read_only_with_actual_nullable_vehicle(): void {
+    public function test_ineligible_instant_rows_disable_selection_and_express_actions_with_nullable_vehicle(): void {
         foreach ([['delivery_type' => 'instant'], ['delivery_type' => 'express', 'service' => 'gosend']] as $classification) {
             foreach (['new', 'request_pickup'] as $status) {
                 $row = $this->runFixture('transaction-instant-ui-runtime.php', $classification + ['status' => $status, 'vehicle' => 'mobil', 'is_deficit' => 1]);
@@ -35,6 +35,8 @@ final class TransactionInstantUiTest extends TestCase {
                 $this->assertTrue($row['selection']['disabled']);
                 $this->assertFalse($row['selection']['canPickup']);
                 $this->assertFalse($row['selection']['canPrint']);
+                $this->assertFalse($row['selection']['canProcess']);
+                $this->assertFalse($row['actions']['process']);
                 foreach (['changeOrigin', 'adjustDeficit', 'cancelDeficit', 'print', 'cancel'] as $action) {
                     $this->assertFalse($row['actions'][$action], $action);
                 }
@@ -49,6 +51,100 @@ final class TransactionInstantUiTest extends TestCase {
         $this->assertSame('Waiting for Shipment', $row['status']['label']);
         $row = $this->runFixture('transaction-instant-ui-runtime.php', ['delivery_type' => 'instant', 'vehicle' => 'car']);
         $this->assertNull($row['vehicle']);
+    }
+
+    private function eligibleInstantPayload(bool $booked = false): array {
+        return [
+            'delivery_type' => 'instant', 'service' => 'gosend', 'vehicle' => 'motor',
+            'status' => $booked ? 'request_pickup' : 'new',
+            'awb' => $booked ? 'GOSEND-AWB-1' : '',
+            'wc_order' => ['status' => 'processing', 'paid' => false],
+            'shipment_location_snapshot' => json_encode(['origin_name' => 'Booked warehouse', 'origin_address' => 'Booked origin street'], JSON_THROW_ON_ERROR),
+            'shipping_info' => json_encode([
+                '_shipping_first_name' => 'Booked recipient', '_shipping_address_1' => 'Booked destination street',
+                'instant_items' => [['name' => 'Persisted physical item', 'qty' => 2]],
+            ], JSON_THROW_ON_ERROR),
+        ];
+    }
+
+    private function assertNoExpressActions(array $row): void {
+        $this->assertFalse($row['selection']['canPickup']);
+        foreach (['changeOrigin', 'adjustDeficit', 'cancelDeficit', 'cancel'] as $action) {
+            $this->assertFalse($row['actions'][$action], $action);
+        }
+        $this->assertTrue($row['actions']['preview']);
+    }
+
+    public function test_instant_processing_and_printing_are_separate_guarded_operations(): void {
+        foreach (['gosend', 'grab_express'] as $service) {
+            $new = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(), ['service' => $service]));
+            $this->assertFalse($new['selection']['disabled']);
+            $this->assertTrue($new['selection']['canProcess']);
+            $this->assertTrue($new['actions']['process']);
+            $this->assertFalse($new['selection']['canPrint']);
+            $this->assertFalse($new['actions']['print']);
+            $this->assertNoExpressActions($new);
+
+            // The order fake has a deleted product: labels use dispatch snapshots,
+            // not the mutable WC catalog. Both WC lookups must return an order.
+            $booked = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(true), ['service' => $service]));
+            $this->assertFalse($booked['selection']['disabled']);
+            $this->assertFalse($booked['selection']['canProcess']);
+            $this->assertFalse($booked['actions']['process']);
+            $this->assertTrue($booked['selection']['canPrint']);
+            $this->assertTrue($booked['actions']['print']);
+            $this->assertNoExpressActions($booked);
+        }
+    }
+
+    public function test_instant_process_guard_rejects_remote_state_and_ineligible_orders(): void {
+        foreach ([
+            ['awb' => 'AWB-1'], ['payment_id' => 'PAY-1'], ['instant_payment_id' => 'PAY-1'],
+            ['instant_status_code' => 0], ['instant_status_code' => 100],
+            ['status' => 'request_pickup'], ['service' => 'jne'], ['wc_order' => false],
+            ['wc_order' => ['status' => 'pending', 'paid' => false]],
+            ['wc_order' => ['status' => 'completed', 'paid' => true]],
+            ['wc_order' => ['status' => 'cancelled', 'paid' => true]],
+            ['wc_order' => ['status' => 'refunded', 'paid' => true]],
+            ['wc_order' => ['status' => 'failed', 'paid' => true]],
+            ['wc_order' => ['status' => 'trash', 'paid' => true]],
+        ] as $invalid) {
+            $row = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(), $invalid));
+            $this->assertTrue($row['selection']['disabled'], json_encode($invalid));
+            $this->assertFalse($row['selection']['canProcess']);
+            $this->assertFalse($row['selection']['canPrint']);
+            $this->assertNoExpressActions($row);
+        }
+        $row = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(), ['wc_order' => ['status' => 'on-hold', 'paid' => true]]));
+        $this->assertTrue($row['selection']['canProcess']);
+        // This is deliberately a cheap UI guard, not full coordinate validation.
+        $row = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(), ['shipping_info' => '{}', 'shipment_location_snapshot' => '']));
+        $this->assertTrue($row['selection']['canProcess']);
+    }
+
+    public function test_instant_print_guard_fails_closed_without_booked_snapshots(): void {
+        foreach ([
+            ['awb' => ''], ['awb' => '-'], ['instant_status_code' => 300],
+            ['instant_status_code' => 302], ['instant_status_code' => 350],
+            ['status' => 'canceled'], ['service' => 'jne'], ['wc_order' => false],
+            ['wc_order' => ['status' => 'pending', 'paid' => true]],
+            ['shipping_info' => '{}'],
+            ['shipping_info' => '{"_shipping_first_name":"Name","_shipping_address_1":"Street","instant_items":[{"name":"Item","qty":0}]}'],
+            ['shipping_info' => '{"instant_items":[{"name":"Item","qty":1}]}'],
+            ['shipment_location_snapshot' => '{}'],
+            ['wp_wc_order_stat_order_id' => 999],
+        ] as $invalid) {
+            $row = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(true), $invalid));
+            $this->assertTrue($row['selection']['disabled'], json_encode($invalid));
+            $this->assertFalse($row['selection']['canPrint']);
+            $this->assertFalse($row['actions']['print']);
+            $this->assertFalse($row['selection']['canProcess']);
+            $this->assertNoExpressActions($row);
+        }
+        foreach (['request_pickup', 'shipped', 'finished'] as $status) {
+            $row = $this->runFixture('transaction-instant-ui-runtime.php', array_replace($this->eligibleInstantPayload(true), ['status' => $status, 'wc_order' => ['status' => 'completed']]));
+            $this->assertTrue($row['selection']['canPrint']);
+        }
     }
 
     public function test_express_actions_remain_available(): void {

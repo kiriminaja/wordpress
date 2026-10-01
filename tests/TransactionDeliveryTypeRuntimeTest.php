@@ -48,16 +48,14 @@ final class TransactionDeliveryTypeRuntimeTest extends TestCase {
                     $sql = implode("\n", $result['queries']);
                     $this->assertStringContainsString($hpos ? 'wp_wc_orders' : 'wp_posts', $sql);
                     if ('instant' === $scope) {
-                        $this->assertSame(0, $result['counts']['processed']);
+                        $this->assertSame(55, $result['counts']['processed']);
+                        $this->assertStringContainsString('instant_status_code IS NOT NULL', $sql);
+                        $this->assertStringContainsString("instant_payment_id != ''", $sql);
                         $this->assertStringNotContainsString('kiriminaja_payments', $sql);
                     }
-                    if ('instant' === $scope && 'processed' === $status) {
-                        $this->assertSame(0, $result['page']['total']);
-                        $this->assertSame([], $result['page']['results']);
-                    } else {
-                        $this->assertSame(3, $result['page']['page']);
-                        $this->assertStringContainsString('LIMIT 25 OFFSET 50', $sql);
-                    }
+                    $this->assertSame(55, $result['page']['total']);
+                    $this->assertSame(3, $result['page']['page']);
+                    $this->assertStringContainsString('LIMIT 25 OFFSET 50', $sql);
 
                 }
             }

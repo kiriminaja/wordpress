@@ -17,6 +17,8 @@ final class InstantLabelRuntimeTest extends TestCase {
 			foreach ( array( 'request_pickup', 'shipped', 'finished' ) as $status ) {
 				$result = $this->run_label( array( 'rows' => array( array( 'service' => $courier, 'status' => $status ) ) ) );
 				$this->assertSame( '', $result['error'] );
+				$this->assertSame( array( true ), $result['can_print'] );
+				$this->assertStringContainsString( 'Booked physical items', $result['html'] );
 				$this->assertSame( 'Booked recipient', $result['labels'][0]['recipient']['name'] );
 				$this->assertSame( 'Booked sender', $result['labels'][0]['sender']['name'] );
 				$this->assertSame( array( array( 'name' => 'Physical item', 'quantity' => 2 ) ), $result['labels'][0]['items'] );
@@ -44,6 +46,11 @@ final class InstantLabelRuntimeTest extends TestCase {
 			$this->assertNotSame( '', $result['error'] );
 			$this->assertSame( '', $result['html'] );
 		}
+		$result = $this->run_label( array( 'ids' => array( 'KA-1', 'KA-2' ), 'rows' => array( array(), array( 'order_id' => 'KA-2', 'shipping_info' => '{"instant_items":[]}' ) ) ) );
+		$this->assertNotSame( '', $result['error'] );
+		$this->assertSame( array( true, false ), $result['can_print'] );
+		$this->assertSame( array(), $result['labels'] );
+		$this->assertSame( '', $result['html'] );
 	}
 
 	#[Test]
@@ -58,10 +65,40 @@ final class InstantLabelRuntimeTest extends TestCase {
 		foreach ( array( array( 'service' => 'borzo' ), array( 'service' => 'jne' ), array( 'status' => 'new' ), array( 'status' => 'pending' ), array( 'status' => 'canceled' ), array( 'awb' => '' ), array( 'awb' => ' - ' ), array( 'instant_status_code' => 300 ), array( 'instant_status_code' => '302' ), array( 'instant_status_code' => 350 ), array( 'shipping_info' => '{}' ), array( 'shipment_location_snapshot' => '' ) ) as $row ) {
 			$result = $this->run_label( array( 'rows' => array( $row ) ) );
 			$this->assertNotSame( '', $result['error'] );
+			$this->assertSame( array( false ), $result['can_print'] );
 			$this->assertSame( '', $result['html'] );
 		}
-		foreach ( array( array( 'missing_order' => true ), array( 'no_physical' => true ), array( 'wc_status' => 'cancelled' ), array( 'wc_status' => 'trash' ), array( 'wc_status' => 'on-hold' ) ) as $input ) {
+		foreach ( array( array( 'missing_order' => true ), array( 'wc_status' => 'cancelled' ), array( 'wc_status' => 'trash' ), array( 'wc_status' => 'on-hold' ) ) as $input ) {
 			$this->assertNotSame( '', $this->run_label( $input )['error'] );
+		}
+	}
+
+	#[Test]
+	public function booked_items_survive_current_item_edits_and_product_removal(): void {
+		foreach ( array( array( 'item_name' => 'Edited name', 'item_qty' => 99 ), array( 'product_removed' => true ), array( 'no_physical' => true ), array( 'forbid_item_reads' => true ), array( 'wc_status' => 'completed' ) ) as $input ) {
+			$result = $this->run_label( $input );
+			$this->assertSame( '', $result['error'] );
+			$this->assertSame( array( true ), $result['can_print'] );
+			$this->assertSame( array( array( 'name' => 'Physical item', 'quantity' => 2 ) ), $result['labels'][0]['items'] );
+			$this->assertStringNotContainsString( 'Edited name', $result['html'] );
+		}
+	}
+
+	#[Test]
+	public function missing_and_malformed_booked_items_fail_closed_without_writes(): void {
+		$bad_items = array( null, array(), 'items', (object) array( 'item' => (object) array( 'name' => 'Item', 'qty' => 1 ) ), array( null ), array( 'Item' ), array( array( 'name' => '', 'qty' => 1 ) ), array( array( 'name' => '  ', 'qty' => 1 ) ), array( array( 'name' => 123, 'qty' => 1 ) ), array( array( 'name' => array(), 'qty' => 1 ) ) );
+		foreach ( array( null, 0, -1, true, '2', 1.5, 40001, PHP_INT_MAX ) as $qty ) {
+			$bad_items[] = array( array( 'name' => 'Item', 'qty' => $qty ) );
+		}
+		$bad_items[] = array( array( 'name' => 'Valid', 'qty' => 1 ), array( 'name' => 'Invalid' ) );
+		$inputs = array_map( static fn( $items ) => array( 'snapshot_items' => $items ), $bad_items );
+		$inputs[] = array( 'missing_snapshot_items' => true );
+		foreach ( $inputs as $input ) {
+			$result = $this->run_label( $input );
+			$this->assertNotSame( '', $result['error'] );
+			$this->assertSame( array( false ), $result['can_print'] );
+			$this->assertSame( array(), $result['labels'] );
+			$this->assertSame( '', $result['html'] );
 		}
 	}
 

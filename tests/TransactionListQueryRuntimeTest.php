@@ -242,7 +242,7 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
         $this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
         $this->assertStringContainsString( 'onclick={openPickupDialog}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringContainsString( "disabled={row.deliveryType === 'instant' || (!row.selection.canPrint && !row.selection.canPickup)}", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
+        $this->assertStringContainsString( "disabled={row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')}", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'isOrderIssue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringNotContainsString( 'International Delivery', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( "bootstrap.i18n.status", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );

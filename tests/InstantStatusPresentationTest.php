@@ -15,6 +15,9 @@ final class InstantStatusPresentationTest extends TestCase {
         foreach ([100, 101, 105, 106, 110, 200, 300, 350, 401, 400, 701, 999] as $code) {
             $payload = ['delivery_type' => 'instant', 'instant_status_code' => $code, 'instant_payment_status' => 'paid', 'vehicle' => 'mobil'];
             $list = $this->row($payload);
+            $this->assertFalse($list['selection']['canProcess']);
+            $this->assertFalse($list['selection']['canPrint']);
+            $this->assertTrue($list['selection']['disabled']);
             foreach (['detail', 'fallback'] as $mode) {
                 $detail = $this->row($payload + ['mode' => $mode]);
                 foreach (['key', 'label', 'tone', 'tooltip', 'issue'] as $field) {

@@ -1,12 +1,14 @@
 # Instant Delivery Buyer TODO
 
-Status: Planned; admin courier settings and transaction-tab foundation are complete
+Status: Planned; admin courier management, transaction actions, and local labels are implemented
 
 Last reviewed: 2026-09-30
 
 Scope: Classic Checkout, Checkout Blocks, buyer address, pricing eligibility
 
 This checklist tracks buyer-side work from the [Instant Delivery requirement](https://telegra.ph/Instant-09-30) and [implementation audit](implementation-audit.md). Admin workflows are tracked separately in [ADMIN-INSTANT-TODO.md](ADMIN-INSTANT-TODO.md).
+
+WordPress supports GoSend and Grab Express only. Borzo is excluded from selectable courier policies and shipment processing. The admin Process Shipment flow does not supply missing buyer coordinates; valid saved coordinate/address context remains a prerequisite until this checklist is implemented.
 
 ## Classic Checkout
 

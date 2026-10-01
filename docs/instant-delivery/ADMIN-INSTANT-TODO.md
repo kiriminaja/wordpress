@@ -13,19 +13,20 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [x] Confirm the synced branch is based on `v3`.
 - [x] Preserve the existing Express courier/service policy behavior as the compatibility baseline.
 - [x] Add delivery-type-aware courier discovery without leaking Instant couriers into Express rate calculation.
-- [x] Enable an explicit `Instant Delivery` courier-management tab.
-- [x] Preserve service selections across Express and Instant tabs.
+- [x] Replace courier-management tabs with one Express/Instant courier grid, per the latest feedback.
+- [x] Move courier search beside Enable All in the settings toolbar and preserve selections while searching.
 - [x] Keep Instant opt-in explicit; never enable Instant automatically during legacy whitelist migration.
 - [x] Use API-returned Instant child services when available.
 - [x] Apply Shopify child definitions for GoSend and GrabExpress (`instant`, `sameday`) from `kaj-shopify-plugin` commit `5a9a2d7`.
 
 ## Courier management
 
-- [x] Expose `gosend`, `grab_express`, and `borzo` only when returned by the account/API and classified as Instant.
-- [x] Keep International as a non-interactive “Coming soon” tab in the MVP.
+- [x] Expose only `gosend` and `grab_express` as supported Instant couriers when returned by the account/API.
+- [x] Remove Borzo from discovery, cached catalogs, selectable saved policies, dispatch, labels, and active logo mappings. Historical Borzo transactions remain classified as Instant to prevent Express routing.
+- [x] Remove all courier-management tabs, including the International placeholder; International couriers remain unsupported.
 - [x] Store the courier type/delivery type with the service policy or derive it deterministically from the catalog.
 - [x] Validate Instant service selections server-side, including unavailable historical selections.
-- [x] Ensure tab-local enable/disable actions do not erase selections in another tab.
+- [x] Apply Enable All / Disable All to the supported catalog without silently erasing unrelated saved choices.
 - [x] Keep legacy CSV mirrors compatible with existing Express installations.
 - [x] Add admin tests for API/cache/fallback rows, malformed policy, aliases, rollback, explicit Instant opt-in, and cross-tab preservation.
 
@@ -38,20 +39,29 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [x] Port the complete supported Shopify Instant status mapping into a shared WooCommerce status adapter.
 - [x] Do not add the prohibited admin location-confirmation button.
 - [x] Prevent Instant rows from reaching Express pickup, cancellation, COD adjustment, printing, origin-change, or tracking handlers while dedicated handlers are pending.
-- [x] Show Instant courier/service, vehicle, payment method/status/ID, order ID, AWB, fee, status, issue badge, and read-only available actions.
+- [x] Show Instant courier/service, vehicle, payment method/status/ID, order ID, AWB, fee, status, issue badge, and guarded Process Shipment / Print Labels actions.
 - [x] Keep `Find New Driver` informational/system-automatic with a tooltip and no manual action.
 
 ## Process Shipment / Request Pickup
 
-- [ ] Add a separate Instant dispatch service; do not reuse Express schedule selection or Express payload construction.
-- [ ] Add same-origin/destination repricing immediately before dispatch.
-- [ ] Show checkout quote and current quote when repricing changes the price; require confirmation in the dialog.
-- [ ] Enforce 1–10 packages per Instant pickup request and split larger compatible selections into batches.
-- [ ] Keep Express and Instant batches isolated.
-- [ ] Add TOP, QRIS, and KA Credit payment normalization for Instant.
-- [ ] Persist a stable Instant `order_id` across retries.
-- [ ] Persist AWB/tracking data immediately after successful booking.
-- [ ] Use the official PHP SDK for pricing; verify or add an explicit adapter for the installed SDK’s legacy v4 versus documented v6.2 booking contract.
+- [x] Add a separate Instant dispatch service and Process Shipment dialog without a schedule picker.
+- [x] Reprice using the same origin/destination before dispatch; use a user-bound 120-second quote and revalidate the complete context fingerprint before submission.
+- [x] Show saved/current prices and require per-order price-change acknowledgment plus explicit submission confirmation.
+- [x] Enforce 1–10 packages per compatible origin/courier/vehicle request; split larger selections and report partial outcomes.
+- [x] Reject Express/Borzo rows from the Instant dispatch path and keep existing Express endpoints unchanged.
+- [x] Normalize account-verified TOP, QRIS, and KA Credit payments; validate PIN/credit before claiming orders and expose manual payment refresh for matched bookings.
+- [x] Reuse the stored `order_id`; use atomic pending claims, expiring owner leases, and consumed quote tokens to prevent duplicate bookings.
+- [x] Persist verified remote payment/status/AWB/tracking data and immutable sender/recipient/item snapshots immediately after a matched booking response.
+- [x] Use official SDK Instant pricing and an explicit SDK-transport adapter for the documented v6.2 request schema.
+- [ ] Verify actual Sandbox booking/payment responses and courier acceptance before declaring production readiness. The OpenAPI success shape is a mock, not a production guarantee.
+
+## Print Labels
+
+- [x] Add an authenticated, dedicated Instant label preview/render route; do not send Instant labels to Express print APIs.
+- [x] Render A6 local HTML labels using actual AWB and immutable booked address/item snapshots.
+- [x] Print the same-origin label frame, wait for iframe readiness, abort stale previews, and validate a separate render nonce.
+- [x] Exclude missing-AWB, unbooked, cancelled, unsupported-courier, and incomplete-snapshot rows from labels.
+- [ ] Confirm an official carrier-issued Instant label endpoint/layout. Current labels explicitly identify themselves as local shipment labels, not carrier-issued documents.
 
 ## Cancellation, tracking, and webhooks
 
@@ -59,7 +69,7 @@ This checklist tracks the admin-first implementation from the [Instant Delivery 
 - [ ] Route Instant tracking to the Instant endpoint and render only `live_tracking_url`.
 - [ ] Add an Instant webhook branch for `shipped_packages`, `canceled_packages`, and `finished_packages`.
 - [ ] Make webhook persistence idempotent and order by lifecycle state.
-- [ ] Keep Instant operational issues in the Instant tab with an issue badge.
+- [x] Keep ambiguous booking outcomes in the Instant tab with a fixed issue reason and durable pending claim; never automatically resubmit an uncertain booking.
 
 ## External dependencies
 
@@ -79,17 +89,17 @@ Local reference: `/Users/user1/Kerjaa/kaj-shopify-plugin`, revision `5a9a2d7a3f7
 - `app/helpers/kiriminaja.ts`: mapping depends on internal status, payment state, AWB presence, and Instant readiness. `101` is Find New Driver; `106` is On Delivery; `200` is Delivered; `300`/`302` are Cancelled; `350` is Cancellation Process. Copy the complete mapping, not just these examples, into the transaction adapter.
 - `app/constants/orders/order.status.ts` and `app/models/packageOrder.ts`: use these alongside the helper to establish the order lifecycle mapping. Do not reuse Shopify's location-confirmation action in WordPress.
 
-Next admin slice: dedicated pricing/repricing and booking adapters. Delivery-type persistence, isolated Instant queries, shared Shopify status normalization, and Instant detail fields are complete. Keep booking actions unavailable until origin/destination context and the SDK/API contract are implemented and tested.
+Next admin slice: Sandbox response validation, dedicated cancellation/tracking, and webhook ingestion. The Process Shipment and local-label flows are implemented for eligible existing Instant records. Buyer pin capture is still pending: rows without valid saved coordinates/address associations remain blocked by server-side validation.
 
 `InstantDeliveryStatus` uses persisted remote status codes and Instant payment state, never the local shipment enum as a remote payment status. List, detail, and fallback detail use the same labels, tones, issue reasons, and driver-replacement tooltip. Unknown remote combinations remain unknown rather than inheriting local success. Missing destination coordinates are an issue to resolve through the buyer address, not an admin location-confirmation action.
 
 Remote status, payment method/status/ID, destination coordinates, and tracking URL have nullable persisted fields. The independent `kiriof_instant_metadata_v1` migration retries incomplete upgrades even when the earlier partition migration is already complete. Repository writes validate supplied metadata and preserve omitted fields; zero coordinates are valid.
 
-Remote status filters and badge counts still use the existing local query filters. Add Shopify-state filtering/counts alongside booking/webhook ingestion; the display adapter does not claim these operational workflows are complete.
+Processed filtering and badge counts now use persisted Instant booking evidence without joining Express payment rows. Full Shopify-state query filtering remains pending alongside webhook ingestion.
 
-The current settings screen stores preferences only and states that Instant checkout and dispatch are not available yet. This prevents saved courier preferences from implying a working booking flow.
+The settings screen stores supported courier preferences in one grid. Enabling Instant preferences does not imply buyer checkout is implemented; dispatch requires an eligible saved Instant record with coordinates, physical item data, and valid origin/address snapshots.
 
-Both Instant tabs are enabled independently of account entitlement or whether their lists are empty. Account/API eligibility determines which couriers appear, not whether the tab is clickable. International remains disabled.
+The transaction Instant tab remains enabled even when empty. Courier-management tabs have been removed entirely, per feedback. Account/API eligibility determines which courier rows appear.
 
 ### Checkout and asset verification
 
@@ -101,7 +111,9 @@ The serving plugin loads compiled assets from `assets/admin/dist`, not Svelte so
 
 - [x] Run focused courier/settings, transaction partition, navigation, action-guard, and migration retry tests.
 - [x] Run frontend lint, formatting, Svelte, accessibility/style checks, and Bun runtime tests.
-- [x] Run `make test` for the status/detail slice: 818 tests and 12,321 assertions passed; existing warnings/deprecations remain.
+- [x] Run `make test` for the courier-feedback/dispatch/label slice: 900 tests and 16,054 assertions passed; existing warnings/deprecations remain.
 - [ ] Run `make zip` before packaging/release verification.
 
 Frontend verification passed: formatting, lint, Svelte diagnostics, style checks, payment tests, courier-selection tests, and Instant tab navigation tests. The admin assets were rebuilt with `bun run build`. ZIP regeneration was intentionally skipped at the user's request; local staging files were refreshed only for source parity tests.
+
+The dispatch, context, atomic claim, authenticated endpoint, immutable label, Processed-query, and preview-session regressions passed. The changed shipping paths also passed WordPress/Plugin Check security, nonce, escaping, alternative-function, prepared-SQL, and database-parameter sniffs. No live shipment or payment was submitted. Payment refresh is manual in this slice; closing the modal stops its requests. Ambiguous remote responses remain blocked pending manual reconciliation.

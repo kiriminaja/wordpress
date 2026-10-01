@@ -47,24 +47,25 @@ class InstantDeliveryController {
 	private function ajax( string $operation ): void {
 		try {
 			if ( ! current_user_can( 'manage_woocommerce' ) ) {
-				throw new InvalidArgumentException( __( 'Insufficient permissions', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'Insufficient permissions', 'kiriminaja-official' ) );
 			}
 			if ( ! isset( $_POST['data'] ) || ! is_array( $_POST['data'] ) ) {
 				$this->invalid();
 			}
-			$data = $_POST['data']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is validated below.
-			if ( ! isset( $data['nonce'] ) || ! is_string( $data['nonce'] ) || ! wp_verify_nonce( wp_unslash( $data['nonce'] ), KIRIOF_NONCE ) ) {
-				throw new InvalidArgumentException( __( 'Security check failed', 'kiriminaja-official' ) );
+			// Reject sanitized lookalikes before verifying the exact incoming nonce.
+			if ( ! isset( $_POST['data']['nonce'] ) || ! is_string( $_POST['data']['nonce'] ) || sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ) !== wp_unslash( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw unslashed nonce is used only to reject sanitization changes; verification uses the identical sanitized value.
+				throw new InvalidArgumentException( esc_html__( 'Security check failed', 'kiriminaja-official' ) );
 			}
-			$ids = $this->postedIds( $data );
+			$data = wp_unslash( $_POST['data'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each used field is strictly validated below; unslash the payload exactly once.
+			$ids  = $this->postedIds( $data );
 			switch ( $operation ) {
 				case 'quote':
 					$result = $this->dispatch_service->quote( $ids );
 					break;
 				case 'dispatch':
 					// Review is explicit; truthy values and sanitized lookalikes are not consent.
-					if ( ! isset( $data['confirmed'] ) || ! is_string( $data['confirmed'] ) || 'yes' !== wp_unslash( $data['confirmed'] ) ) {
-						throw new InvalidArgumentException( __( 'Review and confirm the Instant shipping costs before dispatch.', 'kiriminaja-official' ) );
+					if ( ! isset( $data['confirmed'] ) || ! is_string( $data['confirmed'] ) || 'yes' !== $data['confirmed'] ) {
+						throw new InvalidArgumentException( esc_html__( 'Review and confirm the Instant shipping costs before dispatch.', 'kiriminaja-official' ) );
 					}
 					$token  = $this->field( $data, 'token' );
 					$method = $this->field( $data, 'method' );
@@ -99,17 +100,21 @@ class InstantDeliveryController {
 	public function labels(): void {
 		try {
 			if ( ! current_user_can( 'manage_woocommerce' ) ) {
-				throw new InvalidArgumentException( __( 'Insufficient permissions', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'Insufficient permissions', 'kiriminaja-official' ) );
 			}
 			// Verify the exact nonce, never a sanitized value or the general AJAX nonce.
-			if ( ! isset( $_GET['_wpnonce'] ) || ! is_string( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'kiriof_instant_labels' ) ) {
-				throw new InvalidArgumentException( __( 'Security check failed', 'kiriminaja-official' ) );
+			if ( ! isset( $_GET['_wpnonce'] ) || ! is_string( $_GET['_wpnonce'] ) || sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) !== wp_unslash( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'kiriof_instant_labels' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw unslashed nonce is compared for exactness, never accepted after sanitization changes.
+				throw new InvalidArgumentException( esc_html__( 'Security check failed', 'kiriminaja-official' ) );
 			}
 			nocache_headers();
 			if ( ! isset( $_GET['oids'] ) || ! is_string( $_GET['oids'] ) ) {
 				$this->invalid();
 			}
-			$ids    = $this->validateIds( explode( ',', wp_unslash( $_GET['oids'] ) ) );
+			$oids = sanitize_text_field( wp_unslash( $_GET['oids'] ) );
+			if ( $oids !== wp_unslash( $_GET['oids'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compare raw input only to reject changes; only the sanitized, validated IDs reach the service.
+				$this->invalid();
+			}
+			$ids    = $this->validateIds( explode( ',', $oids ) );
 			$labels = $this->label_service->prepare( $ids );
 		} catch ( InvalidArgumentException $error ) {
 			wp_die( esc_html( $error->getMessage() ) );
@@ -130,7 +135,7 @@ class InstantDeliveryController {
 			$this->invalid();
 		}
 		// Decode without associative conversion so a JSON object cannot masquerade as a list.
-		$ids = json_decode( wp_unslash( $data['order_ids'] ) );
+		$ids = json_decode( $data['order_ids'] );
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $ids ) ) {
 			$this->invalid();
 		}
@@ -155,7 +160,7 @@ class InstantDeliveryController {
 		if ( ! isset( $data[ $key ] ) || ! is_string( $data[ $key ] ) ) {
 			$this->invalid();
 		}
-		$value = wp_unslash( $data[ $key ] );
+		$value = $data[ $key ];
 		$clean = sanitize_text_field( $value );
 		if ( $clean !== $value || ( ! $allow_empty && '' === $clean ) ) {
 			$this->invalid();
@@ -164,7 +169,7 @@ class InstantDeliveryController {
 	}
 
 	private function invalid(): void {
-		throw new InvalidArgumentException( __( 'Invalid Instant request parameters.', 'kiriminaja-official' ) );
+		throw new InvalidArgumentException( esc_html__( 'Invalid Instant request parameters.', 'kiriminaja-official' ) );
 	}
 
 	private function failureMessage(): string {

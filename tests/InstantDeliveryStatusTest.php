@@ -110,6 +110,37 @@ final class InstantDeliveryStatusTest extends TestCase {
 	}
 
 	#[Test]
+	public function ambiguous_pending_booking_uses_only_the_fixed_persisted_issue_without_a_remote_code(): void {
+		$reason = 'Check remote state before retrying';
+		foreach ( array( array(), array( 'instant_status_code' => null ) ) as $remote ) {
+			$row = array_merge( array( 'status' => 'pending', 'rejected_reason' => $reason ), $remote );
+			foreach ( array( $row, (object) $row ) as $input ) {
+				$before = serialize( $input );
+				$result = InstantDeliveryStatus::describe( $input );
+				$this->assertSame( 'unknown', $result['key'] );
+				$this->assertSame( 'Unknown', $result['label'] );
+				$this->assertSame( 'info', $result['tone'] );
+				$this->assertSame( $reason, $result['issue'] );
+				$this->assertSame( $before, serialize( $input ) );
+			}
+		}
+		foreach ( array( '<img src=x onerror=alert(1)>', 'Secret upstream error', $reason . ' ', null, array( $reason ), (object) array( 'reason' => $reason ) ) as $raw_reason ) {
+			$result = InstantDeliveryStatus::describe( array( 'status' => 'pending', 'rejected_reason' => $raw_reason ) );
+			$this->assertSame( 'waiting_for_payment', $result['key'] );
+			$this->assertSame( '', $result['issue'] );
+			$this->assertStringNotContainsString( '<img', json_encode( $result ) );
+			$this->assertStringNotContainsString( 'Secret', json_encode( $result ) );
+		}
+		foreach ( array( 0, '0', 999, 'bad', '' ) as $code ) {
+			$result = InstantDeliveryStatus::describe( array( 'status' => 'pending', 'instant_status_code' => $code, 'rejected_reason' => $reason ) );
+			$this->assertSame( 'unknown', $result['key'] );
+			$this->assertSame( '', $result['issue'] );
+		}
+		$this->assertSame( 'waiting_for_shipment', InstantDeliveryStatus::describe( array( 'status' => 'new', 'rejected_reason' => $reason ) )['key'] );
+		$this->assertSame( '', InstantDeliveryStatus::describe( array( 'status' => 'new', 'rejected_reason' => $reason ) )['issue'] );
+	}
+
+	#[Test]
 	public function destination_validation_accepts_zero_boundaries_and_database_strings(): void {
 		foreach ( array( array( 0, 0 ), array( '0', '0.0' ), array( -90, -180 ), array( '90', '180' ), array( '-6.2', '106.8' ) ) as $coordinates ) {
 			$row = $this->remote( 100, 'pending' );

@@ -4518,3 +4518,347 @@ msgstr "ID pembayaran"
 #: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
 msgid "Instant shipment actions are not available yet. Saved shipment and payment statuses are shown below."
 msgstr "Tindakan pengiriman instan belum tersedia. Status pengiriman dan pembayaran yang tersimpan ditampilkan di bawah."
+
+#: inc/Controllers/InstantDeliveryController.php:68
+msgid "Review and confirm the Instant shipping costs before dispatch."
+msgstr "Tinjau dan konfirmasikan biaya pengiriman Instant sebelum memesan pengiriman."
+
+#: inc/Controllers/InstantDeliveryController.php:172
+msgid "Invalid Instant request parameters."
+msgstr "Parameter permintaan Instant tidak valid."
+
+#: inc/Controllers/InstantDeliveryController.php:176
+msgid "Unable to complete the Instant request. Please try again."
+msgstr "Permintaan Instant tidak dapat diselesaikan. Silakan coba lagi."
+
+#: inc/Services/TransactionListViewModelFactory.php:164
+msgid "This Instant shipment cannot be processed or printed. Review its shipment and payment state."
+msgstr "Pengiriman Instant ini tidak dapat diproses atau dicetak. Periksa status pengiriman dan pembayarannya."
+
+#: inc/Services/TransactionListRenderService.php:233
+msgid "Instant shipments are dispatched manually after reviewing current prices and payment. Labels are generated locally for booked shipments; payment status is refreshed manually."
+msgstr "Pengiriman Instant dipesan secara manual setelah harga terkini dan pembayaran ditinjau. Label dibuat secara lokal untuk pengiriman yang sudah dipesan; status pembayaran diperbarui secara manual."
+
+#: inc/Services/TransactionListRenderService.php:234
+msgid "Process Shipment"
+msgstr "Proses Pengiriman"
+
+#: inc/Services/TransactionListRenderService.php:235
+msgid "Review current prices, acknowledge changes, and choose payment before booking. Dispatch cannot be retried blindly."
+msgstr "Tinjau harga terkini, setujui perubahan, dan pilih metode pembayaran sebelum memesan. Jangan mencoba memesan ulang tanpa memeriksa status pengiriman."
+
+#: inc/Services/TransactionListRenderService.php:236
+msgid "Shipment groups"
+msgstr "Kelompok pengiriman"
+
+#: inc/Services/TransactionListRenderService.php:237
+msgid "This quote has expired. Review prices again before confirming."
+msgstr "Penawaran ongkir ini telah kedaluwarsa. Tinjau harga kembali sebelum mengonfirmasi."
+
+#: inc/Services/TransactionListRenderService.php:238
+msgid "Saved price"
+msgstr "Harga tersimpan"
+
+#: inc/Services/TransactionListRenderService.php:239
+msgid "Current price"
+msgstr "Harga terkini"
+
+#: inc/Services/TransactionListRenderService.php:240
+msgid "I accept this price change."
+msgstr "Saya menyetujui perubahan harga ini."
+
+#: inc/Services/TransactionListRenderService.php:241
+msgid "Skip failed or unselected shipments and process only reviewed shipments."
+msgstr "Lewati pengiriman yang gagal atau tidak dipilih dan proses hanya pengiriman yang telah ditinjau."
+
+#: inc/Services/TransactionListRenderService.php:242
+msgid "KA Credit PIN (6 digits)"
+msgstr "PIN KA Credit (6 digit)"
+
+#: inc/Services/TransactionListRenderService.php:243
+msgid "I confirm the reviewed prices, payment method, and shipment terms."
+msgstr "Saya mengonfirmasi harga yang telah ditinjau, metode pembayaran, dan ketentuan pengiriman."
+
+#: inc/Services/TransactionListRenderService.php:244
+msgid "The booking outcome is unknown. Check shipment and payment state before attempting another dispatch."
+msgstr "Hasil pemesanan belum diketahui. Periksa status pengiriman dan pembayaran sebelum mencoba memesan pengiriman kembali."
+
+#: inc/Services/TransactionListRenderService.php:245
+msgid "Refresh payment status"
+msgstr "Perbarui status pembayaran"
+
+#: inc/Services/TransactionListRenderService.php:237 inc/Services/TransactionListRenderService.php:247
+msgid "Review prices again"
+msgstr "Tinjau harga kembali"
+
+#: inc/Services/TransactionListRenderService.php:251
+msgid "Scan this QRIS code to pay"
+msgstr "Pindai kode QRIS ini untuk membayar"
+
+#: inc/Services/TransactionListRenderService.php:252
+msgid "Booked"
+msgstr "Sudah dipesan"
+
+#: inc/Services/TransactionListRenderService.php:254
+msgid "Unknown outcome"
+msgstr "Hasil belum diketahui"
+
+#: inc/Services/TransactionListRenderService.php:255
+msgid "Skipped"
+msgstr "Dilewati"
+
+#: inc/Services/TransactionListRenderService.php:259
+msgid "Pending payment"
+msgstr "Menunggu pembayaran"
+
+#: inc/Services/TransactionListRenderService.php:260
+msgid "Payment failed"
+msgstr "Pembayaran gagal"
+
+#: inc/Services/TransactionListRenderService.php:261
+msgid "Payment expired"
+msgstr "Pembayaran kedaluwarsa"
+
+#: inc/Services/TransactionListRenderService.php:262
+msgid "Unknown payment state"
+msgstr "Status pembayaran tidak diketahui"
+
+#: inc/Services/InstantDispatchService.php:245
+msgid "Select between 1 and 50 Instant shipments."
+msgstr "Pilih antara 1 hingga 50 pengiriman Instant."
+
+#: inc/Services/InstantLabelService.php:70 inc/Services/InstantLabelService.php:74
+msgid "Invalid Instant shipment ID."
+msgstr "ID pengiriman Instant tidak valid."
+
+#: inc/Services/InstantLabelService.php:81
+msgid "Every requested Instant shipment must exist."
+msgstr "Setiap pengiriman Instant yang diminta harus tersedia."
+
+#: inc/Services/InstantLabelService.php:87
+msgid "Every requested Instant shipment must exist exactly once."
+msgstr "Setiap pengiriman Instant yang diminta harus tersedia tepat satu kali."
+
+#: inc/Services/InstantLabelService.php:120
+msgid "Local labels require a booked, non-cancelled GoSend or Grab Instant shipment with an AWB."
+msgstr "Label lokal hanya dapat dibuat untuk pengiriman GoSend atau Grab Instant yang sudah dipesan, tidak dibatalkan, dan memiliki nomor resi (AWB)."
+
+#: inc/Services/InstantLabelService.php:124
+msgid "The WooCommerce order is not eligible for shipping."
+msgstr "Pesanan WooCommerce tidak memenuhi syarat untuk dikirim."
+
+#: inc/Services/InstantLabelService.php:131
+msgid "Booked shipment address snapshots are required for a local label."
+msgstr "Data alamat yang tersimpan saat pemesanan pengiriman diperlukan untuk membuat label lokal."
+
+#: inc/Services/InstantLabelService.php:136
+msgid "The booked destination snapshot is incomplete."
+msgstr "Data alamat tujuan yang tersimpan saat pemesanan tidak lengkap."
+
+#: inc/Services/InstantLabelService.php:141
+msgid "The booked origin snapshot is incomplete."
+msgstr "Data alamat asal yang tersimpan saat pemesanan tidak lengkap."
+
+#: inc/Services/InstantShipmentContext.php:46
+msgid "This Instant shipment cannot be processed or has already been booked."
+msgstr "Pengiriman Instant ini tidak dapat diproses atau sudah dipesan."
+
+#: inc/Services/InstantShipmentContext.php:50
+msgid "The shipment order ID is invalid."
+msgstr "ID pesanan pengiriman tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:54 inc/Services/InstantShipmentContext.php:58
+msgid "The WooCommerce order is unavailable."
+msgstr "Pesanan WooCommerce tidak tersedia."
+
+#: inc/Services/InstantShipmentContext.php:61
+msgid "The WooCommerce order must be paid or processing and not closed."
+msgstr "Pesanan WooCommerce harus sudah dibayar atau berstatus sedang diproses, dan belum ditutup."
+
+#: inc/Services/InstantShipmentContext.php:64
+msgid "Cash on delivery is not supported for Instant shipments."
+msgstr "Pembayaran di tempat (COD) tidak didukung untuk pengiriman Instant."
+
+#: inc/Services/InstantShipmentContext.php:67
+msgid "Insurance is not supported for Instant shipments."
+msgstr "Asuransi tidak didukung untuk pengiriman Instant."
+
+#: inc/Services/InstantShipmentContext.php:72
+msgid "The selected Instant courier service is unavailable."
+msgstr "Layanan kurir Instant yang dipilih tidak tersedia."
+
+#: inc/Services/InstantShipmentContext.php:75
+msgid "Only motor delivery is supported for Instant shipments."
+msgstr "Pengiriman Instant hanya mendukung pengantaran dengan sepeda motor."
+
+#: inc/Services/InstantShipmentContext.php:84
+msgid "The saved shipment origin is incomplete. Configure its address and coordinates before processing."
+msgstr "Data asal pengiriman yang tersimpan tidak lengkap. Atur alamat dan koordinatnya sebelum memproses."
+
+#: inc/Services/InstantShipmentContext.php:113
+msgid "The shipment origin name, phone, address or postcode is invalid."
+msgstr "Nama pengirim, nomor telepon, alamat, atau kode pos asal pengiriman tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:121
+msgid "Configure a supported Indonesian timezone for Instant delivery."
+msgstr "Atur zona waktu Indonesia yang didukung untuk pengiriman Instant."
+
+#: inc/Services/InstantShipmentContext.php:127 inc/Services/InstantShipmentContext.php:133 inc/Services/InstantShipmentContext.php:151
+msgid "The saved recipient address is incomplete. Update the destination coordinates before processing."
+msgstr "Alamat penerima yang tersimpan tidak lengkap. Perbarui koordinat tujuan sebelum memproses."
+
+#: inc/Services/InstantShipmentContext.php:145
+msgid "The saved destination coordinates do not match this shipment."
+msgstr "Koordinat tujuan yang tersimpan tidak sesuai dengan pengiriman ini."
+
+#: inc/Services/InstantShipmentContext.php:158
+msgid "Instant delivery requires a current recipient address in Indonesia."
+msgstr "Pengiriman Instant memerlukan alamat penerima terkini di Indonesia."
+
+#: inc/Services/InstantShipmentContext.php:166
+msgid "The recipient address has changed. Update the destination coordinates before processing."
+msgstr "Alamat penerima telah berubah. Perbarui koordinat tujuan sebelum memproses."
+
+#: inc/Services/InstantShipmentContext.php:172
+msgid "The current recipient name, phone, street, city and postcode are required."
+msgstr "Nama penerima, nomor telepon, alamat jalan, kota, dan kode pos terkini wajib diisi."
+
+#: inc/Services/InstantShipmentContext.php:188
+msgid "An order product is unavailable."
+msgstr "Salah satu produk dalam pesanan tidak tersedia."
+
+#: inc/Services/InstantShipmentContext.php:197
+msgid "An order item value is invalid."
+msgstr "Nilai salah satu item pesanan tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:202
+msgid "An order item name is required."
+msgstr "Nama item pesanan wajib diisi."
+
+#: inc/Services/InstantShipmentContext.php:219
+msgid "Instant shipments require physical items with a total weight of at most 40000 grams."
+msgstr "Pengiriman Instant memerlukan barang fisik dengan berat total maksimal 40000 gram."
+
+#: inc/Services/InstantShipmentContext.php:247
+msgid "The Instant shipment context could not be encoded."
+msgstr "Data pengiriman Instant tidak dapat dikodekan."
+
+#: inc/Services/InstantShipmentContext.php:264
+msgid "Valid origin and destination coordinates are required for Instant delivery."
+msgstr "Pengiriman Instant memerlukan koordinat asal dan tujuan yang valid."
+
+#: inc/Services/InstantShipmentContext.php:271
+msgid "An Instant shipment quantity, price or package type is invalid."
+msgstr "Jumlah barang, harga, atau jenis paket pengiriman Instant tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:278
+msgid "Physical products require positive weight and dimensions for Instant delivery."
+msgstr "Produk fisik harus memiliki berat dan dimensi lebih dari nol untuk pengiriman Instant."
+
+#: inc/Services/InstantDispatchService.php:60
+msgid "This Instant shipment could not be quoted. Check its addresses, items and courier service."
+msgstr "Ongkir pengiriman Instant ini tidak dapat dihitung. Periksa alamat, barang, dan layanan kurirnya."
+
+#: inc/Services/InstantDispatchService.php:67
+msgid "Unable to save the Instant quote."
+msgstr "Penawaran ongkir Instant tidak dapat disimpan."
+
+#: inc/Services/InstantDispatchService.php:74 inc/Services/InstantDispatchService.php:79 inc/Services/InstantDispatchService.php:140
+msgid "The Instant quote is invalid or expired."
+msgstr "Penawaran ongkir Instant tidak valid atau telah kedaluwarsa."
+
+#: inc/Services/InstantDispatchService.php:84
+msgid "Select only eligible shipments from this quote."
+msgstr "Pilih hanya pengiriman yang memenuhi syarat dari penawaran ongkir ini."
+
+#: inc/Services/InstantDispatchService.php:103 inc/Services/InstantDispatchService.php:135
+msgid "An Instant shipment is already being processed."
+msgstr "Salah satu pengiriman Instant sedang diproses."
+
+#: inc/Services/InstantDispatchService.php:114
+msgid "The shipment has changed. Request a new Instant quote."
+msgstr "Data pengiriman telah berubah. Minta penawaran ongkir Instant yang baru."
+
+#: inc/Services/InstantDispatchService.php:120
+msgid "The Instant total is invalid."
+msgstr "Total biaya Instant tidak valid."
+
+#: inc/Services/InstantDispatchService.php:126
+msgid "The selected Instant payment method is unavailable. Request a new quote."
+msgstr "Metode pembayaran Instant yang dipilih tidak tersedia. Minta penawaran ongkir yang baru."
+
+#: inc/Services/InstantDispatchService.php:130
+msgid "Unable to validate KA Credit payment."
+msgstr "Pembayaran KA Credit tidak dapat divalidasi."
+
+#: inc/Services/InstantDispatchService.php:177
+msgid "Check remote state before retrying"
+msgstr "Periksa status di sistem kurir sebelum mencoba lagi"
+
+#: inc/Services/InstantDispatchService.php:185
+msgid "Instant shipment booked."
+msgstr "Pengiriman Instant berhasil dipesan."
+
+#: inc/Services/InstantDispatchService.php:214
+msgid "Invalid Instant payment ID."
+msgstr "ID pembayaran Instant tidak valid."
+
+#: inc/Services/InstantDispatchService.php:218
+msgid "The payment does not belong to every selected Instant shipment."
+msgstr "Pembayaran ini tidak terkait dengan semua pengiriman Instant yang dipilih."
+
+#: inc/Services/InstantDispatchService.php:223
+msgid "Unable to refresh the Instant payment."
+msgstr "Pembayaran Instant tidak dapat diperbarui."
+
+#: inc/Services/InstantDispatchService.php:228
+msgid "The Instant payment response is invalid."
+msgstr "Respons pembayaran Instant tidak valid."
+
+#: inc/Services/InstantDispatchService.php:236
+msgid "Unable to save the Instant payment status."
+msgstr "Status pembayaran Instant tidak dapat disimpan."
+
+#: inc/Services/InstantDispatchService.php:250
+msgid "Invalid or duplicate Instant shipment ID."
+msgstr "ID pengiriman Instant tidak valid atau duplikat."
+
+#: inc/Services/InstantDispatchService.php:256
+msgid "Every selected Instant shipment must exist exactly once."
+msgstr "Setiap pengiriman Instant yang dipilih harus tersedia tepat satu kali."
+
+#: inc/Services/InstantDispatchService.php:262
+msgid "Select only supported Instant shipments."
+msgstr "Pilih hanya pengiriman Instant yang didukung."
+
+#: inc/Services/InstantDispatchService.php:280
+msgid "Unable to verify Instant account payment methods."
+msgstr "Metode pembayaran akun Instant tidak dapat diverifikasi."
+
+#: templates/instant/labels.php:15 templates/instant/labels.php:40
+msgid "Local shipment label"
+msgstr "Label pengiriman lokal"
+
+#: templates/instant/labels.php:43
+msgid "WooCommerce reference"
+msgstr "Referensi WooCommerce"
+
+#: templates/instant/labels.php:55
+msgid "Booked physical items"
+msgstr "Barang fisik yang tercatat saat pemesanan"
+
+#: templates/instant/labels.php:57
+msgid "Weight (g)"
+msgstr "Berat (g)"
+
+#: templates/instant/labels.php:58
+msgid "Payment method / status"
+msgstr "Metode / status pembayaran"
+
+#: templates/instant/labels.php:59
+msgid "Shipping fee (IDR)"
+msgstr "Ongkir (IDR)"
+
+#: templates/instant/labels.php:60
+msgid "Not a courier-issued shipping label. Carrier-issued label availability remains unconfirmed. The AWB is displayed as text only; this local label does not confirm carrier acceptance."
+msgstr "Ini bukan label pengiriman yang diterbitkan oleh kurir. Ketersediaan label resmi kurir belum dapat dipastikan. Nomor resi (AWB) hanya ditampilkan sebagai teks; label lokal ini tidak membuktikan bahwa kiriman telah diterima oleh kurir."

@@ -171,7 +171,9 @@ class TransactionListViewModelFactory {
 				'cancelDeficit'=> $is_express && $is_deficit,
 				'print'        => $is_express ? ( '' !== $awb && 'request_pickup' === (string) $row->status ) : $can_print,
 				'cancel'       => ! $is_deficit && $can_cancel,
-				'printUrl'     => admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) ),
+				'printUrl'     => $is_express
+					? admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) )
+					: ( $can_print ? admin_url( 'admin-post.php?action=kiriof_instant_labels&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_instant_labels' ) ) : '' ),
 			),
 			'actionData'      => array(
 				'nonce'                => wp_create_nonce( KIRIOF_NONCE ),

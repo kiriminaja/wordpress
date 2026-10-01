@@ -24,7 +24,10 @@ final class InstantProcessUiTest extends TestCase {
         $source = $this->source('src/lib/transactions/TransactionsApp.svelte');
         $this->assertStringContainsString('const readOnly = $derived(isOrderIssue)', $source);
         $this->assertStringContainsString("row.deliveryType === (isInstant ? 'instant' : 'express')", $source);
-        $this->assertStringContainsString('disabled={row.selection.disabled', $source);
+        $this->assertStringContainsString("disabled={row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')}", $source);
+        $this->assertStringNotContainsString("disabled={row.deliveryType === 'instant'", $source);
+        $this->assertStringContainsString('selectedRows.filter((row) => row.selection.canProcess)', $source);
+        $this->assertStringContainsString('selectedRows.filter((row) => row.selection.canPrint)', $source);
         $this->assertStringContainsString('openInstantDialog(processOrderIds)', $source);
         $this->assertStringContainsString("deliveryType={isInstant ? 'instant' : 'express'}", $source);
         $this->assertStringContainsString('if (!isInstant && pickupOrderIds.length > 0)', $source);

@@ -13,11 +13,14 @@ final class InstantDispatchRuntimeTest extends TestCase {
 
     #[Test]
     public function fresh_exact_price_and_snapshots_are_persisted_once(): void {
-        $r = $this->runFixture(['retry'=>true]);
+        $r = $this->runFixture(['retry'=>true,'row'=>['rejected_reason'=>'Check remote state before retrying']]);
         $this->assertSame('', $r['error']);
         $this->assertSame(18000, $r['quote']['rows'][0]['after']);
         $this->assertTrue($r['quote']['rows'][0]['changed']);
         $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+        $this->assertNull($r['rows'][0]['rejected_reason']);
+        $this->assertArrayHasKey('rejected_reason', $r['writes'][0]['changes']);
+        $this->assertNull($r['writes'][0]['changes']['rejected_reason']);
         $this->assertSame('AWB-KA-1', $r['dispatch']['rows'][0]['awb']);
         $this->assertSame('unpaid', $r['rows'][0]['instant_payment_status']);
         $this->assertSame(18000, $r['rows'][0]['shipping_cost']);
@@ -38,6 +41,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         }
         $this->assertSame('cash', $r['books'][0]['payment_method']);
         $this->assertSame('qris', $r['rows'][0]['instant_payment_method']);
+        $this->assertSame('https://example.com/tracking', $r['rows'][0]['live_tracking_url']);
         $this->assertArrayNotHasKey('pin', $r['books'][0]);
     }
 
@@ -82,11 +86,25 @@ final class InstantDispatchRuntimeTest extends TestCase {
     #[Test]
     public function ambiguous_remote_results_and_write_failures_keep_claims_and_never_retry(): void {
         foreach ([['timeout'=>true], ['false'=>true], ['response_status'=>1], ['response_status'=>'true'], ['missing'=>true], ['duplicate'=>true], ['position_only'=>true], ['no_payment'=>true], ['remote_status'=>'invalid'], ['write_fail'=>true]] as $input) {
-            $r = $this->runFixture($input + ['retry'=>true]);
+            $r = $this->runFixture($input + ['retry'=>true,'can_select'=>true]);
             $this->assertSame('', $r['error']);
             $this->assertSame('unknown', $r['dispatch']['rows'][0]['status'], json_encode($input));
             $this->assertSame('Check remote state before retrying', $r['dispatch']['rows'][0]['message']);
             $this->assertSame('pending', $r['rows'][0]['status']);
+            $this->assertSame([false], $r['can_select']);
+            $this->assertSame([], $r['dispatch']['payments']);
+            $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
+            $this->assertArrayNotHasKey('instant_status_code', $r['rows'][0]);
+            $issueWrite = $r['writes'][count($r['writes']) - 1];
+            $this->assertSame(['condition'=>['order_id'=>'KA-1','status'=>'pending'],'changes'=>['rejected_reason'=>'Check remote state before retrying']], $issueWrite);
+            $this->assertCount(!empty($input['write_fail']) ? 2 : 1, $r['writes']);
+            if (empty($input['write_fail'])) {
+                $this->assertSame('Check remote state before retrying', $r['rows'][0]['rejected_reason']);
+            } else {
+                $this->assertArrayNotHasKey('rejected_reason', $r['rows'][0]);
+            }
+            $this->assertStringNotContainsString('Secret upstream error', json_encode($r));
+            $this->assertStringNotContainsString('Secret issue write error', json_encode($r));
             $this->assertSame([], $r['releases']);
             $this->assertCount(1, $r['books']);
             $this->assertSame(['KA-1'], $r['claims']);
@@ -94,6 +112,82 @@ final class InstantDispatchRuntimeTest extends TestCase {
         }
         $r = $this->runFixture(['count'=>2,'missing'=>true]);
         $this->assertSame(['unknown','booked'], array_column($r['dispatch']['rows'],'status'));
+        $this->assertSame(['KA-2'], $r['dispatch']['payments'][0]['order_ids']);
+        $this->assertSame('Check remote state before retrying', $r['rows'][0]['rejected_reason']);
+        $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
+        $this->assertNull($r['rows'][1]['rejected_reason']);
+    }
+
+    #[Test]
+    public function issue_write_exceptions_are_nonfatal_and_never_release_or_complete_unknown_bookings(): void {
+        $r = $this->runFixture(['timeout'=>true,'issue_write_throw'=>true,'retry'=>true,'can_select'=>true]);
+        $this->assertSame('', $r['error']);
+        $this->assertSame('unknown', $r['dispatch']['rows'][0]['status']);
+        $this->assertSame('Check remote state before retrying', $r['dispatch']['rows'][0]['message']);
+        $this->assertSame('pending', $r['rows'][0]['status']);
+        $this->assertSame([false], $r['can_select']);
+        $this->assertArrayNotHasKey('rejected_reason', $r['rows'][0]);
+        $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
+        $this->assertCount(1, $r['writes']);
+        $this->assertCount(1, $r['books']);
+        $this->assertSame([], $r['dispatch']['payments']);
+        $this->assertSame([], $r['releases']);
+        $this->assertSame(['KA-1'], $r['claims']);
+        $this->assertNotEmpty($r['retry_error']);
+        $this->assertStringNotContainsString('Secret upstream error', json_encode($r));
+        $this->assertStringNotContainsString('Secret issue write error', json_encode($r));
+    }
+
+    #[Test]
+    public function payments_include_only_verified_bookings_in_each_group(): void {
+        $r = $this->runFixture(['count'=>11,'missing'=>true,'malformed_package'=>true]);
+        $this->assertSame('', $r['error']);
+        $this->assertCount(2, $r['books']);
+        $this->assertCount(1, $r['dispatch']['payments']);
+        $this->assertSame('PAY-1', $r['dispatch']['payments'][0]['id']);
+        $this->assertSame(['KA-2','KA-3','KA-4','KA-5','KA-6','KA-7','KA-8','KA-9','KA-10'], $r['dispatch']['payments'][0]['order_ids']);
+        $this->assertSame('unknown', $r['dispatch']['rows'][10]['status']);
+        $r = $this->runFixture(['count'=>2,'other_origin'=>true,'write_fail_id'=>'KA-1']);
+        $this->assertSame(['unknown','booked'], array_column($r['dispatch']['rows'],'status'));
+        $this->assertCount(1, $r['dispatch']['payments']);
+        $this->assertSame('PAY-2', $r['dispatch']['payments'][0]['id']);
+        $this->assertSame(['KA-2'], $r['dispatch']['payments'][0]['order_ids']);
+        foreach ([['missing'=>true], ['write_fail'=>true]] as $input) {
+            $r = $this->runFixture($input + ['refresh'=>true]);
+            $this->assertSame([], $r['dispatch']['payments']);
+            $this->assertNotEmpty($r['error']);
+            $this->assertSame(0, $r['payments_called']);
+            $this->assertSame('pending', $r['rows'][0]['status']);
+            $this->assertSame([], $r['releases']);
+        }
+    }
+
+    #[Test]
+    public function leases_recover_only_expired_owners_and_never_release_crash_claims(): void {
+        $r = $this->runFixture(['lease'=>'active']);
+        $this->assertNotEmpty($r['error']);
+        $this->assertSame([], $r['books']);
+        $this->assertSame([], $r['claims']);
+        $this->assertSame('old-owner', array_values($r['options'])[0]['owner']);
+        $r = $this->runFixture(['lease'=>'expired']);
+        $this->assertSame('', $r['error']);
+        $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+        $this->assertSame([], $r['options']);
+        $r = $this->runFixture(['lease'=>'expired','crash_pending'=>true]);
+        $this->assertNotEmpty($r['error']);
+        $this->assertSame([], $r['books']);
+        $this->assertSame([], $r['claims']);
+        $this->assertSame([], $r['releases']);
+        $this->assertSame('pending', $r['rows'][0]['status']);
+        $this->assertSame([], $r['options']);
+        $r = $this->runFixture(['lease'=>'expired','lease_delete_race'=>true]);
+        $this->assertNotEmpty($r['error']);
+        $this->assertSame([], $r['books']);
+        $this->assertSame('replacement-owner', array_values($r['options'])[0]['owner']);
+        $r = $this->runFixture(['replace_lease_during_book'=>true]);
+        $this->assertSame('', $r['error']);
+        $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+        $this->assertSame('replacement-owner', array_values($r['options'])[0]['owner']);
     }
 
     #[Test]
@@ -110,7 +204,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
 
     #[Test]
     public function credit_is_validated_once_and_pin_never_persisted_top_is_not_inferred_paid(): void {
-        $r = $this->runFixture(['count'=>11,'method'=>'credit','pin'=>'654321','echo_pin'=>true]);
+        $r = $this->runFixture(['count'=>11,'method'=>'credit','pin'=>'654321','echo_pin'=>true,'echo_pin_qr'=>true]);
         $this->assertSame([['amount'=>198000,'valid_pin'=>true]], $r['credits']);
         $this->assertStringNotContainsString('654321',json_encode($r));
         foreach ($r['books'] as $book) {

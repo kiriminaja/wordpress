@@ -43,33 +43,36 @@ class InstantShipmentContext {
 	/** @return array{origin:array,package:array,pricing:array,fingerprint:string} */
 	public function build( object $transaction ): array {
 		if ( ! self::canProcess( $transaction ) ) {
-			throw new InvalidArgumentException( __( 'This Instant shipment cannot be processed or has already been booked.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'This Instant shipment cannot be processed or has already been booked.', 'kiriminaja-official' ) );
 		}
 		$order_id = $transaction->order_id ?? null;
 		if ( ! is_string( $order_id ) || '' === trim( $order_id ) || trim( $order_id ) !== $order_id || preg_match( '/[\x00-\x20\x7f]/', $order_id ) ) {
-			throw new InvalidArgumentException( __( 'The shipment order ID is invalid.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The shipment order ID is invalid.', 'kiriminaja-official' ) );
 		}
 		$wc_id = $transaction->wp_wc_order_stat_order_id ?? null;
 		if ( ! is_scalar( $wc_id ) || ! ctype_digit( (string) $wc_id ) || (int) $wc_id < 1 ) {
-			throw new InvalidArgumentException( __( 'The WooCommerce order is unavailable.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The WooCommerce order is unavailable.', 'kiriminaja-official' ) );
 		}
 		$order = wc_get_order( (int) $wc_id );
 		if ( ! $order ) {
-			throw new InvalidArgumentException( __( 'The WooCommerce order is unavailable.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The WooCommerce order is unavailable.', 'kiriminaja-official' ) );
 		}
 		if ( in_array( $order->get_status(), array( 'cancelled', 'completed', 'refunded', 'failed', 'trash' ), true ) || ( ! $order->is_paid() && 'processing' !== $order->get_status() ) ) {
-			throw new InvalidArgumentException( __( 'The WooCommerce order must be paid or processing and not closed.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The WooCommerce order must be paid or processing and not closed.', 'kiriminaja-official' ) );
 		}
-		if ( 'cod' === strtolower( (string) $order->get_payment_method() ) || (float) ( $transaction->cod ?? 0 ) > 0 || in_array( $transaction->is_cod ?? null, array( true, 1, '1', 'yes' ), true ) || in_array( strtolower( (string) ( $transaction->payment_method ?? '' ) ), array( 'cod' ), true ) ) {
-			throw new InvalidArgumentException( __( 'Cash on delivery is not supported for Instant shipments.', 'kiriminaja-official' ) );
+		if ( 'cod' === strtolower( (string) $order->get_payment_method() ) || (float) ( $transaction->cod ?? 0 ) > 0 || (float) ( $transaction->cod_fee ?? 0 ) > 0 || in_array( $transaction->is_cod ?? null, array( true, 1, '1', 'yes' ), true ) || in_array( strtolower( (string) ( $transaction->payment_method ?? '' ) ), array( 'cod' ), true ) ) {
+			throw new InvalidArgumentException( esc_html__( 'Cash on delivery is not supported for Instant shipments.', 'kiriminaja-official' ) );
+		}
+		if ( (float) ( $transaction->insurance_cost ?? 0 ) > 0 ) {
+			throw new InvalidArgumentException( esc_html__( 'Insurance is not supported for Instant shipments.', 'kiriminaja-official' ) );
 		}
 		$courier = strtolower( trim( (string) $transaction->service ) );
 		$service = $transaction->service_name ?? null;
 		if ( ! is_string( $service ) || '' === trim( $service ) || ! $this->settings->isCourierServiceEnabled( $courier, $service ) ) {
-			throw new InvalidArgumentException( __( 'The selected Instant courier service is unavailable.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The selected Instant courier service is unavailable.', 'kiriminaja-official' ) );
 		}
 		if ( 'motor' !== TransactionDeliveryType::normalizeVehicle( $transaction->vehicle ?? null ) ) {
-			throw new InvalidArgumentException( __( 'Only motor delivery is supported for Instant shipments.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Only motor delivery is supported for Instant shipments.', 'kiriminaja-official' ) );
 		}
 
 		// A present snapshot is authoritative, including missing/invalid fields. Never
@@ -78,7 +81,7 @@ class InstantShipmentContext {
 		if ( null !== $raw_snapshot && '' !== $raw_snapshot ) {
 			$source = is_string( $raw_snapshot ) ? json_decode( $raw_snapshot, true ) : null;
 			if ( ! is_array( $source ) || empty( $source ) ) {
-				throw new InvalidArgumentException( __( 'The saved shipment origin is incomplete. Configure its address and coordinates before processing.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'The saved shipment origin is incomplete. Configure its address and coordinates before processing.', 'kiriminaja-official' ) );
 			}
 		} else {
 			$source = $this->locations->originForLocation( (int) ( $transaction->shipment_location_id ?? 0 ) );
@@ -107,7 +110,7 @@ class InstantShipmentContext {
 		$origin['address'] = implode( ', ', $address_parts );
 		// Bounds from the official v6.2 Instant OpenAPI, not Express limits.
 		if ( ! $this->lengthBetween( $origin['name'], 10, 40 ) || ! $this->validPhone( $origin['phone'] ) || ! $this->lengthBetween( $origin['address'], 20, 250 ) || '' === $origin['zipcode'] ) {
-			throw new InvalidArgumentException( __( 'The shipment origin name, phone, address or postcode is invalid.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The shipment origin name, phone, address or postcode is invalid.', 'kiriminaja-official' ) );
 		}
 		$timezone = $this->value( $source, array( 'timezone', 'origin_timezone' ) );
 		if ( '' === $timezone ) {
@@ -115,10 +118,22 @@ class InstantShipmentContext {
 			$timezone = $zones[ wp_timezone_string() ] ?? '';
 		}
 		if ( ! in_array( $timezone, array( 'WIB', 'WITA', 'WIT' ), true ) ) {
-			throw new InvalidArgumentException( __( 'Configure a supported Indonesian timezone for Instant delivery.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Configure a supported Indonesian timezone for Instant delivery.', 'kiriminaja-official' ) );
 		}
 
-		$shipping_info = json_decode( (string) ( $transaction->shipping_info ?? '{}' ) );
+		$raw_shipping_info = $transaction->shipping_info ?? null;
+		$shipping_info = is_string( $raw_shipping_info ) ? json_decode( $raw_shipping_info ) : null;
+		if ( ! is_object( $shipping_info ) ) {
+			throw new InvalidArgumentException( esc_html__( 'The saved recipient address is incomplete. Update the destination coordinates before processing.', 'kiriminaja-official' ) );
+		}
+		// Reject malformed address values before the legacy resolver casts them.
+		foreach ( array( 'first_name', 'last_name', 'phone', 'address_1', 'address_2', 'postcode', 'city', 'state', 'country' ) as $field ) {
+			foreach ( array( '_shipping_' . $field, 'shipping_' . $field, '_billing_' . $field, 'billing_' . $field, $field ) as $key ) {
+				if ( property_exists( $shipping_info, $key ) && ! is_scalar( $shipping_info->$key ) ) {
+					throw new InvalidArgumentException( esc_html__( 'The saved recipient address is incomplete. Update the destination coordinates before processing.', 'kiriminaja-official' ) );
+				}
+			}
+		}
 		$current       = $this->recipients->resolve( $order, null, $transaction );
 		// Resolve the checkout snapshot separately: don't let resolver fallback hide
 		// an intentionally cleared current address_2 and reuse an obsolete pin.
@@ -127,28 +142,34 @@ class InstantShipmentContext {
 				$field = 'destination_' . $axis;
 				foreach ( array( $field, '_kiriof_' . $field, 'kiriof_' . $field ) as $key ) {
 					if ( property_exists( $shipping_info, $key ) && $this->coordinate( $shipping_info->$key, 'latitude' === $axis ? 90 : 180 ) !== $this->coordinate( $transaction->$field ?? null, 'latitude' === $axis ? 90 : 180 ) ) {
-						throw new InvalidArgumentException( __( 'The saved destination coordinates do not match this shipment.', 'kiriminaja-official' ) );
+						throw new InvalidArgumentException( esc_html__( 'The saved destination coordinates do not match this shipment.', 'kiriminaja-official' ) );
 					}
 				}
 			}
 			$saved = $this->recipients->resolve( null, $shipping_info, $transaction );
+			if ( '' === $saved['address_1'] ) {
+				throw new InvalidArgumentException( esc_html__( 'The saved recipient address is incomplete. Update the destination coordinates before processing.', 'kiriminaja-official' ) );
+			}
 			$address = (array) $order->get_address( 'shipping' );
 			if ( '' === trim( (string) ( $address['address_1'] ?? '' ) ) ) {
 				$address = (array) $order->get_address( 'billing' );
 			}
-			foreach ( array( 'address_1', 'address_2', 'postcode', 'city' ) as $field ) {
+			if ( 'ID' !== trim( (string) ( $address['country'] ?? '' ) ) ) {
+				throw new InvalidArgumentException( esc_html__( 'Instant delivery requires a current recipient address in Indonesia.', 'kiriminaja-official' ) );
+			}
+			foreach ( array( 'address_1', 'address_2', 'postcode', 'city', 'state', 'country' ) as $field ) {
 				$has_snapshot = false;
 				foreach ( array( '_shipping_' . $field, 'shipping_' . $field, '_billing_' . $field, 'billing_' . $field, $field ) as $key ) {
 					$has_snapshot = $has_snapshot || property_exists( $shipping_info, $key );
 				}
 				if ( $has_snapshot && trim( (string) ( $address[ $field ] ?? $current[ $field ] ) ) !== $saved[ $field ] ) {
-					throw new InvalidArgumentException( __( 'The recipient address has changed. Update the destination coordinates before processing.', 'kiriminaja-official' ) );
+					throw new InvalidArgumentException( esc_html__( 'The recipient address has changed. Update the destination coordinates before processing.', 'kiriminaja-official' ) );
 				}
 			}
 		}
 		$name = trim( $current['first_name'] . ' ' . $current['last_name'] );
 		if ( '' === $name || ! $this->validPhone( $current['phone'] ) || '' === $current['address_1'] || '' === $current['city'] || '' === $current['postcode'] ) {
-			throw new InvalidArgumentException( __( 'The current recipient name, phone, street, city and postcode are required.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The current recipient name, phone, street, city and postcode are required.', 'kiriminaja-official' ) );
 		}
 		$destination = array(
 			'name'      => $name,
@@ -164,7 +185,7 @@ class InstantShipmentContext {
 		foreach ( $order->get_items() as $item ) {
 			$product = $item->get_product();
 			if ( ! $product ) {
-				throw new InvalidArgumentException( __( 'An order product is unavailable.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'An order product is unavailable.', 'kiriminaja-official' ) );
 			}
 			if ( $product->is_virtual() ) {
 				continue;
@@ -173,12 +194,12 @@ class InstantShipmentContext {
 			$grams = $this->positiveUnit( wc_get_weight( $product->get_weight(), 'g' ) );
 			$total = $item->get_total();
 			if ( ! is_numeric( $total ) || ! is_finite( (float) $total ) ) {
-				throw new InvalidArgumentException( __( 'An order item value is invalid.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'An order item value is invalid.', 'kiriminaja-official' ) );
 			}
 			$price = $this->integer( round( max( 0, (float) $total ) / $qty ), 0 );
 			$item_name = trim( (string) $item->get_name() );
 			if ( '' === $item_name ) {
-				throw new InvalidArgumentException( __( 'An order item name is required.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'An order item name is required.', 'kiriminaja-official' ) );
 			}
 			$items[] = array(
 				'name'        => $item_name,
@@ -195,7 +216,7 @@ class InstantShipmentContext {
 			$value  += $price * $qty;
 		}
 		if ( empty( $items ) || $weight > 40000 || $value > PHP_INT_MAX ) {
-			throw new InvalidArgumentException( __( 'Instant shipments require physical items with a total weight of at most 40000 grams.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Instant shipments require physical items with a total weight of at most 40000 grams.', 'kiriminaja-official' ) );
 		}
 		// Temporary category default from the API example; merchants can override
 		// it without changing the immutable address or price context.
@@ -223,7 +244,7 @@ class InstantShipmentContext {
 		$context = array( 'origin' => $origin, 'package' => $package, 'pricing' => $pricing );
 		$encoded = wp_json_encode( $this->canonical( $context ) );
 		if ( false === $encoded ) {
-			throw new InvalidArgumentException( __( 'The Instant shipment context could not be encoded.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The Instant shipment context could not be encoded.', 'kiriminaja-official' ) );
 		}
 		$context['fingerprint'] = hash( 'sha256', $encoded );
 		return $context;
@@ -240,21 +261,21 @@ class InstantShipmentContext {
 
 	private function coordinate( $value, int $limit ): float {
 		if ( is_bool( $value ) || ! is_numeric( $value ) || ! is_finite( (float) $value ) || abs( (float) $value ) > $limit ) {
-			throw new InvalidArgumentException( __( 'Valid origin and destination coordinates are required for Instant delivery.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Valid origin and destination coordinates are required for Instant delivery.', 'kiriminaja-official' ) );
 		}
 		return (float) $value;
 	}
 
 	private function integer( $value, int $minimum ): int {
 		if ( is_bool( $value ) || ! is_numeric( $value ) || ! is_finite( (float) $value ) || (float) $value < $minimum || (float) $value >= PHP_INT_MAX || floor( (float) $value ) !== (float) $value ) {
-			throw new InvalidArgumentException( __( 'An Instant shipment quantity, price or package type is invalid.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'An Instant shipment quantity, price or package type is invalid.', 'kiriminaja-official' ) );
 		}
 		return (int) $value;
 	}
 
 	private function positiveUnit( $value ): int {
 		if ( ! is_numeric( $value ) || ! is_finite( (float) $value ) || (float) $value <= 0 ) {
-			throw new InvalidArgumentException( __( 'Physical products require positive weight and dimensions for Instant delivery.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Physical products require positive weight and dimensions for Instant delivery.', 'kiriminaja-official' ) );
 		}
 		// Integer grams/centimeters, rounded up so a sub-unit item is not lost.
 		return $this->integer( ceil( (float) $value ), 1 );

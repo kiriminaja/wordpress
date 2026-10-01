@@ -22,6 +22,17 @@ class InstantDispatchService {
 		$this->context = $context;
 	}
 
+	/** Compare-and-delete: an expired/replaced owner must never delete a newer lease. */
+	private function deleteLease( string $key, array $lease ): bool {
+		global $wpdb;
+		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $key, maybe_serialize( $lease ) ) );
+		if ( 1 === $deleted ) {
+			wp_cache_delete( $key, 'options' );
+			return true;
+		}
+		return false;
+	}
+
 	public function quote( array $ids ): array {
 		$rows = $this->selection( $ids );
 		$methods = $this->paymentMethods();
@@ -53,24 +64,24 @@ class InstantDispatchService {
 		$token = bin2hex( random_bytes( 16 ) );
 		$expires = time() + 120;
 		if ( ! set_transient( $this->quoteKey( $token ), array( 'user' => get_current_user_id(), 'expires' => $expires, 'contexts' => $contexts, 'methods' => $methods ), 120 ) ) {
-			throw new RuntimeException( __( 'Unable to save the Instant quote.', 'kiriminaja-official' ) );
+			throw new RuntimeException( esc_html__( 'Unable to save the Instant quote.', 'kiriminaja-official' ) );
 		}
 		return array( 'token' => $token, 'expires_at' => $expires, 'rows' => $reports, 'payment_methods' => $methods, 'batch_count' => count( $this->groups( $contexts ) ) );
 	}
 
 	public function dispatch( string $token, array $ids, string $method, string $pin = '' ): array {
 		if ( ! preg_match( '/\A[a-f0-9]{32}\z/', $token ) ) {
-			throw new InvalidArgumentException( __( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
 		}
 		$key = $this->quoteKey( $token );
 		$quote = get_transient( $key );
 		if ( ! is_array( $quote ) || $quote['user'] !== get_current_user_id() || $quote['expires'] <= time() ) {
-			throw new InvalidArgumentException( __( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
 		}
 		$rows = $this->selection( $ids );
 		foreach ( $rows as $id => $row ) {
 			if ( ! isset( $quote['contexts'][ $id ] ) ) {
-				throw new InvalidArgumentException( __( 'Select only eligible shipments from this quote.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'Select only eligible shipments from this quote.', 'kiriminaja-official' ) );
 			}
 		}
 		$locks = array();
@@ -79,10 +90,19 @@ class InstantDispatchService {
 		try {
 			foreach ( $rows as $id => $row ) {
 				$lock = 'kiriof_instant_dispatch_' . hash( 'sha256', $id );
-				if ( ! add_option( $lock, 'locked', '', false ) ) {
-					throw new RuntimeException( __( 'An Instant shipment is already being processed.', 'kiriminaja-official' ) );
+				$lease = array( 'owner' => bin2hex( random_bytes( 16 ) ), 'expires' => time() + 300 );
+				$acquired = add_option( $lock, $lease, '', false );
+				if ( ! $acquired ) {
+					$previous = get_option( $lock );
+					// Legacy/invalid locks fail closed. Only a known expired lease is recoverable.
+					if ( is_array( $previous ) && isset( $previous['owner'], $previous['expires'] ) && is_string( $previous['owner'] ) && is_int( $previous['expires'] ) && $previous['expires'] <= time() && $this->deleteLease( $lock, $previous ) ) {
+						$acquired = add_option( $lock, $lease, '', false );
+					}
 				}
-				$locks[] = $lock;
+				if ( ! $acquired ) {
+					throw new RuntimeException( esc_html__( 'An Instant shipment is already being processed.', 'kiriminaja-official' ) );
+				}
+				$locks[ $lock ] = $lease;
 			}
 			// Reload after acquiring locks, then validate the complete batch before any claim.
 			$rows = $this->selection( $ids );
@@ -91,33 +111,33 @@ class InstantDispatchService {
 			foreach ( $rows as $id => $row ) {
 				$ctx = $this->context->build( $row );
 				if ( ! hash_equals( $quote['contexts'][ $id ]['fingerprint'], $ctx['fingerprint'] ) ) {
-					throw new RuntimeException( __( 'The shipment has changed. Request a new Instant quote.', 'kiriminaja-official' ) );
+					throw new RuntimeException( esc_html__( 'The shipment has changed. Request a new Instant quote.', 'kiriminaja-official' ) );
 				}
 				$ctx['price'] = $quote['contexts'][ $id ]['price'];
 				$ctx['package']['shipping_cost'] = $ctx['price'];
 				$contexts[ $id ] = $ctx;
 				if ( $total > PHP_INT_MAX - $ctx['price'] ) {
-					throw new RuntimeException( __( 'The Instant total is invalid.', 'kiriminaja-official' ) );
+					throw new RuntimeException( esc_html__( 'The Instant total is invalid.', 'kiriminaja-official' ) );
 				}
 				$total += $ctx['price'];
 			}
 			$methods = $this->paymentMethods();
 			if ( $methods !== $quote['methods'] || ! in_array( $method, $methods, true ) ) {
-				throw new InvalidArgumentException( __( 'The selected Instant payment method is unavailable. Request a new quote.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'The selected Instant payment method is unavailable. Request a new quote.', 'kiriminaja-official' ) );
 			}
 			if ( 'credit' === $method ) {
 				if ( ! preg_match( '/\A[0-9]{6}\z/', $pin ) || true !== ( $this->api->validateCredit( $pin, $total )['status'] ?? false ) ) {
-					throw new RuntimeException( __( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
+					throw new RuntimeException( esc_html__( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
 				}
 			}
 			foreach ( $rows as $id => $row ) {
 				if ( ! $this->repo->claimInstantDispatch( (string) $id ) ) {
-					throw new RuntimeException( __( 'An Instant shipment is already being processed.', 'kiriminaja-official' ) );
+					throw new RuntimeException( esc_html__( 'An Instant shipment is already being processed.', 'kiriminaja-official' ) );
 				}
 				$claims[] = (string) $id;
 			}
 			if ( $quote['expires'] <= time() || ! delete_transient( $key ) ) {
-				throw new RuntimeException( __( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+				throw new RuntimeException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
 			}
 			$processed = true;
 			$result = array( 'rows' => array(), 'payments' => array() );
@@ -140,6 +160,10 @@ class InstantDispatchService {
 					$data = array();
 				}
 				$payment = $this->paymentData( $data['payment'] ?? array() );
+				// Credit never needs a QR; do not expose a credential echoed in that field.
+				if ( 'credit' === $method ) {
+					$payment['qr_content'] = '';
+				}
 				$payment['order_ids'] = array();
 				$matches = array();
 				foreach ( (array) ( $data['packages'] ?? array() ) as $package ) {
@@ -165,6 +189,14 @@ class InstantDispatchService {
 							// Accepted remotely but unverified locally: keep the durable claim.
 						}
 					}
+					if ( 'unknown' === $report['status'] ) {
+						try {
+							// Persist only a fixed reconciliation note; never release the claim or attach payment.
+							$this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'status' => 'pending' ), 'changes' => array( 'rejected_reason' => 'Check remote state before retrying' ) ) );
+						} catch ( \Throwable $error ) {
+							// A failed issue write must not turn an ambiguous booking into a success.
+						}
+					}
 					$result['rows'][] = $report;
 				}
 				if ( ! empty( $payment['order_ids'] ) ) {
@@ -178,8 +210,8 @@ class InstantDispatchService {
 					$this->repo->releaseInstantDispatch( $id );
 				}
 			}
-			foreach ( $locks as $lock ) {
-				delete_option( $lock );
+			foreach ( $locks as $lock => $lease ) {
+				$this->deleteLease( $lock, $lease );
 			}
 		}
 	}
@@ -187,21 +219,21 @@ class InstantDispatchService {
 	public function refreshPayment( array $ids, string $payment_id ): array {
 		$rows = $this->selection( $ids );
 		if ( ! $this->safeId( $payment_id ) ) {
-			throw new InvalidArgumentException( __( 'Invalid Instant payment ID.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Invalid Instant payment ID.', 'kiriminaja-official' ) );
 		}
 		foreach ( $rows as $row ) {
 			if ( $payment_id !== ( $row->instant_payment_id ?? '' ) ) {
-				throw new InvalidArgumentException( __( 'The payment does not belong to every selected Instant shipment.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'The payment does not belong to every selected Instant shipment.', 'kiriminaja-official' ) );
 			}
 		}
 		$response = $this->api->payment( $payment_id );
 		if ( true !== ( $response['status'] ?? false ) ) {
-			throw new RuntimeException( __( 'Unable to refresh the Instant payment.', 'kiriminaja-official' ) );
+			throw new RuntimeException( esc_html__( 'Unable to refresh the Instant payment.', 'kiriminaja-official' ) );
 		}
 		$data = $this->result( $response );
 		$payment = $this->paymentData( $data['payment'] ?? $data );
 		if ( '' !== $payment['id'] && $payment_id !== $payment['id'] ) {
-			throw new RuntimeException( __( 'The Instant payment response is invalid.', 'kiriminaja-official' ) );
+			throw new RuntimeException( esc_html__( 'The Instant payment response is invalid.', 'kiriminaja-official' ) );
 		}
 		$payment['id'] = $payment_id;
 		// Unknown remote values are pending for display, but must not overwrite known state.
@@ -209,7 +241,7 @@ class InstantDispatchService {
 		if ( null !== $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null ) ) {
 			foreach ( $rows as $id => $row ) {
 				if ( ! $this->repo->updateTransactionByCallbackVerified( array( 'condition' => array( 'order_id' => $id, 'instant_payment_id' => $payment_id ), 'changes' => array( 'instant_payment_status' => $payment['status'] ) ) ) ) {
-					throw new RuntimeException( __( 'Unable to save the Instant payment status.', 'kiriminaja-official' ) );
+					throw new RuntimeException( esc_html__( 'Unable to save the Instant payment status.', 'kiriminaja-official' ) );
 				}
 			}
 		}
@@ -218,24 +250,24 @@ class InstantDispatchService {
 
 	private function selection( array $ids ): array {
 		if ( count( $ids ) < 1 || count( $ids ) > 50 ) {
-			throw new InvalidArgumentException( __( 'Select between 1 and 50 Instant shipments.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Select between 1 and 50 Instant shipments.', 'kiriminaja-official' ) );
 		}
 		$normalized = array();
 		foreach ( $ids as $id ) {
 			if ( ( ! is_int( $id ) && ! is_string( $id ) ) || ! $this->safeId( (string) $id ) || isset( $normalized[ (string) $id ] ) ) {
-				throw new InvalidArgumentException( __( 'Invalid or duplicate Instant shipment ID.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'Invalid or duplicate Instant shipment ID.', 'kiriminaja-official' ) );
 			}
 			$normalized[ (string) $id ] = true;
 		}
 		$found = $this->repo->getTransactionByOrderIds( array_keys( $normalized ) );
 		if ( ! is_array( $found ) || count( $found ) !== count( $normalized ) ) {
-			throw new InvalidArgumentException( __( 'Every selected Instant shipment must exist exactly once.', 'kiriminaja-official' ) );
+			throw new InvalidArgumentException( esc_html__( 'Every selected Instant shipment must exist exactly once.', 'kiriminaja-official' ) );
 		}
 		$rows = array();
 		foreach ( $found as $row ) {
 			$id = is_object( $row ) ? (string) ( $row->order_id ?? '' ) : '';
 			if ( ! isset( $normalized[ $id ] ) || isset( $rows[ $id ] ) || 'instant' !== TransactionDeliveryType::resolve( $row ) || ! in_array( strtolower( (string) $row->service ), array( 'gosend', 'grab_express' ), true ) ) {
-				throw new InvalidArgumentException( __( 'Select only supported Instant shipments.', 'kiriminaja-official' ) );
+				throw new InvalidArgumentException( esc_html__( 'Select only supported Instant shipments.', 'kiriminaja-official' ) );
 			}
 			$rows[ $id ] = $row;
 		}
@@ -253,7 +285,7 @@ class InstantDispatchService {
 			}
 			return 'TOP' === strtoupper( trim( $method ) ) ? array( 'top' ) : array( 'qris', 'credit' );
 		} catch ( \Throwable $error ) {
-			throw new RuntimeException( __( 'Unable to verify Instant account payment methods.', 'kiriminaja-official' ) );
+			throw new RuntimeException( esc_html__( 'Unable to verify Instant account payment methods.', 'kiriminaja-official' ) );
 		}
 	}
 
@@ -318,7 +350,7 @@ class InstantDispatchService {
 		$snapshot['instant_items'] = $ctx['package']['items'];
 		$origin = $ctx['origin'];
 		$origin['timezone'] = $ctx['pricing']['timezone'];
-		$changes = array( 'order_id' => $ctx['package']['order_id'], 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_status_code' => $status, 'instant_payment_id' => $payment['id'], 'instant_payment_method' => $method, 'instant_payment_status' => $payment['status'], 'status' => 'request_pickup', 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ), 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );
+		$changes = array( 'order_id' => $ctx['package']['order_id'], 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_status_code' => $status, 'instant_payment_id' => $payment['id'], 'instant_payment_method' => $method, 'instant_payment_status' => $payment['status'], 'status' => 'request_pickup', 'rejected_reason' => null, 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ), 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );
 		$awb = $remote['awb'] ?? null;
 		if ( is_string( $awb ) && $this->safeId( $awb ) ) {
 			$changes['awb'] = $awb;

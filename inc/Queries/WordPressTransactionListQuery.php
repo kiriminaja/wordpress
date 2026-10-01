@@ -76,15 +76,17 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $isCancelledFilter  = ('wc-cancelled' === $singleStatus);
         $isAllFilter = ('all' === $singleStatus);
         $isDeficitFilter    = ('order-issue' === $singleStatus);
-        // Instant booking/status persistence is not implemented yet. Express
-        // payment rows cannot establish that an Instant transaction was processed.
-        if ( $isProcessedFilter && 'instant' === $this->delivery_type ) {
-            return array( 'results' => array(), 'total' => 0 );
-        }
         $delivery_clause = $this->getDeliveryTypeClause( 'kiriminaja_transactions' );
         $regular_issue_clause = $delivery_clause;
         if ( 'express' === $this->delivery_type ) {
             $regular_issue_clause .= ' AND kiriminaja_transactions.is_deficit = 0';
+        }
+
+        if ( $isProcessedFilter && 'instant' === $this->delivery_type ) {
+            // Reuse the regular list query without joining Express payments.
+            $regular_issue_clause .= ' AND ' . $this->getInstantProcessedClause( 'kiriminaja_transactions' );
+            $isProcessedFilter = false;
+            $isAllFilter = true;
         }
 
         $cod_clause = '';
@@ -167,6 +169,9 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 // cancelled/new rows without a payment when another status is selected.
                 $payment_join = "LEFT JOIN {$wpdb->prefix}kiriminaja_payments multi_pay ON kiriminaja_transactions.pickup_number = multi_pay.pickup_number";
                 $status_parts[] = "(kiriminaja_transactions.status != 'canceled' AND multi_pay.pickup_number IS NOT NULL)";
+            }
+            if ( in_array( 'processed', $regular_statuses, true ) && 'instant' === $this->delivery_type ) {
+                $status_parts[] = '(' . $this->getInstantProcessedClause( 'kiriminaja_transactions' ) . ')';
             }
             if ( in_array( 'wc-cancelled', $regular_statuses, true ) ) {
                 $status_parts[] = "(orders_tbl.{$o['status']} = %s)";
@@ -542,15 +547,13 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         return (int) $count;
     }
     private function getCountProcessed(): int {
-        // No Instant booking read model yet; never infer it from Express payments.
-        if ( 'instant' === $this->delivery_type ) {
-            return 0;
-        }
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $payments = $this->wpdb->prefix . 'kiriminaja_payments';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.status != 'canceled' {$this->getRegularIssueClause()} {$this->getDeliveryTypeClause( 't' )} {$clause}" );
+        $payment_join = 'instant' === $this->delivery_type ? '' : "INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number";
+        $processed_clause = 'instant' === $this->delivery_type ? $this->getInstantProcessedClause( 't' ) : "t.status != 'canceled'";
+        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id {$payment_join} WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND {$processed_clause} {$this->getRegularIssueClause()} {$this->getDeliveryTypeClause( 't' )} {$clause}" );
         $this->logDatabaseError();
         return (int) $count;
     }
@@ -592,6 +595,11 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         if ( ! empty( $this->wpdb->last_error ) && function_exists( 'kiriof_log' ) ) {
             kiriof_log( 'error', (string) $this->wpdb->last_error );
         }
+    }
+
+    /** Booking evidence is separate from lifecycle mapping: status code zero is valid. */
+    private function getInstantProcessedClause( string $alias ): string {
+        return "{$alias}.status IN ('request_pickup','shipped','finished','return','returned','rejected') AND {$alias}.instant_payment_id IS NOT NULL AND {$alias}.instant_payment_id != '' AND {$alias}.instant_status_code IS NOT NULL";
     }
 
     private function getRegularIssueClause(): string {

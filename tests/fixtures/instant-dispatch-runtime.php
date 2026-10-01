@@ -2,13 +2,32 @@
 // Isolated runtime: use real types, injecting subclasses without constructing WP/SDK infrastructure.
 define( 'ABSPATH', __DIR__ );
 function __( $text, $domain = '' ) { return $text; }
+function esc_html__( $text, $domain = '' ) { return htmlspecialchars( __( $text, $domain ), ENT_QUOTES, 'UTF-8' ); }
 function wp_json_encode( $value ) { return json_encode( $value ); }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
+function maybe_serialize( $value ) { return is_array($value) || is_object($value) ? serialize($value) : $value; }
+function wp_cache_delete( $key, $group = '' ) { return true; }
+function get_option( $key ) { return $GLOBALS['options'][$key] ?? false; }
 function get_current_user_id() { return $GLOBALS['user']; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['transients'][$key] = $value; return true; }
 function get_transient( $key ) { return $GLOBALS['transients'][$key] ?? false; }
 function delete_transient( $key ) { if (!isset($GLOBALS['transients'][$key])) { return false; } unset($GLOBALS['transients'][$key]); return true; }
 function add_option( $key, $value, $deprecated = '', $autoload = false ) { if (isset($GLOBALS['options'][$key])) { return false; } $GLOBALS['options'][$key] = $value; return true; }
 function delete_option( $key ) { unset($GLOBALS['options'][$key]); return true; }
+class DispatchLockDb {
+    public string $options = 'wp_options';
+    public function prepare($sql, ...$args) { return $args; }
+    public function query($args) {
+        [$key, $expected] = $args;
+        if (!empty($GLOBALS['input']['lease_delete_race']) && empty($GLOBALS['lease_raced'])) {
+            $GLOBALS['lease_raced'] = true;
+            $GLOBALS['options'][$key] = ['owner'=>'replacement-owner','expires'=>time()+300];
+        }
+        if (maybe_serialize($GLOBALS['options'][$key] ?? false) !== $expected) { return 0; }
+        unset($GLOBALS['options'][$key]); return 1;
+    }
+}
+$GLOBALS['wpdb'] = new DispatchLockDb();
 $root = dirname(__DIR__, 2);
 foreach (['Contracts/TransactionPrintRepositoryInterface','Services/TransactionDeliveryType','Repositories/TransactionRepository','Base/KiriminAjaApi','Repositories/InstantDeliveryApiRepository','Services/InstantShipmentContext','Services/InstantDispatchService'] as $file) { require $root . '/inc/' . $file . '.php'; }
 class DispatchRepo extends \KiriminAjaOfficial\Repositories\TransactionRepository {
@@ -30,7 +49,8 @@ class DispatchRepo extends \KiriminAjaOfficial\Repositories\TransactionRepositor
     }
     public function updateTransactionByCallbackVerified($payloads) {
         $this->writes[] = $payloads;
-        if (!empty($GLOBALS['input']['write_fail'])) { return false; }
+        if (!empty($GLOBALS['input']['issue_write_throw']) && array_keys($payloads['changes']) === ['rejected_reason']) { throw new RuntimeException('Secret issue write error 123456'); }
+        if (!empty($GLOBALS['input']['write_fail']) || ($GLOBALS['input']['write_fail_id'] ?? '') === $payloads['condition']['order_id']) { return false; }
         foreach ($payloads['changes'] as $key=>$value) { $this->rows[$payloads['condition']['order_id']]->$key = $value; }
         return true;
     }
@@ -68,17 +88,20 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
     public function book(array $payload): array {
         $stored = $payload; $stored['valid_credit_pin'] = isset($payload['pin']) && 1 === preg_match('/\A[0-9]{6}\z/', $payload['pin']); unset($stored['pin']); $this->books[] = $stored;
         $in = $GLOBALS['input'];
+        if (!empty($in['replace_lease_during_book'])) { foreach ($GLOBALS['options'] as $key=>$value) { $GLOBALS['options'][$key] = ['owner'=>'replacement-owner','expires'=>time()+300]; } }
         if (!empty($in['timeout'])) { throw new RuntimeException('Secret upstream error 123456'); }
         if (!empty($in['false'])) { return ['status'=>false]; }
         $packages = array_reverse(array_map(static fn($p)=>['order_id'=>$p['order_id'],'status'=>$in['remote_status'] ?? 100,'awb'=>'AWB-' . $p['order_id'],'tracking_url'=>'https://example.com/tracking'], $payload['packages']));
         if (!empty($in['no_awb'])) { foreach ($packages as &$package) { unset($package['awb']); } unset($package); }
         if (!empty($in['missing'])) { array_pop($packages); }
+        if (!empty($in['malformed_package'])) { $packages[] = ['order_id'=>['unexpected'],'status'=>['invalid']]; }
         if (!empty($in['duplicate'])) { $packages[] = $packages[0]; }
         if (!empty($in['position_only'])) { foreach ($packages as &$package) { unset($package['order_id']); } unset($package); }
         $data = ['packages'=>$packages];
         if (empty($in['no_payment'])) { $data['payment'] = ['payment_id'=>'PAY-' . count($this->books),'status_code'=>$in['payment_status'] ?? 9,'amount'=>count($payload['packages']) * 18000,'qr_content'=>'000201-QR']; }
         if (array_key_exists('payment_legacy_status', $in) && isset($data['payment'])) { $data['payment']['status'] = $in['payment_legacy_status']; }
         if (!empty($in['echo_pin'])) { $data['pin'] = $payload['pin'] ?? ''; }
+        if (!empty($in['echo_pin_qr'])) { $data['payment']['qr_content'] = $payload['pin'] ?? ''; }
         if (!empty($in['nested_booking'])) { $data = ['result'=>$data]; }
         return ['status'=>$in['response_status'] ?? true,'data'=>(object)['results'=>$data]];
     }
@@ -106,6 +129,8 @@ try {
     if (!empty($in['stale'])) { $repo->rows['KA-1']->mutation = 'changed'; }
     if (!empty($in['expire'])) { $GLOBALS['transients']['kiriof_instant_quote_' . $quote['token']]['expires'] = time()-1; }
     if (!empty($in['lock'])) { $GLOBALS['options']['kiriof_instant_dispatch_' . hash('sha256','KA-1')] = 'locked'; }
+    if (isset($in['lease'])) { $GLOBALS['options']['kiriof_instant_dispatch_' . hash('sha256','KA-1')] = ['owner'=>'old-owner','expires'=>time()+('expired' === $in['lease'] ? -1 : 300)]; }
+    if (!empty($in['crash_pending'])) { $repo->rows['KA-1']->status = 'pending'; }
     if (empty($in['quote_only'])) {
         $dispatch_ids = $in['dispatch_ids'] ?? $ids;
         $result['dispatch'] = $service->dispatch($quote['token'], $dispatch_ids, $in['method'] ?? 'qris', $in['pin'] ?? '');
@@ -114,4 +139,5 @@ try {
     }
 } catch (Throwable $error) { $result['error'] = $error->getMessage(); }
 $result += ['claims'=>$repo->claims,'releases'=>$repo->releases,'writes'=>$repo->writes,'books'=>$api->books,'prices'=>$api->prices,'profiles'=>$api->profiles,'credits'=>$api->credits,'payments_called'=>$api->payments,'rows'=>array_values($repo->rows),'transients'=>$GLOBALS['transients'],'options'=>$GLOBALS['options']];
+if (!empty($in['can_select'])) { $result['can_select'] = array_map([\KiriminAjaOfficial\Services\InstantShipmentContext::class, 'canProcess'], array_values($repo->rows)); }
 echo json_encode($result, JSON_THROW_ON_ERROR);

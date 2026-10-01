@@ -44,6 +44,11 @@ final class InstantDeliveryStatus {
 		$key       = null === $raw_code ? self::local_key( $row['status'] ?? null, $has_awb ) : self::remote_key( $code, $payment, $has_awb );
 		$result    = self::presentation( $key );
 
+		if ( null === $raw_code && 'pending' === ( $row['status'] ?? null ) && 'Check remote state before retrying' === ( $row['rejected_reason'] ?? null ) ) {
+			$result          = self::presentation( 'unknown' );
+			$result['issue'] = __( 'Check remote state before retrying', 'kiriminaja-official' );
+		}
+
 		if ( null !== $raw_code ) {
 			$result['tone'] = self::remote_tone( $code, $payment, $key );
 		}

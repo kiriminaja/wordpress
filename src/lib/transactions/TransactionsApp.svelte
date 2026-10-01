@@ -557,5 +557,5 @@
   <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
   {/if}
   <InstantProcessDialog bind:open={instantDialogOpen} orderIds={instantOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onComplete={refreshList} />
-  <PrintPreviewDialog deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
+  <PrintPreviewDialog deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={isInstant ? bootstrap.bulk.nonce : bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
 </div>
