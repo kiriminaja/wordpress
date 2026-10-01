@@ -3,7 +3,8 @@ namespace KiriminAjaOfficial\Repositories {
     class SettingRepository {
         public array $selection = ['gosend' => ['GO-INSTANT'], 'grab_express' => ['GRAB-BIKE']];
         public bool $credentials = true;
-        public function getCourierServiceSelection(): ?array { return $this->selection; }
+        public bool $throw = false;
+        public function getCourierServiceSelection(): ?array { if ($this->throw) { throw new \InvalidArgumentException('secret-api-key'); } return $this->selection; }
         public function isCourierServiceEnabled(string $courier, string $service): bool { return in_array($service, $this->selection[$courier] ?? [], true); }
         public function getSettingByKey($key) { return (object) ['value' => $this->credentials ? 'secret-api-key' : '']; }
     }
@@ -90,6 +91,7 @@ namespace {
         case 'insurance': $insurance = true; break;
         case 'disabled': $settings->selection = []; break;
         case 'credentials': $settings->credentials = false; break;
+        case 'settings_throw': $settings->throw = true; break;
         case 'no_pin': unset($destination['destination_latitude']); break;
         case 'v1': $destination['version'] = 1; unset($destination['destination_latitude'], $destination['destination_longitude']); break;
         case 'country': $package['destination']['country'] = 'US'; break;
@@ -107,6 +109,7 @@ namespace {
         case 'quantity': $package['contents']['cart-key']['quantity'] = 1.5; break;
         case 'negative_value': $package['contents']['cart-key']['line_total'] = -1; break;
         case 'fractional_units': $product->weight = 0.1; $product->width = 0.1; break;
+        case 'zero_coordinates': $destination['destination_latitude'] = '0'; $destination['destination_longitude'] = '0'; $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['origin_latitude'] = '0'; $package['origin']['origin_longitude'] = '0'; break;
     }
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
     $quote = $service->quote($package, $destination, $payment, $insurance);
@@ -130,6 +133,9 @@ namespace {
             case 'mutate_dimensions': $product->width = 11; break;
             case 'mutate_variation': $package['contents']['cart-key']['variation_id'] = 321; break;
             case 'mutate_value': $package['contents']['cart-key']['line_total'] = 100001; break;
+            case 'mutate_fractional_value': $package['contents']['cart-key']['line_total'] = 100000.1; break;
+            case 'mutate_fractional_dimensions': $product->width = 9.9; break;
+            case 'mutate_credentials': $settings->credentials = false; break;
             case 'clear_session': WC()->session->data = []; break;
             case 'forge': $rate['quote_token'] = str_repeat('a', 64); break;
             case 'wrong_selection': $rate['service'] = 'sameday'; break;

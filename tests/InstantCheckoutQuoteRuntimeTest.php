@@ -31,13 +31,14 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function context_guards_fail_closed_without_api_calls(): void {
-        foreach (['cod', 'insurance', 'disabled', 'credentials', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
+        foreach (['cod', 'insurance', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertFalse($r['quote']['eligible'], $scenario);
             $this->assertSame([], $r['quote']['rates'], $scenario);
             $this->assertNull($r['quote']['context'], $scenario);
             $this->assertSame(0, $r['calls'], $scenario);
             $this->assertSame([], $r['cache'], $scenario);
+            $this->assertStringNotContainsString('secret', $r['quote']['code']);
         }
     }
 
@@ -51,14 +52,14 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
             $this->assertSame([], $r['cache'], $scenario);
             $this->assertStringNotContainsString('secret', $r['quote']['message']);
         }
-        foreach (['zero_price', 'results_envelope', 'grab'] as $scenario) {
+        foreach (['zero_price', 'zero_coordinates', 'results_envelope', 'grab'] as $scenario) {
             $this->assertTrue($this->runFixture(['scenario' => $scenario])['quote']['eligible'], $scenario);
         }
     }
 
     #[Test]
     public function validation_rebuilds_context_without_api_and_blocks_stale_or_forged_tokens(): void {
-        foreach (['mutate_cart', 'mutate_name', 'mutate_phone', 'mutate_pin', 'mutate_origin', 'mutate_policy', 'mutate_payment', 'mutate_insurance', 'expire', 'clear_session', 'forge', 'wrong_selection', 'mutate_package_id', 'mutate_dimensions', 'mutate_variation', 'mutate_value'] as $scenario) {
+        foreach (['mutate_cart', 'mutate_name', 'mutate_phone', 'mutate_pin', 'mutate_origin', 'mutate_policy', 'mutate_payment', 'mutate_insurance', 'expire', 'clear_session', 'forge', 'wrong_selection', 'mutate_package_id', 'mutate_dimensions', 'mutate_variation', 'mutate_value', 'mutate_fractional_value', 'mutate_fractional_dimensions', 'mutate_credentials'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertTrue($r['quote']['eligible'], $scenario);
             $this->assertNotEmpty($r['validation_error'], $scenario);

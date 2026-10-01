@@ -5178,3 +5178,79 @@ msgstr "Geser peta untuk menempatkan pin pengiriman…"
 #: inc/Base/Enqueue.php
 msgid "Map unavailable. You can continue with your shipping address."
 msgstr "Peta tidak tersedia. Anda dapat melanjutkan dengan alamat pengiriman."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "A supported Indonesian timezone is required for Instant delivery."
+msgstr "Zona waktu Indonesia yang didukung diperlukan untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "A valid recipient name, Indonesian phone number and full address are required for Instant delivery."
+msgstr "Nama penerima, nomor telepon Indonesia, dan alamat lengkap yang valid diperlukan untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Add this method to a shipping zone. Instant requires a saved origin map pin and a buyer shipping map pin. COD and shipping insurance are not supported."
+msgstr "Tambahkan metode ini ke zona pengiriman. Instant memerlukan pin lokasi asal dan pin alamat pembeli yang tersimpan. COD dan asuransi pengiriman tidak didukung."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Cash on delivery is not supported for Instant delivery."
+msgstr "COD tidak didukung untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Choose a shipping address and map pin for Instant delivery."
+msgstr "Pilih alamat pengiriman dan pin peta untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Complete your Indonesian shipping address and update its map pin for Instant delivery."
+msgstr "Lengkapi alamat pengiriman Indonesia dan perbarui pin petanya untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery could not be quoted. Please try again."
+msgstr "Tarif pengiriman Instant tidak dapat diperoleh. Silakan coba lagi."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery does not support COD."
+msgstr "Pengiriman Instant tidak mendukung COD."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery does not support shipping insurance."
+msgstr "Pengiriman Instant tidak mendukung asuransi pengiriman."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery is available."
+msgstr "Pengiriman Instant tersedia."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery is not available for this store."
+msgstr "Pengiriman Instant tidak tersedia untuk toko ini."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery is unavailable for this shipment."
+msgstr "Pengiriman Instant tidak tersedia untuk paket ini."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery rates are temporarily unavailable. Please try again."
+msgstr "Tarif pengiriman Instant sementara tidak tersedia. Silakan coba lagi."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery requires physical items with valid quantities, weights and dimensions, weighing at most 40000 grams."
+msgstr "Pengiriman Instant memerlukan produk fisik dengan jumlah, berat, dan dimensi yang valid, dengan berat maksimal 40000 gram."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Insurance is not supported for Instant delivery."
+msgstr "Asuransi tidak didukung untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "KiriminAja Instant"
+msgstr "KiriminAja Instant"
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "No Instant courier services are enabled."
+msgstr "Tidak ada layanan kurir Instant yang diaktifkan."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "No Instant delivery rates are available for this address and cart."
+msgstr "Tidak ada tarif pengiriman Instant untuk alamat dan keranjang ini."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "The store pickup address is not ready for Instant delivery."
+msgstr "Alamat penjemputan toko belum siap untuk pengiriman Instant."

@@ -1632,6 +1632,7 @@ class SettingController{
             'kiriminaja_api',
             'kiriminaja_debug',
             'kiriminaja_import',
+            'kiriminaja_instant',
             'kiriminaja_payment',
             'kiriminaja_print',
             'kiriminaja_request_pickup',

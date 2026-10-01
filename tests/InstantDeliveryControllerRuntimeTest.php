@@ -28,6 +28,14 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	}
 
 	#[Test]
+	public function init_constructs_state_with_the_required_repository_even_as_a_direct_service(): void {
+		$result = $this->run_controller( array( 'operation' => 'state_composition' ) );
+		$this->assertSame( 'KiriminAjaOfficial\\Services\\InstantShipmentState', $result['state'] );
+		$this->assertSame( 'KiriminAjaOfficial\\Repositories\\TransactionRepository', $result['repository'] );
+		$this->assertSame( 1, $result['required_dependencies'] );
+	}
+
+	#[Test]
 	public function init_injects_exact_required_dependencies_and_only_authenticated_hooks(): void {
 		$result = $this->run_controller();
 		$this->assertSame( array(

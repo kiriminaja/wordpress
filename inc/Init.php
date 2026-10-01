@@ -35,6 +35,7 @@ final class Init {
             Controllers\EditOrderController::class,
             Controllers\CodAdjustmentController::class,
             Controllers\InstantDeliveryController::class,
+            Services\InstantCheckoutDiagnosticsService::class,
         ];
     }
     /**
@@ -61,6 +62,13 @@ final class Init {
      * @return mixed
      */
     private static function instantiate($class ){
+        // Stateful services must never fall through to the zero-argument factory.
+        if ( Services\InstantShipmentState::class === $class ) {
+            return new Services\InstantShipmentState( new Repositories\TransactionRepository() );
+        }
+        if ( Services\InstantCheckoutDiagnosticsService::class === $class ) {
+            return new Services\InstantCheckoutDiagnosticsService();
+        }
         $checkout_service_factory = kiriof_checkout_service_factory();
 
         if ( Controllers\GeneralAjaxController::class === $class ) {
@@ -167,6 +175,7 @@ final class Init {
         if ( Controllers\InstantDeliveryController::class === $class ) {
             $transaction_repository = new Repositories\TransactionRepository();
             $instant_api_repository = new Repositories\InstantDeliveryApiRepository();
+            $instant_shipment_state = new Services\InstantShipmentState( $transaction_repository );
 
             return new $class(
                 new Services\InstantDispatchService(
@@ -178,7 +187,7 @@ final class Init {
                 new Services\InstantOperationsService(
                     $transaction_repository,
                     $instant_api_repository,
-                    new Services\InstantShipmentState( $transaction_repository )
+                    $instant_shipment_state
                 )
             );
         }

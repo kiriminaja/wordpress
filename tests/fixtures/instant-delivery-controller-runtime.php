@@ -80,6 +80,12 @@ namespace {
 	require $root . '/inc/Controllers/InstantDeliveryController.php';
 	require $root . '/inc/Init.php';
 	$instantiate = new \ReflectionMethod( \KiriminAjaOfficial\Init::class, 'instantiate' );
+	if ( 'state_composition' === ( $input['operation'] ?? '' ) ) {
+		$state = $instantiate->invoke( null, \KiriminAjaOfficial\Services\InstantShipmentState::class );
+		$repo = ( new \ReflectionProperty( $state, 'repo' ) )->getValue( $state );
+		echo json_encode( array( 'state' => get_class( $state ), 'repository' => get_class( $repo ), 'required_dependencies' => ( new \ReflectionMethod( $state, '__construct' ) )->getNumberOfRequiredParameters() ) );
+		exit;
+	}
 	$controller = $instantiate->invoke( null, \KiriminAjaOfficial\Controllers\InstantDeliveryController::class );
 	$dispatch = ( new \ReflectionProperty( $controller, 'dispatch_service' ) )->getValue( $controller );
 	$label = ( new \ReflectionProperty( $controller, 'label_service' ) )->getValue( $controller );
