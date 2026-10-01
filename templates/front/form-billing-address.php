@@ -21,14 +21,12 @@ require __DIR__ . '/partials/form-billing-address-fields.php';
 
 if ( is_checkout() || is_cart() ) {
     $kiriof_billing_address_config = require __DIR__ . '/partials/form-billing-address-config.php';
-    $kiriof_billing_address_json   = wp_json_encode( $kiriof_billing_address_config );
-
-    if ( false !== $kiriof_billing_address_json ) {
+    if ( is_array( $kiriof_billing_address_config ) ) {
         wp_enqueue_script( 'kiriof-form-billing-address' );
-        wp_add_inline_script(
+        wp_localize_script(
             'kiriof-form-billing-address',
-            'window.kiriofBillingAddressConfig = ' . $kiriof_billing_address_json . ';',
-            'before'
+            'kiriofBillingAddressConfig',
+            $kiriof_billing_address_config
         );
     }
 }

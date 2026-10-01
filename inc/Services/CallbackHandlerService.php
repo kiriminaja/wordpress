@@ -20,9 +20,9 @@ class CallbackHandlerService extends BaseService {
     private $paymentRepository;
     private $apiToken;
 
-    public function __construct( $transactionRepository = null, $paymentRepository = null, $apiToken = null ) {
-        $this->transactionRepository = $transactionRepository ?: new \KiriminAjaOfficial\Repositories\TransactionRepository();
-        $this->paymentRepository     = $paymentRepository ?: new \KiriminAjaOfficial\Repositories\PaymentRepository();
+    public function __construct( $transactionRepository, $paymentRepository, $apiToken ) {
+        $this->transactionRepository = $transactionRepository;
+        $this->paymentRepository     = $paymentRepository;
         $this->apiToken              = $apiToken;
     }
 
@@ -135,9 +135,7 @@ class CallbackHandlerService extends BaseService {
             $authorization = trim( substr( $authorization, 7 ) );
         }
 
-        $token = null !== $this->apiToken
-            ? trim( (string) $this->apiToken )
-            : trim( (string) ( ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'api_key' )->value ?? '' ) );
+        $token = trim( (string) $this->apiToken );
 
         return '' !== $authorization && '' !== $token && hash_equals( $token, $authorization );
     }

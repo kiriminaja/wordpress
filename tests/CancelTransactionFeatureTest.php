@@ -184,16 +184,16 @@ final class CancelTransactionFeatureTest extends TestCase
     }
 
     #[Test]
-    public function api_repository_cancel_uses_correct_endpoint(): void
+    public function api_repository_cancel_uses_official_sdk(): void
     {
         $content = file_get_contents(
             PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php'
         );
 
         $this->assertStringContainsString(
-            '/api/mitra/v3/cancel_shipment',
+            'KiriminAja::cancelShipment(',
             $content,
-            'cancelShipment must use the /api/mitra/v3/cancel_shipment endpoint'
+            'cancelShipment must use the official KiriminAja SDK'
         );
     }
 
@@ -209,8 +209,8 @@ final class CancelTransactionFeatureTest extends TestCase
         $this->assertNotEmpty($matches, 'cancelShipment method body not found');
 
         $methodBody = $matches[1];
-        $this->assertStringContainsString("'awb'", $methodBody, 'cancelShipment must send awb parameter');
-        $this->assertStringContainsString("'reason'", $methodBody, 'cancelShipment must send reason parameter');
+        $this->assertStringContainsString('(string) $awb', $methodBody, 'cancelShipment must pass the AWB to the SDK');
+        $this->assertStringContainsString('(string) $reason', $methodBody, 'cancelShipment must pass the reason to the SDK');
     }
 
     // ------------------------------------------------------------------
@@ -334,9 +334,9 @@ final class CancelTransactionFeatureTest extends TestCase
 
         $methodBody = substr($content, (int) $_[0][1], 2500);
         $this->assertStringContainsString(
-            'CancelTransactionService',
+            '$this->cancelTransactionService',
             $methodBody,
-            'handleWcOrderCancelled() must use CancelTransactionService'
+            'handleWcOrderCancelled() must use the injected CancelTransactionService'
         );
     }
 
@@ -515,9 +515,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_no_longer_includes_legacy_cancel_modal_partial(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+		$content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringNotContainsString(
             "include 'modal-cancel.php'",
@@ -529,54 +527,46 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function transaction_list_has_cancel_button(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+		$content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'kjShowCancelModal',
+            "actionDialog = { kind: 'cancel', data: row.actionData }",
             $content,
-            'Transaction list must have cancel buttons calling kjShowCancelModal()'
+            'Transaction list must open the Svelte cancellation dialog'
         );
     }
 
     #[Test]
     public function transaction_list_has_actions_column(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'Action',
+            'bootstrap.i18n.action',
             $content,
             'Transaction list table must have an Actions column header'
         );
     }
 
     #[Test]
-    public function transaction_list_js_has_cancel_modal_function(): void
+    public function transaction_list_opens_svelte_cancel_dialog(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            'window.kjShowCancelModal',
+            "actionDialog = { kind: 'cancel', data: row.actionData }",
             $content,
-            'Transaction list JS must define kjShowCancelModal function'
+            'Transaction list must open the Svelte cancellation dialog'
         );
     }
 
     #[Test]
-    public function transaction_list_js_handles_cancel_with_backbone_modal_event(): void
+    public function transaction_list_renders_svelte_action_dialog(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
 
         $this->assertStringContainsString(
-            "target === 'kiriof-modal-cancel-transaction'",
+            '<TransactionActionDialogs bind:action={actionDialog}',
             $content,
             'Transaction list JS must handle cancel flow through the Woo backbone modal event'
         );
@@ -585,12 +575,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_sends_correct_ajax_action(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'action: "kiriof_cancel_transaction"',
+            "action: 'kiriof_cancel_transaction'",
             $content,
             'Cancel JS must send the kiriof_cancel_transaction AJAX action'
         );
@@ -599,16 +587,11 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_sends_nonce(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
-
-        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?ajax\s*\(\s*\{(.*?)\}\s*\)/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'Cancel backbone modal AJAX call not found');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'nonce: kiriofAjax.nonce',
-            $matches[1],
+            "'data[nonce]': action.data.nonce",
+            $content,
             'Cancel AJAX call must send the nonce'
         );
     }
@@ -616,33 +599,23 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_js_validates_reason_min_length(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
-
-        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?if \(reason.length < 5\).*?ajax/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'Cancel backbone modal handler not found');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'reason.length < 5',
-            $matches[0],
+            'cancelReason.trim().length < 4',
+            $content,
             'Cancel JS must validate minimum reason length'
         );
     }
 
     #[Test]
-    public function cancel_js_has_confirmation_prompt(): void
+    public function cancel_dialog_requires_destructive_confirmation(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
-
-        preg_match('/target === \'kiriof-modal-cancel-transaction\'.*?confirm\(.*?ajax/s', $content, $matches);
-        $this->assertNotEmpty($matches, 'Cancel backbone modal handler not found');
+        $content = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionActionDialogs.svelte');
 
         $this->assertStringContainsString(
-            'confirm(',
-            $matches[0],
+            'primaryVariant="destructive"',
+            $content,
             'Cancel JS must show a confirmation prompt before proceeding'
         );
     }
@@ -650,12 +623,10 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_button_only_shown_when_awb_exists(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+		$content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            '! empty( $kiriof_awb )',
+			"'' !== \$awb",
             $content,
             'Cancel button must only show when AWB exists'
         );
@@ -664,9 +635,7 @@ final class CancelTransactionFeatureTest extends TestCase
     #[Test]
     public function cancel_button_only_shown_for_cancelable_statuses(): void
     {
-        $content = file_get_contents(
-            PLUGIN_DIR . '/templates/transaction-process/view/index.php'
-        );
+		$content = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         // The cancel button should be behind a status check
         $nonCancelable = ['shipped', 'finished', 'returned', 'return', 'canceled'];
@@ -677,5 +646,47 @@ final class CancelTransactionFeatureTest extends TestCase
                 "Transaction list must check for non-cancelable status: {$status}"
             );
         }
+    }
+}
+
+final class TransactionDetailActionModalTemplateTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_page_renders_legacy_action_modal_templates(): void
+    {
+        $controller = file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' );
+
+        $this->assertStringContainsString( "'kiriminaja-transaction-detail'", $controller );
+        $this->assertStringContainsString( 'renderWooActionModalTemplatesForKiriofPage', $controller );
+        $this->assertStringContainsString( 'tmpl-kiriof-modal-cod-adjustment', $controller );
+    }
+}
+
+final class TransactionDetailLegacyActionBridgeTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_actions_use_valid_data_attributes_without_legacy_list_script(): void
+    {
+        $detail = file_get_contents( PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte' );
+        $template = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
+
+        $this->assertStringContainsString( 'trigger.setAttribute(`data-${key.replace', $detail );
+        $this->assertStringContainsString( "new MouseEvent('click'", $detail );
+        $this->assertStringNotContainsString( 'trigger.dataset[key.replace', $detail );
+        $this->assertStringNotContainsString( 'kiriofTransactionProcess', $template );
+        $this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/admin/js/kj-transaction-process.js' );
+    }
+}
+
+final class TransactionDetailCancelEligibilityTest extends TestCase
+{
+    #[Test]
+    public function transaction_detail_cancel_uses_the_same_eligibility_rule_as_the_transaction_list(): void
+    {
+        $detail = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionDetailPageData.php' );
+
+        $this->assertStringContainsString( "$terminal_statuses = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );", $detail );
+        $this->assertStringContainsString( "$can_cancel    = ! $is_deficit && '' !== $awb && ! in_array( $status, $terminal_statuses, true );", $detail );
+        $this->assertStringContainsString( "'cancel'        => $can_cancel,", $detail );
     }
 }

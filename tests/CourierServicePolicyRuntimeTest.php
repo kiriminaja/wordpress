@@ -22,6 +22,7 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  function wp_send_json_success( $value ) { $GLOBALS['ajax_result'] = array( true, $value ); }
  function wp_send_json_error( $value ) { $GLOBALS['ajax_result'] = array( false, $value ); }
  define( 'KIRIOF_NONCE', 'policy' );
+ require %AUTOLOAD%;
  require %CATALOG%;
  require %REPOSITORY%;
  require %CONTROLLER%;
@@ -93,7 +94,8 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  $repository->storeCourierWhitelist( array( 'service_selection' => '{"mystery":["*"]}' ) );
  check( $repository->isCourierServiceEnabled( 'mystery', 'anything' ), true );
  // Exercise the real controller and repository together, including legacy CSV mirrors.
- $controller = new KiriminAjaOfficial\Controllers\SettingController();
+ require %COMPOSITION%;
+ $controller = courier_setting_controller( $repository );
  function save_selection( $json, $success ) {
      global $controller, $wpdb;
      $before = $wpdb->rows;
@@ -174,7 +176,7 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  catch ( RuntimeException $e ) { check( $e->getMessage(), 'Unable to save courier settings.' ); }
  echo 'ok';
 PHP;
-        $paths = array( '%CATALOG%' => 'inc/Services/CourierServiceCatalog.php', '%REPOSITORY%' => 'inc/Repositories/SettingRepository.php', '%CONTROLLER%' => 'inc/Controllers/SettingController.php', '%RESPONSE%' => 'inc/Utils/ServiceResponse.php', '%BASE%' => 'inc/Base/BaseService.php', '%API%' => 'inc/Services/KiriminajaApiService.php' );
+        $paths = array( '%COMPOSITION%' => 'tests/fixtures/courier-setting-controller.php', '%AUTOLOAD%' => 'vendor/autoload.php', '%CATALOG%' => 'inc/Services/CourierServiceCatalog.php', '%REPOSITORY%' => 'inc/Repositories/SettingRepository.php', '%CONTROLLER%' => 'inc/Controllers/SettingController.php', '%RESPONSE%' => 'inc/Utils/ServiceResponse.php', '%BASE%' => 'inc/Base/BaseService.php', '%API%' => 'inc/Services/KiriminajaApiService.php' );
         foreach ( $paths as $placeholder => $path ) { $script = str_replace( $placeholder, var_export( PLUGIN_DIR . '/' . $path, true ), $script ); }
         $file = tempnam( sys_get_temp_dir(), 'courier-policy-' );
         file_put_contents( $file, $script );

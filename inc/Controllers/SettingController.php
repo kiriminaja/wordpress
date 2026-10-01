@@ -6,9 +6,21 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+use KiriminAjaOfficial\Contracts\TrackingPageRepositoryInterface;
+use KiriminAjaOfficial\Repositories\SettingRepository;
 use Throwable;
 class SettingController{
+    private TrackingPageRepositoryInterface $tracking_page_repository;
+    private SettingRepository $setting_repository;
+
+    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository, SettingRepository $setting_repository ) {
+        $this->tracking_page_repository = $tracking_page_repository;
+        $this->setting_repository       = $setting_repository;
+    }
+
     public function register(){
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueueSettingsScript' ), 20 );
+
         /** getIntegrationData*/
         add_action('wp_ajax_kiriof_get_integration_data', array($this,'getIntegrationData'));
 
@@ -27,8 +39,6 @@ class SettingController{
         /** storeIntegrationData*/
         add_action('wp_ajax_kiriof_get_call_back_data', array($this,'getCallbackData'));
 
-        /** storeCallbackData*/
-        add_action('wp_ajax_kiriof_store_call_back_data', array($this,'storeCallbackData'));
         /**storeWhitelistExpedition*/
         add_action('wp_ajax_kiriminaja_search_expedition', array($this,'storeWhitelistExpedition'));
 
@@ -63,6 +73,126 @@ class SettingController{
         add_action( 'woocommerce_admin_field_kiriof_tracking_page_select', array( $this, 'renderWooCommerceTrackingPageSelectField' ) );
         add_action( 'woocommerce_update_options_advanced', array( $this, 'syncWooCommerceAdvancedSettings' ) );
         add_action( 'admin_post_kiriof_download_plugin_logs', array( $this, 'downloadPluginLogs' ) );
+    }
+
+    public function enqueueSettingsScript() {
+        $screen    = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        $screen_id = $screen ? $screen->id : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing.
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing.
+        $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin screen routing.
+        $section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
+
+        $is_plugin_settings = 'kiriminaja-setting' === $page;
+        $is_wc_settings     = 'woocommerce_page_wc-settings' === $screen_id
+            && ( '' === $tab || 'general' === $tab || 'kiriminaja_warehouses' === $tab );
+
+        if ( ! $is_plugin_settings && ! $is_wc_settings ) {
+            return;
+        }
+
+		if ( $is_plugin_settings && in_array( $section, array( '', 'account', 'couriers', 'tracking', 'technical' ), true ) ) {
+			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
+			$workspace_style  = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
+			$admin_list_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+			$shadcn_style     = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css';
+			if ( file_exists( $workspace_style ) ) {
+				$style_dependencies = array();
+				if ( file_exists( $shadcn_style ) ) {
+					wp_enqueue_style( 'kiriof-workspace-shadcn-style', KIRIOF_URL . 'assets/admin/dist/kiriminaja-shadcn-onboarding.css', array(), (string) filemtime( $shadcn_style ) );
+					$style_dependencies[] = 'kiriof-workspace-shadcn-style';
+				}
+				if ( file_exists( $admin_list_style ) ) {
+					wp_enqueue_style( 'kiriof-workspace-admin-list-style', KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-list.css', $style_dependencies, (string) filemtime( $admin_list_style ) );
+					$style_dependencies[] = 'kiriof-workspace-admin-list-style';
+				}
+				wp_enqueue_style(
+					'kiriof-admin-workspace-style',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-workspace.css',
+					$style_dependencies,
+					(string) filemtime( $workspace_style )
+				);
+			}
+			if ( file_exists( $workspace_script ) ) {
+				wp_enqueue_script(
+					'kiriof-admin-workspace',
+					KIRIOF_URL . 'assets/admin/dist/kiriminaja-admin-workspace.js',
+					array(),
+					(string) filemtime( $workspace_script ),
+					true
+				);
+				wp_localize_script(
+					'kiriof-admin-workspace',
+					'kiriofSettings',
+					array(
+						'ajaxurl' => admin_url( 'admin-ajax.php' ),
+						'nonce'   => wp_create_nonce( KIRIOF_NONCE ),
+					)
+				);
+				wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' );
+			}
+
+			return;
+		}
+
+        wp_enqueue_script(
+            'kiriof-settings',
+            KIRIOF_URL . 'assets/admin/js/kj-settings.js',
+            array( 'jquery', 'kiriof-script' ),
+            KIRIOF_VERSION,
+            true
+        );
+        wp_localize_script(
+            'kiriof-settings',
+            'kiriofSettings',
+            array(
+                'ajaxurl' => admin_url( 'admin-ajax.php' ),
+                'nonce'   => wp_create_nonce( KIRIOF_NONCE ),
+                'i18n'    => array(
+                    'unexpectedResponse'   => __( 'Unexpected response.', 'kiriminaja-official' ),
+                    'invalidResponse'      => __( 'Server returned an invalid response.', 'kiriminaja-official' ),
+                    'enterSetupKey'        => __( 'Please enter a setup key.', 'kiriminaja-official' ),
+                    'connecting'           => __( 'Connecting…', 'kiriminaja-official' ),
+                    'connect'              => __( 'Connect', 'kiriminaja-official' ),
+                    'connectionFailed'     => __( 'Connection failed. Please check your setup key.', 'kiriminaja-official' ),
+                    'disconnectConfirm'    => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
+                    'networkError'         => __( 'Network error.', 'kiriminaja-official' ),
+                    'disconnectFailed'     => __( 'Disconnect failed.', 'kiriminaja-official' ),
+                    'saved'                => __( 'Saved.', 'kiriminaja-official' ),
+                    'saveFailed'           => __( 'Save failed.', 'kiriminaja-official' ),
+                    // Translators: %1$s is the enabled courier count; %2$s is the total courier count.
+                    // Translators: %1$s is the enabled courier count; %2$s is the total courier count.
+                    'courierCount'         => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
+                    'noCouriers'           => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
+                    'courierLoadFailed'    => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
+                    'courierSaveFailed'    => __( 'Could not save courier settings.', 'kiriminaja-official' ),
+                    'revalidate'           => __( 'Re-validate Region Cache', 'kiriminaja-official' ),
+                    'cacheUpdated'         => __( 'Cache updated successfully.', 'kiriminaja-official' ),
+                    'manualRefreshOnly'    => __( 'Manual refresh only', 'kiriminaja-official' ),
+                    'revalidateFailed'     => __( 'Re-validate failed.', 'kiriminaja-official' ),
+                    'refreshing'           => __( 'Refreshing…', 'kiriminaja-official' ),
+                    'scheduling'           => __( 'Scheduling…', 'kiriminaja-official' ),
+                    'requestFailed'        => __( 'Request failed. Please try again.', 'kiriminaja-official' ),
+                    'flushing'             => __( 'Flushing…', 'kiriminaja-official' ),
+                    'flushCouriers'        => __( 'Flush & Re-fetch Couriers', 'kiriminaja-official' ),
+                    'cacheRefreshed'       => __( 'Cache refreshed.', 'kiriminaja-official' ),
+                    'couriers'             => __( 'couriers', 'kiriminaja-official' ),
+                    'cached'               => __( 'Cached', 'kiriminaja-official' ),
+                    'flushFailed'          => __( 'Flush failed. Please try again.', 'kiriminaja-official' ),
+                    'confirmDelete'        => __( 'Are you sure you want to delete this shipment location?', 'kiriminaja-official' ),
+                    'selectOption'         => __( 'Select Option', 'kiriminaja-official' ),
+                    'invalidCoordinates'   => __( 'Invalid coordinates', 'kiriminaja-official' ),
+                    'geolocationUnsupported' => __( 'Geolocation is not supported by this browser.', 'kiriminaja-official' ),
+                    'permissionDenied'     => __( 'Permission denied', 'kiriminaja-official' ),
+                    'locationUnavailable'  => __( 'Location unavailable', 'kiriminaja-official' ),
+                    'timeout'              => __( 'Timeout', 'kiriminaja-official' ),
+                    'unknownError'         => __( 'Unknown error', 'kiriminaja-official' ),
+                ),
+            )
+        );
+
     }
 
     private function isValidShipmentLocationData( $data ) {
@@ -173,7 +303,7 @@ class SettingController{
                 ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
                 : array();
             if ( ! isset( $data['origin_whitelist_expedition_id'] ) ) {
-				$courier_settings = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByArray(
+                $courier_settings = $this->setting_repository->getSettingByArray(
 					array( 'origin_whitelist_expedition_id', 'origin_whitelist_expedition_name' )
 				);
 				$data['origin_whitelist_expedition_id']   = array();
@@ -216,27 +346,6 @@ class SettingController{
         }
     }
 
-    function storeCallbackData(){
-        try {
-            if ( ! current_user_can( 'manage_woocommerce' ) ) {
-                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Insufficient permissions', 'kiriminaja-official' ) ) );
-                wp_die();
-            }
-            // Check for nonce security - fail early
-            if ( ! isset( $_POST['data']['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['data']['nonce'] ) ), KIRIOF_NONCE ) ) {
-                wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
-                wp_die();
-            }
-            $data = isset( $_POST['data'] ) && is_array( $_POST['data'] )
-                ? map_deep( wp_unslash( $_POST['data'] ), 'sanitize_text_field' )
-                : array();
-            $service = (new \KiriminAjaOfficial\Services\SettingService())->storeCallbackData($data);
-            if ($service->status!==200){ wp_send_json_error($service);}
-            wp_send_json_success($service);
-        }catch (Throwable $e){
-            wp_send_json_error(['status'=>400,'message'=>$e->getMessage()]);
-        }
-    }
     function storeWhitelistExpedition(){
         try {
             if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -284,7 +393,7 @@ class SettingController{
                 wp_send_json_error( array( 'status' => 403, 'message' => __( 'Security check failed', 'kiriminaja-official' ) ) );
                 wp_die();
             }
-            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByArray(['enable_cod']);
+            $repo = $this->setting_repository->getSettingByArray(['enable_cod']);
             $response = [];
             foreach ($repo as $repoItem) {
                 $response[$repoItem->key] = sanitize_text_field($repoItem->value);
@@ -353,7 +462,7 @@ class SettingController{
                 wp_send_json_error($couriers_service);
             }
 
-            $repository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+            $repository = $this->setting_repository;
             $selection = $repository->getCourierServiceSelection();
             if ( null !== $selection ) {
                 $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::filterSelection( $selection );
@@ -395,7 +504,7 @@ class SettingController{
                 }
             }
             if ( array_key_exists( 'service_selection', $data ) ) {
-                $repository = new \KiriminAjaOfficial\Repositories\SettingRepository();
+                $repository = $this->setting_repository;
                 $previous_policy = $repository->getCourierServiceSelection();
                 $previous_selection = $previous_policy ?? array();
                 if ( null === $previous_policy ) {
@@ -453,7 +562,7 @@ class SettingController{
                 $payload['origin_whitelist_expedition_id'] = implode( ',', $ids );
                 $payload['origin_whitelist_expedition_name'] = implode( ',', $names );
             }
-            ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeCourierWhitelist( $payload );
+            $this->setting_repository->storeCourierWhitelist( $payload );
 
             wp_send_json_success(['status' => 200, 'message' => 'Saved']);
         }catch (Throwable $e){
@@ -672,88 +781,7 @@ class SettingController{
         </tr>
         <?php
 
-        $inline_script = <<<'JS'
-jQuery(function($){
-    var $field = $('#kiriof_wc_origin_area');
-    var $row = $field.closest('tr');
-    var $country = $('#woocommerce_default_country');
-    var select2 = $.fn.selectWoo || $.fn.select2;
-    if (!$field.length || !select2) {
-        return;
-    }
-    function kiriofSelectedCountryIsIndonesia() {
-        var value = String($country.val() || '');
-        return value === 'ID' || value.indexOf('ID:') === 0;
-    }
-    function kiriofToggleAreaField() {
-        if (!$country.length || kiriofSelectedCountryIsIndonesia()) {
-            $row.show();
-            return;
-        }
-        $row.hide();
-        $field.val(null).trigger('change');
-        $('#kiriof_wc_origin_area_name').val('');
-    }
-    function kiriofExtractPostcode(item) {
-        var postcode = item.postcode || item.zipcode || item.zip_code || item.postal_code || item.kode_pos || item.kodepos || '';
-        if (!postcode && item.text) {
-            var match = String(item.text).match(/\b\d{5}\b/);
-            postcode = match ? match[0] : '';
-        }
-        return String(postcode || '').replace(/\s+/g, '').trim();
-    }
-    if ($field.data('select2') || $field.data('selectWoo')) {
-        select2.call($field, 'destroy');
-    }
-    select2.call($field, {
-        width: '350px',
-        minimumInputLength: 3,
-        placeholder: 'Select Option',
-        allowClear: true,
-        ajax: {
-            url: (window.kiriofAjax && kiriofAjax.ajaxurl) ? kiriofAjax.ajaxurl : window.ajaxurl,
-            dataType: 'json',
-            type: 'POST',
-            delay: 250,
-            data: function(params) {
-                return {
-                    data: params,
-                    nonce: (window.kiriofAjax && kiriofAjax.nonce) ? kiriofAjax.nonce : '',
-                    action: 'kiriminaja_subdistrict_search'
-                };
-            },
-            processResults: function(response) {
-                return {
-                    results: $.map(response.data || [], function(item) {
-                        return {
-                            text: item.text,
-                            id: item.id,
-                            postcode: kiriofExtractPostcode(item)
-                        };
-                    })
-                };
-            },
-            cache: true
-        }
-    });
-    $field.on('select2:select', function(event) {
-        var selected = event.params && event.params.data ? event.params.data : {};
-        var postcode = kiriofExtractPostcode(selected);
-        if (postcode) {
-            $('#woocommerce_store_postcode, [name="woocommerce_store_postcode"]').val(postcode).trigger('input').trigger('change');
-        }
-        var label = selected.text || $field.find('option:selected').text() || '';
-        $('#kiriof_wc_origin_area_name').val(label);
-        $field.find('option:selected').text(label);
-    });
-    $field.on('select2:clear', function() {
-        $('#kiriof_wc_origin_area_name').val('');
-    });
-    $country.on('change', kiriofToggleAreaField);
-    kiriofToggleAreaField();
-});
-JS;
-        wp_add_inline_script( 'kiriof-script', $inline_script );
+
     }
 
     public function renderWooCommercePinLocationField( $value ) {
@@ -784,59 +812,7 @@ JS;
         </tr>
         <?php
 
-        $inline_script = <<<'JS'
-jQuery(function($){
-    if (typeof L === 'undefined' || !document.getElementById('kiriof-wc-origin-map')) {
-        return;
-    }
-    var $lat = $('#kiriof_wc_origin_latitude');
-    var $lng = $('#kiriof_wc_origin_longitude');
-    var $coords = $('#kiriof-wc-map-coords');
-    var $error = $('#kiriof-wc-map-error');
-    var defaultLat = parseFloat($lat.val()) || -6.2088;
-    var defaultLng = parseFloat($lng.val()) || 106.8456;
-    var map = L.map('kiriof-wc-origin-map').setView([defaultLat, defaultLng], 15);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-    setTimeout(function(){ map.invalidateSize(); }, 200);
-    function showError(message) {
-        $error.text(message).show();
-        setTimeout(function(){ $error.fadeOut(); }, 5000);
-    }
-    function updateCoordinates(lat, lng) {
-        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-            showError('Invalid coordinates');
-            return;
-        }
-        $lat.val(lat.toFixed(7));
-        $lng.val(lng.toFixed(7));
-        $coords.attr('data-tip', lat.toFixed(7) + ', ' + lng.toFixed(7));
-        $error.hide();
-    }
-    map.on('moveend', function(){
-        var center = map.getCenter();
-        updateCoordinates(center.lat, center.lng);
-    });
-    updateCoordinates(defaultLat, defaultLng);
-    $('#kiriof-wc-use-my-location').on('click', function(){
-        var $button = $(this);
-        $error.hide();
-        if (!navigator.geolocation) {
-            showError('Geolocation is not supported by this browser.');
-            return;
-        }
-        $button.prop('disabled', true);
-        navigator.geolocation.getCurrentPosition(function(position){
-            map.setView([position.coords.latitude, position.coords.longitude], 17);
-            $button.prop('disabled', false);
-        }, function(error){
-            $button.prop('disabled', false);
-            var messages = ['Permission denied', 'Location unavailable', 'Timeout'];
-            showError(messages[error.code - 1] || 'Unknown error');
-        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-    });
-});
-JS;
-        wp_add_inline_script( 'kiriof-script', $inline_script );
+
     }
 
     /**
@@ -1285,144 +1261,15 @@ JS;
     }
 
     private function renderShipmentLocationsInlineScript() {
-        $inline_script = <<<'JS'
-jQuery(function ($) {
-    var select2 = $.fn.selectWoo || $.fn.select2;
-
-    function kiriofExtractPostcode(item) {
-        if (!item || typeof item !== 'object') {
-            return '';
-        }
-        var sources = [item, item.data || {}, item.attributes || {}, item.raw || {}];
-        var keys = ['postcode', 'postal_code', 'zipcode', 'zip_code', 'kode_pos', 'kodepos', 'postalCode'];
-        for (var sourceIndex = 0; sourceIndex < sources.length; sourceIndex++) {
-            for (var keyIndex = 0; keyIndex < keys.length; keyIndex++) {
-                if (sources[sourceIndex][keys[keyIndex]]) {
-                    return String(sources[sourceIndex][keys[keyIndex]]).replace(/\s+/g, '').trim();
-                }
-            }
-        }
-        var label = item.text || item.name || item.label || '';
-        if (label) {
-            var match = String(label).match(/\b\d{5}\b/);
-            return match ? match[0] : '';
-        }
-        return '';
-    }
-
-    $('.kiriof-wc-location-card__body').each(function () {
-        var $card = $(this);
-        var $area = $card.find('.kiriof-wc-origin-area-select');
-        var $name = $card.find('.kiriof-wc-location-area-name');
-        var $zip  = $card.find('.kiriof-wc-location-zip');
-
-        if (select2 && $area.length) {
-            select2.call($area, {
-                width: '100%',
-                minimumInputLength: 3,
-                placeholder: $area.data('placeholder') || 'Select Option',
-                allowClear: true,
-                ajax: {
-                    url: window.kiriofAjax ? kiriofAjax.ajaxurl : window.ajaxurl,
-                    type: 'POST',
-                    dataType: 'json',
-                    delay: 300,
-                    data: function (params) {
-                        return {
-                            action: 'kiriminaja_subdistrict_search',
-                            nonce: window.kiriofAjax ? kiriofAjax.nonce : '',
-                            term: params.term,
-                            data: {
-                                term: params.term,
-                                search: params.term
-                            }
-                        };
-                    },
-                    processResults: function (response) {
-                        var results = response && response.data ? response.data : [];
-                        return { results: results };
-                    },
-                    cache: true
-                }
-            });
-
-            $area.on('select2:select', function (event) {
-                var data = event.params && event.params.data ? event.params.data : null;
-                var label = data ? (data.text || data.name || '') : '';
-                if (label) {
-                    $name.val(label);
-                }
-                var postcode = kiriofExtractPostcode(event.params && event.params.data ? event.params.data : null);
-                if (postcode) {
-                    $zip.val(postcode).trigger('input').trigger('change');
-                }
-            });
-            $area.on('select2:clear', function () {
-                $name.val('');
-            });
-        }
-
-        var $map = $card.find('.kiriof-wc-origin-map');
-        if ($map.length && window.L) {
-            var rawLat = $map.data('lat');
-            var rawLng = $map.data('lng');
-            var hasPin = rawLat !== undefined && rawLat !== '' && rawLng !== undefined && rawLng !== '';
-            var lat = hasPin ? parseFloat(rawLat) : -6.2;
-            var lng = hasPin ? parseFloat(rawLng) : 106.817;
-            var map = L.map($map[0]).setView([lat, lng], hasPin ? 15 : 11);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-            var marker = hasPin ? L.marker([lat, lng]).addTo(map) : null;
-
-            var setPin = function (la, ln) {
-                $card.find('.kiriof-wc-location-latitude').val(la);
-                $card.find('.kiriof-wc-location-longitude').val(ln);
-                if (marker) {
-                    marker.setLatLng([la, ln]);
-                } else {
-                    marker = L.marker([la, ln]).addTo(map);
-                }
-                map.setView([la, ln], 15);
-            };
-
-            map.on('click', function (event) {
-                setPin(event.latlng.lat, event.latlng.lng);
-            });
-
-            $card.find('.kiriof-wc-origin-my-location').on('click', function (event) {
-                event.preventDefault();
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function (position) {
-                        setPin(position.coords.latitude, position.coords.longitude);
-                    });
-                }
-            });
-
-            setTimeout(function () {
-                map.invalidateSize();
-            }, 0);
-        }
-    });
-
-    $(document).on('click', '.kiriof-wc-location-delete', function (event) {
-        event.preventDefault();
-        if (!window.confirm(kiriofLocationsL10n.confirmDelete)) return;
-        var $form = $('#mainform');
-        if (!$form.length) return;
-        var key = $(this).data('location-key');
-        $('<input type="hidden" name="save" value="1">').appendTo($form);
-        $('<input type="hidden">').attr('name', 'kiriof_locations[' + key + '][remove]').val('1').appendTo($form);
-        $form.submit();
-    });
-});
-JS;
-        $localize_script = array(
-            'confirmDelete' => __( 'Are you sure you want to delete this shipment location?', 'kiriminaja-official' ),
+        wp_localize_script(
+            'kiriof-settings',
+            'kiriofLocationsL10n',
+            array(
+                'confirmDelete' => __( 'Are you sure you want to delete this shipment location?', 'kiriminaja-official' ),
+            )
         );
-        wp_localize_script( 'kiriof-script', 'kiriofLocationsL10n', $localize_script );
-        wp_add_inline_script( 'kiriof-script', $inline_script );
     }
+
 
     /**
      * Persist the default shipment location fields injected into the
@@ -1458,7 +1305,7 @@ JS;
         update_option( 'kiriof_wc_origin_phone', $payload['origin_phone'] );
         update_option( 'kiriof_wc_origin_area', $payload['origin_sub_district_id'] );
 
-        ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+        $this->setting_repository->storeOriginMirrorData( $payload );
 
         $this->mirrorDefaultLocationToRepository( $payload );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -1633,7 +1480,7 @@ JS;
             $default_country_state = (string) $default->country . ( '' !== (string) $default->state ? ':' . (string) $default->state : '' );
             update_option( 'woocommerce_default_country', $default_country_state );
 
-            ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->storeOriginMirrorData( $payload );
+            $this->setting_repository->storeOriginMirrorData( $payload );
         }
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
@@ -1670,7 +1517,7 @@ JS;
     }
 
     private function getOriginSettingValues() {
-        $rows = ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByArray(
+        $rows = $this->setting_repository->getSettingByArray(
             array(
                 'origin_name',
                 'origin_phone',
@@ -1694,19 +1541,7 @@ JS;
     }
 
     private function getTrackingShortcodePages() {
-        global $wpdb;
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return $wpdb->get_results(
-            "SELECT ID, post_title FROM {$wpdb->posts}
-             WHERE post_type = 'page'
-               AND post_status NOT IN ('trash', 'auto-draft')
-               AND (
-                   post_content LIKE '%[kiriminaja-tracking-front-page%'
-                   OR post_content LIKE '%[wp-tracking-front-page%'
-               )
-             ORDER BY post_title ASC, ID ASC"
-        );
+        return $this->tracking_page_repository->findTrackingShortcodePages();
     }
 
     private function pageHasTrackingShortcode( $page_id ) {

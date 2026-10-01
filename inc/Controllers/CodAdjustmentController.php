@@ -1,6 +1,10 @@
 <?php
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Repositories\CodFeeApiRepository;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -14,6 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   kiriof_cancel_deficit    — Cancel a deficit order.
  */
 class CodAdjustmentController {
+    private TransactionRepository $transaction_repository;
+    private CodFeeApiRepository $cod_fee_repository;
+    private KiriminajaApiRepository $api_repository;
+
+    public function __construct(
+        TransactionRepository $transaction_repository,
+        CodFeeApiRepository $cod_fee_repository,
+        KiriminajaApiRepository $api_repository
+    ) {
+        $this->transaction_repository = $transaction_repository;
+        $this->cod_fee_repository     = $cod_fee_repository;
+        $this->api_repository         = $api_repository;
+    }
 
     public function register(): void {
         add_action( 'wp_ajax_kiriof_cod_adjust', [ $this, 'handleAdjust' ] );
@@ -43,7 +60,7 @@ class CodAdjustmentController {
             wp_die();
         }
 
-        $repo        = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $repo        = $this->transaction_repository;
         $transaction = $repo->getTransactionByOrderId( $kaOrderId );
 
         if ( ! $transaction ) {
@@ -60,10 +77,8 @@ class CodAdjustmentController {
         $insuranceFee = (float) ( $transaction->insurance_cost ?? 0 );
         $originalCodFee = (float) ( $transaction->cod_fee ?? 0 );
         $adminFee     = 0.0;
-        $dbCodMinimum = (float) ( $transaction->cod_minimum ?? 0 );
-
         $localMinimum = $shippingCost + $insuranceFee + $originalCodFee + $adminFee;
-        $minimumCod   = max( $localMinimum, $dbCodMinimum );
+        $minimumCod   = $localMinimum;
         $maxCodAmount = defined( 'KIRIOF_MAX_COD_AMOUNT' ) ? (float) KIRIOF_MAX_COD_AMOUNT : 3000000.0;
 
         if ( $newTotalCod < $minimumCod ) {
@@ -90,7 +105,7 @@ class CodAdjustmentController {
 
         if ( ! empty( $transaction->service ) ) {
             $serviceParts = explode( '_', $transaction->service . '_' . ( $transaction->service_name ?? '' ), 2 );
-            $apiResult = ( new \KiriminAjaOfficial\Repositories\CodFeeApiRepository() )->calculateBulkCod( [
+            $apiResult = $this->cod_fee_repository->calculateBulkCod( [
                 'item_price'                    => (int) ( $transaction->transaction_value ?? 0 ),
                 'custom_cod'                    => (int) $newTotalCod,
                 'exclude_cod_amount_validation' => false,
@@ -108,7 +123,7 @@ class CodAdjustmentController {
             if ( null !== $apiResult ) {
                 $newCodFee     = (float) ( $apiResult[0]->total_fee ?? $originalCodFee );
                 $localMinimum  = $shippingCost + $insuranceFee + $newCodFee + $adminFee;
-                $newCodMinimum = max( $localMinimum, (float) ( $apiResult[0]->minimum_custom_cod ?? 0 ), $dbCodMinimum );
+                $newCodMinimum = max( $localMinimum, (float) ( $apiResult[0]->minimum_custom_cod ?? 0 ) );
             } else {
                 kiriof_log(
                     'warning',
@@ -235,7 +250,7 @@ class CodAdjustmentController {
             wp_die();
         }
 
-        $repo        = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+        $repo        = $this->transaction_repository;
         $transaction = $repo->getTransactionByOrderId( $kaOrderId );
 
         if ( ! $transaction ) {
@@ -254,7 +269,7 @@ class CodAdjustmentController {
         }
 
         // Cancel via KiriminAja API.
-        $apiResponse = ( new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository() )->cancelShipment(
+        $apiResponse = $this->api_repository->cancelShipment(
             $transaction->awb,
             __( 'Deficit COD order cancelled by merchant', 'kiriminaja-official' )
         );

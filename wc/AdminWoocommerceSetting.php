@@ -53,7 +53,7 @@ class Kiriof_AdminWoocommerceSettings
             return;
         }
 
-        $transactionKiriminaja = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderNumber($order->get_id());
+        $transactionKiriminaja = kiriof_transaction_repository()->getTransactionByWCOrderNumber($order->get_id());
         
         $shipping_methods = $order->get_shipping_methods();
         $shipping_method    = array_shift( $shipping_methods );
@@ -171,11 +171,11 @@ class Kiriof_AdminWoocommerceSettings
         if ( ! $order ) {
             return;
         }
-        $transaction = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )->getTransactionByWCOrderNumber( $order->get_id() );
+        $transaction = kiriof_transaction_repository()->getTransactionByWCOrderNumber( $order->get_id() );
         if ( ! $transaction || empty( $transaction->is_deficit ) ) {
             return;
         }
-        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
+        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1.45;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;vertical-align:middle;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
     }
 
     /**
@@ -191,11 +191,11 @@ class Kiriof_AdminWoocommerceSettings
         if ( ! $order instanceof \WC_Order ) {
             return;
         }
-        $transaction = ( new \KiriminAjaOfficial\Repositories\TransactionRepository() )->getTransactionByWCOrderNumber( $order->get_id() );
+        $transaction = kiriof_transaction_repository()->getTransactionByWCOrderNumber( $order->get_id() );
         if ( ! $transaction || empty( $transaction->is_deficit ) ) {
             return;
         }
-        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
+        echo '<mark class="order-status tips" style="background:#d63638;color:#fff;display:inline-flex;line-height:1.45;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;margin-top:4px;white-space:nowrap;vertical-align:middle;" data-tip="' . esc_attr__( 'COD Deficit', 'kiriminaja-official' ) . '"><span>' . esc_html__( 'COD Deficit', 'kiriminaja-official' ) . '</span></mark>';
     }
 }
 

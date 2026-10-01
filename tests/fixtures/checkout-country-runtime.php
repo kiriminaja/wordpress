@@ -75,7 +75,9 @@ $_POST = $input['post'] ?? array();
 $GLOBALS['country_wc'] = new CheckoutCountryWooCommerce( $input );
 $GLOBALS['country_notices'] = array();
 $GLOBALS['country_nonce_checks'] = array();
-$controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+// These country-field paths do not use repositories or the service factory.
+// Keep this isolated fixture independent of their WordPress/API dependencies.
+$controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
 $result = array();
 
 switch ( $input['action'] ) {

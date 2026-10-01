@@ -16,6 +16,12 @@ class ShippingDiscountCouponController {
     private const META_COURIERS = '_kiriof_coupon_couriers';
     private const META_COMBINATIONS = '_kiriof_coupon_combinations';
 
+    private ShippingDiscountRegionRepository $region_repository;
+
+    public function __construct( ?ShippingDiscountRegionRepository $region_repository = null ) {
+        $this->region_repository = $region_repository ?? new ShippingDiscountRegionRepository();
+    }
+
     public function register() {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
         add_filter( 'woocommerce_cart_coupon_types', array( $this, 'registerRuntimeCartCouponTypes' ) );
@@ -594,16 +600,29 @@ class ShippingDiscountCouponController {
     }
 
     public function renderAreaRestrictionsMetabox( $post ) {
-        $this->renderAreaRestrictionFields( (int) $post->ID );
+		$this->renderSvelteCouponPanel( 'area', function () use ( $post ) {
+			$this->renderAreaRestrictionFields( (int) $post->ID );
+		} );
     }
 
     public function renderCourierRestrictionsMetabox( $post ) {
-        $this->renderCourierRestrictionFields( (int) $post->ID );
+		$this->renderSvelteCouponPanel( 'couriers', function () use ( $post ) {
+			$this->renderCourierRestrictionFields( (int) $post->ID );
+		} );
     }
 
     public function renderUsageCombinationsMetabox( $post ) {
-        $this->renderUsageCombinationFields( (int) $post->ID );
+		$this->renderSvelteCouponPanel( 'combinations', function () use ( $post ) {
+			$this->renderUsageCombinationFields( (int) $post->ID );
+		} );
     }
+
+	private function renderSvelteCouponPanel( string $key, callable $renderer ): void {
+		echo '<div data-kiriof-coupon-panel-host="' . esc_attr( $key ) . '"></div>';
+		echo '<div data-kiriof-coupon-panel-fallback="' . esc_attr( $key ) . '">';
+		$renderer();
+		echo '</div>';
+	}
 
     public function renderUsageRestrictionFields( $coupon_id = 0, $coupon = null ) {
         unset( $coupon_id, $coupon );
@@ -611,7 +630,7 @@ class ShippingDiscountCouponController {
 
     private function renderAreaRestrictionFields( int $coupon_id ): void {
         $savedRegions       = $this->getSavedRegions( $coupon_id );
-        $regionRepo         = new ShippingDiscountRegionRepository();
+        $regionRepo         = $this->region_repository;
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
         $provinces      = $regionRepo->getProvinces();
@@ -827,7 +846,7 @@ class ShippingDiscountCouponController {
             ( new \KiriminAjaOfficial\Migration\SetupMigration() )->register();
         }
 
-        $regionRepo         = new ShippingDiscountRegionRepository();
+        $regionRepo         = $this->region_repository;
         $regionCacheService = new ShippingDiscountRegionCacheService();
 
         if ( $regionRepo->getProvinceCount() < 1 ) {
@@ -848,7 +867,7 @@ class ShippingDiscountCouponController {
         wp_enqueue_style(
             'kiriof-coupon-admin-style',
             KIRIOF_URL . 'assets/admin/css/kj-coupon-admin.css',
-            array( 'select2' ),
+            array( 'select2', 'kiriof-badge-style' ),
             KIRIOF_VERSION
         );
         wp_enqueue_script(
@@ -858,6 +877,18 @@ class ShippingDiscountCouponController {
             KIRIOF_VERSION,
             true
         );
+
+		$coupon_panel_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-coupon-panels.js';
+		if ( file_exists( $coupon_panel_script ) ) {
+			wp_enqueue_script(
+				'kiriof-coupon-panels',
+				KIRIOF_URL . 'assets/admin/dist/kiriminaja-coupon-panels.js',
+				array( 'kiriof-coupon-admin-script' ),
+				(string) filemtime( $coupon_panel_script ),
+				true
+			);
+			wp_script_add_data( 'kiriof-coupon-panels', 'type', 'module' );
+		}
 
         wp_localize_script(
             'kiriof-coupon-admin-script',
@@ -925,7 +956,7 @@ class ShippingDiscountCouponController {
         }
 
         $cacheService = new ShippingDiscountRegionCacheService();
-        $regionRepo   = new ShippingDiscountRegionRepository();
+        $regionRepo   = $this->region_repository;
 
         wp_send_json_success(
             array(
@@ -973,7 +1004,7 @@ class ShippingDiscountCouponController {
         }
 
         $provinceId = isset( $_POST['province_id'] ) ? absint( wp_unslash( $_POST['province_id'] ) ) : 0;
-        $repo = new ShippingDiscountRegionRepository();
+        $repo = $this->region_repository;
         $cities = $repo->getCitiesByProvinceId( $provinceId );
 
         if ( empty( $cities ) && $provinceId > 0 ) {

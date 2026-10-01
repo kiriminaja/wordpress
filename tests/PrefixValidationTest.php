@@ -33,6 +33,7 @@ final class PrefixValidationTest extends TestCase
                 && !str_contains($path, '/vendor/')
                 && !str_contains($path, '/tests/')
                 && !str_contains($path, '/node_modules/')
+                && !str_contains($path, '/stubs/')
                 && !str_contains($path, '.zip')
             ) {
                 $files[] = $path;

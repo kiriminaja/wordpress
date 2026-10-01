@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
 use KiriminAjaOfficial\Utils\Volumetric;
 class GetWCCartAttributeService extends BaseService{
     private array $wc_cart_contents                 = [];
@@ -14,9 +15,11 @@ class GetWCCartAttributeService extends BaseService{
     private array $cartsProductAttributeCollection  = [];
     private array $cartsProcessedAttribute          = [];
     private array $cartsConvertedAttribute          = [];
+    private WpPostMetaRepository $post_meta_repository;
     
-    public function __construct($payload){
+    public function __construct($payload, WpPostMetaRepository $post_meta_repository){
         $this->wc_cart_contents = $payload['wc_cart_contents'];
+        $this->post_meta_repository = $post_meta_repository;
         return $this;
     }
     
@@ -51,7 +54,7 @@ class GetWCCartAttributeService extends BaseService{
             return [];
         }
 
-        $wpPostMetaRepo = (new \KiriminAjaOfficial\Repositories\WpPostMetaRepository())->getRequiredRowsByPostIdsAndMetaKeys($metadata_ids,[
+        $wpPostMetaRepo = $this->post_meta_repository->getRequiredRowsByPostIdsAndMetaKeys($metadata_ids,[
             '_weight',
             '_length',
             '_width',

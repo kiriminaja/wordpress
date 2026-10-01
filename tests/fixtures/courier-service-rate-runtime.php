@@ -4,6 +4,7 @@
 // Keep warnings/errors visible, but prevent unrelated deprecations corrupting JSON.
 error_reporting( E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED );
 define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+require_once ABSPATH . 'vendor/autoload.php';
 
 final class CourierRateDb {
 	public $prefix = 'rate_';
@@ -88,6 +89,33 @@ $wpdb = new CourierRateDb();
 $GLOBALS['rate_wc'] = (object) array( 'session' => new CourierRateSession(), 'cart' => new CourierRateCart(), 'countries' => new CourierRateCountries() );
 $GLOBALS['rate_network_calls'] = 0;
 $repo = new SettingRepository();
+// API construction configures the SDK; none of these scenarios needs remote rates.
+// Inject an explicit fail-fast API boundary rather than silently allowing network calls.
+$GLOBALS['rate_api'] = new class extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
+    public function __construct() {}
+    public function get_pricing( $payload ) { throw new RuntimeException( 'Unexpected pricing request' ); }
+};
+$GLOBALS['rate_meta'] = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();
+function rate_service( string $class, array $payload ) {
+    return new $class( $payload, $GLOBALS['repo'], $GLOBALS['rate_api'], $GLOBALS['rate_meta'] );
+}
+function rate_factory(): \KiriminAjaOfficial\Services\CheckoutServiceFactory {
+    $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+    $cod = new class extends \KiriminAjaOfficial\Repositories\CodFeeApiRepository {
+        public function __construct() {}
+    };
+    $factory = new \KiriminAjaOfficial\Services\CheckoutServiceFactory(
+        $GLOBALS['repo'], $transactions, $GLOBALS['rate_meta'], $GLOBALS['rate_api'], $cod,
+        new \KiriminAjaOfficial\Services\ShipmentLocationService( null, $GLOBALS['repo'] )
+    );
+    return $factory;
+}
+function rate_controller(): CheckoutController {
+    return new CheckoutController( $GLOBALS['repo'], new \KiriminAjaOfficial\Repositories\TransactionRepository(), $GLOBALS['rate_meta'], rate_factory() );
+}
+function kiriof_setting_repository() { return $GLOBALS['repo']; }
+function kiriof_checkout_service_factory() { return rate_factory(); }
+function kiriof_api_repository() { return $GLOBALS['rate_api']; }
 function rate_policy( $selection ) {
 	( new SettingRepository() )->storeCourierWhitelist( array( 'origin_whitelist_expedition_id' => 'jne', 'service_selection' => $selection ) );
 }
@@ -101,12 +129,12 @@ function rate_rows() {
 	);
 }
 function rate_selected( $expedition, $rows ) {
-	$service = new CheckoutCalculationService( array( 'expedition' => $expedition ) );
+	$service = rate_service( CheckoutCalculationService::class, array( 'expedition' => $expedition ) );
 	( new ReflectionProperty( $service, 'pricingData' ) )->setValue( $service, (object) array( 'results' => $rows ) );
 	return ( new ReflectionMethod( $service, 'getSelectedExpedition' ) )->invoke( $service );
 }
 function rate_calculation( $expedition ) {
-	return ( new CheckoutCalculationService( array( 'expedition' => $expedition, 'is_cod' => true, 'is_insurance' => true ) ) )->call();
+	return ( rate_service( CheckoutCalculationService::class, array( 'expedition' => $expedition, 'is_cod' => true, 'is_insurance' => true ) ) )->call();
 }
 function rate_checkout_fees( $method, $legacy_context = false ) {
 	WC()->cart->fees = array();
@@ -114,7 +142,7 @@ function rate_checkout_fees( $method, $legacy_context = false ) {
 	WC()->session->set( 'chosen_payment_method', 'cod' );
 	WC()->session->set( 'kiriof_insurance', 1 );
 	$context = ( new ReflectionMethod( \KiriminAjaOfficial\Controllers\GeneralAjaxController::class, 'kiriof_get_fee_cache_context' ) )->invoke(
-		new \KiriminAjaOfficial\Controllers\GeneralAjaxController(), $method, 456, 'cod', 1
+		new \KiriminAjaOfficial\Controllers\GeneralAjaxController( rate_factory() ), $method, 456, 'cod', 1
 	);
 	if ( $legacy_context ) {
 		unset( $context['courier_services'] );
@@ -122,7 +150,7 @@ function rate_checkout_fees( $method, $legacy_context = false ) {
 	WC()->session->set( 'kiriof_cached_insurance_amt', 1500 );
 	WC()->session->set( 'kiriof_cached_cod_amt', 2500 );
 	WC()->session->set( 'kiriof_cached_fee_context', $context );
-	( new CheckoutController() )->kiriof_shipping_method_update();
+	( rate_controller() )->kiriof_shipping_method_update();
 	return array(
 		'fees' => WC()->cart->fees,
 		'insurance' => WC()->session->get( 'kiriof_cached_insurance_amt' ),
@@ -141,7 +169,7 @@ switch ( $argv[1] ?? '' ) {
 		$result['deny_all'] = $repo->validateWhiteListExpedition( $rows );
 		break;
 	case 'options':
-		$service = new OngkirPricingService( array( 'is_cod' => false, 'destination_area_id' => 456 ) );
+		$service = rate_service( OngkirPricingService::class, array( 'is_cod' => false, 'destination_area_id' => 456 ) );
 		$filter = new ReflectionMethod( $service, 'filterOptions' );
 		$pricing = (object) array( 'results' => array_slice( rate_rows(), 0, 2 ) );
 		rate_policy( '{"jne":["REG"]}' );
@@ -170,7 +198,7 @@ switch ( $argv[1] ?? '' ) {
 		$result['allowed'] = rate_calculation( 'jne_REG23' );
 		break;
 	case 'cache':
-		$controller = new CheckoutController();
+		$controller = rate_controller();
 		$package = array( array( 'destination' => array( 'country' => 'ID', 'postcode' => '12345' ) ) );
 		rate_policy( '{"jne":["REG"]}' );
 		$result['couriers_before'] = $repo->getWhitelistExpeditionIds();

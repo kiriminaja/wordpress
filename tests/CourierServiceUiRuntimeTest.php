@@ -3,41 +3,24 @@
 use PHPUnit\Framework\TestCase;
 
 final class CourierServiceUiRuntimeTest extends TestCase {
-    public function test_picker_and_onboarding_runtime_behaviour(): void {
+    public function test_shared_selection_runtime_behaviour(): void {
         if ( ! is_callable( 'exec' ) ) {
-            $this->markTestSkipped( 'exec is unavailable; Node runtime tests cannot run.' );
+            $this->markTestSkipped( 'exec is unavailable; Bun runtime tests cannot run.' );
         }
-
-        $candidates = array( 'node' );
+        $candidates = array( 'bun' );
         $home = getenv( 'HOME' );
-        if ( $home ) {
-            $candidates = array_merge(
-                $candidates,
-                glob( $home . '/.local/share/fnm/node-versions/*/installation/bin/node' ) ?: array(),
-                glob( $home . '/Library/Application Support/fnm/node-versions/*/installation/bin/node' ) ?: array()
-            );
-        }
-
-        $node = null;
+        if ( $home ) { $candidates[] = $home . '/.bun/bin/bun'; }
+        $bun = null;
         foreach ( $candidates as $candidate ) {
             $output = array();
-            $status = 1;
             exec( escapeshellarg( $candidate ) . ' --version 2>&1', $output, $status );
-            if ( 0 === $status ) {
-                $node = $candidate;
-                break;
-            }
+            if ( 0 === $status ) { $bun = $candidate; break; }
         }
-        if ( null === $node ) {
-            $this->markTestSkipped( 'Node.js is unavailable on PATH or in the standard fnm directories.' );
-        }
-
-        foreach ( array( 'courier-services-runtime.js', 'onboarding-save-runtime.js' ) as $fixture ) {
-            $output = array();
-            $status = 1;
-            exec( escapeshellarg( $node ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/' . $fixture ) . ' 2>&1', $output, $status );
-            $this->assertSame( 0, $status, implode( "\n", $output ) );
-            $this->assertStringContainsString( 'runtime tests passed', implode( "\n", $output ) );
-        }
+        if ( null === $bun ) { $this->markTestSkipped( 'Bun is unavailable on PATH or in ~/.bun/bin.' ); }
+        $output = array();
+        exec( 'cd ' . escapeshellarg( PLUGIN_DIR ) . ' && ' . escapeshellarg( $bun ) . ' test tests/CourierServiceSelection.test.ts 2>&1', $output, $status );
+        $this->assertSame( 0, $status, implode( "\n", $output ) );
+        $this->assertMatchesRegularExpression( '/[1-9][0-9]* pass/', implode( "\n", $output ) );
+        $this->assertStringContainsString( '0 fail', implode( "\n", $output ) );
     }
 }
