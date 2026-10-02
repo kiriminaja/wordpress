@@ -179,6 +179,10 @@ class InstantShipmentContext {
 			'address'   => implode( ', ', array_filter( array( $current['address_1'], $current['address_2'], $current['city'], $current['state'], $current['postcode'] ), static fn( $value ) => '' !== $value ) ),
 		);
 
+		if ( ! InstantDeliveryCoverage::covers( $origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'] ) ) {
+			throw new InvalidArgumentException( esc_html__( 'Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', 'kiriminaja-official' ) );
+		}
+
 		$items = array();
 		$weight = 0;
 		$value = 0;
@@ -241,7 +245,7 @@ class InstantShipmentContext {
 			'vehicle'     => 'motor',
 			'timezone'    => $timezone,
 		);
-		$context = array( 'origin' => $origin, 'package' => $package, 'pricing' => $pricing );
+		$context = array( 'coverage_version' => 1, 'origin' => $origin, 'package' => $package, 'pricing' => $pricing );
 		$encoded = wp_json_encode( $this->canonical( $context ) );
 		if ( false === $encoded ) {
 			throw new InvalidArgumentException( esc_html__( 'The Instant shipment context could not be encoded.', 'kiriminaja-official' ) );
@@ -260,10 +264,15 @@ class InstantShipmentContext {
 	}
 
 	private function coordinate( $value, int $limit ): float {
-		if ( is_bool( $value ) || ! is_numeric( $value ) || ! is_finite( (float) $value ) || abs( (float) $value ) > $limit ) {
+		try {
+			$coordinate = BuyerDestination::coordinate( $value, $limit );
+			if ( '' === $coordinate ) {
+				throw new InvalidArgumentException();
+			}
+			return (float) $coordinate;
+		} catch ( InvalidArgumentException $error ) {
 			throw new InvalidArgumentException( esc_html__( 'Valid origin and destination coordinates are required for Instant delivery.', 'kiriminaja-official' ) );
 		}
-		return (float) $value;
 	}
 
 	private function integer( $value, int $minimum ): int {

@@ -86,6 +86,7 @@ namespace {
         public function get_id() { return 123; }
     }
     require dirname(__DIR__, 2) . '/inc/Services/BuyerDestination.php';
+    require dirname(__DIR__, 2) . '/inc/Services/InstantDeliveryCoverage.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutQuoteService.php';
     $input = json_decode($argv[1] ?? '{}', true);
     $scenario = $input['scenario'] ?? '';
@@ -104,6 +105,7 @@ namespace {
         case 'disabled': $settings->selection = []; break;
         case 'credentials': $settings->credentials = false; break;
         case 'settings_throw': $settings->throw = true; break;
+        case 'outside_radius': $destination['destination_latitude'] = '-7'; break;
         case 'no_pin': unset($destination['destination_latitude']); break;
         case 'v1': $destination['version'] = 1; unset($destination['destination_latitude'], $destination['destination_longitude']); break;
         case 'country': $package['destination']['country'] = 'US'; break;
@@ -152,6 +154,8 @@ namespace {
             case 'mutate_cart': $package['contents']['cart-key']['quantity'] = 3; break;
             case 'mutate_name': $package['destination']['first_name'] = 'Changed'; break;
             case 'mutate_phone': $package['destination']['phone'] = '081234567899'; break;
+            case 'mutate_outside_radius': $destination['destination_latitude'] = '-7'; break;
+            case 'mutate_parent_outside_radius': $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['origin_latitude'] = '-7'; break;
             case 'mutate_pin': $destination['destination_latitude'] = '-6.4'; break;
             case 'mutate_origin': $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['origin_latitude'] = '-6.4'; break;
             case 'mutate_policy': $settings->selection = []; break;

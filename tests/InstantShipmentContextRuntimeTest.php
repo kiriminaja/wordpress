@@ -19,7 +19,7 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
         $this->assertSame(0, $result['lookups']);
         $context = $result['context'];
         $this->assertSame('Original Store', $context['origin']['name']);
-        $this->assertSame(-6.2, $context['origin']['latitude']);
+        $this->assertSame(0, $context['origin']['latitude']);
         $this->assertSame(0, $context['package']['destination']['latitude']);
         $this->assertSame('TEST-000123', $context['package']['order_id']);
         $this->assertSame(15000, $context['package']['shipping_cost']);
@@ -38,7 +38,7 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
         $this->assertSame('WIB', $context['pricing']['timezone']);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $context['fingerprint']);
         $this->assertSame($context['fingerprint'], $this->runFixture()['context']['fingerprint']);
-        foreach ([['total'=>9000], ['qty'=>3], ['address'=>['phone'=>'081234560000']], ['row'=>['destination_latitude'=>1]], ['origin'=>['origin_latitude'=>-6.3]]] as $change) {
+        foreach ([['total'=>9000], ['qty'=>3], ['address'=>['phone'=>'081234560000']], ['row'=>['destination_latitude'=>0.1]], ['origin'=>['origin_latitude'=>0.2]]] as $change) {
             $this->assertNotSame($context['fingerprint'], $this->runFixture($change)['context']['fingerprint']);
         }
     }
@@ -80,7 +80,7 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
         $live = $this->runFixture(['row'=>['shipment_location_snapshot'=>null]]);
         $this->assertTrue($live['ok']);
         $this->assertSame(1, $live['lookups']);
-        $this->assertSame(-7, $live['context']['origin']['latitude']);
+        $this->assertSame(0.1, $live['context']['origin']['latitude']);
         $this->assertTrue($this->runFixture(['origin'=>['origin_latitude'=>0, 'origin_longitude'=>0]])['ok']);
     }
 
@@ -127,6 +127,27 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
             $this->assertFalse($this->runFixture(['row'=>['shipping_info'=>$snapshot], 'address'=>['country'=>'SG']])['ok']);
         }
         $this->assertFalse($this->runFixture(['snapshot'=>['_shipping_country'=>'SG']])['ok']);
+    }
+
+    #[Test]
+    public function radius_uses_the_actual_historical_pickup_and_rejects_outside_destinations(): void {
+        foreach ([['row'=>['destination_latitude'=>0.36]], ['origin'=>['origin_latitude'=>0.36]], ['origin'=>['origin_longitude'=>106.8]]] as $input) {
+            $r = $this->runFixture($input);
+            $this->assertFalse($r['ok']);
+            $this->assertSame('Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', $r['error']);
+            $this->assertSame(0, $r['lookups']);
+        }
+        $this->assertTrue($this->runFixture(['row'=>['destination_latitude'=>0.359]])['ok']);
+        $r = $this->runFixture(['dispatch_review'=>true, 'row'=>['destination_latitude'=>0.36]]);
+        $this->assertFalse($r['review']['rows'][0]['eligible']);
+        $this->assertSame(0, $r['prices']);
+        $this->assertSame(0, $r['books']);
+        $this->assertStringContainsString('40 km', $r['review']['rows'][0]['error']);
+        $this->assertNotEmpty($r['error']);
+        foreach (['1e-2', ' 0', true, [], INF] as $coordinate) {
+            if (is_float($coordinate) && !is_finite($coordinate)) { continue; }
+            $this->assertFalse($this->runFixture(['row'=>['destination_latitude'=>$coordinate]])['ok']);
+        }
     }
 
     #[Test]

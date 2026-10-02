@@ -45,7 +45,7 @@ function emitter() {
 	};
 }
 function fixture(extra: any = {}, browserRoot?: any) {
-	const maps: any[] = [], markers: any[] = [], tiles: any[] = [], selections: any[] = [], errors: string[] = [];
+	const maps: any[] = [], markers: any[] = [], circles: any[] = [], tiles: any[] = [], selections: any[] = [], errors: string[] = [];
 	const pending = new Map<number, () => void>(), scheduled: any[] = [], cancelled: any[] = [], observers: any[] = [], locations: any[] = [];
 	let id = 0;
 	// Use a DOM node where installed; otherwise a branded HTMLElement stand-in,
@@ -62,8 +62,13 @@ function fixture(extra: any = {}, browserRoot?: any) {
 				getCenter() { this.centerReads++; return { ...this.center }; },
 				invalidateSize(options: any) { this.invalidations.push(options); },
 				removeLayer(marker: any) { this.removedLayers.push(marker); marker.off(); },
-				remove() { this.removed++; this.off(); for (const marker of markers) marker.off(); for (const layer of tiles) layer.off(); },
+				remove() { this.removed++; this.off(); for (const marker of markers) marker.off(); for (const layer of tiles) layer.off(); for (const circle of circles) { if (circle.map === this) { circle.removed++; circle.off(); } } },
 			}); maps.push(map); return map;
+		},
+		circle(position: any, options: any) {
+			const circle = Object.assign(emitter(), { position, options, map: null as any, removed: 0,
+				addTo(map: any) { this.map = map; return this; },
+			}); circles.push(circle); return circle;
 		},
 		marker(position: any, options: any) {
 			const marker = Object.assign(emitter(), { position, options, map: null as any,
@@ -89,15 +94,51 @@ function fixture(extra: any = {}, browserRoot?: any) {
 	const api = root.kiriofMapCheckout;
 	const session = api.createMapSession({ leaflet: L, node, tiles: 'https://tiles.example.test/{z}/{x}/{y}.png', label: 'Delivery pin', geolocation,
 		onSelect: (point: any) => { selections.push(point); return true; }, onError: (code: string) => errors.push(code), ...extra });
-	return { root, api, session, L, node, maps, markers, tiles, selections, errors, locations, pending, scheduled, cancelled, observers,
+	return { root, api, session, L, node, maps, markers, circles, tiles, selections, errors, locations, pending, scheduled, cancelled, observers,
 		click: (lat: any, lng: any) => maps[0].fire('click', { latlng: { lat, lng } }),
 		position: (index: number, lat: any, lng: any) => locations[index].success({ coords: { latitude: lat, longitude: lng } }),
 	};
 }
 
 describe('Map checkout exported session: unchanged production VM, no UI hooks', () => {
+	test('Haversine metres validates full coordinate objects, zero, antipodes and inclusive millimetre boundary', () => {
+		const { api } = fixture(); const origin = { latitude: '0', longitude: 0 };
+		expect(api.coverageDistance(origin, origin)).toBe(0);
+		expect(api.coverageDistance(origin, { latitude: 0, longitude: 180 })).toBeCloseTo(Math.PI * 6371000, 6);
+		for (const invalid of [null, {}, { latitude: '', longitude: 0 }, { latitude: true, longitude: 0 }, { latitude: 91, longitude: 0 }, { latitude: 0, longitude: Infinity }]) {
+			expect(api.coverageDistance(origin, invalid)).toBeNull(); expect(api.coverageDistance(invalid, origin)).toBeNull();
+		}
+		const coverage = { origin, radiusMeters: 40000 };
+		for (const [distance, inside] of [[40000, true], [40000.0005, true], [40000.002, false]] as const) {
+			const point = { latitude: 0, longitude: distance / 6371000 * 180 / Math.PI };
+			expect(api.coverageStatus(coverage, point).distanceMeters).toBeCloseTo(distance, 6);
+			expect(api.coverageStatus(coverage, point).inside).toBe(inside);
+		}
+		for (const radiusMeters of [undefined, null, false, '', ' ', -1, 0, Infinity]) expect(api.coverageStatus({ origin, radiusMeters }, origin)).toBeNull();
+		expect(api.coverageStatus(null, origin)).toBeNull(); expect(api.coverageStatus(coverage, null)).toBeNull();
+	});
+	test('seller coverage circle is unrestricted, independent of device view and removed with map', () => {
+		const coverage = { origin: { latitude: '0', longitude: '0' }, radiusMeters: 40000 };
+		const statuses: any[] = []; const h = fixture({ coverage, defaultCenter: [5, 6], initial: { latitude: 1, longitude: 0 }, onCoverage: (status: any) => statuses.push(status) });
+		expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.circles[0].options).toEqual({ radius: 40000, interactive: false }); expect(h.circles[0].map).toBe(h.maps[0]);
+		expect(h.maps[0].options.maxBounds).toBeUndefined(); expect(statuses.at(-1).inside).toBe(false); expect(h.selections).toEqual([]);
+		coverage.origin.latitude = '1'; h.click(1, 0); expect(statuses.at(-1).inside).toBe(false); expect(h.selections).toHaveLength(0);
+		h.click(0, 0); expect(statuses.at(-1).inside).toBe(true);
+		h.maps[0].fire('movestart'); h.maps[0].center = { lat: 2, lng: 0 }; h.maps[0].fire('moveend'); expect(statuses.at(-1).inside).toBe(false);
+		h.session.locate(); h.position(0, 3, 0); expect(statuses.at(-1).inside).toBe(false); expect(h.selections).toHaveLength(3);
+		h.session.clear(); expect(statuses.at(-1)).toBeNull(); h.session.dispose(); h.session.dispose(); expect(h.circles[0].removed).toBe(1);
+	});
+	test('unknown origin does not use default center; optional circle unavailable does not disable publication', () => {
+		for (const coverage of [undefined, { origin: { lat: 0, lng: 0 }, radiusMeters: 40000 }, { origin: { latitude: null, longitude: 0 }, radiusMeters: 40000 }]) {
+			const statuses: any[] = []; const h = fixture({ coverage, onCoverage: (status: any) => statuses.push(status) }); h.click(0, 0);
+			expect(h.circles).toEqual([]); expect(statuses).toEqual([null, null]); expect(h.selections).toHaveLength(1);
+		}
+		const h = fixture(); const leaflet = { ...h.L, circle: undefined };
+		const session = h.api.createMapSession({ leaflet, node: h.node, tiles: 'https://tiles.test', coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } });
+		expect(session.isAvailable()).toBe(true); expect(session.pick(5, 6)).toBe(true); session.dispose();
+	});
 	test('exports only the public runtime API without requiring WordPress or a UI hook', () => {
-		const h = fixture(); expect(Object.keys(h.api).sort()).toEqual(['createLocationGate', 'createMapSession', 'normalizePoint']);
+		const h = fixture(); expect(Object.keys(h.api).sort()).toEqual(['coverageDistance', 'coverageStatus', 'createLocationGate', 'createMapSession', 'normalizePoint']);
 		expect(h.root.kiriofBuyerMapTest).toBeUndefined();
 	});
 	test('same selected location recenters an interrupted camera move without republishing', () => {
@@ -274,7 +315,7 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 });
 
 const uiTest = React && loadRenderer && happy ? test : test.skip;
-function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any } = {}) {
+function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any; coverage?: any } = {}) {
 	const window = new happy.Window({ url: 'https://checkout.example.test' });
 	const saved = new Map<string, PropertyDescriptor | undefined>();
 	for (const [key, value] of Object.entries({ window, document: window.document, navigator: window.navigator, HTMLElement: window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true })) {
@@ -286,7 +327,7 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 	if (options.savedPoint) coordinates.set(JSON.stringify({ address_1: 'First Street', address_2: '', city: 'Jakarta', state: '', postcode: '12345', country: 'ID' }), options.savedPoint);
 	const presentation = { editing: options.editing ?? true, cardTarget: null };
 	const root: any = window;
-	const f = fixture({}, root); f.session.dispose(); f.maps.length = 0; f.markers.length = 0; f.tiles.length = 0;
+	const f = fixture({}, root); f.session.dispose(); f.maps.length = 0; f.markers.length = 0; f.circles.length = 0; f.tiles.length = 0;
 	root.L = options.noLeaflet ? undefined : f.L;
 	const initialRequests: any[] = [];
 	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: options.noGeolocation ? undefined : { getCurrentPosition: (success: any, failure: any, requestOptions: any) => {
@@ -296,8 +337,8 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 			if (options.autoLocation !== false) success({ coords: { latitude: -6, longitude: 106 } });
 		} else f.locations.push({ success, failure, options: requestOptions });
 	} } });
-	root.kiriofMapCheckoutConfig = { enabled: true, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
-		mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
+	root.kiriofMapCheckoutConfig = { enabled: true, coverage: options.coverage, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
+		mapCoverage: 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.', mapOutsideRadius: 'Outside Instant coverage; Express is allowed', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
 	} };
 	root.kiriofBuyerCheckout = {
 		getCoordinates: (address: any) => coordinates.get(JSON.stringify(address)) || null,
@@ -353,6 +394,27 @@ describe('shared location authorization gate', () => {
 });
 
 describe('MapControl: permission-gated actual React commit/ref runtime', () => {
+	uiTest('coverage circle awaits grant; out pin persists and warning never replaces permission or tile errors', () => {
+		const h = uiHarness({ autoLocation: false, coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } }); try {
+			expect(h.circles).toHaveLength(0); expect(h.container.textContent).toContain('Instant coverage: 40 km');
+			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 0 } }));
+			expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.writes).toHaveLength(1);
+			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning').getAttribute('role')).toBe('note'); expect(h.container.textContent).toContain('Outside Instant coverage');
+			React.act(() => h.tiles[0].fire('tileerror')); expect(h.container.querySelector('[role="status"]').textContent).toBe('Map unavailable'); expect(h.container.textContent).toContain('Outside Instant coverage');
+			h.click('Locate me'); React.act(() => h.locations[0].failure({ code: 1 })); expect(h.container.querySelector('[role="status"]').textContent).toBe('Permission denied');
+			React.act(() => h.maps[0].fire('click', { latlng: { lat: 0, lng: 0 } })); expect(h.writes).toHaveLength(2); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull();
+		} finally { h.cleanup(); } expect(h.circles[0].removed).toBe(1);
+	});
+	uiTest('unknown coverage has no legend or false inside indication; updated config replaces stale origin overlay', () => {
+		const h = uiHarness(); try {
+			expect(h.container.querySelector('.kiriof-buyer-map__coverage')).toBeNull(); expect(h.circles).toHaveLength(0);
+			h.root.kiriofMapCheckoutConfig.coverage = { origin: { latitude: -6, longitude: 106 }, radiusMeters: 40000 }; h.render();
+			expect(h.circles.at(-1).position).toEqual([-6, 106]); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull();
+			h.root.kiriofMapCheckoutConfig.coverage.origin.latitude = 0; h.render();
+			expect(h.circles.at(-2).removed).toBe(1); expect(h.circles.at(-1).position).toEqual([0, 106]); expect(h.container.textContent).toContain('Outside Instant coverage');
+			expect(h.initialRequests).toHaveLength(1); expect(h.writes).toHaveLength(1);
+		} finally { h.cleanup(); }
+	});
 	uiTest('pending request has a visible status but no canvas, viewport, Leaflet map or tiles; zero grant opens and selects once', () => {
 		const h = uiHarness({ autoLocation: false }); try {
 			expect(h.initialRequests).toHaveLength(1); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]);

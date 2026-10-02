@@ -31,19 +31,23 @@ class Node {
 	appendChild(node: Node) { this.children.push(node); }
 	replaceChildren() { this.children = []; }
 }
-function fixture(saved: any = null, extra: any = {}, locationMode = 'grant') {
+function fixture(saved: any = null, extra: any = {}, locationMode = 'grant', withoutCoverageApi = false) {
 	const form: any = new Node(); const inputs: Record<string, Node> = {};
 	for (const [key, value] of Object.entries(initialAddress)) { inputs[`shipping_${key}`] = Object.assign(new Node(), { value }); }
 	form.elements = { namedItem: (name: string) => inputs[name] || null };
 	const hidden = Object.assign(new Node(), { value: saved === null ? '' : JSON.stringify(saved) });
 	const badges = new Node(), district = new Node(), retry = Object.assign(new Node(), { hidden: true }), status = new Node(), canvas = new Node(), viewport = new Node(), indicator = new Node(), locate = new Node(), mapStatus = new Node(), mapSection = new Node();
+	const coverageWarning = Object.assign(new Node(), { hidden: true }), coverageLegend = Object.assign(new Node(), { hidden: true });
 	const selectors: any = { '[name="kiriof_account_destination"]': hidden, '#kiriof-account-district': district, '#kiriof-account-district-status': status, '.kiriof-buyer-map__canvas': canvas, '.kiriof-buyer-map__viewport': viewport, '.kiriof-buyer-map__indicator': indicator, '.kiriof-buyer-map__locate': locate, '.kiriof-buyer-map__status': mapStatus, '.kiriof-buyer-map': mapSection };
 	selectors['.kiriof-account-shipping-status'] = badges;
 	selectors['#kiriof-account-district-retry'] = retry;
+	selectors['.kiriof-buyer-map__coverage-warning'] = coverageWarning;
+	selectors['.kiriof-buyer-map__coverage-legend'] = coverageLegend;
 	const wrapper = { closest: () => form, querySelector: (selector: string) => selectors[selector] || null };
 	const document: any = Object.assign(new Node(), { readyState: 'complete', createElement: () => new Node(), querySelectorAll: () => [wrapper] });
 	let timerId = 0;
 	const timers = new Map<number, { callback: any; delay: number }>(), requests: any[] = [], maps: any[] = [], locations: any[] = [], tiles: any[] = [];
+	const circles: any[] = [];
 	function emitter() {
 		const handlers = new Map<string, any>();
 		return { on(name: string, callback: any) { handlers.set(name, callback); return this; }, fire(name: string, event?: any) { handlers.get(name)?.(event); } };
@@ -57,6 +61,7 @@ function fixture(saved: any = null, extra: any = {}, locationMode = 'grant') {
 			}); maps.push(map); return map;
 		},
 		tileLayer() { const tile = Object.assign(emitter(), { addTo() { return this; } }); tiles.push(tile); return tile; },
+		circle(center: number[], options: any) { const circle = { center, options, map: null as any, addTo(map: any) { this.map = map; return this; } }; circles.push(circle); return circle; },
 	};
 	const root: any = Object.assign(new Node(), {
 		document, L, AbortController, URLSearchParams,
@@ -67,9 +72,10 @@ function fixture(saved: any = null, extra: any = {}, locationMode = 'grant') {
 		kiriofAccountShippingConfig: { ajaxUrl: '/ajax', nonce: 'nonce', map: { tiles: 'https://tiles.test/{z}/{x}/{y}', defaultCenter: [0, 0] }, i18n: { selectDistrict: 'Choose district', loading: 'Loading', lookupFailed: 'Lookup failed', districtRequired: 'Required', empty: 'Empty', postcodeRequired: 'Postcode required', mapPlaced: 'Placed', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed' }, ...extra },
 	});
 	runInNewContext(mapSource, { window: root });
+	if (withoutCoverageApi) delete root.kiriofMapCheckout.coverageStatus;
 	runInNewContext(source, { window: root });
 	return {
-		root, document, form, hidden, district, retry, status, indicator, locate, mapStatus, mapSection, viewport, maps, tiles, requests, locations, timers, inputs, badges,
+		root, document, form, hidden, district, retry, status, indicator, locate, mapStatus, mapSection, viewport, maps, tiles, requests, locations, timers, inputs, badges, coverageWarning, coverageLegend, circles,
 		posted: () => hidden.value ? JSON.parse(hidden.value) : null,
 		edit(field: string, value: string, type = 'input') { inputs[`shipping_${field}`].value = value; form.fire(type, inputs[`shipping_${field}`]); },
 		choose(value: string) { district.value = value; form.fire('change', district); },
@@ -121,6 +127,47 @@ async function settle() { for (let index = 0; index < 8; index++) await Promise.
 });
 
 describe('Account shipping destination native form', () => {
+	const coverage = { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 };
+	const coverageConfig = { map: { tiles: 'https://tiles.test/{z}/{x}/{y}', coverage, i18n: { mapOutsideRadius: 'Outside Instant area. Express remains available.', mapCoverage: 'Instant coverage legend' } } };
+	test('saved outside pin warns before permission; denial preserves warning and still allows save', async () => {
+		const h = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending');
+		expect(h.coverageWarning.hidden).toBe(false); expect(h.coverageWarning.textContent).toBe('Outside Instant area. Express remains available.');
+		expect(h.coverageWarning.attributes.role).toBe('note'); expect(h.coverageLegend.hidden).toBe(false);
+		expect(h.coverageLegend.textContent).toBe('Instant coverage legend'); expect(h.circles).toHaveLength(0);
+		h.locations[0].failure({ code: 1 });
+		expect(h.viewport.hidden).toBe(true); expect(h.mapStatus.textContent).toBe('Permission denied'); expect(h.coverageWarning.hidden).toBe(false);
+		h.advance(250); await h.respond(); h.choose('13'); h.form.fire('submit');
+		expect(h.posted().version).toBe(2); expect(h.posted().district_id).toBe('13'); expect(h.posted().destination_latitude).toBe('1.0000000');
+		expect(h.maps).toHaveLength(0); expect(h.circles).toHaveLength(0);
+	});
+	test('permission draws coverage circle without constraining outside pin or native save', async () => {
+		const h = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending');
+		h.locations[0].success({ coords: { latitude: 0, longitude: 0 } });
+		expect(h.circles).toHaveLength(1); expect(h.circles[0].center).toEqual([0, 0]); expect(h.circles[0].options.radius).toBe(40000);
+		expect(h.coverageWarning.hidden).toBe(false); expect(h.maps[0].center).toEqual({ lat: 1, lng: 0 });
+		h.advance(250); await h.respond(); h.choose('12'); h.click(2, 3); h.form.fire('submit');
+		expect(h.posted()).toMatchObject({ version: 2, district_id: '12', destination_latitude: '2.0000000', destination_longitude: '3.0000000', shipping_address: initialAddress });
+		expect(h.mapStatus.textContent).toBe('Placed'); expect(h.coverageWarning.hidden).toBe(false);
+		h.click(0.1, 0); expect(h.coverageWarning.hidden).toBe(true); expect(h.coverageWarning.textContent).toBe('');
+		expect(h.posted().destination_latitude).toBe('0.1000000'); expect(h.mapStatus.textContent).toBe('Placed');
+	});
+	test('full address change clears outside warning with pin and ignores old location callbacks', () => {
+		const h = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending');
+		expect(h.coverageWarning.hidden).toBe(false); h.edit('address_2', 'Suite');
+		expect(h.coverageWarning.hidden).toBe(true); expect(h.posted().version).toBe(1); expect(h.posted().destination_latitude).toBeUndefined();
+		h.locations[0].success({ coords: { latitude: 2, longitude: 3 } });
+		expect(h.coverageWarning.hidden).toBe(true); expect(h.maps).toHaveLength(0); expect(h.coverageLegend.hidden).toBe(false);
+	});
+	test('inside saved pin and unknown coverage never show warning or invent within label', () => {
+		const inside = fixture(savedPin(), coverageConfig, 'pending');
+		expect(inside.coverageWarning.hidden).toBe(true); expect(inside.coverageWarning.textContent).toBe(''); expect(inside.coverageLegend.hidden).toBe(false);
+		for (const invalid of [undefined, null, { origin: { latitude: 91, longitude: 0 }, radiusMeters: 40000 }, { origin: { latitude: '', longitude: 0 }, radiusMeters: 40000 }]) {
+			const h = fixture(savedPin({ destination_latitude: 1 }), { map: { coverage: invalid } }, 'pending');
+			expect(h.coverageWarning.hidden).toBe(true); expect(h.coverageWarning.textContent).toBe(''); expect(h.coverageLegend.hidden).toBe(true); expect(h.circles).toHaveLength(0);
+		}
+		const legacy = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending', true);
+		expect(legacy.coverageWarning.hidden).toBe(true); expect(legacy.coverageLegend.hidden).toBe(true); expect(legacy.posted().version).toBe(2);
+	});
 	test('pending saved district stays visible but disabled until canonical confirmation', async () => {
 		const h = fixture(destination(), {}, 'pending');
 		expect(h.district.disabled).toBe(true); expect(h.district.value).toBe('12');

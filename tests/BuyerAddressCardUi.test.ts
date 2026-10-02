@@ -156,6 +156,6 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 	});
 	uiTest('guest without a saved native card defaults to visible editing controls and map', async () => {
 		const h = await fixture({ guest: true });
-		try { expect(h.document.querySelector('.kiriof-buyer-district')).not.toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map')).not.toBeNull(); expect(h.document.querySelector('.kiriof-address-status-host')).toBeNull(); expect(h.maps).toHaveLength(1); await h.flush(250); await h.reply(); expect(h.document.querySelector('select').options[1].textContent).toBe('District Seven'); } finally { await h.cleanup(); }
+		try { expect(h.document.querySelector('.kiriof-buyer-district')).not.toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map')).not.toBeNull(); expect(h.document.querySelector('.kiriof-address-status-host')).toBeNull(); expect(h.maps).toHaveLength(1); expect(h.document.querySelector('.kiriof-buyer-map__coverage')).toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull(); await h.flush(250); await h.reply(); expect(h.document.querySelector('select').options[1].textContent).toBe('District Seven'); } finally { await h.cleanup(); }
 	});
 });

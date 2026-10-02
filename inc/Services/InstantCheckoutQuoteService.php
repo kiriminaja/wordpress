@@ -211,6 +211,9 @@ class InstantCheckoutQuoteService {
 		if ( ! $this->length( $origin['name'], 10, 40 ) || ! $this->phone( $origin['phone'] ) || ! $this->length( $origin['address'], 20, 250 ) || ! preg_match( '/\A[0-9]{5}\z/', $origin['zipcode'] ) ) {
 			throw new InvalidArgumentException( 'origin_invalid' );
 		}
+		if ( ! InstantDeliveryCoverage::covers( $origin['latitude'], $origin['longitude'], $recipient['latitude'], $recipient['longitude'] ) ) {
+			throw new InvalidArgumentException( 'outside_instant_radius' );
+		}
 		$timezone = self::normalizeTimezone( $source );
 		$origin['timezone'] = $timezone;
 		$origin['country'] = $country;
@@ -261,7 +264,7 @@ class InstantCheckoutQuoteService {
 		if ( ! is_string( $package_id ) && ! is_int( $package_id ) ) {
 			throw new InvalidArgumentException( 'items_invalid' );
 		}
-		$context = array( 'package_id' => (string) $package_id, 'origin' => $origin, 'destination' => $destination, 'recipient' => $recipient, 'items' => $items,
+		$context = array( 'coverage_version' => 1, 'package_id' => (string) $package_id, 'origin' => $origin, 'destination' => $destination, 'recipient' => $recipient, 'items' => $items,
 			'weight' => $weight, 'item_value' => $value, 'package_type_id' => $this->integer( $package['package_type_id'] ?? 7, 1 ), 'pricing' => $pricing, 'policy' => $policy, 'payment_method' => $payment, 'insurance' => false );
 		$encoded = wp_json_encode( $this->canonical( $context ) );
 		if ( false === $encoded ) {
@@ -441,6 +444,7 @@ class InstantCheckoutQuoteService {
 		$reason = $this->reason( $reason );
 		$this->trace( $reason, false, false, 0, $live_checked );
 		$messages = array(
+			'outside_instant_radius' => __( 'Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', 'kiriminaja-official' ),
 			'cod_unsupported' => __( 'Cash on delivery is not supported for Instant delivery.', 'kiriminaja-official' ),
 			'insurance_unsupported' => __( 'Insurance is not supported for Instant delivery.', 'kiriminaja-official' ),
 			'services_disabled' => __( 'No Instant courier services are enabled.', 'kiriminaja-official' ),
@@ -472,7 +476,7 @@ class InstantCheckoutQuoteService {
 
 	/** Only internal reason codes may cross the buyer boundary, even for repository exceptions. */
 	private function reason( string $reason ): string {
-		$allowed = array( 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'timezone_unsupported', 'items_invalid', 'no_rates', 'context_invalid', 'context_unavailable', 'session_unavailable', 'quote_unavailable', 'quote_invalid', 'quote_expired_or_changed' );
+		$allowed = array( 'outside_instant_radius', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'timezone_unsupported', 'items_invalid', 'no_rates', 'context_invalid', 'context_unavailable', 'session_unavailable', 'quote_unavailable', 'quote_invalid', 'quote_expired_or_changed' );
 		return in_array( $reason, $allowed, true ) ? $reason : 'context_unavailable';
 	}
 }

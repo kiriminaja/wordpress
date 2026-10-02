@@ -79,6 +79,7 @@ namespace {
         }
     }
     require dirname(__DIR__, 2) . '/inc/Services/BuyerDestination.php';
+    require dirname(__DIR__, 2) . '/inc/Services/InstantDeliveryCoverage.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutQuoteService.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutDiagnosticsService.php';
     $lazy = new \KiriminAjaOfficial\Services\InstantCheckoutDiagnosticsService();

@@ -7,6 +7,22 @@
 		return Number.isFinite( number ) && Math.abs( number ) <= limit ? number.toFixed( 7 ) : null;
 	}
 
+	/** Straight-line metres, not a driving route. Invalid points have unknown coverage. */
+	function coverageDistance( origin, destination ) {
+		if ( ! origin || ! destination || ! normalizePoint( origin.latitude, origin.longitude ) || ! normalizePoint( destination.latitude, destination.longitude ) ) { return null; }
+		var radians = Math.PI / 180;
+		var latitude = ( Number( destination.latitude ) - Number( origin.latitude ) ) * radians;
+		var longitude = ( Number( destination.longitude ) - Number( origin.longitude ) ) * radians;
+		var a = Math.sin( latitude / 2 ) ** 2 + Math.cos( Number( origin.latitude ) * radians ) * Math.cos( Number( destination.latitude ) * radians ) * Math.sin( longitude / 2 ) ** 2;
+		return 6371000 * 2 * Math.asin( Math.sqrt( Math.min( 1, Math.max( 0, a ) ) ) );
+	}
+	function coverageStatus( coverage, point ) {
+		if ( ! coverage || ( 'number' !== typeof coverage.radiusMeters && 'string' !== typeof coverage.radiusMeters ) || '' === String( coverage.radiusMeters ).trim() ) { return null; }
+		var radius = Number( coverage.radiusMeters );
+		var distance = coverageDistance( coverage.origin, point );
+		return null === distance || ! Number.isFinite( radius ) || radius <= 0 ? null : { distanceMeters: distance, inside: distance <= radius + 0.001 };
+	}
+
 	/** One authorization request per editor lifecycle; disposal ignores browser callbacks. */
 	function createLocationGate( options ) {
 		var started = false;
@@ -22,6 +38,7 @@
 					sequence++;
 					if ( options.onError ) { options.onError( code ); }
 				}
+			reportCoverage( selected );
 				var geolocation = options.geolocation;
 				if ( ! geolocation || 'function' !== typeof geolocation.getCurrentPosition ) { fail( 'unavailable' ); return; }
 				try {
@@ -55,9 +72,12 @@
 		var locationSequence = 0;
 		var timer;
 		var observer;
+		// Copy the origin so a caller mutating its config cannot move coverage silently.
+		var coverage = options.coverage && { origin: options.coverage.origin && Object.assign( {}, options.coverage.origin ), radiusMeters: options.coverage.radiusMeters };
 		var schedule = options.schedule || root.setTimeout.bind( root );
 		var cancel = options.cancel || root.clearTimeout.bind( root );
 		function report( message ) { if ( ! disposed && options.onError ) { options.onError( message ); } }
+		function reportCoverage( point ) { if ( ! disposed && options.onCoverage ) { options.onCoverage( coverageStatus( coverage, point ) ); } }
 		function show( point ) {
 			ignoreMove = true;
 			try { map.setView( [ Number( point.latitude ), Number( point.longitude ) ], 16, { animate: false } ); }
@@ -70,15 +90,20 @@
 			var point = normalizePoint( latitude, longitude );
 			if ( ! point ) { report( 'invalid' ); return false; }
 			locationSequence++;
-			if ( selected && selected.latitude === point.latitude && selected.longitude === point.longitude ) { if ( pan ) { show( point ); } return true; }
+			if ( selected && selected.latitude === point.latitude && selected.longitude === point.longitude ) { if ( pan ) { show( point ); } reportCoverage( point ); return true; }
 			if ( options.onSelect && false === options.onSelect( point ) ) { return false; }
 			selected = point;
 			if ( pan ) { show( point ); }
+			reportCoverage( point );
 			return true;
 		}
 		try {
 			if ( ! options.node || ! L || ! String( options.tiles || '' ).startsWith( 'https://' ) ) { throw new Error( 'Map unavailable' ); }
 			map = L.map( options.node, { scrollWheelZoom: false } ).setView( options.defaultCenter || [ -6.2088, 106.8456 ], 13 );
+			if ( coverageStatus( coverage, coverage && coverage.origin ) && 'function' === typeof L.circle ) {
+				// A missing optional overlay must not disable Express pin selection.
+				try { L.circle( [ Number( coverage.origin.latitude ), Number( coverage.origin.longitude ) ], { radius: Number( coverage.radiusMeters ), interactive: false } ).addTo( map ); } catch { /* Keep the unrestricted map usable. */ }
+			}
 			var tiles = L.tileLayer( options.tiles, { maxZoom: 19, attribution: options.attribution } ).addTo( map );
 			tiles.on( 'tileerror', function() { report( 'unavailable' ); } );
 			map.on( 'click', function( event ) { pick( event.latlng.lat, event.latlng.lng, true ); } );
@@ -120,6 +145,7 @@
 				locationSequence++;
 				if ( options.onSelect && false === options.onSelect( null ) ) { return; }
 				selected = null;
+				reportCoverage( null );
 			},
 			locate: function() {
 				if ( disposed || ! map ) { return; }
@@ -145,7 +171,7 @@
 		};
 	}
 
-	root.kiriofMapCheckout = { createMapSession: createMapSession, createLocationGate: createLocationGate, normalizePoint: normalizePoint };
+	root.kiriofMapCheckout = { createMapSession: createMapSession, createLocationGate: createLocationGate, normalizePoint: normalizePoint, coverageDistance: coverageDistance, coverageStatus: coverageStatus };
 	var wp = root.wp;
 	var wc = root.wc;
 	var settings = wc && wc.wcSettings;
@@ -174,6 +200,9 @@
 			return { cart: select( 'wc/store/cart' ).getCartData(), collection: checkout.prefersCollection ? checkout.prefersCollection() : false };
 		}, [] );
 		var cart = data.cart || {};
+		var coverage = config.coverage;
+		var coverageKey = JSON.stringify( coverage || null );
+		var hasCoverage = Boolean( coverageStatus( coverage, coverage && coverage.origin ) );
 		var address = addressSnapshot( cart.shippingAddress || {} );
 		var addressKey = JSON.stringify( address );
 		var visible = Boolean( config.enabled && presentation.editing && cart.needsShipping && address.country === 'ID' && ! data.collection );
@@ -190,6 +219,9 @@
 		var errorState = useState( '' );
 		var error = errorState[ 0 ];
 		var setError = errorState[ 1 ];
+		var coverageState = useState( null );
+		var coverageResult = coverageState[ 0 ];
+		var setCoverage = coverageState[ 1 ];
 		var grantState = useState( null );
 		var grant = grantState[ 0 ];
 		var setGrant = grantState[ 1 ];
@@ -203,7 +235,7 @@
 			return true;
 		}
 		useEffect( function() {
-			setGrant( null ); setPoint( null ); setError( '' ); setMoving( false );
+			setGrant( null ); setPoint( null ); setError( '' ); setMoving( false ); setCoverage( null );
 			if ( ! visible ) { return; }
 			var gate = createLocationGate( {
 				geolocation: root.navigator && root.navigator.geolocation,
@@ -219,7 +251,8 @@
 			if ( initial ) { setPoint( Object.assign( { key: addressKey }, initial ) ); }
 			var mapSession = createMapSession( {
 				leaflet: root.L, node: node.current, defaultCenter: [ Number( grant.point.latitude ), Number( grant.point.longitude ) ],
-				tiles: config.tiles, attribution: config.attribution, initial: initial, label: strings.mapTitle,
+				tiles: config.tiles, attribution: config.attribution, initial: initial, label: strings.mapTitle, coverage: coverage,
+				onCoverage: function( status ) { setCoverage( { key: coverageKey, status: status } ); },
 				geolocation: root.navigator && root.navigator.geolocation,
 				onSelect: function( next ) { return apply( next, address, addressKey ); },
 				onMove: setMoving,
@@ -228,12 +261,13 @@
 			session.current = mapSession;
 			if ( ! initial && mapSession.isAvailable() ) { mapSession.pick( grant.point.latitude, grant.point.longitude, true ); }
 			return function() { mapSession.dispose(); if ( session.current === mapSession ) { session.current = null; } };
-		}, [ addressKey, visible, grant ] );
+		}, [ addressKey, visible, grant, coverageKey ] );
 		if ( ! visible ) { return null; }
 		var status = error || ( ! granted ? strings.mapLocating : ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : '' ) ) );
 		return h( 'section', { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
 			h( 'h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle ),
 			h( 'p', null, strings.mapOptional ),
+			hasCoverage ? h( 'p', { className: 'kiriof-buyer-map__coverage', role: 'note' }, strings.mapCoverage || 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.' ) : null,
 			granted ? h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
 				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp, 'aria-description': strings.mapKeyboard } ),
 				h( 'div', { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
@@ -241,7 +275,8 @@
 						h( 'path', { d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z', fill: 'currentColor', stroke: '#fff', strokeWidth: 2 } ),
 						h( 'circle', { cx: 16, cy: 16, r: 5, fill: '#fff' } ) ) ),
 				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', onClick: function() { if ( session.current ) { session.current.locate(); } } }, strings.mapLocate ) ) : null,
-			status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, status ) : null );
+			status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, status ) : null,
+			granted && coverageResult && coverageResult.key === coverageKey && coverageResult.status && ! coverageResult.status.inside ? h( 'p', { className: 'kiriof-buyer-map__coverage-warning', role: 'note', 'aria-live': 'polite' }, strings.mapOutsideRadius || 'This pin is outside Instant coverage. Express delivery may still be available.' ) : null );
 
 	}
 	blocks.registerCheckoutBlock( {

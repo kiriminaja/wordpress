@@ -12,6 +12,23 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function outside_radius_never_reads_cached_rates_or_calls_the_api_and_old_selections_fail(): void {
+        $r = $this->runFixture(['scenario'=>'outside_radius']);
+        $this->assertFalse($r['quote']['eligible']);
+        $this->assertSame('outside_instant_radius', $r['quote']['code']);
+        $this->assertSame('Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', $r['quote']['message']);
+        $this->assertSame(0, $r['calls']);
+        $this->assertSame([], $r['cache']);
+        foreach (['mutate_outside_radius', 'mutate_parent_outside_radius'] as $scenario) {
+            $r = $this->runFixture(['scenario'=>$scenario]);
+            $this->assertTrue($r['quote']['eligible']);
+            $this->assertSame('outside_instant_radius', $r['validation_error']);
+            $this->assertSame(1, $r['calls']);
+        }
+        $this->assertSame(1, $this->runFixture()['quote']['context']['coverage_version']);
+    }
+
+    #[Test]
     public function live_quotes_are_session_bound_exact_and_cached(): void {
         $r = $this->runFixture();
         $this->assertTrue($r['quote']['eligible']);

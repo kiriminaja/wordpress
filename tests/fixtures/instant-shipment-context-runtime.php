@@ -41,15 +41,41 @@ class ContextOrder {
     public function get_address($type) { return array_replace(['first_name'=>'Buyer', 'last_name'=>'Name', 'phone'=>'081234567890', 'address_1'=>'Jalan Sudirman Number 123', 'address_2'=>'Tower A', 'city'=>'Jakarta', 'state'=>'DKI', 'postcode'=>'12345', 'country'=>'ID'], $GLOBALS['input']['address'] ?? []); }
     public function get_meta($key, $single) { return ''; }
 }
+class CoverageTransactions extends \KiriminAjaOfficial\Repositories\TransactionRepository {
+    public function __construct() {}
+    public function getTransactionByOrderIds($ids) { return [$GLOBALS['coverage_row']]; }
+}
+class CoverageApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository {
+    public function __construct() {}
+    public int $prices = 0;
+    public int $books = 0;
+    public function profile(): array { return ['status'=>true, 'data'=>(object) ['results'=>(object) ['metadata'=>(object) ['payment_method'=>'credit']]]]; }
+    public function price(array $payload): array { ++$this->prices; return []; }
+    public function book(array $payload): array { ++$this->books; return []; }
+}
+function get_current_user_id() { return 1; }
+function set_transient($key, $value, $ttl) { $GLOBALS['coverage_transients'][$key] = $value; return true; }
+function get_transient($key) { return $GLOBALS['coverage_transients'][$key] ?? false; }
 $input = json_decode($argv[1] ?? '{}', true);
 $GLOBALS['input'] = $input;
 $GLOBALS['order'] = new ContextOrder();
 $GLOBALS['lookups'] = 0;
-$origin = array_replace(['origin_name'=>'Original Store', 'origin_phone'=>'081234567890', 'origin_address'=>'Jalan Original Pickup Number 123', 'origin_zip_code'=>'12345', 'origin_latitude'=>-6.2, 'origin_longitude'=>106.8], $input['origin'] ?? []);
-$GLOBALS['live_origin'] = array_replace($origin, ['origin_address'=>'Jalan NEW Pickup Number 999', 'origin_latitude'=>-7]);
+$origin = array_replace(['origin_name'=>'Original Store', 'origin_phone'=>'081234567890', 'origin_address'=>'Jalan Original Pickup Number 123', 'origin_zip_code'=>'12345', 'origin_latitude'=>0, 'origin_longitude'=>0], $input['origin'] ?? []);
+$GLOBALS['live_origin'] = array_replace($origin, ['origin_address'=>'Jalan NEW Pickup Number 999', 'origin_latitude'=>0.1]);
 $snapshot = array_replace(['_shipping_address_1'=>'Jalan Sudirman Number 123', '_shipping_address_2'=>'Tower A', '_shipping_postcode'=>'12345', '_shipping_city'=>'Jakarta', '_shipping_state'=>'DKI', '_shipping_country'=>'ID'], $input['snapshot'] ?? []);
 $row = (object) array_replace(['delivery_type'=>'instant', 'service'=>'gosend', 'service_name'=>'instant', 'status'=>'new', 'order_id'=>'TEST-000123', 'wp_wc_order_stat_order_id'=>123, 'vehicle'=>'motor', 'shipping_cost'=>15000, 'shipment_location_id'=>1, 'shipment_location_snapshot'=>json_encode($origin), 'destination_latitude'=>0, 'destination_longitude'=>0, 'shipping_info'=>json_encode($snapshot)], $input['row'] ?? []);
 $service = new \KiriminAjaOfficial\Services\InstantShipmentContext(new ContextLocations(), null, new ContextSettings());
+if (!empty($input['dispatch_review'])) {
+    $GLOBALS['coverage_row'] = $row;
+    $api = new CoverageApi();
+    $dispatch = new \KiriminAjaOfficial\Services\InstantDispatchService(new CoverageTransactions(), $api, $service);
+    $review = $dispatch->quote([$row->order_id]);
+    $error = '';
+    try { $dispatch->dispatch($review['token'], [$row->order_id], 'credit'); }
+    catch (\Throwable $e) { $error = $e->getMessage(); }
+    echo json_encode(['review'=>$review, 'prices'=>$api->prices, 'books'=>$api->books, 'error'=>$error]);
+    exit;
+}
 try {
     $context = $service->build($row);
     echo json_encode(['ok'=>true, 'context'=>$context, 'can_process'=>$service::canProcess($row), 'lookups'=>$GLOBALS['lookups']]);

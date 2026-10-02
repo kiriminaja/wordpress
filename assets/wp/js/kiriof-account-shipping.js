@@ -34,6 +34,8 @@
 		var indicator = wrapper.querySelector( '.kiriof-buyer-map__indicator' );
 		var locate = wrapper.querySelector( '.kiriof-buyer-map__locate' );
 		var mapStatus = wrapper.querySelector( '.kiriof-buyer-map__status' );
+		var coverageWarning = wrapper.querySelector( '.kiriof-buyer-map__coverage-warning' );
+		var coverageLegend = wrapper.querySelector( '.kiriof-buyer-map__coverage-legend' );
 		var mapSection = wrapper.querySelector( '.kiriof-buyer-map' );
 		var disposed = false;
 		var generation = 0;
@@ -84,6 +86,24 @@
 			}
 			hidden.value = JSON.stringify( value );
 			renderBadges();
+			renderCoverage( getCoverageStatus( pin ) );
+		}
+		function getCoverageStatus( point ) {
+			var api = root.kiriofMapCheckout;
+			return api && 'function' === typeof api.coverageStatus ? api.coverageStatus( mapConfig.coverage, point ) : null;
+		}
+		function renderCoverage( status ) {
+			if ( coverageWarning ) {
+				coverageWarning.hidden = ! status || false !== status.inside;
+				coverageWarning.setAttribute( 'role', 'note' );
+				coverageWarning.setAttribute( 'aria-live', 'polite' );
+				coverageWarning.textContent = coverageWarning.hidden ? '' : mapStrings.mapOutsideRadius || 'This pin is outside Instant coverage. Express remains available.';
+			}
+			if ( coverageLegend ) {
+				coverageLegend.hidden = ! getCoverageStatus( mapConfig.coverage && mapConfig.coverage.origin );
+				coverageLegend.setAttribute( 'role', 'note' );
+				coverageLegend.textContent = coverageLegend.hidden ? '' : mapStrings.mapCoverage || 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.';
+			}
 		}
 		function renderBadges() {
 			if ( ! badges ) { return; }
@@ -186,6 +206,7 @@
 			}, 250 );
 		}
 		function renderMap() {
+			renderCoverage( getCoverageStatus( pin ) );
 			var currentGeneration = ++mapGeneration;
 			if ( locationGate ) { locationGate.dispose(); locationGate = null; }
 			if ( mapSession ) { mapSession.dispose(); mapSession = null; }
@@ -215,8 +236,11 @@
 					if ( viewport ) { viewport.hidden = false; }
 					mapSession = root.kiriofMapCheckout.createMapSession( {
 						leaflet: root.L, node: canvas, defaultCenter: [ Number( devicePoint.latitude ), Number( devicePoint.longitude ) ],
-						tiles: mapConfig.tiles, attribution: mapConfig.attribution, initial: pin,
+						tiles: mapConfig.tiles, attribution: mapConfig.attribution, initial: pin, coverage: mapConfig.coverage,
 						geolocation: root.navigator && root.navigator.geolocation,
+						onCoverage: function( status ) {
+							if ( current() ) { renderCoverage( status ); }
+						},
 						onSelect: function( point ) {
 							if ( ! current() ) { return false; }
 							pin = point; publish();
