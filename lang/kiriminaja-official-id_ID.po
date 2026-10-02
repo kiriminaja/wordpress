@@ -5414,3 +5414,72 @@ msgstr "Pin ini berada di luar area cakupan Instant 40 km. Anda tetap dapat meny
 #: inc/Services/InstantDeliveryCoverage.php inc/Services/InstantCheckoutQuoteService.php inc/Services/InstantShipmentContext.php
 msgid "Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address."
 msgstr "Pengiriman Instant hanya tersedia dalam jarak 40 km dari lokasi penjemputan. Anda dapat menggunakan pengiriman Express untuk alamat ini."
+
+msgid "District lookup timed out. Please retry."
+msgstr "Pencarian kecamatan kehabisan waktu. Silakan coba lagi."
+
+msgid "Express shipment could not be saved. Please retry checkout or contact the store."
+msgstr "Pengiriman Express tidak dapat disimpan. Coba checkout lagi atau hubungi toko."
+
+msgid "Your shipping quote has changed or is no longer available. Please refresh checkout and select shipping again."
+msgstr "Tarif pengiriman berubah atau tidak tersedia. Perbarui checkout dan pilih pengiriman lagi."
+
+msgid "Instant delivery is available only for a single shipping package. Please choose another shipping method."
+msgstr "Pengiriman Instant hanya tersedia untuk satu paket pengiriman. Pilih metode pengiriman lain."
+
+msgid "Instant delivery supports only one shipping package."
+msgstr "Pengiriman Instant hanya mendukung satu paket pengiriman."
+
+msgid "Instant delivery requires Indonesian rupiah (IDR)."
+msgstr "Pengiriman Instant memerlukan rupiah Indonesia (IDR)."
+
+msgid "Instant delivery supports IDR checkout currency only. Please choose another shipping method."
+msgstr "Pengiriman Instant hanya mendukung mata uang IDR. Pilih metode pengiriman lain."
+
+msgid "Instant delivery requires valid physical items weighing at most 40000 grams."
+msgstr "Pengiriman Instant memerlukan barang fisik yang valid dengan berat maksimal 40000 gram."
+
+msgid "Complete the shipping recipient name and phone number for Instant delivery."
+msgstr "Lengkapi nama dan nomor telepon penerima untuk pengiriman Instant."
+
+msgid "The items in this cart are not eligible for Instant delivery."
+msgstr "Barang dalam keranjang ini tidak memenuhi syarat pengiriman Instant."
+
+msgid "Instant delivery is unavailable. Choose another method or update the shipping address."
+msgstr "Pengiriman Instant tidak tersedia. Pilih metode lain atau perbarui alamat pengiriman."
+
+msgid "Instant prices could not be refreshed. Please retry before placing your order."
+msgstr "Tarif Instant tidak dapat diperbarui. Coba lagi sebelum membuat pesanan."
+
+msgid "Instant prices have expired. Refresh your shipping quote before placing the order."
+msgstr "Tarif Instant telah kedaluwarsa. Perbarui tarif pengiriman sebelum membuat pesanan."
+
+msgid "Reload checkout"
+msgstr "Muat ulang checkout"
+
+msgid "Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed."
+msgstr "Pembaruan pengiriman terlalu lama. Muat ulang checkout jika tidak selesai; pesanan Anda belum dibuat."
+
+msgid "KiriminAja destination address binding"
+msgstr "Keterikatan alamat tujuan KiriminAja"
+
+msgid "KiriminAja destination coordinates"
+msgstr "Koordinat tujuan KiriminAja"
+
+msgid "KiriminAja retained booking destination"
+msgstr "Tujuan pemesanan KiriminAja yang disimpan"
+
+msgid "KiriminAja retained booking recipient"
+msgstr "Penerima pemesanan KiriminAja yang disimpan"
+
+msgid "KiriminAja shipping destination"
+msgstr "Tujuan pengiriman KiriminAja"
+
+msgid "KiriminAja shipping district"
+msgstr "Kecamatan pengiriman KiriminAja"
+
+msgid "KiriminAja shipping district ID"
+msgstr "ID kecamatan pengiriman KiriminAja"
+
+msgid "KiriminAja account destination metadata has been processed. Order erasure is managed separately by WooCommerce. Durable booking snapshots and shipment transaction records are not erased by this account callback and may contain recipient addresses, phone numbers and coordinates. An administrator must review fulfillment and applicable financial/legal retention requirements before removing those records. No shipment has been cancelled."
+msgstr "Metadata tujuan akun KiriminAja telah diproses. Penghapusan pesanan dikelola terpisah oleh WooCommerce. Snapshot pemesanan dan catatan transaksi pengiriman tidak dihapus oleh callback akun ini dan mungkin berisi alamat, nomor telepon, serta koordinat penerima. Administrator harus meninjau pemenuhan dan persyaratan penyimpanan keuangan/hukum sebelum menghapus catatan tersebut. Tidak ada pengiriman yang dibatalkan."

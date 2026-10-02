@@ -101,20 +101,6 @@ function kiriof_shipping_method(){
                     return;
                 }
 
-                if ($this->hasActiveFreeShippingCoupon()) {
-                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
-                    }
-                    // Add a 0-cost rate so KiriminAja remains a valid shipping option
-                    // rather than leaving the customer with no available shipping methods.
-                    $this->add_rate( array(
-                        'id'    => $this->id . '_free',
-                        'label' => __( 'Free shipping', 'kiriminaja-official' ),
-                        'cost'  => 0,
-                    ) );
-                    return;
-                }
-
                 $destination_id = WC()->session->get( 'shipping_destination_id' );
                 if ( empty( $destination_id ) ) {
                     $destination_id = WC()->session->get( 'destination_id' );
@@ -241,7 +227,7 @@ function kiriof_shipping_method(){
                     kiriof_log( 'info', 'getPricing data count=' . count( $kiriofPricing['data'] ) );
                 }
                 
-                $res_pricing = $kiriofPricing['data']; //object
+                $res_pricing = ! empty( $kiriofPricing['status'] ) ? ( $kiriofPricing['data'] ?? null ) : null;
                 $kiriofRateMetaMap = array();
                 foreach($this->filterOptions($res_pricing, $quantity, $kiriof_insurance) as $row){
                     
@@ -582,20 +568,6 @@ function kiriof_shipping_method(){
                 return ucwords( strtolower( $service_type ) ) . ' ' . __( 'service', 'kiriminaja-official' );
             }
 
-            private function hasActiveFreeShippingCoupon(){
-                if (!function_exists('WC') || !WC() || !isset(WC()->cart) || !WC()->cart) {
-                    return false;
-                }
-
-                foreach (WC()->cart->get_coupons() as $coupon) {
-                    if ($coupon && method_exists($coupon, 'get_free_shipping') && $coupon->get_free_shipping()) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            
         }
     }
 }

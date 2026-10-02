@@ -238,7 +238,13 @@ class ShippingDiscountCouponService {
         );
 
         if ( $this->hasActiveFreeShippingCoupon() ) {
-            $result['notice'] = __( 'Shipping discount coupon not applied — free shipping is active.', 'kiriminaja-official' );
+            // Waive buyer delivery only; do not mutate the carrier quote used for
+            // insurance, COD fees, validation, or transaction submission.
+            $result['cost'] = 0.0;
+            $result['discount_amount'] = max( 0.0, $baseCost );
+            $result['eligible'] = true;
+            $result['notice'] = __( 'Free shipping', 'kiriminaja-official' );
+            $result['badge'] = __( 'Free shipping', 'kiriminaja-official' );
             return $result;
         }
 
@@ -900,7 +906,7 @@ class ShippingDiscountCouponService {
         );
     }
 
-    private function hasActiveFreeShippingCoupon(): bool {
+    public function hasActiveFreeShippingCoupon(): bool {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
             return false;
         }
