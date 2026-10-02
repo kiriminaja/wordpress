@@ -5,6 +5,18 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantDetailMapDataRuntimeTest extends TestCase {
+    public function test_admin_map_assets_and_public_config_are_wired_for_direct_and_workspace_navigation(): void {
+        $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+        $data = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionDetailPageData.php' );
+        $this->assertStringContainsString( "array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' )", $enqueue );
+        $this->assertStringContainsString( "\$this->enqueue_workspace_script( \$workspace_script, array( 'kiriof-leaflet-script' ) )", $enqueue );
+        $this->assertSame( 2, substr_count( $data, '"map" => $is_express ? null : InstantDetailMapData::mapConfig()' ) );
+        $helper = file_get_contents( PLUGIN_DIR . '/inc/Services/InstantDetailMapData.php' );
+        $this->assertStringContainsString( 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', $helper );
+        $this->assertStringNotContainsString( 'getDefaultLocation(', $helper );
+        $this->assertStringNotContainsString( 'getCurrentPosition', $helper );
+    }
+
     private function detail(array $payload, string $mode = 'detail'): array {
         $payload = array_merge(['delivery_type' => 'instant', 'service' => 'gosend'], $payload, ['mode' => $mode]);
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));

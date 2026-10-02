@@ -525,7 +525,8 @@ class Enqueue extends BaseInit{
 
 
 
-        $needs_leaflet = 'kiriminaja-setting' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
+        // Lists can navigate into detail through the workspace without a full reload.
+        $needs_leaflet = in_array( $page, array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) || $is_wc_warehouses_settings || $is_wc_general_settings;
 
         if ( $needs_leaflet ) {
             wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
@@ -555,7 +556,7 @@ class Enqueue extends BaseInit{
             wp_enqueue_style( 'woocommerce_admin_styles' );
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
 			$this->enqueue_workspace_style();
-			$this->enqueue_workspace_script( $workspace_script );
+            $this->enqueue_workspace_script( $workspace_script, array( 'kiriof-leaflet-script' ) );
         }
 
         /** Select 2 - use WooCommerce's bundled copy */

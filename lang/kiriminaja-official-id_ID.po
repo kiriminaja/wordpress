@@ -5510,3 +5510,39 @@ msgstr "Tinjau pengiriman ini sebelum melanjutkan."
 
 msgid "Unable to confirm the operation. Contact support before trying again."
 msgstr "Operasi tidak dapat dikonfirmasi. Hubungi dukungan sebelum mencoba lagi."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Delivery route"
+msgstr "Rute pengiriman"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recorded route data — not live tracking."
+msgstr "Data rute tersimpan — bukan pelacakan langsung."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Illustrative straight-line connection — not a driving route or live tracking."
+msgstr "Ilustrasi garis lurus — bukan rute perjalanan atau pelacakan langsung."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Saved delivery coordinates are unavailable."
+msgstr "Koordinat pengiriman tersimpan tidak tersedia."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Unable to load the delivery map."
+msgstr "Peta pengiriman tidak dapat dimuat."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Saved pickup location"
+msgstr "Lokasi penjemputan tersimpan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Saved delivery location"
+msgstr "Lokasi pengiriman tersimpan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recorded route start"
+msgstr "Awal rute tersimpan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recorded route end"
+msgstr "Akhir rute tersimpan"

@@ -278,6 +278,8 @@ class TransactionDetailPageData
             ],
             "bootstrapError" => empty( $warnings ) ? "" : __( 'Some optional transaction details could not be loaded. See the KiriminAja log for diagnostics.', 'kiriminaja-official' ),
             "i18n" => $this->i18n(),
+            "map" => $is_express ? null : InstantDetailMapData::mapConfig(),
+            "map" => $is_express ? null : InstantDetailMapData::mapConfig(),
         ];
     }
 
@@ -609,8 +611,8 @@ class TransactionDetailPageData
             "printLabel" => __("Print Label", "kiriminaja-official"),
             "liveTracking" => __("Live Tracking", "kiriminaja-official"),
             "routeMap" => __("Delivery route", "kiriminaja-official"),
-            "routeRecorded" => __("Recorded courier route", "kiriminaja-official"),
-            "routeIllustration" => __("Route illustration only — not live tracking or the actual courier route.", "kiriminaja-official"),
+            "routeRecorded" => __("Recorded route data — not live tracking.", "kiriminaja-official"),
+            "routeIllustration" => __("Illustrative straight-line connection — not a driving route or live tracking.", "kiriminaja-official"),
             "routeUnavailable" => __("Saved delivery coordinates are unavailable.", "kiriminaja-official"),
             "routeMapError" => __("Unable to load the delivery map.", "kiriminaja-official"),
             "routeOrigin" => __("Saved pickup location", "kiriminaja-official"),

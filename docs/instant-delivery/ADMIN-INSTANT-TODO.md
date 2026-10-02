@@ -138,3 +138,11 @@ The local engineering improvements are not a verified 9/10 production rating. Re
 - [ ] Confirm and implement an authenticated production polyline persistence contract. The current documented tracking response and repository do not supply/persist `instant_tracking_payload`; existing URL-only rows intentionally show no Live Tracking.
 
 Remote multi-group processing is not an atomic database transaction: earlier successful remote groups cannot safely be undone when a later group fails. Only definitely rejected/not-submitted claims are rolled back; ambiguous/accepted groups retain duplicate protection.
+
+## Read-only Instant detail map
+
+- [x] Instant transaction detail renders bundled Leaflet using historical pickup/delivery coordinates, including valid zero values. No device permission, pin editing, saved-address changes, booking request, geocoding, or third-party route request occurs.
+- [x] Valid persisted route evidence renders as a solid recorded path. With no valid route, complete saved endpoints render a dashed straight-line illustration, explicitly not a predicted road route or live tracking. Missing/invalid coordinates show an unavailable state, never the current/default warehouse or fabricated endpoints.
+- [x] Recorded routes can render without saved endpoints; marker labels distinguish actual saved locations from first/last recorded route points. Tile errors retain the route disclaimer; map/layer/resize resources are disposed when navigating away or replacing detail data.
+- [x] Leaflet loads before the admin workspace on list/detail pages so client-side navigation into detail is supported. No Google Maps or external Leaflet CDN is used. HTTPS map tiles and attribution follow the configured provider.
+- [ ] Browser-verify direct detail load and workspace navigation on the deployed admin theme. A road-following predicted route would require a separately agreed routing provider/privacy/error contract; it is not inferred by this illustration.

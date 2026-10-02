@@ -7,6 +7,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class InstantDetailMapData {
+    /** Public tile configuration only; never publishes private pickup data. */
+    public static function mapConfig(): array {
+        $tiles = function_exists( 'apply_filters' ) ? (string) apply_filters( 'kiriof_map_checkout_tiles_url', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' ) : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        if ( 0 !== strpos( $tiles, 'https://' ) ) { $tiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'; }
+        $attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+        return array( 'enabled' => true, 'tiles' => $tiles, 'attribution' => $attribution );
+    }
+
 	/** No live location, WooCommerce geolocation, or remote routing is consulted. */
 	public static function prepare( object $row ): ?array {
 		if ( 'instant' !== TransactionDeliveryType::resolve( $row ) ) {
