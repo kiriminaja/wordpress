@@ -24,7 +24,7 @@
     IconXboxX,
   } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Checkbox } from '$lib/components/ui/checkbox';
+  import KiriofCheckbox from '$lib/ui/KiriofCheckbox.svelte';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
@@ -95,6 +95,7 @@
   const selectedRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType === (isInstant ? 'instant' : 'express') && !row.selection.disabled && selected[row.kaOrderId]));
   const selectableRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType === (isInstant ? 'instant' : 'express') && !row.selection.disabled));
   const allSelected = $derived(selectableRows.length > 0 && selectableRows.every((row) => selected[row.kaOrderId]));
+  const someSelected = $derived(selectedRows.length > 0 && !allSelected);
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
   const selectedProcessCount = $derived(selectedRows.filter((row) => row.selection.canProcess).length);
   const processOrderIds = $derived(selectedRows.filter((row) => row.selection.canProcess).map((row) => row.kaOrderId));
@@ -393,12 +394,12 @@
         <Table.Header>
           {#if selectedCount > 0}
             <Table.Row class="kiriof-selection-summary">
-              <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={!allSelected} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
+              <Table.Head class="is-check"><KiriofCheckbox checked={allSelected} indeterminate={someSelected} disabled={selectableRows.length === 0} aria-label={bootstrap.i18n.selectAll ?? 'Select all orders'} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
               <Table.Head colspan={6}>{selectedCount} selected</Table.Head>
             </Table.Row>
           {:else}
             <Table.Row>
-              {#if readOnly}<Table.Head class="is-row-number">#</Table.Head>{:else}<Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={false} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>{/if}
+              {#if readOnly}<Table.Head class="is-row-number">#</Table.Head>{:else}<Table.Head class="is-check"><KiriofCheckbox checked={allSelected} indeterminate={someSelected} disabled={selectableRows.length === 0} aria-label={bootstrap.i18n.selectAll ?? 'Select all orders'} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>{/if}
               <Table.Head>{bootstrap.i18n.order}</Table.Head>
               <Table.Head>{bootstrap.i18n.expedition}</Table.Head>
               <Table.Head>{bootstrap.i18n.airwaybill}</Table.Head>
@@ -419,7 +420,7 @@
                 {:else}
                   <Table.Cell class="is-check">
                     <ActionTooltip label={row.selection.title} disabled={!row.selection.title}>
-                      <Checkbox
+                      <KiriofCheckbox
                         checked={Boolean(selected[row.kaOrderId])}
                         disabled={row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')}
                         name="transaction_id[]"

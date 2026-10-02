@@ -47,7 +47,7 @@ final class InstantDeliveryStatus {
 		$snapshot = json_decode( (string) ( $row['shipping_info'] ?? '' ), true );
 		// An unconfirmed durable claim is private duplicate protection, not a shipment issue.
 		if ( null === $raw_code && 'pending' === ( $row['status'] ?? null ) && empty( $row['instant_payment_id'] ) && ! $has_awb
-			&& ( ( is_array( $snapshot ) && isset( $snapshot['instant_items'] ) ) || 'Check remote state before retrying' === ( $row['rejected_reason'] ?? null ) ) ) {
+			&& ( ( is_array( $snapshot ) && ( isset( $snapshot['instant_items'] ) || isset( $snapshot['_kiriof_instant_prepared'] ) ) ) || 'Check remote state before retrying' === ( $row['rejected_reason'] ?? null ) ) ) {
 			$result = self::presentation( 'waiting_for_shipment' );
 		}
 

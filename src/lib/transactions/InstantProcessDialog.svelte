@@ -182,12 +182,14 @@
           <p role="alert" class="m-0 text-sm text-destructive">{orderLabel(row.id)}: {row.error}</p>
         {/each}
         <Collapsible.Root bind:open={orderInformationOpen} class="grid gap-2 rounded-xl border p-3">
-          <Collapsible.Trigger class="group flex w-full items-center justify-between gap-2 text-left" aria-label={text('instantOrderInformation')}>
-            <h3 class="m-0 text-sm font-semibold">{text('instantOrderInformation')}</h3>
-            <span class="flex items-center gap-2">
-              {#if changedCount > 0}<span class="text-xs text-muted-foreground">{changedCount} / {quote.rows.length} {text('instantOrdersChanged')}</span>{/if}
-              <IconChevronDown class="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
-            </span>
+          <Collapsible.Trigger aria-label={text('instantOrderInformation')}>
+            {#snippet child({ props })}
+              <Button {...props} variant="ghost" class="group w-full min-w-0 h-auto gap-2">
+                <span class="min-w-0 flex-1 text-left">{text('instantOrderInformation')}</span>
+                {#if changedCount > 0}<span>{changedCount} / {quote?.rows.length ?? 0} {text('instantOrdersChanged')}</span>{/if}
+                <IconChevronDown data-icon="inline-end" class="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+              </Button>
+            {/snippet}
           </Collapsible.Trigger>
           <Collapsible.Content class="grid gap-2">
             {#each quote.rows as row (row.id)}

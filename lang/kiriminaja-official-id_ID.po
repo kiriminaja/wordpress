@@ -5546,3 +5546,17 @@ msgstr "Awal rute tersimpan"
 #: inc/Services/TransactionDetailPageData.php
 msgid "Recorded route end"
 msgstr "Akhir rute tersimpan"
+
+#. translators: %s: Random diagnostic reference, not a shipment or payment ID.
+#: inc/Services/InstantDispatchService.php
+#, php-format
+msgid "Reference: %s. See WooCommerce → Status → Logs (source: kiriminaja_instant)."
+msgstr "Referensi: %s. Lihat WooCommerce → Status → Logs (sumber: kiriminaja_instant)."
+
+#: inc/Services/InstantDispatchService.php
+msgid "No shipment was booked for this order. Its original data was restored. Close this dialog and request a new quote to try again."
+msgstr "Tidak ada pengiriman yang dipesan untuk pesanan ini. Data awalnya telah dipulihkan. Tutup dialog ini dan minta penawaran baru untuk mencoba lagi."
+
+#: inc/Services/InstantDispatchService.php
+msgid "Unable to verify restoration of this shipment. Contact support before trying again."
+msgstr "Pemulihan data pengiriman ini belum dapat dipastikan. Hubungi dukungan sebelum mencoba lagi."

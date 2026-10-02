@@ -1,5 +1,36 @@
 # Instant checkout logs
 
+## Admin “Unknown outcome” booking diagnostics
+
+### HTTP 400/422 responses
+
+Before the HTTP-error inspection fix, `http_failure` returned before reading JSON. Consequently `acknowledgement_type: NULL` and `result_type: NULL` on an HTTP 400 did **not** establish that the API body had null/missing fields. The response had been discarded. A short `elapsed_ms` rules out a 25-second timeout but does not reveal the validation error or prove a booking never happened.
+
+The bounded transport now reads HTTP error bodies using the same 2 MiB cap, preserves its failure tuple, and provides only an in-memory internal JSON inspection seam. No raw body is persisted or returned to the browser. `transport.error_body` logs a fixed format, boolean status/type, result type, whether a message exists, broad message categories, and whitelisted validation paths. Numeric package/item indexes are removed; unknown names and all field values/messages are omitted. Categories are hints extracted from root message keywords, not an authenticated error-code contract or proof of remote rejection.
+
+Only HTTP **400/422** plus the existing narrowly verified `status: false`, explicit empty result container(s), and no contradictory identity/unknown nested data qualify as `operation_rejected`. Such orders use verified restoration and a fresh quote. Missing/null results, nested errors with uncertain contract, contradictory identities, malformed/oversized bodies, 401/429/5xx, and transport exceptions remain ambiguous. The official v6.2 description has no authoritative 400 response schema, so do not broaden this rule to “every HTTP 400 is cancelled.” An old persisted unknown booking is not automatically reset by this change.
+
+The admin booking path previously swallowed unverified responses and local confirmation exceptions without a booking log. An old “Unknown outcome” cannot be diagnosed retrospectively from that message alone. Install the complete rebuilt ZIP for diagnostics on subsequent submissions; **do not resubmit an existing unknown booking just to obtain a log**. First have support verify its remote status using its existing transaction/order identity. The durable duplicate guard remains in place.
+
+New unknown results append a random 16-character **Reference** and point to **WooCommerce → Status → Logs**, source **`kiriminaja_instant`**. Search the newest source log for that reference. Each outbound group has its own reference; all affected rows in that group share it. `booking_submitted` and `booking_confirmed` use info severity; unknown results and definite rejections use error severity. These entries do not require `WP_DEBUG`. WooCommerce logging must be enabled and its threshold, plus any `kiriof_logger_threshold` filter, must permit error entries. If the store cannot write logs, check its configured WooCommerce log handler/storage and hosting permissions; diagnostic failure cannot safely alter a remote booking outcome.
+
+| Diagnostic code | Interpretation |
+| --- | --- |
+| `booking_call_exception` | Calling the booking adapter threw; this does not prove remote rejection. |
+| `booking_unacknowledged` | No strict successful acknowledgement. Inspect the nested `transport` facts. |
+| `package_match_not_unique` | No exact package match or more than one; position is never used to infer identity. |
+| `payment_id_missing_or_invalid` | The matched response lacks a validated payment identity, including for TOP; no payment state is inferred. |
+| `booking_identity_mismatch` | Courier/service identity does not exactly match the reviewed request. |
+| `booking_response_invalid` | Shipment-state validation refused the matched response. |
+| `local_confirmation_failed` | Confirmation/persistence or loading the saved booking failed; `stage` identifies the boundary. |
+| `booking_rejected` | A definite, sanitized rejection was recognized; existing rollback rules still apply. |
+| `booking_not_submitted` | Local validation or transport facts prove no send began; restoration is safe, but must be verified. |
+| `booking_rollback_failed` | Restoration could not be verified; do not advertise or attempt another booking. |
+
+Nested transport diagnostics distinguish `http_failure` (with numeric `http_status`), `invalid_json`, `invalid_json_shape`, `invalid_content_length`, `oversized_response`, `stalled_response`, `transport_exception`, local validation failure, and adapter exceptions. `elapsed_ms` is a monotonic duration, not a remote acceptance timestamp. `transport_success` means only HTTP/JSON success, not a confirmed shipment. A transport exception alone does not identify DNS, TLS, or timeout; duration may help support investigate but is not proof.
+
+Logs contain fixed reason codes, counts, field types, acknowledgement booleans, hashed local transaction identifiers, and random correlation references. They intentionally exclude request/response bodies, arbitrary upstream messages, exception text/traces, authorization headers, API credentials, PINs, QR content, payment IDs, raw order identities, names, phone numbers, streets, and coordinates. Backtraces are explicitly disabled. Unknown bookings retain their durable request snapshot/claim and original public pricing; diagnostics never retry booking or relax confirmation checks. Tests use offline HTTP/repository fixtures, not live booking evidence.
+
 ## A constructor fatal is a startup blocker
 
 An `ArgumentCountError` for `InstantShipmentState::__construct()` means PHP tried to construct the state service without its required `TransactionRepository`. It is not a GoSend or Grab pricing error. Plugin initialization may stop before the checkout integration and diagnostics are registered.

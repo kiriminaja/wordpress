@@ -86,6 +86,11 @@ final class InstantShipmentState {
 			// The reviewed price is a private request snapshot until that confirmation.
 			$snapshot = json_decode( (string) ( $row->shipping_info ?? '' ), true );
 			if ( 'apply' === $mode && null !== $code && null === ( $row->instant_status_code ?? null )
+				&& 1 === ( $snapshot['_kiriof_instant_prepared']['version'] ?? null ) && is_array( $snapshot['_kiriof_instant_prepared']['metadata'] ?? null ) ) {
+				// Publish the private reviewed context only after authenticated lifecycle evidence.
+				$changes = $this->bookingMetadataChanges( $row, $snapshot['_kiriof_instant_prepared']['metadata'] );
+			}
+			if ( 'apply' === $mode && null !== $code && null === ( $row->instant_status_code ?? null )
 				&& is_array( $snapshot ) && isset( $snapshot['instant_shipping_cost'] ) && is_int( $snapshot['instant_shipping_cost'] ) && $snapshot['instant_shipping_cost'] >= 0 ) {
 				$changes['shipping_cost'] = $snapshot['instant_shipping_cost'];
 			}

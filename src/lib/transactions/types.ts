@@ -184,7 +184,7 @@ export interface InstantPayment {
   order_ids: string[];
 }
 export interface InstantDispatchResult {
-  rows: Array<{ id: string; status: string; awb: string; message: string }>;
+  rows: Array<{ id: string; status: string; awb: string; message: string; retryable?: boolean }>;
   payments: InstantPayment[];
 }
 

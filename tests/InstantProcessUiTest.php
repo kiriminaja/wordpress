@@ -5,6 +5,20 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantProcessUiTest extends TestCase {
+    public function test_collapsible_uses_composed_ghost_button_and_scoped_native_style_reset(): void {
+        $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
+        $css = $this->source('src/styles/admin-list.css');
+        $this->assertStringContainsString('{#snippet child({ props })}', $source);
+        $this->assertStringContainsString('<Button {...props} variant="ghost"', $source);
+        $this->assertStringContainsString('<IconChevronDown data-icon="inline-end"', $source);
+        $this->assertStringNotContainsString('<Collapsible.Trigger class=', $source);
+        $this->assertStringContainsString(".kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']", $css);
+        $this->assertStringContainsString('!appearance-none', $css);
+        $this->assertStringContainsString('![background-image:none]', $css);
+        $this->assertStringContainsString("[data-slot='collapsible-trigger']:focus-visible", $css);
+        $this->assertStringContainsString('@apply !ring-3 !ring-ring/50;', $css);
+    }
+
     public function test_instant_checkboxes_do_not_inherit_the_vertical_express_dialog_reset(): void {
         $css = $this->source( 'src/styles/admin-list.css' );
         $this->assertStringContainsString( ".kiriof-instant-process-dialog [data-slot='field'][data-orientation='horizontal']", $css );

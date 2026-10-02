@@ -1,6 +1,6 @@
 <script lang="ts">
   import { IconAlertTriangle, IconArrowDown, IconArrowUp, IconExternalLink, IconMapPin } from '@tabler/icons-svelte';
-  import { Checkbox } from '$lib/components/ui/checkbox';
+  import KiriofCheckbox from '$lib/ui/KiriofCheckbox.svelte';
   import * as Alert from '$lib/components/ui/alert';
   import KiriofInput from '$lib/ui/KiriofInput.svelte';
   import KiriofDialog from '$lib/ui/KiriofDialog.svelte';
@@ -334,7 +334,7 @@
             </div>
           {/if}
           {#if requiresCourierConsent}
-            <label class="!flex items-start gap-2 text-sm text-muted-foreground"><Checkbox checked={replacementConsent} onCheckedChange={(checked) => (replacementConsent = Boolean(checked))} /><span>{i18n.courierConsent ?? 'I agree to replace the unavailable courier with the selected service.'}</span></label>
+            <label class="!flex items-start gap-2 text-sm text-muted-foreground"><KiriofCheckbox checked={replacementConsent} onCheckedChange={(checked) => (replacementConsent = Boolean(checked))} /><span>{i18n.courierConsent ?? 'I agree to replace the unavailable courier with the selected service.'}</span></label>
           {/if}
         {/if}
       </div>

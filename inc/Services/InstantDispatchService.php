@@ -24,6 +24,18 @@ class InstantDispatchService {
 		$this->state = $state ?? new InstantShipmentState( $repo );
 	}
 
+	/** Logging must not change an irreversible booking's outcome or expose a trace. */
+	private function logBooking( string $level, array $context ): void {
+		if ( ! function_exists( 'kiriof_log' ) ) {
+			return;
+		}
+		try {
+			kiriof_log( $level, 'Instant admin booking diagnostics.', $context + array( 'backtrace' => false ), 'kiriminaja_instant' );
+		} catch ( \Throwable $error ) {
+			// A disabled/unavailable log store is not evidence of booking rejection.
+		}
+	}
+
 	/** Compare-and-delete: an expired/replaced owner must never delete a newer lease. */
 	private function deleteLease( string $key, array $lease ): bool {
 		global $wpdb;
@@ -110,7 +122,6 @@ class InstantDispatchService {
 		$claims = array();
 		$originals = array();
 		$prepared = array();
-		$processed = false;
 		try {
 			foreach ( $rows as $id => $row ) {
 				$lock = 'kiriof_instant_dispatch_' . hash( 'sha256', $id );
@@ -174,8 +185,12 @@ class InstantDispatchService {
 						throw new RuntimeException();
 					}
 					$metadata = $this->bookingMetadata( $current, $ctx, $method );
-					// Pricing is public data: commit it only with a verified booking.
-					unset( $metadata['shipping_cost'] );
+					// Keep presentation fields untouched until acceptance is verified.
+					// The private snapshot is still durable duplicate/recovery evidence.
+					$snapshot = json_decode( (string) ( $current->shipping_info ?? '{}' ), true );
+					$snapshot = is_array( $snapshot ) ? $snapshot : array();
+					$snapshot['_kiriof_instant_prepared'] = array( 'version' => 1, 'metadata' => $metadata );
+					$metadata = array( 'shipping_info' => wp_json_encode( $snapshot ) );
 					$originals[ $id ] = array();
 					foreach ( array_keys( $metadata ) as $field ) {
 						$originals[ $id ][ $field ] = $current->{$field} ?? null;
@@ -195,9 +210,10 @@ class InstantDispatchService {
 			if ( $quote['expires'] <= time() || ! delete_transient( $key ) ) {
 				throw new RuntimeException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
 			}
-			$processed = true;
 			$result = array( 'rows' => array(), 'payments' => array() );
 			foreach ( $this->groups( $contexts ) as $group ) {
+				$reference = bin2hex( random_bytes( 8 ) );
+				$this->logBooking( 'info', array( 'reference' => $reference, 'code' => 'booking_submitted', 'package_count' => count( $group ) ) );
 				$first = reset( $group );
 				$origin = $first['origin'];
 				$payload = $origin + array( 'packages' => array_values( array_column( $group, 'package' ) ) );
@@ -210,21 +226,35 @@ class InstantDispatchService {
 					$payload['pin'] = $pin;
 				}
 				$response = null;
+				$response_code = 'booking_unacknowledged';
+				// Fence before invoking the adapter: an exception can occur after sending.
+				// Only a trusted non-submission/rejection may make these rows retryable.
+				$claims = array_values( array_diff( $claims, array_map( 'strval', array_keys( $group ) ) ) );
 				try {
 					$response = $this->api->book( $payload );
 					$data = true === ( $response['status'] ?? false ) ? $this->result( $response ) : array();
+					if ( true === ( $response['status'] ?? false ) ) {
+						$response_code = 'booking_acknowledged';
+					}
 				} catch ( \Throwable $error ) {
 					$data = array();
+					$response_code = 'booking_call_exception';
 				}
-				if ( isset( $response ) && $this->definiteRejection( $response ) ) {
-					// Release this rejected group and groups not submitted yet, never accepted/ambiguous ones.
-					foreach ( $claims as $claim ) {
-						$this->restorePrepared( $claim, $prepared[ $claim ] ?? array(), $originals[ $claim ] ?? array() );
+				if ( isset( $response ) && ( $this->definiteRejection( $response ) || ( false === ( $response['status'] ?? null ) && true === ( $response['operation_not_submitted'] ?? false ) ) ) ) {
+					$this->logBooking( 'error', array( 'reference' => $reference, 'code' => true === ( $response['operation_not_submitted'] ?? false ) ? 'booking_not_submitted' : 'booking_rejected', 'transport' => $this->safeBookingDiagnostics() ) );
+					// Preserve earlier accepted results/payments; restore only this safe group
+					// and later groups that have never been submitted.
+					$retry_ids = array_merge( array_map( 'strval', array_keys( $group ) ), $claims );
+					$claims = array();
+					foreach ( $retry_ids as $claim ) {
+						$restored = $this->restorePrepared( $claim, $prepared[ $claim ] ?? array(), $originals[ $claim ] ?? array() );
+						$result['rows'][] = array( 'id' => $claim, 'status' => $restored ? ( isset( $group[ $claim ] ) ? 'failed' : 'skipped' ) : 'unknown', 'awb' => '', 'retryable' => $restored, 'message' => $restored ? __( 'No shipment was booked for this order. Its original data was restored. Close this dialog and request a new quote to try again.', 'kiriminaja-official' ) : __( 'Unable to verify restoration of this shipment. Contact support before trying again.', 'kiriminaja-official' ) );
+						if ( ! $restored ) {
+							$this->logBooking( 'error', array( 'reference' => $reference, 'code' => 'booking_rollback_failed', 'transaction_hash' => substr( hash( 'sha256', $claim ), 0, 16 ) ) );
+						}
 					}
-					throw new InvalidArgumentException( esc_html__( 'Unable to book the Instant shipment. Please try again.', 'kiriminaja-official' ) );
+					return $result;
 				}
-				// Once submitted, these claims must survive any untrusted/ambiguous reply.
-				$claims = array_values( array_diff( $claims, array_map( 'strval', array_keys( $group ) ) ) );
 				$payment = $this->paymentData( $data['payment'] ?? array() );
 				// Credit never needs a QR; do not expose a credential echoed in that field.
 				if ( 'credit' === $method ) {
@@ -241,12 +271,17 @@ class InstantDispatchService {
 					}
 				}
 				foreach ( $group as $id => $ctx ) {
-					$report = array( 'id' => $id, 'status' => 'unknown', 'awb' => '', 'message' => __( 'Unable to confirm the Instant booking. Contact support before trying again.', 'kiriminaja-official' ) );
+					$report = array( 'id' => $id, 'status' => 'unknown', 'awb' => '', 'retryable' => false, 'message' => __( 'Unable to confirm the Instant booking. Contact support before trying again.', 'kiriminaja-official' ) );
 					$matched = $matches[ $id ] ?? array();
+					$code = 'booking_acknowledged' !== $response_code ? $response_code : ( 1 !== count( $matched ) ? 'package_match_not_unique' : 'payment_id_missing_or_invalid' );
+					$stage = 'response_matching';
 					if ( 1 === count( $matched ) && '' !== $payment['id'] ) {
 						try {
-							$metadata = $this->bookingChanges( $ctx, $matched[0], $prepared[ $id ] );
+							$stage = 'booking_identity';
+							$metadata = $this->bookingChanges( $ctx, $matched[0], $this->preparedMetadata( $prepared[ $id ] ) );
+							$stage = 'confirm_booking';
 							$effective = $this->state->confirmBooking( (string) $id, $matched[0], $payment, $metadata );
+							$stage = 'load_saved_booking';
 							$saved = $this->repo->getTransactionByOrderId( (string) $id );
 							$awb = is_object( $saved ) ? ( $saved->awb ?? '' ) : ( $matched[0]['awb'] ?? '' );
 							$report['status'] = 'booked';
@@ -257,7 +292,27 @@ class InstantDispatchService {
 							$payment_statuses[] = is_object( $saved ) ? ( $saved->instant_payment_status ?? null ) : $payment['status'];
 						} catch ( \Throwable $error ) {
 							// Accepted remotely but unverified locally: keep the durable claim.
+							$code = 'booking_identity' === $stage ? 'booking_identity_mismatch' : ( $error instanceof InvalidArgumentException ? 'booking_response_invalid' : 'local_confirmation_failed' );
 						}
+					}
+					if ( 'unknown' === $report['status'] ) {
+						$raw_payment = (array) ( $data['payment'] ?? array() );
+						$this->logBooking( 'error', array(
+							'reference' => $reference,
+							'code' => $code,
+							'stage' => $stage,
+							'transaction_hash' => substr( hash( 'sha256', (string) $id ), 0, 16 ),
+							'package_count' => count( (array) ( $data['packages'] ?? array() ) ),
+							'matched_count' => count( $matched ),
+							'payment_id_type' => gettype( $raw_payment['id'] ?? $raw_payment['payment_id'] ?? null ),
+							'package_status_type' => gettype( $matched[0]['status_code'] ?? $matched[0]['status'] ?? null ),
+							'awb_type' => gettype( $matched[0]['awb'] ?? null ),
+							'transport' => $this->safeBookingDiagnostics(),
+						) );
+						/* translators: %s: Random diagnostic reference, not a shipment or payment ID. */
+						$report['message'] .= ' ' . sprintf( __( 'Reference: %s. See WooCommerce → Status → Logs (source: kiriminaja_instant).', 'kiriminaja-official' ), $reference );
+					} else {
+						$this->logBooking( 'info', array( 'reference' => $reference, 'code' => 'booking_confirmed', 'transaction_hash' => substr( hash( 'sha256', (string) $id ), 0, 16 ) ) );
 					}
 
 					$result['rows'][] = $report;
@@ -269,35 +324,65 @@ class InstantDispatchService {
 			}
 			return $result;
 		} finally {
-			if ( ! $processed ) {
-				foreach ( $claims as $id ) {
-					$this->restorePrepared( $id, $prepared[ $id ] ?? array(), $originals[ $id ] ?? array() );
-				}
+			$restored = true;
+			foreach ( $claims as $id ) {
+				$restored = $this->restorePrepared( $id, $prepared[ $id ] ?? array(), $originals[ $id ] ?? array() ) && $restored;
 			}
 			foreach ( $locks as $lock => $lease ) {
 				$this->deleteLease( $lock, $lease );
+			}
+			if ( ! $restored ) {
+				$this->logBooking( 'error', array( 'code' => 'booking_rollback_failed', 'unsubmitted_count' => count( $claims ) ) );
+				throw new InvalidArgumentException( esc_html__( 'Unable to verify restoration of this shipment. Contact support before trying again.', 'kiriminaja-official' ) );
 			}
 		}
 	}
 
 	/** Roll back only our exact unconfirmed snapshot; callbacks must always win. */
-	private function restorePrepared( string $id, array $prepared, array $original ): void {
-		$condition = array( 'order_id' => $id, 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_id' => null, 'awb' => null ) + $prepared;
-		$row = $this->repo->getTransactionByOrderId( $id );
-		if ( ! is_object( $row ) ) {
-			return;
-		}
-		foreach ( array( 'instant_payment_id', 'awb' ) as $field ) {
-			if ( ! in_array( $row->{$field} ?? null, array( null, '' ), true ) ) {
-				return;
+	private function restorePrepared( string $id, array $prepared, array $original ): bool {
+		try {
+			$condition = array( 'order_id' => $id, 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_id' => null, 'awb' => null ) + $prepared;
+			$row = $this->repo->getTransactionByOrderId( $id );
+			if ( ! is_object( $row ) ) {
+				return false;
 			}
-			$condition[ $field ] = $row->{$field} ?? null;
+			foreach ( array( 'instant_payment_id', 'awb' ) as $field ) {
+				if ( ! in_array( $row->{$field} ?? null, array( null, '' ), true ) ) {
+					return false;
+				}
+				$condition[ $field ] = $row->{$field} ?? null;
+			}
+			if ( empty( $prepared ) ) {
+				$restored = $this->repo->releaseInstantDispatch( $id );
+			} else {
+				$restored = $this->repo->compareAndSwapInstant( $id, $condition, array( 'status' => 'new' ) + $original );
+			}
+			$row = $this->repo->getTransactionByOrderId( $id );
+			if ( ! $restored || ! is_object( $row ) || 'new' !== $row->status || ! InstantShipmentContext::canProcess( $row ) ) {
+				return false;
+			}
+			foreach ( $original as $field => $value ) {
+				if ( ( $row->{$field} ?? null ) !== $value ) {
+					return false;
+				}
+			}
+			return true;
+		} catch ( \Throwable $error ) {
+			return false;
 		}
-		if ( empty( $prepared ) ) {
-			$this->repo->releaseInstantDispatch( $id );
-			return;
+	}
+
+	private function safeBookingDiagnostics(): array {
+		try {
+			return $this->api->bookingDiagnostics();
+		} catch ( \Throwable $error ) {
+			return array( 'code' => 'diagnostics_unavailable' );
 		}
-		$this->repo->compareAndSwapInstant( $id, $condition, array( 'status' => 'new' ) + $original );
+	}
+
+	private function preparedMetadata( array $prepared ): array {
+		$snapshot = json_decode( (string) ( $prepared['shipping_info'] ?? '' ), true );
+		return $snapshot['_kiriof_instant_prepared']['metadata'] ?? array();
 	}
 
 	/** Only a structured negative result without a remote identity is definitive. */

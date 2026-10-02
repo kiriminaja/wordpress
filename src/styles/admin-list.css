@@ -71,19 +71,6 @@
 .kiriof-selection-summary th {
   @apply !bg-muted !text-muted-foreground !text-xs !font-medium [text-transform:none];
 }
-.kiriof-transactions-app [data-slot='checkbox'] {
-  @apply !relative !inline-flex !w-4 ![min-width:16px] !h-4 ![min-height:16px] !items-center !justify-center !m-0 !p-0 !border border-border !rounded !bg-white !text-white !shadow-none !appearance-none;
-}
-.kiriof-transactions-app [data-slot='checkbox'][data-state='checked'],
-.kiriof-transactions-app [data-slot='checkbox'][data-state='indeterminate'] {
-  @apply !border-foreground !bg-foreground;
-}
-.kiriof-transactions-app [data-slot='checkbox-indicator'] {
-  @apply !grid !w-3.5 !h-3.5 !place-items-center;
-}
-.kiriof-transactions-app [data-slot='checkbox-indicator'] svg {
-  @apply !block !w-3 !h-3 ![stroke-width:3];
-}
 body:has([data-kiriof-transactions-page]) #screen-meta-links,
 body:has([data-kiriof-transactions-page]) .update-nag,
 body:has([data-kiriof-transactions-page]) .notice,
@@ -422,6 +409,19 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-transaction-dialog-content [data-slot='field-label'] {
   @apply !text-foreground ![font-size:13px] !font-semibold;
 }
+/* Bits UI forwards its trigger slot onto the composed shadcn Button. Scope the
+ * native-button reset to this dialog: WordPress has no Tailwind preflight and
+ * otherwise supplies the grey beveled background/border seen on the trigger. */
+.kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger'] {
+  @apply !appearance-none !w-full !min-w-0 !h-auto !m-0 !border-0 !bg-transparent ![background-image:none] !shadow-none !whitespace-normal;
+}
+.kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']:hover {
+  @apply !bg-muted;
+}
+.kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']:focus-visible {
+  @apply !ring-3 !ring-ring/50;
+}
+
 /* Respect horizontal confirmation controls in the Instant review. The legacy
  * dialog rule above deliberately keeps Express fields vertical. */
 .kiriof-instant-process-dialog [data-slot='field'][data-orientation='horizontal'] {

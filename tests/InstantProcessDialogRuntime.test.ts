@@ -26,7 +26,7 @@ async function compiledRuntime() {
   put('dialog.ts', `export {default as Root} from './Root.svelte'; export {default as Content, default as Header, default as Title, default as Description, default as Footer} from './Container.svelte';`);
   put('field.ts', `export {default as Field} from './Container.svelte'; export {default as Label} from './Label.svelte';`);
   put('ajax.ts', `export function postWordPressAction(...args) { return globalThis.__instantDialogAjax(...args); }`);
-  put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown} from './Icon.svelte';`);
+  put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown, default as IconLoader2} from './Icon.svelte';`);
   put('qr.ts', `export function qr() { return {destroy() {}}; }`);
   let source = readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8');
   const substitutions: Record<string, string> = {
@@ -35,17 +35,18 @@ async function compiledRuntime() {
     '$lib/wordpress/ajax': './ajax.ts',
     '$lib/components/ui/alert': join(root, 'src/lib/components/ui/alert/index.ts'),
     '$lib/components/ui/collapsible': join(root, 'src/lib/components/ui/collapsible/index.ts'),
+    '$lib/components/ui/button': join(root, 'src/lib/components/ui/button/index.ts'),
     './instant-process-session': join(root, 'src/lib/transactions/instant-process-session.ts'),
     './instant-payment-poller': join(root, 'src/lib/transactions/instant-payment-poller.ts'),
   };
   for (const [from, to] of Object.entries(substitutions)) source = source.replace(`'${from}'`, `'${to}'`);
-  source = source.replace("import { Checkbox } from '$lib/components/ui/checkbox';", "import Checkbox from './Checkbox.svelte';")
-    .replace("import { Button } from '$lib/components/ui/button';", "import Button from './Button.svelte';");
+  source = source.replace("import { Checkbox } from '$lib/components/ui/checkbox';", "import Checkbox from './Checkbox.svelte';");
   put('Production.svelte', source);
   put('Host.svelte', `<script>import Production from './Production.svelte'; let {props} = $props(); let open = $state(true); let orderIds = $state(props.orderIds); export function setOpen(value) {open = value;} export function setOrderIds(value) {orderIds = value;}</script><Production {...props} {orderIds} bind:open />`);
   put('entry.ts', `export {mount, unmount, flushSync} from 'svelte'; export {default as Host} from './Host.svelte';`);
   const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'real-svelte-5', setup(builder) {
     builder.onResolve({ filter: /^\$lib\/utils\.js$/ }, () => ({ path: join(root, 'src/lib/utils.ts') }));
+    builder.onResolve({ filter: /^@tabler\/icons-svelte$/ }, () => ({ path: join(directory, 'icons.ts') }));
     builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
     builder.onLoad({ filter: /\.svelte\.[jt]s$/ }, async ({ path }) => {
       const input = readFileSync(path, 'utf8');
@@ -81,7 +82,7 @@ async function fixture() {
   const r = await compiledRuntime();
   const keys = [...readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8').matchAll(/text\('([^']+)'\)/g)].map(match => match[1]);
   const i18n = Object.fromEntries(keys.map(key => [key, key]));
-  Object.assign(i18n, { instantResult_booked: 'BOOKED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
+  Object.assign(i18n, { instantResult_booked: 'BOOKED', instantResult_failed: 'FAILED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
   const target = window.document.createElement('main'); window.document.body.append(target);
   const host = r.mount(r.Host, { target, props: { props: { orderIds: ['1', '2', '3', '4', '5', '6'], ajaxUrl: '/ajax', nonce: 'nonce', i18n } } });
   async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); r.flushSync(); } }
@@ -108,6 +109,16 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.target.querySelectorAll('details')).toHaveLength(0);
       expect(h.query('[data-slot="alert"]')).not.toBeNull();
       expect(h.query('[data-slot="collapsible-trigger"]').getAttribute('data-state')).toBe('closed');
+      const trigger = h.query('[data-slot="collapsible-trigger"]');
+      expect(trigger.tagName).toBe('BUTTON');
+      expect(trigger.type).toBe('button');
+      expect(trigger.classList.contains('kiriof-button')).toBe(true);
+      expect(trigger.getAttribute('data-variant')).toBe('ghost');
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(trigger.querySelector('button')).toBeNull();
+      expect(trigger.querySelector('h3')).toBeNull();
+      expect(trigger.querySelector('svg').getAttribute('data-icon')).toBe('inline-end');
+      expect(trigger.querySelector('svg').classList.contains('size-4')).toBe(false);
       expect(h.query('[data-slot="collapsible-content"]').getAttribute('data-state')).toBe('closed');
       expect(h.query('[data-slot="collapsible-content"]').hidden).toBe(true);
       const totals = h.query('section[aria-label="instantShippingInformation"]');
@@ -118,6 +129,8 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.button('confirmProcess').disabled).toBe(false);
       await h.click(h.query('[data-slot="collapsible-trigger"]'));
       expect(h.query('[data-slot="collapsible-trigger"]').getAttribute('data-state')).toBe('open');
+      expect(trigger.getAttribute('aria-expanded')).toBe('true');
+      expect(h.query(`#${trigger.getAttribute('aria-controls')}`)).toBe(h.query('[data-slot="collapsible-content"]'));
       expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(6);
       expect(h.target.textContent).not.toContain('→');
       await h.click(h.query('[data-slot="collapsible-trigger"]'));
@@ -303,6 +316,24 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.query('[role="alert"]').textContent).toBe('Connection lost');
       expect(h.target.textContent).not.toContain('UNKNOWN'); expect(h.button('instantReview')).toBeUndefined();
       await h.advance(600000); expect(h.requests).toHaveLength(2); expect(h.timers.size).toBe(0);
+    } finally { await h.cleanup(); }
+  });
+  runtimeTest('partial batch retains earlier payment and presents restored rows without rerunning booking', async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote()); await h.click(h.button('confirmProcess'));
+      await h.reply({ rows: [
+        { id: '1', status: 'booked', awb: 'AWB-1', retryable: false, message: 'Accepted earlier group' },
+        { id: '2', status: 'failed', awb: '', retryable: true, message: 'Original data restored. Close and request a new quote.' },
+        { id: '3', status: 'skipped', awb: '', retryable: true, message: 'Not submitted; restored.' },
+      ], payments: [{ id: 'EARLIER-PAYMENT', order_ids: ['1'], status: 'paid', amount: 1000, qr_content: '' }] });
+      expect(h.target.textContent).toContain('BOOKED');
+      expect(h.target.textContent).toContain('FAILED');
+      expect(h.target.textContent).toContain('SKIPPED');
+      expect(h.target.textContent).toContain('Original data restored');
+      expect(h.target.textContent).toContain('EARLIER-PAYMENT');
+      expect(h.button('instantReview')).toBeUndefined();
+      expect(h.button('confirmProcess')).toBeUndefined();
+      await h.advance(600000); expect(h.requests).toHaveLength(2);
     } finally { await h.cleanup(); }
   });
 });

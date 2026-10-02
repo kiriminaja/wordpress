@@ -14,6 +14,13 @@ use KiriminAjaOfficial\Base\KiriminAjaApi;
 
 /** Official SDK adapter for Instant delivery; never retries remote operations. */
 class InstantDeliveryApiRepository extends KiriminAjaApi {
+	private array $booking_diagnostics = array();
+
+	/** Facts only, never request/response text, credentials, or customer data. */
+	public function bookingDiagnostics(): array {
+		return $this->booking_diagnostics;
+	}
+
 	public function tracking( string $order_id ): array {
 		if ( ! $this->valid_order_id( $order_id ) ) {
 			return $this->failure( 'Invalid Instant order ID.' );
@@ -110,37 +117,38 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 	}
 
 	public function book( array $payload ): array {
+		$this->booking_diagnostics = array( 'code' => 'local_validation_failed' );
 		if ( isset( $payload['origin'] ) || ! $this->valid_location( $payload, 'latitude', 'longitude' ) ) {
-			return $this->failure( 'Instant origin requires an address and coordinates.' );
+			return $this->notSubmittedFailure( 'Instant origin requires an address and coordinates.' );
 		}
 		foreach ( array( 'name', 'phone' ) as $field ) {
 			if ( ! is_string( $payload[ $field ] ?? null ) || '' === trim( $payload[ $field ] ) ) {
-				return $this->failure( 'Instant origin requires a name and phone.' );
+				return $this->notSubmittedFailure( 'Instant origin requires a name and phone.' );
 			}
 		}
 		if ( array_key_exists( 'payment_method', $payload ) && ! in_array( $payload['payment_method'], array( 'credit', 'cash' ), true ) ) {
-			return $this->failure( 'Unsupported Instant payment method.' );
+			return $this->notSubmittedFailure( 'Unsupported Instant payment method.' );
 		}
 		if ( 'credit' === ( $payload['payment_method'] ?? null ) && ( ! is_string( $payload['pin'] ?? null ) || ! preg_match( '/\A[0-9]{6}\z/', $payload['pin'] ) ) ) {
-			return $this->failure( 'A six-digit PIN is required for KA Credit.' );
+			return $this->notSubmittedFailure( 'A six-digit PIN is required for KA Credit.' );
 		}
 		$packages = $payload['packages'] ?? null;
 		if ( ! is_array( $packages ) || ! array_is_list( $packages ) || count( $packages ) < 1 || count( $packages ) > 10 ) {
-			return $this->failure( 'Instant booking requires 1 to 10 packages.' );
+			return $this->notSubmittedFailure( 'Instant booking requires 1 to 10 packages.' );
 		}
 		foreach ( $packages as $package ) {
 			if ( ! is_array( $package ) ) {
-				return $this->failure( 'Invalid Instant package.' );
+				return $this->notSubmittedFailure( 'Invalid Instant package.' );
 			}
 			if ( ! in_array( $package['service'] ?? null, array( 'gosend', 'grab_express' ), true ) ) {
-				return $this->failure( 'Unsupported Instant courier.' );
+				return $this->notSubmittedFailure( 'Unsupported Instant courier.' );
 			}
 			if ( ! $this->valid_location( $package['destination'] ?? null, 'latitude', 'longitude' ) ) {
-				return $this->failure( 'Instant destinations require an address and coordinates.' );
+				return $this->notSubmittedFailure( 'Instant destinations require an address and coordinates.' );
 			}
 			foreach ( array( 'name', 'phone' ) as $field ) {
 				if ( ! is_string( $package['destination'][ $field ] ?? null ) || '' === trim( $package['destination'][ $field ] ) ) {
-					return $this->failure( 'Instant destinations require a name and phone.' );
+					return $this->notSubmittedFailure( 'Instant destinations require a name and phone.' );
 				}
 			}
 		}
@@ -148,8 +156,21 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		// The inherited post() logs remote errors, which may echo the PIN.
 		// Use the bounded Instant transport directly; never retry or expose errors.
 		try {
-			[ $transport, $body ] = ( new InstantApiTransport() )->post( 'api/mitra/v6.2/instant/request_pickup', $payload );
-			if ( true === $transport && $this->booking_rejected( $body ) ) {
+			$client = new InstantApiTransport();
+			[ $transport, $body ] = $client->post( 'api/mitra/v6.2/instant/request_pickup', $payload );
+			$this->booking_diagnostics = $client->diagnostics();
+			$http_rejection = false === $transport && in_array( $this->booking_diagnostics['http_status'] ?? null, array( 400, 422 ), true );
+			if ( $http_rejection ) {
+				// The tuple remains a failure. Inspect bounded JSON privately, never upstream text.
+				$body = $client->errorResponse();
+			}
+			$this->booking_diagnostics['acknowledgement_type'] = gettype( is_array( $body ) ? ( $body['status'] ?? null ) : null );
+			$this->booking_diagnostics['acknowledged'] = is_array( $body ) && true === ( $body['status'] ?? null );
+			$this->booking_diagnostics['result_type'] = gettype( is_array( $body ) ? ( $body['result'] ?? $body['results'] ?? null ) : null );
+			if ( false === $transport && false === ( $this->booking_diagnostics['submitted'] ?? null ) ) {
+				return $this->notSubmittedFailure( 'Instant booking failed.' );
+			}
+			if ( ( true === $transport || $http_rejection ) && $this->booking_rejected( $body ) ) {
 				// Never expose upstream text or extra fields: they can echo the PIN.
 				return array( 'status' => false, 'data' => (object) array( 'status' => false, 'result' => (object) array() ), 'operation_rejected' => true );
 			}
@@ -158,6 +179,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			}
 			return array( 'status' => true, 'data' => json_decode( wp_json_encode( $body ) ) );
 		} catch ( \Throwable $throwable ) {
+			$this->booking_diagnostics['code'] = 'booking_adapter_exception';
 			return $this->failure( 'Instant booking failed.' );
 		}
 	}
@@ -261,6 +283,13 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			&& is_numeric( $location[ $latitude ] ?? null ) && is_numeric( $location[ $longitude ] ?? null )
 			&& is_finite( (float) $location[ $latitude ] ) && is_finite( (float) $location[ $longitude ] )
 			&& abs( (float) $location[ $latitude ] ) <= 90 && abs( (float) $location[ $longitude ] ) <= 180;
+	}
+
+	/** Only local validation or explicit transport proof can permit a safe retry. */
+	private function notSubmittedFailure( string $message ): array {
+		$failure = $this->failure( $message );
+		$failure['operation_not_submitted'] = true;
+		return $failure;
 	}
 
 	private function failure( string $message ): array {

@@ -14,6 +14,21 @@ namespace KiriminAja\Base\Api {
 			return $GLOBALS['transport'];
 		}
 
+	public function test_booking_requires_strict_transport_proof_of_non_submission(): void {
+		foreach ( array( 'array()', 'array( "submitted" => null )', 'array( "submitted" => 0 )', 'array( "submitted" => "false" )', 'array( "submitted" => true )', 'array( "submitted" => false )' ) as $diagnostics ) {
+			$fixture = $this->run_fixture( '$GLOBALS["diagnostics"] = ' . $diagnostics . '; $GLOBALS["transport"] = array( false, "offline" ); $result = $repository->book( $book );' );
+			$expected = array( 'status' => false, 'data' => 'Instant booking failed.' );
+			if ( 'array( "submitted" => false )' === $diagnostics ) {
+				$expected['operation_not_submitted'] = true;
+			}
+			$this->assertSame( $expected, $fixture['result'] );
+			$this->assertSame( array(), $fixture['logs'] );
+		}
+		// A successful transport with an ambiguous body cannot assert non-submission.
+		$fixture = $this->run_fixture( '$GLOBALS["diagnostics"] = array( "submitted" => false ); $GLOBALS["transport"] = array( true, array( "status" => false ) ); $result = $repository->book( $book );' );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['result'] );
+	}
+
 	public function test_booking_preserves_only_proven_empty_negative_results_without_secrets(): void {
 		foreach ( array( 'array()', '(object) array()' ) as $empty ) {
 			foreach ( array( 'result', 'results' ) as $field ) {
@@ -83,7 +98,9 @@ namespace KiriminAja\Services {
 	}
 }
 namespace KiriminAjaOfficial\Infrastructure {
-	class InstantApiTransport extends \KiriminAja\Base\Api\Api {}
+	class InstantApiTransport extends \KiriminAja\Base\Api\Api {
+		public function diagnostics(): array { return $GLOBALS['diagnostics'] ?? array( 'code' => 'transport_success', 'http_status' => 200, 'elapsed_ms' => 1, 'submitted' => true ); }
+	}
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );
@@ -179,6 +196,7 @@ PHP;
 			'$book = array( "service" => "gosend", "packages" => array( array( "origin_address" => "origin", "origin_lat" => 0, "origin_long" => 0, "destination_address" => "destination", "destination_lat" => 0, "destination_long" => 0 ) ) );' ) as $mutation ) {
 			$fixture = $this->run_fixture( $mutation . '$result = $repository->book( $book );' );
 			$this->assertFalse( $fixture['result']['status'] );
+			$this->assertTrue( $fixture['result']['operation_not_submitted'] );
 			$this->assertSame( array(), $fixture['calls'] );
 		}
 	}
