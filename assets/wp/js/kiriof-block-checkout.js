@@ -53,16 +53,11 @@
 
   function getShippingCouponNotice(couponCode, coupons) {
     var nativeCodes = getNativeCouponCodes(coupons);
+    var strings = window.kiriofBlockCheckoutStrings || {};
     if (nativeCodes.length > 0) {
-      return (
-        'Shipping discount "' +
-        couponCode +
-        '" applied and combined with: ' +
-        nativeCodes.join(", ") +
-        "."
-      );
+      return (strings.couponCombined || '').replace('%1$s', couponCode).replace('%2$s', nativeCodes.join(', '));
     }
-    return 'Shipping discount "' + couponCode + '" applied to your cart.';
+    return (strings.couponApplied || '').replace('%s', couponCode);
   }
 
   function createShippingCouponNotice(couponCode, context) {

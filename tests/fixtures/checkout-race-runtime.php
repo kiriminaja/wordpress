@@ -23,6 +23,7 @@ namespace KiriminAjaOfficial\Services {
             return new class { public function call() { return true; } };
         }
     }
+    class ExpressCheckoutValidationService { public const META_KEY = "_kiriof_express_validated"; public function __construct(...$args) {} public function validate($order, $district, $payment, $insurance) { return ["validated_calculation" => []]; } }
     class CustomerDistrictService { public function save( ...$args ) {} }
 }
 namespace KiriminAjaOfficial\Base {

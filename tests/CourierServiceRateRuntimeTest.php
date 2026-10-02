@@ -91,13 +91,14 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		$source = substr( $source, $start );
 		$this->assertMatchesRegularExpression( '/if\s*\(\s*!\s*\( new .*?SettingRepository\(\) \)->hasEnabledCourierServices\(\)\s*\)\s*\{\s*return;\s*\}/s', $source );
 		$guard = strpos( $source, '->hasEnabledCourierServices()' );
-		$coupon = strpos( $source, 'if ($this->hasActiveFreeShippingCoupon())' );
+		$pricing = strpos( $source, 'getPricing' );
 		$rate = strpos( $source, '$this->add_rate(' );
 		$this->assertNotFalse( $guard );
-		$this->assertNotFalse( $coupon );
+		$this->assertNotFalse( $pricing );
 		$this->assertNotFalse( $rate );
-		$this->assertLessThan( $coupon, $guard );
-		$this->assertLessThan( $rate, $coupon );
+		$this->assertLessThan( $pricing, $guard );
+		$this->assertLessThan( $rate, $guard );
+		$this->assertStringNotContainsString( "'_free'", $source );
 	}
 
 	public function test_shipping_rejects_foreign_and_unknown_package_countries_before_pricing_or_free_coupons(): void {
@@ -111,7 +112,7 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		}
 		$this->assertSame( 'kiriminaja-official_jne_REG', $result['paid']['indonesia']['rates'][0]['id'] );
 		$this->assertSame( 12000, $result['paid']['indonesia']['rates'][0]['cost'] );
-		$this->assertSame( 'kiriminaja-official_free', $result['free']['indonesia']['rates'][0]['id'] );
+		$this->assertSame( 'kiriminaja-official_jne_REG', $result['free']['indonesia']['rates'][0]['id'] );
 		$this->assertSame( 0, $result['free']['indonesia']['rates'][0]['cost'] );
 		$this->assertSame( array( array( 'kiriminaja-official_jne_REG' ), array(), array( 'kiriminaja-official_jne_REG' ) ), $result['transition'] );
 		$this->assertSame( 0, $result['network_calls'] );

@@ -343,6 +343,12 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
+            wp_localize_script( 'kiriof-block-checkout', 'kiriofBlockCheckoutStrings', array(
+                /* translators: 1: shipping coupon code, 2: other applied coupon codes. */
+                'couponCombined' => __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
+                /* translators: %s: shipping coupon code. */
+                'couponApplied' => __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
+            ) );
             wp_localize_script(
                 'kiriof-account-address',
                 'kiriofAccountAddress',

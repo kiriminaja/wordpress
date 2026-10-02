@@ -1440,7 +1440,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $calculateBody = substr($shippingMethod, $calculateStart, 12000);
 
         $addressGatePosition = strpos($calculateBody, 'kiriof_has_sufficient_checkout_address');
-        $freeShippingPosition = strpos($calculateBody, 'hasActiveFreeShippingCoupon');
+        $this->assertStringNotContainsString("'id'    => \$this->id . '_free'", $calculateBody);
         $pricingPosition = strpos($calculateBody, 'getPricing');
 
         $this->assertNotFalse(
@@ -1448,17 +1448,8 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'KiriminAja rates must be gated by checkout address length'
         );
         $this->assertNotFalse(
-            $freeShippingPosition,
-            'Free-shipping coupon branch must remain present'
-        );
-        $this->assertNotFalse(
             $pricingPosition,
             'API pricing branch must remain present'
-        );
-        $this->assertLessThan(
-            $freeShippingPosition,
-            $addressGatePosition,
-            'Address-length validation must run before adding the KiriminAja free-shipping rate'
         );
         $this->assertLessThan(
             $pricingPosition,

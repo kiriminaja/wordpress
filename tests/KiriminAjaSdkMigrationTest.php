@@ -36,11 +36,12 @@ final class KiriminAjaSdkMigrationTest extends TestCase
     {
         $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
 
+        $this->assertStringContainsString('AddressApiTransport', $repository);
+        $this->assertStringContainsString('api/mitra/kelurahan', $repository);
+        $this->assertStringContainsString('api/mitra/v2/get_address_by_name', $repository);
         foreach (
             array(
-                'KiriminAja::getDistrictByName(',
-                'KiriminAja::getSubDistrict(',
-                'KiriminAja::setCallback(',
+                'KiriminAja::setCallback',
                 'KiriminAja::getPayment(',
                 'KiriminAja::getTracking(',
                 'KiriminAja::getSchedules()',
